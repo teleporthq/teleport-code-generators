@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/component.json",
+  "name": "AuthorCard",
+  "propDefinitions": {
+    "authorName": {
+      "type": "string",
+      "defaultValue": "TeleportHQ Rocks"
+    },
+    "avatarUrl": {
+      "type": "string",
+      "defaultValue": "https://picsum.photos/150/150"
+    },
+    "direction": {
+      "type": "string",
+      "defaultValue": "row"
+    }
+  },
+  "content": {
+    "type": "container",
+    "key": "container",
+    "styles": {
+      "width": "100%",
+      "height": "100%",
+      "display": "flex",
+      "flexDirection": "$props.direction"
+    },
+    "children": [
+      {
+        "type": "container",
+        "key": "image-container",
+        "styles": {
+          "backgroundColor": "#333",
+          "borderRadius": "50%",
+          "display": "block",
+          "width": 150,
+          "height": 150,
+          "overflow": "hidden",
+          "border": "none"
+        },
+        "children": [
+          {
+            "type": "image",
+            "key": "img",
+            "attrs": {
+              "src": "$props.avatarUrl",
+              "alt": "$props.authorName"
+            }
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "key": "details-container",
+        "styles": {
+          "flexDirection": "column",
+          "flex": 1,
+          "marginLeft": "20px"
+        },
+        "children": [
+          {
+            "type": "h3",
+            "key": "autor-name",
+            "children": ["$props.authorName"]
+          },
+          {
+            "type": "container",
+            "key": "autor-desription",
+            "children": ["Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nulla laoreet metus a nulla rhoncus, et aliquet turpis lacinia."]
+          }
+        ]
+      }
+    ]
+  }
+}

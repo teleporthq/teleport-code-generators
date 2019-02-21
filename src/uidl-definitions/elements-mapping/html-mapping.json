@@ -1,0 +1,152 @@
+{
+  "container": {
+    "type": "div"
+  },
+  "group": {
+    "type": "div"
+  },
+  "main": {
+    "type": "main"
+  },
+  "header": {
+    "type": "header"
+  },
+  "nav": {
+    "type": "nav"
+  },
+  "section": {
+    "type": "section"
+  },
+  "article": {
+    "type": "article"
+  },
+  "aside": {
+    "type": "aside"
+  },
+  "footer": {
+    "type": "footer"
+  },
+  "text": {
+    "type": "span"
+  },
+  "textblock": {
+    "type": "p"
+  },
+  "strongtext": {
+    "type": "strong"
+  },
+  "formattedtext": {
+    "type": "pre"
+  },
+  "label": {
+    "type": "label"
+  },
+  "heading1": {
+    "type": "h1"
+  },
+  "heading2": {
+    "type": "h2"
+  },
+  "heading3": {
+    "type": "h3"
+  },
+  "heading4": {
+    "type": "h4"
+  },
+  "heading5": {
+    "type": "h5"
+  },
+  "heading6": {
+    "type": "h6"
+  },
+  "image": {
+    "type": "img",
+    "attrs": {
+      "src": "$attrs.url"
+    }
+  },
+  "textinput": {
+    "type": "input",
+    "attrs": {
+      "type": "text"
+    }
+  },
+  "passwordinput": {
+    "type": "input",
+    "attrs": {
+      "type": "password"
+    }
+  },
+  "numberinput": {
+    "type": "input",
+    "attrs": {
+      "type": "number"
+    }
+  },
+  "checkbox": {
+    "type": "input",
+    "attrs": {
+      "type": "checkbox"
+    }
+  },
+  "radiobutton": {
+    "type": "input",
+    "attrs": {
+      "type": "radio"
+    }
+  },
+  "textarea": {
+    "type": "textarea"
+  },
+  "link": {
+    "type": "a",
+    "attrs": {
+      "href": "$attrs.url",
+      "target": "_blank"
+    }
+  },
+  "button": {
+    "type": "button"
+  },
+  "form": {
+    "type": "form",
+    "attrs": {
+      "method": "$attrs.type",
+      "action": "$attrs.url"
+    }
+  },
+  "list": {
+    "type": "ul",
+    "repeat": {
+      "content": {
+        "type": "li",
+        "key": "item",
+        "children": ["$item"]
+      },
+      "dataSource": "$attrs.items"
+    }
+  },
+  "dropdown": {
+    "type": "select",
+    "repeat": {
+      "content": {
+        "type": "option",
+        "key": "option",
+        "children": ["$item"]
+      },
+      "dataSource": "$attrs.options"
+    }
+  },
+  "video": {
+    "type": "video"
+  },
+  "audio": {
+    "type": "audio"
+  },
+  "svg": {
+    "type": "svg"
+  },
+  "line": {
+    "type": "hr"
+  }
+}

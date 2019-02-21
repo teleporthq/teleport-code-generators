@@ -1,0 +1,145 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/project.json",
+  "name": "myVueProject",
+  "root": {
+    "name": "App",
+    "stateDefinitions": {
+      "router": {
+        "type": "router",
+        "defaultValue": "index",
+        "values": [
+          {
+            "value": "index",
+            "meta": {
+              "componentName": "Home"
+            }
+          }
+        ]
+      }
+    },
+    "content": {
+      "type": "state",
+      "key": "router",
+      "states": [
+        {
+          "value": "index",
+          "content": {
+            "type": "group",
+            "key": "container",
+            "children": [
+              {
+                "type": "TodoList",
+                "key": "todos-container",
+                "dependency": {
+                  "type": "local"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "components": {
+    "TodoList": {
+      "name": "TodoList",
+      "stateDefinitions": {
+        "todos": {
+          "type": "array",
+          "defaultValue": ["Eat", "Sleep", "Code", "Repeat"]
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "container",
+        "repeat": {
+          "content": {
+            "type": "Todo",
+            "key": "todo",
+            "attrs": {
+              "todo": "$item",
+              "index": "$index"
+            },
+            "events": {
+              "onDelete": [{
+                "type": "stateChange",
+                "modifies": "todos",
+                "newState": ["Eat", "Sleep"]
+              }]
+            },
+            "dependency": {
+              "type": "local"
+            }
+          },
+          "dataSource": "todos",
+          "meta": {
+            "useIndex": true
+          }
+        },
+        "children": [{
+          "type": "container",
+          "key": "add-new",
+          "children": [{
+            "type": "textinput",
+            "key": "input"
+          },{
+            "type": "button",
+            "key": "add-item",
+            "children": ["Add Item"],
+            "events": {
+              "onClick": [{
+                "type": "stateChange",
+                "modifies": "todos",
+                "newState": ["Eat", "Sleep", "Code"]
+              }]
+            }
+          }]
+        }]
+      }
+    },
+    "Todo": {
+      "name": "Todo",
+      "propDefinitions": {
+        "todo": {
+          "type": "string",
+          "defaultValue": ""
+        },
+        "index": {
+          "type": "number",
+          "defaultValue": 0
+        },
+        "onDelete": {
+          "type": "func",
+          "defaultValue": ""
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "todo-item",
+        "styles": {
+          "margin": "10px",
+          "width": "150px;",
+          "border-bottom": "1px solid gray"
+        },
+        "children": [
+          "$props.todo",
+          {
+            "type": "button",
+            "key": "delete",
+            "styles": {
+              "float": "right"
+            },
+            "events": {
+              "onClick": [{
+                "type": "propCall",
+                "calls": "onDelete",
+                "args": [0]
+              }]
+            },
+            "children": ["Remove Item"]
+          }
+        ]
+      }
+    }
+  }
+}

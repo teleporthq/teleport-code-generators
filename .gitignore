@@ -1,0 +1,32 @@
+.idea
+.DS_STORE
+*~
+*.pyc
+build/
+dist/
+coverage/
+*.log*
+*.sublime-project
+*.sublime-workspace
+.idea
+*.iml
+.vscode
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+
+# Output of 'npm pack'
+*.tgz

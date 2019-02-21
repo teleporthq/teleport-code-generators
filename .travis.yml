@@ -1,0 +1,15 @@
+language: node_js
+node_js:
+  - '10'
+script:
+  - npm run lint
+  - npm run test:coverage
+  - npm run upload:coverage
+deploy:
+  provider: npm
+  email: "$NPM_EMAIL"
+  api_key: "$NPM_TOKEN"
+  skip_cleanup: true
+  on:
+    branch: master
+    tags: true

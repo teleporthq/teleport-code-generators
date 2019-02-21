@@ -1,0 +1,16 @@
+{
+  "Datepicker": {
+    "type": "ReactDatepicker",
+    "dependency": {
+      "type": "package",
+      "path": "react-datepicker",
+      "version": "2.0.0",
+      "meta": {
+        "namedImport": false
+      }
+    }
+  },
+  "container": {
+    "type": "fakediv"
+  }
+}

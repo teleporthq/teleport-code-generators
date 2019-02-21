@@ -1,0 +1,18 @@
+{
+  "name": "project-boilerplate",
+  "version": "1.0.0",
+  "description": "A next project generated based on a UIDL document",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "TeleportHQ",
+  "license": "MIT",
+  "dependencies": {
+    "next": "^7.0.2",
+    "react": "16.8.1",
+    "react-dom": "16.8.1"
+  }
+}

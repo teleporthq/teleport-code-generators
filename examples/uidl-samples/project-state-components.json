@@ -1,0 +1,677 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/project.json",
+  "name": "Teleport Project",
+  "globals": {
+    "settings": {
+      "language": "en",
+      "title": "TeleportHQ"
+    },
+    "meta" : [
+      { "name": "description", "content": "Free Web tutorials" },
+      { "name": "keywords", "content": "prea bun, prea ca la tara" },
+      { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
+      { "property": "og:title", "content": "Free Web tutorials" }
+    ],
+    "manifest": {
+      "icons": [
+        {
+          "src": "/static/icons-192.png",
+          "type": "image/png",
+          "sizes": "192x192"
+        },
+        {
+          "src": "/static/icons-512.png",
+          "type": "image/png",
+          "sizes": "512x512"
+        }
+      ],
+      "theme_color": "#822CEC",
+      "background_color": "#822CEC"
+    },
+    "assets": [
+      {
+        "type": "style",
+        "path": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css",
+        "meta": {
+          "target": "body"
+        }
+      }, 
+      {
+        "type": "script",
+        "path": "https://www.googletagmanager.com/gtm.js",
+        "meta": {
+          "defer": true
+        }
+      },
+      {
+        "type": "script",
+        "content": "console.log(\"inline script\")",
+        "meta": {
+          "target": "body"
+        }
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css?family=Roboto"
+      },
+      {
+        "type": "style",
+        "content": "body{font-family: 'Roboto', sans-serif;}"
+      },
+      {
+        "type": "icon",
+        "path": "/static/favicon-32x32.png",
+        "meta": {
+          "type": "image/png",
+          "sizes": "32x32"
+        }
+      }
+    ],
+    "variables": {
+      "primaryColor": "#822CEC",
+      "secondaryColor": "#414141",
+      "spacing": "10px"
+    }
+  },
+  "root": {
+    "name": "App",
+    "stateDefinitions": {
+      "router": {
+        "type": "router",
+        "defaultValue": "index",
+        "values": [
+          {
+            "value": "index",
+            "meta": {
+              "path": "/",
+              "componentName": "Home"
+            }
+          }
+        ]
+      }
+    },
+    "content": {
+      "type": "state",
+      "key": "router",
+      "states": [
+        {
+          "value": "index",
+          "content": {
+            "type": "group",
+            "key": "container",
+            "children": [
+              {
+                "type": "container",
+                "key": "accordions",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "ExpandableArea",
+                    "key": "area1",
+                    "attrs": {
+                      "title": "First",
+                      "text": "Text"
+                    },
+                    "dependency": {
+                      "type": "local"
+                    }
+                  },
+                  {
+                    "type": "ExpandableArea",
+                    "key": "area2",
+                    "attrs": {
+                      "title": "Second",
+                      "text": "Text"
+                    },
+                    "dependency": {
+                      "type": "local"
+                    }
+                  },
+                  {
+                    "type": "ExpandableArea",
+                    "key": "area3",
+                    "attrs": {
+                      "title": "Third",
+                      "text": "Text"
+                    },
+                    "dependency": {
+                      "type": "local"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "key": "tab-selector",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "TabSelector",
+                    "key": "tabs",
+                    "dependency": {
+                      "type": "local"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "key": "modal-window",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "Modal",
+                    "key": "modal",
+                    "dependency": {
+                      "type": "local"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "key": "lists",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "dropdown",
+                    "key": "dropdown",
+                    "attrs": {
+                      "options": ["angular", "react", "vue"],
+                      "defaultValue": "react"
+                    }
+                  },
+                  {
+                    "type": "list",
+                    "key": "list",
+                    "attrs": {
+                      "items": ["angular", "react", "vue"]
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "key": "cards-container",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "Cards",
+                    "key": "cards",
+                    "attrs": {
+                      "items": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
+                    },
+                    "dependency": {
+                      "type": "local"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "key": "form-container",
+                "styles": {
+                  "width": "100%",
+                  "border": "1px solid red"
+                },
+                "children": [
+                  {
+                    "type": "form",
+                    "key": "form",
+                    "attrs": {
+                      "type": "GET",
+                      "url": "/"
+                    },
+                    "children": [
+                      {
+                        "type": "container",
+                        "key": "email-group",
+                        "children": [
+                          {
+                            "type": "label",
+                            "key": "email-label",
+                            "children": ["Email:"]
+                          },
+                          {
+                            "type": "textinput",
+                            "key": "email-input",
+                            "attrs": {
+                              "name": "email"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "container",
+                        "key": "pass-group",
+                        "children": [
+                          {
+                            "type": "label",
+                            "key": "pass-label",
+                            "children": ["Password:"]
+                          },
+                          {
+                            "type": "passwordinput",
+                            "key": "pass-input",
+                            "attrs": {
+                              "name": "pass"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "button",
+                        "key": "submit",
+                        "children": ["Login"]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "components": {
+    "ExpandableArea": {
+      "name": "ExpandableArea",
+      "propDefinitions": {
+        "title": {
+          "type": "string",
+          "defaultValue": "Hello"
+        },
+        "text": {
+          "type": "string",
+          "defaultValue": "Is it me you're looking for?"
+        }
+      },
+      "stateDefinitions": {
+        "isExpanded": {
+          "type": "boolean",
+          "defaultValue": false
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "container",
+        "children": [
+          {
+            "type": "text",
+            "key": "title",
+            "children": ["$props.title"]
+          },
+          {
+            "type": "button",
+            "key": "button",
+            "children": [{
+              "type": "state",
+              "key": "isExpanded",
+              "states": [
+                {
+                  "value": true,
+                  "content": "Collapse"
+                },
+                {
+                  "value": false,
+                  "content": "Expand"
+                }
+              ]
+            }],
+            "events": {
+              "onClick": [
+                {
+                  "type": "stateChange",
+                  "modifies": "isExpanded",
+                  "newState": "$toggle"
+                }
+              ]
+            }
+          },
+          {
+            "type": "state",
+            "key": "isExpanded",
+            "states": [
+              {
+                "value": true,
+                "content": {
+                  "type": "container",
+                  "key": "expanded-area",
+                  "children": ["$props.text"]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TabSelector": {
+      "name": "TabSelector",
+      "stateDefinitions": {
+        "activeTab": {
+          "type": "number",
+          "defaultValue": 0
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "container",
+        "children": [
+          {
+            "type": "container",
+            "key": "tabs",
+            "children": [
+              {
+                "type": "button",
+                "key": "tab1",
+                "children": ["Click"],
+                "styles": {
+                  "border": "1px solid black",
+                  "padding": "5px 10px"
+                },
+                "events": {
+                  "onClick": [{
+                    "type": "stateChange",
+                    "modifies": "activeTab",
+                    "newState": 0
+                  }]
+                }
+              },
+              {
+                "type": "button",
+                "key": "tab2",
+                "children": ["any"],
+                "styles": {
+                  "border": "1px solid black",
+                  "padding": "5px 10px"
+                },
+                "events": {
+                  "onClick": [{
+                    "type": "stateChange",
+                    "modifies": "activeTab",
+                    "newState": 1
+                  }]
+                }
+              },
+              {
+                "type": "button",
+                "key": "tab3",
+                "children": ["of"],
+                "styles": {
+                  "border": "1px solid black",
+                  "padding": "5px 10px"
+                },
+                "events": {
+                  "onClick": [{
+                    "type": "stateChange",
+                    "modifies": "activeTab",
+                    "newState": 2
+                  }]
+                }
+              },
+              {
+                "type": "button",
+                "key": "tab4",
+                "children": ["these"],
+                "styles": {
+                  "border": "1px solid black",
+                  "padding": "5px 10px"
+                },
+                "events": {
+                  "onClick": [{
+                    "type": "stateChange",
+                    "modifies": "activeTab",
+                    "newState": 3
+                  }]
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "key": "text",
+            "styles": {
+              "width": 100,
+              "height": 50,
+              "display": "flex",
+              "alignItems": "flex-start",
+              "backgroundColor": "#e4f2f8",
+              "borderColor": "#0089be",
+              "borderWidth": 0,
+              "borderStyle": "solid",
+              "@media (max-width: 835px)": {
+                  "width": 228,
+                  "height": 154
+              },
+              "@media (max-width: 640px)": {
+                  "backgroundColor": "#e91e63"
+              },
+              "@media (max-width: 634px)": {
+                  "height": 276
+              }
+            },
+            "children": [
+              "Active tab: ",
+              "$state.activeTab"
+            ]
+          },
+          {
+            "type": "state",
+            "key": "activeTab",
+            "states": [
+              {
+                "value": 0,
+                "content": {
+                  "type": "text",
+                  "key": "text1",
+                  "children": ["This is the first tab"]
+                }
+              },{
+                "value": 1,
+                "content": {
+                  "type": "text",
+                  "key": "text2",
+                  "children": ["This is the second tab"]
+                }
+              },{
+                "value": 2,
+                "content": {
+                  "type": "text",
+                  "key": "text3",
+                  "children": ["This is the third tab"]
+                }
+              },{
+                "value": 3,
+                "content": {
+                  "type": "text",
+                  "key": "text4",
+                  "children": ["This is the fourth tab"]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Modal": {
+      "name": "Modal",
+      "stateDefinitions": {
+        "isOpen": {
+          "type": "boolean",
+          "defaultValue": false
+        }
+      },
+      "content": {
+        "type": "group",
+        "key": "container",
+        "children": [
+          {
+            "type": "button",
+            "key": "openmodal",
+            "children": ["Show Popup"],
+            "events": {
+              "onClick": [{
+                "type": "stateChange",
+                "modifies": "isOpen",
+                "newState": true
+              }]
+            }
+          },
+          {
+            "type": "state",
+            "key": "isOpen",
+            "states": [
+              {
+                "value": true,
+                "content": {
+                  "type": "ModalWindow",
+                  "key": "window",
+                  "dependency": {
+                    "type": "local"
+                  },
+                  "events": {
+                    "onClose": [{
+                      "type": "stateChange",
+                      "modifies": "isOpen",
+                      "newState": false
+                    }]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ModalWindow": {
+      "name": "ModalWindow",
+      "propDefinitions": {
+        "message": {
+          "type": "string",
+          "defaultValue": "Hello"
+        },
+        "onClose": {
+          "type": "func",
+          "defaultValue": "() => {}"
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "container",
+        "children": [
+          {
+            "type": "text",
+            "key": "text",
+            "children": ["$props.message"]
+          },
+          {
+            "type": "image",
+            "key": "image",
+            "attrs": {
+              "url": "/playground_assets/image.jpg"
+            }
+          },
+          {
+            "type": "container",
+            "key": "container",
+            "styles": {
+              "background": "#ffffff url(\"/playground_assets/image.png\") no-repeat right top;"
+            }
+          },
+          {
+            "type": "button",
+            "key": "close",
+            "children": ["Close me"],
+            "events": {
+              "onClick": [{
+                "type": "propCall",
+                "calls": "onClose"
+              }]
+            }
+          }
+        ]
+      }
+    },
+    "Card": {
+      "name": "Card",
+      "propDefinitions": {
+        "item": {
+          "type": "string",
+          "defaultValue": "placeholder"
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "card",
+        "styles": {
+          "margin": "10px",
+          "padding": "10px",
+          "border": "1px solid black"
+        },
+        "children": ["$props.item"]
+      }
+    },
+    "Cards": {
+      "name": "Cards",
+      "propDefinitions": {
+        "items": {
+          "type": "array",
+          "defaultValue": []
+        }
+      },
+      "content": {
+        "type": "container",
+        "key": "cards-container",
+        "styles": {
+          "width": "100%",
+          "border": "1px solid red",
+          "display": "flex"
+        },
+        "children": [{
+          "type": "text",
+          "key": "joker",
+          "children": ["Last"]
+        }],
+        "repeat": {
+          "content": {
+            "type": "container",
+            "key": "card-container",
+            "styles": {
+              "backgroundColor": "royalblue",
+              "color": "white",
+              "margin": "10px",
+              "border": "1px solid black"
+            },
+            "children": [{
+              "type": "Card",
+              "key": "card",
+              "attrs": {
+                "item": "$item"
+              },
+              "dependency": {
+                "type": "local"
+              }
+            }]
+          },
+          "dataSource": "props.items"
+        }
+      }
+    }
+  }
+}

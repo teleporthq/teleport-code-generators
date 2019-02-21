@@ -1,0 +1,122 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/project.json",
+  "name": "myVueProject",
+  "globals": {
+    "settings": {
+      "language": "en",
+      "title": "Router Project"
+    },
+    "assets": [],
+    "meta": []
+  },
+  "root": {
+    "name": "App",
+    "stateDefinitions": {
+      "router": {
+        "type": "router",
+        "defaultValue": "home",
+        "values": [
+          {
+            "value": "home",
+            "meta": {
+              "path": "/",
+              "componentName": "HomePage",
+              "fileName": "Home"
+            }
+          },
+          {
+            "value": "about",
+            "meta": {
+              "path": "/mask-url",
+              "componentName": "AboutPage"
+            }
+          }
+        ]
+      }
+    },
+    "content": {
+      "type": "states",
+      "key": "router",
+      "states": [
+        {
+          "value": "home",
+          "content": {
+            "type": "container",
+            "key": "container",
+            "children": [
+              {
+                "type": "button",
+                "key": "button",
+                "children": ["click-me"]
+              },
+              {
+                "type": "CustomText",
+                "key": "text",
+                "attrs": {
+                  "message": "random message"
+                },
+                "dependency": {
+                  "type": "local"
+                }
+              },
+              {
+                "type": "navlink",
+                "key": "navlink",
+                "attrs": {
+                  "transitionTo": "/mask-url"
+                },
+                "children": ["About page"]
+              }
+            ]
+          }
+        },
+        {
+          "value": "about",
+          "content": {
+            "type": "group",
+            "key": "around",
+            "children": [
+              {
+                "type": "text",
+                "key": "aspan",
+                "children": ["Who"]
+              },
+              {
+                "type": "container",
+                "key": "adiv",
+                "children": ["are"]
+              },
+              {
+                "type": "text",
+                "key": "aspan2",
+                "children": ["you?"],
+                "attrs": {
+                  "data-test": "123"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "components": {
+    "CustomText": {
+      "name": "CustomText",
+      "propDefinitions": {
+        "message": {
+          "type": "string",
+          "defaultValue": ""
+        }
+      },
+      "content": {
+        "type": "text",
+        "key": "node-key",
+        "styles": {
+          "color": "red"
+        },
+        "children": ["$props.message"]
+      }
+    }
+  }
+}

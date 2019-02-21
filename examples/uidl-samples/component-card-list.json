@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/component.json",
+  "name": "Cards",
+  "propDefinitions": {
+    "items": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "content": {
+    "type": "container",
+    "key": "cards-container",
+    "styles": {
+      "width": "100%",
+      "border": "1px solid red",
+      "display": "flex"
+    },
+    "children": [{
+      "type": "text",
+      "key": "joker",
+      "children": ["Last"]
+    }],
+    "repeat": {
+      "content": {
+        "type": "container",
+        "key": "card-container",
+        "styles": {
+          "backgroundColor": "royalblue",
+          "color": "white",
+          "margin": "10px",
+          "padding": "10px",
+          "border": "1px solid black"
+        },
+        "children": [{
+          "type": "text",
+          "styles": {
+            "border": "1px solid red",
+            "padding": "10px",
+            "lineHeight": "1.5"
+          },
+          "key": "card",
+          "children": ["$item"]
+        }]
+      },
+      "dataSource": "props.items"
+    }
+  }
+}
