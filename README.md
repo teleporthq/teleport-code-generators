@@ -1,6 +1,6 @@
 ## TeleportHQ Code Generators 0.3 - Alpha!
 
-[![npm]()]()
+[![npm](https://img.shields.io/npm/v/@teleporthq/teleport-code-generators.svg)](https://github.com/teleporthq/teleport-code-generators)
 [![Build Status](https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master)](https://travis-ci.org/teleporthq/teleport-code-generators)
 [![codecov](https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg)](https://codecov.io/gh/teleporthq/teleport-code-generators)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
