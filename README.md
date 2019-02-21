@@ -2,7 +2,7 @@
 
 [![npm]()]()
 [![Build Status](https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master)](https://travis-ci.org/teleporthq/teleport-code-generators)
-[![Codecov]()]()
+[![codecov](https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg)](https://codecov.io/gh/teleporthq/teleport-code-generators)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 
 This is a **WIP prototype** containing all our project and component generators, as well as the UIDL schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
