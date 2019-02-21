@@ -18,7 +18,7 @@ describe('React Component Generator', () => {
       const uidl = JSON.parse(JSON.stringify(componentUIDL))
       const result = await generator.generateComponent(uidl)
       expect(result.code).toContain('import React from "react"')
-      expect(result.externalCSS).toBe('')
+      expect(result.externalCSS).toBeDefined()
       expect(result.dependencies).toBeDefined()
     })
   })
