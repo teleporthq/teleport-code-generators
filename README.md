@@ -29,7 +29,7 @@ Read more about the [UIDL Standard](todo: link).
 While this will probably remain a [monorepo](https://danluu.com/monorepo/), we will publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-generators`. So, let's integrate that into your project:
 
 ```bash
-npm install @teleporthq/teleport-generators
+npm install @teleporthq/teleport-code-generators
 ```
 
 ```javascript
