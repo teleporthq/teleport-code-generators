@@ -161,7 +161,6 @@ This project is writen with **TypeScript**. The project setup is pretty standard
 
 ```
 npm install
-npm run create-react-basic
 ```
 
 Project generators are running locally in the `/examples` folder, where you will find a number of UIDL samples as well as the code that write the files and folders to disk.
