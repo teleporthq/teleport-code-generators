@@ -165,7 +165,19 @@ npm install
 
 Project generators are running locally in the `/examples` folder, where you will find a number of UIDL samples as well as the code that write the files and folders to disk.
 
-todo: Write about tests
+To generate the projects locally, you can try one of the four examples:
+```
+npm run create-react-basic
+npm run create-react-next
+npm run create-vue-basic
+npm run create-vue-nuxt
+```
+
+Running the test
+```
+npm run test
+npm run test:coverage
+```
 
 ## Planning
 todo: write about next steps
