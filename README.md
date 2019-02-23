@@ -1,4 +1,4 @@
-## TeleportHQ Code Generators 0.3 - Alpha!
+## teleportHQ Code Generators 0.3 - Alpha!
 
 [![npm](https://img.shields.io/npm/v/@teleporthq/teleport-code-generators.svg)](https://github.com/teleporthq/teleport-code-generators)
 [![Build Status](https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master)](https://travis-ci.org/teleporthq/teleport-code-generators)
@@ -10,7 +10,7 @@
 This is a **WIP prototype** containing all our project and component generators, as well as the UIDL schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
 
 ## What is this?
-The **code generators** are a part of the **TeleportHQ** ecosystem, which we are actively building, in an effort to streamline website and design generation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
+The **code generators** are a part of the **teleportHQ** ecosystem, which we are actively building, in an effort to streamline website and design generation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
 
 The code generators are used by our online visual editor (coming soon), a tool which lets you build websites via a familiar design tool interface. The glue between our different tools and systems and the code generators is the [UIDL Standard](todo: blog link). The **UIDL** allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
 
