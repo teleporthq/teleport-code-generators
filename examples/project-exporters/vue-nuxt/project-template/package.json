@@ -12,12 +12,12 @@
   },
   "dependencies": {
     "cross-env": "^5.2.0",
-    "nuxt": "^2.0.0"
+    "nuxt": "^2.4.3"
   },
   "devDependencies": {
-    "nodemon": "^1.11.0",
-    "eslint-config-prettier": "^3.1.0",
-    "eslint-plugin-prettier": "2.6.2",
-    "prettier": "1.14.3"
+    "nodemon": "^1.18.10",
+    "eslint-config-prettier": "^4.0.0",
+    "eslint-plugin-prettier": "3.0.1",
+    "prettier": "1.16.4"
   }
 }
