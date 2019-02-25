@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/teleporthq/uidl-definitions/master/component.json",
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
   "name": "Cards",
   "propDefinitions": {
     "items": {

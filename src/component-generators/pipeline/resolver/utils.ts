@@ -126,8 +126,22 @@ const resolveDependency = (
 // Traverses the mapped elements children and inserts the original children of the node being mapped.
 const insertChildrenIntoNode = (
   node: ContentNode,
-  originalChildren: Array<ContentNode | string>
+  originalChildren: Array<ContentNode | string>,
+  originalAttrs: Record<string, any>
 ) => {
+  // The same kind of referencing that is done in the mergeAttributes function
+  // TODO: Extract duplicate code and apply in both instances (merge attributes and solving children nodes)
+  Object.keys(node.attrs).forEach((attrKey) => {
+    if (typeof node.attrs[attrKey] === 'string' && node.attrs[attrKey].startsWith('$attrs.')) {
+      const referencedAttributeKey = node.attrs[attrKey].replace('$attrs.', '')
+      if (originalAttrs[referencedAttributeKey]) {
+        node.attrs[attrKey] = originalAttrs[referencedAttributeKey]
+        // since the attribute is mapped in the children, we assume it is not longer needed on the root node
+        delete originalAttrs[referencedAttributeKey]
+      }
+    }
+  })
+
   if (!node.children) {
     return
   }
@@ -147,7 +161,7 @@ const insertChildrenIntoNode = (
     }
 
     // The child node is pushed after the $children token was replaced
-    insertChildrenIntoNode(child, originalChildren)
+    insertChildrenIntoNode(child, originalChildren, originalAttrs)
     acc.push(child)
     return acc
   }, initialValue)
@@ -163,6 +177,20 @@ export const resolveContentNode = (
 
   node.type = mappedElement.type
 
+  // If the mapping contains children, insert that structure into the UIDL
+  if (mappedElement.children) {
+    const originalNodeChildren = node.children || []
+    const originalAttrs = node.attrs || {}
+
+    const replacingNode = {
+      ...node,
+      children: JSON.parse(JSON.stringify(mappedElement.children)),
+    }
+
+    insertChildrenIntoNode(replacingNode, originalNodeChildren, originalAttrs)
+    node.children = replacingNode.children
+  }
+
   // Resolve dependency with the UIDL having priority
   if (node.dependency || mappedElement.dependency) {
     node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
@@ -176,19 +204,6 @@ export const resolveContentNode = (
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     node.attrs = mergeAttributes(mappedElement, node.attrs, assetsPrefix)
-  }
-
-  // If the mapping contains children, insert that structure into the UIDL
-  if (mappedElement.children) {
-    const originalNodeChildren = node.children || []
-
-    const replacingNode = {
-      ...node,
-      children: JSON.parse(JSON.stringify(mappedElement.children)),
-    }
-
-    insertChildrenIntoNode(replacingNode, originalNodeChildren)
-    node.children = replacingNode.children
   }
 
   // The UIDL has priority over the mapping repeat

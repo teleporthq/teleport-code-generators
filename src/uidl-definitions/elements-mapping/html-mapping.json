@@ -138,7 +138,18 @@
     }
   },
   "video": {
-    "type": "video"
+    "type": "video",
+    "children": [
+      {
+        "type": "source",
+        "key": "video-mp4",
+        "attrs": {
+          "src": "$attrs.url",
+          "type": "video/mp4"
+        }
+      },
+      "This browser does not support video formats"
+    ]
   },
   "audio": {
     "type": "audio"
