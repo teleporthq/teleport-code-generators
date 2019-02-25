@@ -50,7 +50,7 @@ const chooseStylePlugin = (variation: ReactComponentFlavors) => {
 }
 
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
-  const { variation = ReactComponentFlavors.CSSModules, customMapping = {} } = params
+  const { variation = ReactComponentFlavors.InlineStyles, customMapping = {} } = params
 
   const resolver = new Resolver()
   resolver.addMapping(htmlMapping)
