@@ -91,7 +91,7 @@ export interface StateIdentifier {
   default: any
 }
 
-export enum ReactComponentFlavors {
+export enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',

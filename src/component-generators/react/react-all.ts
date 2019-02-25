@@ -10,7 +10,7 @@ import { createPlugin as reactCSSModules } from '../plugins/react/react-css-modu
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './elements-mapping.json'
-import { ComponentPlugin } from '../types'
+import { ComponentPlugin, ReactComponentStylingFlavors } from '../types'
 import { groupChunksByFileId } from './utils'
 import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
 
@@ -47,10 +47,10 @@ const configuredReactCSSModules = reactCSSModules({
 })
 
 const stylePlugins: Record<string, ComponentPlugin> = {
-  InlineStyles: configuredReactInlineStyles,
-  StyledJSX: configuredReactStyledJSX,
-  JSS: configuredReactJSS,
-  CSSModules: configuredReactCSSModules,
+  [ReactComponentStylingFlavors.InlineStyles]: configuredReactInlineStyles,
+  [ReactComponentStylingFlavors.StyledJSX]: configuredReactStyledJSX,
+  [ReactComponentStylingFlavors.JSS]: configuredReactJSS,
+  [ReactComponentStylingFlavors.CSSModules]: configuredReactCSSModules,
 }
 
 /**

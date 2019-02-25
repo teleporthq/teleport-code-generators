@@ -1,5 +1,5 @@
 import { Folder, File, ProjectGeneratorOptions } from '../types'
-import { ReactComponentFlavors } from '../../component-generators/types'
+import { ReactComponentStylingFlavors } from '../../component-generators/types'
 import { ProjectUIDL, ComponentDependency, ComponentUIDL } from '../../uidl-definitions/types'
 
 import { extractExternalDependencies, createManifestJSON } from '../utils/generator-utils'
@@ -13,7 +13,7 @@ import nextMapping from './elements-mapping.json'
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
   const reactGenerator = createReactGenerator({
-    variation: ReactComponentFlavors.StyledJSX,
+    variation: ReactComponentStylingFlavors.StyledJSX,
     customMapping: nextMapping,
   })
 

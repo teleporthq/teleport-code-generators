@@ -2,7 +2,7 @@ import reactProjectMapping from './elements-mapping.json'
 
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
 import createReactGenerator from '../../component-generators/react/react-component'
-import { ReactComponentFlavors } from '../../component-generators/types'
+import { ReactComponentStylingFlavors } from '../../component-generators/types'
 import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
 
 import { extractExternalDependencies, createManifestJSON } from '../utils/generator-utils'
@@ -14,7 +14,7 @@ import { createHtmlIndexFile } from './utils'
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
   const reactGenerator = createReactGenerator({
-    variation: ReactComponentFlavors.CSSModules,
+    variation: ReactComponentStylingFlavors.CSSModules,
   })
 
   const routingComponentGenerator = createRouterComponentGenerator()

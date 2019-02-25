@@ -11,7 +11,7 @@ import { createPlugin as importStatements } from '../plugins/common/import-state
 
 import {
   GeneratorOptions,
-  ReactComponentFlavors,
+  ReactComponentStylingFlavors,
   ComponentGenerator,
   CompiledComponent,
 } from '../types'
@@ -22,27 +22,27 @@ import reactMapping from './elements-mapping.json'
 import { groupChunksByFileId } from './utils'
 
 interface ReactGeneratorFactoryParams {
-  variation?: ReactComponentFlavors
+  variation?: ReactComponentStylingFlavors
   customMapping?: ElementsMapping
 }
 
-const chooseStylePlugin = (variation: ReactComponentFlavors) => {
+const chooseStylePlugin = (variation: ReactComponentStylingFlavors) => {
   switch (variation) {
-    case ReactComponentFlavors.CSSModules:
+    case ReactComponentStylingFlavors.CSSModules:
       return reactCSSModules({
         componentChunkName: 'react-component',
       })
-    case ReactComponentFlavors.InlineStyles:
+    case ReactComponentStylingFlavors.InlineStyles:
       return reactInlineStyles({
         componentChunkName: 'react-component',
       })
-    case ReactComponentFlavors.JSS:
+    case ReactComponentStylingFlavors.JSS:
       return reactJSS({
         componentChunkName: 'react-component',
         importChunkName: 'import',
         exportChunkName: 'export',
       })
-    case ReactComponentFlavors.StyledJSX:
+    case ReactComponentStylingFlavors.StyledJSX:
       return reactStyledJSX({
         componentChunkName: 'react-component',
       })
@@ -50,7 +50,7 @@ const chooseStylePlugin = (variation: ReactComponentFlavors) => {
 }
 
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
-  const { variation = ReactComponentFlavors.InlineStyles, customMapping = {} } = params
+  const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping = {} } = params
 
   const resolver = new Resolver()
   resolver.addMapping(htmlMapping)

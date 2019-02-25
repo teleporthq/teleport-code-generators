@@ -6,12 +6,12 @@ import {
   ComponentGeneratorTypes,
 } from '../../src'
 
-const { ReactComponentFlavors } = ComponentGeneratorTypes
+const { ReactComponentStylingFlavors } = ComponentGeneratorTypes
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {
     const generator = createReactComponentGenerator({
-      variation: ReactComponentFlavors.CSSModules,
+      variation: ReactComponentStylingFlavors.CSSModules,
     })
 
     it('should return the code as string', async () => {
@@ -25,7 +25,7 @@ describe('React Component Generator', () => {
 
   describe('with Custom Mapping', () => {
     const generator = createReactComponentGenerator({
-      variation: ReactComponentFlavors.InlineStyles,
+      variation: ReactComponentStylingFlavors.InlineStyles,
       customMapping: { container: { type: 'fakediv' } },
     })
 

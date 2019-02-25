@@ -72,7 +72,7 @@ There are two **factory functions** exported from our main module, for the React
 import { createReactComponentGenerator } from "teleport-generators"
 
 // Instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
-const reactGenerator = createReactComponentGenerator({ variation: ReactComponentFlavors.StyledJSX })
+const reactGenerator = createReactComponentGenerator({ variation: ReactComponentStylingFlavors.StyledJSX })
 
 // Calling the generate function will return the code as a string
 const result = reactGenerator.generateComponent(uidl)
