@@ -28,7 +28,7 @@
 
 This is a **WIP prototype** containing all our project and component generators, as well as the **UIDL** schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
 
-## What is this?
+<h2 id="what">⚛️ What is this?</h2>
 The **code generators** are a part of the **teleportHQ** ecosystem, which we are actively building, in an effort to streamline website and design generation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
 
 The code generators are used by our online visual editor (coming soon), a tool which lets you build websites via a familiar design tool interface. The glue between our different tools and systems and the code generators is the [UIDL Standard](link coming soon). The **UIDL** allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
@@ -44,7 +44,7 @@ You can also read more about our [decision to open source our code generators](l
 
 Read more about the [UIDL Standard](link coming soon).
 
-## Quick Setup
+<h2 id="quick-setup">🚀 Quick Setup</h2>
 While this will probably remain a [monorepo](https://danluu.com/monorepo/), we will publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-generators`. So, let's integrate that into your project:
 
 ```bash
@@ -79,7 +79,7 @@ const MyComponent = props => {
 export default MyComponent
 ```
 
-## Features
+<h2 id="features">💼 Features</h2>
 
 
 ### Component Generators
@@ -173,8 +173,7 @@ A few useful links to get you up to speed with the **teleport** ecosystem:
 *  [Full Documentation](https://teleporthq.io/docs)
 *  [Introducing the new Generators](todo: link)
 
-## Development
-
+<h2 id="development">💻 Development</h2>
 This project is writen with **TypeScript**. The project setup is pretty standard. In order to give it a spin locally, you have to do:
 
 ```
@@ -197,12 +196,12 @@ npm run test
 npm run test:coverage
 ```
 
-## Planning
+<h2 id="planning">🤖 Planning</h2>
 Coming soon
 
-## Contributions
+<h2 id="contributions">💕 Contributions</h2>
 We would be super happy to have community involvment around this project. We strongly believe in the power of open source, so we want to build the best possible code generators together with the entire development community.
 
-## Contact
+<h2 id="contact">✍️ Contact</h2>
 
 
