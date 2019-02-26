@@ -137,6 +137,7 @@ const insertChildrenIntoNode = (
 ) => {
   // The same kind of referencing that is done in the mergeAttributes function
   // TODO: Extract duplicate code and apply in both instances (merge attributes and solving children nodes)
+  // Explained here: https://github.com/teleporthq/teleport-code-generators/issues/44
   // Object.keys(node.attrs).forEach((attrKey) => {
   //   if (typeof node.attrs[attrKey] === 'string' && node.attrs[attrKey].startsWith('$attrs.')) {
   //     const referencedAttributeKey = node.attrs[attrKey].replace('$attrs.', '')
