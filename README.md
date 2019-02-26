@@ -28,10 +28,11 @@
 
 This is a **WIP prototype** containing all our project and component generators, as well as the **UIDL** schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
 
-<h2 id="what">⚛️ What is this?</h2>
-The **code generators** are a part of the **teleportHQ** ecosystem, which we are actively building, in an effort to streamline website and design generation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
+<h2 id="what">🤔 What is this?</h2>
 
-The code generators are used by our online visual editor (coming soon), a tool which lets you build websites via a familiar design tool interface. The glue between our different tools and systems and the code generators is the [UIDL Standard](link coming soon). The **UIDL** allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
+The **code generators** are a part of the **teleportHQ** ecosystem, which we are actively building, in an effort to streamline web and mobile applications creation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
+
+The code generators are used by our online **visual editor** (coming soon), a platform which lets you build applications via a familiar design tool interface. The glue between our platform and the code generators is the [**UIDL Standard**](link coming soon). The UIDL allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
 
 Our philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence our focus on component generation
@@ -45,6 +46,7 @@ You can also read more about our [decision to open source our code generators](l
 Read more about the [UIDL Standard](link coming soon).
 
 <h2 id="quick-setup">🚀 Quick Setup</h2>
+
 While this will probably remain a [monorepo](https://danluu.com/monorepo/), we will publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-generators`. So, let's integrate that into your project:
 
 ```bash
@@ -81,6 +83,7 @@ export default MyComponent
 
 <h2 id="features">💼 Features</h2>
 
+This repo contains multiple **modules** which will soon be available as individual `npm` **packages**. There are two types of generators available: component and project generators. Component generators take a simple **ComponentUIDL** input and return the **code** according to the specific generator flavors (ex: React + StyledJSX, Vue, etc). Project generators operate on **ProjectUIDL**s and will return a complete structure of `folders` and `files` which then can be written to disk or sent to servers for deployment. The aim of the project generators is to output a **working application**.
 
 ### Component Generators
 
@@ -120,17 +123,18 @@ const result = vueGenerator.generateComponent(uidl)
 console.log(result.code)
 ```
 
-#### Current capabilities
+#### Advanced capabilities
 Here's a list of functionalities that the UIDL and the component generators support at the moment, besides the obvious presentational layer:
 *  Dynamic values (props, state) inside html nodes or at attribute level
 *  Type definitions for component props (PropTypes in React, props in Vue)
+*  External dependencies definition
 *  Simple component state (Hooks in React)
 *  Event Handlers (related to state changes)
 *  Repeat structures (.map in React, v-for in Vue)
 
 ### Project Generators
 
-We have **official** project generators for the two different frameworks we support so far. For `React`, we can generate a project based on a `React` and `React-Router` template, or we can generate a project with `Next.js`. For `Vue`, we have a standard `Vue` app, build with the `vue-cli` and a generator for `Nuxt`.
+We have **official** project generators for the two different frameworks we support so far. For `React`, we can generate a project based on a `React` and `React-Router` template, or we can generate a project on top of `Next.js`. For `Vue`, we have a standard `Vue` app, build with the `vue-cli` and a generator for `Nuxt`.
 
 Project generators rely on the component generators and on the structure of the `ProjectUIDL` to figure out how many files to create and where. Each project generator has its own strategy, based on the particularities of that specific framework/tool.
 
@@ -166,14 +170,15 @@ UIDLValidators.validateProject(projectUIDL) // true / error object
 
 When the validation fails, an **error** object is returned. Validation is performed using [https://github.com/epoberezkin/ajv](a standard JSON schema validator).
 
-
 ### Further Reading
-A few useful links to get you up to speed with the **teleport** ecosystem:
-*  [Component](todo: link) and [Project](todo: link) JSON Schemas
-*  [Full Documentation](https://teleporthq.io/docs)
-*  [Introducing the new Generators](todo: link)
+A few useful links to get you up to speed with the entire **teleport** ecosystem:
+* [Component](link coming soon) and [Project](link coming soon) JSON Schemas
+* [Full Documentation](link coming soon)
+* [Introducing the new Generators](link coming soon)
+* [Playground link](link coming soon)
 
 <h2 id="development">💻 Development</h2>
+
 This project is writen with **TypeScript**. The project setup is pretty standard. In order to give it a spin locally, you have to do:
 
 ```
@@ -190,18 +195,45 @@ npm run create-vue-basic
 npm run create-vue-nuxt
 ```
 
-Running the test
+Files and folders for each template are generated after you run the corresponding npm task in `/examples/projects-exporters/<project-template>`.
+
+Running the test suite:
 ```
 npm run test
 npm run test:coverage
 ```
 
+Please [open an issue](https://github.com/teleporthq/teleport-code-generators/issues) for any irregularity or potential bug that you see while running the codebase, or simply if you have any question or curiosity about this project.
+
 <h2 id="planning">🤖 Planning</h2>
-Coming soon
+
+Not only our code is open source, but we are also planning the development of the code generators on GitHub. We already have [a number of issues](https://github.com/teleporthq/teleport-code-generators/issues) open, and we expect further contributions on this.
+
+We are especially interesting in opening the discussions around the issues tagged with the [`proposal`](https://github.com/teleporthq/teleport-code-generators/issues?q=is%3Aissue+is%3Aopen+label%3Aproposal) label.
+
+We also have a couple of milestone down the line:
+
+### Beta Release
+This is our immediately planned release for both the teleportHQ platform, as well as for the new website and generators. ETA for this release is mid April 2019, but this also depends on the release of the other parts of the ecosystem.
+
+### Official Release
+Our official release will be the switch to version `1.0`. ETA for this is around May/June 2019. Hopefully, by then, we will have more people contributing to the code generators.
 
 <h2 id="contributions">💕 Contributions</h2>
-We would be super happy to have community involvment around this project. We strongly believe in the power of open source, so we want to build the best possible code generators together with the entire development community.
+
+We would be super happy to have **community** involvement around this project. We strongly believe in the power of **open source**, so we want to build the best possible code generators together with the entire development community.
+
+We envision different types of involvement from this point on:
+* Trying out the generators and reporting back bugs and potential points of improvement
+* Contributing to the existing issues, either on the core modules or on the existing generators and plugins
+* Exploring and building new plugins for the existing generators
+* Exploring and building new generators based on the existing architecture
 
 <h2 id="contact">✍️ Contact</h2>
+
+Reach out to us on any channel:
+* 📧 [Write an Email](mailto:hello@teleporthq.io)
+* 🐦 [Drop a message on twitter](https://twitter.com/teleporthqio)
+* ℹ️ [Website](https://teleporthq.io/)
 
 
