@@ -6,9 +6,15 @@ import {
   ElementMapping,
 } from '../../../uidl-definitions/types'
 
-const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
-  const whitelistStyleProperties = ['background', 'backgroundImage']
+const ASSETS_IDENTIFIER = '/playground_assets'
+const whitelistStyleProperties = ['background', 'backgroundImage']
 
+/**
+ * Prefixes all urls inside the style object with the assetsPrefix
+ * @param styles the style object on the current node
+ * @param assetsPrefix a string representing the asset prefix
+ */
+const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
   // iterate through all the style keys
   return Object.keys(styles).reduce((acc, styleKey) => {
     const styleValue = styles[styleKey]
@@ -26,12 +32,12 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
     }
 
     // only whitelisted style properties are checked
-    if (whitelistStyleProperties.includes(styleKey) && styleValue.includes('url("')) {
-      // position index after the double quotes to introduce the url prefix before
-      const startIndex = styleValue.indexOf('url("') + 5
+    if (whitelistStyleProperties.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
+      // split the string at the beginning of the ASSETS_IDENTIFIER string
+      const startIndex = styleValue.indexOf(ASSETS_IDENTIFIER)
       acc[styleKey] =
         styleValue.slice(0, startIndex) +
-        prefixRelativeURL(assetsPrefix, styleValue.slice(startIndex, styleValue.length - 1))
+        prefixPlaygroundAssetsURL(assetsPrefix, styleValue.slice(startIndex, styleValue.length))
     } else {
       acc[styleKey] = styleValue
     }
@@ -45,8 +51,8 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
  * If the url starts with 'http', the return value will be the 'originalString'
  * If the url does not start with a '/' it also appends that
  */
-const prefixRelativeURL = (prefix: string, originalString: string) => {
-  if (originalString.startsWith('http')) {
+const prefixPlaygroundAssetsURL = (prefix: string, originalString: string) => {
+  if (!originalString.startsWith(ASSETS_IDENTIFIER)) {
     return originalString
   }
 
@@ -81,7 +87,7 @@ const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any, assetsPr
       if (uidlAttrs && uidlAttrs[uidlAttributeKey]) {
         resolvedAttrs[key] =
           key === 'src' && assetsPrefix
-            ? prefixRelativeURL(assetsPrefix, uidlAttrs[uidlAttributeKey])
+            ? prefixPlaygroundAssetsURL(assetsPrefix, uidlAttrs[uidlAttributeKey])
             : uidlAttrs[uidlAttributeKey]
 
         mappedAttributes.push(uidlAttributeKey)
@@ -131,16 +137,16 @@ const insertChildrenIntoNode = (
 ) => {
   // The same kind of referencing that is done in the mergeAttributes function
   // TODO: Extract duplicate code and apply in both instances (merge attributes and solving children nodes)
-  Object.keys(node.attrs).forEach((attrKey) => {
-    if (typeof node.attrs[attrKey] === 'string' && node.attrs[attrKey].startsWith('$attrs.')) {
-      const referencedAttributeKey = node.attrs[attrKey].replace('$attrs.', '')
-      if (originalAttrs[referencedAttributeKey]) {
-        node.attrs[attrKey] = originalAttrs[referencedAttributeKey]
-        // since the attribute is mapped in the children, we assume it is not longer needed on the root node
-        delete originalAttrs[referencedAttributeKey]
-      }
-    }
-  })
+  // Object.keys(node.attrs).forEach((attrKey) => {
+  //   if (typeof node.attrs[attrKey] === 'string' && node.attrs[attrKey].startsWith('$attrs.')) {
+  //     const referencedAttributeKey = node.attrs[attrKey].replace('$attrs.', '')
+  //     if (originalAttrs[referencedAttributeKey]) {
+  //       node.attrs[attrKey] = originalAttrs[referencedAttributeKey]
+  //       // since the attribute is mapped in the children, we assume it is not longer needed on the root node
+  //       delete originalAttrs[referencedAttributeKey]
+  //     }
+  //   }
+  // })
 
   if (!node.children) {
     return
@@ -204,6 +210,11 @@ export const resolveContentNode = (
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     node.attrs = mergeAttributes(mappedElement, node.attrs, assetsPrefix)
+  }
+
+  // Prefix the src attribute which may be present on images and videos and may point to local assets
+  if (node.attrs && node.attrs.src && assetsPrefix) {
+    node.attrs.src = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs.src)
   }
 
   // The UIDL has priority over the mapping repeat

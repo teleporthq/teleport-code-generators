@@ -140,19 +140,22 @@
   "video": {
     "type": "video",
     "children": [
-      {
-        "type": "source",
-        "key": "video-mp4",
-        "attrs": {
-          "src": "$attrs.url",
-          "type": "video/mp4"
-        }
-      },
-      "This browser does not support video formats"
+      "$children",
+      "This browser does not support the video formats given"
     ]
   },
   "audio": {
-    "type": "audio"
+    "type": "audio",
+    "children": [
+      "$children",
+      "This browser does not support the audio formats given"
+    ]
+  },
+  "source": {
+    "type": "source",
+    "attrs": {
+      "src": "$attrs.url"
+    }
   },
   "svg": {
     "type": "svg"
