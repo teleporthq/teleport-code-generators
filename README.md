@@ -97,7 +97,7 @@ There are two **factory functions** exported from our main module, for the React
 import { createReactComponentGenerator } from "teleport-generators"
 
 // Instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
-const reactGenerator = createReactComponentGenerator({ variation: ReactComponentStylingFlavors.StyledJSX })
+const reactGenerator = createReactComponentGenerator({ variation: "StyledJSX" })
 
 // Calling the generate function will return the code as a string
 const result = reactGenerator.generateComponent(uidl)
@@ -153,6 +153,12 @@ Coming soon
 #### Nuxt
 
 Coming soon
+
+#### Advanced Capabilities
+Besides the regular files and folders generated at the end of the process, project generators are also taking care of:
+* Extracting all external dependencies and adding them to the `package.json`
+* Creating the entry point for each application (it can be an `index.html` or something framework specific)
+* Generating a web manifest for PWA support
 
 ### UIDL Validators
 
