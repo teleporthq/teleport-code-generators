@@ -7,7 +7,8 @@ import {
 } from '../../../uidl-definitions/types'
 
 const ASSETS_IDENTIFIER = '/playground_assets'
-const whitelistStyleProperties = ['background', 'backgroundImage']
+const stylePropertiesWithURL = ['background', 'backgroundImage']
+const attributesWithURL = ['url', 'srcset']
 
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
@@ -32,7 +33,7 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
     }
 
     // only whitelisted style properties are checked
-    if (whitelistStyleProperties.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
+    if (stylePropertiesWithURL.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
       // split the string at the beginning of the ASSETS_IDENTIFIER string
       const startIndex = styleValue.indexOf(ASSETS_IDENTIFIER)
       acc[styleKey] =
@@ -63,7 +64,7 @@ const prefixPlaygroundAssetsURL = (prefix: string, originalString: string) => {
   return `${prefix}/${originalString}`
 }
 
-const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any, assetsPrefix?: string) => {
+const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
   const resolvedAttrs: Record<string, any> = {}
 
@@ -85,11 +86,7 @@ const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any, assetsPr
       // (ex: Link has an url attribute in the UIDL, but it needs to be mapped to href in the case of HTML)
       const uidlAttributeKey = value.replace('$attrs.', '')
       if (uidlAttrs && uidlAttrs[uidlAttributeKey]) {
-        resolvedAttrs[key] =
-          key === 'src' && assetsPrefix
-            ? prefixPlaygroundAssetsURL(assetsPrefix, uidlAttrs[uidlAttributeKey])
-            : uidlAttrs[uidlAttributeKey]
-
+        resolvedAttrs[key] = uidlAttrs[uidlAttributeKey]
         mappedAttributes.push(uidlAttributeKey)
       }
 
@@ -208,14 +205,18 @@ export const resolveContentNode = (
     node.styles = prefixAssetURLs(node.styles, assetsPrefix)
   }
 
-  // Merge UIDL attributes to the attributes coming from the mapping object
-  if (mappedElement.attrs) {
-    node.attrs = mergeAttributes(mappedElement, node.attrs, assetsPrefix)
+  // Prefix the attributes which may point to local assets
+  if (node.attrs && assetsPrefix) {
+    attributesWithURL.forEach((attribute) => {
+      if (node.attrs[attribute]) {
+        node.attrs[attribute] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attribute])
+      }
+    })
   }
 
-  // Prefix the src attribute which may be present on images and videos and may point to local assets
-  if (node.attrs && node.attrs.src && assetsPrefix) {
-    node.attrs.src = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs.src)
+  // Merge UIDL attributes to the attributes coming from the mapping object
+  if (mappedElement.attrs) {
+    node.attrs = mergeAttributes(mappedElement, node.attrs)
   }
 
   // The UIDL has priority over the mapping repeat

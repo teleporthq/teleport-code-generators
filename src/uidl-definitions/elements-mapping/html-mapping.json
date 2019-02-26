@@ -151,6 +151,13 @@
       "This browser does not support the audio formats given"
     ]
   },
+  "picture": {
+    "type": "picture",
+    "children": [
+      "$children",
+      "This browser does not support the image formats given"
+    ]
+  },
   "source": {
     "type": "source",
     "attrs": {
