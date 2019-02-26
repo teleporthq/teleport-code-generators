@@ -5,7 +5,7 @@
 <h2 align="center">Code Generators v0.3 - Alpha!</h2>
 
 <h3 align="center">
-  <a href="#what-is-this">What</a>
+  <a href="#what">What</a>
   <span> · </span>
   <a href="#quick-setup">Quick Setup</a>
   <span> · </span>
