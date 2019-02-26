@@ -19,13 +19,13 @@
 </h3>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@teleporthq/teleport-code-generators.svg" />
-  <img src="https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master" />
-  <img src="https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg" />
-  <img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" />
+  <a href="https://www.npmjs.com/package/@teleporthq/teleport-code-generators"><img src="https://img.shields.io/npm/v/@teleporthq/teleport-code-generators.svg" /></a>
+  <a href="https://travis-ci.org/teleporthq/teleport-code-generators"><img src="https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master" /></a>
+  <a href="https://codecov.io/gh/teleporthq/teleport-code-generators"><img src="https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg" /></a>
+  <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" /></a>
   <img src="https://img.shields.io/npm/l/@teleporthq/teleport-code-generators.svg" />
-  <img src="https://img.shields.io/bundlephobia/minzip/@teleporthq/teleport-code-generators.svg" />
-  <img src="https://img.shields.io/twitter/follow/teleporthqio.svg" />
+  <a href="https://bundlephobia.com/result?p=@teleporthq/teleport-code-generators"><img src="https://img.shields.io/bundlephobia/minzip/@teleporthq/teleport-code-generators.svg" /></a>
+  <a href="https://twitter.com/teleporthqio"><img src="https://img.shields.io/twitter/follow/teleporthqio.svg" /></a>
 </p>
 
 This is a **WIP prototype** containing all our project and component generators, as well as the **UIDL** schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
