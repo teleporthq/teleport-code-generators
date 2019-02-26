@@ -1,4 +1,22 @@
-## teleportHQ Code Generators 0.3 - Alpha!
+<p align="center">
+    <img src="https://raw.githubusercontent.com/teleporthq/teleport-lib-js/master/logo50.png" width="250"/>
+</p>
+
+<h2 align="center">Code Generators v0.3 - Alpha!</h2>
+
+<h3 align="center">
+  <a href="#what-is-this">What</a>
+  <span> · </span>
+  <a href="#quick-setup">Quick Setup</a>
+  <span> · </span>
+  <a href="#features">Features</a>
+  <span> · </span>
+  <a href="#development">Development</a>
+  <span> · </span>
+  <a href="#planning">Planning</a>
+  <span> · </span>
+  <a href="#contributions">Contributions</a>
+</h3>
 
 [![npm](https://img.shields.io/npm/v/@teleporthq/teleport-code-generators.svg)](https://github.com/teleporthq/teleport-code-generators)
 [![Build Status](https://travis-ci.org/teleporthq/teleport-code-generators.svg?branch=master)](https://travis-ci.org/teleporthq/teleport-code-generators)
@@ -8,12 +26,12 @@
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/@teleporthq/teleport-code-generators.svg)
 ![Twitter Follow](https://img.shields.io/twitter/follow/teleporthqio.svg)
 
-This is a **WIP prototype** containing all our project and component generators, as well as the UIDL schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
+This is a **WIP prototype** containing all our project and component generators, as well as the **UIDL** schemas and validators. While we have some working examples, it should not be considered production ready by any means! Do not hesitate to give us feedback and contribute back!
 
 ## What is this?
 The **code generators** are a part of the **teleportHQ** ecosystem, which we are actively building, in an effort to streamline website and design generation. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
 
-The code generators are used by our online visual editor (coming soon), a tool which lets you build websites via a familiar design tool interface. The glue between our different tools and systems and the code generators is the [UIDL Standard](todo: blog link). The **UIDL** allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
+The code generators are used by our online visual editor (coming soon), a tool which lets you build websites via a familiar design tool interface. The glue between our different tools and systems and the code generators is the [UIDL Standard](link coming soon). The **UIDL** allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (ex: React, Vue, etc.)
 
 Our philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence our focus on component generation
@@ -22,11 +40,11 @@ Our philosophy behind the code generators is:
 * Generated **code quality** should be as good as possible, so that any developer can pick up the work from there and enhance the project
 * The code generation architecture is open and extendable, we invite everyone to contribute!
 
-You can also read more about our [decision to open source our code generators](todo: blog link).
+You can also read more about our [decision to open source our code generators](link coming soon).
 
-Read more about the [UIDL Standard](todo: link).
+Read more about the [UIDL Standard](link coming soon).
 
-## Installation and Basic Usage
+## Quick Setup
 While this will probably remain a [monorepo](https://danluu.com/monorepo/), we will publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-generators`. So, let's integrate that into your project:
 
 ```bash
@@ -51,7 +69,7 @@ const result = reactGenerator.generateComponent(componentUIDL)
 ```
 
 The code output from this snippet would be
-```
+```jsx
 import React from "react"
 
 const MyComponent = props => {
@@ -60,6 +78,9 @@ const MyComponent = props => {
 
 export default MyComponent
 ```
+
+## Features
+
 
 ### Component Generators
 
@@ -81,11 +102,9 @@ const result = reactGenerator.generateComponent(uidl)
 console.log(result.code)
 ```
 
-Read more about [the API of the component generator](todo: doc link).
+Read more about [the API of the component generator](link coming soon).
 
-Read more about [mappings and resolvers](todo: doc link).
-
-TODO: More complex examples
+Read more about [mappings and resolvers](link coming soon).
 
 #### Vue
 
@@ -100,8 +119,6 @@ const result = vueGenerator.generateComponent(uidl)
 
 console.log(result.code)
 ```
-
-TODO: More complex examples
 
 #### Current capabilities
 Here's a list of functionalities that the UIDL and the component generators support at the moment, besides the obvious presentational layer:
@@ -135,7 +152,7 @@ Coming soon
 
 ### UIDL Validators
 
-The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](todo: link documentation).
+The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](link coming soon).
 
 ```javascript
 import { UIDLValidators } from "@teleporthq/teleport-generators"
@@ -181,10 +198,11 @@ npm run test:coverage
 ```
 
 ## Planning
-todo: write about next steps
+Coming soon
 
 ## Contributions
 We would be super happy to have community involvment around this project. We strongly believe in the power of open source, so we want to build the best possible code generators together with the entire development community.
 
-todo: Contact links
+## Contact
+
 
