@@ -25,7 +25,7 @@
   <a target="_blank" href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" /></a>
   <img src="https://img.shields.io/npm/l/@teleporthq/teleport-code-generators.svg" />
   <a target="_blank" href="https://bundlephobia.com/result?p=@teleporthq/teleport-code-generators"><img src="https://img.shields.io/bundlephobia/minzip/@teleporthq/teleport-code-generators.svg" /></a>
-  <img src="https://img.shields.io/badge/all_contributors-2-orange.svg" />
+  <img src="https://img.shields.io/badge/all_contributors-4-orange.svg" />
   <a target="_blank" href="https://twitter.com/teleporthqio"><img src="https://img.shields.io/twitter/follow/teleporthqio.svg" /></a>
 </p>
 
