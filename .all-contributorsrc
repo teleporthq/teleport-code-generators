@@ -1,0 +1,25 @@
+{
+  "projectName": "teleport-code-generators",
+  "projectOwner": "teleporthq",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "contributors": [
+    {
+      "login": "alexnm",
+      "name": "Alex Moldovan",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/9945366?v=4",
+      "profile": "https://medium.com/@alexnm",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}
