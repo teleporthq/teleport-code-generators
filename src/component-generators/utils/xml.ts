@@ -1,9 +1,6 @@
 import cheerio from 'cheerio'
 
-export const createXMLRoot = (
-  tagName: string,
-  options = { selfClosing: false }
-): CheerioStatic => {
+export const createXMLRoot = (tagName: string, options = { selfClosing: false }): CheerioStatic => {
   const emptyDeclaration = options.selfClosing ? `<${tagName}/>` : `<${tagName}></${tagName}>`
   let result
 

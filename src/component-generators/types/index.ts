@@ -64,10 +64,7 @@ export interface CompiledComponent {
 }
 
 export interface ComponentGenerator {
-  generateComponent: (
-    uidl: ComponentUIDL,
-    options?: GeneratorOptions
-  ) => Promise<CompiledComponent>
+  generateComponent: (uidl: ComponentUIDL, options?: GeneratorOptions) => Promise<CompiledComponent>
   resolveContentNode: (node: ContentNode, options?: GeneratorOptions) => ContentNode
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: ElementsMapping) => void
