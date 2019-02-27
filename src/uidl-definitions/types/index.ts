@@ -7,17 +7,19 @@ export interface ProjectUIDL {
       language: string
     }
     meta: Array<Record<string, string>>
-    assets: Array<{
-      type: string
-      path?: string
-      content?: string
-      meta?: Record<string, any>
-    }>
+    assets: GlobalAsset[]
     manifest?: WebManifest
     variables?: Record<string, string>
   }
   root: ComponentUIDL
   components?: Record<string, ComponentUIDL>
+}
+
+export interface GlobalAsset {
+  type: string
+  path?: string
+  content?: string
+  meta?: Record<string, any>
 }
 
 export interface ComponentUIDL {

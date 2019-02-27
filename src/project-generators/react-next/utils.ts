@@ -7,6 +7,8 @@ import {
 } from '../../component-generators/utils/jsx-ast'
 import * as types from '@babel/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
+import { ASSETS_PREFIX } from './constants'
+import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
 
 export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
   const { settings, meta, assets, manifest } = uidl.globals
@@ -43,17 +45,20 @@ export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
   meta.forEach((metaItem) => {
     const metaTag = generateASTDefinitionForJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
-      addAttributeToJSXTag(metaTag, { name: key, value: metaItem[key] })
+      const metaValue = prefixPlaygroundAssetsURL(ASSETS_PREFIX, metaItem[key])
+      addAttributeToJSXTag(metaTag, { name: key, value: metaValue })
     })
     addChildJSXTag(headNode, metaTag)
   })
 
   assets.forEach((asset) => {
+    const assetPath = prefixPlaygroundAssetsURL(ASSETS_PREFIX, asset.path)
+
     // link stylesheet (external css, font)
-    if ((asset.type === 'style' || asset.type === 'font') && asset.path) {
+    if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
       const linkTag = generateASTDefinitionForJSXTag('link')
       addAttributeToJSXTag(linkTag, { name: 'rel', value: 'stylesheet' })
-      addAttributeToJSXTag(linkTag, { name: 'href', value: asset.path })
+      addAttributeToJSXTag(linkTag, { name: 'href', value: assetPath })
       addChildJSXTag(headNode, linkTag)
     }
 
@@ -71,8 +76,8 @@ export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
     if (asset.type === 'script') {
       const scriptTag = generateASTDefinitionForJSXTag('script')
       addAttributeToJSXTag(scriptTag, { name: 'type', value: 'text/javascript' })
-      if (asset.path) {
-        addAttributeToJSXTag(scriptTag, { name: 'src', value: asset.path })
+      if (assetPath) {
+        addAttributeToJSXTag(scriptTag, { name: 'src', value: assetPath })
         if (asset.meta && asset.meta.defer) {
           addAttributeToJSXTag(scriptTag, { name: 'defer', value: true })
         }
@@ -94,10 +99,10 @@ export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
     }
 
     // icon
-    if (asset.type === 'icon' && asset.path) {
+    if (asset.type === 'icon' && assetPath) {
       const iconTag = generateASTDefinitionForJSXTag('link')
       addAttributeToJSXTag(iconTag, { name: 'rel', value: 'shortcut icon' })
-      addAttributeToJSXTag(iconTag, { name: 'href', value: asset.path })
+      addAttributeToJSXTag(iconTag, { name: 'href', value: assetPath })
 
       if (typeof asset.meta === 'object') {
         const assetMeta = asset.meta

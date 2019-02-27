@@ -6,9 +6,11 @@ import {
   ElementMapping,
 } from '../../../uidl-definitions/types'
 
-const ASSETS_IDENTIFIER = '/playground_assets'
-const stylePropertiesWithURL = ['background', 'backgroundImage']
-const attributesWithURL = ['url', 'srcset']
+import { prefixPlaygroundAssetsURL } from '../../utils/uidl-utils'
+import { ASSETS_IDENTIFIER } from '../../constants'
+
+const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
+const ATTRIBUTES_WITH_URL = ['url', 'srcset']
 
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
@@ -33,7 +35,7 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
     }
 
     // only whitelisted style properties are checked
-    if (stylePropertiesWithURL.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
+    if (STYLE_PROPERTIES_WITH_URL.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
       // split the string at the beginning of the ASSETS_IDENTIFIER string
       const startIndex = styleValue.indexOf(ASSETS_IDENTIFIER)
       acc[styleKey] =
@@ -45,23 +47,6 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
 
     return acc
   }, {})
-}
-
-/**
- * Concatenates the prefix to the URL string.
- * If the url starts with 'http', the return value will be the 'originalString'
- * If the url does not start with a '/' it also appends that
- */
-const prefixPlaygroundAssetsURL = (prefix: string, originalString: string) => {
-  if (!originalString.startsWith(ASSETS_IDENTIFIER)) {
-    return originalString
-  }
-
-  if (originalString.startsWith('/')) {
-    return prefix + originalString
-  }
-
-  return `${prefix}/${originalString}`
 }
 
 const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any) => {
@@ -207,7 +192,7 @@ export const resolveContentNode = (
 
   // Prefix the attributes which may point to local assets
   if (node.attrs && assetsPrefix) {
-    attributesWithURL.forEach((attribute) => {
+    ATTRIBUTES_WITH_URL.forEach((attribute) => {
       if (node.attrs[attribute]) {
         node.attrs[attribute] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attribute])
       }

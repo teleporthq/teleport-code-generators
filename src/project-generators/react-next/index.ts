@@ -9,6 +9,7 @@ import { extractPageMetadata } from '../../component-generators/utils/uidl-utils
 
 import { createDocumentComponent } from './utils'
 import nextMapping from './elements-mapping.json'
+import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
@@ -37,7 +38,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   const distFolder: Folder = {
-    name: options.distPath || 'dist',
+    name: options.distPath || DEFAULT_OUTPUT_FOLDER,
     files: [],
     subFolders: [pagesFolder, componentsFolder, staticFolder],
   }
@@ -49,14 +50,13 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   let allDependencies: Record<string, ComponentDependency> = {}
-  const assetsPrefix = '/static'
   const { components, root } = uidl
   const states = root.content.states
   const stateDefinitions = root.stateDefinitions
 
   const result = {
     outputFolder: distFolder,
-    assetsPath: assetsPrefix,
+    assetsPath: ASSETS_PREFIX,
   }
 
   if (!states || !stateDefinitions) {
@@ -70,7 +70,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
   if (uidl.globals.manifest) {
-    const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name)
+    const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
     const manifestFile: File = {
       name: 'manifest',
       extension: '.json',
@@ -114,7 +114,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
       try {
         const compiledComponent = await reactGenerator.generateComponent(pageComponentUIDL, {
           localDependenciesPrefix: '../components/',
-          assetsPrefix,
+          assetsPrefix: ASSETS_PREFIX,
         })
 
         const file: File = {
@@ -143,7 +143,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
         try {
           const compiledComponent = await reactGenerator.generateComponent(component, {
-            assetsPrefix,
+            assetsPrefix: ASSETS_PREFIX,
           })
           const file: File = {
             name: component.name,

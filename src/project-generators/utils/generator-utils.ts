@@ -1,4 +1,5 @@
 import { ComponentDependency, WebManifest } from '../../uidl-definitions/types'
+import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
 
 // Only package dependencies are needed for the package.json file
 export const extractExternalDependencies = (dependencies: Record<string, ComponentDependency>) => {
@@ -17,7 +18,11 @@ export const extractExternalDependencies = (dependencies: Record<string, Compone
 }
 
 // Creates a manifest json with the UIDL having priority over the default values
-export const createManifestJSON = (manifest: WebManifest, projectName?: string) => {
+export const createManifestJSON = (
+  manifest: WebManifest,
+  projectName: string,
+  assetsPrefix?: string
+) => {
   const defaultManifest: WebManifest = {
     short_name: projectName,
     name: projectName,
@@ -25,8 +30,14 @@ export const createManifestJSON = (manifest: WebManifest, projectName?: string) 
     start_url: '/',
   }
 
+  const icons = manifest.icons.map((icon) => {
+    const src = prefixPlaygroundAssetsURL(assetsPrefix, icon.src)
+    return { ...icon, src }
+  })
+
   return {
     ...defaultManifest,
     ...manifest,
+    ...{ icons },
   }
 }

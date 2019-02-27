@@ -1,4 +1,5 @@
 import { StateDefinition } from '../../uidl-definitions/types'
+import { ASSETS_IDENTIFIER } from '../constants'
 
 /**
  * A couple of different cases which need to be handled
@@ -39,4 +40,16 @@ export const extractPageMetadata = (
     componentName: pageDefinition.meta.componentName || stateName,
     path: pageDefinition.meta.path || '/' + stateName,
   }
+}
+
+export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
+  if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
+    return originalString
+  }
+
+  if (originalString.startsWith('/')) {
+    return prefix + originalString
+  }
+
+  return `${prefix}/${originalString}`
 }

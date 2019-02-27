@@ -1,6 +1,8 @@
 import { generator } from '../../component-generators/pipeline/builder/generators/html-to-string'
 import { createXMLNode, createXMLRoot } from '../../component-generators/utils/xml'
 import { ProjectUIDL } from '../../uidl-definitions/types'
+import { ASSETS_PREFIX } from './constants'
+import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
 
 export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
@@ -36,17 +38,20 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
   meta.forEach((metaItem) => {
     const metaTag = createXMLNode('meta', { selfClosing: true })
     Object.keys(metaItem).forEach((key) => {
-      metaTag.attr(key, metaItem[key])
+      const prefixedURL = prefixPlaygroundAssetsURL(ASSETS_PREFIX, metaItem[key])
+      metaTag.attr(key, prefixedURL)
     })
     headNode.append(metaTag)
   })
 
   assets.forEach((asset) => {
+    const assetPath = prefixPlaygroundAssetsURL(ASSETS_PREFIX, asset.path)
+
     // link stylesheet (external css, font)
-    if ((asset.type === 'style' || asset.type === 'font') && asset.path) {
+    if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
       const linkTag = createXMLNode('link', { selfClosing: true })
       linkTag.attr('rel', 'stylesheet')
-      linkTag.attr('href', asset.path)
+      linkTag.attr('href', assetPath)
       headNode.append(linkTag)
     }
 
@@ -63,8 +68,8 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
       const scriptTag = createXMLNode('script')
       scriptTag.append(' ') // To ensure tag is not automatically self-closing, which causes problems in the <head>
       scriptTag.attr('type', 'text/javascript')
-      if (asset.path) {
-        scriptTag.attr('src', asset.path)
+      if (assetPath) {
+        scriptTag.attr('src', assetPath)
         if (asset.meta && asset.meta.defer) {
           scriptTag.attr('defer', true)
         }
@@ -82,10 +87,10 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
     }
 
     // icon
-    if (asset.type === 'icon' && asset.path) {
+    if (asset.type === 'icon' && assetPath) {
       const iconTag = createXMLNode('link', { selfClosing: true })
       iconTag.attr('rel', 'shortcut icon')
-      iconTag.attr('href', asset.path)
+      iconTag.attr('href', assetPath)
       if (typeof asset.meta === 'object') {
         const assetMeta = asset.meta
         Object.keys(assetMeta).forEach((metaKey) => {
