@@ -40,6 +40,16 @@
         "doc",
         "ideas"
       ]
+    },
+    {
+      "login": "mihaitaba",
+      "name": "mihaitaba",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/45386599?v=4",
+      "profile": "https://github.com/mihaitaba",
+      "contributions": [
+        "design",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7
