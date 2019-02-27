@@ -13,7 +13,7 @@ export interface File {
 }
 
 export interface ProjectGeneratorOptions {
-  sourcePackageJson?: Record<string, any>
+  sourcePackageJson?: PackageJSON
   distPath?: string
   customMapping?: ElementsMapping
 }
@@ -25,3 +25,14 @@ export type ProjectGeneratorFunction = (
   outputFolder: Folder
   assetsPath?: string
 }>
+
+export interface PackageJSON {
+  name: string
+  description: string
+  version: string
+  main: string
+  author: string
+  license: string
+  scripts?: Record<string, string>
+  dependencies?: Record<string, string>
+}

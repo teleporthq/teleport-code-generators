@@ -2,14 +2,14 @@ import { Folder, File, ProjectGeneratorOptions } from '../types'
 import { ReactComponentStylingFlavors } from '../../component-generators/types'
 import { ProjectUIDL, ComponentDependency, ComponentUIDL } from '../../uidl-definitions/types'
 
-import { extractExternalDependencies, createManifestJSON } from '../utils/generator-utils'
+import { createManifestJSON, createPackageJSON } from '../utils/generator-utils'
 
 import createReactGenerator from '../../component-generators/react/react-component'
 import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
 
 import { createDocumentComponent } from './utils'
 import nextMapping from './elements-mapping.json'
-import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER } from './constants'
+import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
@@ -166,21 +166,22 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 6: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
-  if (sourcePackageJson) {
-    const externalDep = extractExternalDependencies(allDependencies)
-    sourcePackageJson.dependencies = {
-      ...sourcePackageJson.dependencies,
-      ...externalDep,
-    }
 
-    const packageFile: File = {
-      name: 'package',
-      extension: '.json',
-      content: JSON.stringify(sourcePackageJson, null, 2),
+  const packageJSON = createPackageJSON(
+    sourcePackageJson || DEFAULT_PACKAGE_JSON,
+    allDependencies,
+    {
+      projectName: uidl.name,
     }
+  )
 
-    distFolder.files.push(packageFile)
+  const packageFile: File = {
+    name: 'package',
+    extension: '.json',
+    content: JSON.stringify(packageJSON, null, 2),
   }
+
+  distFolder.files.push(packageFile)
 
   return result
 }

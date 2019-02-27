@@ -1,7 +1,7 @@
 import { ComponentDependency, WebManifest } from '../../uidl-definitions/types'
+import { PackageJSON } from '../../project-generators/types'
 import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
 
-// Only package dependencies are needed for the package.json file
 export const extractExternalDependencies = (dependencies: Record<string, ComponentDependency>) => {
   return Object.keys(dependencies)
     .filter((key) => {
@@ -39,5 +39,26 @@ export const createManifestJSON = (
     ...defaultManifest,
     ...manifest,
     ...{ icons },
+  }
+}
+
+export const createPackageJSON = (
+  packageJSONTemplate: PackageJSON,
+  dependencies: Record<string, ComponentDependency>,
+  overwrites: {
+    projectName: string
+  }
+): PackageJSON => {
+  const { projectName } = overwrites
+
+  const externalDep = extractExternalDependencies(dependencies)
+
+  return {
+    ...packageJSONTemplate,
+    name: projectName,
+    dependencies: {
+      ...packageJSONTemplate.dependencies,
+      ...externalDep,
+    },
   }
 }

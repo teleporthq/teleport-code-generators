@@ -5,12 +5,12 @@ import createReactGenerator from '../../component-generators/react/react-compone
 import { ReactComponentStylingFlavors } from '../../component-generators/types'
 import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
 
-import { extractExternalDependencies, createManifestJSON } from '../utils/generator-utils'
+import { createPackageJSON, createManifestJSON } from '../utils/generator-utils'
 
 import { File, Folder, ProjectGeneratorOptions } from '../types'
 import { ProjectUIDL, ComponentDependency } from '../../uidl-definitions/types'
 import { createHtmlIndexFile } from './utils'
-import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER } from './constants'
+import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
@@ -201,22 +201,22 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 7: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
-  if (sourcePackageJson) {
-    const externalDep = extractExternalDependencies(allDependencies)
 
-    sourcePackageJson.dependencies = {
-      ...sourcePackageJson.dependencies,
-      ...externalDep,
+  const packageJSON = createPackageJSON(
+    sourcePackageJson || DEFAULT_PACKAGE_JSON,
+    allDependencies,
+    {
+      projectName: uidl.name,
     }
+  )
 
-    const packageFile: File = {
-      name: 'package',
-      extension: '.json',
-      content: JSON.stringify(sourcePackageJson, null, 2),
-    }
-
-    distFolder.files.push(packageFile)
+  const packageFile: File = {
+    name: 'package',
+    extension: '.json',
+    content: JSON.stringify(packageJSON, null, 2),
   }
+
+  distFolder.files.push(packageFile)
 
   return result
 }

@@ -190,6 +190,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     dependencies.React = {
       type: 'library',
       path: 'react',
+      version: '16.8.3',
     }
 
     let stateIdentifiers: Record<string, StateIdentifier> = {}
@@ -197,6 +198,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
       dependencies.useState = {
         type: 'library',
         path: 'react',
+        version: '16.8.3',
         meta: {
           namedImport: true,
         },

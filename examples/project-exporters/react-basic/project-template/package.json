@@ -8,7 +8,7 @@
     "dev": "webpack && webpack-dev-server --config webpack.dev.config"
   },
   "author": "teleportHQ",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "react": "16.8.3",
     "react-dom": "16.8.3",

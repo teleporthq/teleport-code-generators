@@ -44,6 +44,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
     dependencies.PropTypes = {
       type: 'library',
       path: 'prop-types',
+      version: '15.7.2',
     }
 
     chunks.push({

@@ -5,13 +5,13 @@ export const registerRouterDeps = (dependencies: Record<string, ComponentDepende
   dependencies.React = {
     type: 'library',
     path: 'react',
-    version: '16.6.3',
+    version: '16.8.3',
   }
 
   dependencies.ReactDOM = {
     type: 'library',
     path: 'react-dom',
-    version: '16.6.3',
+    version: '16.8.3',
   }
 
   dependencies.Router = {

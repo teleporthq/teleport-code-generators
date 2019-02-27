@@ -4,7 +4,7 @@
   "globals": {
     "settings": {
       "language": "en",
-      "title": "TeleportHQ"
+      "title": "teleportHQ"
     },
     "meta" : [
       { "name": "description", "content": "Free Web tutorials" },
