@@ -6,7 +6,7 @@
   ],
   "rules": {
     "ordered-imports": false,
-    "curly": false,
+    "curly": true,
     "no-submodule-imports": false,
     "interface-name": [true, "never-prefix"],
     "object-literal-sort-keys": false,
