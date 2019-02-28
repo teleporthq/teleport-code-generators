@@ -83,6 +83,8 @@ const MyComponent = props => {
 export default MyComponent
 ```
 
+You'll find more advanced UIDL samples [here](https://github.com/teleporthq/teleport-code-generators/tree/master/examples/uidl-samples).
+
 <h2 id="features">💼 Features</h2>
 
 This repo contains multiple **modules** that will soon be available as individual `npm` **packages**. There are two types of generators available: component and project generators. Component generators take a simple **ComponentUIDL** input and return the **code** according to the specific generator flavors (e.g. React + StyledJSX, Vue, etc.). Project generators operate on **ProjectUIDL**s and will return a complete structure of `folders` and `files` which then can be written to disk or sent to servers for deployment. The aim of the project generators is to output a **working application**.
