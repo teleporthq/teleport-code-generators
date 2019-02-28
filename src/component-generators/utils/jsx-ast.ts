@@ -151,6 +151,24 @@ export const generateBasicJSXTag = (tagName: string, children: any[] = [], t = t
   return tag
 }
 
+export const addAttributeToJSXTag = (
+  jsxNode: types.JSXElement,
+  attribute: { name: string; value?: any },
+  t = types
+) => {
+  const nameOfAttribute = t.jsxIdentifier(attribute.name)
+  let attributeDefinition
+  if (typeof attribute.value === 'boolean') {
+    attributeDefinition = t.jsxAttribute(nameOfAttribute)
+  } else {
+    attributeDefinition = t.jsxAttribute(
+      nameOfAttribute,
+      getProperAttributeValueAssignment(attribute.value)
+    )
+  }
+  jsxNode.openingElement.attributes.push(attributeDefinition)
+}
+
 /**
  * node must be a AST node element of type JSXElement (babel-types) or
  * equivalent
@@ -176,23 +194,6 @@ const getProperAttributeValueAssignment = (value: any, t = types) => {
     default:
       return value
   }
-}
-export const addAttributeToJSXTag = (
-  jsxNode: types.JSXElement,
-  attribute: { name: string; value?: any },
-  t = types
-) => {
-  const nameOfAttribute = t.jsxIdentifier(attribute.name)
-  let attributeDefinition
-  if (typeof attribute.value === 'boolean') {
-    attributeDefinition = t.jsxAttribute(nameOfAttribute)
-  } else {
-    attributeDefinition = t.jsxAttribute(
-      nameOfAttribute,
-      getProperAttributeValueAssignment(attribute.value)
-    )
-  }
-  jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 
 /**
