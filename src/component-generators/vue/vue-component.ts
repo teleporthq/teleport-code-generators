@@ -49,9 +49,6 @@ const createVueGenerator = (
     const jsCode = removeLastEmptyLine(chunksLinker.link(jsChunks))
     const cssCode = removeLastEmptyLine(chunksLinker.link(cssChunks))
     const htmlCode = removeLastEmptyLine(chunksLinker.link(htmlChunks))
-    // const htmlCode = removeLastEmptyLine(chunksLinker.link(htmlChunks))
-
-    // console.log(htmlCode.replace(/\n/g, '\+'))
 
     return {
       code: `<template>
