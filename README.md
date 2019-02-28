@@ -83,7 +83,7 @@ const MyComponent = props => {
 export default MyComponent
 ```
 
-You'll find more advanced UIDL samples [here](https://github.com/teleporthq/teleport-code-generators/tree/master/examples/uidl-samples).
+You can find more advanced UIDL samples to play with [here](https://github.com/teleporthq/teleport-code-generators/tree/master/examples/uidl-samples).
 
 <h2 id="features">💼 Features</h2>
 
