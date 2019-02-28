@@ -1,9 +1,9 @@
-import { AssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as createRouterPlugin } from '../plugins/vue/vue-router'
-import { createPlugin as createImportPlugin } from '../plugins/common/import-statements'
+import { createPlugin as createRouterPlugin } from '../../plugins/vue/vue-router'
+import { createPlugin as createImportPlugin } from '../../plugins/common/import-statements'
 
-import { GeneratorOptions } from '../types'
+import { GeneratorOptions } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'

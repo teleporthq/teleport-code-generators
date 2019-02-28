@@ -2,12 +2,16 @@ import reactProjectMapping from './react-project-mapping.json'
 
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
 import createReactGenerator from '../../component-generators/react/react-component'
-import { ReactComponentStylingFlavors } from '../../component-generators/types'
-import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
+import {
+  ReactComponentStylingFlavors,
+  File,
+  Folder,
+  ProjectGeneratorOptions,
+} from '../../shared/types'
+import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 
-import { createPackageJSON, createManifestJSON } from '../utils/generator-utils'
+import { createPackageJSON, createManifestJSON } from '../../shared/utils/project-utils'
 
-import { File, Folder, ProjectGeneratorOptions } from '../types'
 import { ProjectUIDL, ComponentDependency } from '../../uidl-definitions/types'
 import { createHtmlIndexFile } from './utils'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'

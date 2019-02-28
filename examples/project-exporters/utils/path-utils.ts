@@ -3,7 +3,7 @@ import path from 'path'
 // ts-lint:disable:next-line
 import rimraf from 'rimraf'
 
-import { ProjectGeneratorTypes } from '../../../src'
+import { GeneratorTypes } from '../../../src'
 
 interface FileInfo {
   filename: string
@@ -61,9 +61,7 @@ export const copyDirRec = async (sourcePath: string, targetPath: string) => {
       const newFiles = await listDir(`${fileOrDir.dirPath}/${fileOrDir.filename}`)
       filesToCopy.push(...newFiles)
 
-      await mkdir(
-        `${targetPath}${fileOrDir.dirPath.replace(sourcePath, '')}/${fileOrDir.filename}`
-      )
+      await mkdir(`${targetPath}${fileOrDir.dirPath.replace(sourcePath, '')}/${fileOrDir.filename}`)
     } else {
       fs.copyFileSync(
         `${fileOrDir.dirPath}/${fileOrDir.filename}`,
@@ -129,7 +127,7 @@ export const readJSON = async (pathToFile: string) => {
   }
 }
 
-export const writeFolder = async (folder: ProjectGeneratorTypes.Folder, currentPath: string) => {
+export const writeFolder = async (folder: GeneratorTypes.Folder, currentPath: string) => {
   const { name, files, subFolders } = folder
 
   const folderPath = path.join(currentPath, name)

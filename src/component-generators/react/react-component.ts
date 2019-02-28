@@ -1,20 +1,20 @@
-import { AssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as reactComponent } from '../plugins/react/react-base-component'
-import { createPlugin as reactStyledJSX } from '../plugins/react/react-styled-jsx'
-import { createPlugin as reactJSS } from '../plugins/react/react-jss'
-import { createPlugin as reactInlineStyles } from '../plugins/react/react-inline-styles'
-import { createPlugin as reactPropTypes } from '../plugins/react/react-proptypes'
-import { createPlugin as reactCSSModules } from '../plugins/react/react-css-modules'
+import { createPlugin as reactComponent } from '../../plugins/react/react-base-component'
+import { createPlugin as reactStyledJSX } from '../../plugins/react/react-styled-jsx'
+import { createPlugin as reactJSS } from '../../plugins/react/react-jss'
+import { createPlugin as reactInlineStyles } from '../../plugins/react/react-inline-styles'
+import { createPlugin as reactPropTypes } from '../../plugins/react/react-proptypes'
+import { createPlugin as reactCSSModules } from '../../plugins/react/react-css-modules'
 
-import { createPlugin as importStatements } from '../plugins/common/import-statements'
+import { createPlugin as importStatements } from '../../plugins/common/import-statements'
 
 import {
   GeneratorOptions,
   ReactComponentStylingFlavors,
   ComponentGenerator,
   CompiledComponent,
-} from '../types'
+} from '../../shared/types'
 import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'

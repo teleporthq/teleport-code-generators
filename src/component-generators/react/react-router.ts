@@ -1,6 +1,6 @@
-import { createPlugin as importStatements } from '../plugins/common/import-statements'
-import { createPlugin as appRoutingPlugin } from '../plugins/react/react-app-routing'
-import { AssemblyLine, Builder, Resolver } from '../pipeline'
+import { createPlugin as importStatements } from '../../plugins/common/import-statements'
+import { createPlugin as appRoutingPlugin } from '../../plugins/react/react-app-routing'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
 import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'

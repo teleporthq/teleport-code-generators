@@ -3,16 +3,11 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import {
-  UIDLTypes,
-  ProjectGeneratorTypes,
-  UIDLValidators,
-  createReactNextProject,
-} from '../../../src'
+import { UIDLTypes, GeneratorTypes, UIDLValidators, createReactNextProject } from '../../../src'
 
 const writeToDisk = async (
   projectUIDL: UIDLTypes.ProjectUIDL,
-  generatorFunction: ProjectGeneratorTypes.ProjectGeneratorFunction,
+  generatorFunction: GeneratorTypes.ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {

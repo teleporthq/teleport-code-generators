@@ -1,10 +1,10 @@
-import { AssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as vueBaseComponent } from '../plugins/vue/vue-base-component'
-import { createPlugin as vueStyleComponent } from '../plugins/vue/vue-style-chunk'
-import { createPlugin as importStatements } from '../plugins/common/import-statements'
+import { createPlugin as vueBaseComponent } from '../../plugins/vue/vue-base-component'
+import { createPlugin as vueStyleComponent } from '../../plugins/vue/vue-style-chunk'
+import { createPlugin as importStatements } from '../../plugins/common/import-statements'
 
-import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../types'
+import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
