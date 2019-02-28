@@ -56,7 +56,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   const result = {
     outputFolder: distFolder,
-    assetsPath: ASSETS_PREFIX,
+    assetsPath: ASSETS_PREFIX.slice(1),
   }
 
   if (!states || !stateDefinitions) {
