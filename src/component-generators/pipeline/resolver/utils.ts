@@ -12,6 +12,110 @@ import { ASSETS_IDENTIFIER } from '../../constants'
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 const ATTRIBUTES_WITH_URL = ['url', 'srcset']
 
+export const resolveContentNode = (
+  node: ContentNode,
+  elementsMapping: ElementsMapping,
+  localDependenciesPrefix: string,
+  assetsPrefix?: string
+) => {
+  const mappedElement = elementsMapping[node.type] || { type: node.type }
+
+  node.type = mappedElement.type
+
+  // If the mapping contains children, insert that structure into the UIDL
+  if (mappedElement.children) {
+    const originalNodeChildren = node.children || []
+    const originalAttrs = node.attrs || {}
+
+    const replacingNode = {
+      ...node,
+      children: JSON.parse(JSON.stringify(mappedElement.children)),
+    }
+
+    insertChildrenIntoNode(replacingNode, originalNodeChildren, originalAttrs)
+    node.children = replacingNode.children
+  }
+
+  // Resolve dependency with the UIDL having priority
+  if (node.dependency || mappedElement.dependency) {
+    node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
+  }
+
+  // Resolve assets prefix inside style (ex: background-image)
+  if (node.styles && assetsPrefix) {
+    node.styles = prefixAssetURLs(node.styles, assetsPrefix)
+  }
+
+  // Prefix the attributes which may point to local assets
+  if (node.attrs && assetsPrefix) {
+    ATTRIBUTES_WITH_URL.forEach((attribute) => {
+      if (node.attrs[attribute]) {
+        node.attrs[attribute] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attribute])
+      }
+    })
+  }
+
+  // Merge UIDL attributes to the attributes coming from the mapping object
+  if (mappedElement.attrs) {
+    node.attrs = mergeAttributes(mappedElement, node.attrs)
+  }
+
+  // The UIDL has priority over the mapping repeat
+  const repeatStructure = node.repeat || mappedElement.repeat
+  if (repeatStructure) {
+    const { dataSource, content } = repeatStructure
+
+    // Data source might be preset on a referenced attribute in the uidl node
+    // ex: attrs[options] in case of a dropdown primitive with select/options
+    if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
+      const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
+      repeatStructure.dataSource = node.attrs[nodeDataSourceAttr]
+    }
+
+    // The content inside the repeat must also be mapped like any regular content node
+    repeatStructure.content = resolveContentNode(
+      content,
+      elementsMapping,
+      localDependenciesPrefix,
+      assetsPrefix
+    )
+
+    node.repeat = repeatStructure
+  }
+
+  // If the node has multiple state branches, each content needs to be resolved
+  if (node.type === 'state' && node.states) {
+    node.states = node.states.map((stateBranch) => {
+      if (typeof stateBranch.content === 'string') {
+        return stateBranch
+      } else {
+        return {
+          ...stateBranch,
+          content: resolveContentNode(
+            stateBranch.content,
+            elementsMapping,
+            localDependenciesPrefix,
+            assetsPrefix
+          ),
+        }
+      }
+    })
+  }
+
+  // Traverse the UIDL
+  if (node.children) {
+    node.children = node.children.map((child) => {
+      if (typeof child === 'string') {
+        return child
+      } else {
+        return resolveContentNode(child, elementsMapping, localDependenciesPrefix, assetsPrefix)
+      }
+    })
+  }
+
+  return node
+}
+
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
  * @param styles the style object on the current node
@@ -154,108 +258,4 @@ const insertChildrenIntoNode = (
     acc.push(child)
     return acc
   }, initialValue)
-}
-
-export const resolveContentNode = (
-  node: ContentNode,
-  elementsMapping: ElementsMapping,
-  localDependenciesPrefix: string,
-  assetsPrefix?: string
-) => {
-  const mappedElement = elementsMapping[node.type] || { type: node.type }
-
-  node.type = mappedElement.type
-
-  // If the mapping contains children, insert that structure into the UIDL
-  if (mappedElement.children) {
-    const originalNodeChildren = node.children || []
-    const originalAttrs = node.attrs || {}
-
-    const replacingNode = {
-      ...node,
-      children: JSON.parse(JSON.stringify(mappedElement.children)),
-    }
-
-    insertChildrenIntoNode(replacingNode, originalNodeChildren, originalAttrs)
-    node.children = replacingNode.children
-  }
-
-  // Resolve dependency with the UIDL having priority
-  if (node.dependency || mappedElement.dependency) {
-    node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
-  }
-
-  // Resolve assets prefix inside style (ex: background-image)
-  if (node.styles && assetsPrefix) {
-    node.styles = prefixAssetURLs(node.styles, assetsPrefix)
-  }
-
-  // Prefix the attributes which may point to local assets
-  if (node.attrs && assetsPrefix) {
-    ATTRIBUTES_WITH_URL.forEach((attribute) => {
-      if (node.attrs[attribute]) {
-        node.attrs[attribute] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attribute])
-      }
-    })
-  }
-
-  // Merge UIDL attributes to the attributes coming from the mapping object
-  if (mappedElement.attrs) {
-    node.attrs = mergeAttributes(mappedElement, node.attrs)
-  }
-
-  // The UIDL has priority over the mapping repeat
-  const repeatStructure = node.repeat || mappedElement.repeat
-  if (repeatStructure) {
-    const { dataSource, content } = repeatStructure
-
-    // Data source might be preset on a referenced attribute in the uidl node
-    // ex: attrs[options] in case of a dropdown primitive with select/options
-    if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
-      const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
-      repeatStructure.dataSource = node.attrs[nodeDataSourceAttr]
-    }
-
-    // The content inside the repeat must also be mapped like any regular content node
-    repeatStructure.content = resolveContentNode(
-      content,
-      elementsMapping,
-      localDependenciesPrefix,
-      assetsPrefix
-    )
-
-    node.repeat = repeatStructure
-  }
-
-  // If the node has multiple state branches, each content needs to be resolved
-  if (node.type === 'state' && node.states) {
-    node.states = node.states.map((stateBranch) => {
-      if (typeof stateBranch.content === 'string') {
-        return stateBranch
-      } else {
-        return {
-          ...stateBranch,
-          content: resolveContentNode(
-            stateBranch.content,
-            elementsMapping,
-            localDependenciesPrefix,
-            assetsPrefix
-          ),
-        }
-      }
-    })
-  }
-
-  // Traverse the UIDL
-  if (node.children) {
-    node.children = node.children.map((child) => {
-      if (typeof child === 'string') {
-        return child
-      } else {
-        return resolveContentNode(child, elementsMapping, localDependenciesPrefix, assetsPrefix)
-      }
-    })
-  }
-
-  return node
 }

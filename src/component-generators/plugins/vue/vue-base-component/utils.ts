@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
-import { PropDefinition } from '../../../uidl-definitions/types'
+import { PropDefinition } from '../../../../uidl-definitions/types'
+import { createXMLNode } from '../../../utils/xml'
 
 /**
  * Generate the AST version of
@@ -16,7 +17,7 @@ import { PropDefinition } from '../../../uidl-definitions/types'
  *
  * params.name is the name of the component ('TestComponent' in the example above)
  */
-export const buildEmptyVueJSExport = (t = types, params: { name: string }) => {
+const buildEmptyVueJSExport = (t = types, params: { name: string }) => {
   return t.exportDefaultDeclaration(
     t.objectExpression([
       t.objectProperty(t.identifier('name'), t.stringLiteral(params.name)),
@@ -116,4 +117,19 @@ export const generateVueComponentPropTypes = (
     acc[name] = defaultValue ? { type: mappedType, default: defaultValue } : mappedType
     return acc
   }, {})
+}
+
+export const addTextNodeToTag = (tag: Cheerio, text: string) => {
+  if (text.startsWith('$props.') && !text.endsWith('$props.')) {
+    // For real time, when users are typing we need to make sure there's something after the dot (.)
+    const propName = text.replace('$props.', '')
+    if (propName === 'children') {
+      const slot = createXMLNode('slot')
+      tag.append(slot)
+    } else {
+      tag.append(`{{${propName}}}`)
+    }
+  } else {
+    tag.append(text.toString())
+  }
 }

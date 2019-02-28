@@ -1,4 +1,4 @@
-import { ComponentAssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../pipeline'
 
 import { createPlugin as reactComponent } from '../plugins/react/react-base-component'
 import { createPlugin as reactStyledJSX } from '../plugins/react/react-styled-jsx'
@@ -18,35 +18,11 @@ import {
 import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import reactMapping from './elements-mapping.json'
-import { groupChunksByFileId } from './utils'
+import reactMapping from './react-mapping.json'
 
 interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
   customMapping?: ElementsMapping
-}
-
-const chooseStylePlugin = (variation: ReactComponentStylingFlavors) => {
-  switch (variation) {
-    case ReactComponentStylingFlavors.CSSModules:
-      return reactCSSModules({
-        componentChunkName: 'react-component',
-      })
-    case ReactComponentStylingFlavors.InlineStyles:
-      return reactInlineStyles({
-        componentChunkName: 'react-component',
-      })
-    case ReactComponentStylingFlavors.JSS:
-      return reactJSS({
-        componentChunkName: 'react-component',
-        importChunkName: 'import',
-        exportChunkName: 'export',
-      })
-    case ReactComponentStylingFlavors.StyledJSX:
-      return reactStyledJSX({
-        componentChunkName: 'react-component',
-      })
-  }
 }
 
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
@@ -57,7 +33,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   resolver.addMapping(reactMapping)
   resolver.addMapping(customMapping)
 
-  const assemblyLine = new ComponentAssemblyLine()
+  const assemblyLine = new AssemblyLine()
   assemblyLine.addPlugin(
     reactComponent({
       componentChunkName: 'react-component',
@@ -86,7 +62,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const resolvedUIDL = resolver.resolveUIDL(uidl, generatorOptions)
     const result = await assemblyLine.run(resolvedUIDL)
 
-    const chunksByFileId = groupChunksByFileId(result.chunks)
+    const chunksByFileId = assemblyLine.groupChunksByFileId(result.chunks)
 
     const code = chunksLinker.link(chunksByFileId.default)
     const externalCSS = chunksLinker.link(chunksByFileId['component-styles'])
@@ -103,6 +79,33 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     resolveContentNode: resolver.resolveContentNode,
     addMapping: resolver.addMapping,
     addPlugin: assemblyLine.addPlugin,
+  }
+}
+
+const chooseStylePlugin = (variation: ReactComponentStylingFlavors) => {
+  switch (variation) {
+    case ReactComponentStylingFlavors.CSSModules:
+      return reactCSSModules({
+        componentChunkName: 'react-component',
+      })
+    case ReactComponentStylingFlavors.InlineStyles:
+      return reactInlineStyles({
+        componentChunkName: 'react-component',
+      })
+    case ReactComponentStylingFlavors.JSS:
+      return reactJSS({
+        componentChunkName: 'react-component',
+        importChunkName: 'import',
+        exportChunkName: 'export',
+      })
+    case ReactComponentStylingFlavors.StyledJSX:
+      return reactStyledJSX({
+        componentChunkName: 'react-component',
+      })
+    default:
+      return reactInlineStyles({
+        componentChunkName: 'react-component',
+      })
   }
 }
 

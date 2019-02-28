@@ -8,7 +8,7 @@ import createReactGenerator from '../../component-generators/react/react-compone
 import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
 
 import { createDocumentComponent } from './utils'
-import nextMapping from './elements-mapping.json'
+import nextMapping from './next-mapping.json'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {

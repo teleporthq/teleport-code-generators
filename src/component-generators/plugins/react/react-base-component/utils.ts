@@ -1,61 +1,13 @@
 import * as types from '@babel/types'
 import { StateIdentifier } from '../../../types'
 import { convertValueToLiteral } from '../../../utils/js-ast'
+import {
+  addChildJSXText,
+  addAttributeToJSXTag,
+  addDynamicChild,
+  addDynamicPropOnJsxOpeningTag,
+} from '../../../utils/jsx-ast'
 import { EventHandlerStatement, PropDefinition } from '../../../../uidl-definitions/types'
-
-const createStateChangeStatement = (
-  eventHandlerStatement: EventHandlerStatement,
-  stateIdentifiers: Record<string, StateIdentifier>,
-  t = types
-) => {
-  if (!eventHandlerStatement.modifies) {
-    console.warn(`No state identifier referenced under the "modifies" field`)
-    return null
-  }
-
-  const stateKey = eventHandlerStatement.modifies
-  const stateIdentifier = stateIdentifiers[stateKey]
-
-  if (!stateIdentifier) {
-    console.warn(`No state hook was found for "${stateKey}"`)
-    return null
-  }
-
-  const stateSetterArgument =
-    eventHandlerStatement.newState === '$toggle'
-      ? t.unaryExpression('!', t.identifier(stateIdentifier.key))
-      : convertValueToLiteral(eventHandlerStatement.newState, stateIdentifier.type)
-
-  return t.expressionStatement(
-    t.callExpression(t.identifier(stateIdentifier.setter), [stateSetterArgument])
-  )
-}
-
-const createPropCallStatement = (
-  eventHandlerStatement: EventHandlerStatement,
-  propDefinitions: Record<string, PropDefinition>,
-  t = types
-) => {
-  const { calls: propFunctionKey, args = [] } = eventHandlerStatement
-
-  if (!propFunctionKey) {
-    console.warn(`No prop definition referenced under the "calls" field`)
-    return null
-  }
-
-  const propDefinition = propDefinitions[propFunctionKey]
-
-  if (!propDefinition || propDefinition.type !== 'func') {
-    console.warn(`No prop definition was found for "${propFunctionKey}"`)
-    return null
-  }
-
-  return t.expressionStatement(
-    t.callExpression(t.identifier('props.' + propFunctionKey), [
-      ...args.map((arg) => convertValueToLiteral(arg)),
-    ])
-  )
-}
 
 // Adds all the event handlers and all the instructions for each event handler
 // in case there is more than one specified in the UIDL
@@ -99,6 +51,60 @@ export const addEventHandlerToTag = (
 
   tag.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(eventKey), t.jsxExpressionContainer(expressionContent))
+  )
+}
+
+const createPropCallStatement = (
+  eventHandlerStatement: EventHandlerStatement,
+  propDefinitions: Record<string, PropDefinition>,
+  t = types
+) => {
+  const { calls: propFunctionKey, args = [] } = eventHandlerStatement
+
+  if (!propFunctionKey) {
+    console.warn(`No prop definition referenced under the "calls" field`)
+    return null
+  }
+
+  const propDefinition = propDefinitions[propFunctionKey]
+
+  if (!propDefinition || propDefinition.type !== 'func') {
+    console.warn(`No prop definition was found for "${propFunctionKey}"`)
+    return null
+  }
+
+  return t.expressionStatement(
+    t.callExpression(t.identifier('props.' + propFunctionKey), [
+      ...args.map((arg) => convertValueToLiteral(arg)),
+    ])
+  )
+}
+
+const createStateChangeStatement = (
+  eventHandlerStatement: EventHandlerStatement,
+  stateIdentifiers: Record<string, StateIdentifier>,
+  t = types
+) => {
+  if (!eventHandlerStatement.modifies) {
+    console.warn(`No state identifier referenced under the "modifies" field`)
+    return null
+  }
+
+  const stateKey = eventHandlerStatement.modifies
+  const stateIdentifier = stateIdentifiers[stateKey]
+
+  if (!stateIdentifier) {
+    console.warn(`No state hook was found for "${stateKey}"`)
+    return null
+  }
+
+  const stateSetterArgument =
+    eventHandlerStatement.newState === '$toggle'
+      ? t.unaryExpression('!', t.identifier(stateIdentifier.key))
+      : convertValueToLiteral(eventHandlerStatement.newState, stateIdentifier.type)
+
+  return t.expressionStatement(
+    t.callExpression(t.identifier(stateIdentifier.setter), [stateSetterArgument])
   )
 }
 
@@ -159,4 +165,41 @@ export const makeRepeatStructureWithMap = (
       t.arrowFunctionExpression(arrowFunctionArguments, content),
     ])
   )
+}
+
+/**
+ *
+ * @param tag the ref to the AST tag under construction
+ * @param key the key of the attribute that should be added on the current AST node
+ * @param value the value(string, number, bool) of the attribute that should be added on the current AST node
+ */
+export const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
+  if (typeof value !== 'string') {
+    addAttributeToJSXTag(tag, { name: key, value })
+    return
+  }
+
+  if (value.startsWith('$props.')) {
+    const dynamicPropValue = value.replace('$props.', '')
+    addDynamicPropOnJsxOpeningTag(tag, key, dynamicPropValue, 'props')
+  } else if (value.startsWith('$state.')) {
+    const dynamicPropValue = value.replace('$state.', '')
+    addDynamicPropOnJsxOpeningTag(tag, key, dynamicPropValue)
+  } else if (value === '$item' || value === '$index') {
+    addDynamicPropOnJsxOpeningTag(tag, key, value.slice(1))
+  } else {
+    addAttributeToJSXTag(tag, { name: key, value })
+  }
+}
+
+export const addTextElementToTag = (tag: types.JSXElement, text: string) => {
+  if (text.startsWith('$props.') && !text.endsWith('$props.')) {
+    addDynamicChild(tag, text.replace('$props.', ''), 'props')
+  } else if (text.startsWith('$state.') && !text.endsWith('$state.')) {
+    addDynamicChild(tag, text.replace('$state.', ''))
+  } else if (text === '$item' || text === '$index') {
+    addDynamicChild(tag, text.slice(1))
+  } else {
+    addChildJSXText(tag, text)
+  }
 }

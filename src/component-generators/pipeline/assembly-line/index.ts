@@ -1,8 +1,8 @@
-import { ComponentPlugin, ComponentStructure } from '../../types'
+import { ComponentPlugin, ComponentStructure, ChunkDefinition } from '../../types'
 
 import { ComponentUIDL } from '../../../uidl-definitions/types'
 
-export default class ComponentAssemblyLine {
+export default class AssemblyLine {
   private plugins: ComponentPlugin[]
 
   constructor(plugins: ComponentPlugin[] = []) {
@@ -36,5 +36,16 @@ export default class ComponentAssemblyLine {
 
   public addPlugin(plugin: ComponentPlugin) {
     this.plugins.push(plugin)
+  }
+
+  public groupChunksByFileId(chunks: ChunkDefinition[]): Record<string, ChunkDefinition[]> {
+    return chunks.reduce((chunksByFileId: Record<string, ChunkDefinition[]>, chunk) => {
+      const fileId = (chunk.meta && chunk.meta.fileId) || 'default'
+      if (!chunksByFileId[fileId]) {
+        chunksByFileId[fileId] = []
+      }
+      chunksByFileId[fileId].push(chunk)
+      return chunksByFileId
+    }, {})
   }
 }

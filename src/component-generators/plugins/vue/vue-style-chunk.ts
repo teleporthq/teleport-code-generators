@@ -6,6 +6,52 @@ import { ComponentPlugin, ComponentPluginFactory } from '../../types'
 import { cammelCaseToDashCase } from '../../utils/helpers'
 import { ContentNode, StyleDefinitions } from '../../../uidl-definitions/types'
 
+interface VueStyleChunkConfig {
+  chunkName: string
+  vueJSChunk: string
+  vueTemplateChunk: string
+  styleFileId: string
+}
+
+export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
+  const {
+    chunkName = 'vue-component-style-chunk',
+    vueTemplateChunk = 'vue-component-template-chunk',
+    styleFileId = null,
+  } = config || {}
+
+  const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
+    const { uidl, chunks } = structure
+
+    const { content } = uidl
+
+    const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
+    const templateLookup = templateChunk.meta.lookup
+
+    const jssStylesArray = generateStyleTagStrings(content, templateLookup)
+
+    chunks.push({
+      type: 'string',
+      name: chunkName,
+      meta: {
+        fileId: styleFileId,
+      },
+      wrap: styleFileId
+        ? undefined
+        : (generatedContent) => {
+            return `<style>\n${generatedContent}</style>`
+          },
+      content: jssStylesArray.join('\n'),
+    })
+
+    return structure
+  }
+
+  return vueComponentStyleChunkPlugin
+}
+
+export default createPlugin()
+
 const filterOutDynamicStyles = (styles: StyleDefinitions) => {
   if (!styles) {
     return { staticStyles: null, dynamicStyles: null }
@@ -70,49 +116,3 @@ const generateStyleTagStrings = (content: ContentNode, templateLookup: Record<st
 
   return accumulator
 }
-
-interface VueStyleChunkConfig {
-  chunkName: string
-  vueJSChunk: string
-  vueTemplateChunk: string
-  styleFileId: string
-}
-
-export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
-  const {
-    chunkName = 'vue-component-style-chunk',
-    vueTemplateChunk = 'vue-component-template-chunk',
-    styleFileId = null,
-  } = config || {}
-
-  const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
-
-    const { content } = uidl
-
-    const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
-    const templateLookup = templateChunk.meta.lookup
-
-    const jssStylesArray = generateStyleTagStrings(content, templateLookup)
-
-    chunks.push({
-      type: 'string',
-      name: chunkName,
-      meta: {
-        fileId: styleFileId,
-      },
-      wrap: styleFileId
-        ? undefined
-        : (generatedContent) => {
-            return `<style>\n${generatedContent}</style>`
-          },
-      content: jssStylesArray.join('\n'),
-    })
-
-    return structure
-  }
-
-  return vueComponentStyleChunkPlugin
-}
-
-export default createPlugin()

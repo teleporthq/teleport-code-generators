@@ -3,27 +3,6 @@ import { ChunkDefinition, GeneratorFunction } from '../../types'
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as cheerioHTMLGenerator } from './generators/html-to-string'
 
-const removeItemsInArray = (arrayToRemoveFrom: string[], itemsToRemove: string[]) => {
-  return arrayToRemoveFrom.filter((item: string) => {
-    return itemsToRemove.indexOf(item) === -1
-  })
-}
-
-const removeChildDependency = (children: EmbedDependency[], targetChunkName: string) => {
-  return children.reduce((acc: EmbedDependency[], child) => {
-    if (child.chunkName !== targetChunkName) {
-      acc.push(child)
-    }
-
-    return acc
-  }, [])
-}
-
-interface EmbedDependency {
-  chunkName: string
-  slot: string
-}
-
 export default class Builder {
   public chunkDefinitions: ChunkDefinition[] = []
 
@@ -247,4 +226,25 @@ export default class Builder {
 
     return this.generators[type](content)
   }
+}
+
+const removeItemsInArray = (arrayToRemoveFrom: string[], itemsToRemove: string[]) => {
+  return arrayToRemoveFrom.filter((item: string) => {
+    return itemsToRemove.indexOf(item) === -1
+  })
+}
+
+const removeChildDependency = (children: EmbedDependency[], targetChunkName: string) => {
+  return children.reduce((acc: EmbedDependency[], child) => {
+    if (child.chunkName !== targetChunkName) {
+      acc.push(child)
+    }
+
+    return acc
+  }, [])
+}
+
+interface EmbedDependency {
+  chunkName: string
+  slot: string
 }

@@ -1,4 +1,4 @@
-import { ComponentAssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../pipeline'
 
 import { createPlugin as vueBaseComponent } from '../plugins/vue/vue-base-component'
 import { createPlugin as vueStyleComponent } from '../plugins/vue/vue-style-chunk'
@@ -8,13 +8,13 @@ import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../type
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import vueMapping from './elements-mapping.json'
+import vueMapping from './vue-mapping.json'
 
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping: {} }
 ): ComponentGenerator => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
-  const assemblyLine = new ComponentAssemblyLine([
+  const assemblyLine = new AssemblyLine([
     vueBaseComponent({
       jsFileId: 'vuejs',
       jsFileAfter: ['libs', 'packs', 'locals'],

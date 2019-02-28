@@ -1,4 +1,4 @@
-import reactProjectMapping from './elements-mapping.json'
+import reactProjectMapping from './react-project-mapping.json'
 
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
 import createReactGenerator from '../../component-generators/react/react-component'

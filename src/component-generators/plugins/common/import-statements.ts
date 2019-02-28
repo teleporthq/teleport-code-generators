@@ -3,6 +3,37 @@ import { ComponentDependency } from '../../../uidl-definitions/types'
 
 import { makeGenericImportStatement } from '../../utils/js-ast'
 
+interface ImportPluginConfig {
+  importLibsChunkName?: string
+  importPackagesChunkName?: string
+  importLocalsChunkName?: string
+}
+
+export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
+  const {
+    importLibsChunkName = 'import-libs',
+    importPackagesChunkName = 'import-packages',
+    importLocalsChunkName = 'import-local',
+    fileId = null,
+  } = config || {}
+
+  const importPlugin: ComponentPlugin = async (structure) => {
+    const { dependencies } = structure
+
+    const libraryDependencies = groupDependenciesByPackage(dependencies, 'library')
+    const packageDependencies = groupDependenciesByPackage(dependencies, 'package')
+    const localDependencies = groupDependenciesByPackage(dependencies, 'local')
+    addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileId)
+    addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileId)
+    addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileId)
+    return structure
+  }
+
+  return importPlugin
+}
+
+export default createPlugin()
+
 interface ImportDependency {
   identifier: string
   namedImport: boolean
@@ -61,34 +92,3 @@ const addImportChunk = (
     content: importASTs,
   })
 }
-
-interface ImportPluginConfig {
-  importLibsChunkName?: string
-  importPackagesChunkName?: string
-  importLocalsChunkName?: string
-}
-
-export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
-  const {
-    importLibsChunkName = 'import-libs',
-    importPackagesChunkName = 'import-packages',
-    importLocalsChunkName = 'import-local',
-    fileId = null,
-  } = config || {}
-
-  const importPlugin: ComponentPlugin = async (structure) => {
-    const { dependencies } = structure
-
-    const libraryDependencies = groupDependenciesByPackage(dependencies, 'library')
-    const packageDependencies = groupDependenciesByPackage(dependencies, 'package')
-    const localDependencies = groupDependenciesByPackage(dependencies, 'local')
-    addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileId)
-    addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileId)
-    addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileId)
-    return structure
-  }
-
-  return importPlugin
-}
-
-export default createPlugin()

@@ -1,66 +1,15 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../types'
+import { ComponentPlugin, ComponentPluginFactory } from '../../../types'
 
-import { splitProps, generateEmptyVueComponentJS, generateVueComponentPropTypes } from './utils'
+import {
+  splitProps,
+  generateEmptyVueComponentJS,
+  generateVueComponentPropTypes,
+  addTextNodeToTag,
+} from './utils'
 
-import { createXMLNode, createXMLRoot } from '../../utils/xml'
-import { objectToObjectExpression } from '../../utils/js-ast'
-import { ContentNode, ComponentDependency } from '../../../uidl-definitions/types'
-
-const addTextNodeToTag = (tag: Cheerio, text: string) => {
-  if (text.startsWith('$props.') && !text.endsWith('$props.')) {
-    // For real time, when users are typing we need to make sure there's something after the dot (.)
-    const propName = text.replace('$props.', '')
-    if (propName === 'children') {
-      const slot = createXMLNode('slot')
-      tag.append(slot)
-    } else {
-      tag.append(`{{${propName}}}`)
-    }
-  } else {
-    tag.append(text.toString())
-  }
-}
-
-const generateVueNodesTree = (
-  content: ContentNode,
-  templateLookup: Record<string, any>,
-  dependencies: Record<string, ComponentDependency>
-): CheerioStatic => {
-  const { type, key, children, attrs, dependency } = content
-
-  if (dependency) {
-    dependencies[type] = { ...dependency }
-  }
-
-  const xmlRoot = createXMLRoot(type)
-  const xmlNode = xmlRoot(type)
-
-  if (children) {
-    children.forEach((child) => {
-      if (typeof child === 'string') {
-        addTextNodeToTag(xmlNode, child)
-        return
-      }
-      const childTag = generateVueNodesTree(child, templateLookup, dependencies)
-      xmlNode.append(childTag.root())
-    })
-  }
-
-  const { staticProps, dynamicProps } = splitProps(attrs || {})
-
-  Object.keys(staticProps).forEach((propKey) => {
-    xmlNode.attr(propKey, staticProps[propKey])
-  })
-
-  Object.keys(dynamicProps).forEach((propKey) => {
-    const propName = dynamicProps[propKey].replace('$props.', '')
-    xmlNode.attr(`:${propKey}`, propName)
-  })
-
-  templateLookup[key] = xmlNode
-
-  return xmlRoot
-}
+import { createXMLRoot } from '../../../utils/xml'
+import { objectToObjectExpression } from '../../../utils/js-ast'
+import { ContentNode, ComponentDependency } from '../../../../uidl-definitions/types'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
@@ -146,3 +95,44 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
 }
 
 export default createPlugin()
+
+const generateVueNodesTree = (
+  content: ContentNode,
+  templateLookup: Record<string, any>,
+  dependencies: Record<string, ComponentDependency>
+): CheerioStatic => {
+  const { type, key, children, attrs, dependency } = content
+
+  if (dependency) {
+    dependencies[type] = { ...dependency }
+  }
+
+  const xmlRoot = createXMLRoot(type)
+  const xmlNode = xmlRoot(type)
+
+  if (children) {
+    children.forEach((child) => {
+      if (typeof child === 'string') {
+        addTextNodeToTag(xmlNode, child)
+        return
+      }
+      const childTag = generateVueNodesTree(child, templateLookup, dependencies)
+      xmlNode.append(childTag.root())
+    })
+  }
+
+  const { staticProps, dynamicProps } = splitProps(attrs || {})
+
+  Object.keys(staticProps).forEach((propKey) => {
+    xmlNode.attr(propKey, staticProps[propKey])
+  })
+
+  Object.keys(dynamicProps).forEach((propKey) => {
+    const propName = dynamicProps[propKey].replace('$props.', '')
+    xmlNode.attr(`:${propKey}`, propName)
+  })
+
+  templateLookup[key] = xmlNode
+
+  return xmlRoot
+}

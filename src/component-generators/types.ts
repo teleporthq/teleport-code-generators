@@ -3,7 +3,7 @@ import {
   ElementsMapping,
   ComponentUIDL,
   ContentNode,
-} from '../../uidl-definitions/types'
+} from '../uidl-definitions/types'
 
 export interface EmbedDefinition {
   chunkName: string
@@ -32,7 +32,7 @@ export interface ChunkDefinition {
 
 /**
  * The structure of a component contains multiple chunks, and information
- * about how these chunks work togather
+ * about how these chunks work together
  */
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
@@ -41,15 +41,8 @@ export interface ComponentStructure {
   dependencies: Record<string, ComponentDependency>
 }
 
-/**
- * A consumer (plugin basically) is
- */
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
-/**
- * Configure a componnet plugin, specifing names or ids for chunks, to be later
- * used between other plugins and by the linker.
- */
 interface ComponentDefaultPluginParams {
   fileId: string
 }

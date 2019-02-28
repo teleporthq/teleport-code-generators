@@ -6,6 +6,35 @@ import * as t from '@babel/types'
 import { addJSXTagStyles } from '../../utils/jsx-ast'
 import { ParsedASTNode } from '../../utils/js-ast'
 
+interface InlineStyleConfig {
+  componentChunkName: string
+}
+export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) => {
+  const { componentChunkName = 'react-component' } = config || {}
+  /**
+   * Generate the inlines stlye definition as a AST block which will represent the
+   * defined styles of this component in UIDL
+   *
+   * @param structure : ComponentStructure
+   */
+  const reactInlineStyleComponentPlugin: ComponentPlugin = async (structure) => {
+    const { uidl, chunks } = structure
+
+    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+
+    if (!componentChunk) {
+      return structure
+    }
+
+    enhanceJSXWithStyles(uidl.content, componentChunk.meta.nodesLookup)
+
+    return structure
+  }
+  return reactInlineStyleComponentPlugin
+}
+
+export default createPlugin()
+
 const prepareDynamicProps = (styles: UIDLTypes.StyleDefinitions) => {
   return Object.keys(styles).reduce((acc: any, key) => {
     const value = styles[key]
@@ -56,32 +85,3 @@ const enhanceJSXWithStyles = (
     })
   }
 }
-
-interface InlineStyleConfig {
-  componentChunkName: string
-}
-export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) => {
-  const { componentChunkName = 'react-component' } = config || {}
-  /**
-   * Generate the inlines stlye definition as a AST block which will represent the
-   * defined styles of this component in UIDL
-   *
-   * @param structure : ComponentStructure
-   */
-  const reactInlineStyleComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
-
-    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
-
-    if (!componentChunk) {
-      return structure
-    }
-
-    enhanceJSXWithStyles(uidl.content, componentChunk.meta.nodesLookup)
-
-    return structure
-  }
-  return reactInlineStyleComponentPlugin
-}
-
-export default createPlugin()
