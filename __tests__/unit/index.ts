@@ -1,3 +1,4 @@
+// @ts-ignore
 import componentUIDL from '../../examples/uidl-samples/component-author-card.json'
 
 import {

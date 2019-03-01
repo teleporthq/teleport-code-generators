@@ -1,6 +1,7 @@
 import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
+// @ts-ignore
 import projectJson from '../../uidl-samples/project-routing.json'
 
 import { UIDLTypes, GeneratorTypes, UIDLValidators, createVueBasicProject } from '../../../src'
