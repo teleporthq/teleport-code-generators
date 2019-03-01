@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-ignore-next-line
 import componentUIDL from '../../examples/uidl-samples/component-author-card.json'
 
 import {
@@ -54,10 +54,8 @@ describe('Vue Component Generator', () => {
   })
 
   describe('with Custom Mapping', () => {
-    const generator = createVueComponentGenerator({
-      customMapping: { container: { type: 'fakediv' } },
-    })
-    // generator.addMapping()
+    const generator = createVueComponentGenerator()
+    generator.addMapping({ container: { type: 'fakediv' } })
 
     it('should render <fakediv> tags', async () => {
       const uidl = JSON.parse(JSON.stringify(componentUIDL))

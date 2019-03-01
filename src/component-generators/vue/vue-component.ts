@@ -69,9 +69,9 @@ ${cssCode}
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode,
-    addMapping: resolver.addMapping,
-    addPlugin: assemblyLine.addPlugin,
+    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    addMapping: resolver.addMapping.bind(resolver),
+    addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }
 }
 
