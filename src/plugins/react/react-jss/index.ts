@@ -1,16 +1,16 @@
 import * as t from '@babel/types'
 
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
-import { addDynamicPropOnJsxOpeningTag } from '../../shared/utils/jsx-ast'
+import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
+import { ContentNode, StyleDefinitions } from '../../../uidl-definitions/types'
+import { addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
   makeConstAssign,
-  makeJSSDefaultExport,
   objectToObjectExpression,
-} from '../../shared/utils/js-ast'
+} from '../../../shared/utils/ast-js-utils'
+import { makeJSSDefaultExport } from './utils'
 
-import { cammelCaseToDashCase } from '../../shared/utils/helpers'
+import { cammelCaseToDashCase } from '../../../shared/utils/string-utils'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -121,7 +121,6 @@ const generateStyleTagStrings = (
     const root = nodesLookup[key]
     const className = cammelCaseToDashCase(key)
     accumulator[className] = prepareDynamicProps(styles)
-    // addClassStringOnJSXTag(root.node, className)
     addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
   }
 

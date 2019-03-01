@@ -4,9 +4,12 @@ import preset from 'jss-preset-default'
 import jss from 'jss'
 jss.setup(preset())
 
-import { cammelCaseToDashCase, stringToCamelCase } from '../../../shared/utils/helpers'
-import { addJSXTagStyles, addExternalPropOnJsxOpeningTag } from '../../../shared/utils/jsx-ast'
-import { ParsedASTNode } from '../../../shared/utils/js-ast'
+import { cammelCaseToDashCase, stringToCamelCase } from '../../../shared/utils/string-utils'
+import {
+  addJSXTagStyles,
+  addExternalPropOnJsxOpeningTag,
+} from '../../../shared/utils/ast-jsx-utils'
+import { ParsedASTNode } from '../../../shared/utils/ast-js-utils'
 
 import { ContentNode, StyleDefinitions } from '../../../uidl-definitions/types'
 

@@ -4,7 +4,7 @@ import {
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
-} from '../../shared/utils/jsx-ast'
+} from '../../shared/utils/ast-jsx-utils'
 import * as types from '@babel/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'

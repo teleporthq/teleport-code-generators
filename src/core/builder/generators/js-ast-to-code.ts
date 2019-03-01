@@ -1,4 +1,3 @@
-// import * as types from '@babel/types'
 import babelGenerator from '@babel/generator'
 import * as prettier from 'prettier/standalone'
 import parserPlugin from 'prettier/parser-babylon'
@@ -23,18 +22,6 @@ export const generator: GeneratorFunction = (anyContent) => {
 
     plugins: [parserPlugin],
     parser: 'babel',
-    // parser(text:string, { babylon }: any) {
-    //   const tempAst = babylon(text);
-    //   // console.log(
-    //   //   JSON.stringify(
-    //   //     tempAst.program.body, null, 4
-    //   //   ),
-    //   //   JSON.stringify(
-    //   //     types.file(types.program([ast]), null, null).program.body, null, 4
-    //   //   )
-    //   // )
-    //   return types.file(types.program([ast]), [], null)
-    // }
   })
 
   return formatted

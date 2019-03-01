@@ -4,9 +4,9 @@ import {
   addChildJSXTag,
   generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
-} from '../../../shared/utils/jsx-ast'
+} from '../../../shared/utils/ast-jsx-utils'
 
-import { makeDefaultExport } from '../../../shared/utils/js-ast'
+import { makeDefaultExport } from '../../../shared/utils/ast-js-utils'
 import {
   addEventHandlerToTag,
   makePureComponent,
@@ -15,7 +15,7 @@ import {
   addTextElementToTag,
 } from './utils'
 
-import { capitalize } from '../../../shared/utils/helpers'
+import { capitalize } from '../../../shared/utils/string-utils'
 
 import { ComponentPlugin, ComponentPluginFactory, StateIdentifier } from '../../../shared/types'
 
