@@ -10,7 +10,7 @@ import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
-import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/helpers'
+import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
 
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping: {} }

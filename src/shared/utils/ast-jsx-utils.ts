@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
-import { objectToObjectExpression, convertValueToLiteral } from './js-ast'
-import { StateIdentifier } from '../../shared/types'
+import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
+import { StateIdentifier } from '../types'
 import { ConditionalExpression } from '../../uidl-definitions/types'
 
 type BinaryOperator =
@@ -30,6 +30,26 @@ type BinaryOperator =
 type UnaryOperation = '+' | '-' | 'void' | 'throw' | 'delete' | '!' | '~' | 'typeof'
 
 /**
+ * Adds a class definition string to an existing string of classes
+ */
+export const addClassStringOnJSXTag = (
+  jsxNode: types.JSXElement,
+  classString: string,
+  t = types
+) => {
+  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true }, t)
+  if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
+    const classArray = classAttribute.value.value.split(' ')
+    classArray.push(classString)
+    classAttribute.value.value = classArray.join(' ').trim()
+  } else {
+    throw new Error(
+      'Attempted to set a class string literral on a jsx tag which had an invalid className attribute'
+    )
+  }
+}
+
+/**
  * Gets the existing className declaration attribute or generates and returns
  * a newly created and assigned one to the given JSXNode
  */
@@ -51,27 +71,6 @@ export const getClassAttribute = (
   }
 
   return results[0] as types.JSXAttribute
-}
-
-/**
- * Adds a class definition string to an existing string of classes
- */
-export const addClassStringOnJSXTag = (
-  jsxNode: types.JSXElement,
-  classString: string,
-  t = types
-) => {
-  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true }, t)
-  if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
-    const classArray = classAttribute.value.value.split(' ')
-    classArray.push(classString)
-    classAttribute.value.value = classArray.join(' ').trim()
-  } else {
-    throw new Error(
-      'Attempted to set a class string literral on a jsx\
-     tag wchih had an invalid className attribute'
-    )
-  }
 }
 
 /**
@@ -109,7 +108,22 @@ export const addExternalPropOnJsxOpeningTag = (
   )
 }
 
-export const stringAsTemplateLiteral = (str: string, t = types) => {
+// TODO: Use generateASTDefinitionForJSXTag instead?
+export const generateStyledJSXTag = (
+  templateLiteral: string | types.TemplateLiteral,
+  t = types
+) => {
+  if (typeof templateLiteral === 'string') {
+    templateLiteral = stringAsTemplateLiteral(templateLiteral, t)
+  }
+
+  const jsxTagChild = t.jsxExpressionContainer(templateLiteral)
+  const jsxTag = generateBasicJSXTag('style', [jsxTagChild, t.jsxText('\n')], t)
+  addAttributeToJSXTag(jsxTag, { name: 'jsx' }, t)
+  return jsxTag
+}
+
+const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
   `
@@ -127,21 +141,7 @@ ${str}
   )
 }
 
-export const generateStyledJSXTag = (
-  templateLiteral: string | types.TemplateLiteral,
-  t = types
-) => {
-  if (typeof templateLiteral === 'string') {
-    templateLiteral = stringAsTemplateLiteral(templateLiteral, t)
-  }
-
-  const jsxTagChild = t.jsxExpressionContainer(templateLiteral)
-  const jsxTag = generateBasicJSXTag('style', [jsxTagChild, t.jsxText('\n')], t)
-  addAttributeToJSXTag(jsxTag, { name: 'jsx' }, t)
-  return jsxTag
-}
-
-export const generateBasicJSXTag = (tagName: string, children: any[] = [], t = types) => {
+const generateBasicJSXTag = (tagName: string, children: any[] = [], t = types) => {
   const jsxIdentifier = t.jsxIdentifier(tagName)
   const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
   const closingDiv = t.jsxClosingElement(jsxIdentifier)
@@ -244,6 +244,7 @@ export const addDynamicChild = (
   tag.children.push(t.jsxExpressionContainer(content))
 }
 
+// TODO: Replace with generic add attribute?
 export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types) => {
   const styleObjectExpression = objectToObjectExpression(styleMap, t)
   const styleObjectExpressionContainer = t.jsxExpressionContainer(styleObjectExpression)

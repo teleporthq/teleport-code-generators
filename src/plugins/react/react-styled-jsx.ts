@@ -6,9 +6,9 @@ import * as t from '@babel/types'
 
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
-import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/jsx-ast'
+import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
-import { cammelCaseToDashCase } from '../../shared/utils/helpers'
+import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
 
 interface StyledJSXConfig {

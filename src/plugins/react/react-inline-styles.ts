@@ -3,8 +3,8 @@ import * as UIDLTypes from '../../uidl-definitions/types'
 
 import * as t from '@babel/types'
 
-import { addJSXTagStyles } from '../../shared/utils/jsx-ast'
-import { ParsedASTNode } from '../../shared/utils/js-ast'
+import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
+import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 
 interface InlineStyleConfig {
   componentChunkName: string

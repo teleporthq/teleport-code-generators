@@ -3,7 +3,7 @@ import jss from 'jss'
 jss.setup(preset())
 
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-import { cammelCaseToDashCase } from '../../shared/utils/helpers'
+import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
 
 interface VueStyleChunkConfig {

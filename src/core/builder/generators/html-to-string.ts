@@ -18,18 +18,6 @@ export const generator: GeneratorFunction = (htmlObject: any) => {
 
     plugins: [parserPlugin],
     parser: 'html',
-    // parser(text:string, { babylon }: any) {
-    //   const tempAst = babylon(text);
-    //   // console.log(
-    //   //   JSON.stringify(
-    //   //     tempAst.program.body, null, 4
-    //   //   ),
-    //   //   JSON.stringify(
-    //   //     types.file(types.program([ast]), null, null).program.body, null, 4
-    //   //   )
-    //   // )
-    //   return types.file(types.program([ast]), [], null)
-    // }
   })
   return formatted
 }
