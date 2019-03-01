@@ -1,8 +1,8 @@
 {
-    "navlink": {
-      "type": "router-link",
-      "attrs": {
-        "to": "$attrs.transitionTo"
-      }
+  "navlink": {
+    "type": "router-link",
+    "attrs": {
+      "to": "$attrs.transitionTo"
     }
   }
+}

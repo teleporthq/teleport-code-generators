@@ -34,7 +34,7 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-console.log(UIDLValidators.validateProject(projectJson))
+UIDLValidators.validateProject(projectJson)
 
 writeToDisk(projectJson, createVueBasicProject, path.join(__dirname, 'project-template'), 'dist')
 // runInMemory(projectJson, createVueProject)

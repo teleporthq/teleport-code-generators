@@ -56,11 +56,11 @@ ${addSpacesToEachLine(2, htmlCode)}
 </template>
 
 <script>
-${addSpacesToEachLine(2, jsCode)}
+${jsCode}
 </script>
 
 <style>
-${addSpacesToEachLine(2, cssCode)}
+${cssCode}
 </style>
 `,
       dependencies: result.dependencies,
