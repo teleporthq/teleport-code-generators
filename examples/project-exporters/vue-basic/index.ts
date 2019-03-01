@@ -35,7 +35,8 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-UIDLValidators.validateProject(projectJson)
+// tslint:disable-next-line: no-console
+console.log(UIDLValidators.validateProject(projectJson))
 
 writeToDisk(projectJson, createVueBasicProject, path.join(__dirname, 'project-template'), 'dist')
 // runInMemory(projectJson, createVueProject)
