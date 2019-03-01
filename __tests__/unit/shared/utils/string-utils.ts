@@ -2,6 +2,7 @@ import {
   slugify,
   addSpacesToEachLine,
   removeLastEmptyLine,
+  sanitizeVariableName,
 } from '../../../../src/shared/utils/string-utils'
 
 describe('Shared Utils string helpers', () => {
@@ -80,6 +81,16 @@ here
 
     it('removes only empty line at the end', () => {
       expect(removeLastEmptyLine('test\ntest\n')).toBe('test\ntest')
+    })
+  })
+
+  describe('sanitizeVariableName', () => {
+    it('does not change a valid string', () => {
+      expect(sanitizeVariableName('ComponentName')).toBe('ComponentName')
+    })
+
+    it('removes spaces and other characters, but keeps underscore', () => {
+      expect(sanitizeVariableName('Component_ Name-')).toBe('Component_Name')
     })
   })
 })

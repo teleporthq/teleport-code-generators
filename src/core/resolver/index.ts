@@ -1,5 +1,6 @@
 import { ElementsMapping, ComponentUIDL, ContentNode } from '../../uidl-definitions/types'
 import * as utils from './utils'
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { GeneratorOptions } from '../../shared/types'
 
 /**
@@ -20,6 +21,7 @@ export default class Resolver {
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
     return {
       ...uidl,
+      name: sanitizeVariableName(uidl.name),
       content: this.resolveContentNode(uidl.content, options),
     }
   }

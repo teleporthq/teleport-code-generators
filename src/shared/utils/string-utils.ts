@@ -20,6 +20,9 @@ export const stringToCamelCase = (str: string): string =>
 
 export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1)
 
+// Replaces all ocurrences of non alpha-numeric characters in the string (except _)
+export const sanitizeVariableName = (str: string): string => str.replace(/\W/g, '')
+
 export const slugify = (str: string): string => {
   if (str == null) {
     return null // Check for undefined or null

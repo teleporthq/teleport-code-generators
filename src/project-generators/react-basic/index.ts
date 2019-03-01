@@ -9,7 +9,7 @@ import {
   ProjectGeneratorOptions,
 } from '../../shared/types'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
-
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { createPackageJSON, createManifestJSON } from '../../shared/utils/project-utils'
 
 import { ProjectUIDL, ComponentDependency } from '../../uidl-definitions/types'
@@ -180,7 +180,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
       let cssFile: File | null = null
       if (compiledComponent.externalCSS) {
         cssFile = {
-          name: component.name,
+          name: sanitizeVariableName(component.name),
           extension: '.css',
           content: compiledComponent.externalCSS,
         }
@@ -189,7 +189,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
       }
 
       const jsFile: File = {
-        name: component.name,
+        name: sanitizeVariableName(component.name),
         extension: '.js',
         content: compiledComponent.code,
       }
