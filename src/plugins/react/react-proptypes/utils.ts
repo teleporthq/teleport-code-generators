@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 import { PropDefinition } from '../../../uidl-definitions/types'
-import { objectToObjectExpression, ParsedASTNode } from '../../../shared/utils/js-ast'
+import { objectToObjectExpression, ParsedASTNode } from '../../../shared/utils/ast-js-utils'
 
 export const buildDefaultPropsAst = (
   componentName: string,

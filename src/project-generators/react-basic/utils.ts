@@ -1,5 +1,5 @@
 import { generator } from '../../core/builder/generators/html-to-string'
-import { createXMLNode, createXMLRoot } from '../../shared/utils/xml'
+import { createXMLNode, createXMLRoot } from '../../shared/utils/xml-utils'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'

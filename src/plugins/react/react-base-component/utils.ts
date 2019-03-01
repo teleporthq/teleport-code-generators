@@ -1,12 +1,12 @@
 import * as types from '@babel/types'
 import { StateIdentifier } from '../../../shared/types'
-import { convertValueToLiteral } from '../../../shared/utils/js-ast'
+import { convertValueToLiteral } from '../../../shared/utils/ast-js-utils'
 import {
   addChildJSXText,
   addAttributeToJSXTag,
   addDynamicChild,
   addDynamicPropOnJsxOpeningTag,
-} from '../../../shared/utils/jsx-ast'
+} from '../../../shared/utils/ast-jsx-utils'
 import { EventHandlerStatement, PropDefinition } from '../../../uidl-definitions/types'
 
 // Adds all the event handlers and all the instructions for each event handler
