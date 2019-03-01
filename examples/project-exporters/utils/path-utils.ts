@@ -1,6 +1,5 @@
 import * as fs from 'fs'
 import path from 'path'
-// ts-lint:disable:next-line
 import rimraf from 'rimraf'
 
 import { GeneratorTypes } from '../../../src'

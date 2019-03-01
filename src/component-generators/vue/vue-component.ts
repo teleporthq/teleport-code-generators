@@ -10,6 +10,8 @@ import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
+import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/helpers'
+
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping: {} }
 ): ComponentGenerator => {
@@ -44,22 +46,23 @@ const createVueGenerator = (
     const cssChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuecss')
     const htmlChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuehtml')
 
-    const jsCode = chunksLinker.link(jsChunks)
-    const cssCode = chunksLinker.link(cssChunks)
-    const htmlCode = chunksLinker.link(htmlChunks)
+    const jsCode = removeLastEmptyLine(chunksLinker.link(jsChunks))
+    const cssCode = removeLastEmptyLine(chunksLinker.link(cssChunks))
+    const htmlCode = removeLastEmptyLine(chunksLinker.link(htmlChunks))
 
     return {
-      code: `
-<template>
-${htmlCode}</template>
+      code: `<template>
+${addSpacesToEachLine(2, htmlCode)}
+</template>
 
 <script>
-${jsCode}</script>
+${jsCode}
+</script>
 
 <style>
-${cssCode}</style>
+${cssCode}
+</style>
 `,
-
       dependencies: result.dependencies,
     }
   }
