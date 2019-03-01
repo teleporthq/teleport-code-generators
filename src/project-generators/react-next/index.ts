@@ -10,6 +10,7 @@ import { createManifestJSON, createPackageJSON } from '../../shared/utils/projec
 
 import createReactGenerator from '../../component-generators/react/react-component'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
 
 import { createDocumentComponent } from './utils'
 import nextMapping from './next-mapping.json'
@@ -150,7 +151,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
             assetsPrefix: ASSETS_PREFIX,
           })
           const file: File = {
-            name: component.name,
+            name: sanitizeVariableName(component.name),
             extension: '.js',
             content: compiledComponent.code,
           }
