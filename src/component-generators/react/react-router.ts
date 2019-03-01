@@ -1,10 +1,10 @@
-import { createPlugin as importStatements } from '../plugins/common/import-statements'
-import { createPlugin as appRoutingPlugin } from '../plugins/react/react-app-routing'
-import { ComponentAssemblyLine, Builder, Resolver } from '../pipeline'
+import { createPlugin as importStatements } from '../../plugins/common/import-statements'
+import { createPlugin as appRoutingPlugin } from '../../plugins/react/react-app-routing'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
 import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import reactMapping from './elements-mapping.json'
+import reactMapping from './react-mapping.json'
 
 const createRouterComponentGenerator = () => {
   const resolver = new Resolver({
@@ -22,10 +22,7 @@ const createRouterComponentGenerator = () => {
     importLibsChunkName: 'import',
   })
 
-  const assemblyLine = new ComponentAssemblyLine([
-    configureAppRouterComponent,
-    configureImportStatements,
-  ])
+  const assemblyLine = new AssemblyLine([configureAppRouterComponent, configureImportStatements])
   const chunksLinker = new Builder()
 
   const generateComponent = async (uidl: ComponentUIDL) => {

@@ -1,4 +1,4 @@
-import { slugify } from '../../../../src/component-generators/utils/helpers'
+import { slugify } from '../../../../src/shared/utils/helpers'
 
 describe('Component Generators Utils helpers', () => {
   describe('slugify tests', () => {

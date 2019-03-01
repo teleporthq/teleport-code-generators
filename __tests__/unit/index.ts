@@ -1,12 +1,13 @@
+// @ts-ignore
 import componentUIDL from '../../examples/uidl-samples/component-author-card.json'
 
 import {
   createReactComponentGenerator,
   createVueComponentGenerator,
-  ComponentGeneratorTypes,
+  GeneratorTypes,
 } from '../../src'
 
-const { ReactComponentStylingFlavors } = ComponentGeneratorTypes
+const { ReactComponentStylingFlavors } = GeneratorTypes
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {

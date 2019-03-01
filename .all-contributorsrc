@@ -1,0 +1,56 @@
+{
+  "projectName": "teleport-code-generators",
+  "projectOwner": "teleporthq",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "alexnm",
+      "name": "Alex Moldovan",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/9945366?v=4",
+      "profile": "https://medium.com/@alexnm",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas"
+      ]
+    },
+    {
+      "login": "vladnicula",
+      "name": "Vlad Nicula",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/126038?v=4",
+      "profile": "https://github.com/vladnicula",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
+    },
+    {
+      "login": "paulbrie",
+      "name": "Paul BRIE",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/3997538?v=4",
+      "profile": "https://github.com/paulbrie",
+      "contributions": [
+        "bug",
+        "doc",
+        "ideas"
+      ]
+    },
+    {
+      "login": "mihaitaba",
+      "name": "mihaitaba",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/45386599?v=4",
+      "profile": "https://github.com/mihaitaba",
+      "contributions": [
+        "design",
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}

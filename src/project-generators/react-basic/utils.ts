@@ -1,8 +1,8 @@
-import { generator } from '../../component-generators/pipeline/builder/generators/html-to-string'
-import { createXMLNode, createXMLRoot } from '../../component-generators/utils/xml'
+import { generator } from '../../core/builder/generators/html-to-string'
+import { createXMLNode, createXMLRoot } from '../../shared/utils/xml'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 
 export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals

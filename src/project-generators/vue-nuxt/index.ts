@@ -1,10 +1,9 @@
-import { File, Folder, ProjectGeneratorOptions } from '../types'
+import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
-import { extractExternalDependencies } from '../utils/generator-utils'
-
-import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
+import { extractExternalDependencies } from '../../shared/utils/project-utils'
+import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import createVueGenerator from '../../component-generators/vue/vue-component'
-import nuxtMapping from './elements-mapping.json'
+import nuxtMapping from './nuxt-mapping.json'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators

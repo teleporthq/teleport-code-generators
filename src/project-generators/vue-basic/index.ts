@@ -1,12 +1,11 @@
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import createVueRouterFileGenerator from '../../component-generators/vue/vue-router'
-import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
-
-import { Folder, File, ProjectGeneratorOptions } from '../types'
+import { extractPageMetadata } from '../../shared/utils/uidl-utils'
+import { extractExternalDependencies } from '../../shared/utils/project-utils'
+import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
-import { extractExternalDependencies } from '../utils/generator-utils'
 
-import vueProjectMapping from './elements-mapping.json'
+import vueProjectMapping from './vue-project-mapping.json'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators

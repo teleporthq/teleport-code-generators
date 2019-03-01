@@ -1,20 +1,22 @@
-import { ComponentAssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as vueBaseComponent } from '../plugins/vue/vue-base-component'
-import { createPlugin as vueStyleComponent } from '../plugins/vue/vue-style-chunk'
-import { createPlugin as importStatements } from '../plugins/common/import-statements'
+import { createPlugin as vueBaseComponent } from '../../plugins/vue/vue-base-component'
+import { createPlugin as vueStyleComponent } from '../../plugins/vue/vue-style-chunk'
+import { createPlugin as importStatements } from '../../plugins/common/import-statements'
 
-import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../types'
+import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import vueMapping from './elements-mapping.json'
+import vueMapping from './vue-mapping.json'
+
+import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/helpers'
 
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping: {} }
 ): ComponentGenerator => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
-  const assemblyLine = new ComponentAssemblyLine([
+  const assemblyLine = new AssemblyLine([
     vueBaseComponent({
       jsFileId: 'vuejs',
       jsFileAfter: ['libs', 'packs', 'locals'],
@@ -44,22 +46,23 @@ const createVueGenerator = (
     const cssChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuecss')
     const htmlChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuehtml')
 
-    const jsCode = chunksLinker.link(jsChunks)
-    const cssCode = chunksLinker.link(cssChunks)
-    const htmlCode = chunksLinker.link(htmlChunks)
+    const jsCode = removeLastEmptyLine(chunksLinker.link(jsChunks))
+    const cssCode = removeLastEmptyLine(chunksLinker.link(cssChunks))
+    const htmlCode = removeLastEmptyLine(chunksLinker.link(htmlChunks))
 
     return {
-      code: `
-<template>
-${htmlCode}</template>
+      code: `<template>
+${addSpacesToEachLine(2, htmlCode)}
+</template>
 
 <script>
-${jsCode}</script>
+${jsCode}
+</script>
 
 <style>
-${cssCode}</style>
+${cssCode}
+</style>
 `,
-
       dependencies: result.dependencies,
     }
   }

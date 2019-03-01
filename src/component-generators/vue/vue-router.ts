@@ -1,17 +1,17 @@
-import { ComponentAssemblyLine, Builder, Resolver } from '../pipeline'
+import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as createRouterPlugin } from '../plugins/vue/vue-router'
-import { createPlugin as createImportPlugin } from '../plugins/common/import-statements'
+import { createPlugin as createRouterPlugin } from '../../plugins/vue/vue-router'
+import { createPlugin as createImportPlugin } from '../../plugins/common/import-statements'
 
-import { GeneratorOptions } from '../types'
+import { GeneratorOptions } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import vueMapping from './elements-mapping.json'
+import vueMapping from './vue-mapping.json'
 
 const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
-  const assemblyLine = new ComponentAssemblyLine([
+  const assemblyLine = new AssemblyLine([
     createRouterPlugin({
       codeChunkName: 'vue-router',
       importChunkName: 'import-lib',

@@ -1,14 +1,14 @@
-import { generator } from '../../component-generators/pipeline/builder/generators/js-ast-to-code'
+import { generator } from '../../core/builder/generators/js-ast-to-code'
 import {
   generateASTDefinitionForJSXTag,
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
-} from '../../component-generators/utils/jsx-ast'
+} from '../../shared/utils/jsx-ast'
 import * as types from '@babel/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '../../component-generators/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 
 export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
   const { settings, meta, assets, manifest } = uidl.globals

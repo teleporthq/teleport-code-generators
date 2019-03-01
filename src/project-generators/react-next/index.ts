@@ -1,14 +1,18 @@
-import { Folder, File, ProjectGeneratorOptions } from '../types'
-import { ReactComponentStylingFlavors } from '../../component-generators/types'
+import {
+  ReactComponentStylingFlavors,
+  Folder,
+  File,
+  ProjectGeneratorOptions,
+} from '../../shared/types'
 import { ProjectUIDL, ComponentDependency, ComponentUIDL } from '../../uidl-definitions/types'
 
-import { createManifestJSON, createPackageJSON } from '../utils/generator-utils'
+import { createManifestJSON, createPackageJSON } from '../../shared/utils/project-utils'
 
 import createReactGenerator from '../../component-generators/react/react-component'
-import { extractPageMetadata } from '../../component-generators/utils/uidl-utils'
+import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 
 import { createDocumentComponent } from './utils'
-import nextMapping from './elements-mapping.json'
+import nextMapping from './next-mapping.json'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -56,7 +60,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   const result = {
     outputFolder: distFolder,
-    assetsPath: ASSETS_PREFIX,
+    assetsPath: ASSETS_PREFIX.slice(1),
   }
 
   if (!states || !stateDefinitions) {

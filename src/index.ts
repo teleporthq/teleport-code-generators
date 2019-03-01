@@ -1,8 +1,7 @@
 import * as UIDLValidators from './uidl-definitions/validators'
 import * as UIDLTypes from './uidl-definitions/types'
 
-import * as ProjectGeneratorTypes from './project-generators/types'
-import * as ComponentGeneratorTypes from './component-generators/types'
+import * as GeneratorTypes from './shared/types'
 
 // Different project flavor creators
 export { default as createReactBasicProject } from './project-generators/react-basic'
@@ -20,4 +19,4 @@ export {
 } from './component-generators/react/react-component'
 export { default as createVueComponentGenerator } from './component-generators/vue/vue-component'
 
-export { UIDLValidators, UIDLTypes, ProjectGeneratorTypes, ComponentGeneratorTypes }
+export { UIDLValidators, UIDLTypes, GeneratorTypes }

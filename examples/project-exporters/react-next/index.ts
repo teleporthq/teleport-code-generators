@@ -1,18 +1,14 @@
 import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
+// @ts-ignore
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import {
-  UIDLTypes,
-  ProjectGeneratorTypes,
-  UIDLValidators,
-  createReactNextProject,
-} from '../../../src'
+import { UIDLTypes, GeneratorTypes, UIDLValidators, createReactNextProject } from '../../../src'
 
 const writeToDisk = async (
   projectUIDL: UIDLTypes.ProjectUIDL,
-  generatorFunction: ProjectGeneratorTypes.ProjectGeneratorFunction,
+  generatorFunction: GeneratorTypes.ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {
@@ -39,6 +35,7 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
+// tslint:disable-next-line: no-console
 console.log(UIDLValidators.validateProject(projectJson))
 
 writeToDisk(projectJson, createReactNextProject, path.join(__dirname, 'project-template'), 'dist')
