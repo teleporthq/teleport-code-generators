@@ -2,7 +2,7 @@ import { ComponentDependency, WebManifest } from '../../uidl-definitions/types'
 
 import { PackageJSON } from '../types'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
-import { slugify } from '../../shared/utils/helpers'
+import { slugify } from './helpers'
 
 export const extractExternalDependencies = (dependencies: Record<string, ComponentDependency>) => {
   return Object.keys(dependencies)
