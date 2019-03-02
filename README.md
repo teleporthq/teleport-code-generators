@@ -56,7 +56,7 @@ npm install @teleporthq/teleport-code-generators
 ```
 
 ```javascript
-import { createReactComponentGenerator } from "teleport-generators"
+import { createReactComponentGenerator } from '@teleporthq/teleport-generators'
 
 const reactGenerator = createReactComponentGenerator()
 
@@ -98,10 +98,10 @@ There are two **factory functions** exported from our main module, for the React
 #### React
 
 ```javascript
-import { createReactComponentGenerator } from "teleport-generators"
+import { createReactComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
 
 // Instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
-const reactGenerator = createReactComponentGenerator({ variation: "StyledJSX" })
+const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
 
 // Calling the generate function will return the code as a string
 const result = reactGenerator.generateComponent(uidl)
@@ -116,7 +116,7 @@ Read more about [mappings and resolvers](link coming soon).
 #### Vue
 
 ```javascript
-import { createVueComponentGenerator } from "teleport-generators"
+import { createVueComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
 
 // Instantiate a vue generator
 const vueGenerator = createVueComponentGenerator()
@@ -169,7 +169,7 @@ Besides the regular files and folders generated at the end of the process, proje
 The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](link coming soon).
 
 ```javascript
-import { UIDLValidators } from "@teleporthq/teleport-generators"
+import { UIDLValidators } from '@teleporthq/teleport-generators'
 
 const componentUIDL = { ... }
 const projectUIDL = { ... }
