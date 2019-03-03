@@ -16,8 +16,7 @@ describe('React Component Generator', () => {
     })
 
     it('should return the code as string', async () => {
-      const uidl = JSON.parse(JSON.stringify(componentUIDL))
-      const result = await generator.generateComponent(uidl)
+      const result = await generator.generateComponent(componentUIDL)
       expect(result.code).toContain('import React from "react"')
       expect(result.externalCSS).toBeDefined()
       expect(result.dependencies).toBeDefined()
@@ -31,8 +30,7 @@ describe('React Component Generator', () => {
     })
 
     it('should render <fakediv> tags', async () => {
-      const uidl = JSON.parse(JSON.stringify(componentUIDL))
-      const result = await generator.generateComponent(uidl)
+      const result = await generator.generateComponent(componentUIDL)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBe('')
       expect(result.dependencies).toBeDefined()
@@ -45,8 +43,7 @@ describe('Vue Component Generator', () => {
     const generator = createVueComponentGenerator()
 
     it('should return the code as string', async () => {
-      const uidl = JSON.parse(JSON.stringify(componentUIDL))
-      const result = await generator.generateComponent(uidl)
+      const result = await generator.generateComponent(componentUIDL)
       expect(result.code).toContain('<template>')
       expect(result.externalCSS).toBeUndefined()
       expect(result.dependencies).toBeDefined()
@@ -58,8 +55,7 @@ describe('Vue Component Generator', () => {
     generator.addMapping({ container: { type: 'fakediv' } })
 
     it('should render <fakediv> tags', async () => {
-      const uidl = JSON.parse(JSON.stringify(componentUIDL))
-      const result = await generator.generateComponent(uidl)
+      const result = await generator.generateComponent(componentUIDL)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBeUndefined()
       expect(result.dependencies).toBeDefined()

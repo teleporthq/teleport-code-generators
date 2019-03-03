@@ -15,6 +15,7 @@
     "upload:coverage": "codecov",
     "prepare": "npm run build",
     "add-contributor": "all-contributors add",
+    "perf": "ts-node --project tsconfig.json ./__tests__/performance/react-generator.ts",
     "create-react-next": "ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
     "create-react-basic": "ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
     "create-vue-basic": "ts-node --project tsconfig.json ./examples/project-exporters/vue-basic/index.ts",
@@ -44,7 +45,6 @@
     "husky": "^1.3.1",
     "jest": "^24.1.0",
     "pretty-quick": "^1.10.0",
-    
     "ts-jest": "^24.0.0",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
@@ -54,12 +54,12 @@
   "dependencies": {
     "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
-    "rimraf": "^2.6.3",
     "ajv": "^6.9.1",
     "cheerio": "^1.0.0-rc.2",
     "jss": "^9.8.7",
     "jss-preset-default": "^10.0.0-alpha.7",
-    "prettier": "^1.16.4"
+    "prettier": "^1.16.4",
+    "rimraf": "^2.6.3"
   },
   "config": {
     "commitizen": {

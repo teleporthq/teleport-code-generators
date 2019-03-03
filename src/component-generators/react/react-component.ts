@@ -20,6 +20,8 @@ import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 
+import { performance } from 'perf_hooks'
+
 interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
   customMapping?: ElementsMapping
@@ -59,13 +61,18 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     uidl: ComponentUIDL,
     generatorOptions: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
+    const t0 = performance.now()
     const resolvedUIDL = resolver.resolveUIDL(uidl, generatorOptions)
+    const t1 = performance.now()
+    console.info(`Resolve time: ${(t1 - t0).toFixed(2)}`)
     const result = await assemblyLine.run(resolvedUIDL)
-
+    const t2 = performance.now()
+    console.info(`Assembly time: ${(t2 - t1).toFixed(2)}`)
     const chunksByFileId = assemblyLine.groupChunksByFileId(result.chunks)
-
     const code = chunksLinker.link(chunksByFileId.default)
     const externalCSS = chunksLinker.link(chunksByFileId['component-styles'])
+    const t3 = performance.now()
+    console.info(`Link time: ${(t3 - t2).toFixed(2)}`)
 
     return {
       dependencies: result.dependencies,
