@@ -1,15 +1,12 @@
 // @ts-ignore
-import realComponentUIDL from '../fixtures/react-sample.json'
+import realComponentUIDL from '../fixtures/vue-sample.json'
 import { createUIDL } from '../fixtures/uidl'
-import { createReactComponentGenerator, GeneratorTypes } from '../../src'
-
+import { createVueComponentGenerator } from '../../src'
 import { performance } from 'perf_hooks'
 
-const generator = createReactComponentGenerator({
-  variation: GeneratorTypes.ReactComponentStylingFlavors.StyledJSX,
-})
+const generator = createVueComponentGenerator()
 
-describe('React Generator Performance Run', () => {
+describe('Vue Generator Performance Run', () => {
   describe('with realistic component sample', () => {
     it('takes under 150ms', async () => {
       const t0 = performance.now()
@@ -32,7 +29,7 @@ describe('React Generator Performance Run', () => {
         localDependenciesPrefix: '../components',
       })
       const t1 = performance.now()
-      expect(t1 - t0).toBeLessThan(1400)
+      expect(t1 - t0).toBeLessThan(5500)
     })
   })
 })
