@@ -14,6 +14,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "npm run test -- --coverage --no-cache",
     "upload:coverage": "codecov",
+    "commitizen": "git-cz",
     "prepare": "npm run build",
     "add-contributor": "all-contributors add",
     "create-react-next": "ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
