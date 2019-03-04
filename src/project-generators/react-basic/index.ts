@@ -105,8 +105,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 4: Routing component (index.js)
   // Avoid leaky memory reference because the root is parsed once here and then each branch is parsed below
-  const rootCopy = JSON.parse(JSON.stringify(root))
-  const routingComponent = await routingComponentGenerator.generateComponent(rootCopy)
+  const routingComponent = await routingComponentGenerator.generateComponent(root)
 
   srcFolder.files.push({
     name: 'index',

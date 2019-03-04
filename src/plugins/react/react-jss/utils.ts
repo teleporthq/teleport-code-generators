@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 
 export const makeJSSDefaultExport = (componentName: string, stylesName: string, t = types) => {
   return t.exportDefaultDeclaration(

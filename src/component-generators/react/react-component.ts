@@ -63,7 +63,6 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const result = await assemblyLine.run(resolvedUIDL)
 
     const chunksByFileId = assemblyLine.groupChunksByFileId(result.chunks)
-
     const code = chunksLinker.link(chunksByFileId.default)
     const externalCSS = chunksLinker.link(chunksByFileId['component-styles'])
 

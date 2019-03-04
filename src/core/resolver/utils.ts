@@ -6,7 +6,7 @@ import {
   ElementMapping,
 } from '../../uidl-definitions/types'
 
-import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL, cloneElement } from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
@@ -29,7 +29,7 @@ export const resolveContentNode = (
 
     const replacingNode = {
       ...node,
-      children: JSON.parse(JSON.stringify(mappedElement.children)),
+      children: cloneElement(mappedElement.children),
     }
 
     insertChildrenIntoNode(replacingNode, originalNodeChildren, originalAttrs)
@@ -57,7 +57,7 @@ export const resolveContentNode = (
 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
-    node.attrs = mergeAttributes(mappedElement, node.attrs)
+    node.attrs = mergeAttributes(mappedElement.attrs, node.attrs)
   }
 
   // The UIDL has priority over the mapping repeat
@@ -153,7 +153,7 @@ const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleD
   }, {})
 }
 
-const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any) => {
+const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<string, any>) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
   const resolvedAttrs: Record<string, any> = {}
 
@@ -162,10 +162,9 @@ const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any) => {
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
   const mappedAttributes: string[] = []
 
-  const attrs: Record<string, any> = mappedElement.attrs || {}
   // First we iterate through the mapping attributes and we add them to the result
-  Object.keys(attrs).forEach((key) => {
-    const value = attrs[key]
+  Object.keys(mappedAttrs).forEach((key) => {
+    const value = mappedAttrs[key]
     if (!value) {
       return
     }
@@ -183,7 +182,7 @@ const mergeAttributes = (mappedElement: ElementMapping, uidlAttrs: any) => {
       return
     }
 
-    resolvedAttrs[key] = attrs[key]
+    resolvedAttrs[key] = mappedAttrs[key]
   })
 
   // The UIDL attributes can override the mapped attributes, so they come last

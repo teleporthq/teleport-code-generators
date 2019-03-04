@@ -133,15 +133,13 @@ export const writeFolder = async (folder: GeneratorTypes.Folder, currentPath: st
 
   if (!fs.existsSync(folderPath)) {
     await mkdir(folderPath)
-    // tslint:disable-next-line:no-console
-    console.log('Created folder: ', folderPath)
+    console.info('Created folder: ', folderPath)
   }
 
   for (const file of files) {
     const fileName = file.name + file.extension
     await writeTextFile(folderPath, fileName, file.content)
-    // tslint:disable-next-line:no-console
-    console.log('Created file: ', path.join(folderPath, fileName))
+    console.info('Created file: ', path.join(folderPath, fileName))
   }
 
   subFolders.forEach((child) => writeFolder(child, folderPath))

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "name": "BigSample",
+  "content": {
+    "type": "container",
+    "key": "container",
+    "children": []
+  }
+}

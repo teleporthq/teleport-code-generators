@@ -1,5 +1,7 @@
 // @ts-ignore
-import projectUIDL from '../../examples/uidl-samples/project-routing.json'
+import vueProjectUIDL from '../../examples/uidl-samples/project-routing.json'
+// @ts-ignore
+import reactProjectUIDL from '../../examples/uidl-samples/project-state-components.json'
 
 import {
   createReactBasicProject,
@@ -10,8 +12,7 @@ import {
 
 describe('React Basic Project Generator', () => {
   it('runs without crashing', async () => {
-    const uidl = JSON.parse(JSON.stringify(projectUIDL))
-    const result = await createReactBasicProject(uidl)
+    const result = await createReactBasicProject(reactProjectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -21,8 +22,7 @@ describe('React Basic Project Generator', () => {
 
 describe('React Next Project Generator', () => {
   it('runs without crashing', async () => {
-    const uidl = JSON.parse(JSON.stringify(projectUIDL))
-    const result = await createReactNextProject(uidl)
+    const result = await createReactNextProject(reactProjectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -32,8 +32,7 @@ describe('React Next Project Generator', () => {
 
 describe('Vue Basic Project Generator', () => {
   it('runs without crashing', async () => {
-    const uidl = JSON.parse(JSON.stringify(projectUIDL))
-    const result = await createVueBasicProject(uidl)
+    const result = await createVueBasicProject(vueProjectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -42,8 +41,7 @@ describe('Vue Basic Project Generator', () => {
 
 describe('Vue Nuxt Project Generator', () => {
   it('runs without crashing', async () => {
-    const uidl = JSON.parse(JSON.stringify(projectUIDL))
-    const result = await createVueNuxtProject(uidl)
+    const result = await createVueNuxtProject(vueProjectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
