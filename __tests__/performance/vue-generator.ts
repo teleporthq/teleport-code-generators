@@ -29,7 +29,7 @@ describe('Vue Generator Performance Run', () => {
         localDependenciesPrefix: '../components',
       })
       const t1 = performance.now()
-      expect(t1 - t0).toBeLessThan(5500)
+      expect(t1 - t0).toBeLessThan(6500)
     })
   })
 })

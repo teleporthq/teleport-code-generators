@@ -32,7 +32,7 @@ describe('React Generator Performance Run', () => {
         localDependenciesPrefix: '../components',
       })
       const t1 = performance.now()
-      expect(t1 - t0).toBeLessThan(1400)
+      expect(t1 - t0).toBeLessThan(2000)
     })
   })
 })
