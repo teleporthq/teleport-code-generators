@@ -1,6 +1,7 @@
 import babelGenerator from '@babel/generator'
 import { format } from 'prettier/standalone'
-import parserPlugin from 'prettier/parser-babylon'
+import parserBabylon from 'prettier/parser-babylon'
+import parserPostCSS from 'prettier/parser-postcss'
 
 import { PRETTIER_CONFIG } from '../../../shared/constants'
 import { GeneratorFunction } from '../../../shared/types'
@@ -15,7 +16,7 @@ export const generator: GeneratorFunction = (anyContent) => {
 
   const formatted = format(code, {
     ...PRETTIER_CONFIG,
-    plugins: [parserPlugin],
+    plugins: [parserBabylon, parserPostCSS],
     parser: 'babel',
   })
 
