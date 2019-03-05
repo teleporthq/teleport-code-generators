@@ -15,12 +15,12 @@ describe('Vue Generator Performance Run', () => {
         localDependenciesPrefix: '../components',
       })
       const t1 = performance.now()
-
+      console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
       expect(t1 - t0).toBeLessThan(150)
     })
   })
 
-  describe('with realistic component sample', () => {
+  describe('with generated component sample', () => {
     it('takes under 150ms', async () => {
       const uidl = createUIDL({ firstLvl: 100, secondLvl: 5, thirdLvl: 2 })
       const t0 = performance.now()
@@ -29,6 +29,7 @@ describe('Vue Generator Performance Run', () => {
         localDependenciesPrefix: '../components',
       })
       const t1 = performance.now()
+      console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
       expect(t1 - t0).toBeLessThan(6500)
     })
   })
