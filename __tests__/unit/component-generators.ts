@@ -17,7 +17,7 @@ describe('React Component Generator', () => {
 
     it('should return the code as string', async () => {
       const result = await generator.generateComponent(componentUIDL)
-      expect(result.code).toContain('import React from "react"')
+      expect(result.code).toContain("import React from 'react'")
       expect(result.externalCSS).toBeDefined()
       expect(result.dependencies).toBeDefined()
     })
