@@ -56,7 +56,7 @@ npm install @teleporthq/teleport-code-generators
 ```
 
 ```javascript
-import { createReactComponentGenerator } from "teleport-generators"
+import { createReactComponentGenerator } from '@teleporthq/teleport-generators'
 
 const reactGenerator = createReactComponentGenerator()
 
@@ -98,10 +98,10 @@ There are two **factory functions** exported from our main module, for the React
 #### React
 
 ```javascript
-import { createReactComponentGenerator } from "teleport-generators"
+import { createReactComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
 
 // Instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
-const reactGenerator = createReactComponentGenerator({ variation: "StyledJSX" })
+const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
 
 // Calling the generate function will return the code as a string
 const result = reactGenerator.generateComponent(uidl)
@@ -116,7 +116,7 @@ Read more about [mappings and resolvers](link coming soon).
 #### Vue
 
 ```javascript
-import { createVueComponentGenerator } from "teleport-generators"
+import { createVueComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
 
 // Instantiate a vue generator
 const vueGenerator = createVueComponentGenerator()
@@ -169,7 +169,7 @@ Besides the regular files and folders generated at the end of the process, proje
 The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](link coming soon).
 
 ```javascript
-import { UIDLValidators } from "@teleporthq/teleport-generators"
+import { UIDLValidators } from '@teleporthq/teleport-generators'
 
 const componentUIDL = { ... }
 const projectUIDL = { ... }
@@ -243,8 +243,8 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore -->
-<table><tr><td align="center"><a href="https://medium.com/@alexnm"><img src="https://avatars0.githubusercontent.com/u/9945366?v=4" width="100px;" alt="Alex Moldovan"/><br /><sub><b>Alex Moldovan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Documentation">📖</a> <a href="#ideas-alexnm" title="Ideas, Planning, & Feedback">🤔</a></td><td align="center"><a href="https://github.com/vladnicula"><img src="https://avatars3.githubusercontent.com/u/126038?v=4" width="100px;" alt="Vlad Nicula"/><br /><sub><b>Vlad Nicula</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=vladnicula" title="Code">💻</a> <a href="#ideas-vladnicula" title="Ideas, Planning, & Feedback">🤔</a></td><td align="center"><a href="https://github.com/paulbrie"><img src="https://avatars2.githubusercontent.com/u/3997538?v=4" width="100px;" alt="Paul BRIE"/><br /><sub><b>Paul BRIE</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Apaulbrie" title="Bug reports">🐛</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=paulbrie" title="Documentation">📖</a> <a href="#ideas-paulbrie" title="Ideas, Planning, & Feedback">🤔</a></td><td align="center"><a href="https://github.com/mihaitaba"><img src="https://avatars3.githubusercontent.com/u/45386599?v=4" width="100px;" alt="mihaitaba"/><br /><sub><b>mihaitaba</b></sub></a><br /><a href="#design-mihaitaba" title="Design">🎨</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaitaba" title="Documentation">📖</a></td></tr></table>
-
+| [<img src="https://avatars0.githubusercontent.com/u/9945366?v=4" width="100px;" alt="Alex Moldovan"/><br /><sub><b>Alex Moldovan</b></sub>](https://medium.com/@alexnm)<br />[💻](https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm "Code") [📖](https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm "Documentation") [🤔](#ideas-alexnm "Ideas, Planning, & Feedback") | [<img src="https://avatars3.githubusercontent.com/u/126038?v=4" width="100px;" alt="Vlad Nicula"/><br /><sub><b>Vlad Nicula</b></sub>](https://github.com/vladnicula)<br />[💻](https://github.com/teleporthq/teleport-code-generators/commits?author=vladnicula "Code") [🤔](#ideas-vladnicula "Ideas, Planning, & Feedback") | [<img src="https://avatars2.githubusercontent.com/u/3997538?v=4" width="100px;" alt="Paul BRIE"/><br /><sub><b>Paul BRIE</b></sub>](https://github.com/paulbrie)<br />[🐛](https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Apaulbrie "Bug reports") [📖](https://github.com/teleporthq/teleport-code-generators/commits?author=paulbrie "Documentation") [🤔](#ideas-paulbrie "Ideas, Planning, & Feedback") | [<img src="https://avatars3.githubusercontent.com/u/45386599?v=4" width="100px;" alt="mihaitaba"/><br /><sub><b>mihaitaba</b></sub>](https://github.com/mihaitaba)<br />[🎨](#design-mihaitaba "Design") [📖](https://github.com/teleporthq/teleport-code-generators/commits?author=mihaitaba "Documentation") | [<img src="https://avatars2.githubusercontent.com/u/3420526?v=4" width="100px;" alt="Mihai Serban"/><br /><sub><b>Mihai Serban</b></sub>](https://github.com/mihaiserban)<br />[💻](https://github.com/teleporthq/teleport-code-generators/commits?author=mihaiserban "Code") |
+| :---: | :---: | :---: | :---: | :---: |
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

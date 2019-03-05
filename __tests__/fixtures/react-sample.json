@@ -116,9 +116,13 @@
           {
             "value": 0,
             "content": {
-              "type": "text",
-              "key": "text1",
-              "children": ["This is the first tab"]
+              "type": "container",
+              "key": "tab1c",
+              "children": [{
+                "type": "text",
+                "key": "text1",
+                "children": ["This is the first tab"]
+              }]
             }
           },{
             "value": 1,

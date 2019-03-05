@@ -63,7 +63,6 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const result = await assemblyLine.run(resolvedUIDL)
 
     const chunksByFileId = assemblyLine.groupChunksByFileId(result.chunks)
-
     const code = chunksLinker.link(chunksByFileId.default)
     const externalCSS = chunksLinker.link(chunksByFileId['component-styles'])
 
@@ -76,9 +75,9 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode,
-    addMapping: resolver.addMapping,
-    addPlugin: assemblyLine.addPlugin,
+    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    addMapping: resolver.addMapping.bind(resolver),
+    addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }
 }
 

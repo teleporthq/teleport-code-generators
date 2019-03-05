@@ -3,8 +3,8 @@ import * as UIDLTypes from '../../uidl-definitions/types'
 
 import * as t from '@babel/types'
 
-import { addJSXTagStyles } from '../../shared/utils/jsx-ast'
-import { ParsedASTNode } from '../../shared/utils/js-ast'
+import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
+import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 
 interface InlineStyleConfig {
   componentChunkName: string
@@ -35,15 +35,15 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
 export default createPlugin()
 
-const prepareDynamicProps = (styles: UIDLTypes.StyleDefinitions) => {
-  return Object.keys(styles).reduce((acc: any, key) => {
-    const value = styles[key]
+const prepareDynamicProps = (style: UIDLTypes.StyleDefinitions) => {
+  return Object.keys(style).reduce((acc: any, key) => {
+    const value = style[key]
     if (typeof value === 'string' && value.startsWith('$props.')) {
       acc[key] = new ParsedASTNode(
         t.memberExpression(t.identifier('props'), t.identifier(value.replace('$props.', '')))
       )
     } else {
-      acc[key] = styles[key]
+      acc[key] = style[key]
     }
     return acc
   }, {})
@@ -62,15 +62,15 @@ const enhanceJSXWithStyles = (
   content: UIDLTypes.ContentNode,
   nodesLookup: Record<string, t.JSXElement>
 ) => {
-  const { children, styles, key, repeat } = content
+  const { children, style, key, repeat } = content
 
-  if (styles) {
+  if (style) {
     const jsxASTTag = nodesLookup[key]
     if (!jsxASTTag) {
       return
     }
 
-    addJSXTagStyles(jsxASTTag, prepareDynamicProps(styles), t)
+    addJSXTagStyles(jsxASTTag, prepareDynamicProps(style), t)
   }
 
   if (repeat) {

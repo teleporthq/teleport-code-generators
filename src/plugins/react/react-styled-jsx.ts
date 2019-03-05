@@ -6,9 +6,9 @@ import * as t from '@babel/types'
 
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
-import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/jsx-ast'
+import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
-import { cammelCaseToDashCase } from '../../shared/utils/helpers'
+import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
 
 interface StyledJSXConfig {
@@ -52,14 +52,14 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
 export default createPlugin()
 
-const prepareDynamicProps = (styles: StyleDefinitions) => {
-  return Object.keys(styles).reduce((acc: any, key) => {
-    const value = styles[key]
+const prepareDynamicProps = (style: StyleDefinitions) => {
+  return Object.keys(style).reduce((acc: any, key) => {
+    const value = style[key]
     // tslint:disable-next-line:prefer-conditional-expression
     if (typeof value === 'string' && value.startsWith('$props.')) {
       acc[key] = `\$\{${value.replace('$props.', 'props.')}\}`
     } else {
-      acc[key] = styles[key]
+      acc[key] = style[key]
     }
     return acc
   }, {})
@@ -71,15 +71,15 @@ const generateStyledJSXString = (
 ) => {
   let accumulator: any[] = []
 
-  const { styles, children, key, repeat } = content
-  if (styles) {
+  const { style, children, key, repeat } = content
+  if (style) {
     const root = nodesLookup[key]
     const className = cammelCaseToDashCase(key)
     accumulator.push(
       jss
         .createStyleSheet(
           {
-            [`.${className}`]: prepareDynamicProps(styles),
+            [`.${className}`]: prepareDynamicProps(style),
           },
           {
             generateClassName: () => className,

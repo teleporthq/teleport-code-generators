@@ -10,6 +10,7 @@ module.exports = {
     "jsx",
     "node"
   ],
+  "modulePathIgnorePatterns": ["__tests__/fixtures"],
   "collectCoverage": false,
   "testEnvironment": "node",
   "collectCoverageFrom": [

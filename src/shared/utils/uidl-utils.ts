@@ -1,4 +1,4 @@
-import { StateDefinition } from '../../uidl-definitions/types'
+import { StateDefinition, ContentNode } from '../../uidl-definitions/types'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 /**
@@ -53,3 +53,7 @@ export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string
 
   return `${prefix}/${originalString}`
 }
+
+// Either receives the content node or the children element
+export const cloneElement = (node: ContentNode | Array<ContentNode | string>) =>
+  JSON.parse(JSON.stringify(node))

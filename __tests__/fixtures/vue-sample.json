@@ -92,17 +92,7 @@
           "backgroundColor": "#e4f2f8",
           "borderColor": "#0089be",
           "borderWidth": 0,
-          "borderStyle": "solid",
-          "@media (max-width: 835px)": {
-              "width": 228,
-              "height": 154
-          },
-          "@media (max-width: 640px)": {
-              "backgroundColor": "#e91e63"
-          },
-          "@media (max-width: 634px)": {
-              "height": 276
-          }
+          "borderStyle": "solid"
         },
         "children": [
           "Active tab: ",
@@ -116,9 +106,13 @@
           {
             "value": 0,
             "content": {
-              "type": "text",
-              "key": "text1",
-              "children": ["This is the first tab"]
+              "type": "container",
+              "key": "tab1c",
+              "children": [{
+                "type": "text",
+                "key": "text1",
+                "children": ["This is the first tab"]
+              }]
             }
           },{
             "value": 1,

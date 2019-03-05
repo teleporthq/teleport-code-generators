@@ -3,6 +3,7 @@ import createVueRouterFileGenerator from '../../component-generators/vue/vue-rou
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { extractExternalDependencies } from '../../shared/utils/project-utils'
 import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 
 import vueProjectMapping from './vue-project-mapping.json'
@@ -112,7 +113,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         }
 
         const file: File = {
-          name: component.name,
+          name: sanitizeVariableName(component.name),
           extension: '.vue',
           content: componentResult.code,
         }

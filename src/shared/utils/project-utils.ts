@@ -1,6 +1,8 @@
 import { ComponentDependency, WebManifest } from '../../uidl-definitions/types'
+
 import { PackageJSON } from '../types'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
+import { slugify } from './string-utils'
 
 export const extractExternalDependencies = (dependencies: Record<string, ComponentDependency>) => {
   return Object.keys(dependencies)
@@ -55,7 +57,7 @@ export const createPackageJSON = (
 
   return {
     ...packageJSONTemplate,
-    name: projectName,
+    name: slugify(projectName),
     dependencies: {
       ...packageJSONTemplate.dependencies,
       ...externalDep,

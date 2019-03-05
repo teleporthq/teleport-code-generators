@@ -10,7 +10,7 @@ import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
-import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/helpers'
+import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
 
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping: {} }
@@ -69,9 +69,9 @@ ${cssCode}
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode,
-    addMapping: resolver.addMapping,
-    addPlugin: assemblyLine.addPlugin,
+    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    addMapping: resolver.addMapping.bind(resolver),
+    addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }
 }
 

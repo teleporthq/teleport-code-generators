@@ -1,6 +1,8 @@
 import { ElementsMapping, ComponentUIDL, ContentNode } from '../../uidl-definitions/types'
 import * as utils from './utils'
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { GeneratorOptions } from '../../shared/types'
+import { cloneElement } from '../../shared/utils/uidl-utils'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -18,9 +20,12 @@ export default class Resolver {
   }
 
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
+    const content = cloneElement(uidl.content)
+
     return {
       ...uidl,
-      content: this.resolveContentNode(uidl.content, options),
+      name: sanitizeVariableName(uidl.name),
+      content: this.resolveContentNode(content, options),
     }
   }
 

@@ -1,3 +1,4 @@
+/* THIS WILL BE SOON REMOVED */
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
 import { createPlugin as reactComponent } from '../../plugins/react/react-base-component'
