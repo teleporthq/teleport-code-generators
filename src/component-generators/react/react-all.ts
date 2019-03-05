@@ -16,7 +16,7 @@ import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
 
 const configuredReactJSX = reactComponent({
   componentChunkName: 'react-component',
-  importChunkName: 'import-libs',
+  importChunkName: 'import-local',
   exportChunkName: 'export',
 })
 
@@ -26,7 +26,7 @@ const configuredReactStyledJSX = reactStyledJSX({
 
 const configuredReactJSS = reactJSS({
   componentChunkName: 'react-component',
-  importChunkName: 'import-libs',
+  importChunkName: 'import-local',
   exportChunkName: 'export',
 })
 
@@ -39,7 +39,9 @@ const configuredPropTypes = reactPropTypes({
 })
 
 const configureImportStatements = importStatements({
-  importLibsChunkName: 'import-libs',
+  importLibsChunkName: 'import-lib',
+  importPackagesChunkName: 'import-pack',
+  importLocalsChunkName: 'import-local',
 })
 
 const configuredReactCSSModules = reactCSSModules({

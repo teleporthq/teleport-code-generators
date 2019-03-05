@@ -13,9 +13,9 @@ interface AppRoutingComponentConfig {
 
 export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
   const {
-    importChunkName = 'imports',
-    componentChunkName = 'app-routing-component',
-    domRenderChunkName = 'app-routing-bind-to-dom',
+    importChunkName = 'import-local',
+    componentChunkName = 'app-router-component',
+    domRenderChunkName = 'app-router-export',
   } = config || {}
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
@@ -75,10 +75,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     structure.chunks.push({
       type: 'js',
       name: componentChunkName,
-      linker: {
-        after: [importChunkName],
-      },
       content: pureComponent,
+      linkAfter: [importChunkName],
     })
 
     // makes ReactDOM.render(AppName, document.getElementById('root'));
@@ -95,10 +93,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     structure.chunks.push({
       type: 'js',
       name: domRenderChunkName,
-      linker: {
-        after: [componentChunkName],
-      },
       content: reactDomBind,
+      linkAfter: [componentChunkName],
     })
 
     return structure

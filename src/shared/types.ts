@@ -6,11 +6,6 @@ import {
   ProjectUIDL,
 } from '../uidl-definitions/types'
 
-export interface EmbedDefinition {
-  chunkName: string
-  slot: string
-}
-
 /**
  * React could have one or more JS chunks, nothing else.
  * Vue has a template chunk, of type XML/HTML, a javascript
@@ -19,16 +14,9 @@ export interface EmbedDefinition {
 export interface ChunkDefinition {
   type: string
   name: string
-  meta?: any | null
-  wrap?: (content: string) => string
+  meta?: any
   content: any
-  linker?: {
-    slots?: {
-      [key: string]: (chunks: ChunkDefinition[]) => any
-    }
-    after?: string[]
-    embed?: EmbedDefinition
-  }
+  linkAfter: string[]
 }
 
 /**

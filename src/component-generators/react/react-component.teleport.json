@@ -1,0 +1,25 @@
+{
+  "structure": [
+    {
+      "groupId": "main-file",
+      "chunks": [
+        "import-lib",
+        "import-package",
+        "import-local",
+        "component",
+        "proptypes",
+        "export"
+      ]
+    },
+    {
+      "groupdId": "css-module",
+      "chunks": ["style"]
+    }
+  ],
+  "plugins": [
+    "react-component",
+    "react-styledjsx",
+    "react-proptypes",
+    "import"
+  ]
+}

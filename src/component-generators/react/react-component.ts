@@ -37,7 +37,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   assemblyLine.addPlugin(
     reactComponent({
       componentChunkName: 'react-component',
-      importChunkName: 'import',
+      importChunkName: 'import-local',
       exportChunkName: 'export',
     })
   )
@@ -49,7 +49,9 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   )
   assemblyLine.addPlugin(
     importStatements({
-      importLibsChunkName: 'import',
+      importPackagesChunkName: 'import-pack',
+      importLibsChunkName: 'import-lib',
+      importLocalsChunkName: 'import-local',
     })
   )
 
@@ -94,7 +96,7 @@ const chooseStylePlugin = (variation: ReactComponentStylingFlavors) => {
     case ReactComponentStylingFlavors.JSS:
       return reactJSS({
         componentChunkName: 'react-component',
-        importChunkName: 'import',
+        importChunkName: 'import-local',
         exportChunkName: 'export',
       })
     case ReactComponentStylingFlavors.StyledJSX:

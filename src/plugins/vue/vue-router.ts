@@ -8,7 +8,7 @@ interface VueRouterConfig {
 }
 
 export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) => {
-  const { codeChunkName = 'vue-router', importChunkName = 'import-lib' } = config || {}
+  const { codeChunkName = 'vue-router', importChunkName = 'import-local' } = config || {}
 
   const vueRouterComponentPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl, dependencies } = structure
@@ -54,9 +54,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
 
     chunks.push({
       name: codeChunkName,
-      linker: {
-        after: [importChunkName],
-      },
+      linkAfter: [importChunkName],
       type: 'js',
       content: [declaration, exportStatement],
     })

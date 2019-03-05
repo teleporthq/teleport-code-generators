@@ -31,9 +31,6 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
   const vueBasicComponentChunks: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
-    // if file ids are not falsy, and different in value
-    const separateFiles = (htmlFileId || jsFileId) && htmlFileId !== jsFileId
-
     const templateLookup: { [key: string]: any } = {}
     const scriptLookup: { [key: string]: any } = {}
 
@@ -46,12 +43,8 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
         lookup: templateLookup,
         fileId: htmlFileId,
       },
-      wrap: separateFiles
-        ? undefined
-        : (generatedContent) => {
-            return `<template>\n${generatedContent}</template>`
-          },
       content: templateContent,
+      linkAfter: [],
     })
 
     const jsContent = generateEmptyVueComponentJS(
@@ -73,18 +66,11 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     chunks.push({
       type: 'js',
       name: vueJSChunkName,
-      linker: {
-        after: jsFileAfter,
-      },
       meta: {
         lookup: scriptLookup,
         fileId: jsFileId,
       },
-      wrap: separateFiles
-        ? undefined
-        : (generatedContent) => {
-            return `<script>\n${generatedContent}</script>`
-          },
+      linkAfter: jsFileAfter,
       content: jsContent,
     })
 

@@ -14,11 +14,9 @@ const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
   const assemblyLine = new AssemblyLine([
     createRouterPlugin({
       codeChunkName: 'vue-router',
-      importChunkName: 'import-lib',
+      importChunkName: 'import-local',
     }),
-    createImportPlugin({
-      importLibsChunkName: 'import-lib',
-    }),
+    createImportPlugin(),
   ])
 
   const chunksLinker = new Builder()

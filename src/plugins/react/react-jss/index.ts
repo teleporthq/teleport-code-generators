@@ -22,7 +22,7 @@ interface JSSConfig {
 export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
   const {
     componentChunkName = 'react-component',
-    importChunkName = 'import',
+    importChunkName = 'import-local',
     styleChunkName = 'jss-style-definition',
     exportChunkName = 'export',
     jssDeclarationName = 'style',
@@ -56,9 +56,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     chunks.push({
       type: 'js',
       name: styleChunkName,
-      linker: {
-        after: [importChunkName],
-      },
+      linkAfter: [importChunkName],
       content: makeConstAssign(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
     })
 
@@ -68,20 +66,13 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
     if (exportChunk) {
       exportChunk.content = exportStatement
-      if (exportChunk.linker && exportChunk.linker.after) {
-        exportChunk.linker.after.push(styleChunkName)
-      } else {
-        exportChunk.linker = exportChunk.linker || {}
-        exportChunk.linker.after = [importChunkName, styleChunkName]
-      }
+      exportChunk.linkAfter = [importChunkName, styleChunkName]
     } else {
       chunks.push({
         type: 'js',
         name: exportChunkName,
         content: exportStatement,
-        linker: {
-          after: [importChunkName, styleChunkName],
-        },
+        linkAfter: [importChunkName, styleChunkName],
       })
     }
 

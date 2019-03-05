@@ -15,12 +15,10 @@ const createRouterComponentGenerator = () => {
   const configureAppRouterComponent = appRoutingPlugin({
     componentChunkName: 'app-router-component',
     domRenderChunkName: 'app-router-export',
-    importChunkName: 'import',
+    importChunkName: 'import-local',
   })
 
-  const configureImportStatements = importStatements({
-    importLibsChunkName: 'import',
-  })
+  const configureImportStatements = importStatements()
 
   const assemblyLine = new AssemblyLine([configureAppRouterComponent, configureImportStatements])
   const chunksLinker = new Builder()

@@ -19,7 +19,7 @@ const createVueGenerator = (
   const assemblyLine = new AssemblyLine([
     vueBaseComponent({
       jsFileId: 'vuejs',
-      jsFileAfter: ['libs', 'packs', 'locals'],
+      jsFileAfter: ['import-lib', 'import-pack', 'import-local'],
       htmlFileId: 'vuehtml',
     }),
     vueStyleComponent({

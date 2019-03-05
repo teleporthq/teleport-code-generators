@@ -36,12 +36,8 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       meta: {
         fileId: styleFileId,
       },
-      wrap: styleFileId
-        ? undefined
-        : (generatedContent) => {
-            return `<style>\n${generatedContent}</style>`
-          },
       content: jssStylesArray.join('\n'),
+      linkAfter: [],
     })
 
     return structure
