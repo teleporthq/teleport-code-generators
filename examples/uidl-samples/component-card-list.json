@@ -10,7 +10,7 @@
   "content": {
     "type": "container",
     "key": "cards-container",
-    "styles": {
+    "style": {
       "width": "100%",
       "border": "1px solid red",
       "display": "flex"
@@ -24,7 +24,7 @@
       "content": {
         "type": "container",
         "key": "card-container",
-        "styles": {
+        "style": {
           "backgroundColor": "royalblue",
           "color": "white",
           "margin": "10px",
@@ -33,7 +33,7 @@
         },
         "children": [{
           "type": "text",
-          "styles": {
+          "style": {
             "border": "1px solid red",
             "padding": "10px",
             "lineHeight": "1.5"

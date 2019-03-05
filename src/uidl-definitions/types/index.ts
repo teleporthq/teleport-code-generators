@@ -57,7 +57,7 @@ export interface ContentNode {
   states?: StateBranch[]
   repeat?: RepeatDefinition
   dependency?: ComponentDependency
-  styles?: StyleDefinitions
+  style?: StyleDefinitions
   attrs?: Record<string, any>
   events?: EventDefinitions
   children?: Array<ContentNode | string>

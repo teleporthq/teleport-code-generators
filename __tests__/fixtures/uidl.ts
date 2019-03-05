@@ -33,7 +33,7 @@ export const createUIDL = (
             attrs: {
               url: 'https://random',
             },
-            styles: {
+            style: {
               color: 'red',
             },
             children: ['click me'],
@@ -48,7 +48,7 @@ export const createUIDL = (
           'data-attr': 'test',
         },
         children: secondlvlchildren,
-        styles: {
+        style: {
           fontSize: '15px',
           margin: '10px',
         },
