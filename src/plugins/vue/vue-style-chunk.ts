@@ -52,13 +52,13 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
 
 export default createPlugin()
 
-const filterOutDynamicStyles = (styles: StyleDefinitions) => {
-  if (!styles) {
+const filterOutDynamicStyles = (style: StyleDefinitions) => {
+  if (!style) {
     return { staticStyles: null, dynamicStyles: null }
   }
-  return Object.keys(styles).reduce(
+  return Object.keys(style).reduce(
     (acc: any, key) => {
-      const styleValue = styles[key].toString()
+      const styleValue = style[key].toString()
       if (styleValue.startsWith('$props.')) {
         acc.dynamicStyles[key] = styleValue.replace('$props.', '')
       } else {
@@ -73,10 +73,10 @@ const filterOutDynamicStyles = (styles: StyleDefinitions) => {
 const generateStyleTagStrings = (content: ContentNode, templateLookup: Record<string, any>) => {
   let accumulator: any[] = []
 
-  const { styles, children, key } = content
+  const { style, children, key } = content
 
-  if (styles) {
-    const { staticStyles, dynamicStyles } = filterOutDynamicStyles(styles)
+  if (style) {
+    const { staticStyles, dynamicStyles } = filterOutDynamicStyles(style)
     const root = templateLookup[key]
     const className = cammelCaseToDashCase(key)
     accumulator.push(

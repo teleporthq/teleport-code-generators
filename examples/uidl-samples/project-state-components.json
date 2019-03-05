@@ -129,7 +129,7 @@
               {
                 "type": "container",
                 "key": "accordions",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -172,7 +172,7 @@
               {
                 "type": "container",
                 "key": "tab-selector",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -189,7 +189,7 @@
               {
                 "type": "container",
                 "key": "modal-window",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -206,7 +206,7 @@
               {
                 "type": "container",
                 "key": "lists",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -231,7 +231,7 @@
               {
                 "type": "container",
                 "key": "cards-container",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -251,7 +251,7 @@
               {
                 "type": "container",
                 "key": "form-container",
-                "styles": {
+                "style": {
                   "width": "100%",
                   "border": "1px solid red"
                 },
@@ -407,7 +407,7 @@
                 "type": "button",
                 "key": "tab1",
                 "children": ["Click"],
-                "styles": {
+                "style": {
                   "border": "1px solid black",
                   "padding": "5px 10px"
                 },
@@ -423,7 +423,7 @@
                 "type": "button",
                 "key": "tab2",
                 "children": ["any"],
-                "styles": {
+                "style": {
                   "border": "1px solid black",
                   "padding": "5px 10px"
                 },
@@ -439,7 +439,7 @@
                 "type": "button",
                 "key": "tab3",
                 "children": ["of"],
-                "styles": {
+                "style": {
                   "border": "1px solid black",
                   "padding": "5px 10px"
                 },
@@ -455,7 +455,7 @@
                 "type": "button",
                 "key": "tab4",
                 "children": ["these"],
-                "styles": {
+                "style": {
                   "border": "1px solid black",
                   "padding": "5px 10px"
                 },
@@ -472,7 +472,7 @@
           {
             "type": "container",
             "key": "text",
-            "styles": {
+            "style": {
               "width": 100,
               "height": 50,
               "display": "flex",
@@ -631,7 +631,7 @@
       "content": {
         "type": "container",
         "key": "card",
-        "styles": {
+        "style": {
           "margin": "10px",
           "padding": "10px",
           "border": "1px solid black"
@@ -650,7 +650,7 @@
       "content": {
         "type": "container",
         "key": "cards-container",
-        "styles": {
+        "style": {
           "width": "100%",
           "border": "1px solid red",
           "display": "flex"
@@ -664,7 +664,7 @@
           "content": {
             "type": "container",
             "key": "card-container",
-            "styles": {
+            "style": {
               "backgroundColor": "royalblue",
               "color": "white",
               "margin": "10px",

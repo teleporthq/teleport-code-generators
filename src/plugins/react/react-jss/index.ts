@@ -93,9 +93,9 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
 export default createPlugin()
 
-const prepareDynamicProps = (styles: StyleDefinitions) => {
-  return Object.keys(styles).reduce((acc: any, key) => {
-    const value = styles[key]
+const prepareDynamicProps = (style: StyleDefinitions) => {
+  return Object.keys(style).reduce((acc: any, key) => {
+    const value = style[key]
     if (typeof value === 'string' && value.startsWith('$props.')) {
       acc[key] = new ParsedASTNode(
         t.arrowFunctionExpression(
@@ -104,7 +104,7 @@ const prepareDynamicProps = (styles: StyleDefinitions) => {
         )
       )
     } else {
-      acc[key] = styles[key]
+      acc[key] = style[key]
     }
     return acc
   }, {})
@@ -116,11 +116,11 @@ const generateStyleTagStrings = (
 ) => {
   let accumulator: { [key: string]: any } = {}
 
-  const { styles, children, key, repeat } = content
-  if (styles) {
+  const { style, children, key, repeat } = content
+  if (style) {
     const root = nodesLookup[key]
     const className = cammelCaseToDashCase(key)
-    accumulator[className] = prepareDynamicProps(styles)
+    accumulator[className] = prepareDynamicProps(style)
     addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
   }
 

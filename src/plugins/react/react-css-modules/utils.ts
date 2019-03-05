@@ -13,10 +13,10 @@ import { ParsedASTNode } from '../../../shared/utils/ast-js-utils'
 
 import { ContentNode, StyleDefinitions } from '../../../uidl-definitions/types'
 
-export const splitDynamicAndStaticProps = (styles: Record<string, any>) => {
-  return Object.keys(styles).reduce(
+export const splitDynamicAndStaticProps = (style: Record<string, any>) => {
+  return Object.keys(style).reduce(
     (acc: { staticStyles: Record<string, any>; dynamicStyles: Record<string, any> }, key) => {
-      const value = styles[key]
+      const value = style[key]
       if (typeof value === 'string' && value.startsWith('$props.')) {
         acc.dynamicStyles[key] = value.replace('$props.', '')
       } else {
@@ -28,15 +28,15 @@ export const splitDynamicAndStaticProps = (styles: Record<string, any>) => {
   )
 }
 
-export const prepareDynamicProps = (styles: StyleDefinitions, t = types) => {
-  return Object.keys(styles).reduce((acc: any, key) => {
-    const value = styles[key]
+export const prepareDynamicProps = (style: StyleDefinitions, t = types) => {
+  return Object.keys(style).reduce((acc: any, key) => {
+    const value = style[key]
     if (typeof value === 'string') {
       acc[key] = new ParsedASTNode(
         t.memberExpression(t.identifier('props'), t.identifier(value.replace('$props.', '')))
       )
     } else {
-      acc[key] = styles[key]
+      acc[key] = style[key]
     }
     return acc
   }, {})
@@ -55,12 +55,12 @@ export const applyCSSModulesAndGetDeclarations = (
   let accumulator: any[] = []
   const { nodesLookup = {}, camelCaseClassNames } = params
 
-  const { styles, children, key, repeat } = content
-  if (styles) {
+  const { style, children, key, repeat } = content
+  if (style) {
     const root = nodesLookup[key]
     const className = cammelCaseToDashCase(key)
     const classNameInJS = camelCaseClassNames ? stringToCamelCase(className) : className
-    const { staticStyles, dynamicStyles } = splitDynamicAndStaticProps(styles)
+    const { staticStyles, dynamicStyles } = splitDynamicAndStaticProps(style)
 
     // TODO Should we build a different plugin for dynamic props as inline styles?
     const inlineStyle = prepareDynamicProps(dynamicStyles)

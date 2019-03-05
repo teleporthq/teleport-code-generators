@@ -42,8 +42,8 @@ export const resolveContentNode = (
   }
 
   // Resolve assets prefix inside style (ex: background-image)
-  if (node.styles && assetsPrefix) {
-    node.styles = prefixAssetURLs(node.styles, assetsPrefix)
+  if (node.style && assetsPrefix) {
+    node.style = prefixAssetURLs(node.style, assetsPrefix)
   }
 
   // Prefix the attributes which may point to local assets
@@ -118,13 +118,13 @@ export const resolveContentNode = (
 
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
- * @param styles the style object on the current node
+ * @param style the style object on the current node
  * @param assetsPrefix a string representing the asset prefix
  */
-const prefixAssetURLs = (styles: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
+const prefixAssetURLs = (style: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
   // iterate through all the style keys
-  return Object.keys(styles).reduce((acc, styleKey) => {
-    const styleValue = styles[styleKey]
+  return Object.keys(style).reduce((acc, styleKey) => {
+    const styleValue = style[styleKey]
 
     // when objects are encountered, go recursively (ex: media queries, hover)
     if (typeof styleValue === 'object') {

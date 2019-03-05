@@ -220,8 +220,8 @@
             }
           }
         },
-        "styles": {
-          "$ref": "#/definitions/styles"
+        "style": {
+          "$ref": "#/definitions/style"
         },
         "attrs": {
           "type": "object"
@@ -238,7 +238,7 @@
         }
       }
     },
-    "styles": {
+    "style": {
       "type": "object",
       "patternProperties": {
         ".*": {
@@ -250,7 +250,7 @@
               "type": "number"
             },
             {
-              "$ref": "#/definitions/styles"
+              "$ref": "#/definitions/style"
             }
           ]
         }
