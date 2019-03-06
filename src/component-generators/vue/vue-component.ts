@@ -7,7 +7,9 @@ import { createPlugin as createImportStatementsPlugin } from '../../plugins/comm
 import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
+// @ts-ignore
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
+// @ts-ignore
 import vueMapping from './vue-mapping.json'
 
 import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
@@ -41,7 +43,7 @@ const createVueGenerator = (
 
     return {
       code: `<template>
-${addSpacesToEachLine(2, htmlCode)}
+${addSpacesToEachLine(' '.repeat(2), htmlCode)}
 </template>
 
 <script>

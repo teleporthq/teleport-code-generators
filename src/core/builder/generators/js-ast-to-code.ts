@@ -1,6 +1,9 @@
+// @ts-ignore
 import babelGenerator from '@babel/generator'
 import * as types from '@babel/types'
+// @ts-ignore
 import { format } from 'prettier/standalone'
+// @ts-ignore
 import parserPlugin from 'prettier/parser-babylon'
 
 import { PRETTIER_CONFIG } from '../../../shared/constants'
