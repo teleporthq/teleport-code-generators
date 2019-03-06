@@ -15,9 +15,9 @@ interface VueStyleChunkConfig {
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
   const {
-    chunkName = 'vue-component-style-chunk',
-    vueTemplateChunk = 'vue-component-template-chunk',
-    styleFileId = null,
+    chunkName = 'vue-style-chunk',
+    vueTemplateChunk = 'vue-template-chunk',
+    styleFileId = 'vuecss',
   } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
@@ -67,7 +67,7 @@ const filterOutDynamicStyles = (style: StyleDefinitions) => {
 }
 
 const generateStyleTagStrings = (content: ContentNode, templateLookup: Record<string, any>) => {
-  let accumulator: any[] = []
+  let accumulator: string[] = []
 
   const { style, children, key } = content
 

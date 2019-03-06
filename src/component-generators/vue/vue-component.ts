@@ -1,8 +1,8 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as vueBaseComponent } from '../../plugins/vue/vue-base-component'
-import { createPlugin as vueStyleComponent } from '../../plugins/vue/vue-style-chunk'
-import { createPlugin as importStatements } from '../../plugins/common/import-statements'
+import vueComponentPlugin from '../../plugins/vue/vue-base-component'
+import vueStylePlugin from '../../plugins/vue/vue-style-chunk'
+import { createPlugin as createImportStatementsPlugin } from '../../plugins/common/import-statements'
 
 import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
@@ -17,20 +17,9 @@ const createVueGenerator = (
 ): ComponentGenerator => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
   const assemblyLine = new AssemblyLine([
-    vueBaseComponent({
-      jsFileId: 'vuejs',
-      jsFileAfter: ['import-lib', 'import-pack', 'import-local'],
-      htmlFileId: 'vuehtml',
-    }),
-    vueStyleComponent({
-      styleFileId: 'vuecss',
-    }),
-    importStatements({
-      fileId: 'vuejs',
-      importLibsChunkName: 'libs',
-      importPackagesChunkName: 'packs',
-      importLocalsChunkName: 'locals',
-    }),
+    vueComponentPlugin,
+    vueStylePlugin,
+    createImportStatementsPlugin({ fileId: 'vuejs' }),
   ])
 
   const chunksLinker = new Builder()

@@ -21,11 +21,11 @@ interface VueComponentConfig {
 
 export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
   const {
-    vueTemplateChunkName = 'vue-component-template-chunk',
-    vueJSChunkName = 'vue-component-js-chunk',
-    htmlFileId = null,
-    jsFileId = null,
-    jsFileAfter = [],
+    vueTemplateChunkName = 'vue-template-chunk',
+    vueJSChunkName = 'vue-js-chunk',
+    htmlFileId = 'vuehtml',
+    jsFileId = 'vuejs',
+    jsFileAfter = ['import-lib', 'import-pack', 'import-local'],
   } = config || {}
 
   const vueBasicComponentChunks: ComponentPlugin = async (structure) => {

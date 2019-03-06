@@ -102,3 +102,5 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
   return reactAppRoutingComponentPlugin
 }
+
+export default createPlugin()

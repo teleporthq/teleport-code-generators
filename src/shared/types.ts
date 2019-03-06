@@ -5,6 +5,9 @@ import {
   ContentNode,
   ProjectUIDL,
 } from '../uidl-definitions/types'
+import * as types from '@babel/types'
+
+export type ChunkContent = string | CheerioStatic | types.Node | types.Node[]
 
 /**
  * React could have one or more JS chunks, nothing else.
@@ -15,7 +18,7 @@ export interface ChunkDefinition {
   type: string
   name: string
   meta?: any
-  content: any
+  content: ChunkContent
   linkAfter: string[]
 }
 
@@ -25,7 +28,6 @@ export interface ChunkDefinition {
  */
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
-  meta: any
   uidl: ComponentUIDL
   dependencies: Record<string, ComponentDependency>
 }
@@ -58,7 +60,7 @@ export interface GeneratorOptions {
   customMapping?: ElementsMapping
 }
 
-export type GeneratorFunction = (content: any) => string
+export type CodeGeneratorFunction<T> = (content: T) => string
 
 /**
  * This structure is used for keeping information about a single state key while creating a component

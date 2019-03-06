@@ -147,7 +147,7 @@ export const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) =>
 export const makeRepeatStructureWithMap = (
   dataSource: string | any[],
   content: types.JSXElement,
-  meta: any = {},
+  meta: Record<string, any> = {},
   t = types
 ) => {
   const source =

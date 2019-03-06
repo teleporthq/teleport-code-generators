@@ -69,7 +69,7 @@ const generateStyledJSXString = (
   content: ContentNode,
   nodesLookup: Record<string, t.JSXElement>
 ) => {
-  let accumulator: any[] = []
+  let accumulator: string[] = []
 
   const { style, children, key, repeat } = content
   if (style) {

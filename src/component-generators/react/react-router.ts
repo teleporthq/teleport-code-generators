@@ -1,5 +1,5 @@
-import { createPlugin as importStatements } from '../../plugins/common/import-statements'
-import { createPlugin as appRoutingPlugin } from '../../plugins/react/react-app-routing'
+import importStatementsPlugin from '../../plugins/common/import-statements'
+import reactAppRoutingPlugin from '../../plugins/react/react-app-routing'
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
 import { ComponentUIDL } from '../../uidl-definitions/types'
@@ -12,15 +12,7 @@ const createRouterComponentGenerator = () => {
     ...reactMapping,
   })
 
-  const configureAppRouterComponent = appRoutingPlugin({
-    componentChunkName: 'app-router-component',
-    domRenderChunkName: 'app-router-export',
-    importChunkName: 'import-local',
-  })
-
-  const configureImportStatements = importStatements()
-
-  const assemblyLine = new AssemblyLine([configureAppRouterComponent, configureImportStatements])
+  const assemblyLine = new AssemblyLine([reactAppRoutingPlugin, importStatementsPlugin])
   const chunksLinker = new Builder()
 
   const generateComponent = async (uidl: ComponentUIDL) => {

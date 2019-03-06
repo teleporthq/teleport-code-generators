@@ -1,13 +1,12 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as reactComponent } from '../../plugins/react/react-base-component'
-import { createPlugin as reactStyledJSX } from '../../plugins/react/react-styled-jsx'
-import { createPlugin as reactJSS } from '../../plugins/react/react-jss'
-import { createPlugin as reactInlineStyles } from '../../plugins/react/react-inline-styles'
-import { createPlugin as reactPropTypes } from '../../plugins/react/react-proptypes'
-import { createPlugin as reactCSSModules } from '../../plugins/react/react-css-modules'
-
-import { createPlugin as importStatements } from '../../plugins/common/import-statements'
+import reactComponentPlugin from '../../plugins/react/react-base-component'
+import reactStyledJSXPlugin from '../../plugins/react/react-styled-jsx'
+import reactJSSPlugin from '../../plugins/react/react-jss'
+import reactInlineStylesPlugin from '../../plugins/react/react-inline-styles'
+import reactPropTypesPlugin from '../../plugins/react/react-proptypes'
+import reactCSSModulesPlugin from '../../plugins/react/react-css-modules'
+import importStatementsPlugin from '../../plugins/common/import-statements'
 
 import {
   GeneratorOptions,
@@ -25,8 +24,16 @@ interface ReactGeneratorFactoryParams {
   customMapping?: ElementsMapping
 }
 
+const stylePlugins = {
+  [ReactComponentStylingFlavors.InlineStyles]: reactInlineStylesPlugin,
+  [ReactComponentStylingFlavors.CSSModules]: reactCSSModulesPlugin,
+  [ReactComponentStylingFlavors.StyledJSX]: reactStyledJSXPlugin,
+  [ReactComponentStylingFlavors.JSS]: reactJSSPlugin,
+}
+
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
   const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping = {} } = params
+  const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
 
   const resolver = new Resolver()
   resolver.addMapping(htmlMapping)
@@ -34,26 +41,10 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   resolver.addMapping(customMapping)
 
   const assemblyLine = new AssemblyLine()
-  assemblyLine.addPlugin(
-    reactComponent({
-      componentChunkName: 'react-component',
-      importChunkName: 'import-local',
-      exportChunkName: 'export',
-    })
-  )
-  assemblyLine.addPlugin(chooseStylePlugin(variation))
-  assemblyLine.addPlugin(
-    reactPropTypes({
-      componentChunkName: 'react-component',
-    })
-  )
-  assemblyLine.addPlugin(
-    importStatements({
-      importPackagesChunkName: 'import-pack',
-      importLibsChunkName: 'import-lib',
-      importLocalsChunkName: 'import-local',
-    })
-  )
+  assemblyLine.addPlugin(reactComponentPlugin)
+  assemblyLine.addPlugin(stylePlugin)
+  assemblyLine.addPlugin(reactPropTypesPlugin)
+  assemblyLine.addPlugin(importStatementsPlugin)
 
   const chunksLinker = new Builder()
 
@@ -80,33 +71,6 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     resolveContentNode: resolver.resolveContentNode.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
-  }
-}
-
-const chooseStylePlugin = (variation: ReactComponentStylingFlavors) => {
-  switch (variation) {
-    case ReactComponentStylingFlavors.CSSModules:
-      return reactCSSModules({
-        componentChunkName: 'react-component',
-      })
-    case ReactComponentStylingFlavors.InlineStyles:
-      return reactInlineStyles({
-        componentChunkName: 'react-component',
-      })
-    case ReactComponentStylingFlavors.JSS:
-      return reactJSS({
-        componentChunkName: 'react-component',
-        importChunkName: 'import-local',
-        exportChunkName: 'export',
-      })
-    case ReactComponentStylingFlavors.StyledJSX:
-      return reactStyledJSX({
-        componentChunkName: 'react-component',
-      })
-    default:
-      return reactInlineStyles({
-        componentChunkName: 'react-component',
-      })
   }
 }
 

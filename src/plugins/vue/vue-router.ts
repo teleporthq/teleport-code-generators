@@ -64,3 +64,5 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
 
   return vueRouterComponentPlugin
 }
+
+export default createPlugin()
