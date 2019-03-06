@@ -1,3 +1,4 @@
+// @ts-ignore
 import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
@@ -12,7 +13,9 @@ const writeToDisk = async (
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {
+  // @ts-ignore
   await removeDir(path.join(__dirname, distPath))
+  // @ts-ignore
   await copyDirRec(templatePath, path.join(__dirname, distPath))
   const packageJsonTemplate = path.join(templatePath, 'package.json')
   const packageJson = await readJSON(packageJsonTemplate)
@@ -24,6 +27,7 @@ const writeToDisk = async (
     sourcePackageJson: packageJson,
     distPath,
   })
+  // @ts-ignore
   await writeFolder(outputFolder, __dirname)
 }
 
@@ -37,6 +41,6 @@ const writeToDisk = async (
 
 // tslint:disable-next-line: no-console
 console.log(UIDLValidators.validateProject(projectJson))
-
+// @ts-ignore
 writeToDisk(projectJson, createReactNextProject, path.join(__dirname, 'project-template'), 'dist')
 // runInMemory(projectJson, createNextProject)

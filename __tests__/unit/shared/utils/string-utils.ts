@@ -36,7 +36,7 @@ describe('Shared Utils string helpers', () => {
 
   describe('addSpacesToEachLine', () => {
     it('works on a single line', () => {
-      expect(addSpacesToEachLine(2, 'test')).toBe('  test')
+      expect(addSpacesToEachLine('  ', 'test')).toBe('  test')
     })
 
     it('works on multiple lines', () => {
@@ -48,7 +48,7 @@ text`
   is a multiline
   text`
 
-      expect(addSpacesToEachLine(2, multilineText)).toBe(expectedResult)
+      expect(addSpacesToEachLine('  ', multilineText)).toBe(expectedResult)
     })
 
     it('adds to existing spaces', () => {
@@ -66,7 +66,7 @@ here
   here
       and there`
 
-      expect(addSpacesToEachLine(2, multilineText)).toBe(expectedResult)
+      expect(addSpacesToEachLine('  ', multilineText)).toBe(expectedResult)
     })
   })
 
