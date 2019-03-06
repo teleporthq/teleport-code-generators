@@ -1,13 +1,15 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as vueBaseComponent } from '../../plugins/vue/vue-base-component'
-import { createPlugin as vueStyleComponent } from '../../plugins/vue/vue-style-chunk'
-import { createPlugin as importStatements } from '../../plugins/common/import-statements'
+import vueComponentPlugin from '../../plugins/vue/vue-base-component'
+import vueStylePlugin from '../../plugins/vue/vue-style-chunk'
+import { createPlugin as createImportStatementsPlugin } from '../../plugins/common/import-statements'
 
 import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
+// @ts-ignore
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
+// @ts-ignore
 import vueMapping from './vue-mapping.json'
 
 import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
@@ -17,20 +19,9 @@ const createVueGenerator = (
 ): ComponentGenerator => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
   const assemblyLine = new AssemblyLine([
-    vueBaseComponent({
-      jsFileId: 'vuejs',
-      jsFileAfter: ['libs', 'packs', 'locals'],
-      htmlFileId: 'vuehtml',
-    }),
-    vueStyleComponent({
-      styleFileId: 'vuecss',
-    }),
-    importStatements({
-      fileId: 'vuejs',
-      importLibsChunkName: 'libs',
-      importPackagesChunkName: 'packs',
-      importLocalsChunkName: 'locals',
-    }),
+    vueComponentPlugin,
+    vueStylePlugin,
+    createImportStatementsPlugin({ fileId: 'vuejs' }),
   ])
 
   const chunksLinker = new Builder()
@@ -52,7 +43,7 @@ const createVueGenerator = (
 
     return {
       code: `<template>
-${addSpacesToEachLine(2, htmlCode)}
+${addSpacesToEachLine(' '.repeat(2), htmlCode)}
 </template>
 
 <script>

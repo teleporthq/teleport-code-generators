@@ -21,7 +21,7 @@ describe('Vue Generator Performance Run', () => {
   })
 
   describe('with generated component sample', () => {
-    it('takes under 150ms', async () => {
+    it('takes under 6500ms', async () => {
       const uidl = createUIDL({ firstLvl: 100, secondLvl: 5, thirdLvl: 2 })
       const t0 = performance.now()
       await generator.generateComponent(uidl, {

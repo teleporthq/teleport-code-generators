@@ -31,7 +31,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const {
     componentChunkName = 'react-component',
     exportChunkName = 'export',
-    importChunkName = 'import',
+    importChunkName = 'import-local',
   } = config || {}
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
@@ -87,22 +87,18 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     structure.chunks.push({
       type: 'js',
       name: componentChunkName,
-      linker: {
-        after: [importChunkName],
-      },
       meta: {
         nodesLookup,
       },
       content: pureComponent,
+      linkAfter: [importChunkName],
     })
 
     structure.chunks.push({
       type: 'js',
       name: exportChunkName,
-      linker: {
-        after: [componentChunkName],
-      },
       content: makeDefaultExport(uidl.name),
+      linkAfter: [componentChunkName],
     })
 
     return structure

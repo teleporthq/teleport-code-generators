@@ -38,12 +38,11 @@ export const slugify = (str: string): string => {
     .replace(/&/g, '-and-') // Replace & with 'and'
 }
 
-export const addSpacesToEachLine = (nbrOfspaces: number, str: string) => {
-  const extraSpaces = ' '.repeat(nbrOfspaces)
+export const addSpacesToEachLine = (spaces: string, str: string) => {
   // indent the first line
-  const respaced = extraSpaces + str
+  const respaced = spaces + str
   // add indent to all the other lines
-  return respaced.replace(/\n/g, `\n${extraSpaces}`)
+  return respaced.replace(/\n/g, `\n${spaces}`)
 }
 
 export const removeLastEmptyLine = (str: string) => {

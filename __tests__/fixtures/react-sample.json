@@ -7,12 +7,21 @@
       "defaultValue": 0
     }
   },
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    }
+  },
   "content": {
     "type": "container",
     "key": "container",
     "children": [
       {
         "type": "container",
+        "attrs": {
+          "data-test": "$props.test"
+        },
         "key": "tabs",
         "children": [
           {

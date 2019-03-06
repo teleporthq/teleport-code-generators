@@ -11,8 +11,8 @@ interface ImportPluginConfig {
 
 export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
   const {
-    importLibsChunkName = 'import-libs',
-    importPackagesChunkName = 'import-packages',
+    importLibsChunkName = 'import-lib',
+    importPackagesChunkName = 'import-pack',
     importLocalsChunkName = 'import-local',
     fileId = null,
   } = config || {}
@@ -90,5 +90,6 @@ const addImportChunk = (
       fileId,
     },
     content: importASTs,
+    linkAfter: [],
   })
 }

@@ -1,7 +1,7 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { createPlugin as createRouterPlugin } from '../../plugins/vue/vue-router'
-import { createPlugin as createImportPlugin } from '../../plugins/common/import-statements'
+import vueRoutingPlugin from '../../plugins/vue/vue-router'
+import importStatementsPlugin from '../../plugins/common/import-statements'
 
 import { GeneratorOptions } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
@@ -11,15 +11,7 @@ import vueMapping from './vue-mapping.json'
 
 const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
-  const assemblyLine = new AssemblyLine([
-    createRouterPlugin({
-      codeChunkName: 'vue-router',
-      importChunkName: 'import-lib',
-    }),
-    createImportPlugin({
-      importLibsChunkName: 'import-lib',
-    }),
-  ])
+  const assemblyLine = new AssemblyLine([vueRoutingPlugin, importStatementsPlugin])
 
   const chunksLinker = new Builder()
 
