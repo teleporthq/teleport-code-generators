@@ -71,6 +71,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
       meta: {
         fileId,
       },
+      linkAfter: [],
     })
 
     return structure

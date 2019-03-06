@@ -13,7 +13,6 @@ export default class AssemblyLine {
     uidl: ComponentUIDL,
     initialStructure: ComponentStructure = {
       uidl,
-      meta: null,
       chunks: [],
       dependencies: {},
     }
