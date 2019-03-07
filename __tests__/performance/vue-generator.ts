@@ -16,7 +16,7 @@ describe('Vue Generator Performance Run', () => {
       })
       const t1 = performance.now()
       console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
-      expect(t1 - t0).toBeLessThan(150)
+      expect(t1 - t0).toBeLessThan(1500)
     })
   })
 
@@ -30,7 +30,7 @@ describe('Vue Generator Performance Run', () => {
       })
       const t1 = performance.now()
       console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
-      expect(t1 - t0).toBeLessThan(6500)
+      expect(t1 - t0).toBeLessThan(65000)
     })
   })
 })

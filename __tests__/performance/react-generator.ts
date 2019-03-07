@@ -19,7 +19,7 @@ describe('React Generator Performance Run', () => {
       })
       const t1 = performance.now()
       console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
-      expect(t1 - t0).toBeLessThan(150)
+      expect(t1 - t0).toBeLessThan(1500)
     })
   })
 
@@ -33,7 +33,7 @@ describe('React Generator Performance Run', () => {
       })
       const t1 = performance.now()
       console.info(`Generation time took: ${(t1 - t0).toFixed(2)}`)
-      expect(t1 - t0).toBeLessThan(2500)
+      expect(t1 - t0).toBeLessThan(25000)
     })
   })
 })
