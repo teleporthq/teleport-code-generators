@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/teleporthq/teleport-lib-js/master/logo50.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.3 - Alpha!</h2>
+<h2 align="center">Code Generators v0.4 - Alpha!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
