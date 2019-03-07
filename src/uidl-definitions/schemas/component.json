@@ -30,22 +30,17 @@
     "content": {
       "type": "object",
       "required": [
-        "type",
-        "key"
+        "type"
       ],
       "additionalProperties": false,
       "properties": {
         "type": {
           "type": "string",
-          "examples": [
-            "text",
-            "container",
-            "states"
-          ]
+          "default": "container"
         },
-        "key": {
+        "name": {
           "type": "string",
-          "default": "node-key"
+          "default": "container"
         },
         "states": {
           "type": "array",
@@ -191,7 +186,8 @@
           "required": ["type"],
           "properties": {
             "type": {"type": "string"},
-            "defaultValue": {}
+            "defaultValue": {},
+            "meta": {"type": "object"}
           }
         }
       }

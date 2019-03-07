@@ -9,15 +9,15 @@
   },
   "content": {
     "type": "container",
-    "key": "container",
+    "name": "container",
     "children": [
       {
         "type": "container",
-        "key": "tabs",
+        "name": "tabs",
         "children": [
           {
             "type": "button",
-            "key": "tab1",
+            "name": "tab1",
             "children": ["Click"],
             "style": {
               "border": "1px solid black",
@@ -33,7 +33,7 @@
           },
           {
             "type": "button",
-            "key": "tab2",
+            "name": "tab2",
             "children": ["any"],
             "style": {
               "border": "1px solid black",
@@ -49,7 +49,7 @@
           },
           {
             "type": "button",
-            "key": "tab3",
+            "name": "tab3",
             "children": ["of"],
             "style": {
               "border": "1px solid black",
@@ -65,7 +65,7 @@
           },
           {
             "type": "button",
-            "key": "tab4",
+            "name": "tab4",
             "children": ["these"],
             "style": {
               "border": "1px solid black",
@@ -83,7 +83,7 @@
       },
       {
         "type": "container",
-        "key": "text",
+        "name": "text",
         "style": {
           "width": 100,
           "height": 50,
@@ -111,34 +111,30 @@
       },
       {
         "type": "state",
-        "key": "activeTab",
+        "name": "activeTab",
         "states": [
           {
             "value": 0,
             "content": {
               "type": "text",
-              "key": "text1",
               "children": ["This is the first tab"]
             }
           },{
             "value": 1,
             "content": {
               "type": "text",
-              "key": "text2",
               "children": ["This is the second tab"]
             }
           },{
             "value": 2,
             "content": {
               "type": "text",
-              "key": "text3",
               "children": ["This is the third tab"]
             }
           },{
             "value": 3,
             "content": {
               "type": "text",
-              "key": "text4",
               "children": ["This is the fourth tab"]
             }
           }

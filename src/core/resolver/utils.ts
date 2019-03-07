@@ -12,6 +12,8 @@ import { ASSETS_IDENTIFIER } from '../../shared/constants'
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 const ATTRIBUTES_WITH_URL = ['url', 'srcset']
 
+type ContentNodesLookup = Record<string, { count: number; nextKey: string }>
+
 export const resolveContentNode = (
   node: ContentNode,
   elementsMapping: ElementsMapping,
@@ -114,6 +116,113 @@ export const resolveContentNode = (
   }
 
   return node
+}
+
+export const generateFallbackNamesAndKeys = (
+  node: ContentNode,
+  nodesLookup: ContentNodesLookup
+) => {
+  // First, iterate through the content inside each state branch in case of a states node
+  if (node.states && node.type === 'state') {
+    node.states.forEach((stateBranch) => {
+      if (typeof stateBranch.content !== 'string') {
+        generateFallbackNamesAndKeys(stateBranch.content, nodesLookup)
+      }
+    })
+    return
+  }
+
+  // Setting up the name of the node based on the type, if it is not supplied
+  // TODO: Move this inside the resolve node and leave the generation for after?
+  if (!node.name) {
+    node.name = node.type
+  }
+
+  // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
+  // NextKey will be appended to the node name to ensure uniqueness inside the component
+  const nodeOcurrence = nodesLookup[node.name]
+
+  if (nodeOcurrence.count === 1) {
+    // If the name ocurrence is unique we use it as it is
+    node.key = node.name
+  } else {
+    const currentKey = nodeOcurrence.nextKey
+    const firstOcurrence = parseInt(currentKey, 10) === 0
+    node.key = firstOcurrence ? node.name : node.name + currentKey
+    nodeOcurrence.nextKey = computeIncrementalStringKey(currentKey)
+  }
+
+  // Recursion for each child which is of type ContentNode
+  if (node.children) {
+    node.children.forEach((child) => {
+      if (typeof child !== 'string') {
+        generateFallbackNamesAndKeys(child, nodesLookup)
+      }
+    })
+  }
+
+  // In case there's a repeat structure, its content also needs the same algorithm
+  if (node.repeat) {
+    generateFallbackNamesAndKeys(node.repeat.content, nodesLookup)
+  }
+}
+
+const computeIncrementalStringKey = (currentKey: string): string => {
+  const nextNumericValue = parseInt(currentKey, 10) + 1
+  let returnValue = nextNumericValue.toString()
+  while (returnValue.length < currentKey.length) {
+    // pad with 0
+    returnValue = '0' + returnValue
+  }
+  return returnValue
+}
+
+export const createNodesLookup = (node: ContentNode, lookup: ContentNodesLookup) => {
+  if (node.states && node.type === 'state') {
+    node.states.forEach((stateBranch) => {
+      if (typeof stateBranch.content !== 'string') {
+        createNodesLookup(stateBranch.content, lookup)
+      }
+    })
+    return
+  }
+
+  const nodeName = node.name || node.type
+  if (!lookup[nodeName]) {
+    lookup[nodeName] = {
+      count: 0,
+      nextKey: '0',
+    }
+  }
+
+  lookup[nodeName].count++
+  const newCount = lookup[nodeName].count
+  if (newCount > 9 && isPowerOfTen(newCount)) {
+    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+    // nextKey will start either from: '0', '00', '000', etc.
+    lookup[nodeName].nextKey = '0' + lookup[nodeName].nextKey
+  }
+
+  if (node.children) {
+    node.children.forEach((child) => {
+      if (typeof child !== 'string') {
+        createNodesLookup(child, lookup)
+      }
+    })
+  }
+
+  // In case there's a repeat structure, its content also needs the same algorithm
+  if (node.repeat) {
+    createNodesLookup(node.repeat.content, lookup)
+  }
+}
+
+const isPowerOfTen = (value: number) => {
+  while (value > 9 && value % 10 === 0) {
+    value /= 10
+  }
+
+  return value === 1
 }
 
 /**

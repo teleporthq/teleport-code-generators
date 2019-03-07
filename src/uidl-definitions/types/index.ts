@@ -34,6 +34,7 @@ export interface ComponentUIDL {
 export interface PropDefinition {
   type: string
   defaultValue?: string | number | boolean | any[]
+  meta?: Record<string, any>
 }
 
 export interface StateDefinition {
@@ -53,7 +54,8 @@ export interface StateDefinition {
 
 export interface ContentNode {
   type: string
-  key: string
+  name?: string
+  key?: string // internal usage
   states?: StateBranch[]
   repeat?: RepeatDefinition
   dependency?: ComponentDependency

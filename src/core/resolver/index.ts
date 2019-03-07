@@ -22,6 +22,10 @@ export default class Resolver {
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
     const content = cloneElement(uidl.content)
 
+    const flatNodes = {}
+    utils.createNodesLookup(content, flatNodes)
+    utils.generateFallbackNamesAndKeys(content, flatNodes)
+
     return {
       ...uidl,
       name: sanitizeVariableName(uidl.name),

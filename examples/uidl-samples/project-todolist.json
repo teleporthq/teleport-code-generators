@@ -19,17 +19,17 @@
     },
     "content": {
       "type": "state",
-      "key": "router",
+      "name": "router",
       "states": [
         {
           "value": "index",
           "content": {
             "type": "group",
-            "key": "container",
+            "name": "container",
             "children": [
               {
                 "type": "TodoList",
-                "key": "todos-container",
+                "name": "todos-container",
                 "dependency": {
                   "type": "local"
                 }
@@ -51,11 +51,11 @@
       },
       "content": {
         "type": "container",
-        "key": "container",
+        "name": "container",
         "repeat": {
           "content": {
             "type": "Todo",
-            "key": "todo",
+            "name": "todo",
             "attrs": {
               "todo": "$item",
               "index": "$index"
@@ -78,13 +78,13 @@
         },
         "children": [{
           "type": "container",
-          "key": "add-new",
+          "name": "add-new",
           "children": [{
             "type": "textinput",
-            "key": "input"
+            "name": "input"
           },{
             "type": "button",
-            "key": "add-item",
+            "name": "add-item",
             "children": ["Add Item"],
             "events": {
               "onClick": [{
@@ -115,7 +115,7 @@
       },
       "content": {
         "type": "container",
-        "key": "todo-item",
+        "name": "todo-item",
         "style": {
           "margin": "10px",
           "width": "150px;",
@@ -125,7 +125,7 @@
           "$props.todo",
           {
             "type": "button",
-            "key": "delete",
+            "name": "delete",
             "style": {
               "float": "right"
             },

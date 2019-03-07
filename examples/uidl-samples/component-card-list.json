@@ -9,7 +9,7 @@
   },
   "content": {
     "type": "container",
-    "key": "cards-container",
+    "name": "cards-container",
     "style": {
       "width": "100%",
       "border": "1px solid red",
@@ -17,13 +17,13 @@
     },
     "children": [{
       "type": "text",
-      "key": "joker",
+      "name": "joker",
       "children": ["Last"]
     }],
     "repeat": {
       "content": {
         "type": "container",
-        "key": "card-container",
+        "name": "card-container",
         "style": {
           "backgroundColor": "royalblue",
           "color": "white",
@@ -38,7 +38,7 @@
             "padding": "10px",
             "lineHeight": "1.5"
           },
-          "key": "card",
+          "name": "card",
           "children": ["$item"]
         }]
       },

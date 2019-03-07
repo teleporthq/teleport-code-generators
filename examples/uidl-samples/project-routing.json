@@ -36,22 +36,22 @@
     },
     "content": {
       "type": "states",
-      "key": "router",
+      "name": "router",
       "states": [
         {
           "value": "home",
           "content": {
             "type": "container",
-            "key": "container",
+            "name": "container",
             "children": [
               {
                 "type": "button",
-                "key": "button",
+                "name": "button",
                 "children": ["click-me"]
               },
               {
                 "type": "CustomText",
-                "key": "text",
+                "name": "text",
                 "attrs": {
                   "message": "random message"
                 },
@@ -61,7 +61,7 @@
               },
               {
                 "type": "navlink",
-                "key": "navlink",
+                "name": "navlink",
                 "attrs": {
                   "transitionTo": "/mask-url"
                 },
@@ -74,21 +74,21 @@
           "value": "about",
           "content": {
             "type": "group",
-            "key": "around",
+            "name": "around",
             "children": [
               {
                 "type": "text",
-                "key": "aspan",
+                "name": "aspan",
                 "children": ["Who"]
               },
               {
                 "type": "container",
-                "key": "adiv",
+                "name": "adiv",
                 "children": ["are"]
               },
               {
                 "type": "text",
-                "key": "aspan2",
+                "name": "aspan2",
                 "children": ["you?"],
                 "attrs": {
                   "data-test": "123"
@@ -111,7 +111,7 @@
       },
       "content": {
         "type": "text",
-        "key": "node-key",
+        "name": "node-key",
         "style": {
           "color": "red"
         },

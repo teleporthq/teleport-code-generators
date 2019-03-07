@@ -166,7 +166,7 @@ const generateTreeStructure = (
       }
 
       if (child.type === 'state') {
-        const { states = [], key: stateKey } = child
+        const { states = [], name: stateKey } = child
         states.forEach((stateBranch) => {
           const stateContent = stateBranch.content
           const stateIdentifier = stateIdentifiers[stateKey]
