@@ -8,7 +8,7 @@ export const DEFAULT_PACKAGE_JSON = {
   author: 'teleportHQ',
   license: 'MIT',
   dependencies: {
-    next: '^7.0.2',
+    next: '^8.0.3',
     'react-dom': '^16.8.3',
     react: '^16.8.3',
   },

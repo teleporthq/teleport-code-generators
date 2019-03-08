@@ -10,7 +10,6 @@ import { prefixPlaygroundAssetsURL, cloneElement } from '../../shared/utils/uidl
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
-const ATTRIBUTES_WITH_URL = ['url', 'srcset']
 
 type ContentNodesLookup = Record<string, { count: number; nextKey: string }>
 
@@ -50,9 +49,9 @@ export const resolveContentNode = (
 
   // Prefix the attributes which may point to local assets
   if (node.attrs && assetsPrefix) {
-    ATTRIBUTES_WITH_URL.forEach((attribute) => {
-      if (node.attrs[attribute]) {
-        node.attrs[attribute] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attribute])
+    Object.keys(node.attrs).forEach((attrKey) => {
+      if (typeof node.attrs[attrKey] === 'string') {
+        node.attrs[attrKey] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attrKey])
       }
     })
   }

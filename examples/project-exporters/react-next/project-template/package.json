@@ -11,8 +11,8 @@
   "author": "TeleportHQ",
   "license": "MIT",
   "dependencies": {
-    "next": "^7.0.2",
-    "react": "16.8.1",
-    "react-dom": "16.8.1"
+    "next": "^8.0.3",
+    "react": "16.8.4",
+    "react-dom": "16.8.4"
   }
 }
