@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/teleporthq/teleport-lib-js/master/logo50.png" width="250"/>
+  <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
 <h2 align="center">Code Generators v0.4 - Alpha!</h2>
