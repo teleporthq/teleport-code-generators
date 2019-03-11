@@ -21,20 +21,17 @@ export const resolveContentNode = (
 ) => {
   const mappedElement = elementsMapping[node.type] || { type: node.type }
 
+  // Setting up the name of the node based on the type, if it is not supplied
+  node.name = node.name || node.type
+
+  // Mapping the type according to the elements mapping
   node.type = mappedElement.type
 
   // If the mapping contains children, insert that structure into the UIDL
   if (mappedElement.children) {
     const originalNodeChildren = node.children || []
-    const originalAttrs = node.attrs || {}
-
-    const replacingNode = {
-      ...node,
-      children: cloneElement(mappedElement.children),
-    }
-
-    insertChildrenIntoNode(replacingNode, originalNodeChildren, originalAttrs)
-    node.children = replacingNode.children
+    node.children = cloneElement(mappedElement.children)
+    replaceChildrenPlaceholder(node, originalNodeChildren)
   }
 
   // Resolve dependency with the UIDL having priority
@@ -64,77 +61,65 @@ export const resolveContentNode = (
   // The UIDL has priority over the mapping repeat
   const repeatStructure = node.repeat || mappedElement.repeat
   if (repeatStructure) {
-    const { dataSource, content } = repeatStructure
+    let dataSource = repeatStructure.dataSource
+
+    // We clone the content in case the content node is coming from the mapping to avoid reference leaking
+    const clonedContent = cloneElement(repeatStructure.content)
 
     // Data source might be preset on a referenced attribute in the uidl node
     // ex: attrs[options] in case of a dropdown primitive with select/options
     if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
       const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
-      repeatStructure.dataSource = node.attrs[nodeDataSourceAttr]
+      dataSource = node.attrs[nodeDataSourceAttr]
     }
 
     // The content inside the repeat must also be mapped like any regular content node
-    repeatStructure.content = resolveContentNode(
-      content,
-      elementsMapping,
-      localDependenciesPrefix,
-      assetsPrefix
-    )
+    resolveContentNode(clonedContent, elementsMapping, localDependenciesPrefix, assetsPrefix)
 
-    node.repeat = repeatStructure
+    node.repeat = {
+      dataSource,
+      content: clonedContent,
+    }
   }
 
   // If the node has multiple state branches, each content needs to be resolved
   if (node.type === 'state' && node.states) {
-    node.states = node.states.map((stateBranch) => {
-      if (typeof stateBranch.content === 'string') {
-        return stateBranch
-      } else {
-        return {
-          ...stateBranch,
-          content: resolveContentNode(
-            stateBranch.content,
-            elementsMapping,
-            localDependenciesPrefix,
-            assetsPrefix
-          ),
-        }
+    node.states.forEach((stateBranch) => {
+      if (typeof stateBranch.content !== 'string') {
+        resolveContentNode(
+          stateBranch.content,
+          elementsMapping,
+          localDependenciesPrefix,
+          assetsPrefix
+        )
       }
     })
   }
 
   // Traverse the UIDL
   if (node.children) {
-    node.children = node.children.map((child) => {
-      if (typeof child === 'string') {
-        return child
-      } else {
-        return resolveContentNode(child, elementsMapping, localDependenciesPrefix, assetsPrefix)
+    node.children.forEach((child) => {
+      if (typeof child !== 'string') {
+        resolveContentNode(child, elementsMapping, localDependenciesPrefix, assetsPrefix)
       }
     })
   }
-
-  return node
 }
 
-export const generateFallbackNamesAndKeys = (
-  node: ContentNode,
-  nodesLookup: ContentNodesLookup
-) => {
+// Generates an unique key for each node in the UIDL.
+// By default it uses the component `name` and in case there are multiple nodes with the same name
+// it uses an incremental key which is padded with 0, so it can generate things like:
+// container, container1, container2, etc. OR
+// container, container01, container02, ... container10, container11,... in case the number is higher
+export const generateUniqueKeys = (node: ContentNode, nodesLookup: ContentNodesLookup) => {
   // First, iterate through the content inside each state branch in case of a states node
   if (node.states && node.type === 'state') {
     node.states.forEach((stateBranch) => {
       if (typeof stateBranch.content !== 'string') {
-        generateFallbackNamesAndKeys(stateBranch.content, nodesLookup)
+        generateUniqueKeys(stateBranch.content, nodesLookup)
       }
     })
     return
-  }
-
-  // Setting up the name of the node based on the type, if it is not supplied
-  // TODO: Move this inside the resolve node and leave the generation for after?
-  if (!node.name) {
-    node.name = node.type
   }
 
   // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
@@ -146,27 +131,31 @@ export const generateFallbackNamesAndKeys = (
     node.key = node.name
   } else {
     const currentKey = nodeOcurrence.nextKey
-    const firstOcurrence = parseInt(currentKey, 10) === 0
-    node.key = firstOcurrence ? node.name : node.name + currentKey
-    nodeOcurrence.nextKey = computeIncrementalStringKey(currentKey)
+    node.key = generateKey(node.name, currentKey)
+    nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
   }
 
   // Recursion for each child which is of type ContentNode
   if (node.children) {
     node.children.forEach((child) => {
       if (typeof child !== 'string') {
-        generateFallbackNamesAndKeys(child, nodesLookup)
+        generateUniqueKeys(child, nodesLookup)
       }
     })
   }
 
   // In case there's a repeat structure, its content also needs the same algorithm
   if (node.repeat) {
-    generateFallbackNamesAndKeys(node.repeat.content, nodesLookup)
+    generateUniqueKeys(node.repeat.content, nodesLookup)
   }
 }
 
-const computeIncrementalStringKey = (currentKey: string): string => {
+const generateKey = (name: string, key: string): string => {
+  const firstOcurrence = parseInt(key, 10) === 0
+  return firstOcurrence ? name : name + key
+}
+
+const generateNextIncrementalKey = (currentKey: string): string => {
   const nextNumericValue = parseInt(currentKey, 10) + 1
   let returnValue = nextNumericValue.toString()
   while (returnValue.length < currentKey.length) {
@@ -186,7 +175,7 @@ export const createNodesLookup = (node: ContentNode, lookup: ContentNodesLookup)
     return
   }
 
-  const nodeName = node.name || node.type
+  const nodeName = node.name
   if (!lookup[nodeName]) {
     lookup[nodeName] = {
       count: 0,
@@ -322,26 +311,12 @@ const resolveDependency = (
   return nodeDependency
 }
 
-// Traverses the mapped elements children and inserts the original children of the node being mapped.
-const insertChildrenIntoNode = (
+// Traverses the content node tree and replaces the $children placeholder with
+// the original children of the node being mapped
+const replaceChildrenPlaceholder = (
   node: ContentNode,
-  originalChildren: Array<ContentNode | string>,
-  originalAttrs: Record<string, any>
+  originalChildren: Array<ContentNode | string>
 ) => {
-  // The same kind of referencing that is done in the mergeAttributes function
-  // TODO: Extract duplicate code and apply in both instances (merge attributes and solving children nodes)
-  // Explained here: https://github.com/teleporthq/teleport-code-generators/issues/44
-  // Object.keys(node.attrs).forEach((attrKey) => {
-  //   if (typeof node.attrs[attrKey] === 'string' && node.attrs[attrKey].startsWith('$attrs.')) {
-  //     const referencedAttributeKey = node.attrs[attrKey].replace('$attrs.', '')
-  //     if (originalAttrs[referencedAttributeKey]) {
-  //       node.attrs[attrKey] = originalAttrs[referencedAttributeKey]
-  //       // since the attribute is mapped in the children, we assume it is not longer needed on the root node
-  //       delete originalAttrs[referencedAttributeKey]
-  //     }
-  //   }
-  // })
-
   if (!node.children) {
     return
   }
@@ -361,7 +336,7 @@ const insertChildrenIntoNode = (
     }
 
     // The child node is pushed after the $children token was replaced
-    insertChildrenIntoNode(child, originalChildren, originalAttrs)
+    replaceChildrenPlaceholder(child, originalChildren)
     acc.push(child)
     return acc
   }, initialValue)

@@ -20,24 +20,29 @@ export default class Resolver {
   }
 
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
+    const { customMapping = {}, localDependenciesPrefix = './', assetsPrefix } = options
+    const mapping = { ...this.elementsMapping, ...customMapping }
+
     const content = cloneElement(uidl.content)
 
-    const flatNodes = {}
-    utils.createNodesLookup(content, flatNodes)
-    utils.generateFallbackNamesAndKeys(content, flatNodes)
+    utils.resolveContentNode(content, mapping, localDependenciesPrefix, assetsPrefix)
+
+    const nodesLookup = {}
+    utils.createNodesLookup(content, nodesLookup)
+    utils.generateUniqueKeys(content, nodesLookup)
 
     return {
       ...uidl,
       name: sanitizeVariableName(uidl.name),
-      content: this.resolveContentNode(content, options),
+      content,
     }
   }
 
   public resolveContentNode(node: ContentNode, options: GeneratorOptions = {}) {
-    const customMapping = options.customMapping || {}
-    const localDependenciesPrefix = options.localDependenciesPrefix || './'
-    const assetsPrefix = options.assetsPrefix
+    const { customMapping = {}, localDependenciesPrefix = './', assetsPrefix } = options
     const mapping = { ...this.elementsMapping, ...customMapping }
-    return utils.resolveContentNode(node, mapping, localDependenciesPrefix, assetsPrefix)
+    const returnNode = cloneElement(node)
+
+    utils.resolveContentNode(returnNode, mapping, localDependenciesPrefix, assetsPrefix)
   }
 }
