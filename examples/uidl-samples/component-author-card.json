@@ -17,7 +17,7 @@
   },
   "content": {
     "type": "container",
-    "key": "container",
+    "name": "container",
     "style": {
       "width": "100%",
       "height": "100%",
@@ -27,7 +27,7 @@
     "children": [
       {
         "type": "container",
-        "key": "image-container",
+        "name": "image-container",
         "style": {
           "backgroundColor": "#333",
           "borderRadius": "50%",
@@ -40,7 +40,7 @@
         "children": [
           {
             "type": "image",
-            "key": "img",
+            "name": "img",
             "attrs": {
               "src": "$props.avatarUrl",
               "alt": "$props.authorName"
@@ -50,7 +50,7 @@
       },
       {
         "type": "container",
-        "key": "details-container",
+        "name": "details-container",
         "style": {
           "flexDirection": "column",
           "flex": 1,
@@ -59,12 +59,12 @@
         "children": [
           {
             "type": "h3",
-            "key": "autor-name",
+            "name": "autor-name",
             "children": ["$props.authorName"]
           },
           {
             "type": "container",
-            "key": "autor-desription",
+            "name": "autor-desription",
             "children": ["Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nulla laoreet metus a nulla rhoncus, et aliquet turpis lacinia."]
           }
         ]

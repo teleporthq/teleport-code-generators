@@ -7,17 +7,23 @@
       "defaultValue": 0
     }
   },
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    }
+  },
   "content": {
     "type": "container",
-    "key": "container",
     "children": [
       {
         "type": "container",
-        "key": "tabs",
+        "attrs": {
+          "data-test": "$props.test"
+        },
         "children": [
           {
             "type": "button",
-            "key": "tab1",
             "children": ["Click"],
             "style": {
               "border": "1px solid black",
@@ -33,7 +39,6 @@
           },
           {
             "type": "button",
-            "key": "tab2",
             "children": ["any"],
             "style": {
               "border": "1px solid black",
@@ -49,7 +54,6 @@
           },
           {
             "type": "button",
-            "key": "tab3",
             "children": ["of"],
             "style": {
               "border": "1px solid black",
@@ -65,7 +69,6 @@
           },
           {
             "type": "button",
-            "key": "tab4",
             "children": ["these"],
             "style": {
               "border": "1px solid black",
@@ -83,7 +86,6 @@
       },
       {
         "type": "container",
-        "key": "text",
         "style": {
           "width": 100,
           "height": 50,
@@ -111,16 +113,13 @@
       },
       {
         "type": "state",
-        "key": "activeTab",
         "states": [
           {
             "value": 0,
             "content": {
               "type": "container",
-              "key": "tab1c",
               "children": [{
                 "type": "text",
-                "key": "text1",
                 "children": ["This is the first tab"]
               }]
             }
@@ -128,21 +127,18 @@
             "value": 1,
             "content": {
               "type": "text",
-              "key": "text2",
               "children": ["This is the second tab"]
             }
           },{
             "value": 2,
             "content": {
               "type": "text",
-              "key": "text3",
               "children": ["This is the third tab"]
             }
           },{
             "value": 3,
             "content": {
               "type": "text",
-              "key": "text4",
               "children": ["This is the fourth tab"]
             }
           }

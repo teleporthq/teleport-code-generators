@@ -9,10 +9,6 @@ export { default as createReactNextProject } from './project-generators/react-ne
 export { default as createVueBasicProject } from './project-generators/vue-basic'
 export { default as createVueNuxtProject } from './project-generators/vue-nuxt'
 
-// This is temporary function used by the component playground (another project)
-// Will probably be replaced by the use of the actual component generators when the interface is final
-export { default as createReactComponent } from './component-generators/react/react-all'
-
 // Factory functions for the component generators
 export {
   default as createReactComponentGenerator,

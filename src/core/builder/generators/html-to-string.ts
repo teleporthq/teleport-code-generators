@@ -1,16 +1,18 @@
 import { format } from 'prettier/standalone'
-import parserPlugin from 'prettier/parser-html'
+
+import parserHTML from 'prettier/parser-html'
+import parserPostCSS from 'prettier/parser-postcss'
 
 import { PRETTIER_CONFIG } from '../../../shared/constants'
-import { GeneratorFunction } from '../../../shared/types'
+import { CodeGeneratorFunction } from '../../../shared/types'
 
-export const generator: GeneratorFunction = (htmlObject: any) => {
-  const unformatedString = htmlObject.html() as string
+export const generator: CodeGeneratorFunction<CheerioStatic> = (htmlObject) => {
+  const unformatedString = htmlObject.html()
 
   const formatted = format(unformatedString, {
     ...PRETTIER_CONFIG,
     htmlWhitespaceSensitivity: 'ignore',
-    plugins: [parserPlugin],
+    plugins: [parserHTML, parserPostCSS],
     parser: 'html',
   })
   return formatted

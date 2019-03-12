@@ -52,7 +52,7 @@ export const applyCSSModulesAndGetDeclarations = (
   params: ApplyCSSModulesAndGetDeclarationsParams,
   t = types
 ) => {
-  let accumulator: any[] = []
+  let accumulator: string[] = []
   const { nodesLookup = {}, camelCaseClassNames } = params
 
   const { style, children, key, repeat } = content

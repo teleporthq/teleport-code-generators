@@ -93,24 +93,24 @@
     },
     "content": {
       "type": "state",
-      "key": "router",
+      "name": "router",
       "states": [
         {
           "value": "index",
           "content": {
             "type": "group",
-            "key": "container",
+            "name": "container",
             "children": [
               {
                 "type": "video",
-                "key": "video",
+                "name": "video",
                 "attrs": {
                   "autoPlay": true
                 },
                 "children": [
                   {
                     "type": "source",
-                    "key": "mp4-source",
+                    "name": "mp4-source",
                     "attrs": {
                       "type": "video/mp4",
                       "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
@@ -118,7 +118,7 @@
                   },
                   {
                     "type": "source",
-                    "key": "webm-source",
+                    "name": "webm-source",
                     "attrs": {
                       "type": "video/webm",
                       "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.webm"
@@ -128,7 +128,6 @@
               },
               {
                 "type": "container",
-                "key": "accordions",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -136,7 +135,7 @@
                 "children": [
                   {
                     "type": "ExpandableArea",
-                    "key": "area1",
+                    "name": "area1",
                     "attrs": {
                       "title": "First",
                       "text": "Text"
@@ -147,7 +146,7 @@
                   },
                   {
                     "type": "ExpandableArea",
-                    "key": "area2",
+                    "name": "area2",
                     "attrs": {
                       "title": "Second",
                       "text": "Text"
@@ -158,7 +157,7 @@
                   },
                   {
                     "type": "ExpandableArea",
-                    "key": "area3",
+                    "name": "area3",
                     "attrs": {
                       "title": "Third",
                       "text": "Text"
@@ -171,7 +170,7 @@
               },
               {
                 "type": "container",
-                "key": "tab-selector",
+                "name": "random-name",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -179,7 +178,7 @@
                 "children": [
                   {
                     "type": "TabSelector",
-                    "key": "tabs",
+                    "name": "tabs",
                     "dependency": {
                       "type": "local"
                     }
@@ -188,7 +187,7 @@
               },
               {
                 "type": "container",
-                "key": "modal-window",
+                "name": "random-name",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -196,7 +195,7 @@
                 "children": [
                   {
                     "type": "Modal",
-                    "key": "modal",
+                    "name": "modal",
                     "dependency": {
                       "type": "local"
                     }
@@ -205,7 +204,7 @@
               },
               {
                 "type": "container",
-                "key": "lists",
+                "name": "lists",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -213,7 +212,7 @@
                 "children": [
                   {
                     "type": "dropdown",
-                    "key": "dropdown",
+                    "name": "dropdown",
                     "attrs": {
                       "options": ["angular", "react", "vue"],
                       "defaultValue": "react"
@@ -221,7 +220,7 @@
                   },
                   {
                     "type": "list",
-                    "key": "list",
+                    "name": "list",
                     "attrs": {
                       "items": ["angular", "react", "vue"]
                     }
@@ -230,7 +229,7 @@
               },
               {
                 "type": "container",
-                "key": "cards-container",
+                "name": "cards-container",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -238,7 +237,7 @@
                 "children": [
                   {
                     "type": "Cards",
-                    "key": "cards",
+                    "name": "cards",
                     "attrs": {
                       "items": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
                     },
@@ -250,7 +249,7 @@
               },
               {
                 "type": "container",
-                "key": "form-container",
+                "name": "form-container",
                 "style": {
                   "width": "100%",
                   "border": "1px solid red"
@@ -258,7 +257,7 @@
                 "children": [
                   {
                     "type": "form",
-                    "key": "form",
+                    "name": "form",
                     "attrs": {
                       "type": "GET",
                       "url": "/"
@@ -266,16 +265,16 @@
                     "children": [
                       {
                         "type": "container",
-                        "key": "email-group",
+                        "name": "email-group",
                         "children": [
                           {
                             "type": "label",
-                            "key": "email-label",
+                            "name": "email-label",
                             "children": ["Email:"]
                           },
                           {
                             "type": "textinput",
-                            "key": "email-input",
+                            "name": "email-input",
                             "attrs": {
                               "name": "email"
                             }
@@ -284,16 +283,16 @@
                       },
                       {
                         "type": "container",
-                        "key": "pass-group",
+                        "name": "pass-group",
                         "children": [
                           {
                             "type": "label",
-                            "key": "pass-label",
+                            "name": "pass-label",
                             "children": ["Password:"]
                           },
                           {
                             "type": "passwordinput",
-                            "key": "pass-input",
+                            "name": "pass-input",
                             "attrs": {
                               "name": "pass"
                             }
@@ -302,7 +301,7 @@
                       },
                       {
                         "type": "button",
-                        "key": "submit",
+                        "name": "submit",
                         "children": ["Login"]
                       }
                     ]
@@ -336,19 +335,19 @@
       },
       "content": {
         "type": "container",
-        "key": "container",
+        "name": "container",
         "children": [
           {
             "type": "text",
-            "key": "title",
+            "name": "title",
             "children": ["$props.title"]
           },
           {
             "type": "button",
-            "key": "button",
+            "name": "button",
             "children": [{
               "type": "state",
-              "key": "isExpanded",
+              "name": "isExpanded",
               "states": [
                 {
                   "value": true,
@@ -372,13 +371,13 @@
           },
           {
             "type": "state",
-            "key": "isExpanded",
+            "name": "isExpanded",
             "states": [
               {
                 "value": true,
                 "content": {
                   "type": "container",
-                  "key": "expanded-area",
+                  "name": "expanded-area",
                   "children": ["$props.text"]
                 }
               }
@@ -397,15 +396,15 @@
       },
       "content": {
         "type": "container",
-        "key": "container",
+        "name": "container",
         "children": [
           {
             "type": "container",
-            "key": "tabs",
+            "name": "tabs",
             "children": [
               {
                 "type": "button",
-                "key": "tab1",
+                "name": "tab1",
                 "children": ["Click"],
                 "style": {
                   "border": "1px solid black",
@@ -421,7 +420,7 @@
               },
               {
                 "type": "button",
-                "key": "tab2",
+                "name": "tab2",
                 "children": ["any"],
                 "style": {
                   "border": "1px solid black",
@@ -437,7 +436,7 @@
               },
               {
                 "type": "button",
-                "key": "tab3",
+                "name": "tab3",
                 "children": ["of"],
                 "style": {
                   "border": "1px solid black",
@@ -453,7 +452,7 @@
               },
               {
                 "type": "button",
-                "key": "tab4",
+                "name": "tab4",
                 "children": ["these"],
                 "style": {
                   "border": "1px solid black",
@@ -471,7 +470,7 @@
           },
           {
             "type": "container",
-            "key": "text",
+            "name": "text",
             "style": {
               "width": 100,
               "height": 50,
@@ -499,34 +498,34 @@
           },
           {
             "type": "state",
-            "key": "activeTab",
+            "name": "activeTab",
             "states": [
               {
                 "value": 0,
                 "content": {
                   "type": "text",
-                  "key": "text1",
+                  "name": "text1",
                   "children": ["This is the first tab"]
                 }
               },{
                 "value": 1,
                 "content": {
                   "type": "text",
-                  "key": "text2",
+                  "name": "text2",
                   "children": ["This is the second tab"]
                 }
               },{
                 "value": 2,
                 "content": {
                   "type": "text",
-                  "key": "text3",
+                  "name": "text3",
                   "children": ["This is the third tab"]
                 }
               },{
                 "value": 3,
                 "content": {
                   "type": "text",
-                  "key": "text4",
+                  "name": "text4",
                   "children": ["This is the fourth tab"]
                 }
               }
@@ -545,11 +544,11 @@
       },
       "content": {
         "type": "group",
-        "key": "container",
+        "name": "container",
         "children": [
           {
             "type": "button",
-            "key": "openmodal",
+            "name": "openmodal",
             "children": ["Show Popup"],
             "events": {
               "onClick": [{
@@ -561,13 +560,13 @@
           },
           {
             "type": "state",
-            "key": "isOpen",
+            "name": "isOpen",
             "states": [
               {
                 "value": true,
                 "content": {
                   "type": "ModalWindow",
-                  "key": "window",
+                  "name": "window",
                   "dependency": {
                     "type": "local"
                   },
@@ -599,16 +598,16 @@
       },
       "content": {
         "type": "container",
-        "key": "container",
+        "name": "container",
         "children": [
           {
             "type": "text",
-            "key": "text",
+            "name": "text",
             "children": ["$props.message"]
           },
           {
             "type": "button",
-            "key": "close",
+            "name": "close",
             "children": ["Close me"],
             "events": {
               "onClick": [{
@@ -630,7 +629,7 @@
       },
       "content": {
         "type": "container",
-        "key": "card",
+        "name": "card",
         "style": {
           "margin": "10px",
           "padding": "10px",
@@ -649,7 +648,7 @@
       },
       "content": {
         "type": "container",
-        "key": "cards-container",
+        "name": "cards-container",
         "style": {
           "width": "100%",
           "border": "1px solid red",
@@ -657,13 +656,13 @@
         },
         "children": [{
           "type": "text",
-          "key": "joker",
+          "name": "joker",
           "children": ["Last"]
         }],
         "repeat": {
           "content": {
             "type": "container",
-            "key": "card-container",
+            "name": "card-container",
             "style": {
               "backgroundColor": "royalblue",
               "color": "white",
@@ -672,7 +671,7 @@
             },
             "children": [{
               "type": "Card",
-              "key": "card",
+              "name": "card",
               "attrs": {
                 "item": "$item"
               },

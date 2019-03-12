@@ -50,31 +50,19 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
     chunks.push({
       type: 'js',
       name: defaultPropsChunkName,
-      linker: {
-        after: [componentChunkName],
-      },
+      linkAfter: [componentChunkName],
       content: defaultPropsAst,
     })
 
     chunks.push({
       type: 'js',
       name: typesOfPropsChunkName,
-      linker: {
-        after: [componentChunkName],
-      },
+      linkAfter: [componentChunkName],
       content: typesOfPropsAst,
     })
 
     // push export of component after declarations of types
-    if (!exportChunk.linker) {
-      exportChunk.linker = {}
-    }
-
-    if (!exportChunk.linker.after) {
-      exportChunk.linker.after = []
-    }
-
-    exportChunk.linker.after.push(typesOfPropsChunkName, defaultPropsChunkName)
+    exportChunk.linkAfter.push(typesOfPropsChunkName, defaultPropsChunkName)
 
     return structure
   }

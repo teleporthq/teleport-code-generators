@@ -120,7 +120,7 @@
     "repeat": {
       "content": {
         "type": "li",
-        "key": "item",
+        "name": "item",
         "children": ["$item"]
       },
       "dataSource": "$attrs.items"
@@ -131,7 +131,7 @@
     "repeat": {
       "content": {
         "type": "option",
-        "key": "option",
+        "name": "option",
         "children": ["$item"]
       },
       "dataSource": "$attrs.options"

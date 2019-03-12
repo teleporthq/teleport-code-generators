@@ -91,7 +91,7 @@ export const makeProgramBody = (statements: any[] = [], t = types) => t.program(
 export const makeGenericImportStatement = (path: string, imports: any[], t = types) => {
   // Only one of the imports can be the default one so this is a fail safe for invalid UIDL data
   const defaultImport = imports.find((imp) => !imp.namedImport) // only one import can be default
-  let importASTs: any = []
+  let importASTs: any[] = []
   if (defaultImport) {
     const namedImports = imports.filter((imp) => imp.identifier !== defaultImport.identifier)
     // Default import needs to be the first in the array
