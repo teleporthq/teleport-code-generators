@@ -109,13 +109,27 @@ There are two **factory functions** exported from our main module, for the React
 ```javascript
 import { createReactComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
 
-// Instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
+// define a UIDL representation
+const componentUIDL = {
+    "name": "MyComponent",
+    "content": {
+        "type": "text",
+        "children": ["Teleport World!"]
+    }
+}
+
+// instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
 const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
 
-// Calling the generate function will return the code as a string
-const result = reactGenerator.generateComponent(uidl)
-
-console.log(result.code)
+// get the code
+reactGenerator
+  .generateComponent(componentUIDL)
+  .then(result => {
+    console.log(result.code)
+  })
+  .catch(err => {
+    console.log(err)
+  })
 ```
 
 Read more about [the API of the component generator](link coming soon).
