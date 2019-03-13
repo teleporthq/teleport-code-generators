@@ -1,5 +1,10 @@
 import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
-import { applyCSSModulesAndGetDeclarations } from './utils'
+import { cammelCaseToDashCase, stringToCamelCase } from '../../../shared/utils/string-utils'
+import { addJSXTagStyles, addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
+import { traverseNodes } from '../../../shared/utils/uidl-utils'
+import { createCSSClass } from '../../../shared/utils/jss-utils'
+
+import { prepareDynamicProps, splitDynamicAndStaticProps } from './utils'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string
@@ -41,15 +46,38 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
       )
     }
 
-    const generatedCSSModuleClasses = applyCSSModulesAndGetDeclarations(uidl.content, {
-      nodesLookup: componentChunk.meta.nodesLookup,
-      camelCaseClassNames,
+    const cssClasses: string[] = []
+    const astNodesLookup = componentChunk.meta.nodesLookup || {}
+
+    traverseNodes(uidl.content, (node) => {
+      const { style, key } = node
+      if (style) {
+        const root = astNodesLookup[key]
+        const className = cammelCaseToDashCase(key)
+        const classNameInJS = stringToCamelCase(className)
+        const { staticStyles, dynamicStyles } = splitDynamicAndStaticProps(style)
+
+        // TODO Should we build a different plugin for dynamic props as inline styles?
+        const inlineStyle = prepareDynamicProps(dynamicStyles)
+        if (Object.keys(inlineStyle).length) {
+          addJSXTagStyles(root, inlineStyle)
+        }
+
+        cssClasses.push(createCSSClass(className, staticStyles))
+
+        const classReferenceIdentifier = camelCaseClassNames
+          ? `styles.${classNameInJS}`
+          : `styles['${className}']`
+
+        addDynamicPropOnJsxOpeningTag(root, 'className', classReferenceIdentifier)
+      }
     })
+
     /**
      * If no classes were added, we don't need to import anything or to alter any
      * code
      */
-    if (!generatedCSSModuleClasses.length) {
+    if (!cssClasses.length) {
       return structure
     }
 
@@ -67,7 +95,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     structure.chunks.push({
       name: styleChunkName,
       type: 'string',
-      content: generatedCSSModuleClasses.join('\n'),
+      content: cssClasses.join('\n'),
       meta: {
         fileId,
       },

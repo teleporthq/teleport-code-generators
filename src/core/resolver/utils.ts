@@ -6,7 +6,11 @@ import {
   ElementMapping,
 } from '../../uidl-definitions/types'
 
-import { prefixPlaygroundAssetsURL, cloneElement } from '../../shared/utils/uidl-utils'
+import {
+  prefixPlaygroundAssetsURL,
+  cloneElement,
+  traverseNodes,
+} from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
@@ -14,96 +18,72 @@ const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 type ContentNodesLookup = Record<string, { count: number; nextKey: string }>
 
 export const resolveContentNode = (
-  node: ContentNode,
+  content: ContentNode,
   elementsMapping: ElementsMapping,
   localDependenciesPrefix: string,
   assetsPrefix?: string
 ) => {
-  const mappedElement = elementsMapping[node.type] || { type: node.type }
+  traverseNodes(content, (node) => {
+    const mappedElement = elementsMapping[node.type] || { type: node.type }
 
-  // Setting up the name of the node based on the type, if it is not supplied
-  node.name = node.name || node.type
+    // Setting up the name of the node based on the type, if it is not supplied
+    node.name = node.name || node.type
 
-  // Mapping the type according to the elements mapping
-  node.type = mappedElement.type
+    // Mapping the type according to the elements mapping
+    node.type = mappedElement.type
 
-  // If the mapping contains children, insert that structure into the UIDL
-  if (mappedElement.children) {
-    const originalNodeChildren = node.children || []
-    node.children = cloneElement(mappedElement.children)
-    replaceChildrenPlaceholder(node, originalNodeChildren)
-  }
-
-  // Resolve dependency with the UIDL having priority
-  if (node.dependency || mappedElement.dependency) {
-    node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
-  }
-
-  // Resolve assets prefix inside style (ex: background-image)
-  if (node.style && assetsPrefix) {
-    node.style = prefixAssetURLs(node.style, assetsPrefix)
-  }
-
-  // Prefix the attributes which may point to local assets
-  if (node.attrs && assetsPrefix) {
-    Object.keys(node.attrs).forEach((attrKey) => {
-      if (typeof node.attrs[attrKey] === 'string') {
-        node.attrs[attrKey] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attrKey])
-      }
-    })
-  }
-
-  // Merge UIDL attributes to the attributes coming from the mapping object
-  if (mappedElement.attrs) {
-    node.attrs = mergeAttributes(mappedElement.attrs, node.attrs)
-  }
-
-  // The UIDL has priority over the mapping repeat
-  const repeatStructure = node.repeat || mappedElement.repeat
-  if (repeatStructure) {
-    let dataSource = repeatStructure.dataSource
-
-    // We clone the content in case the content node is coming from the mapping to avoid reference leaking
-    const clonedContent = cloneElement(repeatStructure.content)
-
-    // Data source might be preset on a referenced attribute in the uidl node
-    // ex: attrs[options] in case of a dropdown primitive with select/options
-    if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
-      const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
-      dataSource = node.attrs[nodeDataSourceAttr]
+    // If the mapping contains children, insert that structure into the UIDL
+    if (mappedElement.children) {
+      const originalNodeChildren = node.children || []
+      node.children = cloneElement(mappedElement.children)
+      replaceChildrenPlaceholder(node, originalNodeChildren)
     }
 
-    // The content inside the repeat must also be mapped like any regular content node
-    resolveContentNode(clonedContent, elementsMapping, localDependenciesPrefix, assetsPrefix)
-
-    node.repeat = {
-      dataSource,
-      content: clonedContent,
+    // Resolve dependency with the UIDL having priority
+    if (node.dependency || mappedElement.dependency) {
+      node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
     }
-  }
 
-  // If the node has multiple state branches, each content needs to be resolved
-  if (node.type === 'state' && node.states) {
-    node.states.forEach((stateBranch) => {
-      if (typeof stateBranch.content !== 'string') {
-        resolveContentNode(
-          stateBranch.content,
-          elementsMapping,
-          localDependenciesPrefix,
-          assetsPrefix
-        )
-      }
-    })
-  }
+    // Resolve assets prefix inside style (ex: background-image)
+    if (node.style && assetsPrefix) {
+      node.style = prefixAssetURLs(node.style, assetsPrefix)
+    }
 
-  // Traverse the UIDL
-  if (node.children) {
-    node.children.forEach((child) => {
-      if (typeof child !== 'string') {
-        resolveContentNode(child, elementsMapping, localDependenciesPrefix, assetsPrefix)
+    // Prefix the attributes which may point to local assets
+    if (node.attrs && assetsPrefix) {
+      Object.keys(node.attrs).forEach((attrKey) => {
+        if (typeof node.attrs[attrKey] === 'string') {
+          node.attrs[attrKey] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attrKey])
+        }
+      })
+    }
+
+    // Merge UIDL attributes to the attributes coming from the mapping object
+    if (mappedElement.attrs) {
+      node.attrs = mergeAttributes(mappedElement.attrs, node.attrs)
+    }
+
+    // The UIDL has priority over the mapping repeat
+    const repeatStructure = node.repeat || mappedElement.repeat
+    if (repeatStructure) {
+      let dataSource = repeatStructure.dataSource
+
+      // We clone the content in case the content node is coming from the mapping to avoid reference leaking
+      const clonedContent = cloneElement(repeatStructure.content)
+
+      // Data source might be preset on a referenced attribute in the uidl node
+      // ex: attrs[options] in case of a dropdown primitive with select/options
+      if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
+        const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
+        dataSource = node.attrs[nodeDataSourceAttr]
       }
-    })
-  }
+
+      node.repeat = {
+        dataSource,
+        content: clonedContent,
+      }
+    }
+  })
 }
 
 // Generates an unique key for each node in the UIDL.
@@ -111,43 +91,26 @@ export const resolveContentNode = (
 // it uses an incremental key which is padded with 0, so it can generate things like:
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
-export const generateUniqueKeys = (node: ContentNode, nodesLookup: ContentNodesLookup) => {
-  // First, iterate through the content inside each state branch in case of a states node
-  if (node.states && node.type === 'state') {
-    node.states.forEach((stateBranch) => {
-      if (typeof stateBranch.content !== 'string') {
-        generateUniqueKeys(stateBranch.content, nodesLookup)
-      }
-    })
-    return
-  }
+export const generateUniqueKeys = (content: ContentNode, nodesLookup: ContentNodesLookup) => {
+  traverseNodes(content, (node) => {
+    // skip generating keys for the state nodes
+    if (node.type === 'state') {
+      return
+    }
 
-  // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
-  // NextKey will be appended to the node name to ensure uniqueness inside the component
-  const nodeOcurrence = nodesLookup[node.name]
+    // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
+    // NextKey will be appended to the node name to ensure uniqueness inside the component
+    const nodeOcurrence = nodesLookup[node.name]
 
-  if (nodeOcurrence.count === 1) {
-    // If the name ocurrence is unique we use it as it is
-    node.key = node.name
-  } else {
-    const currentKey = nodeOcurrence.nextKey
-    node.key = generateKey(node.name, currentKey)
-    nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
-  }
-
-  // Recursion for each child which is of type ContentNode
-  if (node.children) {
-    node.children.forEach((child) => {
-      if (typeof child !== 'string') {
-        generateUniqueKeys(child, nodesLookup)
-      }
-    })
-  }
-
-  // In case there's a repeat structure, its content also needs the same algorithm
-  if (node.repeat) {
-    generateUniqueKeys(node.repeat.content, nodesLookup)
-  }
+    if (nodeOcurrence.count === 1) {
+      // If the name ocurrence is unique we use it as it is
+      node.key = node.name
+    } else {
+      const currentKey = nodeOcurrence.nextKey
+      node.key = generateKey(node.name, currentKey)
+      nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
+    }
+  })
 }
 
 const generateKey = (name: string, key: string): string => {
@@ -165,44 +128,29 @@ const generateNextIncrementalKey = (currentKey: string): string => {
   return returnValue
 }
 
-export const createNodesLookup = (node: ContentNode, lookup: ContentNodesLookup) => {
-  if (node.states && node.type === 'state') {
-    node.states.forEach((stateBranch) => {
-      if (typeof stateBranch.content !== 'string') {
-        createNodesLookup(stateBranch.content, lookup)
-      }
-    })
-    return
-  }
-
-  const nodeName = node.name
-  if (!lookup[nodeName]) {
-    lookup[nodeName] = {
-      count: 0,
-      nextKey: '0',
+export const createNodesLookup = (content: ContentNode, lookup: ContentNodesLookup) => {
+  traverseNodes(content, (node) => {
+    // we don't add state names in the lookup
+    if (node.type === 'state') {
+      return
     }
-  }
 
-  lookup[nodeName].count++
-  const newCount = lookup[nodeName].count
-  if (newCount > 9 && isPowerOfTen(newCount)) {
-    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
-    // nextKey will start either from: '0', '00', '000', etc.
-    lookup[nodeName].nextKey = '0' + lookup[nodeName].nextKey
-  }
-
-  if (node.children) {
-    node.children.forEach((child) => {
-      if (typeof child !== 'string') {
-        createNodesLookup(child, lookup)
+    const nodeName = node.name
+    if (!lookup[nodeName]) {
+      lookup[nodeName] = {
+        count: 0,
+        nextKey: '0',
       }
-    })
-  }
+    }
 
-  // In case there's a repeat structure, its content also needs the same algorithm
-  if (node.repeat) {
-    createNodesLookup(node.repeat.content, lookup)
-  }
+    lookup[nodeName].count++
+    const newCount = lookup[nodeName].count
+    if (newCount > 9 && isPowerOfTen(newCount)) {
+      // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+      // nextKey will start either from: '0', '00', '000', etc.
+      lookup[nodeName].nextKey = '0' + lookup[nodeName].nextKey
+    }
+  })
 }
 
 const isPowerOfTen = (value: number) => {

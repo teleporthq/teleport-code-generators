@@ -1,10 +1,8 @@
-import preset from 'jss-preset-default'
-import jss from 'jss'
-jss.setup(preset())
-
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
+import { StyleDefinitions } from '../../uidl-definitions/types'
+import { traverseNodes } from '../../shared/utils/uidl-utils'
+import { createCSSClass } from '../../shared/utils/jss-utils'
 
 interface VueStyleChunkConfig {
   chunkName: string
@@ -28,7 +26,31 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
     const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
     const templateLookup = templateChunk.meta.lookup
 
-    const jssStylesArray = generateStyleTagStrings(content, templateLookup)
+    const jssStylesArray = []
+
+    traverseNodes(content, (node) => {
+      const { style, key } = node
+
+      if (style) {
+        const { staticStyles, dynamicStyles } = filterOutDynamicStyles(style)
+        const root = templateLookup[key]
+        const className = cammelCaseToDashCase(key)
+        jssStylesArray.push(createCSSClass(className, staticStyles))
+
+        if (Object.keys(dynamicStyles).length) {
+          const vueFriendlyStyleBind = Object.keys(dynamicStyles).reduce(
+            (acc: string[], styleKey) => {
+              acc.push(`${styleKey}: ${dynamicStyles[styleKey]}`)
+              return acc
+            },
+            []
+          )
+          root.attr(':style', `{${vueFriendlyStyleBind.join(', ')}}`)
+        }
+
+        root.addClass(className)
+      }
+    })
 
     chunks.push({
       type: 'string',
@@ -64,51 +86,4 @@ const filterOutDynamicStyles = (style: StyleDefinitions) => {
     },
     { staticStyles: {}, dynamicStyles: {} }
   )
-}
-
-const generateStyleTagStrings = (content: ContentNode, templateLookup: Record<string, any>) => {
-  let accumulator: string[] = []
-
-  const { style, children, key } = content
-
-  if (style) {
-    const { staticStyles, dynamicStyles } = filterOutDynamicStyles(style)
-    const root = templateLookup[key]
-    const className = cammelCaseToDashCase(key)
-    accumulator.push(
-      jss
-        .createStyleSheet(
-          {
-            [`.${className}`]: staticStyles,
-          },
-          {
-            generateClassName: () => className,
-          }
-        )
-        .toString()
-    )
-
-    if (Object.keys(dynamicStyles).length) {
-      const vueFriendlyStyleBind = Object.keys(dynamicStyles).reduce((acc: string[], styleKey) => {
-        acc.push(`${styleKey}: ${dynamicStyles[styleKey]}`)
-        return acc
-      }, [])
-      root.attr(':style', `{${vueFriendlyStyleBind.join(', ')}}`)
-    }
-
-    root.addClass(className)
-  }
-
-  if (children) {
-    children.forEach((child) => {
-      // Skip text children
-      if (typeof child === 'string') {
-        return
-      }
-      const items = generateStyleTagStrings(child, templateLookup)
-      accumulator = accumulator.concat(...items)
-    })
-  }
-
-  return accumulator
 }

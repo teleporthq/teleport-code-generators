@@ -1,0 +1,18 @@
+import preset from 'jss-preset-default'
+import jss from 'jss'
+import { StyleDefinitions } from '../../uidl-definitions/types'
+
+jss.setup(preset())
+
+export const createCSSClass = (className: string, styleObject: StyleDefinitions) => {
+  return jss
+    .createStyleSheet(
+      {
+        [`.${className}`]: styleObject,
+      },
+      {
+        generateClassName: () => className,
+      }
+    )
+    .toString()
+}

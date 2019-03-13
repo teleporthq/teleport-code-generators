@@ -97,17 +97,6 @@ export const addDynamicPropOnJsxOpeningTag = (
   )
 }
 
-export const addExternalPropOnJsxOpeningTag = (
-  jsxASTNode: types.JSXElement,
-  name: string,
-  memberExpression: any,
-  t = types
-) => {
-  jsxASTNode.openingElement.attributes.push(
-    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(memberExpression))
-  )
-}
-
 // TODO: Use generateASTDefinitionForJSXTag instead?
 export const generateStyledJSXTag = (
   templateLiteral: string | types.TemplateLiteral,

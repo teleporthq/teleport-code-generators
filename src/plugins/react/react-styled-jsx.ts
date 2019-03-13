@@ -1,15 +1,10 @@
-import preset from 'jss-preset-default'
-import jss from 'jss'
-jss.setup(preset())
-
-import * as t from '@babel/types'
-
+import { StyleDefinitions } from '../../uidl-definitions/types'
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-
 import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
+import { traverseNodes } from '../../shared/utils/uidl-utils'
+import { createCSSClass } from '../../shared/utils/jss-utils'
 
 interface StyledJSXConfig {
   componentChunkName: string
@@ -30,7 +25,19 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
 
-    const styleJSXString = generateStyledJSXString(content, jsxNodesLookup)
+    const styleJSXString: string[] = []
+
+    traverseNodes(content, (node) => {
+      const { style, key } = node
+      if (style) {
+        const root = jsxNodesLookup[key]
+        const className = cammelCaseToDashCase(key)
+        const styleRules = prepareDynamicProps(style)
+        styleJSXString.push(createCSSClass(className, styleRules))
+
+        addClassStringOnJSXTag(root, className)
+      }
+    })
 
     if (!styleJSXString || !styleJSXString.length) {
       return structure
@@ -63,62 +70,4 @@ const prepareDynamicProps = (style: StyleDefinitions) => {
     }
     return acc
   }, {})
-}
-
-const generateStyledJSXString = (
-  content: ContentNode,
-  nodesLookup: Record<string, t.JSXElement>
-) => {
-  let accumulator: string[] = []
-
-  const { style, children, key, repeat } = content
-  if (style) {
-    const root = nodesLookup[key]
-    const className = cammelCaseToDashCase(key)
-    accumulator.push(
-      jss
-        .createStyleSheet(
-          {
-            [`.${className}`]: prepareDynamicProps(style),
-          },
-          {
-            generateClassName: () => className,
-          }
-        )
-        .toString()
-    )
-    addClassStringOnJSXTag(root, className)
-  }
-
-  if (repeat) {
-    accumulator = accumulator.concat(generateStyledJSXString(repeat.content, nodesLookup))
-  }
-
-  if (children) {
-    children.forEach((child) => {
-      // Skip text children
-      if (typeof child === 'string') {
-        return
-      }
-
-      if (child.type === 'state') {
-        const { states = [] } = child
-        states.forEach((stateBranch) => {
-          const stateContent = stateBranch.content
-          if (typeof stateContent === 'string') {
-            return
-          }
-
-          accumulator = accumulator.concat(generateStyledJSXString(stateContent, nodesLookup))
-        })
-
-        return
-      }
-
-      const items = generateStyledJSXString(child, nodesLookup)
-      accumulator = accumulator.concat(...items)
-    })
-  }
-
-  return accumulator
 }

@@ -57,3 +57,28 @@ export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string
 // Either receives the content node or the children element
 export const cloneElement = (node: ContentNode | Array<ContentNode | string>) =>
   JSON.parse(JSON.stringify(node))
+
+export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void) => {
+  fn(node)
+
+  if (node.children) {
+    node.children.forEach((child) => {
+      if (typeof child !== 'string') {
+        traverseNodes(child, fn)
+      }
+    })
+  }
+
+  if (node.repeat) {
+    traverseNodes(node.repeat.content, fn)
+  }
+
+  if (node.states && node.type === 'state') {
+    node.states.forEach((stateBranch) => {
+      if (typeof stateBranch.content !== 'string') {
+        traverseNodes(stateBranch.content, fn)
+      }
+    })
+    return
+  }
+}

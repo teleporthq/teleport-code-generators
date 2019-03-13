@@ -5,6 +5,7 @@ import * as t from '@babel/types'
 
 import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
+import { traverseNodes } from '../../shared/utils/uidl-utils'
 
 interface InlineStyleConfig {
   componentChunkName: string
@@ -26,7 +27,18 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
       return structure
     }
 
-    enhanceJSXWithStyles(uidl.content, componentChunk.meta.nodesLookup)
+    traverseNodes(uidl.content, (node) => {
+      const { style, key } = node
+
+      if (style) {
+        const jsxASTTag = componentChunk.meta.nodesLookup[key]
+        if (!jsxASTTag) {
+          return
+        }
+
+        addJSXTagStyles(jsxASTTag, prepareDynamicProps(style), t)
+      }
+    })
 
     return structure
   }
@@ -47,41 +59,4 @@ const prepareDynamicProps = (style: UIDLTypes.StyleDefinitions) => {
     }
     return acc
   }, {})
-}
-
-/**
- * Walks the content tree and modify the jsx ast representation by adding new
- * style attributes on nodes that define styles for themselves in uidl.
- *
- * @param content - uidl
- * @param jsxASTNode - nodesLookup the lookup used to point from uidl to
- * our content chunk so we can easily see which node from content is describe
- * in which section in the AST representation
- */
-const enhanceJSXWithStyles = (
-  content: UIDLTypes.ContentNode,
-  nodesLookup: Record<string, t.JSXElement>
-) => {
-  const { children, style, key, repeat } = content
-
-  if (style) {
-    const jsxASTTag = nodesLookup[key]
-    if (!jsxASTTag) {
-      return
-    }
-
-    addJSXTagStyles(jsxASTTag, prepareDynamicProps(style), t)
-  }
-
-  if (repeat) {
-    enhanceJSXWithStyles(repeat.content, nodesLookup)
-  }
-
-  if (children) {
-    children.forEach((child) => {
-      if (typeof child !== 'string') {
-        enhanceJSXWithStyles(child, nodesLookup)
-      }
-    })
-  }
 }

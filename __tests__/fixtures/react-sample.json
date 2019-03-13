@@ -136,7 +136,16 @@
               "children": ["This is the third tab"]
             }
           },{
-            "value": 3,
+            "value": {
+              "matchingCriteria": "all",
+              "conditions": [{
+                "operand": 3,
+                "operation": ">="
+              }, {
+                "operand": 5,
+                "operation": "<"
+              }]
+            },
             "content": {
               "type": "text",
               "children": ["This is the fourth tab"]

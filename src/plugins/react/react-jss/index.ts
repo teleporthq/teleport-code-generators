@@ -1,7 +1,7 @@
 import * as t from '@babel/types'
 
 import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
-import { ContentNode, StyleDefinitions } from '../../../uidl-definitions/types'
+import { StyleDefinitions } from '../../../uidl-definitions/types'
 import { addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
@@ -11,6 +11,7 @@ import {
 import { makeJSSDefaultExport } from './utils'
 
 import { cammelCaseToDashCase } from '../../../shared/utils/string-utils'
+import { traverseNodes } from '../../../shared/utils/uidl-utils'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -39,8 +40,17 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const jssStyleMap = {}
 
-    const jssStyleMap = generateStyleTagStrings(content, jsxNodesLookup)
+    traverseNodes(content, (node) => {
+      const { style, key } = node
+      if (style) {
+        const root = jsxNodesLookup[key]
+        const className = cammelCaseToDashCase(key)
+        jssStyleMap[className] = prepareDynamicProps(style)
+        addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
+      }
+    })
 
     if (!Object.keys(jssStyleMap).length) {
       // if no styles are defined, no need to build the jss style at all
@@ -99,44 +109,4 @@ const prepareDynamicProps = (style: StyleDefinitions) => {
     }
     return acc
   }, {})
-}
-
-const generateStyleTagStrings = (
-  content: ContentNode,
-  nodesLookup: Record<string, t.JSXElement>
-) => {
-  let accumulator: { [key: string]: any } = {}
-
-  const { style, children, key, repeat } = content
-  if (style) {
-    const root = nodesLookup[key]
-    const className = cammelCaseToDashCase(key)
-    accumulator[className] = prepareDynamicProps(style)
-    addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
-  }
-
-  if (repeat) {
-    const items = generateStyleTagStrings(repeat.content, nodesLookup)
-    accumulator = {
-      ...accumulator,
-      ...items,
-    }
-  }
-
-  if (children) {
-    children.forEach((child) => {
-      if (typeof child === 'string') {
-        return
-      }
-
-      // only call on children if they are not strings
-      const items = generateStyleTagStrings(child, nodesLookup)
-      accumulator = {
-        ...accumulator,
-        ...items,
-      }
-    })
-  }
-
-  return accumulator
 }
