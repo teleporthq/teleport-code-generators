@@ -4,7 +4,7 @@ import {
   File,
   ProjectGeneratorOptions,
 } from '../../shared/types'
-import { ProjectUIDL, ComponentDependency, ComponentUIDL } from '../../uidl-definitions/types'
+import { ProjectUIDL, ComponentUIDL } from '../../uidl-definitions/types'
 
 import { createManifestJSON, createPackageJSON } from '../../shared/utils/project-utils'
 
@@ -54,7 +54,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     reactGenerator.addMapping(options.customMapping)
   }
 
-  let allDependencies: Record<string, ComponentDependency> = {}
+  let collectedDependencies: Record<string, string> = {}
   const { components, root } = uidl
   const states = root.content.states
   const stateDefinitions = root.stateDefinitions
@@ -128,9 +128,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
           content: compiledComponent.code,
         }
 
-        allDependencies = {
-          ...allDependencies,
-          ...compiledComponent.dependencies,
+        collectedDependencies = {
+          ...collectedDependencies,
+          ...compiledComponent.externalDependencies,
         }
 
         pagesFolder.files.push(file)
@@ -156,9 +156,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
             content: compiledComponent.code,
           }
 
-          allDependencies = {
-            ...allDependencies,
-            ...compiledComponent.dependencies,
+          collectedDependencies = {
+            ...collectedDependencies,
+            ...compiledComponent.externalDependencies,
           }
 
           componentsFolder.files.push(file)
@@ -172,13 +172,10 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 6: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
 
-  const packageJSON = createPackageJSON(
-    sourcePackageJson || DEFAULT_PACKAGE_JSON,
-    allDependencies,
-    {
-      projectName: uidl.name,
-    }
-  )
+  const packageJSON = createPackageJSON(sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    projectName: uidl.name,
+    dependencies: collectedDependencies,
+  })
 
   const packageFile: File = {
     name: 'package',

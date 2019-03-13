@@ -31,15 +31,11 @@ const createVueGenerator = (
     options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
-    const result = await assemblyLine.run(resolvedUIDL)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
-    const jsChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuejs')
-    const cssChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuecss')
-    const htmlChunks = result.chunks.filter((chunk) => chunk.meta.fileId === 'vuehtml')
-
-    const jsCode = removeLastEmptyLine(chunksLinker.link(jsChunks))
-    const cssCode = removeLastEmptyLine(chunksLinker.link(cssChunks))
-    const htmlCode = removeLastEmptyLine(chunksLinker.link(htmlChunks))
+    const jsCode = removeLastEmptyLine(chunksLinker.link(chunks.vuejs))
+    const cssCode = removeLastEmptyLine(chunksLinker.link(chunks.vuecss))
+    const htmlCode = removeLastEmptyLine(chunksLinker.link(chunks.vuehtml))
 
     return {
       code: `<template>
@@ -54,7 +50,7 @@ ${jsCode}
 ${cssCode}
 </style>
 `,
-      dependencies: result.dependencies,
+      externalDependencies,
     }
   }
 

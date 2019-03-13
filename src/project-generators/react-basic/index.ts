@@ -12,7 +12,7 @@ import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { createPackageJSON, createManifestJSON } from '../../shared/utils/project-utils'
 
-import { ProjectUIDL, ComponentDependency } from '../../uidl-definitions/types'
+import { ProjectUIDL } from '../../uidl-definitions/types'
 import { createHtmlIndexFile } from './utils'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
@@ -61,7 +61,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     reactGenerator.addMapping(options.customMapping)
   }
 
-  let allDependencies: Record<string, ComponentDependency> = {}
+  let collectedDependencies: Record<string, string> = {}
   const { components = {}, root } = uidl
   const { states } = root.content
   const stateDefinitions = root.stateDefinitions
@@ -113,9 +113,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     content: routingComponent.code,
   })
 
-  allDependencies = {
-    ...allDependencies,
-    ...routingComponent.dependencies,
+  collectedDependencies = {
+    ...collectedDependencies,
+    ...routingComponent.externalDependencies,
   }
 
   // Step 5: Iterating through the first level state branches in the root and generating the components in the "/pages" folder
@@ -159,9 +159,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         content: compiledComponent.code,
       }
 
-      allDependencies = {
-        ...allDependencies,
-        ...compiledComponent.dependencies,
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...compiledComponent.externalDependencies,
       }
 
       pagesFolder.files.push(jsFile)
@@ -193,9 +193,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         content: compiledComponent.code,
       }
 
-      allDependencies = {
-        ...allDependencies,
-        ...compiledComponent.dependencies,
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...compiledComponent.externalDependencies,
       }
 
       componentsFolder.files.push(jsFile)
@@ -205,13 +205,10 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 7: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
 
-  const packageJSON = createPackageJSON(
-    sourcePackageJson || DEFAULT_PACKAGE_JSON,
-    allDependencies,
-    {
-      projectName: uidl.name,
-    }
-  )
+  const packageJSON = createPackageJSON(sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    dependencies: collectedDependencies,
+    projectName: uidl.name,
+  })
 
   const packageFile: File = {
     name: 'package',

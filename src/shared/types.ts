@@ -44,7 +44,7 @@ export type ComponentPluginFactory<T> = (
 export interface CompiledComponent {
   code: string
   externalCSS?: string
-  dependencies: Record<string, ComponentDependency>
+  externalDependencies: Record<string, string>
 }
 
 export interface ComponentGenerator {

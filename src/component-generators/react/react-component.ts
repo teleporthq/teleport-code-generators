@@ -53,16 +53,15 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     generatorOptions: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     const resolvedUIDL = resolver.resolveUIDL(uidl, generatorOptions)
-    const result = await assemblyLine.run(resolvedUIDL)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
-    const chunksByFileId = assemblyLine.groupChunksByFileId(result.chunks)
-    const code = chunksLinker.link(chunksByFileId.default)
-    const externalCSS = chunksLinker.link(chunksByFileId['component-styles'])
+    const code = chunksLinker.link(chunks.default)
+    const externalCSS = chunksLinker.link(chunks.cssmodule)
 
     return {
-      dependencies: result.dependencies,
       code,
       externalCSS,
+      externalDependencies,
     }
   }
 

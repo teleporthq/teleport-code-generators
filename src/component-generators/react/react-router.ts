@@ -17,11 +17,11 @@ const createRouterComponentGenerator = () => {
 
   const generateComponent = async (uidl: ComponentUIDL) => {
     const resolvedUIDL = resolver.resolveUIDL(uidl)
-    const result = await assemblyLine.run(resolvedUIDL)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
     return {
-      code: chunksLinker.link(result.chunks),
-      dependencies: result.dependencies,
+      code: chunksLinker.link(chunks.default),
+      externalDependencies,
     }
   }
 

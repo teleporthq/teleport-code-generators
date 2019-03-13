@@ -1,23 +1,8 @@
-import { ComponentDependency, WebManifest } from '../../uidl-definitions/types'
+import { WebManifest } from '../../uidl-definitions/types'
 
 import { PackageJSON } from '../types'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 import { slugify } from './string-utils'
-
-export const extractExternalDependencies = (dependencies: Record<string, ComponentDependency>) => {
-  return Object.keys(dependencies)
-    .filter((key) => {
-      return dependencies[key].type === 'package'
-    })
-    .reduce((acc: any, key) => {
-      const depInfo = dependencies[key]
-      if (depInfo.path) {
-        acc[depInfo.path] = depInfo.version
-      }
-
-      return acc
-    }, {})
-}
 
 // Creates a manifest json with the UIDL having priority over the default values
 export const createManifestJSON = (
@@ -46,21 +31,19 @@ export const createManifestJSON = (
 
 export const createPackageJSON = (
   packageJSONTemplate: PackageJSON,
-  dependencies: Record<string, ComponentDependency>,
   overwrites: {
+    dependencies: Record<string, string>
     projectName: string
   }
 ): PackageJSON => {
-  const { projectName } = overwrites
-
-  const externalDep = extractExternalDependencies(dependencies)
+  const { projectName, dependencies } = overwrites
 
   return {
     ...packageJSONTemplate,
     name: slugify(projectName),
     dependencies: {
       ...packageJSONTemplate.dependencies,
-      ...externalDep,
+      ...dependencies,
     },
   }
 }

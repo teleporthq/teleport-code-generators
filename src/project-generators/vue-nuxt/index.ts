@@ -1,6 +1,5 @@
 import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
 import { ProjectUIDL } from '../../uidl-definitions/types'
-import { extractExternalDependencies } from '../../shared/utils/project-utils'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import createVueGenerator from '../../component-generators/vue/vue-component'
@@ -74,7 +73,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         localDependenciesPrefix: '../components/',
       })
 
-      collectedDependencies = { ...collectedDependencies, ...pageResult.dependencies }
+      collectedDependencies = { ...collectedDependencies, ...pageResult.externalDependencies }
 
       const file: File = {
         name: fileName,
@@ -93,7 +92,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         const componentResult = await vueGenerator.generateComponent(component)
         collectedDependencies = {
           ...collectedDependencies,
-          ...componentResult.dependencies,
+          ...componentResult.externalDependencies,
         }
 
         const file: File = {
@@ -111,10 +110,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Package.json
   const { sourcePackageJson } = options
   if (sourcePackageJson) {
-    const externalDep = extractExternalDependencies(collectedDependencies)
     sourcePackageJson.dependencies = {
       ...sourcePackageJson.dependencies,
-      ...externalDep,
+      ...collectedDependencies,
     }
 
     const packageFile: File = {

@@ -1,7 +1,6 @@
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import createVueRouterFileGenerator from '../../component-generators/vue/vue-router'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
-import { extractExternalDependencies } from '../../shared/utils/project-utils'
 import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { ProjectUIDL } from '../../uidl-definitions/types'
@@ -61,7 +60,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Router component
   const router = await vueRouterGenerator.generateComponent(root)
-  collectedDependencies = { ...collectedDependencies, ...router.dependencies }
+  collectedDependencies = { ...collectedDependencies, ...router.externalDependencies }
 
   const routerFile: File = {
     name: 'router',
@@ -92,7 +91,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         localDependenciesPrefix: '../components/',
       })
 
-      collectedDependencies = { ...collectedDependencies, ...pageResult.dependencies }
+      collectedDependencies = { ...collectedDependencies, ...pageResult.externalDependencies }
 
       pagesFolder.files.push({
         name: fileName,
@@ -109,7 +108,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         const componentResult = await vueGenerator.generateComponent(component)
         collectedDependencies = {
           ...collectedDependencies,
-          ...componentResult.dependencies,
+          ...componentResult.externalDependencies,
         }
 
         const file: File = {
@@ -127,10 +126,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Package.json
   const { sourcePackageJson } = options
   if (sourcePackageJson) {
-    const externalDep = extractExternalDependencies(collectedDependencies)
     sourcePackageJson.dependencies = {
       ...sourcePackageJson.dependencies,
-      ...externalDep,
+      ...collectedDependencies,
     }
 
     const packageFile: File = {

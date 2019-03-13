@@ -21,7 +21,7 @@ describe('React Component Generator', () => {
       const result = await generator.generateComponent(reactSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBeDefined()
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 
@@ -34,7 +34,7 @@ describe('React Component Generator', () => {
       const result = await generator.generateComponent(reactSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBe('')
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 
@@ -45,7 +45,7 @@ describe('React Component Generator', () => {
       const result = await generator.generateComponent(reactSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBe('')
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 
@@ -59,7 +59,7 @@ describe('React Component Generator', () => {
       const result = await generator.generateComponent(reactSample)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBe('')
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 })
@@ -72,7 +72,7 @@ describe('Vue Component Generator', () => {
       const result = await generator.generateComponent(vueSample)
       expect(result.code).toContain('<template>')
       expect(result.externalCSS).toBeUndefined()
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 
@@ -84,7 +84,7 @@ describe('Vue Component Generator', () => {
       const result = await generator.generateComponent(vueSample)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBeUndefined()
-      expect(result.dependencies).toBeDefined()
+      expect(result.externalDependencies).toBeDefined()
     })
   })
 })

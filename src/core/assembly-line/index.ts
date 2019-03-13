@@ -1,6 +1,7 @@
-import { ComponentPlugin, ComponentStructure, ChunkDefinition } from '../../shared/types'
+import { ComponentPlugin, ComponentStructure } from '../../shared/types'
 
 import { ComponentUIDL } from '../../uidl-definitions/types'
+import { extractExternalDependencies, groupChunksByFileId } from './utils'
 
 export default class AssemblyLine {
   private plugins: ComponentPlugin[]
@@ -27,24 +28,16 @@ export default class AssemblyLine {
       Promise.resolve(structure)
     )
 
+    const externalDependencies = extractExternalDependencies(finalStructure.dependencies)
+    const chunks = groupChunksByFileId(finalStructure.chunks)
+
     return {
-      chunks: finalStructure.chunks,
-      dependencies: finalStructure.dependencies,
+      chunks,
+      externalDependencies,
     }
   }
 
   public addPlugin(plugin: ComponentPlugin) {
     this.plugins.push(plugin)
-  }
-
-  public groupChunksByFileId(chunks: ChunkDefinition[]): Record<string, ChunkDefinition[]> {
-    return chunks.reduce((chunksByFileId: Record<string, ChunkDefinition[]>, chunk) => {
-      const fileId = (chunk.meta && chunk.meta.fileId) || 'default'
-      if (!chunksByFileId[fileId]) {
-        chunksByFileId[fileId] = []
-      }
-      chunksByFileId[fileId].push(chunk)
-      return chunksByFileId
-    }, {})
   }
 }

@@ -13,7 +13,7 @@ const defaultConfigProps = {
   componentChunkName: 'react-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  fileId: 'component-styles',
+  fileId: 'cssmodule',
   camelCaseClassNames: true,
 }
 

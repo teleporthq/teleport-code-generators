@@ -17,12 +17,12 @@ const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
 
   const generateComponent = async (uidl: ComponentUIDL, options: GeneratorOptions = {}) => {
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
-    const result = await assemblyLine.run(resolvedUIDL)
-    const code = chunksLinker.link(result.chunks)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
+    const code = chunksLinker.link(chunks.default)
 
     return {
       code,
-      dependencies: result.dependencies,
+      externalDependencies,
     }
   }
 
