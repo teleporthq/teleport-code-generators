@@ -37,19 +37,26 @@ const createVueGenerator = (
     const cssCode = removeLastEmptyLine(chunksLinker.link(chunks.vuecss))
     const htmlCode = removeLastEmptyLine(chunksLinker.link(chunks.vuehtml))
 
-    return {
-      code: `<template>
-${addSpacesToEachLine(' '.repeat(2), htmlCode)}
+    const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
+    let code = `<template>
+${formattedHTMLCode}
 </template>
 
 <script>
 ${jsCode}
 </script>
+`
 
+    if (cssCode) {
+      code += `
 <style>
 ${cssCode}
 </style>
-`,
+`
+    }
+
+    return {
+      code,
       externalDependencies,
     }
   }
