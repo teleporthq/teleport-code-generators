@@ -9,15 +9,12 @@
   },
   "content": {
     "type": "container",
-    "key": "container",
     "children": [
       {
         "type": "container",
-        "key": "tabs",
         "children": [
           {
             "type": "button",
-            "key": "tab1",
             "children": ["Click"],
             "style": {
               "border": "1px solid black",
@@ -33,7 +30,6 @@
           },
           {
             "type": "button",
-            "key": "tab2",
             "children": ["any"],
             "style": {
               "border": "1px solid black",
@@ -49,7 +45,6 @@
           },
           {
             "type": "button",
-            "key": "tab3",
             "children": ["of"],
             "style": {
               "border": "1px solid black",
@@ -65,7 +60,6 @@
           },
           {
             "type": "button",
-            "key": "tab4",
             "children": ["these"],
             "style": {
               "border": "1px solid black",
@@ -83,16 +77,26 @@
       },
       {
         "type": "container",
-        "key": "text",
         "style": {
           "width": 100,
           "height": 50,
           "display": "flex",
           "alignItems": "flex-start",
           "backgroundColor": "#e4f2f8",
-          "borderColor": "#0089be",
+          "borderColor": "$props.test",
           "borderWidth": 0,
-          "borderStyle": "solid"
+          "borderStyle": "solid",
+          "@media (max-width: 835px)": {
+              "width": 228,
+              "borderColor": "$props.test",
+              "height": 154
+          },
+          "@media (max-width: 640px)": {
+              "backgroundColor": "#e91e63"
+          },
+          "@media (max-width: 634px)": {
+              "height": 276
+          }
         },
         "children": [
           "Active tab: ",
@@ -101,16 +105,13 @@
       },
       {
         "type": "state",
-        "key": "activeTab",
         "states": [
           {
             "value": 0,
             "content": {
               "type": "container",
-              "key": "tab1c",
               "children": [{
                 "type": "text",
-                "key": "text1",
                 "children": ["This is the first tab"]
               }]
             }
@@ -118,21 +119,18 @@
             "value": 1,
             "content": {
               "type": "text",
-              "key": "text2",
               "children": ["This is the second tab"]
             }
           },{
             "value": 2,
             "content": {
               "type": "text",
-              "key": "text3",
               "children": ["This is the third tab"]
             }
           },{
             "value": 3,
             "content": {
               "type": "text",
-              "key": "text4",
               "children": ["This is the fourth tab"]
             }
           }

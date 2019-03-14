@@ -1,7 +1,10 @@
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { StyleDefinitions } from '../../uidl-definitions/types'
-import { traverseNodes } from '../../shared/utils/uidl-utils'
+import {
+  traverseNodes,
+  splitDynamicAndStaticStyles,
+  cleanupNestedStyles,
+} from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
 
 interface VueStyleChunkConfig {
@@ -32,19 +35,18 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       const { style, key } = node
 
       if (style) {
-        const { staticStyles, dynamicStyles } = filterOutDynamicStyles(style)
+        const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
         const root = templateLookup[key]
         const className = cammelCaseToDashCase(key)
         jssStylesArray.push(createCSSClass(className, staticStyles))
 
         if (Object.keys(dynamicStyles).length) {
-          const vueFriendlyStyleBind = Object.keys(dynamicStyles).reduce(
-            (acc: string[], styleKey) => {
-              acc.push(`${styleKey}: ${dynamicStyles[styleKey]}`)
-              return acc
-            },
-            []
-          )
+          const rootStyles = cleanupNestedStyles(dynamicStyles)
+
+          const vueFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
+            return `${styleKey}: ${rootStyles[styleKey].replace('$props.', '')}`
+          })
+
           root.attr(':style', `{${vueFriendlyStyleBind.join(', ')}}`)
         }
 
@@ -69,21 +71,3 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
 }
 
 export default createPlugin()
-
-const filterOutDynamicStyles = (style: StyleDefinitions) => {
-  if (!style) {
-    return { staticStyles: null, dynamicStyles: null }
-  }
-  return Object.keys(style).reduce(
-    (acc: any, key) => {
-      const styleValue = style[key].toString()
-      if (styleValue.startsWith('$props.')) {
-        acc.dynamicStyles[key] = styleValue.replace('$props.', '')
-      } else {
-        acc.staticStyles[key] = styleValue
-      }
-      return acc
-    },
-    { staticStyles: {}, dynamicStyles: {} }
-  )
-}

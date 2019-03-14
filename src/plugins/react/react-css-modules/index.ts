@@ -1,10 +1,15 @@
+import * as t from '@babel/types'
+import { ParsedASTNode } from '../../../shared/utils/ast-js-utils'
 import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
 import { cammelCaseToDashCase, stringToCamelCase } from '../../../shared/utils/string-utils'
 import { addJSXTagStyles, addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
-import { traverseNodes } from '../../../shared/utils/uidl-utils'
+import {
+  traverseNodes,
+  splitDynamicAndStaticStyles,
+  cleanupNestedStyles,
+  transformDynamicStyles,
+} from '../../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../../shared/utils/jss-utils'
-
-import { prepareDynamicProps, splitDynamicAndStaticProps } from './utils'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string
@@ -55,12 +60,26 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
         const root = astNodesLookup[key]
         const className = cammelCaseToDashCase(key)
         const classNameInJS = stringToCamelCase(className)
-        const { staticStyles, dynamicStyles } = splitDynamicAndStaticProps(style)
+        const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
 
-        // TODO Should we build a different plugin for dynamic props as inline styles?
-        const inlineStyle = prepareDynamicProps(dynamicStyles)
-        if (Object.keys(inlineStyle).length) {
-          addJSXTagStyles(root, inlineStyle)
+        if (Object.keys(dynamicStyles).length) {
+          const rootStyles = cleanupNestedStyles(dynamicStyles)
+
+          const inlineStyles = transformDynamicStyles(
+            rootStyles,
+            (styleValue) =>
+              new ParsedASTNode(
+                t.arrowFunctionExpression(
+                  [t.identifier('props')],
+                  t.memberExpression(
+                    t.identifier('props'),
+                    t.identifier(styleValue.replace('$props.', ''))
+                  )
+                )
+              )
+          )
+
+          addJSXTagStyles(root, inlineStyles)
         }
 
         cssClasses.push(createCSSClass(className, staticStyles))

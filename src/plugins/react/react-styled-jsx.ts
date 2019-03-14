@@ -1,9 +1,8 @@
-import { StyleDefinitions } from '../../uidl-definitions/types'
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { traverseNodes } from '../../shared/utils/uidl-utils'
+import { traverseNodes, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
 
 interface StyledJSXConfig {
@@ -32,7 +31,12 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
-        const styleRules = prepareDynamicProps(style)
+
+        // Generating the string templates for the dynamic styles
+        const styleRules = transformDynamicStyles(
+          style,
+          (styleValue) => `\$\{${styleValue.replace('$props.', 'props.')}\}`
+        )
         styleJSXString.push(createCSSClass(className, styleRules))
 
         addClassStringOnJSXTag(root, className)
@@ -58,16 +62,3 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 }
 
 export default createPlugin()
-
-const prepareDynamicProps = (style: StyleDefinitions) => {
-  return Object.keys(style).reduce((acc: any, key) => {
-    const value = style[key]
-    // tslint:disable-next-line:prefer-conditional-expression
-    if (typeof value === 'string' && value.startsWith('$props.')) {
-      acc[key] = `\$\{${value.replace('$props.', 'props.')}\}`
-    } else {
-      acc[key] = style[key]
-    }
-    return acc
-  }, {})
-}

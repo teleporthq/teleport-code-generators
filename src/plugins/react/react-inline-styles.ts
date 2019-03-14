@@ -1,11 +1,14 @@
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-import * as UIDLTypes from '../../uidl-definitions/types'
 
 import * as t from '@babel/types'
 
 import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
-import { traverseNodes } from '../../shared/utils/uidl-utils'
+import {
+  traverseNodes,
+  cleanupNestedStyles,
+  transformDynamicStyles,
+} from '../../shared/utils/uidl-utils'
 
 interface InlineStyleConfig {
   componentChunkName: string
@@ -36,7 +39,20 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
           return
         }
 
-        addJSXTagStyles(jsxASTTag, prepareDynamicProps(style), t)
+        // Nested styles are ignored
+        const rootStyles = cleanupNestedStyles(style)
+        const inlineStyles = transformDynamicStyles(
+          rootStyles,
+          (styleValue) =>
+            new ParsedASTNode(
+              t.memberExpression(
+                t.identifier('props'),
+                t.identifier(styleValue.replace('$props.', ''))
+              )
+            )
+        )
+
+        addJSXTagStyles(jsxASTTag, inlineStyles)
       }
     })
 
@@ -46,17 +62,3 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 }
 
 export default createPlugin()
-
-const prepareDynamicProps = (style: UIDLTypes.StyleDefinitions) => {
-  return Object.keys(style).reduce((acc: any, key) => {
-    const value = style[key]
-    if (typeof value === 'string' && value.startsWith('$props.')) {
-      acc[key] = new ParsedASTNode(
-        t.memberExpression(t.identifier('props'), t.identifier(value.replace('$props.', '')))
-      )
-    } else {
-      acc[key] = style[key]
-    }
-    return acc
-  }, {})
-}

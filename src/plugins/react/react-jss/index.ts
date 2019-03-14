@@ -1,7 +1,6 @@
 import * as t from '@babel/types'
-
 import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
-import { StyleDefinitions } from '../../../uidl-definitions/types'
+
 import { addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
@@ -11,7 +10,7 @@ import {
 import { makeJSSDefaultExport } from './utils'
 
 import { cammelCaseToDashCase } from '../../../shared/utils/string-utils'
-import { traverseNodes } from '../../../shared/utils/uidl-utils'
+import { traverseNodes, transformDynamicStyles } from '../../../shared/utils/uidl-utils'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -47,7 +46,19 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
-        jssStyleMap[className] = prepareDynamicProps(style)
+        jssStyleMap[className] = transformDynamicStyles(
+          style,
+          (styleValue) =>
+            new ParsedASTNode(
+              t.arrowFunctionExpression(
+                [t.identifier('props')],
+                t.memberExpression(
+                  t.identifier('props'),
+                  t.identifier(styleValue.replace('$props.', ''))
+                )
+              )
+            )
+        )
         addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
       }
     })
@@ -93,20 +104,3 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 }
 
 export default createPlugin()
-
-const prepareDynamicProps = (style: StyleDefinitions) => {
-  return Object.keys(style).reduce((acc: any, key) => {
-    const value = style[key]
-    if (typeof value === 'string' && value.startsWith('$props.')) {
-      acc[key] = new ParsedASTNode(
-        t.arrowFunctionExpression(
-          [t.identifier('props')],
-          t.memberExpression(t.identifier('props'), t.identifier(value.replace('$props.', '')))
-        )
-      )
-    } else {
-      acc[key] = style[key]
-    }
-    return acc
-  }, {})
-}

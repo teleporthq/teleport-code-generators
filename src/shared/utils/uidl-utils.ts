@@ -1,4 +1,4 @@
-import { StateDefinition, ContentNode } from '../../uidl-definitions/types'
+import { StateDefinition, ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 /**
@@ -81,4 +81,83 @@ export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void
     })
     return
   }
+}
+
+export const splitDynamicAndStaticStyles = (style: StyleDefinitions) => {
+  const staticStyles: StyleDefinitions = {}
+  const dynamicStyles: StyleDefinitions = {}
+
+  Object.keys(style).forEach((key) => {
+    const value = style[key]
+
+    if (typeof value === 'object') {
+      const nestedResult = splitDynamicAndStaticStyles(value)
+      if (Object.keys(nestedResult.dynamicStyles).length > 0) {
+        dynamicStyles[key] = nestedResult.dynamicStyles
+      }
+      if (Object.keys(nestedResult.staticStyles).length > 0) {
+        staticStyles[key] = nestedResult.staticStyles
+      }
+    } else if (typeof value === 'string' && value.startsWith('$props.')) {
+      dynamicStyles[key] = value
+    } else {
+      staticStyles[key] = value
+    }
+  })
+
+  return {
+    staticStyles,
+    dynamicStyles,
+  }
+}
+
+// return only the root level styles, ignoring any :hover or @media keys which can be nested structures
+export const cleanupNestedStyles = (style: StyleDefinitions) => {
+  return Object.keys(style).reduce((resultedStyles: StyleDefinitions, styleKey: string) => {
+    const styleValue = style[styleKey]
+
+    if (typeof styleValue === 'object') {
+      // skip dynamic style
+      return resultedStyles
+    }
+
+    resultedStyles[styleKey] = styleValue
+
+    return resultedStyles
+  }, {})
+}
+
+// removes all the dynamic styles from the style object, including the nested structures
+export const cleanupDynamicStyles = (style: StyleDefinitions) => {
+  return Object.keys(style).reduce((resultedStyles: StyleDefinitions, styleKey: string) => {
+    const styleValue = style[styleKey]
+
+    if (typeof styleValue === 'string' && styleValue.startsWith('$props.')) {
+      // skip dynamic style
+      return resultedStyles
+    }
+
+    resultedStyles[styleKey] =
+      typeof styleValue === 'object' ? cleanupDynamicStyles(styleValue) : styleValue
+
+    return resultedStyles
+  }, {})
+}
+
+// Traverses the style object and applies the convert funtion to all the dynamic styles
+export const transformDynamicStyles = (
+  style: StyleDefinitions,
+  transform: (value: string, key?: string) => any
+) => {
+  return Object.keys(style).reduce((acc: any, key) => {
+    const value = style[key]
+    if (typeof value === 'string' && value.startsWith('$props.')) {
+      acc[key] = transform(value, key)
+    } else if (typeof value === 'object') {
+      acc[key] = transformDynamicStyles(value, transform)
+    } else {
+      acc[key] = style[key]
+    }
+    return acc
+  }, {})
 }

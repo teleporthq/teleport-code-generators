@@ -92,11 +92,12 @@
           "display": "flex",
           "alignItems": "flex-start",
           "backgroundColor": "#e4f2f8",
-          "borderColor": "#0089be",
+          "borderColor": "$props.test",
           "borderWidth": 0,
           "borderStyle": "solid",
           "@media (max-width: 835px)": {
               "width": 228,
+              "borderColor": "$props.test",
               "height": 154
           },
           "@media (max-width: 640px)": {
