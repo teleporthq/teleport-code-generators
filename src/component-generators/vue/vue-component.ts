@@ -1,8 +1,8 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import vueComponentPlugin from '../../plugins/vue/vue-base-component'
-import vueStylePlugin from '../../plugins/vue/vue-style-chunk'
-import { createPlugin as createImportStatementsPlugin } from '../../plugins/common/import-statements'
+import vueComponentPlugin from '../../plugins/teleport-plugin-vue-base-component'
+import vueStylePlugin from '../../plugins/teleport-plugin-vue-css'
+import { createPlugin as createImportStatementsPlugin } from '../../plugins/teleport-plugin-import-statements'
 
 import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'

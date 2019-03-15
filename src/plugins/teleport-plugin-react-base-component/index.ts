@@ -4,9 +4,9 @@ import {
   addChildJSXTag,
   generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
-} from '../../../shared/utils/ast-jsx-utils'
+} from '../../shared/utils/ast-jsx-utils'
 
-import { makeDefaultExport } from '../../../shared/utils/ast-js-utils'
+import { makeDefaultExport } from '../../shared/utils/ast-js-utils'
 import {
   addEventHandlerToTag,
   makePureComponent,
@@ -15,11 +15,11 @@ import {
   addTextElementToTag,
 } from './utils'
 
-import { capitalize } from '../../../shared/utils/string-utils'
+import { capitalize } from '../../shared/utils/string-utils'
 
-import { ComponentPlugin, ComponentPluginFactory, StateIdentifier } from '../../../shared/types'
+import { ComponentPlugin, ComponentPluginFactory, StateIdentifier } from '../../shared/types'
 
-import { ContentNode, PropDefinition, ComponentDependency } from '../../../uidl-definitions/types'
+import { ContentNode, PropDefinition, ComponentDependency } from '../../uidl-definitions/types'
 
 interface JSXConfig {
   componentChunkName: string

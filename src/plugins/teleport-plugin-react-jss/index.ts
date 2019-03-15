@@ -1,16 +1,16 @@
 import * as t from '@babel/types'
-import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
+import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
-import { addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
+import { addDynamicPropOnJsxOpeningTag } from '../../shared/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
   makeConstAssign,
   objectToObjectExpression,
-} from '../../../shared/utils/ast-js-utils'
+} from '../../shared/utils/ast-js-utils'
 import { makeJSSDefaultExport } from './utils'
 
-import { cammelCaseToDashCase } from '../../../shared/utils/string-utils'
-import { traverseNodes, transformDynamicStyles } from '../../../shared/utils/uidl-utils'
+import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
+import { traverseNodes, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 
 interface JSSConfig {
   styleChunkName?: string

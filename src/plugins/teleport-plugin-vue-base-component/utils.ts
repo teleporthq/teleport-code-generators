@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
-import { PropDefinition } from '../../../uidl-definitions/types'
-import { createXMLNode } from '../../../shared/utils/xml-utils'
+import { PropDefinition } from '../../uidl-definitions/types'
+import { createXMLNode } from '../../shared/utils/xml-utils'
 
 /**
  * Generate the AST version of

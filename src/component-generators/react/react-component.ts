@@ -1,12 +1,12 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import reactComponentPlugin from '../../plugins/react/react-base-component'
-import reactStyledJSXPlugin from '../../plugins/react/react-styled-jsx'
-import reactJSSPlugin from '../../plugins/react/react-jss'
-import reactInlineStylesPlugin from '../../plugins/react/react-inline-styles'
-import reactPropTypesPlugin from '../../plugins/react/react-proptypes'
-import reactCSSModulesPlugin from '../../plugins/react/react-css-modules'
-import importStatementsPlugin from '../../plugins/common/import-statements'
+import reactComponentPlugin from '../../plugins/teleport-plugin-react-base-component'
+import reactStyledJSXPlugin from '../../plugins/teleport-plugin-react-styled-jsx'
+import reactJSSPlugin from '../../plugins/teleport-plugin-react-jss'
+import reactInlineStylesPlugin from '../../plugins/teleport-plugin-react-inline-styles'
+import reactPropTypesPlugin from '../../plugins/teleport-plugin-react-proptypes'
+import reactCSSModulesPlugin from '../../plugins/teleport-plugin-react-css-modules'
+import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
 import {
   GeneratorOptions,

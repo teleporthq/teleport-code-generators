@@ -1,5 +1,5 @@
-import importStatementsPlugin from '../../plugins/common/import-statements'
-import reactAppRoutingPlugin from '../../plugins/react/react-app-routing'
+import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
+import reactAppRoutingPlugin from '../../plugins/teleport-plugin-react-app-routing'
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
 import { ComponentUIDL } from '../../uidl-definitions/types'

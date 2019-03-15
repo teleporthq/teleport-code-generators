@@ -1,4 +1,4 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
+import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
 
 interface ReactJSPropTypesConfig {

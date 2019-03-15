@@ -1,7 +1,7 @@
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import vueRoutingPlugin from '../../plugins/vue/vue-router'
-import importStatementsPlugin from '../../plugins/common/import-statements'
+import vueRoutingPlugin from '../../plugins/teleport-plugin-vue-app-routing'
+import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
 import { GeneratorOptions } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'

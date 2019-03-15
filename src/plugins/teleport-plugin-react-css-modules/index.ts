@@ -1,15 +1,15 @@
 import * as t from '@babel/types'
-import { ParsedASTNode } from '../../../shared/utils/ast-js-utils'
-import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
-import { cammelCaseToDashCase, stringToCamelCase } from '../../../shared/utils/string-utils'
-import { addJSXTagStyles, addDynamicPropOnJsxOpeningTag } from '../../../shared/utils/ast-jsx-utils'
+import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
+import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
+import { cammelCaseToDashCase, stringToCamelCase } from '../../shared/utils/string-utils'
+import { addJSXTagStyles, addDynamicPropOnJsxOpeningTag } from '../../shared/utils/ast-jsx-utils'
 import {
   traverseNodes,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
-} from '../../../shared/utils/uidl-utils'
-import { createCSSClass } from '../../../shared/utils/jss-utils'
+} from '../../shared/utils/uidl-utils'
+import { createCSSClass } from '../../shared/utils/jss-utils'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string

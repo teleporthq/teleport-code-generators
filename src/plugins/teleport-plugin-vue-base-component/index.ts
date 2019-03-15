@@ -1,4 +1,4 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../../shared/types'
+import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
 import {
   splitProps,
@@ -7,9 +7,9 @@ import {
   addTextNodeToTag,
 } from './utils'
 
-import { createXMLRoot } from '../../../shared/utils/xml-utils'
-import { objectToObjectExpression } from '../../../shared/utils/ast-js-utils'
-import { ContentNode, ComponentDependency } from '../../../uidl-definitions/types'
+import { createXMLRoot } from '../../shared/utils/xml-utils'
+import { objectToObjectExpression } from '../../shared/utils/ast-js-utils'
+import { ContentNode, ComponentDependency } from '../../uidl-definitions/types'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
