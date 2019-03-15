@@ -56,7 +56,7 @@ npm install @teleporthq/teleport-code-generators
 ```
 
 ```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-generators'
+import { createReactComponentGenerator } from '@teleporthq/teleport-code-generators'
 
 // instantiate a react generator
 const reactGenerator = createReactComponentGenerator()
@@ -107,7 +107,7 @@ There are two **factory functions** exported from our main module, for the React
 #### React
 
 ```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
+import { createReactComponentGenerator } from '@teleporthq/teleport-code-generators'
 
 // define a UIDL representation
 const componentUIDL = {
@@ -139,7 +139,7 @@ Read more about [mappings and resolvers](link coming soon).
 #### Vue
 
 ```javascript
-import { createVueComponentGenerator } from '@teleporthq/teleport-generatorsteleport-generators'
+import { createVueComponentGenerator } from '@teleporthq/teleport-code-generators'
 
 // define a UIDL representation 
 const componentUIDL = {
