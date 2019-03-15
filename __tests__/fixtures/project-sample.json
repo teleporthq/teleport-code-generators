@@ -1,0 +1,136 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/project.json",
+    "name": "myVueProject",
+    "globals": {
+      "settings": {
+        "language": "en",
+        "title": "Router Project"
+      },
+      "assets": [],
+      "meta": []
+    },
+    "root": {
+      "name": "App",
+      "stateDefinitions": {
+        "router": {
+          "type": "router",
+          "defaultValue": "home",
+          "values": [
+            {
+              "value": "home",
+              "meta": {
+                "path": "/",
+                "componentName": "HomePage",
+                "fileName": "Home"
+              }
+            },
+            {
+              "value": "about",
+              "meta": {
+                "path": "/mask-url",
+                "componentName": "AboutPage"
+              }
+            }
+          ]
+        }
+      },
+      "content": {
+        "type": "states",
+        "name": "router",
+        "states": [
+          {
+            "value": "home",
+            "content": {
+              "type": "container",
+              "name": "container",
+              "children": [
+                {
+                  "type": "button",
+                  "name": "button",
+                  "children": ["click-me"]
+                },
+                {
+                  "type": "CustomText",
+                  "name": "text",
+                  "attrs": {
+                    "message": "random message"
+                  },
+                  "dependency": {
+                    "type": "local"
+                  }
+                },
+                {
+                  "type": "navlink",
+                  "name": "navlink",
+                  "attrs": {
+                    "transitionTo": "/mask-url"
+                  },
+                  "children": ["About page"]
+                }
+              ]
+            }
+          },
+          {
+            "value": "about",
+            "content": {
+              "type": "group",
+              "name": "around",
+              "children": [
+                {
+                  "type": "text",
+                  "name": "aspan",
+                  "children": ["Who"]
+                },
+                {
+                  "type": "container",
+                  "name": "adiv",
+                  "children": ["are"]
+                },
+                {
+                  "type": "text",
+                  "name": "aspan2",
+                  "children": ["you?"],
+                  "attrs": {
+                    "data-test": "123"
+                  }
+                },
+                {
+                  "type": "Datepicker",
+                  "style": {
+                    "margin": "10px"
+                  },
+                  "dependency": {
+                    "type": "package",
+                    "path": "vuejs-datepicker",
+                    "version": "1.5.4",
+                    "meta": {
+                      "namedImport": false
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "components": {
+      "CustomText": {
+        "name": "CustomText",
+        "propDefinitions": {
+          "message": {
+            "type": "string",
+            "defaultValue": ""
+          }
+        },
+        "content": {
+          "type": "text",
+          "name": "node-key",
+          "style": {
+            "color": "red"
+          },
+          "children": ["$props.message"]
+        }
+      }
+    }
+  }
