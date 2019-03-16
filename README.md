@@ -206,7 +206,7 @@ Besides the regular files and folders generated at the end of the process, proje
 The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](link coming soon).
 
 ```javascript
-import { UIDLValidators } from '@teleporthq/teleport-generators'
+import { UIDLValidators } from '@teleporthq/teleport-code-generators'
 
 const componentUIDL = { ... }
 const projectUIDL = { ... }
