@@ -122,7 +122,12 @@ export interface WebManifest {
   theme_color?: string
 }
 
-/* element mapping interfaces */
+/* mapping interfaces */
+
+export interface Mapping {
+  elements?: Record<string, ElementMapping>
+  events?: Record<string, string>
+}
 
 export interface ElementMapping {
   type: string
@@ -134,5 +139,3 @@ export interface ElementMapping {
     dataSource: string
   }
 }
-
-export type ElementsMapping = Record<string, ElementMapping>

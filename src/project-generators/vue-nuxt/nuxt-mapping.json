@@ -1,8 +1,10 @@
 {
-  "navlink": {
-    "type": "nuxt-link",
-    "attrs": {
-      "to": "$attrs.transitionTo"
+  "elements": {
+    "navlink": {
+      "type": "nuxt-link",
+      "attrs": {
+        "to": "$attrs.transitionTo"
+      }
     }
   }
 }

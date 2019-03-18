@@ -1,4 +1,4 @@
-import { ElementsMapping, ComponentUIDL, ContentNode } from '../../uidl-definitions/types'
+import { Mapping, ComponentUIDL, ContentNode } from '../../uidl-definitions/types'
 import * as utils from './utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { GeneratorOptions } from '../../shared/types'
@@ -9,23 +9,32 @@ import { cloneElement } from '../../shared/utils/uidl-utils'
  * concrete node types, based on the mappings you provide
  */
 export default class Resolver {
-  private elementsMapping: ElementsMapping = {}
-
-  constructor(elementsMapping: ElementsMapping = {}) {
-    this.elementsMapping = elementsMapping
+  private mapping: Mapping = {
+    elements: {},
+    events: {},
   }
 
-  public addMapping(elementsMapping: ElementsMapping) {
-    this.elementsMapping = { ...this.elementsMapping, ...elementsMapping }
+  constructor(mapping?: Mapping | Mapping[]) {
+    if (Array.isArray(mapping)) {
+      mapping.forEach((mp) => this.addMapping(mp))
+    } else if (mapping) {
+      this.addMapping(mapping)
+    }
+  }
+
+  public addMapping(mapping: Mapping) {
+    this.mapping = utils.mergeMappings(this.mapping, mapping)
   }
 
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
-    const { customMapping = {}, localDependenciesPrefix = './', assetsPrefix } = options
-    const mapping = { ...this.elementsMapping, ...customMapping }
+    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
+    if (customMapping) {
+      this.addMapping(customMapping)
+    }
 
     const content = cloneElement(uidl.content)
 
-    utils.resolveContentNode(content, mapping, localDependenciesPrefix, assetsPrefix)
+    utils.resolveContentNode(content, this.mapping, localDependenciesPrefix, assetsPrefix)
 
     const nodesLookup = {}
     utils.createNodesLookup(content, nodesLookup)
@@ -39,8 +48,8 @@ export default class Resolver {
   }
 
   public resolveContentNode(node: ContentNode, options: GeneratorOptions = {}) {
-    const { customMapping = {}, localDependenciesPrefix = './', assetsPrefix } = options
-    const mapping = { ...this.elementsMapping, ...customMapping }
+    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
+    const mapping = utils.mergeMappings(this.mapping, customMapping)
     const returnNode = cloneElement(node)
 
     utils.resolveContentNode(returnNode, mapping, localDependenciesPrefix, assetsPrefix)

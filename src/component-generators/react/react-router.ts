@@ -7,10 +7,7 @@ import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.js
 import reactMapping from './react-mapping.json'
 
 const createRouterComponentGenerator = () => {
-  const resolver = new Resolver({
-    ...htmlMapping,
-    ...reactMapping,
-  })
+  const resolver = new Resolver([htmlMapping, reactMapping])
 
   const assemblyLine = new AssemblyLine([reactAppRoutingPlugin, importStatementsPlugin])
   const chunksLinker = new Builder()

@@ -174,29 +174,24 @@ const generateTreeStructure = (
             return
           }
 
-          if (typeof stateContent === 'string') {
-            const jsxExpression = createConditionalJSXExpression(
-              stateContent,
-              stateBranch.value,
-              stateIdentifier
-            )
-            mainTag.children.push(jsxExpression)
-          } else {
-            const stateChildSubTree = generateTreeStructure(
-              stateContent,
-              propDefinitions,
-              stateIdentifiers,
-              nodesLookup,
-              dependencies
-            )
+          const stateSubTree =
+            typeof stateContent === 'string'
+              ? stateContent
+              : generateTreeStructure(
+                  stateContent,
+                  propDefinitions,
+                  stateIdentifiers,
+                  nodesLookup,
+                  dependencies
+                )
 
-            const jsxExpression = createConditionalJSXExpression(
-              stateChildSubTree,
-              stateBranch.value,
-              stateIdentifier
-            )
-            mainTag.children.push(jsxExpression)
-          }
+          const jsxExpression = createConditionalJSXExpression(
+            stateSubTree,
+            stateBranch.value,
+            stateIdentifier
+          )
+
+          mainTag.children.push(jsxExpression)
         })
 
         return

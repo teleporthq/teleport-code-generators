@@ -1,5 +1,7 @@
 {
-  "slot": {
-    "type": "slot"
+  "elements": {
+    "slot": {
+      "type": "slot"
+    }
   }
 }

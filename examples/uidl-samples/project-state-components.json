@@ -360,7 +360,7 @@
               ]
             }],
             "events": {
-              "onClick": [
+              "click": [
                 {
                   "type": "stateChange",
                   "modifies": "isExpanded",
@@ -411,7 +411,7 @@
                   "padding": "5px 10px"
                 },
                 "events": {
-                  "onClick": [{
+                  "click": [{
                     "type": "stateChange",
                     "modifies": "activeTab",
                     "newState": 0
@@ -427,7 +427,7 @@
                   "padding": "5px 10px"
                 },
                 "events": {
-                  "onClick": [{
+                  "click": [{
                     "type": "stateChange",
                     "modifies": "activeTab",
                     "newState": 1
@@ -443,7 +443,7 @@
                   "padding": "5px 10px"
                 },
                 "events": {
-                  "onClick": [{
+                  "click": [{
                     "type": "stateChange",
                     "modifies": "activeTab",
                     "newState": 2
@@ -459,7 +459,7 @@
                   "padding": "5px 10px"
                 },
                 "events": {
-                  "onClick": [{
+                  "click": [{
                     "type": "stateChange",
                     "modifies": "activeTab",
                     "newState": 3
@@ -551,7 +551,7 @@
             "name": "openmodal",
             "children": ["Show Popup"],
             "events": {
-              "onClick": [{
+              "click": [{
                 "type": "stateChange",
                 "modifies": "isOpen",
                 "newState": true
@@ -610,7 +610,7 @@
             "name": "close",
             "children": ["Close me"],
             "events": {
-              "onClick": [{
+              "click": [{
                 "type": "propCall",
                 "calls": "onClose"
               }]

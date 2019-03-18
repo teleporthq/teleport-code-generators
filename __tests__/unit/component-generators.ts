@@ -52,7 +52,7 @@ describe('React Component Generator', () => {
   describe('with Custom Mapping', () => {
     const generator = createReactComponentGenerator({
       variation: ReactComponentStylingFlavors.InlineStyles,
-      customMapping: { container: { type: 'fakediv' } },
+      customMapping: { elements: { container: { type: 'fakediv' } } },
     })
 
     it('should render <fakediv> tags', async () => {
@@ -78,7 +78,7 @@ describe('Vue Component Generator', () => {
 
   describe('with Custom Mapping', () => {
     const generator = createVueComponentGenerator()
-    generator.addMapping({ container: { type: 'fakediv' } })
+    generator.addMapping({ elements: { container: { type: 'fakediv' } } })
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(vueSample)

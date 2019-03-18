@@ -2,8 +2,9 @@ import {
   ContentNode,
   ComponentDependency,
   StyleDefinitions,
-  ElementsMapping,
+  Mapping,
   ElementMapping,
+  EventDefinitions,
 } from '../../uidl-definitions/types'
 
 import {
@@ -17,12 +18,24 @@ const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
 type ContentNodesLookup = Record<string, { count: number; nextKey: string }>
 
+export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
+  if (!newMapping) {
+    return oldMapping
+  }
+
+  return {
+    elements: { ...oldMapping.elements, ...newMapping.elements },
+    events: { ...oldMapping.events, ...newMapping.events },
+  }
+}
+
 export const resolveContentNode = (
   content: ContentNode,
-  elementsMapping: ElementsMapping,
+  mapping: Mapping,
   localDependenciesPrefix: string,
   assetsPrefix?: string
 ) => {
+  const { events: eventsMapping, elements: elementsMapping } = mapping
   traverseNodes(content, (node) => {
     const mappedElement = elementsMapping[node.type] || { type: node.type }
 
@@ -47,6 +60,10 @@ export const resolveContentNode = (
     // Resolve assets prefix inside style (ex: background-image)
     if (node.style && assetsPrefix) {
       node.style = prefixAssetURLs(node.style, assetsPrefix)
+    }
+
+    if (node.events && eventsMapping) {
+      node.events = resolveEvents(node.events, eventsMapping)
     }
 
     // Prefix the attributes which may point to local assets
@@ -288,4 +305,14 @@ const replaceChildrenPlaceholder = (
     acc.push(child)
     return acc
   }, initialValue)
+}
+
+const resolveEvents = (events: EventDefinitions, eventsMapping: Record<string, string>) => {
+  const resultedEvents: EventDefinitions = {}
+  Object.keys(events).forEach((eventKey) => {
+    const resolvedKey = eventsMapping[eventKey] || eventKey
+    resultedEvents[resolvedKey] = events[eventKey]
+  })
+
+  return resultedEvents
 }

@@ -14,14 +14,14 @@ import {
   ComponentGenerator,
   CompiledComponent,
 } from '../../shared/types'
-import { ComponentUIDL, ElementsMapping } from '../../uidl-definitions/types'
+import { ComponentUIDL, Mapping } from '../../uidl-definitions/types'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 
 interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
-  customMapping?: ElementsMapping
+  customMapping?: Mapping
 }
 
 const stylePlugins = {
@@ -32,7 +32,7 @@ const stylePlugins = {
 }
 
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
-  const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping = {} } = params
+  const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping } = params
   const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
 
   const resolver = new Resolver()

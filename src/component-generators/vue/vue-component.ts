@@ -7,17 +7,15 @@ import { createPlugin as createImportStatementsPlugin } from '../../plugins/tele
 import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
 import { ComponentUIDL } from '../../uidl-definitions/types'
 
-// @ts-ignore
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-// @ts-ignore
 import vueMapping from './vue-mapping.json'
 
 import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
 
 const createVueGenerator = (
-  { customMapping }: GeneratorOptions = { customMapping: {} }
+  { customMapping }: GeneratorOptions = { customMapping }
 ): ComponentGenerator => {
-  const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
+  const resolver = new Resolver([htmlMapping, vueMapping, customMapping])
   const assemblyLine = new AssemblyLine([
     vueComponentPlugin,
     vueStylePlugin,

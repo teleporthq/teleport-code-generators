@@ -1,13 +1,17 @@
 {
-  "group": {
-    "type": "Fragment",
-    "dependency": {
-      "type": "library",
-      "path": "react",
-      "meta": {
-        "namedImport": true
+  "elements": {
+    "group": {
+      "type": "Fragment",
+      "dependency": {
+        "type": "library",
+        "path": "react",
+        "meta": {
+          "namedImport": true
+        }
       }
     }
+  },
+  "events": {
+    "click": "onClick"
   }
 }
-  

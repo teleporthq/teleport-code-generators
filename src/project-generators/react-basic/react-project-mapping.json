@@ -1,16 +1,18 @@
 {
-  "navlink": {
-    "type": "Link",
-    "dependency": {
-      "type": "library",
-      "path": "react-router-dom",
-      "version": "4.3.1",
-      "meta": {
-        "namedImport": true
+  "elements": {
+    "navlink": {
+      "type": "Link",
+      "dependency": {
+        "type": "library",
+        "path": "react-router-dom",
+        "version": "4.3.1",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "attrs": {
+        "to": "$attrs.transitionTo"
       }
-    },
-    "attrs": {
-      "to": "$attrs.transitionTo"
     }
   }
 }

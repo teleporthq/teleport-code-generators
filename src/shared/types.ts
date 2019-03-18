@@ -1,6 +1,6 @@
 import {
   ComponentDependency,
-  ElementsMapping,
+  Mapping,
   ComponentUIDL,
   ContentNode,
   ProjectUIDL,
@@ -51,13 +51,13 @@ export interface ComponentGenerator {
   generateComponent: (uidl: ComponentUIDL, options?: GeneratorOptions) => Promise<CompiledComponent>
   resolveContentNode: (node: ContentNode, options?: GeneratorOptions) => ContentNode
   addPlugin: (plugin: ComponentPlugin) => void
-  addMapping: (mapping: ElementsMapping) => void
+  addMapping: (mapping: Mapping) => void
 }
 
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
-  customMapping?: ElementsMapping
+  customMapping?: Mapping
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -96,7 +96,7 @@ export interface File {
 export interface ProjectGeneratorOptions {
   sourcePackageJson?: PackageJSON
   distPath?: string
-  customMapping?: ElementsMapping
+  customMapping?: Mapping
 }
 
 export type ProjectGeneratorFunction = (
