@@ -49,7 +49,7 @@ Read more about the [UIDL Standard](link coming soon).
 
 <h2 id="quick-setup">🚀 Quick Setup</h2>
 
-While this will probably remain a [monorepo](https://danluu.com/monorepo/), we'll publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-generators`. So, let's integrate that into your project:
+While this will probably remain a [monorepo](https://danluu.com/monorepo/), we'll publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-code-generators`. So, let's integrate that into your project:
 
 ```bash
 npm install @teleporthq/teleport-code-generators
