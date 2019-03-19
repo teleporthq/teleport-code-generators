@@ -7,7 +7,7 @@ import {
   addTextNodeToTag,
 } from './utils'
 
-import { createXMLRoot } from '../../shared/utils/xml-utils'
+import { createXMLRoot, addAttributeToNode, addChildNode } from '../../shared/utils/xml-utils'
 import { objectToObjectExpression } from '../../shared/utils/ast-js-utils'
 import { ContentNode, ComponentDependency } from '../../uidl-definitions/types'
 
@@ -103,19 +103,19 @@ const generateVueNodesTree = (
         return
       }
       const childTag = generateVueNodesTree(child, templateLookup, dependencies)
-      xmlNode.append(childTag.root())
+      addChildNode(xmlNode, childTag.root())
     })
   }
 
   const { staticProps, dynamicProps } = splitProps(attrs || {})
 
   Object.keys(staticProps).forEach((propKey) => {
-    xmlNode.attr(propKey, staticProps[propKey])
+    addAttributeToNode(xmlNode, propKey, staticProps[propKey])
   })
 
   Object.keys(dynamicProps).forEach((propKey) => {
     const propName = dynamicProps[propKey].replace('$props.', '')
-    xmlNode.attr(`:${propKey}`, propName)
+    addAttributeToNode(xmlNode, `:${propKey}`, propName)
   })
 
   templateLookup[key] = xmlNode

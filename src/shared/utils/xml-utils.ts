@@ -26,3 +26,19 @@ export const createXMLRoot = (tagName: string, options = { selfClosing: false })
 export const createXMLNode = (tagName: string, options = { selfClosing: false }): Cheerio => {
   return createXMLRoot(tagName, options)(tagName)
 }
+
+export const addAttributeToNode = (node: Cheerio, key: string, value: string) => {
+  node.attr(key, value)
+}
+
+export const addClassToNode = (node: Cheerio, className: string) => {
+  node.addClass(className)
+}
+
+export const addChildNode = (node: Cheerio, child: Cheerio) => {
+  node.append(child)
+}
+
+export const addTextNode = (node: Cheerio, text: string) => {
+  node.append(text)
+}

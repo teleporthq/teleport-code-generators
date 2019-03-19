@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 import { PropDefinition } from '../../uidl-definitions/types'
-import { createXMLNode } from '../../shared/utils/xml-utils'
+import { createXMLNode, addTextNode, addChildNode } from '../../shared/utils/xml-utils'
 
 /**
  * Generate the AST version of
@@ -125,11 +125,11 @@ export const addTextNodeToTag = (tag: Cheerio, text: string) => {
     const propName = text.replace('$props.', '')
     if (propName === 'children') {
       const slot = createXMLNode('slot')
-      tag.append(slot)
+      addChildNode(tag, slot)
     } else {
-      tag.append(`{{${propName}}}`)
+      addTextNode(tag, `{{${propName}}}`)
     }
   } else {
-    tag.append(text.toString())
+    addTextNode(tag, text.toString())
   }
 }
