@@ -277,7 +277,7 @@
           "additionalProperties": false,
           "required": ["type"],
           "properties": {
-            "type": {"type": "string"},
+            "type": { "enum": ["string"]},
             "defaultValue": {},
             "meta": { "type": "object" }
           }
@@ -292,7 +292,7 @@
           "additionalProperties": false,
           "required": ["type", "defaultValue"],
           "properties": {
-            "type": {"type": "string"},
+            "type": { "enum": ["string"]},
             "values": {
               "type": "array",
               "items": {

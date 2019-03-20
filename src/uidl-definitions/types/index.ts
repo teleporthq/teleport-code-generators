@@ -16,7 +16,7 @@ export interface ProjectUIDL {
 }
 
 export interface GlobalAsset {
-  type: string
+  type: { enum: ['link', 'script', 'style'] }
   path?: string
   content?: string
   meta?: Record<string, any>
@@ -120,6 +120,7 @@ export interface WebManifest {
   orientation?: string
   scope?: string
   theme_color?: string
+  screenshots?: Array<{ src: string; sizes: string; type: string }>
 }
 
 /* mapping interfaces */
