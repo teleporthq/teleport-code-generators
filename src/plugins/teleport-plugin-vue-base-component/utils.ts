@@ -1,100 +1,57 @@
 import * as types from '@babel/types'
-import { PropDefinition } from '../../uidl-definitions/types'
-import { createXMLNode, addTextNode, addChildNode } from '../../shared/utils/xml-utils'
+import { PropDefinition, ComponentUIDL } from '../../uidl-definitions/types'
+import { createHTMLNode, addTextNode, addChildNode } from '../../shared/utils/html-utils'
+import { objectToObjectExpression } from '../../shared/utils/ast-js-utils'
 
-/**
- * Generate the AST version of
- * export default {
- *    name: "TestComponent",
- *    props: {  },
- *
- *
- *  }
- *
- * to be used by the vue generator.
- *
- * t is the @babel/types api, used to generate sections of AST
- *
- * params.name is the name of the component ('TestComponent' in the example above)
- */
-const buildEmptyVueJSExport = (t = types, params: { name: string }) => {
-  return t.exportDefaultDeclaration(
-    t.objectExpression([
-      t.objectProperty(t.identifier('name'), t.stringLiteral(params.name)),
-      t.objectProperty(t.identifier('props'), t.objectExpression([])),
-    ])
-  )
-}
-
-/**
- * TODO: Remove and favor declared dynamic props in prop definitions, not in
- * this type of filtering where we decide soemthing is dynamic only when it is used
- */
-export const splitProps = (props: {
-  [key: string]: any
-}): { staticProps: any; dynamicProps: any } => {
-  return Object.keys(props).reduce(
-    (newMap: { staticProps: any; dynamicProps: any }, key) => {
-      const keyName = props[key].startsWith('$props') ? 'dynamicProps' : 'staticProps'
-      newMap[keyName][key] = props[key]
-      return newMap
-    },
-    { staticProps: {}, dynamicProps: {} }
-  )
-}
-
-export const generateEmptyVueComponentJS = (
-  componentName: string,
-  extras: {
-    importStatements: any[]
-    componentDeclarations: any[]
-  },
-  scriptLookup: any,
+export const generateVueComponentJS = (
+  uidl: ComponentUIDL,
+  componentDependencies: string[],
+  dataObject: Record<string, any>,
   t = types
 ) => {
-  extras = extras || {
-    importStatements: [],
-    componentDeclarations: [],
+  const vueObjectProperties = []
+
+  if (uidl.propDefinitions) {
+    const props = generateVueComponentPropTypes(uidl.propDefinitions)
+    const propsAST = objectToObjectExpression(props)
+    vueObjectProperties.push(t.objectProperty(t.identifier('props'), propsAST))
   }
 
-  const astFile = t.file(t.program([]), null, [])
-  const vueJSExport = buildEmptyVueJSExport(t, { name: componentName })
-  scriptLookup.file = astFile
-  scriptLookup.export = vueJSExport
-  scriptLookup.exportDeclaration = vueJSExport.declaration as types.ObjectExpression
-  scriptLookup.props = scriptLookup.exportDeclaration.properties[1]
-
-  astFile.program.body.push(...extras.importStatements)
-  astFile.program.body.push(vueJSExport)
-
-  if (extras.componentDeclarations.length) {
-    const componentsObjectDeclaration = t.objectProperty(
-      t.identifier('components'),
-      t.objectExpression([])
-    )
-
-    const componentsList = componentsObjectDeclaration.value as types.ObjectExpression
-
-    componentsList.properties.push(
-      ...extras.componentDeclarations.map((declarationName) => {
+  if (componentDependencies.length) {
+    const componentsAST = t.objectExpression([
+      ...componentDependencies.map((declarationName) => {
         return t.objectProperty(
           t.identifier(declarationName),
           t.identifier(declarationName),
           false,
           true
         )
-      })
-    )
-
-    scriptLookup.exportDeclaration.properties.push(componentsObjectDeclaration)
+      }),
+    ])
+    vueObjectProperties.push(t.objectProperty(t.identifier('components'), componentsAST))
   }
 
-  return astFile
+  if (Object.keys(dataObject).length > 0) {
+    const dataAST = objectToObjectExpression(dataObject)
+    vueObjectProperties.push(
+      t.objectMethod(
+        'method',
+        t.identifier('data'),
+        [],
+        t.blockStatement([t.returnStatement(dataAST)])
+      )
+    )
+  }
+
+  return t.exportDefaultDeclaration(
+    t.objectExpression([
+      t.objectProperty(t.identifier('name'), t.stringLiteral(uidl.name)),
+      ...vueObjectProperties,
+    ])
+  )
 }
 
-export const generateVueComponentPropTypes = (
-  uidlPropDefinitions: Record<string, PropDefinition>
-) => {
+const generateVueComponentPropTypes = (uidlPropDefinitions: Record<string, PropDefinition>) => {
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
     const { type, defaultValue } = uidlPropDefinitions[name]
@@ -110,6 +67,9 @@ export const generateVueComponentPropTypes = (
         break
       case 'children': // children is converted to slot and should not be added to props
         return acc
+      case 'array':
+        mappedType = Array
+        break
       default:
         mappedType = null
     }
@@ -119,16 +79,18 @@ export const generateVueComponentPropTypes = (
   }, {})
 }
 
-export const addTextNodeToTag = (tag: Cheerio, text: string) => {
+export const addTextNodeToTag = (tag: any, text: string) => {
   if (text.startsWith('$props.') && !text.endsWith('$props.')) {
     // For real time, when users are typing we need to make sure there's something after the dot (.)
     const propName = text.replace('$props.', '')
     if (propName === 'children') {
-      const slot = createXMLNode('slot')
+      const slot = createHTMLNode('slot')
       addChildNode(tag, slot)
     } else {
       addTextNode(tag, `{{${propName}}}`)
     }
+  } else if (text === '$item' || text === '$index') {
+    addTextNode(tag, `{{${text.slice(1)}}}`)
   } else {
     addTextNode(tag, text.toString())
   }

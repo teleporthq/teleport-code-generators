@@ -1,5 +1,5 @@
 import { generator } from '../../core/builder/generators/html-to-string'
-import { createXMLNode, createXMLRoot } from '../../shared/utils/xml-utils'
+import { createHTMLNode } from '../../shared/utils/html-utils'
 import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
@@ -7,11 +7,11 @@ import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
-  const htmlRoot = createXMLRoot('html')
+  const htmlRoot = createHTMLNode('html')
   const htmlNode = htmlRoot('html')
-  const headNode = createXMLNode('head')
-  const bodyNode = createXMLNode('body')
-  const reactRootNode = createXMLNode('div')
+  const headNode = createHTMLNode('head')
+  const bodyNode = createHTMLNode('body')
+  const reactRootNode = createHTMLNode('div')
   reactRootNode.attr('id', 'root')
 
   htmlNode.append(headNode)
@@ -23,20 +23,20 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
   }
 
   if (settings.title) {
-    const titleTag = createXMLNode('title')
+    const titleTag = createHTMLNode('title')
     titleTag.append(settings.title)
     headNode.append(titleTag)
   }
 
   if (manifest) {
-    const linkTag = createXMLNode('link', { selfClosing: true })
+    const linkTag = createHTMLNode('link') // , { selfClosing: true })
     linkTag.attr('rel', 'manifest')
     linkTag.attr('href', '/static/manifest.json')
     headNode.append(linkTag)
   }
 
   meta.forEach((metaItem) => {
-    const metaTag = createXMLNode('meta', { selfClosing: true })
+    const metaTag = createHTMLNode('meta') // , { selfClosing: true })
     Object.keys(metaItem).forEach((key) => {
       const prefixedURL = prefixPlaygroundAssetsURL(ASSETS_PREFIX, metaItem[key])
       metaTag.attr(key, prefixedURL)
@@ -49,7 +49,7 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = createXMLNode('link', { selfClosing: true })
+      const linkTag = createHTMLNode('link') // , { selfClosing: true })
       linkTag.attr('rel', 'stylesheet')
       linkTag.attr('href', assetPath)
       headNode.append(linkTag)
@@ -57,7 +57,7 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
 
     // inline style
     if (asset.type === 'style' && asset.content) {
-      const styleTag = createXMLNode('style')
+      const styleTag = createHTMLNode('style')
       styleTag.append(asset.content)
       headNode.append(styleTag)
     }
@@ -65,7 +65,7 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
     // script (external or inline)
     if (asset.type === 'script') {
       const scriptInBody = (asset.meta && asset.meta.target === 'body') || false
-      const scriptTag = createXMLNode('script')
+      const scriptTag = createHTMLNode('script')
       scriptTag.append(' ') // To ensure tag is not automatically self-closing, which causes problems in the <head>
       scriptTag.attr('type', 'text/javascript')
       if (assetPath) {
@@ -88,7 +88,7 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL) => {
 
     // icon
     if (asset.type === 'icon' && assetPath) {
-      const iconTag = createXMLNode('link', { selfClosing: true })
+      const iconTag = createHTMLNode('link') // , { selfClosing: true })
       iconTag.attr('rel', 'shortcut icon')
       iconTag.attr('href', assetPath)
       if (typeof asset.meta === 'object') {

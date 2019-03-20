@@ -93,11 +93,13 @@ export const resolveContentNode = (
       if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
         const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
         dataSource = node.attrs[nodeDataSourceAttr]
+        delete node.attrs[nodeDataSourceAttr]
       }
 
       node.repeat = {
         dataSource,
         content: clonedContent,
+        meta: repeatStructure.meta,
       }
     }
   })

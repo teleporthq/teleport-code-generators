@@ -1,15 +1,10 @@
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
-import {
-  splitProps,
-  generateEmptyVueComponentJS,
-  generateVueComponentPropTypes,
-  addTextNodeToTag,
-} from './utils'
+import { generateVueComponentJS, addTextNodeToTag } from './utils'
 
-import { createXMLRoot, addAttributeToNode, addChildNode } from '../../shared/utils/xml-utils'
-import { objectToObjectExpression } from '../../shared/utils/ast-js-utils'
+import { createHTMLNode, addAttributeToNode, addChildNode } from '../../shared/utils/html-utils'
 import { ContentNode, ComponentDependency } from '../../uidl-definitions/types'
+import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
@@ -32,9 +27,14 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const { uidl, chunks, dependencies } = structure
 
     const templateLookup: { [key: string]: any } = {}
-    const scriptLookup: { [key: string]: any } = {}
+    const dataObject: Record<string, any> = {}
 
-    const templateContent = generateVueNodesTree(uidl.content, templateLookup, dependencies)
+    const templateContent = generateVueNodesTree(
+      uidl.content,
+      templateLookup,
+      dependencies,
+      dataObject
+    )
 
     chunks.push({
       type: 'html',
@@ -47,27 +47,12 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
       linkAfter: [],
     })
 
-    const jsContent = generateEmptyVueComponentJS(
-      uidl.name,
-      {
-        importStatements: [],
-        componentDeclarations: Object.keys(dependencies),
-      },
-      scriptLookup
-    )
-
-    // todo refactor into pure function
-    if (uidl.propDefinitions) {
-      scriptLookup.props.value.properties.push(
-        ...objectToObjectExpression(generateVueComponentPropTypes(uidl.propDefinitions)).properties
-      )
-    }
+    const jsContent = generateVueComponentJS(uidl, Object.keys(dependencies), dataObject)
 
     chunks.push({
       type: 'js',
       name: vueJSChunkName,
       meta: {
-        lookup: scriptLookup,
         fileId: jsFileId,
       },
       linkAfter: jsFileAfter,
@@ -85,40 +70,70 @@ export default createPlugin()
 const generateVueNodesTree = (
   content: ContentNode,
   templateLookup: Record<string, any>,
-  dependencies: Record<string, ComponentDependency>
-): CheerioStatic => {
-  const { type, key, children, attrs, dependency } = content
+  dependencies: Record<string, ComponentDependency>,
+  dataObject: Record<string, any>
+) => {
+  const { type, key, children, attrs, dependency, repeat } = content
 
   if (dependency) {
     dependencies[type] = { ...dependency }
   }
 
-  const xmlRoot = createXMLRoot(type)
-  const xmlNode = xmlRoot(type)
+  const htmlNode = createHTMLNode(type)
 
   if (children) {
     children.forEach((child) => {
       if (typeof child === 'string') {
-        addTextNodeToTag(xmlNode, child)
+        if (isDynamicPrefixedValue(child)) {
+          addTextNodeToTag(htmlNode, `{{${removeDynamicPrefix(child)}}}`)
+        } else {
+          addTextNodeToTag(htmlNode, child)
+        }
         return
       }
-      const childTag = generateVueNodesTree(child, templateLookup, dependencies)
-      addChildNode(xmlNode, childTag.root())
+      const childTag = generateVueNodesTree(child, templateLookup, dependencies, dataObject)
+      addChildNode(htmlNode, childTag)
     })
   }
 
-  const { staticProps, dynamicProps } = splitProps(attrs || {})
+  if (repeat) {
+    const { dataSource, content: repeatContent, meta = {} } = repeat
+    const repeatContentTag = generateVueNodesTree(
+      repeatContent,
+      templateLookup,
+      dependencies,
+      dataObject
+    )
 
-  Object.keys(staticProps).forEach((propKey) => {
-    addAttributeToNode(xmlNode, propKey, staticProps[propKey])
-  })
+    let dataObjectIdentifier = meta.dataSourceIdentifier || 'items'
+    if (typeof dataSource === 'string' && dataSource.startsWith('$props.')) {
+      dataObjectIdentifier = dataSource.replace('$props.', '')
+    } else {
+      // TODO check if data identifier is not used before or if it is a prop
+      dataObject[dataObjectIdentifier] = dataSource
+    }
 
-  Object.keys(dynamicProps).forEach((propKey) => {
-    const propName = dynamicProps[propKey].replace('$props.', '')
-    addAttributeToNode(xmlNode, `:${propKey}`, propName)
-  })
+    const iteratorName = meta.iteratorName || 'item'
+    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
+    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
 
-  templateLookup[key] = xmlNode
+    addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
+    addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+    addChildNode(htmlNode, repeatContentTag)
+  }
 
-  return xmlRoot
+  if (attrs) {
+    Object.keys(attrs).forEach((attrKey) => {
+      if (isDynamicPrefixedValue(attrs[attrKey])) {
+        const attrValue = removeDynamicPrefix(attrs[attrKey])
+        addAttributeToNode(htmlNode, `:${attrKey}`, attrValue)
+      } else {
+        addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
+      }
+    })
+  }
+
+  templateLookup[key] = htmlNode
+
+  return htmlNode
 }

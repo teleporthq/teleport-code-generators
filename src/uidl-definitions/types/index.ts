@@ -68,7 +68,11 @@ export interface ContentNode {
 export interface RepeatDefinition {
   content: ContentNode
   dataSource: string | any[]
-  meta?: Record<string, any>
+  meta?: {
+    useIndex?: boolean
+    iteratorName?: string
+    dataSourceIdentifier?: string
+  }
 }
 
 export interface StateBranch {
@@ -134,8 +138,5 @@ export interface ElementMapping {
   dependency?: ComponentDependency
   attrs?: Record<string, any>
   children?: Array<ContentNode | string>
-  repeat?: {
-    content: ContentNode
-    dataSource: string
-  }
+  repeat?: RepeatDefinition
 }

@@ -124,7 +124,11 @@
           "name": "item",
           "children": ["$item"]
         },
-        "dataSource": "$attrs.items"
+        "dataSource": "$attrs.items",
+        "meta": {
+          "useIndex": true,
+          "dataSourceIdentifier": "listItems"
+        }
       }
     },
     "dropdown": {
@@ -135,7 +139,10 @@
           "name": "option",
           "children": ["$item"]
         },
-        "dataSource": "$attrs.options"
+        "dataSource": "$attrs.options",
+        "meta": {
+          "dataSourceIdentifier": "dropdownItems"
+        }
       }
     },
     "video": {

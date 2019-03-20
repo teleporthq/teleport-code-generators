@@ -6,7 +6,7 @@ import {
   cleanupNestedStyles,
 } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
-import { addClassToNode, addAttributeToNode } from '../../shared/utils/xml-utils'
+import { addClassToNode, addAttributeToNode } from '../../shared/utils/html-utils'
 
 interface VueStyleChunkConfig {
   chunkName: string

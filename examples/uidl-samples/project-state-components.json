@@ -673,7 +673,7 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "item": "$item"
+                "item": "$local.item"
               },
               "dependency": {
                 "type": "local"
