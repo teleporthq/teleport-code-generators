@@ -15,8 +15,16 @@ export interface ProjectUIDL {
   components?: Record<string, ComponentUIDL>
 }
 
+enum AssetType {
+  style = 'style',
+  link = 'link',
+  script = 'script',
+  icon = 'icon',
+  font = 'font',
+}
+
 export interface GlobalAsset {
-  type: string
+  type: AssetType
   path?: string
   content?: string
   meta?: Record<string, any>
@@ -120,6 +128,7 @@ export interface WebManifest {
   orientation?: string
   scope?: string
   theme_color?: string
+  screenshots?: Array<{ src: string; sizes: string; type: string }>
 }
 
 /* mapping interfaces */
