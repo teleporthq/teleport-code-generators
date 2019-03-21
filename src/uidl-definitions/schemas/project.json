@@ -71,7 +71,7 @@
             "additionalProperties": false,
             "required": ["type"],
             "properties": {
-              "type": { "type": "string" },
+              "type": { "type": "string", "enum": ["link", "script", "font", "icon", "style"] },
               "path": { "type": "string" },
               "content": { "type": "string" },
               "meta": { "type": "object" }
@@ -281,7 +281,7 @@
           "additionalProperties": false,
           "required": ["type"],
           "properties": {
-            "type": {"type": "string"},
+            "type": {"type": "string", "enum": ["string", "number", "object", "func", "array", "boolean", "children"]},
             "defaultValue": {},
             "meta": { "type": "object" }
           }
@@ -296,7 +296,7 @@
           "additionalProperties": false,
           "required": ["type", "defaultValue"],
           "properties": {
-            "type": {"type":"string", "enum": ["string", "boolean", "number", "object"]},
+            "type": {"type":"string", "enum": ["string", "boolean", "number", "object", "func", "array", "router"]},
             "values": {
               "type": "array",
               "items": {

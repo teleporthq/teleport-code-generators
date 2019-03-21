@@ -189,7 +189,7 @@
           "additionalProperties": false,
           "required": ["type"],
           "properties": {
-            "type": {"type": "string"},
+            "type": {"type": "string", "enum": ["string", "boolean", "number", "array", "func", "object", "children"]},
             "defaultValue": {},
             "meta": {"type": "object"}
           }
@@ -204,7 +204,7 @@
           "additionalProperties": false,
           "required": ["type", "defaultValue"],
           "properties": {
-            "type": {"type":"string", "enum": ["string", "boolean", "number", "object"]},
+            "type": {"type":"string", "enum": ["string", "boolean", "number", "object", "func", "array"]},
             "values": {
               "type": "array",
               "items": {
