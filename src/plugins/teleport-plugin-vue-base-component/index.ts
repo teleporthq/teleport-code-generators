@@ -84,8 +84,15 @@ const generateVueNodesTree = (
   if (children) {
     children.forEach((child) => {
       if (typeof child === 'string') {
+        // $props. $state. $local. prefixed string values
         if (isDynamicPrefixedValue(child)) {
-          addTextNodeToTag(htmlNode, `{{${removeDynamicPrefix(child)}}}`)
+          // special treatment for $props.children where we need to add a <slot></slot> tag
+          if (child === '$props.children') {
+            const slot = createHTMLNode('slot')
+            addChildNode(htmlNode, slot)
+          } else {
+            addTextNodeToTag(htmlNode, `{{${removeDynamicPrefix(child)}}}`)
+          }
         } else {
           addTextNodeToTag(htmlNode, child)
         }
