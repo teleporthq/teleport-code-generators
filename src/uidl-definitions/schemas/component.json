@@ -68,7 +68,7 @@
                           }
                         }
                       },
-                      "matchingCriteria": { "type": "string" }
+                      "matchingCriteria": { "type": "string", "enum": ["all", "any"] }
                     }
                   },
                   { "type": "boolean" },

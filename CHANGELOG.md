@@ -1,0 +1,128 @@
+### Version 0.4.1
+- Merge pull request #74 from teleporthq/hotfix/0.4
+- refactor(resolver): uniform implementation of util functions
+- refactor(deprecation): deprecate react-all generator
+- Merge pull request #2 from teleporthq/master
+- fix code samples
+- Update README.md
+- Merge pull request #76 from paulbrie/master
+- refactor(dependencies): move extract dependencies inside assembly line
+- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
+- fix(vue output): remove style tag if it is not needed
+- refactor(plugins): using a generic traversal method
+- refactor(style plugins): handling dynamic values in nested styles
+
+### Version 0.4.1
+- Add files via upload
+- Update README.md
+- fix: all attributes checked for assets prefix
+- next version bump
+
+### Version 0.4.0
+- fix import
+- Merge pull request #56 from mihaiserban/ISSUE-51
+- docs: update README.md
+- docs: update .all-contributorsrc
+- Merge pull request #57 from teleporthq/all-contributors/add-mihaiserban
+- refactor(entire utils folder): rename and refactor util files from shared/utils
+- refactor(entire utils folder): rename and refactor util files from shared/utils
+- Merge branch '58-uniform-naming-for-utils' of https://github.com/teleporthq/teleport-code-generators into 58-uniform-naming-for-utils
+- Merge pull request #59 from teleporthq/58-uniform-naming-for-utils
+- fix(component generators): bind exposed methods to preserve 'this'
+- Merge pull request #60 from teleporthq/3-addMapping-fixed
+- feat: add sanitize function for component names
+- Merge pull request #61 from teleporthq/5-ensure-safe-component-naming
+- Update README.md
+- clone method for uidl structures and performance tests WIP
+- test(performance): Performance tests for component generation
+- missing package.json updates
+- test(performance): New limits for travis build
+- Merge pull request #62 from teleporthq/46-dont-change-input-uidl
+- fix(vue formatting): html parser update for prettier
+- fix(test): fix test assertion
+- Merge pull request #65 from teleporthq/17-template-formatting-vue
+- refactor(naming): style key in UIDL
+- Merge pull request #66 from teleporthq/style-renaming
+- Merge pull request #1 from teleporthq/master
+- add support for ts-node debugging in VSCode
+- improve addSpacesToEachLine, fix warnings
+- simpler link function, review chunk types
+- fix for unformatted css in generated html and js files
+- refactor(chunks): Refactor typings, chunk names, plugin interface
+- remove file
+- Merge pull request #69 from paulbrie/master
+- fix: tests
+- Merge pull request #71 from teleporthq/cleanup-builder-and-chunk
+- test(component generators): tests for all style flavors
+- Merge branch 'master' of https://github.com/mihaiserban/teleport-code-generators into ISSUE-52
+- Merge pull request #68 from mihaiserban/ISSUE-52
+- refactor(key uniqueness): UIDL structure update
+- test: temporary threshold for performance tests
+
+### Version 0.3.1
+
+### Version 0.3.0
+- project reorganization
+- fixed tests
+- Update README.md
+- Update README.md
+- improve vue component identation
+- remove comments
+- move rimraf to dependecies
+- indent only html structures in vue component generator
+- remove warnings in .ts files outside of rootDir (dev experience)
+- docs: Add support for commitizen and CODE_OF_CONDUCT
+- Update CODE_OF_CONDUCT.md
+- suppress specific warnings
+- Merge pull request #53 from paulbrie/master
+
+### Version 0.3.1
+- initial commit
+- update Readme
+- update package-lock
+- tests fix
+- Update README.md
+- Update README.md
+- Update README.md
+- update README
+- update README
+- Merge pull request #1 from teleporthq/update-doc
+- Update README.md
+- Update README.md
+- Update README.md
+- default styling plugin for react set to inline styles
+- update dependencies for template projects
+- react flavor enum values as strings, not numbers
+- rename enum
+- video element mapping
+- undo project cleanup
+- Update README.md
+- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
+- Update README.md
+- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
+- Update README.md
+- Update README.md
+- Update README.md
+- Update README.md
+- Update README.md
+- Update README.md
+- Update README.md
+- video mapping updated in uidl
+- video mapping updated in uidl
+- Update README.md
+- Merge pull request #47 from mihaitaba/patch-1
+- support for picture + assets prefix refactoring
+- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
+- assets prefix for project globals - manifest and html head
+- default packageJSON for react and next
+- Add @alexnm as a contributor
+- Add @vladnicula as a contributor
+- Add @paulbrie as a contributor
+- Add @mihaitaba as a contributor
+- all-contributors dependency
+- Update README.md
+- enforce curly braces
+- prettier format line to 100
+- Merge branch 'master' of https://github.com/teleporthq/teleport-code-generators
+- module reorganization
+- function order

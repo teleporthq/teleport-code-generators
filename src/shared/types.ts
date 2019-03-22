@@ -79,6 +79,18 @@ export enum ReactComponentStylingFlavors {
   CSSModules = 'CSSModules',
 }
 
+export interface HastNode {
+  type: string
+  tagName: string
+  properties: Record<string, string | boolean>
+  children: Array<HastNode | HastText>
+}
+
+export interface HastText {
+  type: string
+  value: string
+}
+
 /* Project Types */
 
 export interface Folder {

@@ -140,7 +140,8 @@
           {
             "type": "dropdown",
             "attrs": {
-              "options": ["angular", "react", "vue"]
+              "options": ["angular", "react", "vue"],
+              "disabled": true
             }
           },
           {
@@ -168,7 +169,7 @@
           "padding": "10px",
           "border": "1px solid black"
         },
-        "children": ["$props.item"]
+        "children": ["$props.children"]
       }
     },
     "Cards": {
@@ -206,16 +207,175 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "item": "$local.item",
                 "test": "$local.index"
               },
+              "children": ["$local.item"],
               "dependency": {
                 "type": "local"
               }
             }]
           },
-          "dataSource": "$props.items"
+          "dataSource": "$props.items",
+          "meta": {
+            "useIndex": true
+          }
         }
+      }
+    },
+    "ExpandableArea": {
+      "name": "ExpandableArea",
+      "propDefinitions": {
+        "title": {
+          "type": "string",
+          "defaultValue": "Hello"
+        },
+        "text": {
+          "type": "string",
+          "defaultValue": "Is it me you're looking for?"
+        }
+      },
+      "stateDefinitions": {
+        "isExpanded": {
+          "type": "boolean",
+          "defaultValue": false
+        }
+      },
+      "content": {
+        "type": "container",
+        "name": "container",
+        "children": [
+          {
+            "type": "text",
+            "name": "title",
+            "children": ["$props.title"]
+          },
+          {
+            "type": "button",
+            "name": "button",
+            "children": [{
+              "type": "state",
+              "name": "isExpanded",
+              "states": [
+                {
+                  "value": true,
+                  "content": "Collapse"
+                },
+                {
+                  "value": false,
+                  "content": "Expand"
+                }
+              ]
+            }],
+            "events": {
+              "click": [
+                {
+                  "type": "stateChange",
+                  "modifies": "isExpanded",
+                  "newState": "$toggle"
+                }
+              ]
+            }
+          },
+          {
+            "type": "state",
+            "name": "isExpanded",
+            "states": [
+              {
+                "value": true,
+                "content": {
+                  "type": "container",
+                  "name": "expanded-area",
+                  "children": ["$props.text"]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Modal": {
+      "name": "Modal",
+      "stateDefinitions": {
+        "isOpen": {
+          "type": "boolean",
+          "defaultValue": false
+        }
+      },
+      "content": {
+        "type": "group",
+        "name": "container",
+        "children": [
+          {
+            "type": "button",
+            "name": "openmodal",
+            "children": ["Show Popup"],
+            "events": {
+              "click": [{
+                "type": "stateChange",
+                "modifies": "isOpen",
+                "newState": true
+              }]
+            }
+          },
+          {
+            "type": "state",
+            "name": "isOpen",
+            "states": [
+              {
+                "value": true,
+                "content": {
+                  "type": "ModalWindow",
+                  "name": "window",
+                  "dependency": {
+                    "type": "local"
+                  },
+                  "events": {
+                    "onClose": [{
+                      "type": "stateChange",
+                      "modifies": "isOpen",
+                      "newState": false
+                    }]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ModalWindow": {
+      "name": "ModalWindow",
+      "propDefinitions": {
+        "message": {
+          "type": "string",
+          "defaultValue": "Hello"
+        },
+        "onClose": {
+          "type": "func",
+          "defaultValue": "() => {}"
+        }
+      },
+      "content": {
+        "type": "container",
+        "name": "container",
+        "children": [
+          {
+            "type": "text",
+            "name": "text",
+            "children": ["$props.message"]
+          },
+          {
+            "type": "button",
+            "name": "close",
+            "children": ["Close me"],
+            "events": {
+              "click": [{
+                "type": "propCall",
+                "calls": "onClose"
+              }]
+            }
+          }
+        ]
       }
     }
   }

@@ -20,6 +20,8 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
 
     if (value instanceof ParsedASTNode) {
       computedLiteralValue = value.ast
+    } else if (typeof value === 'boolean') {
+      computedLiteralValue = t.booleanLiteral(value)
     } else if (typeof value === 'string') {
       computedLiteralValue = t.stringLiteral(value)
     } else if (typeof value === 'number') {

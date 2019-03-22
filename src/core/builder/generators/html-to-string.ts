@@ -3,16 +3,13 @@ import { format } from 'prettier/standalone'
 import parserHTML from 'prettier/parser-html'
 import parserPostCSS from 'prettier/parser-postcss'
 
-import unified from 'unified'
-import htmlParser from 'rehype-stringify'
+import toHTML from 'hast-util-to-html'
 
 import { PRETTIER_CONFIG } from '../../../shared/constants'
-import { CodeGeneratorFunction } from '../../../shared/types'
+import { CodeGeneratorFunction, HastNode } from '../../../shared/types'
 
-export const generator: CodeGeneratorFunction<any> = (htmlObject) => {
-  const unformatedString = unified()
-    .use(htmlParser)
-    .stringify(htmlObject)
+export const generator: CodeGeneratorFunction<HastNode> = (htmlObject) => {
+  const unformatedString = toHTML(htmlObject)
 
   const formatted = format(unformatedString, {
     ...PRETTIER_CONFIG,
