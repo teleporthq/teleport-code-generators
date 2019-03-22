@@ -33,13 +33,13 @@ export interface ComponentUIDL {
 
 export interface PropDefinition {
   type: string
-  defaultValue?: string | number | boolean | any[]
+  defaultValue?: string | number | boolean | any[] | object | (() => void)
   meta?: Record<string, any>
 }
 
 export interface StateDefinition {
   type: string
-  defaultValue: string | number | boolean | any[]
+  defaultValue: string | number | boolean | any[] | object | (() => void)
   values?: Array<{
     value: string | number | boolean
     meta?: {
