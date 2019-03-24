@@ -1,17 +1,173 @@
 import * as types from '@babel/types'
+
 import { StateIdentifier } from '../../shared/types'
 import { convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import {
+  addChildJSXTag,
   addChildJSXText,
   addAttributeToJSXTag,
   addDynamicChild,
-  addDynamicPropOnJsxOpeningTag,
+  addDynamicAttributeOnTag,
+  generateASTDefinitionForJSXTag,
+  createConditionalJSXExpression,
 } from '../../shared/utils/ast-jsx-utils'
-import { EventHandlerStatement, PropDefinition } from '../../uidl-definitions/types'
+import {
+  EventHandlerStatement,
+  ContentNode,
+  PropDefinition,
+  ComponentDependency,
+  StateDefinition,
+} from '../../uidl-definitions/types'
+import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
+import { capitalize } from '../../shared/utils/string-utils'
+
+export const generateTreeStructure = (
+  content: ContentNode,
+  accumulators: {
+    propDefinitions: Record<string, PropDefinition>
+    stateIdentifiers: Record<string, StateIdentifier>
+    nodesLookup: Record<string, types.JSXElement>
+    dependencies: Record<string, ComponentDependency>
+  }
+): types.JSXElement => {
+  const { type, children, key, attrs, dependency, events, repeat } = content
+  const { propDefinitions, stateIdentifiers, nodesLookup, dependencies } = accumulators
+
+  const mainTag = generateASTDefinitionForJSXTag(type)
+
+  if (attrs) {
+    Object.keys(attrs).forEach((attrKey) => {
+      addAttributeToTag(mainTag, attrKey, attrs[attrKey])
+    })
+  }
+
+  if (dependency) {
+    // Make a copy to avoid reference leaking
+    dependencies[type] = { ...dependency }
+  }
+
+  if (events) {
+    Object.keys(events).forEach((eventKey) => {
+      addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
+    })
+  }
+
+  if (repeat) {
+    const { content: repeatContent, dataSource, meta } = repeat
+
+    const contentAST = generateTreeStructure(repeatContent, accumulators)
+
+    const dataSourceIdentifier = isDynamicPrefixedValue(dataSource)
+      ? removeDynamicPrefix(dataSource as string, 'props')
+      : dataSource
+
+    const repeatAST = makeRepeatStructureWithMap(dataSourceIdentifier, contentAST, meta)
+    mainTag.children.push(repeatAST)
+  }
+
+  if (children) {
+    children.forEach((child) => {
+      if (!child) {
+        return
+      }
+
+      if (typeof child === 'string') {
+        addTextElementToTag(mainTag, child)
+        return
+      }
+
+      if (child.type === 'state') {
+        const { states = [], name: stateKey } = child
+        states.forEach((stateBranch) => {
+          const stateContent = stateBranch.content
+          const stateIdentifier = stateIdentifiers[stateKey]
+          if (!stateIdentifier) {
+            return
+          }
+
+          const stateSubTree =
+            typeof stateContent === 'string'
+              ? stateContent
+              : generateTreeStructure(stateContent, accumulators)
+
+          const jsxExpression = createConditionalJSXExpression(
+            stateSubTree,
+            stateBranch.value,
+            stateIdentifier
+          )
+
+          mainTag.children.push(jsxExpression)
+        })
+
+        return
+      }
+
+      const childTag = generateTreeStructure(child, accumulators)
+
+      addChildJSXTag(mainTag, childTag)
+    })
+  }
+
+  // UIDL name should be unique
+  nodesLookup[key] = mainTag
+
+  return mainTag
+}
+
+export const createStateIdentifiers = (
+  stateDefinitions: Record<string, StateDefinition>,
+  dependencies: Record<string, ComponentDependency>
+) => {
+  dependencies.useState = {
+    type: 'library',
+    path: 'react',
+    version: '16.8.3',
+    meta: {
+      namedImport: true,
+    },
+  }
+
+  return Object.keys(stateDefinitions).reduce(
+    (acc: Record<string, StateIdentifier>, stateKey: string) => {
+      acc[stateKey] = {
+        key: stateKey,
+        type: stateDefinitions[stateKey].type,
+        default: stateDefinitions[stateKey].defaultValue,
+        setter: 'set' + capitalize(stateKey),
+      }
+
+      return acc
+    },
+    {}
+  )
+}
+
+export const makePureComponent = (
+  name: string,
+  stateIdentifiers: Record<string, StateIdentifier>,
+  jsxTagTree: types.JSXElement,
+  t = types
+) => {
+  const returnStatement = t.returnStatement(jsxTagTree)
+
+  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
+    makeStateHookAST(stateIdentifiers[stateKey])
+  )
+
+  const arrowFunction = t.arrowFunctionExpression(
+    [t.identifier('props')],
+    t.blockStatement([...stateHooks, returnStatement] || [])
+  )
+
+  const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
+  const component = t.variableDeclaration('const', [declarator])
+
+  return component
+}
 
 // Adds all the event handlers and all the instructions for each event handler
 // in case there is more than one specified in the UIDL
-export const addEventHandlerToTag = (
+const addEventHandlerToTag = (
   tag: types.JSXElement,
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
@@ -108,33 +264,10 @@ const createStateChangeStatement = (
   )
 }
 
-export const makePureComponent = (
-  name: string,
-  stateIdentifiers: Record<string, StateIdentifier>,
-  jsxTagTree: types.JSXElement,
-  t = types
-) => {
-  const returnStatement = t.returnStatement(jsxTagTree)
-
-  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
-    makeStateHookAST(stateIdentifiers[stateKey])
-  )
-
-  const arrowFunction = t.arrowFunctionExpression(
-    [t.identifier('props')],
-    t.blockStatement([...stateHooks, returnStatement] || [])
-  )
-
-  const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
-  const component = t.variableDeclaration('const', [declarator])
-
-  return component
-}
-
 /**
  * Creates an AST line for defining a single state hook
  */
-export const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
+const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
   const defaultValueArgument = convertValueToLiteral(stateIdentifier.default, stateIdentifier.type)
   return t.variableDeclaration('const', [
     t.variableDeclarator(
@@ -144,18 +277,23 @@ export const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) =>
   ])
 }
 
-export const makeRepeatStructureWithMap = (
+const makeRepeatStructureWithMap = (
   dataSource: string | any[],
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
 ) => {
+  const iteratorName = meta.iteratorName || 'item'
+  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
   const source =
     typeof dataSource === 'string'
       ? t.identifier(dataSource)
       : t.arrayExpression(dataSource.map((element) => convertValueToLiteral(element)))
 
-  const arrowFunctionArguments = [t.identifier('item')]
+  addAttributeToTag(content, 'key', `$local.${keyIdentifier}`)
+
+  const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
     arrowFunctionArguments.push(t.identifier('index'))
   }
@@ -168,37 +306,24 @@ export const makeRepeatStructureWithMap = (
 }
 
 /**
- *
  * @param tag the ref to the AST tag under construction
  * @param key the key of the attribute that should be added on the current AST node
  * @param value the value(string, number, bool) of the attribute that should be added on the current AST node
  */
-export const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
-  if (typeof value !== 'string') {
-    addAttributeToJSXTag(tag, { name: key, value })
-    return
-  }
-
-  if (value.startsWith('$props.')) {
-    const dynamicPropValue = value.replace('$props.', '')
-    addDynamicPropOnJsxOpeningTag(tag, key, dynamicPropValue, 'props')
-  } else if (value.startsWith('$state.')) {
-    const dynamicPropValue = value.replace('$state.', '')
-    addDynamicPropOnJsxOpeningTag(tag, key, dynamicPropValue)
-  } else if (value === '$item' || value === '$index') {
-    addDynamicPropOnJsxOpeningTag(tag, key, value.slice(1))
+const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
+  if (isDynamicPrefixedValue(value)) {
+    const attrValue = removeDynamicPrefix(value)
+    const propsPrefix = value.startsWith('$props') ? 'props' : ''
+    addDynamicAttributeOnTag(tag, key, attrValue, propsPrefix)
   } else {
     addAttributeToJSXTag(tag, { name: key, value })
   }
 }
 
-export const addTextElementToTag = (tag: types.JSXElement, text: string) => {
-  if (text.startsWith('$props.') && !text.endsWith('$props.')) {
-    addDynamicChild(tag, text.replace('$props.', ''), 'props')
-  } else if (text.startsWith('$state.') && !text.endsWith('$state.')) {
-    addDynamicChild(tag, text.replace('$state.', ''))
-  } else if (text === '$item' || text === '$index') {
-    addDynamicChild(tag, text.slice(1))
+const addTextElementToTag = (tag: types.JSXElement, text: string) => {
+  if (isDynamicPrefixedValue(text)) {
+    const propsPrefix = text.startsWith('$props') ? 'props' : ''
+    addDynamicChild(tag, removeDynamicPrefix(text), propsPrefix)
   } else {
     addChildJSXText(tag, text)
   }

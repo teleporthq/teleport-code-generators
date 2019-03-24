@@ -80,7 +80,7 @@ export const getClassAttribute = (
  * @param name the name of the prop
  * @param value the value of the prop (will be concatenated with props. before it)
  */
-export const addDynamicPropOnJsxOpeningTag = (
+export const addDynamicAttributeOnTag = (
   jsxASTNode: types.JSXElement,
   name: string,
   value: string,
@@ -265,19 +265,19 @@ export const createConditionalJSXExpression = (
 
     if (binaryExpressions.length === 1) {
       binaryExpression = binaryExpressions[0]
+    } else {
+      // the first two binary expressions are put together as a logical expression
+      const [firstExp, secondExp] = binaryExpressions
+      const operation = matchingCriteria === 'all' ? '&&' : '||'
+      let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
+
+      // accumulate the rest of the expressions to the logical expression
+      for (let index = 2; index < binaryExpressions.length; index++) {
+        expression = t.logicalExpression(operation, expression, binaryExpressions[index])
+      }
+
+      binaryExpression = expression
     }
-
-    // the first two binary expressions are put together as a logical expression
-    const [firstExp, secondExp] = binaryExpressions
-    const operation = matchingCriteria === 'all' ? '&&' : '||'
-    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
-
-    // accumulate the rest of the expressions to the logical expression
-    for (let index = 2; index < binaryExpressions.length; index++) {
-      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
-    }
-
-    binaryExpression = expression
   } else {
     // For regular values we use an === operation to compare the values or an unary expression for booleans
     if (typeof stateValue === 'boolean') {

@@ -1,7 +1,7 @@
 import * as t from '@babel/types'
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
-import { addDynamicPropOnJsxOpeningTag } from '../../shared/utils/ast-jsx-utils'
+import { addDynamicAttributeOnTag } from '../../shared/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
   makeConstAssign,
@@ -59,7 +59,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
               )
             )
         )
-        addDynamicPropOnJsxOpeningTag(root, 'className', `classes['${className}']`, 'props')
+        addDynamicAttributeOnTag(root, 'className', `classes['${className}']`, 'props')
       }
     })
 

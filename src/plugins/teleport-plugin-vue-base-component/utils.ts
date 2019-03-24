@@ -84,8 +84,8 @@ export const generateVueNodesTree = (
     const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
 
     let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
-    if (typeof dataSource === 'string' && dataSource.startsWith('$props.')) {
-      dataObjectIdentifier = dataSource.replace('$props.', '')
+    if (isDynamicPrefixedValue(dataSource)) {
+      dataObjectIdentifier = removeDynamicPrefix(dataSource as string, 'props')
     } else {
       dataObject[dataObjectIdentifier] = dataSource
     }

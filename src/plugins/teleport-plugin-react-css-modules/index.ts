@@ -2,7 +2,7 @@ import * as t from '@babel/types'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { cammelCaseToDashCase, stringToCamelCase } from '../../shared/utils/string-utils'
-import { addJSXTagStyles, addDynamicPropOnJsxOpeningTag } from '../../shared/utils/ast-jsx-utils'
+import { addJSXTagStyles, addDynamicAttributeOnTag } from '../../shared/utils/ast-jsx-utils'
 import {
   traverseNodes,
   splitDynamicAndStaticStyles,
@@ -88,7 +88,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
           ? `styles.${classNameInJS}`
           : `styles['${className}']`
 
-        addDynamicPropOnJsxOpeningTag(root, 'className', classReferenceIdentifier)
+        addDynamicAttributeOnTag(root, 'className', classReferenceIdentifier)
       }
     })
 

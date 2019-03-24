@@ -181,7 +181,7 @@ export const removeDynamicPrefix = (value: string, newPrefix?: string) => {
     return value
   }
 
-  const prefix = newPrefix || ''
+  const prefix = newPrefix ? newPrefix + '.' : '' // ex: props. or state. as a prefix
 
   return prefix + value.slice(indexOfFirstDot + 1)
 }
