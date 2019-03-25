@@ -20,23 +20,30 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
 
     if (value instanceof ParsedASTNode) {
       computedLiteralValue = value.ast
-    } else if (Array.isArray(value)) {
-      computedLiteralValue = t.arrayExpression(value)
+    } else if (typeof value === 'boolean') {
+      computedLiteralValue = t.booleanLiteral(value)
     } else if (typeof value === 'string') {
       computedLiteralValue = t.stringLiteral(value)
     } else if (typeof value === 'number') {
       computedLiteralValue = t.numericLiteral(value)
+    } else if (Array.isArray(value)) {
+      computedLiteralValue = t.arrayExpression(
+        value.map((element) => convertValueToLiteral(element))
+      )
     } else if (typeof value === 'object') {
       computedLiteralValue = objectToObjectExpression(value, t)
     } else if (value === String) {
       computedLiteralValue = t.identifier('String')
     } else if (value === Number) {
       computedLiteralValue = t.identifier('Number')
+    } else if (value === Array) {
+      computedLiteralValue = t.identifier('Array')
     }
 
     if (computedLiteralValue) {
       acc.push(t.objectProperty(keyIdentifier, computedLiteralValue))
     }
+
     return acc
   }, [])
 
@@ -81,8 +88,6 @@ export const makeConstAssign = (constName: string, asignment: any = null, t = ty
 export const makeDefaultExport = (name: string, t = types) => {
   return t.exportDefaultDeclaration(t.identifier(name))
 }
-
-export const makeProgramBody = (statements: any[] = [], t = types) => t.program(statements)
 
 /**
  * You can pass the path of the package which is added at the top of the file and

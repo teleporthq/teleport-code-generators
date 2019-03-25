@@ -1,14 +1,14 @@
 import { ChunkDefinition, CodeGeneratorFunction, ChunkContent } from '../../shared/types'
 
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
-import { generator as cheerioHTMLGenerator } from './generators/html-to-string'
+import { generator as htmlGenerator } from './generators/html-to-string'
 
 export default class Builder {
   private chunkDefinitions: ChunkDefinition[] = []
 
   private generators: { [key: string]: CodeGeneratorFunction<ChunkContent> } = {
     js: babelCodeGenerator,
-    html: cheerioHTMLGenerator,
+    html: htmlGenerator,
     string: (str: string) => str, // no-op for string chunks
   }
 

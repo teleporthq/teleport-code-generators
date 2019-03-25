@@ -68,7 +68,7 @@
                           }
                         }
                       },
-                      "matchingCriteria": { "type": "string" }
+                      "matchingCriteria": { "type": "string", "enum": ["all", "any"] }
                     }
                   },
                   { "type": "boolean" },
@@ -97,7 +97,15 @@
                 { "type": "array" }
               ]
             },
-            "meta": { "type": "object" }
+            "meta": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "useIndex": { "type": "boolean" },
+                "iteratorName": { "type": "string" },
+                "dataSourceIdentifier": { "type":"string" }
+              }
+            }
           }
         },
         "dependency": {

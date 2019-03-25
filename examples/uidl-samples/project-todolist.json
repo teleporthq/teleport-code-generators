@@ -57,8 +57,8 @@
             "type": "Todo",
             "name": "todo",
             "attrs": {
-              "todo": "$item",
-              "index": "$index"
+              "todo": "$local.item",
+              "index": "$local.index"
             },
             "events": {
               "onDelete": [{

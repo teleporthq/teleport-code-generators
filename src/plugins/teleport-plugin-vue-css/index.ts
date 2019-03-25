@@ -6,6 +6,7 @@ import {
   cleanupNestedStyles,
 } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
+import { addClassToNode, addAttributeToNode } from '../../shared/utils/html-utils'
 
 interface VueStyleChunkConfig {
   chunkName: string
@@ -47,10 +48,10 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
             return `${styleKey}: ${rootStyles[styleKey].replace('$props.', '')}`
           })
 
-          root.attr(':style', `{${vueFriendlyStyleBind.join(', ')}}`)
+          addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
         }
 
-        root.addClass(className)
+        addClassToNode(root, className)
       }
     })
 

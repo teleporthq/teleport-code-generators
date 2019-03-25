@@ -3,11 +3,13 @@ import { format } from 'prettier/standalone'
 import parserHTML from 'prettier/parser-html'
 import parserPostCSS from 'prettier/parser-postcss'
 
-import { PRETTIER_CONFIG } from '../../../shared/constants'
-import { CodeGeneratorFunction } from '../../../shared/types'
+import toHTML from 'hast-util-to-html'
 
-export const generator: CodeGeneratorFunction<CheerioStatic> = (htmlObject) => {
-  const unformatedString = htmlObject.html()
+import { PRETTIER_CONFIG } from '../../../shared/constants'
+import { CodeGeneratorFunction, HastNode } from '../../../shared/types'
+
+export const generator: CodeGeneratorFunction<HastNode> = (htmlObject) => {
+  const unformatedString = toHTML(htmlObject)
 
   const formatted = format(unformatedString, {
     ...PRETTIER_CONFIG,

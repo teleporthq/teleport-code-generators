@@ -122,9 +122,12 @@
         "content": {
           "type": "li",
           "name": "item",
-          "children": ["$item"]
+          "children": ["$local.item"]
         },
-        "dataSource": "$attrs.items"
+        "dataSource": "$attrs.items",
+        "meta": {
+          "useIndex": true
+        }
       }
     },
     "dropdown": {
@@ -133,7 +136,7 @@
         "content": {
           "type": "option",
           "name": "option",
-          "children": ["$item"]
+          "children": ["$local.item"]
         },
         "dataSource": "$attrs.options"
       }

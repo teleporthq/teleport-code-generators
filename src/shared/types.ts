@@ -7,7 +7,7 @@ import {
 } from '../uidl-definitions/types'
 import * as types from '@babel/types'
 
-export type ChunkContent = string | CheerioStatic | types.Node | types.Node[]
+export type ChunkContent = string | any | types.Node | types.Node[]
 
 /**
  * React could have one or more JS chunks, nothing else.
@@ -77,6 +77,18 @@ export enum ReactComponentStylingFlavors {
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',
   CSSModules = 'CSSModules',
+}
+
+export interface HastNode {
+  type: string
+  tagName: string
+  properties: Record<string, string | boolean>
+  children: Array<HastNode | HastText>
+}
+
+export interface HastText {
+  type: string
+  value: string
 }
 
 /* Project Types */

@@ -161,3 +161,27 @@ export const transformDynamicStyles = (
     return acc
   }, {})
 }
+
+const dynamicPrefixes = ['$props.', '$state.', '$local.']
+
+export const isDynamicPrefixedValue = (value: any) => {
+  if (typeof value !== 'string') {
+    return false
+  }
+
+  return dynamicPrefixes.reduce((result, prefix) => {
+    // endsWith is added to avoid errors when the user is typing and reaches `$props.`
+    return result || (value.startsWith(prefix) && !value.endsWith(prefix))
+  }, false)
+}
+
+export const removeDynamicPrefix = (value: string, newPrefix?: string) => {
+  const indexOfFirstDot = value.indexOf('.')
+  if (indexOfFirstDot < 0) {
+    return value
+  }
+
+  const prefix = newPrefix ? newPrefix + '.' : '' // ex: props. or state. as a prefix
+
+  return prefix + value.slice(indexOfFirstDot + 1)
+}

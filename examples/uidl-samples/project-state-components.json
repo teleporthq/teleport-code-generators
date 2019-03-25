@@ -522,7 +522,13 @@
                   "children": ["This is the third tab"]
                 }
               },{
-                "value": 3,
+                "value": {
+                  "matchingCriteria": "all",
+                  "conditions": [{
+                    "operand": 3,
+                    "operation": ">="
+                  }]
+                },
                 "content": {
                   "type": "text",
                   "name": "text4",
@@ -624,7 +630,7 @@
       "propDefinitions": {
         "item": {
           "type": "string",
-          "defaultValue": "placeholder"
+          "defaultValue": ""
         }
       },
       "content": {
@@ -635,7 +641,7 @@
           "padding": "10px",
           "border": "1px solid black"
         },
-        "children": ["$props.item"]
+        "children": ["$props.children"]
       }
     },
     "Cards": {
@@ -673,14 +679,18 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "item": "$item"
+                "test": "$local.index"
               },
+              "children": ["$local.item"],
               "dependency": {
                 "type": "local"
               }
             }]
           },
-          "dataSource": "props.items"
+          "dataSource": "$props.items",
+          "meta": {
+            "useIndex": true
+          }
         }
       }
     }
