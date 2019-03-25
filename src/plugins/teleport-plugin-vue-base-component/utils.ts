@@ -47,6 +47,30 @@ export const generateVueNodesTree = (
     })
   }
 
+  if (repeat) {
+    const { dataSource, content: repeatContent, meta = {} } = repeat
+    const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
+
+    let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
+    if (isDynamicPrefixedValue(dataSource)) {
+      dataObjectIdentifier = removeDynamicPrefix(dataSource as string)
+    } else {
+      dataObject[dataObjectIdentifier] = dataSource
+    }
+
+    const iteratorName = meta.iteratorName || 'item'
+    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
+    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
+    htmlUtils.addAttributeToNode(
+      repeatContentTag,
+      'v-for',
+      `${iterator} in ${dataObjectIdentifier}`
+    )
+    htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+    htmlUtils.addChildNode(htmlNode, repeatContentTag)
+  }
+
   if (children) {
     children.forEach((child) => {
       if (typeof child === 'string') {
@@ -77,30 +101,6 @@ export const generateVueNodesTree = (
       const childTag = generateVueNodesTree(child, accumulators)
       htmlUtils.addChildNode(htmlNode, childTag)
     })
-  }
-
-  if (repeat) {
-    const { dataSource, content: repeatContent, meta = {} } = repeat
-    const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
-
-    let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
-    if (isDynamicPrefixedValue(dataSource)) {
-      dataObjectIdentifier = removeDynamicPrefix(dataSource as string, 'props')
-    } else {
-      dataObject[dataObjectIdentifier] = dataSource
-    }
-
-    const iteratorName = meta.iteratorName || 'item'
-    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
-    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
-
-    htmlUtils.addAttributeToNode(
-      repeatContentTag,
-      'v-for',
-      `${iterator} in ${dataObjectIdentifier}`
-    )
-    htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
-    htmlUtils.addChildNode(htmlNode, repeatContentTag)
   }
 
   templateLookup[key] = htmlNode
