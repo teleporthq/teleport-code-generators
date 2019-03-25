@@ -1,6 +1,3 @@
-import { ComponentPlugin, ComponentPluginFactory, ChunkDefinition } from '../../shared/types'
-import { ComponentDependency } from '../../uidl-definitions/types'
-
 import { makeGenericImportStatement } from '../../shared/utils/ast-js-utils'
 
 interface ImportPluginConfig {

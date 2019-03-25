@@ -1,6 +1,5 @@
 import * as types from '@babel/types'
 
-import { StateIdentifier } from '../../shared/types'
 import { convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import {
   addChildJSXTag,
@@ -11,13 +10,7 @@ import {
   generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
 } from '../../shared/utils/ast-jsx-utils'
-import {
-  EventHandlerStatement,
-  ContentNode,
-  PropDefinition,
-  ComponentDependency,
-  StateDefinition,
-} from '../../uidl-definitions/types'
+
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 

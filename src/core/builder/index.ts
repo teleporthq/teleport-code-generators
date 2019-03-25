@@ -1,5 +1,3 @@
-import { ChunkDefinition, CodeGeneratorFunction, ChunkContent } from '../../shared/types'
-
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as htmlGenerator } from './generators/html-to-string'
 

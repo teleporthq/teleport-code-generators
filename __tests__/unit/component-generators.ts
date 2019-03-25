@@ -3,13 +3,9 @@ import reactSample from '../fixtures/react-sample.json'
 // @ts-ignore-next-line
 import vueSample from '../fixtures/vue-sample.json'
 
-import {
-  createReactComponentGenerator,
-  createVueComponentGenerator,
-  GeneratorTypes,
-} from '../../src'
+import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'
 
-const { ReactComponentStylingFlavors } = GeneratorTypes
+import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {

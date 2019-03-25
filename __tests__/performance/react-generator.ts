@@ -1,12 +1,14 @@
 // @ts-ignore
 import realComponentUIDL from '../fixtures/react-sample.json'
 import { createUIDL } from '../fixtures/uidl'
-import { createReactComponentGenerator, GeneratorTypes } from '../../src'
+import { createReactComponentGenerator } from '../../src'
 
 import { performance } from 'perf_hooks'
 
+import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
+
 const generator = createReactComponentGenerator({
-  variation: GeneratorTypes.ReactComponentStylingFlavors.StyledJSX,
+  variation: ReactComponentStylingFlavors.StyledJSX,
 })
 
 describe('React Generator Performance Run', () => {

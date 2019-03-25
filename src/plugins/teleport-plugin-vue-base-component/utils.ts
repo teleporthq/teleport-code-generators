@@ -1,13 +1,5 @@
 import * as types from '@babel/types'
-import {
-  PropDefinition,
-  ContentNode,
-  ComponentDependency,
-  ComponentUIDL,
-  ConditionalExpression,
-  StateDefinition,
-  EventHandlerStatement,
-} from '../../uidl-definitions/types'
+
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'

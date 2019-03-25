@@ -1,6 +1,3 @@
-import { ComponentPlugin, ComponentStructure } from '../../shared/types'
-
-import { ComponentUIDL } from '../../uidl-definitions/types'
 import { extractExternalDependencies, groupChunksByFileId } from './utils'
 
 export default class AssemblyLine {

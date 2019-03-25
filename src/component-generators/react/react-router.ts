@@ -2,7 +2,6 @@ import importStatementsPlugin from '../../plugins/teleport-plugin-import-stateme
 import reactAppRoutingPlugin from '../../plugins/teleport-plugin-react-app-routing'
 import { AssemblyLine, Builder, Resolver } from '../../core'
 
-import { ComponentUIDL } from '../../uidl-definitions/types'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 

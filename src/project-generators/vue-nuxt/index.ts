@@ -1,5 +1,3 @@
-import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
-import { ProjectUIDL } from '../../uidl-definitions/types'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import createVueGenerator from '../../component-generators/vue/vue-component'
@@ -11,19 +9,19 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     customMapping: { ...nuxtMapping },
   })
 
-  const pagesFolder: Folder = {
+  const pagesFolder: GeneratedFolder = {
     name: 'pages',
     files: [],
     subFolders: [],
   }
 
-  const componentsFolder: Folder = {
+  const componentsFolder: GeneratedFolder = {
     name: 'components',
     files: [],
     subFolders: [],
   }
 
-  const distFolder: Folder = {
+  const distFolder: GeneratedFolder = {
     name: options.distPath || 'dist',
     files: [],
     subFolders: [pagesFolder, componentsFolder],
@@ -75,7 +73,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
       collectedDependencies = { ...collectedDependencies, ...pageResult.externalDependencies }
 
-      const file: File = {
+      const file: GeneratedFile = {
         name: fileName,
         content: pageResult.code,
         extension: '.vue',
@@ -95,7 +93,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
           ...componentResult.externalDependencies,
         }
 
-        const file: File = {
+        const file: GeneratedFile = {
           name: sanitizeVariableName(component.name),
           extension: '.vue',
           content: componentResult.code,
@@ -115,7 +113,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
       ...collectedDependencies,
     }
 
-    const packageFile: File = {
+    const packageFile: GeneratedFile = {
       name: 'package',
       extension: '.json',
       content: JSON.stringify(sourcePackageJson, null, 2),

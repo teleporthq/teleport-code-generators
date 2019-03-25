@@ -1,13 +1,4 @@
 import {
-  ContentNode,
-  ComponentDependency,
-  StyleDefinitions,
-  Mapping,
-  ElementMapping,
-  EventDefinitions,
-} from '../../uidl-definitions/types'
-
-import {
   prefixPlaygroundAssetsURL,
   cloneElement,
   traverseNodes,

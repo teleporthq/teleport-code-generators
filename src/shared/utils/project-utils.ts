@@ -1,6 +1,3 @@
-import { WebManifest } from '../../uidl-definitions/types'
-
-import { PackageJSON } from '../types'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 import { slugify } from './string-utils'
 

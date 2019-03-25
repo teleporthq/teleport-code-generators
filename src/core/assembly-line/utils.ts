@@ -1,6 +1,3 @@
-import { ChunkDefinition } from '../../shared/types'
-import { ComponentDependency } from '../../uidl-definitions/types'
-
 export const extractExternalDependencies = (
   dependencies: Record<string, ComponentDependency>
 ): Record<string, string> => {

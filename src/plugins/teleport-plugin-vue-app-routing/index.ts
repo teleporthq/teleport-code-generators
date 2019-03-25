@@ -1,5 +1,4 @@
 import * as t from '@babel/types'
-import { ComponentPluginFactory, ComponentPlugin } from '../../shared/types'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 
 interface VueRouterConfig {

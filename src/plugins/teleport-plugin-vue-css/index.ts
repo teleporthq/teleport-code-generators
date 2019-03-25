@@ -1,4 +1,3 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import {
   traverseNodes,

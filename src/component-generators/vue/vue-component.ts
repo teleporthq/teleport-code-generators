@@ -4,9 +4,6 @@ import vueComponentPlugin from '../../plugins/teleport-plugin-vue-base-component
 import vueStylePlugin from '../../plugins/teleport-plugin-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '../../plugins/teleport-plugin-import-statements'
 
-import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../shared/types'
-import { ComponentUIDL } from '../../uidl-definitions/types'
-
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 

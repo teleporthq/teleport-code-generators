@@ -1,5 +1,3 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-
 import * as t from '@babel/types'
 
 import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'

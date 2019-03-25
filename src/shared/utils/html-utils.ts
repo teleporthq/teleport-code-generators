@@ -1,5 +1,3 @@
-import { HastNode, HastText } from '../types'
-
 export const createHTMLNode = (tagName: string, children = []): HastNode => {
   return {
     type: 'element',

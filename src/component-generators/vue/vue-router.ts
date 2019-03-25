@@ -3,9 +3,6 @@ import { AssemblyLine, Builder, Resolver } from '../../core'
 import vueRoutingPlugin from '../../plugins/teleport-plugin-vue-app-routing'
 import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
-import { GeneratorOptions } from '../../shared/types'
-import { ComponentUIDL } from '../../uidl-definitions/types'
-
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
