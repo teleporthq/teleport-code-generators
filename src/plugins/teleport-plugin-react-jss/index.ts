@@ -1,5 +1,4 @@
 import * as t from '@babel/types'
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
 import { addDynamicAttributeOnTag } from '../../shared/utils/ast-jsx-utils'
 import {

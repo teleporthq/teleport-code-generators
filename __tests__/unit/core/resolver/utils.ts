@@ -1,9 +1,8 @@
 import { generateUniqueKeys, createNodesLookup } from '../../../../src/core/resolver/utils'
-import { UIDLTypes } from '../../../../src'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
-    const simpleContentNode: UIDLTypes.ContentNode = {
+    const simpleContentNode: ContentNode = {
       type: 'container',
       name: 'container',
     }
@@ -22,7 +21,7 @@ describe('generateUniqueKeys', () => {
   })
 
   it('adds name and generate unique key', async () => {
-    const contentNode: UIDLTypes.ContentNode = {
+    const contentNode: ContentNode = {
       type: 'container',
       name: 'container',
       children: [
@@ -45,7 +44,7 @@ describe('generateUniqueKeys', () => {
     expect(contentNode.name).toBe('container')
     expect(contentNode.key).toBe('container')
 
-    const childNode = contentNode.children[0] as UIDLTypes.ContentNode
+    const childNode = contentNode.children[0] as ContentNode
     expect(childNode.name).toBe('container')
     expect(childNode.key).toBe('container1')
   })
@@ -53,7 +52,7 @@ describe('generateUniqueKeys', () => {
 
 describe('createNodesLookup', () => {
   it('counts duplicate nodes inside the UIDL', async () => {
-    const simpleContentNode: UIDLTypes.ContentNode = {
+    const simpleContentNode: ContentNode = {
       type: 'container',
       name: 'container',
       children: [
@@ -88,7 +87,7 @@ describe('createNodesLookup', () => {
   })
 
   it('adds zero padding when counting keys', async () => {
-    const simpleContentNode: UIDLTypes.ContentNode = {
+    const simpleContentNode: ContentNode = {
       type: 'container',
       name: 'container',
     }

@@ -13,7 +13,11 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "typeRoots" : [
+      "../node_modules/@types",
+      "./typings"
+    ],
   },
   "exclude": [
     "examples",

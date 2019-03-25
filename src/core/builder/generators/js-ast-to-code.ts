@@ -9,7 +9,6 @@ import parserBabylon from 'prettier/parser-babylon'
 import parserPostCSS from 'prettier/parser-postcss'
 
 import { PRETTIER_CONFIG } from '../../../shared/constants'
-import { CodeGeneratorFunction } from '../../../shared/types'
 
 export const generator: CodeGeneratorFunction<types.Node> = (ast) => {
   const code = babelGenerator(ast).code

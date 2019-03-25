@@ -1,4 +1,3 @@
-import { StateDefinition, ContentNode, StyleDefinitions } from '../../uidl-definitions/types'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 /**

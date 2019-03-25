@@ -1,5 +1,3 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
-
 import { generateVueComponentJS, generateVueNodesTree, extractStateObject } from './utils'
 
 interface VueComponentConfig {

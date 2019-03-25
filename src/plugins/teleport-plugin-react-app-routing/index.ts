@@ -3,7 +3,6 @@ import * as t from '@babel/types'
 import { generateASTDefinitionForJSXTag } from '../../shared/utils/ast-jsx-utils'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { registerRouterDeps, makePureComponent } from './utils'
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string

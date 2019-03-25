@@ -6,7 +6,6 @@ import {
   addTextNode,
   addBooleanAttributeToNode,
 } from '../../shared/utils/html-utils'
-import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 

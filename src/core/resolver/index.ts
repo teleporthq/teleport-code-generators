@@ -1,7 +1,5 @@
-import { Mapping, ComponentUIDL, ContentNode } from '../../uidl-definitions/types'
 import * as utils from './utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { GeneratorOptions } from '../../shared/types'
 import { cloneElement } from '../../shared/utils/uidl-utils'
 
 /**

@@ -1,18 +1,14 @@
 import reactProjectMapping from './react-project-mapping.json'
 
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
-import createReactGenerator from '../../component-generators/react/react-component'
-import {
+import createReactGenerator, {
   ReactComponentStylingFlavors,
-  File,
-  Folder,
-  ProjectGeneratorOptions,
-} from '../../shared/types'
+} from '../../component-generators/react/react-component'
+
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { createPackageJSON, createManifestJSON } from '../../shared/utils/project-utils'
 
-import { ProjectUIDL } from '../../uidl-definitions/types'
 import { createHtmlIndexFile } from './utils'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
@@ -25,31 +21,31 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const routingComponentGenerator = createRouterComponentGenerator()
 
   // Step 1: Building the folder structure (rooted in dist by default) for the React project
-  const componentsFolder: Folder = {
+  const componentsFolder: GeneratedFolder = {
     name: 'components',
     files: [],
     subFolders: [],
   }
 
-  const pagesFolder: Folder = {
+  const pagesFolder: GeneratedFolder = {
     name: 'pages',
     files: [],
     subFolders: [],
   }
 
-  const staticFolder: Folder = {
+  const staticFolder: GeneratedFolder = {
     name: 'static',
     files: [],
     subFolders: [],
   }
 
-  const srcFolder: Folder = {
+  const srcFolder: GeneratedFolder = {
     name: 'src',
     files: [],
     subFolders: [componentsFolder, pagesFolder, staticFolder],
   }
 
-  const distFolder: Folder = {
+  const distFolder: GeneratedFolder = {
     name: options.distPath || DEFAULT_OUTPUT_FOLDER,
     files: [],
     subFolders: [srcFolder],
@@ -83,7 +79,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
   if (uidl.globals.manifest) {
     const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
-    const manifestFile: File = {
+    const manifestFile: GeneratedFile = {
       name: 'manifest',
       extension: '.json',
       content: JSON.stringify(manifestJSON, null, 2),
@@ -94,7 +90,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   const htmlIndexContent = createHtmlIndexFile(uidl)
   if (htmlIndexContent) {
-    const htmlFile: File = {
+    const htmlFile: GeneratedFile = {
       name: 'index',
       extension: '.html',
       content: htmlIndexContent,
@@ -142,7 +138,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         assetsPrefix: ASSETS_PREFIX,
       })
 
-      let cssFile: File | null = null
+      let cssFile: GeneratedFile | null = null
       if (compiledComponent.externalCSS) {
         cssFile = {
           name: fileName,
@@ -153,7 +149,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         pagesFolder.files.push(cssFile)
       }
 
-      const jsFile: File = {
+      const jsFile: GeneratedFile = {
         name: fileName,
         extension: '.js',
         content: compiledComponent.code,
@@ -176,7 +172,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         assetsPrefix: ASSETS_PREFIX,
       })
 
-      let cssFile: File | null = null
+      let cssFile: GeneratedFile | null = null
       if (compiledComponent.externalCSS) {
         cssFile = {
           name: sanitizeVariableName(component.name),
@@ -187,7 +183,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
         componentsFolder.files.push(cssFile)
       }
 
-      const jsFile: File = {
+      const jsFile: GeneratedFile = {
         name: sanitizeVariableName(component.name),
         extension: '.js',
         content: compiledComponent.code,
@@ -210,7 +206,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     projectName: uidl.name,
   })
 
-  const packageFile: File = {
+  const packageFile: GeneratedFile = {
     name: 'package',
     extension: '.json',
     content: JSON.stringify(packageJSON, null, 2),

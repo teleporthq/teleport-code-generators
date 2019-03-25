@@ -1,14 +1,8 @@
-import {
-  ReactComponentStylingFlavors,
-  Folder,
-  File,
-  ProjectGeneratorOptions,
-} from '../../shared/types'
-import { ProjectUIDL, ComponentUIDL } from '../../uidl-definitions/types'
-
 import { createManifestJSON, createPackageJSON } from '../../shared/utils/project-utils'
 
-import createReactGenerator from '../../component-generators/react/react-component'
+import createReactGenerator, {
+  ReactComponentStylingFlavors,
+} from '../../component-generators/react/react-component'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 
@@ -24,25 +18,25 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   })
 
   // Step 1: Building the folder structure (rooted in dist by default) for the Next project
-  const pagesFolder: Folder = {
+  const pagesFolder: GeneratedFolder = {
     name: 'pages',
     files: [],
     subFolders: [],
   }
 
-  const componentsFolder: Folder = {
+  const componentsFolder: GeneratedFolder = {
     name: 'components',
     files: [],
     subFolders: [],
   }
 
-  const staticFolder: Folder = {
+  const staticFolder: GeneratedFolder = {
     name: 'static',
     files: [],
     subFolders: [],
   }
 
-  const distFolder: Folder = {
+  const distFolder: GeneratedFolder = {
     name: options.distPath || DEFAULT_OUTPUT_FOLDER,
     files: [],
     subFolders: [pagesFolder, componentsFolder, staticFolder],
@@ -76,7 +70,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
   if (uidl.globals.manifest) {
     const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
-    const manifestFile: File = {
+    const manifestFile: GeneratedFile = {
       name: 'manifest',
       extension: '.json',
       content: JSON.stringify(manifestJSON, null, 2),
@@ -88,7 +82,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // The root html file is customized in next via the _document.js page
   const documentComponent = createDocumentComponent(uidl)
   if (documentComponent) {
-    const file: File = {
+    const file: GeneratedFile = {
       name: '_document',
       extension: '.js',
       content: documentComponent,
@@ -122,7 +116,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
           assetsPrefix: ASSETS_PREFIX,
         })
 
-        const file: File = {
+        const file: GeneratedFile = {
           name: metadata.fileName,
           extension: '.js',
           content: compiledComponent.code,
@@ -150,7 +144,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
           const compiledComponent = await reactGenerator.generateComponent(component, {
             assetsPrefix: ASSETS_PREFIX,
           })
-          const file: File = {
+          const file: GeneratedFile = {
             name: sanitizeVariableName(component.name),
             extension: '.js',
             content: compiledComponent.code,
@@ -177,7 +171,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     dependencies: collectedDependencies,
   })
 
-  const packageFile: File = {
+  const packageFile: GeneratedFile = {
     name: 'package',
     extension: '.json',
     content: JSON.stringify(packageJSON, null, 2),

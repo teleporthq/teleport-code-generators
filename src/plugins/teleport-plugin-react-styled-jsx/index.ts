@@ -1,4 +1,3 @@
-import { ComponentPlugin, ComponentPluginFactory } from '../../shared/types'
 import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'

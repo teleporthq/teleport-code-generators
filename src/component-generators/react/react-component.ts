@@ -8,16 +8,15 @@ import reactPropTypesPlugin from '../../plugins/teleport-plugin-react-proptypes'
 import reactCSSModulesPlugin from '../../plugins/teleport-plugin-react-css-modules'
 import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
-import {
-  GeneratorOptions,
-  ReactComponentStylingFlavors,
-  ComponentGenerator,
-  CompiledComponent,
-} from '../../shared/types'
-import { ComponentUIDL, Mapping } from '../../uidl-definitions/types'
-
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
+
+export const enum ReactComponentStylingFlavors {
+  InlineStyles = 'InlineStyles',
+  StyledJSX = 'StyledJSX',
+  JSS = 'JSS',
+  CSSModules = 'CSSModules',
+}
 
 interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors

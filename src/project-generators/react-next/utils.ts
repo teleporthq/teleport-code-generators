@@ -6,7 +6,6 @@ import {
   addChildJSXText,
 } from '../../shared/utils/ast-jsx-utils'
 import * as types from '@babel/types'
-import { ProjectUIDL } from '../../uidl-definitions/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 

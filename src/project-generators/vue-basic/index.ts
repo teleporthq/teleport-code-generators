@@ -1,9 +1,7 @@
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import createVueRouterFileGenerator from '../../component-generators/vue/vue-router'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
-import { File, Folder, ProjectGeneratorOptions } from '../../shared/types'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { ProjectUIDL } from '../../uidl-definitions/types'
 
 import vueProjectMapping from './vue-project-mapping.json'
 
@@ -14,25 +12,25 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   })
   const vueRouterGenerator = createVueRouterFileGenerator()
 
-  const pagesFolder: Folder = {
+  const pagesFolder: GeneratedFolder = {
     name: 'views',
     files: [],
     subFolders: [],
   }
 
-  const componentsFolder: Folder = {
+  const componentsFolder: GeneratedFolder = {
     name: 'components',
     files: [],
     subFolders: [],
   }
 
-  const srcFolder: Folder = {
+  const srcFolder: GeneratedFolder = {
     name: 'src',
     files: [],
     subFolders: [componentsFolder, pagesFolder],
   }
 
-  const distFolder: Folder = {
+  const distFolder: GeneratedFolder = {
     name: options.distPath || 'dist',
     files: [],
     subFolders: [srcFolder],
@@ -62,7 +60,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const router = await vueRouterGenerator.generateComponent(root)
   collectedDependencies = { ...collectedDependencies, ...router.externalDependencies }
 
-  const routerFile: File = {
+  const routerFile: GeneratedFile = {
     name: 'router',
     extension: '.js',
     content: router.code,
@@ -111,7 +109,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
           ...componentResult.externalDependencies,
         }
 
-        const file: File = {
+        const file: GeneratedFile = {
           name: sanitizeVariableName(component.name),
           extension: '.vue',
           content: componentResult.code,
@@ -131,7 +129,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
       ...collectedDependencies,
     }
 
-    const packageFile: File = {
+    const packageFile: GeneratedFile = {
       name: 'package',
       extension: '.json',
       content: JSON.stringify(sourcePackageJson, null, 2),
