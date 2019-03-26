@@ -11,13 +11,6 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
-    "cross-env": "^5.2.0",
     "nuxt": "^2.4.3"
-  },
-  "devDependencies": {
-    "nodemon": "^1.18.10",
-    "eslint-config-prettier": "^4.0.0",
-    "eslint-plugin-prettier": "3.0.1",
-    "prettier": "1.16.4"
   }
 }

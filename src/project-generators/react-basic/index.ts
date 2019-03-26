@@ -7,9 +7,12 @@ import createReactGenerator, {
 
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { createPackageJSON, createManifestJSON } from '../../shared/utils/project-utils'
+import {
+  createPackageJSON,
+  createManifestJSON,
+  createHtmlIndexFile,
+} from '../../shared/utils/project-utils'
 
-import { createHtmlIndexFile } from './utils'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -88,7 +91,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     staticFolder.files.push(manifestFile)
   }
 
-  const htmlIndexContent = createHtmlIndexFile(uidl)
+  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX)
   if (htmlIndexContent) {
     const htmlFile: GeneratedFile = {
       name: 'index',
@@ -100,7 +103,6 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   // Step 4: Routing component (index.js)
-  // Avoid leaky memory reference because the root is parsed once here and then each branch is parsed below
   const routingComponent = await routingComponentGenerator.generateComponent(root)
 
   srcFolder.files.push({

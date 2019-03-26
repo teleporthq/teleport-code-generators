@@ -9,7 +9,7 @@ import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 
-export const createDocumentComponent = (uidl: ProjectUIDL, t = types) => {
+export const createDocumentComponent = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = generateASTDefinitionForJSXTag('html')
