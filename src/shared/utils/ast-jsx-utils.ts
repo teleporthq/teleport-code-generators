@@ -328,3 +328,14 @@ const convertToUnaryOperator = (operation: string): UnaryOperation => {
     return '!'
   }
 }
+
+export const createTernaryOperation = (
+  stateKey: string,
+  leftNode: types.JSXElement | types.StringLiteral,
+  rightNode: types.JSXElement | types.StringLiteral,
+  t = types
+) => {
+  return types.jsxExpressionContainer(
+    types.conditionalExpression(types.identifier(stateKey), leftNode, rightNode)
+  )
+}
