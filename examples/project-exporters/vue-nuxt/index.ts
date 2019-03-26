@@ -4,11 +4,11 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/project-routing.json'
 
-import { UIDLTypes, GeneratorTypes, UIDLValidators, createVueNuxtProject } from '../../../src'
+import { UIDLValidators, createVueNuxtProject } from '../../../src'
 
 const writeToDisk = async (
-  projectUIDL: UIDLTypes.ProjectUIDL,
-  generatorFunction: GeneratorTypes.ProjectGeneratorFunction,
+  projectUIDL: ProjectUIDL,
+  generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {

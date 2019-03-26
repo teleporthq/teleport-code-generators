@@ -17,10 +17,10 @@
     "commitizen": "git-cz",
     "prepare": "npm run build",
     "add-contributor": "all-contributors add",
-    "create-react-next": "ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
-    "create-react-basic": "ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
-    "create-vue-basic": "ts-node --project tsconfig.json ./examples/project-exporters/vue-basic/index.ts",
-    "create-vue-nuxt": "ts-node --project tsconfig.json ./examples/project-exporters/vue-nuxt/index.ts"
+    "create-react-next": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
+    "create-react-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
+    "create-vue-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-basic/index.ts",
+    "create-vue-nuxt": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-nuxt/index.ts"
   },
   "husky": {
     "hooks": {

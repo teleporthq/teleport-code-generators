@@ -2,8 +2,6 @@ import * as fs from 'fs'
 import path from 'path'
 import rimraf from 'rimraf'
 
-import { GeneratorTypes } from '../../../src'
-
 interface FileInfo {
   filename: string
   dirPath: string
@@ -126,7 +124,7 @@ export const readJSON = async (pathToFile: string) => {
   }
 }
 
-export const writeFolder = async (folder: GeneratorTypes.Folder, currentPath: string) => {
+export const writeFolder = async (folder: GeneratedFolder, currentPath: string) => {
   const { name, files, subFolders } = folder
 
   const folderPath = path.join(currentPath, name)

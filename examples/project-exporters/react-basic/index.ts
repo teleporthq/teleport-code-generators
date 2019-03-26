@@ -6,11 +6,11 @@ import projectJson from '../../uidl-samples/project-state-components.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 
-import { UIDLTypes, GeneratorTypes, UIDLValidators, createReactBasicProject } from '../../../src'
+import { UIDLValidators, createReactBasicProject } from '../../../src'
 
 const writeToDisk = async (
-  projectUIDL: UIDLTypes.ProjectUIDL,
-  generatorFunction: GeneratorTypes.ProjectGeneratorFunction,
+  projectUIDL: ProjectUIDL,
+  generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {
