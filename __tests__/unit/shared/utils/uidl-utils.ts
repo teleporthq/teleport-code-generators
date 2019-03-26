@@ -3,10 +3,16 @@ import { cleanupDynamicStyles } from '../../../../src/shared/utils/uidl-utils'
 describe('cleanupDynamicStyles', () => {
   const styleObject = {
     margin: '20px',
-    padding: '$props.padding',
+    padding: {
+      type: 'prop',
+      id: 'padding',
+    },
     ':hover': {
       margin: '10px',
-      padding: '$props.hoverPadding',
+      padding: {
+        type: 'prop',
+        id: 'hoverPadding',
+      },
     },
   }
 

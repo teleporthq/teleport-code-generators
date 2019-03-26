@@ -82,6 +82,17 @@ export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void
   }
 }
 
+/**
+ * TODO check to see if this check conflicts with nested styles :-?
+ *
+ * @returns {boolean} indicating if the asignment is dynamic or not
+ */
+export const isDynamicReference = (
+  value: string | number | UIDLDynamicAssignment | StyleDefinitions | any[]
+) => {
+  return !Array.isArray(value) && typeof value === 'object' && value.id && value.type
+}
+
 export const splitDynamicAndStaticStyles = (style: StyleDefinitions) => {
   const staticStyles: StyleDefinitions = {}
   const dynamicStyles: StyleDefinitions = {}
@@ -97,7 +108,7 @@ export const splitDynamicAndStaticStyles = (style: StyleDefinitions) => {
       if (Object.keys(nestedResult.staticStyles).length > 0) {
         staticStyles[key] = nestedResult.staticStyles
       }
-    } else if (typeof value === 'string' && value.startsWith('$props.')) {
+    } else if (isDynamicReference(value)) {
       dynamicStyles[key] = value
     } else {
       staticStyles[key] = value
@@ -131,7 +142,7 @@ export const cleanupDynamicStyles = (style: StyleDefinitions) => {
   return Object.keys(style).reduce((resultedStyles: StyleDefinitions, styleKey: string) => {
     const styleValue = style[styleKey]
 
-    if (typeof styleValue === 'string' && styleValue.startsWith('$props.')) {
+    if (isDynamicReference(styleValue)) {
       // skip dynamic style
       return resultedStyles
     }
@@ -146,12 +157,12 @@ export const cleanupDynamicStyles = (style: StyleDefinitions) => {
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: StyleDefinitions,
-  transform: (value: string, key?: string) => any
+  transform: (value: UIDLDynamicAssignment, key?: string) => any
 ) => {
   return Object.keys(style).reduce((acc: any, key) => {
     const value = style[key]
-    if (typeof value === 'string' && value.startsWith('$props.')) {
-      acc[key] = transform(value, key)
+    if (isDynamicReference(value)) {
+      acc[key] = transform((value as unknown) as UIDLDynamicAssignment, key)
     } else if (typeof value === 'object') {
       acc[key] = transformDynamicStyles(value, transform)
     } else {

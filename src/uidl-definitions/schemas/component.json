@@ -24,6 +24,9 @@
     },
     "propDefinitions": {
       "$ref": "#/definitions/propDefinitions"
+    },
+    "assetDefinitions": {
+      "$ref": "#/definitions/assetDefinitions"
     }
   },
   "definitions": {
@@ -94,7 +97,18 @@
             "dataSource": {
               "oneOf": [
                 { "type": "string" },
-                { "type": "array" }
+                {
+                  "$ref": "#/definitions/attributeAssignment"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      { "$ref": "#/definitions/attributeAssignment" },
+                      { "type": "string" }
+                    ]
+                  }
+                }
               ]
             },
             "meta": {
@@ -135,7 +149,7 @@
           "$ref": "#/definitions/style"
         },
         "attrs": {
-          "type": "object"
+          "$ref": "#/definitions/attributeAssignment"
         },
         "children": {
           "type": "array",
@@ -162,6 +176,9 @@
             },
             {
               "$ref": "#/definitions/style"
+            },
+            {
+              "$ref": "#/definitions/attributeAssignment"
             }
           ]
         }
@@ -189,6 +206,22 @@
         }
       }
     },
+    "attributeAssignment": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id"],
+          "properties": {
+            "type": {"type": "string", "enum": ["asset", "prop", "state"]},
+            "id": {"type": "string"},
+            "defaultValue": {},
+            "meta": {"type": "object"}
+          }
+        }
+      }
+    },
     "propDefinitions": {
       "type": "object",
       "patternProperties": {
@@ -198,6 +231,21 @@
           "required": ["type"],
           "properties": {
             "type": {"type": "string", "enum": ["string", "boolean", "number", "array", "func", "object", "children"]},
+            "defaultValue": {},
+            "meta": {"type": "object"}
+          }
+        }
+      }
+    },
+    "assetDefinitions": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": {"type": "string", "enum": ["image", "video", "file:javascript", "file:css"]},
             "defaultValue": {},
             "meta": {"type": "object"}
           }

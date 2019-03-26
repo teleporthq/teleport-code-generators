@@ -12,7 +12,11 @@ import {
   createTernaryOperation,
 } from '../../shared/utils/ast-jsx-utils'
 
-import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
+import {
+  isDynamicPrefixedValue,
+  removeDynamicPrefix,
+  isDynamicReference,
+} from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 
 export const generateTreeStructure = (
@@ -51,11 +55,7 @@ export const generateTreeStructure = (
 
     const contentAST = generateTreeStructure(repeatContent, accumulators)
 
-    const dataSourceIdentifier = isDynamicPrefixedValue(dataSource)
-      ? removeDynamicPrefix(dataSource as string, 'props')
-      : dataSource
-
-    const repeatAST = makeRepeatStructureWithMap(dataSourceIdentifier, contentAST, meta)
+    const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST, meta)
     mainTag.children.push(repeatAST)
   }
 
@@ -293,7 +293,7 @@ const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
 }
 
 const makeRepeatStructureWithMap = (
-  dataSource: string | any[],
+  dataSource: RepeatDataSource,
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
@@ -301,12 +301,24 @@ const makeRepeatStructureWithMap = (
   const iteratorName = meta.iteratorName || 'item'
   const keyIdentifier = meta.useIndex ? 'index' : iteratorName
 
-  const source =
-    typeof dataSource === 'string'
-      ? t.identifier(dataSource)
-      : t.arrayExpression(dataSource.map((element) => convertValueToLiteral(element)))
+  let source = null
 
-  addAttributeToTag(content, 'key', `$local.${keyIdentifier}`)
+  if (typeof dataSource === 'string') {
+    source = t.identifier(dataSource)
+  } else if (isDynamicReference(dataSource)) {
+    source = t.identifier((dataSource as UIDLDynamicAssignment).id)
+  } else if (Array.isArray(dataSource)) {
+    const identifiers = dataSource.map((element) => {
+      if (typeof element === 'string') {
+        return convertValueToLiteral(element)
+      }
+      return convertValueToLiteral(element.id)
+    })
+
+    source = t.arrayExpression(identifiers)
+  }
+
+  addAttributeToTag(content, 'key', keyIdentifier)
 
   const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -325,11 +337,15 @@ const makeRepeatStructureWithMap = (
  * @param key the key of the attribute that should be added on the current AST node
  * @param value the value(string, number, bool) of the attribute that should be added on the current AST node
  */
-const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
-  if (isDynamicPrefixedValue(value)) {
-    const attrValue = removeDynamicPrefix(value)
-    const propsPrefix = value.startsWith('$props') ? 'props' : ''
-    addDynamicAttributeOnTag(tag, key, attrValue, propsPrefix)
+const addAttributeToTag = (
+  tag: types.JSXElement,
+  key: string,
+  value: string | UIDLDynamicAssignment
+) => {
+  if (isDynamicReference(value)) {
+    const { id, type } = value as UIDLDynamicAssignment
+    const propsPrefix = type === 'prop' ? 'props' : ''
+    addDynamicAttributeOnTag(tag, key, id, propsPrefix)
   } else {
     addAttributeToJSXTag(tag, { name: key, value })
   }

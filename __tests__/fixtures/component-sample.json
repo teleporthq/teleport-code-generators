@@ -19,7 +19,10 @@
         {
           "type": "container",
           "attrs": {
-            "data-test": "$props.test"
+            "data-test": {
+              "type": "prop",
+              "id": "test"
+            }
           },
           "children": [
             {
@@ -92,12 +95,18 @@
             "display": "flex",
             "alignItems": "flex-start",
             "backgroundColor": "#e4f2f8",
-            "borderColor": "$props.test",
+            "borderColor": {
+              "type":"prop",
+              "id": "test"
+            },
             "borderWidth": 0,
             "borderStyle": "solid",
             "@media (max-width: 835px)": {
                 "width": 228,
-                "borderColor": "$props.test",
+                "borderColor": {
+                  "type":"prop",
+                  "id": "test"
+                },
                 "height": 154
             },
             "@media (max-width: 640px)": {

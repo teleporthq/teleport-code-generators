@@ -65,9 +65,13 @@ interface ContentNode {
   children?: Array<ContentNode | string>
 }
 
+declare type RepeatDataSource =
+  | string
+  | UIDLDynamicAssignment
+  | Array<string | UIDLDynamicAssignment>
 interface RepeatDefinition {
   content: ContentNode
-  dataSource: string | any[]
+  dataSource: RepeatDataSource
   meta?: {
     useIndex?: boolean
     iteratorName?: string
@@ -255,4 +259,9 @@ interface PackageJSON {
   license: string
   scripts?: Record<string, string>
   dependencies?: Record<string, string>
+}
+
+interface UIDLDynamicAssignment {
+  type: 'prop' | 'asset'
+  id: string
 }

@@ -44,6 +44,8 @@ export const generateVueNodesTree = (
     const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
 
     let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
+
+    // TODO add tests for this dataSource as tests don't fail but this does not work
     if (isDynamicPrefixedValue(dataSource)) {
       dataObjectIdentifier = removeDynamicPrefix(dataSource as string)
     } else {

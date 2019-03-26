@@ -31,11 +31,9 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
 
+        // TODO (vlad) check if styleValue is prop or asset
         // Generating the string templates for the dynamic styles
-        const styleRules = transformDynamicStyles(
-          style,
-          (styleValue) => `\$\{${styleValue.replace('$props.', 'props.')}\}`
-        )
+        const styleRules = transformDynamicStyles(style, (styleValue) => `\$\{${styleValue.id}\}`)
         styleJSXString.push(createCSSClass(className, styleRules))
 
         addClassStringOnJSXTag(root, className)

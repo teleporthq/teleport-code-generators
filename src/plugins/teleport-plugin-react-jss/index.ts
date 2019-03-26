@@ -48,13 +48,11 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
         jssStyleMap[className] = transformDynamicStyles(
           style,
           (styleValue) =>
+            // TODO (vlad) check if styleValue is prop or asset
             new ParsedASTNode(
               t.arrowFunctionExpression(
                 [t.identifier('props')],
-                t.memberExpression(
-                  t.identifier('props'),
-                  t.identifier(styleValue.replace('$props.', ''))
-                )
+                t.memberExpression(t.identifier('props'), t.identifier(styleValue.id))
               )
             )
         )
