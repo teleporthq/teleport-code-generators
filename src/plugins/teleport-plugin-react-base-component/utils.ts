@@ -351,6 +351,7 @@ const addAttributeToTag = (
   }
 }
 
+// only used in one palce to handle text element in react
 const addTextElementToTag = (tag: types.JSXElement, text: string) => {
   if (isDynamicPrefixedValue(text)) {
     const propsPrefix = text.startsWith('$props') ? 'props' : ''
