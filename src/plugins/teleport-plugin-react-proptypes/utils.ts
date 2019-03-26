@@ -76,14 +76,3 @@ export const buildTypesOfPropsAst = (
 
   return t.expressionStatement(assignmentExpression)
 }
-
-export const buildReactSFCTypescriptAnnotation = (annotationName: string, t = types) => {
-  // makes the <MyComponent> part from React.SFC<MyComponent>
-  const ComponentNameInBraketsPart = t.typeParameterInstantiation([
-    t.genericTypeAnnotation(t.identifier(annotationName)),
-  ])
-
-  const annotation = t.genericTypeAnnotation(t.identifier('React.SFC'), ComponentNameInBraketsPart)
-
-  return annotation
-}

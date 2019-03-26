@@ -1,7 +1,5 @@
 // @ts-ignore-next-line
-import reactSample from '../fixtures/react-sample.json'
-// @ts-ignore-next-line
-import vueSample from '../fixtures/vue-sample.json'
+import uidlSample from '../fixtures/component-sample.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'
 
@@ -14,7 +12,7 @@ describe('React Component Generator', () => {
     })
 
     it('should return the code as string', async () => {
-      const result = await generator.generateComponent(reactSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBeDefined()
       expect(result.externalDependencies).toBeDefined()
@@ -27,7 +25,7 @@ describe('React Component Generator', () => {
     })
 
     it('should return the code as string', async () => {
-      const result = await generator.generateComponent(reactSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBe('')
       expect(result.externalDependencies).toBeDefined()
@@ -38,7 +36,7 @@ describe('React Component Generator', () => {
     const generator = createReactComponentGenerator()
 
     it('should return the code as string', async () => {
-      const result = await generator.generateComponent(reactSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('import React')
       expect(result.externalCSS).toBe('')
       expect(result.externalDependencies).toBeDefined()
@@ -52,7 +50,7 @@ describe('React Component Generator', () => {
     })
 
     it('should render <fakediv> tags', async () => {
-      const result = await generator.generateComponent(reactSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBe('')
       expect(result.externalDependencies).toBeDefined()
@@ -65,7 +63,7 @@ describe('Vue Component Generator', () => {
     const generator = createVueComponentGenerator()
 
     it('should return the code as string', async () => {
-      const result = await generator.generateComponent(vueSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('<template>')
       expect(result.externalCSS).toBeUndefined()
       expect(result.externalDependencies).toBeDefined()
@@ -77,7 +75,7 @@ describe('Vue Component Generator', () => {
     generator.addMapping({ elements: { container: { type: 'fakediv' } } })
 
     it('should render <fakediv> tags', async () => {
-      const result = await generator.generateComponent(vueSample)
+      const result = await generator.generateComponent(uidlSample)
       expect(result.code).toContain('<fakediv')
       expect(result.externalCSS).toBeUndefined()
       expect(result.externalDependencies).toBeDefined()

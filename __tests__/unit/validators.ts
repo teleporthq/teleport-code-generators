@@ -1,6 +1,6 @@
 import { validateComponent, validateProject } from '../../src/uidl-definitions/validators'
 // @ts-ignore
-import componentSample from '../fixtures/react-sample.json'
+import componentSample from '../fixtures/component-sample.json'
 // @ts-ignore
 import projectSample from '../fixtures/project-sample.json'
 

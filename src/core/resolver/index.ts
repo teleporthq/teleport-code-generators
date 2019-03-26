@@ -51,5 +51,6 @@ export default class Resolver {
     const returnNode = cloneElement(node)
 
     utils.resolveContentNode(returnNode, mapping, localDependenciesPrefix, assetsPrefix)
+    return returnNode
   }
 }

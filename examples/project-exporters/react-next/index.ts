@@ -8,7 +8,9 @@ import projectJson from '../../uidl-samples/project-state-components.json'
 import { UIDLValidators, createReactNextProject } from '../../../src'
 
 const writeToDisk = async (
+  // @ts-ignore
   projectUIDL: ProjectUIDL,
+  // @ts-ignore
   generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'

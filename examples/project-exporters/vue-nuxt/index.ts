@@ -7,7 +7,9 @@ import projectJson from '../../uidl-samples/project-routing.json'
 import { UIDLValidators, createVueNuxtProject } from '../../../src'
 
 const writeToDisk = async (
+  // @ts-ignore
   projectUIDL: ProjectUIDL,
+  // @ts-ignore
   generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'

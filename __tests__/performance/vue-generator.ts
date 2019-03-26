@@ -1,5 +1,5 @@
 // @ts-ignore
-import realComponentUIDL from '../fixtures/vue-sample.json'
+import componentUIDL from '../fixtures/component-sample.json'
 import { createUIDL } from '../fixtures/uidl'
 import { createVueComponentGenerator } from '../../src'
 import { performance } from 'perf_hooks'
@@ -10,7 +10,7 @@ describe('Vue Generator Performance Run', () => {
   describe('with realistic component sample', () => {
     it('takes under 150ms', async () => {
       const t0 = performance.now()
-      await generator.generateComponent(realComponentUIDL, {
+      await generator.generateComponent(componentUIDL, {
         assetsPrefix: '/assets',
         localDependenciesPrefix: '../components',
       })

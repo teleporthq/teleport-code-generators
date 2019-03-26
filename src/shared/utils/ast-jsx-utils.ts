@@ -51,24 +51,23 @@ export const addClassStringOnJSXTag = (
  * Gets the existing className declaration attribute or generates and returns
  * a newly created and assigned one to the given JSXNode
  */
-export const getClassAttribute = (
+const getClassAttribute = (
   jsxNode: types.JSXElement,
   params: { createIfNotFound: boolean } = { createIfNotFound: false },
   t = types
 ): types.JSXAttribute => {
-  const results = jsxNode.openingElement.attributes.filter((attribute) => {
+  const classNameAttribute = jsxNode.openingElement.attributes.find((attribute) => {
     return attribute.type === 'JSXAttribute' && attribute.name.name === 'className'
   })
 
-  // we don't have a result, but we have a createIFNotFound condition
-  if (!results[0] && params && params.createIfNotFound) {
+  if (!classNameAttribute && params.createIfNotFound) {
     const createdClassAttribute = t.jsxAttribute(t.jsxIdentifier('className'), t.stringLiteral(''))
 
     jsxNode.openingElement.attributes.push(createdClassAttribute)
     return createdClassAttribute
   }
 
-  return results[0] as types.JSXAttribute
+  return classNameAttribute as types.JSXAttribute
 }
 
 /**
@@ -161,26 +160,15 @@ export const addAttributeToJSXTag = (
  * equivalent
  */
 const getProperAttributeValueAssignment = (value: any, t = types) => {
-  if (Array.isArray(value)) {
-    return t.jsxExpressionContainer(
-      t.arrayExpression(value.map((val) => convertValueToLiteral(val)))
-    )
+  if (!value) {
+    return null
   }
 
-  if (typeof value === 'object') {
-    return t.jsxExpressionContainer(objectToObjectExpression(value))
+  if (typeof value === 'string') {
+    return t.stringLiteral(value)
   }
 
-  switch (typeof value) {
-    case 'string':
-      return t.stringLiteral(value)
-    case 'number':
-      return t.jsxExpressionContainer(t.numericLiteral(value))
-    case 'undefined':
-      return null
-    default:
-      return value
-  }
+  return t.jsxExpressionContainer(convertValueToLiteral(value))
 }
 
 /**

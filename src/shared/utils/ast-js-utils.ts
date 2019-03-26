@@ -57,6 +57,8 @@ type ExpressionLiteral =
   | types.NumberLiteral
   | types.Identifier
   | types.ArrayExpression
+  | types.ObjectExpression
+
 export const convertValueToLiteral = (
   value: any,
   explicitType: string = '',
@@ -74,6 +76,8 @@ export const convertValueToLiteral = (
       return t.booleanLiteral(value)
     case 'number':
       return t.numericLiteral(value)
+    case 'object':
+      return objectToObjectExpression(value)
     default:
       return t.identifier(value.toString())
   }
