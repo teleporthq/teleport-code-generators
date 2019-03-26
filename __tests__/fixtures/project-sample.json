@@ -521,14 +521,34 @@
                   "children": ["This is the first tab"]
                 }
               },{
-                "value": 1,
+                "value": {
+                  "matchingCriteria": "any",
+                  "conditions": [{
+                    "operand": 3,
+                    "operation": "==="
+                  }]
+                },
                 "content": {
                   "type": "text",
                   "name": "text2",
                   "children": ["This is the second tab"]
                 }
               },{
-                "value": 2,
+                "value": {
+                  "matchingCriteria": "any",
+                  "conditions": [{
+                    "operand": 3,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 4,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 5,
+                    "operation": ">="
+                  }]
+                },
                 "content": {
                   "type": "text",
                   "name": "text3",
@@ -539,6 +559,14 @@
                   "matchingCriteria": "all",
                   "conditions": [{
                     "operand": 3,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 4,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 5,
                     "operation": ">="
                   }]
                 },
