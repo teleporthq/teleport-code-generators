@@ -9,6 +9,7 @@ import {
   addDynamicAttributeOnTag,
   generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
+  createTernaryOperation,
 } from '../../shared/utils/ast-jsx-utils'
 
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
@@ -71,26 +72,47 @@ export const generateTreeStructure = (
 
       if (child.type === 'state') {
         const { states = [], name: stateKey } = child
-        states.forEach((stateBranch) => {
-          const stateContent = stateBranch.content
-          const stateIdentifier = stateIdentifiers[stateKey]
-          if (!stateIdentifier) {
-            return
-          }
-
-          const stateSubTree =
-            typeof stateContent === 'string'
-              ? stateContent
-              : generateTreeStructure(stateContent, accumulators)
-
-          const jsxExpression = createConditionalJSXExpression(
-            stateSubTree,
-            stateBranch.value,
-            stateIdentifier
+        const isBooleanState =
+          stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
+        if (isBooleanState && states.length === 2) {
+          const consequentContent = states[0].content
+          const alternateContent = states[1].content
+          const consequent =
+            typeof consequentContent === 'string'
+              ? types.stringLiteral(consequentContent)
+              : generateTreeStructure(consequentContent, accumulators)
+          const alternate =
+            typeof alternateContent === 'string'
+              ? types.stringLiteral(alternateContent)
+              : generateTreeStructure(alternateContent, accumulators)
+          const jsxExpression = createTernaryOperation(
+            stateIdentifiers[stateKey].key,
+            consequent,
+            alternate
           )
-
           mainTag.children.push(jsxExpression)
-        })
+        } else {
+          states.forEach((stateBranch) => {
+            const stateContent = stateBranch.content
+            const stateIdentifier = stateIdentifiers[stateKey]
+            if (!stateIdentifier) {
+              return
+            }
+
+            const stateSubTree =
+              typeof stateContent === 'string'
+                ? stateContent
+                : generateTreeStructure(stateContent, accumulators)
+
+            const jsxExpression = createConditionalJSXExpression(
+              stateSubTree,
+              stateBranch.value,
+              stateIdentifier
+            )
+
+            mainTag.children.push(jsxExpression)
+          })
+        }
 
         return
       }
