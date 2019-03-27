@@ -2,6 +2,8 @@ import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import nuxtMapping from './nuxt-mapping.json'
+import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER } from './constants'
+import { createManifestJSON, createHtmlIndexFile } from '../../shared/utils/project-utils'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
@@ -9,6 +11,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     customMapping: { ...nuxtMapping },
   })
 
+  // Step 1: Building the folder structure (rooted in dist by default) for the Nuxt project
   const pagesFolder: GeneratedFolder = {
     name: 'pages',
     files: [],
@@ -21,19 +24,25 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     subFolders: [],
   }
 
+  const staticFolder: GeneratedFolder = {
+    name: 'static',
+    files: [],
+    subFolders: [],
+  }
+
   const distFolder: GeneratedFolder = {
-    name: options.distPath || 'dist',
+    name: options.distPath || DEFAULT_OUTPUT_FOLDER,
     files: [],
     subFolders: [pagesFolder, componentsFolder],
   }
 
+  // Step 2: Initialization with project specific mappings and of other data structures
   const { components, root } = uidl
   const { states } = root.content
   let collectedDependencies = {}
-  const assetsPrefix = '/assets'
   const result = {
     outputFolder: distFolder,
-    assetsPath: assetsPrefix,
+    assetsPath: ASSETS_PREFIX.slice(1), // remove the leading `/`
   }
 
   const stateDefinitions = root.stateDefinitions
@@ -46,7 +55,30 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     return result
   }
 
-  // Handling the route component which specifies which components are pages
+  // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
+  if (uidl.globals.manifest) {
+    const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
+    const manifestFile: GeneratedFile = {
+      name: 'manifest',
+      extension: '.json',
+      content: JSON.stringify(manifestJSON, null, 2),
+    }
+
+    staticFolder.files.push(manifestFile)
+  }
+
+  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX, '{{ APP }}')
+  if (htmlIndexContent) {
+    const htmlFile: GeneratedFile = {
+      name: 'app',
+      extension: '.html',
+      content: htmlIndexContent,
+    }
+
+    distFolder.files.push(htmlFile)
+  }
+
+  // Step 4: Iterating through the first level state branches in the root and generating the components in the "/pages" folder
   await Promise.all(
     states.map(async (stateBranch) => {
       const { value: pageKey, content: pageContent } = stateBranch
@@ -83,6 +115,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     })
   )
 
+  // Step 5: Components are generated into a separate /components folder
   if (components) {
     const [...generatedComponentFiles] = await Promise.all(
       Object.keys(components).map(async (componentName) => {
@@ -105,7 +138,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     componentsFolder.files.push(...generatedComponentFiles)
   }
 
-  // Package.json
+  // Step 6: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
   if (sourcePackageJson) {
     sourcePackageJson.dependencies = {

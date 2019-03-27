@@ -2,7 +2,12 @@ import createVueGenerator from '../../component-generators/vue/vue-component'
 import createVueRouterFileGenerator from '../../component-generators/vue/vue-router'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-
+import {
+  createManifestJSON,
+  createHtmlIndexFile,
+  createPackageJSON,
+} from '../../shared/utils/project-utils'
+import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
 import vueProjectMapping from './vue-project-mapping.json'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -12,6 +17,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   })
   const vueRouterGenerator = createVueRouterFileGenerator()
 
+  // Step 1: Building the folder structure (rooted in dist by default) for the Vue project
   const pagesFolder: GeneratedFolder = {
     name: 'views',
     files: [],
@@ -30,20 +36,25 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     subFolders: [componentsFolder, pagesFolder],
   }
 
-  const distFolder: GeneratedFolder = {
-    name: options.distPath || 'dist',
+  const publicFolder: GeneratedFolder = {
+    name: 'public',
     files: [],
-    subFolders: [srcFolder],
+    subFolders: [],
   }
 
-  // pages are written in /views
+  const distFolder: GeneratedFolder = {
+    name: options.distPath || DEFAULT_OUTPUT_FOLDER,
+    files: [],
+    subFolders: [srcFolder, publicFolder],
+  }
+
+  // Step 2: Initialization with project specific mappings and of other data structures
   const { components, root } = uidl
   const { states } = root.content
   let collectedDependencies = {}
-  const assetsPrefix = '/assets'
   const result = {
     outputFolder: distFolder,
-    assetsPath: assetsPrefix,
+    assetsPath: 'src' + ASSETS_PREFIX,
   }
 
   const stateDefinitions = root.stateDefinitions
@@ -56,7 +67,30 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     return result
   }
 
-  // Router component
+  // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
+  if (uidl.globals.manifest) {
+    const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
+    const manifestFile: GeneratedFile = {
+      name: 'manifest',
+      extension: '.json',
+      content: JSON.stringify(manifestJSON, null, 2),
+    }
+
+    publicFolder.files.push(manifestFile)
+  }
+
+  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX)
+  if (htmlIndexContent) {
+    const htmlFile: GeneratedFile = {
+      name: 'index',
+      extension: '.html',
+      content: htmlIndexContent,
+    }
+
+    publicFolder.files.push(htmlFile)
+  }
+
+  // Step 4: Routing component (index.js)
   const router = await vueRouterGenerator.generateComponent(root)
   collectedDependencies = { ...collectedDependencies, ...router.externalDependencies }
 
@@ -68,6 +102,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   srcFolder.files.push(routerFile)
 
+  // Step 5: Iterating through the first level state branches in the root and generating the components in the "/views" folder
   await Promise.all(
     states.map(async (stateBranch) => {
       const { value: pageKey, content: pageContent } = stateBranch
@@ -99,6 +134,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     })
   )
 
+  // Step 6: Components are generated into a separate /components folder
   if (components) {
     const [...generatedComponentFiles] = await Promise.all(
       Object.keys(components).map(async (componentName) => {
@@ -121,22 +157,21 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     componentsFolder.files.push(...generatedComponentFiles)
   }
 
-  // Package.json
+  // Step 7: External dependencies are added to the package.json file from the template project
   const { sourcePackageJson } = options
-  if (sourcePackageJson) {
-    sourcePackageJson.dependencies = {
-      ...sourcePackageJson.dependencies,
-      ...collectedDependencies,
-    }
 
-    const packageFile: GeneratedFile = {
-      name: 'package',
-      extension: '.json',
-      content: JSON.stringify(sourcePackageJson, null, 2),
-    }
+  const packageJSON = createPackageJSON(sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    dependencies: collectedDependencies,
+    projectName: uidl.name,
+  })
 
-    distFolder.files.push(packageFile)
+  const packageFile: GeneratedFile = {
+    name: 'package',
+    extension: '.json',
+    content: JSON.stringify(packageJSON, null, 2),
   }
+
+  distFolder.files.push(packageFile)
 
   return result
 }

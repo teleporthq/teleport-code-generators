@@ -84,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         generateASTDefinitionForJSXTag(uidl.name),
         t.callExpression(
           t.memberExpression(t.identifier('document'), t.identifier('getElementById')),
-          [t.stringLiteral('root')]
+          [t.stringLiteral('app')]
         ),
       ])
     )
