@@ -3,7 +3,7 @@ import * as types from '@babel/types'
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
-import { capitalize } from '../../shared/utils/string-utils'
+import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
 // content is each node from the UIDL
 // lookups contains
@@ -14,10 +14,11 @@ export const generateVueNodesTree = (
     dependencies: Record<string, ComponentDependency>
     dataObject: Record<string, any>
     methodsObject: Record<string, EventHandlerStatement[]>
+    stateDefinitions: Record<string, any>
   }
 ) => {
   const { type, name, key, children, attrs, dependency, repeat, events } = content
-  const { templateLookup, dependencies, dataObject, methodsObject } = accumulators
+  const { templateLookup, dependencies, dataObject, methodsObject, stateDefinitions } = accumulators
 
   const htmlNode = htmlUtils.createHTMLNode(type)
 
@@ -33,7 +34,7 @@ export const generateVueNodesTree = (
 
   if (events) {
     Object.keys(events).forEach((eventKey) => {
-      const methodName = `handle${capitalize(name)}${capitalize(eventKey)}`
+      const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(eventKey)}`
       methodsObject[methodName] = events[eventKey]
       htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
     })
@@ -70,23 +71,33 @@ export const generateVueNodesTree = (
         return
       }
 
-      if (child.type === 'state') {
+      if (child.type === 'state' && child.states) {
         const stateBranches = child.states || []
         const stateKey = child.name
-        stateBranches.forEach((stateBranch) => {
-          const stateContent = stateBranch.content
+        const isBooleanState =
+          stateDefinitions[stateKey] && stateDefinitions[stateKey].type === 'boolean'
+        if (isBooleanState && stateBranches.length === 2) {
+          const conditionalStatement = createConditionalStatement(stateKey, stateBranches[0].value)
+          const consequentContent = stateBranches[0].content
+          const alternateContent = stateBranches[1].content
+          const consequentNode = getNodeFromContent(consequentContent, accumulators)
+          const alternateNode = getNodeFromContent(alternateContent, accumulators)
+          htmlUtils.addAttributeToNode(consequentNode, 'v-if', conditionalStatement)
+          htmlUtils.addChildNode(htmlNode, consequentNode)
+          htmlUtils.addBooleanAttributeToNode(alternateNode, 'v-else')
+          htmlUtils.addChildNode(htmlNode, alternateNode)
+        } else {
+          stateBranches.forEach((stateBranch) => {
+            const stateContent = stateBranch.content
 
-          // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-          // a 'span' which is the less intrusive of all
-          const stateBranchNode =
-            typeof stateContent === 'string'
-              ? htmlUtils.createHTMLNode('span', [htmlUtils.createTextNode(stateContent)])
-              : generateVueNodesTree(stateContent, accumulators)
-
-          const conditionalStatement = createConditionalStatement(stateKey, stateBranch.value)
-          htmlUtils.addAttributeToNode(stateBranchNode, 'v-if', conditionalStatement)
-          htmlUtils.addChildNode(htmlNode, stateBranchNode)
-        })
+            // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+            // a 'span' which is the less intrusive of all
+            const stateBranchNode = getNodeFromContent(stateContent, accumulators)
+            const conditionalStatement = createConditionalStatement(stateKey, stateBranch.value)
+            htmlUtils.addAttributeToNode(stateBranchNode, 'v-if', conditionalStatement)
+            htmlUtils.addChildNode(htmlNode, stateBranchNode)
+          })
+        }
         return
       }
 
@@ -325,4 +336,10 @@ const stringifyConditionalExpression = (
   }
 
   return `${identifier} ${operation} ${value}`
+}
+
+const getNodeFromContent = (content: any, accumulators) => {
+  return typeof content === 'string'
+    ? htmlUtils.createHTMLNode('span', [htmlUtils.createTextNode(content)])
+    : generateVueNodesTree(content, accumulators)
 }
