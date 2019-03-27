@@ -192,6 +192,7 @@ interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
   customMapping?: Mapping
+  skipValidation?: boolean
 }
 
 type CodeGeneratorFunction<T> = (content: T) => string

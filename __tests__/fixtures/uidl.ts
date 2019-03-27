@@ -17,11 +17,9 @@ export const createUIDL = (
             attrs: {
               url: '/playground_assets',
             },
-            key: 'image' + index + '-' + index2 + '-' + index3,
           },
           {
             type: 'Card',
-            key: 'card' + index + '-' + index2 + '-' + index3,
             dependency: {
               type: 'local',
             },
@@ -29,7 +27,6 @@ export const createUIDL = (
           },
           {
             type: 'link',
-            key: 'link' + index + '-' + index2 + '-' + index3,
             attrs: {
               url: 'https://random',
             },
@@ -43,7 +40,6 @@ export const createUIDL = (
 
       firstlvlchildren.push({
         type: 'container',
-        key: 'container-' + index + '-' + index2,
         attrs: {
           'data-attr': 'test',
         },
@@ -57,7 +53,6 @@ export const createUIDL = (
 
     fakeUIDL.content.children.push({
       type: 'text',
-      key: 'text-' + index,
       events: {
         onClick: [],
       },

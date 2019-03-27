@@ -1,5 +1,6 @@
 // @ts-ignore-next-line
 import uidlSample from '../fixtures/component-sample.json'
+import invalidUidlSample from '../fixtures/component-invalid-sample.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'
 
@@ -80,5 +81,28 @@ describe('Vue Component Generator', () => {
       expect(result.externalCSS).toBeUndefined()
       expect(result.externalDependencies).toBeDefined()
     })
+  })
+})
+
+describe('Component Validator', () => {
+  const generator = createVueComponentGenerator()
+
+  it('works with valid UIDL sample', async () => {
+    const result = await generator.generateComponent(uidlSample)
+    expect(result.code).toContain('<template>')
+    expect(result.externalCSS).toBeUndefined()
+    expect(result.externalDependencies).toBeDefined()
+  })
+  it('throws error when invalid UIDL sample is used', async () => {
+    const result = generator.generateComponent(invalidUidlSample)
+
+    await expect(result).rejects.toThrow(Error)
+  })
+  it('works when validation step is skiped', async () => {
+    const options = { skipValidation: true }
+    const result = await generator.generateComponent(invalidUidlSample, options)
+    expect(result.code).toContain('<template>')
+    expect(result.externalCSS).toBeUndefined()
+    expect(result.externalDependencies).toBeDefined()
   })
 })
