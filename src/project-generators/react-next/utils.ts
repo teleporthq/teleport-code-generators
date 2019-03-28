@@ -8,6 +8,8 @@ import {
 import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
+import { createFile, createFolder } from '../../shared/utils/project-utils'
+import { FILE_EXTENSIONS } from '../../shared/constants'
 
 export const createDocumentComponent = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
@@ -147,4 +149,32 @@ const createDocumentASTDefinition = (htmlNode, t = types) => {
     ),
     t.exportDefaultDeclaration(t.identifier('CustomDocument')),
   ])
+}
+
+export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile | [] => {
+  const documentComponent = createDocumentComponent(uidl)
+  if (!documentComponent) {
+    return []
+  }
+
+  return createFile('_document', FILE_EXTENSIONS.JS, documentComponent)
+}
+
+interface NextFolderStructureParams {
+  componentFiles: GeneratedFile[]
+  pageFiles: GeneratedFile[]
+  staticFiles: GeneratedFile[]
+  distFiles: GeneratedFile[]
+  distFolderName: string
+}
+
+export const buildFolderStructure = (params: NextFolderStructureParams): GeneratedFolder => {
+  const { componentFiles, pageFiles, staticFiles, distFiles } = params
+  const { distFolderName } = params
+
+  const componentsFolder = createFolder('components', componentFiles)
+  const pagesFolder = createFolder('pages', pageFiles)
+  const staticFolder = createFolder('static', staticFiles)
+
+  return createFolder(distFolderName, distFiles, [pagesFolder, componentsFolder, staticFolder])
 }

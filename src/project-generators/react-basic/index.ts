@@ -4,7 +4,7 @@ import createReactGenerator, {
   ReactComponentStylingFlavors,
 } from '../../component-generators/react/react-component'
 
-import { generateManifestFile, createRouterIndexFile, buildFolderStructure } from './utils'
+import { createRouterIndexFile, buildFolderStructure } from './utils'
 
 import {
   createPackageJSONFile,
@@ -12,6 +12,7 @@ import {
   createPageFile,
   createComponentFile,
   joinComponentFiles,
+  createManifestJSONFile,
 } from '../../shared/utils/project-utils'
 
 import {
@@ -81,7 +82,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const componentFiles: GeneratedFile[] = joinedComponentFiles.files
 
   // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
-  const manifestFile = generateManifestFile(uidl)
+  const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
   const staticFiles: GeneratedFile[] = [].concat(manifestFile)
 
   // Step 6: Create the routing component (index.js)
@@ -98,8 +99,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   // Step 8: Create the package.json file
-  const { sourcePackageJson } = options
-  const packageFile = createPackageJSONFile(sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+  const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
     dependencies: collectedDependencies,
     projectName: uidl.name,
   })

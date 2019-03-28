@@ -1,10 +1,9 @@
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
 
-import { createFolder, createManifestJSONFile, createFile } from '../../shared/utils/project-utils'
-import { ASSETS_PREFIX } from './constants'
+import { createFolder, createFile } from '../../shared/utils/project-utils'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
-interface FolderStructureParams {
+interface ReactFolderStructureParams {
   componentFiles: GeneratedFile[]
   pageFiles: GeneratedFile[]
   staticFiles: GeneratedFile[]
@@ -13,7 +12,7 @@ interface FolderStructureParams {
   distFolderName: string
 }
 
-export const buildFolderStructure = (params: FolderStructureParams): GeneratedFolder => {
+export const buildFolderStructure = (params: ReactFolderStructureParams): GeneratedFolder => {
   const { componentFiles, pageFiles, staticFiles, srcFiles, distFiles } = params
   const { distFolderName } = params
 
@@ -23,14 +22,6 @@ export const buildFolderStructure = (params: FolderStructureParams): GeneratedFo
   const srcFolder = createFolder('src', srcFiles, [componentsFolder, pagesFolder, staticFolder])
 
   return createFolder(distFolderName, distFiles, [srcFolder])
-}
-
-export const generateManifestFile = (uidl: ProjectUIDL): GeneratedFile | [] => {
-  if (!uidl.globals.manifest) {
-    return []
-  }
-
-  return createManifestJSONFile(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
 }
 
 export const createRouterIndexFile = async (root: ComponentUIDL) => {

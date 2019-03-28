@@ -159,12 +159,14 @@ export const createManifestJSON = (
 }
 
 export const createManifestJSONFile = (
-  manifest: WebManifest,
-  projectName: string,
+  uidl: ProjectUIDL,
   assetsPrefix?: string
-): GeneratedFile => {
-  const content = createManifestJSON(manifest, projectName, assetsPrefix)
+): GeneratedFile | [] => {
+  if (!uidl.globals.manifest) {
+    return []
+  }
 
+  const content = createManifestJSON(uidl.globals.manifest, uidl.name, assetsPrefix)
   return createFile('manifest', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
 }
 
@@ -200,7 +202,13 @@ export const createPackageJSONFile = (
 }
 
 export const createPageFile = async (params: PageFactoryParams): Promise<GeneratedProjectData> => {
-  const { reactGenerator, stateBranch, routerDefinitions, componentOptions: options } = params
+  const {
+    reactGenerator,
+    stateBranch,
+    routerDefinitions,
+    componentOptions: options,
+    pageMetadataOptions,
+  } = params
 
   const files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
@@ -210,12 +218,14 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
     return { files, dependencies }
   }
 
-  const { componentName, fileName } = extractPageMetadata(routerDefinitions, value)
+  const { componentName, fileName } = extractPageMetadata(routerDefinitions, value, {
+    ...pageMetadataOptions,
+  })
   const pageUIDL = createComponentUIDL(componentName, content, { fileName })
 
   try {
-    const compiledComponent = await reactGenerator.generateComponent(pageUIDL, { ...options })
-    const { externalCSS, externalDependencies, code } = compiledComponent
+    const compiledPageComponent = await reactGenerator.generateComponent(pageUIDL, { ...options })
+    const { externalCSS, externalDependencies, code } = compiledPageComponent
     dependencies = externalDependencies
 
     if (externalCSS) {

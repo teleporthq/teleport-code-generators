@@ -240,6 +240,10 @@ interface PageFactoryParams {
     assetsPrefix: string
     localDependenciesPrefix: string
   }
+  pageMetadataOptions?: {
+    usePathAsFileName?: boolean
+    convertDefaultToIndex?: boolean
+  }
 }
 
 interface ComponentFactoryParams {
