@@ -3,22 +3,13 @@ import createRouterComponentGenerator from '../../component-generators/react/rea
 import { createFolder, createFile } from '../../shared/utils/project-utils'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
-interface ReactFolderStructureParams {
-  componentFiles: GeneratedFile[]
-  pageFiles: GeneratedFile[]
-  staticFiles: GeneratedFile[]
-  srcFiles: GeneratedFile[]
-  distFiles: GeneratedFile[]
-  distFolderName: string
-}
-
-export const buildFolderStructure = (params: ReactFolderStructureParams): GeneratedFolder => {
-  const { componentFiles, pageFiles, staticFiles, srcFiles, distFiles } = params
+export const buildFolderStructure = (params: FolderStructureParams): GeneratedFolder => {
+  const { componentFiles, pageFiles, publicFiles, srcFiles, distFiles } = params
   const { distFolderName } = params
 
-  const componentsFolder = createFolder('components', componentFiles)
   const pagesFolder = createFolder('pages', pageFiles)
-  const staticFolder = createFolder('static', staticFiles)
+  const componentsFolder = createFolder('components', componentFiles)
+  const staticFolder = createFolder('static', publicFiles)
   const srcFolder = createFolder('src', srcFiles, [componentsFolder, pagesFolder, staticFolder])
 
   return createFolder(distFolderName, distFiles, [srcFolder])

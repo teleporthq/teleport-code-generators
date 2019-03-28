@@ -18,15 +18,21 @@ import vueProjectMapping from './vue-project-mapping.json'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 import { createRouterFile, buildFolderStructure } from './utils'
 
-const initGenerator = (): ComponentGenerator => {
-  return createVueGenerator({
+const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
+  const vueGenerator = createVueGenerator({
     customMapping: vueProjectMapping,
   })
+
+  if (options.customMapping) {
+    vueGenerator.addMapping(options.customMapping)
+  }
+
+  return vueGenerator
 }
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-  // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
-  const vueGenerator = initGenerator()
+  // Step 0: Initialize the component generator
+  const vueGenerator = initGenerator(options)
 
   const { components = {}, root } = uidl
   const { states = [] } = root.content

@@ -257,6 +257,15 @@ interface ComponentFactoryParams {
   componentExtension?: string
 }
 
+interface FolderStructureParams {
+  distFolderName: string
+  componentFiles: GeneratedFile[]
+  distFiles: GeneratedFile[]
+  pageFiles: GeneratedFile[]
+  publicFiles: GeneratedFile[]
+  srcFiles?: GeneratedFile[]
+}
+
 interface GeneratedProjectData {
   files: GeneratedFile[]
   dependencies: Record<string, string>

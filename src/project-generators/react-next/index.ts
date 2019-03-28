@@ -107,8 +107,8 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const distFolder = buildFolderStructure({
     pageFiles,
     componentFiles,
-    staticFiles,
     distFiles,
+    publicFiles: staticFiles,
     distFolderName: options.distPath || DEFAULT_OUTPUT_FOLDER,
   })
 

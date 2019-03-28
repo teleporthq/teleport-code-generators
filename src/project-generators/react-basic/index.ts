@@ -76,10 +76,10 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 4: The generated page and component files are joined
   const joinedPageFiles = joinComponentFiles(createdPageFiles)
-  const pageFiles: GeneratedFile[] = joinedPageFiles.files
+  const pageFiles = joinedPageFiles.files
 
   const joinedComponentFiles = joinComponentFiles(createdComponentFiles)
-  const componentFiles: GeneratedFile[] = joinedComponentFiles.files
+  const componentFiles = joinedComponentFiles.files
 
   // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
   const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
@@ -110,9 +110,9 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const distFolder = buildFolderStructure({
     componentFiles,
     pageFiles,
-    staticFiles,
     srcFiles,
     distFiles,
+    publicFiles: staticFiles,
     distFolderName: options.distPath || DEFAULT_OUTPUT_FOLDER,
   })
 

@@ -2,16 +2,7 @@ import createVueRouterFileGenerator from '../../component-generators/vue/vue-rou
 import { createFile, createFolder } from '../../shared/utils/project-utils'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
-interface VuewFolderStructureParams {
-  componentFiles: GeneratedFile[]
-  pageFiles: GeneratedFile[]
-  publicFiles: GeneratedFile[]
-  srcFiles: GeneratedFile[]
-  distFiles: GeneratedFile[]
-  distFolderName: string
-}
-
-export const buildFolderStructure = (params: VuewFolderStructureParams): GeneratedFolder => {
+export const buildFolderStructure = (params: FolderStructureParams): GeneratedFolder => {
   const { componentFiles, pageFiles, publicFiles, srcFiles, distFiles } = params
   const { distFolderName } = params
 

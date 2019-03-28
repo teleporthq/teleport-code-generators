@@ -127,10 +127,11 @@ export const createHtmlIndex = (
 export const createHtmlIndexFile = (
   uidl: ProjectUIDL,
   assetsPrefix: string,
+  fileName: string = 'index',
   appRootOverride?: string
 ): GeneratedFile => {
   const content = createHtmlIndex(uidl, assetsPrefix, appRootOverride)
-  return createFile('index', FILE_EXTENSIONS.HTML, content)
+  return createFile(fileName, FILE_EXTENSIONS.HTML, content)
 }
 
 // Creates a manifest json with the UIDL having priority over the default values
