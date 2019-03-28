@@ -329,13 +329,12 @@ const makeRepeatStructureWithMap = (
 }
 
 const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReference) => {
-  return (
-    {
-      prop: 'props',
-      state: 'state',
-      static: '',
-    }[dynamicReference.content.referenceType] || dynamicReference.content.referenceType
-  )
+  return {
+    prop: 'props',
+    state: 'state',
+    static: '',
+    local: '',
+  }[dynamicReference.content.referenceType]
 }
 
 /**
