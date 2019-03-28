@@ -31,7 +31,7 @@ describe('Validate UIDL', () => {
  - Path .content: should NOT have additional properties. {"additionalProperty":"key"},
  - Path .content: should have required property \'type\'. {"missingProperty":"type"},
  - Path .stateDefinitions[\'activeTab\'].type: should be string. Received number,
- - Path .stateDefinitions[\'activeTab\'].type: should be equal to one of the allowed values. {"allowedValues":["string","boolean","number","object","func","array"]},
+ - Path .stateDefinitions[\'activeTab\'].type: should be equal to one of the allowed values. {"allowedValues":["string","boolean","number","object","func","array","router"]},
  - Path .propDefinitions[\'test\'].type: should be equal to one of the allowed values. {"allowedValues":["string","boolean","number","array","func","object","children"]}`
     expect(typeof validationResult).toBe('object')
     expect(validationResult.valid).toEqual(false)
