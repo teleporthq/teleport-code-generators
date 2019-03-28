@@ -306,7 +306,15 @@ const makeRepeatStructureWithMap = (
       ? t.identifier(dataSource)
       : t.arrayExpression(dataSource.map((element) => convertValueToLiteral(element)))
 
-  addAttributeToTag(content, 'key', `$local.${keyIdentifier}`)
+  // todo test repeter with new dynamic reference
+  const dynamicLocalReference: UIDLDynamicReference = {
+    type: 'dynamic',
+    content: {
+      referenceType: 'local',
+      id: keyIdentifier,
+    },
+  }
+  addAttributeToTag(content, 'key', dynamicLocalReference)
 
   const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -320,18 +328,43 @@ const makeRepeatStructureWithMap = (
   )
 }
 
+const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReference) => {
+  return (
+    {
+      prop: 'props',
+      state: 'state',
+      static: '',
+    }[dynamicReference.content.referenceType] || dynamicReference.content.referenceType
+  )
+}
+
 /**
  * @param tag the ref to the AST tag under construction
- * @param key the key of the attribute that should be added on the current AST node
- * @param value the value(string, number, bool) of the attribute that should be added on the current AST node
+ * @param attributeKey the key of the attribute that should be added on the current AST node
+ * @param attributeValue the value(string, number, bool) of the attribute that should be added on the current AST node
  */
-const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
-  if (isDynamicPrefixedValue(value)) {
-    const attrValue = removeDynamicPrefix(value)
-    const propsPrefix = value.startsWith('$props') ? 'props' : ''
-    addDynamicAttributeOnTag(tag, key, attrValue, propsPrefix)
-  } else {
-    addAttributeToJSXTag(tag, { name: key, value })
+const addAttributeToTag = (
+  tag: types.JSXElement,
+  attributeKey: string,
+  attributeValue: UIDLNodeAttributeValue
+) => {
+  // TODO review with addAttributeToNode from vue
+  switch (attributeValue.type) {
+    case 'dynamic':
+      const {
+        content: { id },
+      } = attributeValue
+      const reactVarName = getReactVarNameForDynamicReference(attributeValue)
+      addDynamicAttributeOnTag(tag, attributeKey, id, reactVarName)
+      return
+    case 'static':
+      const { content } = attributeValue
+      addAttributeToJSXTag(tag, { name: attributeKey, value: content })
+      return
+    default:
+      throw new Error(
+        `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
+      )
   }
 }
 

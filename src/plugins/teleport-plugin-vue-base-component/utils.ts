@@ -3,7 +3,7 @@ import * as types from '@babel/types'
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
-import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import { /*capitalize,*/ stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
 // content is each node from the UIDL
 // lookups contains
@@ -273,20 +273,35 @@ const createPropCallStatement = (
 const addAttributeToNode = (
   htmlNode: any,
   uidlNodeName: string,
-  key: string,
-  value: string,
+  attributeKey: string,
+  attributeValue: UIDLNodeAttributeValue,
   dataObject: Record<string, any>
 ) => {
-  if (isDynamicPrefixedValue(value)) {
-    const attrValue = removeDynamicPrefix(value)
-    htmlUtils.addAttributeToNode(htmlNode, `:${key}`, attrValue)
-  } else if (Array.isArray(value)) {
-    const dataObjectIdentifier = `${uidlNodeName}${capitalize(key)}`
-    dataObject[dataObjectIdentifier] = value
-    htmlUtils.addAttributeToNode(htmlNode, `:${key}`, dataObjectIdentifier)
-  } else {
-    htmlUtils.addAttributeToNode(htmlNode, key, value)
+  // TODO review with addAttributeToNode from react
+  switch (attributeValue.type) {
+    case 'dynamic':
+      const {
+        content: { id },
+      } = attributeValue
+      htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, id)
+      return
+    case 'static':
+      const primitiveValue = attributeValue.content
+      htmlUtils.addAttributeToNode(htmlNode, attributeKey, primitiveValue)
+      return
+    default:
+      throw new Error(
+        `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
+      )
   }
+
+  // TODO treat case when attributes is an array
+
+  // if (Array.isArray(attributeValue)) {
+  //   const dataObjectIdentifier = `${uidlNodeName}${capitalize(attributeKey)}`
+  //   dataObject[dataObjectIdentifier] = attributeValue
+  //   htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, dataObjectIdentifier)
+  // }
 }
 
 // This function decides how to add a text element inside another HTML node
