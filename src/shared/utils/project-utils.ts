@@ -124,12 +124,16 @@ export const createHtmlIndex = (
     ${htmlInnerString}`
 }
 
-export const createHtmlIndexFile = (
-  uidl: ProjectUIDL,
-  assetsPrefix: string,
-  fileName: string = 'index',
+interface HtmlIndexFileParams {
+  uidl: ProjectUIDL
+  assetsPrefix: string
+  fileName?: string
   appRootOverride?: string
-): GeneratedFile => {
+}
+
+export const createHtmlIndexFile = (params: HtmlIndexFileParams): GeneratedFile => {
+  const { uidl, assetsPrefix, fileName = 'index', appRootOverride } = params
+
   const content = createHtmlIndex(uidl, assetsPrefix, appRootOverride)
   return createFile(fileName, FILE_EXTENSIONS.HTML, content)
 }

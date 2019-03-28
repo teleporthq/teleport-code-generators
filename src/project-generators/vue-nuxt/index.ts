@@ -88,7 +88,12 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
   const staticFiles: GeneratedFile[] = [].concat(manifestFile)
 
-  const htmlIndexFile = createHtmlIndexFile(uidl, ASSETS_PREFIX, 'app', APP_ROOT_OVERRIDE)
+  const htmlIndexFile = createHtmlIndexFile({
+    uidl,
+    assetsPrefix: ASSETS_PREFIX,
+    fileName: 'app',
+    appRootOverride: APP_ROOT_OVERRIDE,
+  })
 
   const collectedDependencies = {
     ...joinedPageFiles.dependencies,

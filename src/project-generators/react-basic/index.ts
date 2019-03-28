@@ -87,7 +87,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 6: Create the routing component (index.js)
   const { indexFile, externalDependencies } = await createRouterIndexFile(root)
-  const htmlIndexFile = createHtmlIndexFile(uidl, ASSETS_PREFIX)
+  const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
 
   const srcFiles: GeneratedFile[] = [].concat(htmlIndexFile).concat(indexFile)
 

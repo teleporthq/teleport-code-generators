@@ -81,7 +81,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
   // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
   const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
-  const htmlIndexFile = createHtmlIndexFile(uidl, ASSETS_PREFIX)
+  const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
   const publicFiles: GeneratedFile[] = [].concat(manifestFile).concat(htmlIndexFile)
 
   // Step 6: Create the routing component (router.js)
