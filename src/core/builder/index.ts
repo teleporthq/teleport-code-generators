@@ -15,8 +15,8 @@ export default class Builder {
   }
 
   /**
-   * Linnks all chunks togather based on their requirements and returns an array
-   * of ordered chunkn names which need to be compiled and glued togather.
+   * Links all chunks together based on their requirements. Returns an array
+   * of ordered chunk names which need to be compiled and glued together.
    */
   public link(chunkDefinitions: ChunkDefinition[] = []): string {
     const chunks = chunkDefinitions || this.chunkDefinitions
@@ -45,7 +45,7 @@ export default class Builder {
       }
 
       if (unprocessedChunks[indexToRemove].linkAfter.length > 0) {
-        console.info('there`s a cyclic dependency between chunks, operation aborded')
+        console.info('Operation aborted. Reason: cyclic dependency between chunks.')
         return ''
       }
 
@@ -75,7 +75,7 @@ export default class Builder {
 
     if (!this.generators[type]) {
       throw new Error(
-        `Attempted to generate unkown type ${type}. Please register a generator for this type in builder/index.ts`
+        `Attempted to generate unknown type ${type}. Please register a generator for this type in builder/index.ts`
       )
     }
 

@@ -129,7 +129,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
         pagesFolder.files.push(file)
       } catch (err) {
-        console.warn(stateName, err)
+        console.warn(`Error on generating ${stateName} page `, err)
       }
     })
   )
@@ -157,7 +157,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
 
           componentsFolder.files.push(file)
         } catch (err) {
-          console.warn(componentName, err)
+          console.warn(`Error on generating ${componentName} component `, err)
         }
       })
     )
