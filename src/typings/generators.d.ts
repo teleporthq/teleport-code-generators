@@ -232,6 +232,30 @@ interface GeneratedFile {
   extension: string
 }
 
+interface PageFactoryParams {
+  reactGenerator: ComponentGenerator
+  stateBranch: StateBranch
+  routerDefinitions: StateDefinition
+  componentOptions: {
+    assetsPrefix: string
+    localDependenciesPrefix: string
+  }
+}
+
+interface ComponentFactoryParams {
+  reactGenerator: ComponentGenerator
+  componentUIDL: ComponentUIDL
+  componentOptions: {
+    assetsPrefix: string
+    localDependenciesPrefix?: string
+  }
+}
+
+interface GeneratedProjectData {
+  files: GeneratedFile[]
+  dependencies: Record<string, string>
+}
+
 interface ProjectGeneratorOptions {
   sourcePackageJson?: PackageJSON
   distPath?: string

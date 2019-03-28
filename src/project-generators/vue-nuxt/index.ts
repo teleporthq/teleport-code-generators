@@ -3,7 +3,7 @@ import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import nuxtMapping from './nuxt-mapping.json'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER } from './constants'
-import { createManifestJSON, createHtmlIndexFile } from '../../shared/utils/project-utils'
+import { createManifestJSON, createHtmlIndex } from '../../shared/utils/project-utils'
 
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
@@ -67,7 +67,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     staticFolder.files.push(manifestFile)
   }
 
-  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX, '{{ APP }}')
+  const htmlIndexContent = createHtmlIndex(uidl, ASSETS_PREFIX, '{{ APP }}')
   if (htmlIndexContent) {
     const htmlFile: GeneratedFile = {
       name: 'app',

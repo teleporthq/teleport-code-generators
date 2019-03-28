@@ -5,11 +5,17 @@ import {
   addChildNode,
   addTextNode,
   addBooleanAttributeToNode,
-} from '../../shared/utils/html-utils'
-import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
-import { slugify } from './string-utils'
+} from './html-utils'
 
-export const createHtmlIndexFile = (uidl: ProjectUIDL, assetsPrefix, appRootOverride?: string) => {
+import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
+import { slugify, sanitizeVariableName } from './string-utils'
+import { FILE_EXTENSIONS } from '../constants'
+
+export const createHtmlIndex = (
+  uidl: ProjectUIDL,
+  assetsPrefix: string,
+  appRootOverride?: string
+) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -114,8 +120,17 @@ export const createHtmlIndexFile = (uidl: ProjectUIDL, assetsPrefix, appRootOver
 
   const htmlInnerString = generator(htmlNode)
   return `
-<!DOCTYPE html>
-${htmlInnerString}`
+    <!DOCTYPE html>
+    ${htmlInnerString}`
+}
+
+export const createHtmlIndexFile = (
+  uidl: ProjectUIDL,
+  assetsPrefix: string,
+  appRootOverride?: string
+): GeneratedFile => {
+  const content = createHtmlIndex(uidl, assetsPrefix, appRootOverride)
+  return createFile('index', FILE_EXTENSIONS.HTML, content)
 }
 
 // Creates a manifest json with the UIDL having priority over the default values
@@ -143,6 +158,16 @@ export const createManifestJSON = (
   }
 }
 
+export const createManifestJSONFile = (
+  manifest: WebManifest,
+  projectName: string,
+  assetsPrefix?: string
+): GeneratedFile => {
+  const content = createManifestJSON(manifest, projectName, assetsPrefix)
+
+  return createFile('manifest', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+}
+
 export const createPackageJSON = (
   packageJSONTemplate: PackageJSON,
   overwrites: {
@@ -159,5 +184,126 @@ export const createPackageJSON = (
       ...packageJSONTemplate.dependencies,
       ...dependencies,
     },
+  }
+}
+
+export const createPackageJSONFile = (
+  packageJSONTemplate: PackageJSON,
+  overwrites: {
+    dependencies: Record<string, string>
+    projectName: string
+  }
+): GeneratedFile => {
+  const content = createPackageJSON(packageJSONTemplate, overwrites)
+
+  return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+}
+
+export const createPageFile = async (params: PageFactoryParams): Promise<GeneratedProjectData> => {
+  const { reactGenerator, stateBranch, routerDefinitions, componentOptions: options } = params
+
+  const files: GeneratedFile[] = []
+  let dependencies: Record<string, string> = {}
+  const { value, content } = stateBranch
+
+  if (typeof value !== 'string' || typeof content === 'string' || !routerDefinitions) {
+    return { files, dependencies }
+  }
+
+  const { componentName, fileName } = extractPageMetadata(routerDefinitions, value)
+  const pageUIDL = createComponentUIDL(componentName, content, { fileName })
+
+  try {
+    const compiledComponent = await reactGenerator.generateComponent(pageUIDL, { ...options })
+    const { externalCSS, externalDependencies, code } = compiledComponent
+    dependencies = externalDependencies
+
+    if (externalCSS) {
+      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
+      files.push(cssFile)
+    }
+
+    const jsFile = createFile(fileName, FILE_EXTENSIONS.JS, code)
+    files.push(jsFile)
+  } catch (error) {
+    console.warn(componentName, error)
+  }
+
+  return { files, dependencies }
+}
+
+export const createComponentFile = async (
+  params: ComponentFactoryParams
+): Promise<GeneratedProjectData> => {
+  const { reactGenerator, componentUIDL, componentOptions } = params
+
+  const files: GeneratedFile[] = []
+  let dependencies: Record<string, string> = {}
+
+  try {
+    const compiledComponent = await reactGenerator.generateComponent(componentUIDL, {
+      ...componentOptions,
+    })
+
+    const { code, externalCSS, externalDependencies } = compiledComponent
+    const fileName = sanitizeVariableName(componentUIDL.name)
+    dependencies = externalDependencies
+
+    if (externalCSS) {
+      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
+      files.push(cssFile)
+    }
+
+    const jsFile = createFile(fileName, FILE_EXTENSIONS.JS, code)
+    files.push(jsFile)
+  } catch (error) {
+    console.warn(componentUIDL.name, error)
+  }
+  return { files, dependencies }
+}
+
+function createComponentUIDL(
+  name: string,
+  content: ContentNode,
+  meta: Record<string, any>
+): ComponentUIDL {
+  return {
+    name,
+    content,
+    meta: {
+      ...meta,
+    },
+  }
+}
+
+export const joinComponentFiles = (
+  componentFiles: GeneratedProjectData[]
+): GeneratedProjectData => {
+  let dependencies = {}
+
+  const files = componentFiles.reduce((componentFile: GeneratedFile[], currentFile) => {
+    dependencies = {
+      ...dependencies,
+      ...currentFile.dependencies,
+    }
+    return componentFile.concat(currentFile.files)
+  }, [])
+
+  return { files, dependencies }
+}
+
+export const createFile = (name: string, extension: string, content: string): GeneratedFile => {
+  return { name, extension, content }
+}
+
+export const createFolder = (
+  name: string,
+  files: GeneratedFile[] = [],
+  subFolders: GeneratedFolder[] = []
+): GeneratedFolder => {
+  return {
+    name,
+    files,
+    subFolders,
   }
 }

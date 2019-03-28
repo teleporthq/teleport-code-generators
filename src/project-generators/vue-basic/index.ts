@@ -4,7 +4,7 @@ import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import {
   createManifestJSON,
-  createHtmlIndexFile,
+  createHtmlIndex,
   createPackageJSON,
 } from '../../shared/utils/project-utils'
 import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
@@ -79,7 +79,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     publicFolder.files.push(manifestFile)
   }
 
-  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX)
+  const htmlIndexContent = createHtmlIndex(uidl, ASSETS_PREFIX)
   if (htmlIndexContent) {
     const htmlFile: GeneratedFile = {
       name: 'index',
