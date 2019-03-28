@@ -2,7 +2,7 @@ import Ajv from 'ajv'
 import componentSchema from '../../uidl-definitions/schemas/component.json'
 import projectSchema from '../../uidl-definitions/schemas/project.json'
 
-type ValidationResult = {
+interface ValidationResult {
   valid: boolean
   errorMsg: string
 }
@@ -44,12 +44,10 @@ export default class Validator {
 const formatErrors = (errors: any) => {
   const listOfErrors = []
   errors.forEach((error) => {
-    let message
-    if (error.keyword === 'type') {
-      message = `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
-    } else {
-      message = `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
-    }
+    const message =
+      error.keyword === 'type'
+        ? `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
+        : `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
     listOfErrors.push(message)
   })
 

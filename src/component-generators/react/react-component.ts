@@ -55,7 +55,6 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     if (!options.skipValidation) {
       const validationResult = validator.validateComponent(uidl)
       if (!validationResult.valid) {
-        console.log('validationResult.errorMsg', validationResult.errorMsg)
         throw new Error(validationResult.errorMsg)
       }
     }
