@@ -233,7 +233,7 @@ interface GeneratedFile {
 }
 
 interface PageFactoryParams {
-  reactGenerator: ComponentGenerator
+  componentGenerator: ComponentGenerator
   stateBranch: StateBranch
   routerDefinitions: StateDefinition
   componentOptions: {
@@ -244,15 +244,17 @@ interface PageFactoryParams {
     usePathAsFileName?: boolean
     convertDefaultToIndex?: boolean
   }
+  pageExtension?: string
 }
 
 interface ComponentFactoryParams {
-  reactGenerator: ComponentGenerator
+  componentGenerator: ComponentGenerator
   componentUIDL: ComponentUIDL
   componentOptions: {
     assetsPrefix: string
     localDependenciesPrefix?: string
   }
+  componentExtension?: string
 }
 
 interface GeneratedProjectData {

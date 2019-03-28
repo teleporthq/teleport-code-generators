@@ -12,13 +12,13 @@ import createReactGenerator, {
 
 import { createDocumentComponentFile, buildFolderStructure } from './utils'
 
-import nextMapping from './next-mapping.json'
 import {
   ASSETS_PREFIX,
   DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
+import nextMapping from './next-mapping.json'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
@@ -50,7 +50,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 2: The first level stateBranches (the pages) transformation in react components is started
   const pagePromises = states.map(async (stateBranch) => {
     const pageParams: PageFactoryParams = {
-      reactGenerator,
+      componentGenerator: reactGenerator,
       stateBranch,
       routerDefinitions,
       componentOptions: {
@@ -69,8 +69,8 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const componentPromises = Object.keys(components).map(async (componentName) => {
     const componentUIDL = components[componentName]
     const componentParams: ComponentFactoryParams = {
-      reactGenerator,
       componentUIDL,
+      componentGenerator: reactGenerator,
       componentOptions: { assetsPrefix: ASSETS_PREFIX },
     }
     return createComponentFile(componentParams)
@@ -112,10 +112,8 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     distFolderName: options.distPath || DEFAULT_OUTPUT_FOLDER,
   })
 
-  const result = {
+  return {
     outputFolder: distFolder,
     assetsPath: ASSETS_PREFIX.slice(1),
   }
-
-  return result
 }

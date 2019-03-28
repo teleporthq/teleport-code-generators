@@ -14,4 +14,5 @@ export const FILE_EXTENSIONS = {
   HTML: '.html',
   JS: '.js',
   JSON: '.json',
+  VUE: '.vue',
 }

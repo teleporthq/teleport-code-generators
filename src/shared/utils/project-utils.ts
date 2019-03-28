@@ -203,11 +203,12 @@ export const createPackageJSONFile = (
 
 export const createPageFile = async (params: PageFactoryParams): Promise<GeneratedProjectData> => {
   const {
-    reactGenerator,
+    componentGenerator,
     stateBranch,
     routerDefinitions,
     componentOptions: options,
     pageMetadataOptions,
+    pageExtension,
   } = params
 
   const files: GeneratedFile[] = []
@@ -224,7 +225,9 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
   const pageUIDL = createComponentUIDL(componentName, content, { fileName })
 
   try {
-    const compiledPageComponent = await reactGenerator.generateComponent(pageUIDL, { ...options })
+    const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
+      ...options,
+    })
     const { externalCSS, externalDependencies, code } = compiledPageComponent
     dependencies = externalDependencies
 
@@ -233,8 +236,9 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
       files.push(cssFile)
     }
 
-    const jsFile = createFile(fileName, FILE_EXTENSIONS.JS, code)
-    files.push(jsFile)
+    const fileExtension = pageExtension || FILE_EXTENSIONS.JS
+    const pageFile = createFile(fileName, fileExtension, code)
+    files.push(pageFile)
   } catch (error) {
     console.warn(componentName, error)
   }
@@ -245,13 +249,12 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
 export const createComponentFile = async (
   params: ComponentFactoryParams
 ): Promise<GeneratedProjectData> => {
-  const { reactGenerator, componentUIDL, componentOptions } = params
-
-  const files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
+  const files: GeneratedFile[] = []
+  const { componentGenerator, componentUIDL, componentExtension, componentOptions } = params
 
   try {
-    const compiledComponent = await reactGenerator.generateComponent(componentUIDL, {
+    const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
       ...componentOptions,
     })
 
@@ -264,8 +267,9 @@ export const createComponentFile = async (
       files.push(cssFile)
     }
 
-    const jsFile = createFile(fileName, FILE_EXTENSIONS.JS, code)
-    files.push(jsFile)
+    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
+    const componentFile = createFile(fileName, fileExtension, code)
+    files.push(componentFile)
   } catch (error) {
     console.warn(componentUIDL.name, error)
   }

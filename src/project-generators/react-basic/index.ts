@@ -48,7 +48,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 1: The first level stateBranches (the pages) transformation in react components is started
   const pagePromises = states.map(async (stateBranch) => {
     const pageParams: PageFactoryParams = {
-      reactGenerator,
+      componentGenerator: reactGenerator,
       stateBranch,
       routerDefinitions,
       componentOptions: {
@@ -63,7 +63,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   const componentPromises = Object.keys(components).map(async (componentName) => {
     const componentUIDL = components[componentName]
     const componentParams: ComponentFactoryParams = {
-      reactGenerator,
+      componentGenerator: reactGenerator,
       componentUIDL,
       componentOptions: { assetsPrefix: ASSETS_PREFIX },
     }
@@ -116,10 +116,8 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
     distFolderName: options.distPath || DEFAULT_OUTPUT_FOLDER,
   })
 
-  const result = {
+  return {
     outputFolder: distFolder,
     assetsPath: 'src' + ASSETS_PREFIX,
   }
-
-  return result
 }
