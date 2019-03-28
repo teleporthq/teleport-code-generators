@@ -25,7 +25,6 @@ describe('component validation', () => {
 describe('project validation', () => {
   describe('valid', () => {
     it('return true', () => {
-      console.log(projectSample)
       expect(validateProject(projectSample)).toBe(true)
     })
   })
