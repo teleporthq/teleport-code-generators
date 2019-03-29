@@ -105,7 +105,10 @@
                 "type": "video",
                 "name": "video",
                 "attrs": {
-                  "autoPlay": true
+                  "autoPlay": {
+                    "type": "static",
+                    "content": true
+                  }
                 },
                 "children": [
                   {
@@ -149,8 +152,8 @@
                     "type": "ExpandableArea",
                     "name": "area1",
                     "attrs": {
-                      "title": "First",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "First" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -160,8 +163,8 @@
                     "type": "ExpandableArea",
                     "name": "area2",
                     "attrs": {
-                      "title": "Second",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Second" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -171,8 +174,8 @@
                     "type": "ExpandableArea",
                     "name": "area3",
                     "attrs": {
-                      "title": "Third",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Third" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
