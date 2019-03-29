@@ -1,8 +1,8 @@
 // Different project flavor creators
-export { default as createReactBasicProject } from './project-generators/react-basic'
-export { default as createReactNextProject } from './project-generators/react-next'
-export { default as createVueBasicProject } from './project-generators/vue-basic'
-export { default as createVueNuxtProject } from './project-generators/vue-nuxt'
+export { default as createReactBasicGenerator } from './project-generators/react-basic'
+export { default as createReactNextGenerator } from './project-generators/react-next'
+export { default as createVueBasicGenerator } from './project-generators/vue-basic'
+export { default as createVueNuxtGenerator } from './project-generators/vue-nuxt'
 
 // Factory functions for the component generators
 export {

@@ -4,7 +4,7 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import { createVueBasicProject } from '../../../src'
+import { createVueBasicGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -37,5 +37,13 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-writeToDisk(projectJson, createVueBasicProject, path.join(__dirname, 'project-template'), 'dist')
+const generator = createVueBasicGenerator()
+
+writeToDisk(
+  projectJson,
+  generator.generateProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
+
 // runInMemory(projectJson, createVueProject)

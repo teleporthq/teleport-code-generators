@@ -6,7 +6,7 @@ import projectJson from '../../uidl-samples/project-state-components.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 
-import { createReactBasicProject } from '../../../src'
+import { createReactBasicGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -40,5 +40,13 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-writeToDisk(projectJson, createReactBasicProject, path.join(__dirname, 'project-template'), 'dist')
+const generator = createReactBasicGenerator()
+
+writeToDisk(
+  projectJson,
+  generator.generateProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
+
 // runInMemory(projectJson, createReactProject)
