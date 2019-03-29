@@ -12,7 +12,7 @@ import {
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
 import {
-  createdPageOutputs,
+  createPageOutputs,
   createComponentOutputs,
   createManifestJSONFile,
   createHtmlIndexFile,
@@ -83,7 +83,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
         },
       }
 
-      return createdPageOutputs(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 2: The components generation process is started

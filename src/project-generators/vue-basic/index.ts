@@ -1,6 +1,6 @@
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import {
-  createdPageOutputs,
+  createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
@@ -76,7 +76,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
       }
-      return createdPageOutputs(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 2: The components generation process is started

@@ -9,7 +9,7 @@ import { createRouterIndexFile, buildFolderStructure } from './utils'
 import {
   createPackageJSONFile,
   createHtmlIndexFile,
-  createdPageOutputs,
+  createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
@@ -80,7 +80,7 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
       }
-      return createdPageOutputs(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 2: The components generation process is started

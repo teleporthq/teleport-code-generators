@@ -179,7 +179,7 @@ export const createPackageJSONFile = (
   return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
 }
 
-export const createdPageOutputs = async (
+export const createPageOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
   const {

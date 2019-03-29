@@ -1,5 +1,5 @@
 import {
-  createdPageOutputs,
+  createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
@@ -86,7 +86,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
           convertDefaultToIndex: true,
         },
       }
-      return createdPageOutputs(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 3: The components generation process is started
