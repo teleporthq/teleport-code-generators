@@ -1,7 +1,7 @@
 import {
-  createPageFile,
-  createComponentFile,
-  joinComponentGeneratorOutputs,
+  createdPageOutputs,
+  createComponentOutputs,
+  joinGeneratorOutputs,
   createManifestJSONFile,
   createPackageJSONFile,
 } from '../../shared/utils/project-utils'
@@ -37,17 +37,15 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const reactGenerator = initGenerator(generatorOptions)
 
-  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
-    if (!mappingOptions.customMapping) {
-      return
-    }
-
-    reactGenerator.addMapping(mappingOptions.customMapping)
+  const addCustomMapping = (mapping: Mapping) => {
+    reactGenerator.addMapping(mapping)
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
     // Step 0: Add any custom mappings found in the options
-    addCustomMapping(options)
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
+    }
 
     const { components = {}, root } = uidl
     const { states = [] } = root.content
@@ -88,7 +86,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
           convertDefaultToIndex: true,
         },
       }
-      return createPageFile(pageParams)
+      return createdPageOutputs(pageParams)
     })
 
     // Step 3: The components generation process is started
@@ -99,7 +97,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
         componentGenerator: reactGenerator,
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
-      return createComponentFile(componentParams)
+      return createComponentOutputs(componentParams)
     })
 
     // Step 3: The process of creating the pages and the components is awaited
@@ -107,10 +105,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 4: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutputs(createdPageFiles)
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles: GeneratedFile[] = documentComponentFile.concat(joinedPageFiles.files)
 
-    const joinedComponentFiles = joinComponentGeneratorOutputs(createdComponentFiles)
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles: GeneratedFile[] = joinedComponentFiles.files
 
     // Step 5: Global settings are transformed into the manifest file for PWA support

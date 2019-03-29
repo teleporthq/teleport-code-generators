@@ -1,8 +1,8 @@
 import createVueGenerator from '../../component-generators/vue/vue-component'
 import {
-  createPageFile,
-  createComponentFile,
-  joinComponentGeneratorOutputs,
+  createdPageOutputs,
+  createComponentOutputs,
+  joinGeneratorOutputs,
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
@@ -33,17 +33,15 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const vueGenerator = initGenerator(generatorOptions)
 
-  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
-    if (!mappingOptions.customMapping) {
-      return
-    }
-
-    vueGenerator.addMapping(mappingOptions.customMapping)
+  const addCustomMapping = (mapping: Mapping) => {
+    vueGenerator.addMapping(mapping)
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
     // Step 0: Add any custom mappings found in the options
-    addCustomMapping(options)
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
+    }
 
     const { components = {}, root } = uidl
     const { states = [] } = root.content
@@ -78,7 +76,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
       }
-      return createPageFile(pageParams)
+      return createdPageOutputs(pageParams)
     })
 
     // Step 2: The components generation process is started
@@ -91,7 +89,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
 
-      return createComponentFile(componentParams)
+      return createComponentOutputs(componentParams)
     })
 
     // Step 3: The process of creating the pages and the components is awaited
@@ -99,10 +97,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 4: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutputs(createdPageFiles)
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles: GeneratedFile[] = [].concat(joinedPageFiles.files)
 
-    const joinedComponentFiles = joinComponentGeneratorOutputs(createdComponentFiles)
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
@@ -112,7 +110,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       publicFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
     publicFiles.push(htmlIndexFile)
 
     // Step 6: Create the routing component (router.js)

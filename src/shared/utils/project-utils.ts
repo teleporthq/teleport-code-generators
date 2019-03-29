@@ -11,15 +11,17 @@ import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify, sanitizeVariableName } from './string-utils'
 import { FILE_EXTENSIONS } from '../constants'
 
-interface HtmlIndexFileParams {
-  uidl: ProjectUIDL
-  assetsPrefix: string
+interface HtmlIndexFileOptions {
+  assetsPrefix?: string
   fileName?: string
   appRootOverride?: string
 }
 
-export const createHtmlIndexFile = (params: HtmlIndexFileParams): GeneratedFile => {
-  const { uidl, assetsPrefix, fileName = 'index', appRootOverride } = params
+export const createHtmlIndexFile = (
+  uidl: ProjectUIDL,
+  options: HtmlIndexFileOptions
+): GeneratedFile => {
+  const { assetsPrefix = '', fileName = 'index', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -177,7 +179,7 @@ export const createPackageJSONFile = (
   return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
 }
 
-export const createPageFile = async (
+export const createdPageOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
   const {
@@ -226,7 +228,7 @@ export const createPageFile = async (
   return { files, dependencies }
 }
 
-export const createComponentFile = async (
+export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
   let dependencies: Record<string, string> = {}
@@ -256,7 +258,7 @@ export const createComponentFile = async (
   return { files, dependencies }
 }
 
-export const joinComponentGeneratorOutputs = (
+export const joinGeneratorOutputs = (
   generatorOutputs: ComponentGeneratorOutput[]
 ): ComponentGeneratorOutput => {
   return generatorOutputs.reduce(
