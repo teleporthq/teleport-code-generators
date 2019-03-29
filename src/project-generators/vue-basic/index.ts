@@ -2,7 +2,7 @@ import createVueGenerator from '../../component-generators/vue/vue-component'
 import {
   createPageFile,
   createComponentFile,
-  joinComponentGeneratorOutput,
+  joinComponentGeneratorOutputs,
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
@@ -99,10 +99,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 4: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinComponentGeneratorOutputs(createdPageFiles)
     const pageFiles: GeneratedFile[] = [].concat(joinedPageFiles.files)
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinComponentGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support

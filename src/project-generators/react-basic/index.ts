@@ -11,7 +11,7 @@ import {
   createHtmlIndexFile,
   createPageFile,
   createComponentFile,
-  joinComponentGeneratorOutput,
+  joinComponentGeneratorOutputs,
   createManifestJSONFile,
 } from '../../shared/utils/project-utils'
 
@@ -101,10 +101,10 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 4: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinComponentGeneratorOutputs(createdPageFiles)
     const pageFiles = joinedPageFiles.files
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinComponentGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support

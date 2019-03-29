@@ -17,7 +17,7 @@ import {
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
-  joinComponentGeneratorOutput,
+  joinComponentGeneratorOutputs,
 } from '../../shared/utils/project-utils'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
@@ -105,10 +105,10 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 4: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinComponentGeneratorOutputs(createdPageFiles)
     const pageFiles = joinedPageFiles.files
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinComponentGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 5: Global settings are transformed into the manifest file for PWA support

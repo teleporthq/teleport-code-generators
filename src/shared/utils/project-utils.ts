@@ -256,7 +256,7 @@ export const createComponentFile = async (
   return { files, dependencies }
 }
 
-export const joinComponentGeneratorOutput = (
+export const joinComponentGeneratorOutputs = (
   generatorOutputs: ComponentGeneratorOutput[]
 ): ComponentGeneratorOutput => {
   return generatorOutputs.reduce(
