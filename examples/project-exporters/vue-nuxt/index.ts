@@ -4,7 +4,7 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import { UIDLValidators, createVueNuxtGenerator } from '../../../src'
+import { createVueNuxtGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -37,9 +37,6 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-// tslint:disable-next-line: no-console
-console.log(UIDLValidators.validateProject(projectJson))
-
 const generator = createVueNuxtGenerator()
 
 writeToDisk(
@@ -48,4 +45,5 @@ writeToDisk(
   path.join(__dirname, 'project-template'),
   'dist'
 )
+
 // runInMemory(projectJson, createNuxtProject)

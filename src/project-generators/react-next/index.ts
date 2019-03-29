@@ -46,7 +46,6 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Initialize the component generator
     // Step 0: Add any custom mappings found in the options
     addCustomMapping(options)
 

@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "component.json",
   "title": "Component UIDL",
   "type": "object",
   "required": ["name", "content"],
@@ -212,7 +213,7 @@
           "additionalProperties": false,
           "required": ["type", "defaultValue"],
           "properties": {
-            "type": {"type":"string", "enum": ["string", "boolean", "number", "object", "func", "array"]},
+            "type": {"type":"string", "enum": ["string", "boolean", "number", "object", "func", "array", "router"]},
             "values": {
               "type": "array",
               "items": {
