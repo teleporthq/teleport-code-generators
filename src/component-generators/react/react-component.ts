@@ -1,4 +1,4 @@
-import { AssemblyLine, Builder, Resolver } from '../../core'
+import { AssemblyLine, Builder, Resolver, Validator } from '../../core'
 
 import reactComponentPlugin from '../../plugins/teleport-plugin-react-base-component'
 import reactStyledJSXPlugin from '../../plugins/teleport-plugin-react-styled-jsx'
@@ -33,6 +33,7 @@ const stylePlugins = {
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
   const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping } = params
   const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
+  const validator = new Validator()
 
   const resolver = new Resolver()
   resolver.addMapping(htmlMapping)
@@ -49,9 +50,16 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   const generateComponent = async (
     uidl: ComponentUIDL,
-    generatorOptions: GeneratorOptions = {}
+    options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
-    const resolvedUIDL = resolver.resolveUIDL(uidl, generatorOptions)
+    if (!options.skipValidation) {
+      const validationResult = validator.validateComponent(uidl)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.errorMsg)
+      }
+    }
+
+    const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
     const code = chunksLinker.link(chunks.default)

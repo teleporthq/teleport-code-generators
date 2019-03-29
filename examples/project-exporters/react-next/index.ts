@@ -5,7 +5,7 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import { UIDLValidators, createReactNextProject } from '../../../src'
+import { createReactNextProject } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -41,8 +41,6 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-// tslint:disable-next-line: no-console
-console.log(UIDLValidators.validateProject(projectJson))
 // @ts-ignore
 writeToDisk(projectJson, createReactNextProject, path.join(__dirname, 'project-template'), 'dist')
 // runInMemory(projectJson, createNextProject)

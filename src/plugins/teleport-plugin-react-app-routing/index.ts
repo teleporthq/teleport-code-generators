@@ -30,7 +30,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       const { value: pageKey } = page
 
       if (typeof pageKey !== 'string' || typeof content === 'string') {
-        console.warn('Route not correctly specified. Value should be a string when defining routes')
+        console.warn('Route is not correctly specified. Expected route value to be a string.')
         return null
       }
 

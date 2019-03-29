@@ -38,7 +38,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     ...config,
   }
 
-  const reactCSSModules: ComponentPlugin = async (structure) => {
+  const reactCSSModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
     const { name, meta } = uidl
 
@@ -123,7 +123,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     return structure
   }
 
-  return reactCSSModules
+  return reactCSSModulesPlugin
 }
 
 export default createPlugin()

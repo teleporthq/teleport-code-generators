@@ -3,7 +3,6 @@
   "name": "BigSample",
   "content": {
     "type": "container",
-    "key": "container",
     "children": []
   }
 }

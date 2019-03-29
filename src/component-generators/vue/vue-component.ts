@@ -1,4 +1,4 @@
-import { AssemblyLine, Builder, Resolver } from '../../core'
+import { AssemblyLine, Builder, Resolver, Validator } from '../../core'
 
 import vueComponentPlugin from '../../plugins/teleport-plugin-vue-base-component'
 import vueStylePlugin from '../../plugins/teleport-plugin-vue-css'
@@ -12,6 +12,7 @@ import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/str
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping }
 ): ComponentGenerator => {
+  const validator = new Validator()
   const resolver = new Resolver([htmlMapping, vueMapping, customMapping])
   const assemblyLine = new AssemblyLine([
     vueComponentPlugin,
@@ -25,6 +26,13 @@ const createVueGenerator = (
     uidl: ComponentUIDL,
     options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
+    if (!options.skipValidation) {
+      const validationResult = validator.validateComponent(uidl)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.errorMsg)
+      }
+    }
+
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
