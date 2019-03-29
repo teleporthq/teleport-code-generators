@@ -232,21 +232,6 @@ interface GeneratedFile {
   extension: string
 }
 
-interface PageFactoryParams {
-  componentGenerator: ComponentGenerator
-  stateBranch: StateBranch
-  routerDefinitions: StateDefinition
-  componentOptions: {
-    assetsPrefix: string
-    localDependenciesPrefix: string
-  }
-  pageMetadataOptions?: {
-    usePathAsFileName?: boolean
-    convertDefaultToIndex?: boolean
-  }
-  pageExtension?: string
-}
-
 interface ComponentFactoryParams {
   componentGenerator: ComponentGenerator
   componentUIDL: ComponentUIDL
@@ -254,19 +239,14 @@ interface ComponentFactoryParams {
     assetsPrefix: string
     localDependenciesPrefix?: string
   }
+  metadataOptions?: {
+    usePathAsFileName?: boolean
+    convertDefaultToIndex?: boolean
+  }
   componentExtension?: string
 }
 
-interface FolderStructureParams {
-  distFolderName: string
-  componentFiles: GeneratedFile[]
-  distFiles: GeneratedFile[]
-  pageFiles: GeneratedFile[]
-  publicFiles: GeneratedFile[]
-  srcFiles?: GeneratedFile[]
-}
-
-interface GeneratedProjectData {
+interface ComponentGeneratorOutput {
   files: GeneratedFile[]
   dependencies: Record<string, string>
 }

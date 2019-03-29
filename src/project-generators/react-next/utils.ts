@@ -160,13 +160,13 @@ export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile | 
   return createFile('_document', FILE_EXTENSIONS.JS, documentComponent)
 }
 
-export const buildFolderStructure = (params: FolderStructureParams): GeneratedFolder => {
-  const { componentFiles, pageFiles, publicFiles, distFiles } = params
-  const { distFolderName } = params
+export const buildFolderStructure = (
+  files: Record<string, GeneratedFile[]>,
+  distFolderName: string
+): GeneratedFolder => {
+  const pagesFolder = createFolder('pages', files.pages)
+  const componentsFolder = createFolder('components', files.components)
+  const staticFolder = createFolder('static', files.static)
 
-  const pagesFolder = createFolder('pages', pageFiles)
-  const componentsFolder = createFolder('components', componentFiles)
-  const staticFolder = createFolder('static', publicFiles)
-
-  return createFolder(distFolderName, distFiles, [pagesFolder, componentsFolder, staticFolder])
+  return createFolder(distFolderName, files.dist, [pagesFolder, componentsFolder, staticFolder])
 }

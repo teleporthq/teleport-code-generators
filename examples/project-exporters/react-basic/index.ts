@@ -6,7 +6,7 @@ import projectJson from '../../uidl-samples/project-state-components.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 
-import { UIDLValidators, createReactBasicProject } from '../../../src'
+import { UIDLValidators, createReactBasicGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -43,5 +43,12 @@ const writeToDisk = async (
 // tslint:disable-next-line: no-console
 console.log(UIDLValidators.validateProject(projectJson))
 
-writeToDisk(projectJson, createReactBasicProject, path.join(__dirname, 'project-template'), 'dist')
+const generator = createReactBasicGenerator()
+
+writeToDisk(
+  projectJson,
+  generator.generateProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
 // runInMemory(projectJson, createReactProject)

@@ -2,15 +2,16 @@
 import projectUIDL from '../fixtures/project-sample.json'
 
 import {
-  createReactBasicProject,
-  createReactNextProject,
-  createVueBasicProject,
-  createVueNuxtProject,
+  createReactBasicGenerator,
+  createReactNextGenerator,
+  createVueBasicGenerator,
+  createVueNuxtGenerator,
 } from '../../src'
 
 describe('React Basic Project Generator', () => {
   it('runs without crashing', async () => {
-    const result = await createReactBasicProject(projectUIDL)
+    const generator = createReactBasicGenerator()
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -27,7 +28,8 @@ describe('React Basic Project Generator', () => {
 
 describe('React Next Project Generator', () => {
   it('runs without crashing', async () => {
-    const result = await createReactNextProject(projectUIDL)
+    const generator = createReactNextGenerator()
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -42,7 +44,8 @@ describe('React Next Project Generator', () => {
 
 describe('Vue Basic Project Generator', () => {
   it('runs without crashing', async () => {
-    const result = await createVueBasicProject(projectUIDL)
+    const generator = createVueBasicGenerator()
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -51,7 +54,8 @@ describe('Vue Basic Project Generator', () => {
 
 describe('Vue Nuxt Project Generator', () => {
   it('runs without crashing', async () => {
-    const result = await createVueNuxtProject(projectUIDL)
+    const generator = createVueNuxtGenerator()
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')

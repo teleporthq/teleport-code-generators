@@ -11,11 +11,15 @@ import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify, sanitizeVariableName } from './string-utils'
 import { FILE_EXTENSIONS } from '../constants'
 
-export const createHtmlIndex = (
-  uidl: ProjectUIDL,
-  assetsPrefix: string,
+interface HtmlIndexFileParams {
+  uidl: ProjectUIDL
+  assetsPrefix: string
+  fileName?: string
   appRootOverride?: string
-) => {
+}
+
+export const createHtmlIndexFile = (params: HtmlIndexFileParams): GeneratedFile => {
+  const { uidl, assetsPrefix, fileName = 'index', appRootOverride } = params
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -119,31 +123,18 @@ export const createHtmlIndex = (
   })
 
   const htmlInnerString = generator(htmlNode)
-  return `
+  const content = `
     <!DOCTYPE html>
     ${htmlInnerString}`
-}
 
-interface HtmlIndexFileParams {
-  uidl: ProjectUIDL
-  assetsPrefix: string
-  fileName?: string
-  appRootOverride?: string
-}
-
-export const createHtmlIndexFile = (params: HtmlIndexFileParams): GeneratedFile => {
-  const { uidl, assetsPrefix, fileName = 'index', appRootOverride } = params
-
-  const content = createHtmlIndex(uidl, assetsPrefix, appRootOverride)
   return createFile(fileName, FILE_EXTENSIONS.HTML, content)
 }
 
-// Creates a manifest json with the UIDL having priority over the default values
-export const createManifestJSON = (
-  manifest: WebManifest,
-  projectName: string,
-  assetsPrefix?: string
-) => {
+// Creates a manifest json file with the UIDL having priority over the default values
+export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string): GeneratedFile => {
+  const manifest = uidl.globals.manifest
+  const projectName = uidl.name
+
   const defaultManifest: WebManifest = {
     short_name: projectName,
     name: projectName,
@@ -156,42 +147,13 @@ export const createManifestJSON = (
     return { ...icon, src }
   })
 
-  return {
+  const content = {
     ...defaultManifest,
     ...manifest,
     ...{ icons },
   }
-}
 
-export const createManifestJSONFile = (
-  uidl: ProjectUIDL,
-  assetsPrefix?: string
-): GeneratedFile | [] => {
-  if (!uidl.globals.manifest) {
-    return []
-  }
-
-  const content = createManifestJSON(uidl.globals.manifest, uidl.name, assetsPrefix)
   return createFile('manifest', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
-}
-
-export const createPackageJSON = (
-  packageJSONTemplate: PackageJSON,
-  overwrites: {
-    dependencies: Record<string, string>
-    projectName: string
-  }
-): PackageJSON => {
-  const { projectName, dependencies } = overwrites
-
-  return {
-    ...packageJSONTemplate,
-    name: slugify(projectName),
-    dependencies: {
-      ...packageJSONTemplate.dependencies,
-      ...dependencies,
-    },
-  }
 }
 
 export const createPackageJSONFile = (
@@ -201,37 +163,50 @@ export const createPackageJSONFile = (
     projectName: string
   }
 ): GeneratedFile => {
-  const content = createPackageJSON(packageJSONTemplate, overwrites)
+  const { projectName, dependencies } = overwrites
+
+  const content: PackageJSON = {
+    ...packageJSONTemplate,
+    name: slugify(projectName),
+    dependencies: {
+      ...packageJSONTemplate.dependencies,
+      ...dependencies,
+    },
+  }
 
   return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
 }
 
-export const createPageFile = async (params: PageFactoryParams): Promise<GeneratedProjectData> => {
+export const createPageFile = async (
+  params: ComponentFactoryParams
+): Promise<ComponentGeneratorOutput> => {
   const {
     componentGenerator,
-    stateBranch,
-    routerDefinitions,
-    componentOptions: options,
-    pageMetadataOptions,
-    pageExtension,
+    componentUIDL,
+    componentOptions,
+    metadataOptions,
+    componentExtension,
   } = params
 
   const files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
-  const { value, content } = stateBranch
-
-  if (typeof value !== 'string' || typeof content === 'string' || !routerDefinitions) {
-    return { files, dependencies }
-  }
+  const { name: value, content } = componentUIDL
+  const { routerDefinitions } = componentUIDL.stateDefinitions
 
   const { componentName, fileName } = extractPageMetadata(routerDefinitions, value, {
-    ...pageMetadataOptions,
+    ...metadataOptions,
   })
-  const pageUIDL = createComponentUIDL(componentName, content, { fileName })
+  const pageUIDL: ComponentUIDL = {
+    name: componentName,
+    content,
+    meta: {
+      fileName,
+    },
+  }
 
   try {
     const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
-      ...options,
+      ...componentOptions,
     })
     const { externalCSS, externalDependencies, code } = compiledPageComponent
     dependencies = externalDependencies
@@ -241,7 +216,7 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
       files.push(cssFile)
     }
 
-    const fileExtension = pageExtension || FILE_EXTENSIONS.JS
+    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
     const pageFile = createFile(fileName, fileExtension, code)
     files.push(pageFile)
   } catch (error) {
@@ -253,7 +228,7 @@ export const createPageFile = async (params: PageFactoryParams): Promise<Generat
 
 export const createComponentFile = async (
   params: ComponentFactoryParams
-): Promise<GeneratedProjectData> => {
+): Promise<ComponentGeneratorOutput> => {
   let dependencies: Record<string, string> = {}
   const files: GeneratedFile[] = []
   const { componentGenerator, componentUIDL, componentExtension, componentOptions } = params
@@ -281,34 +256,23 @@ export const createComponentFile = async (
   return { files, dependencies }
 }
 
-function createComponentUIDL(
-  name: string,
-  content: ContentNode,
-  meta: Record<string, any>
-): ComponentUIDL {
-  return {
-    name,
-    content,
-    meta: {
-      ...meta,
+export const joinComponentGeneratorOutput = (
+  generatorOutputs: ComponentGeneratorOutput[]
+): ComponentGeneratorOutput => {
+  return generatorOutputs.reduce(
+    (result, generatorOutput) => {
+      const { dependencies, files } = result
+
+      return {
+        files: files.concat(generatorOutput.files),
+        dependencies: {
+          ...dependencies,
+          ...generatorOutput.dependencies,
+        },
+      }
     },
-  }
-}
-
-export const joinComponentFiles = (
-  componentFiles: GeneratedProjectData[]
-): GeneratedProjectData => {
-  let dependencies = {}
-
-  const files = componentFiles.reduce((componentFile: GeneratedFile[], currentFile) => {
-    dependencies = {
-      ...dependencies,
-      ...currentFile.dependencies,
-    }
-    return componentFile.concat(currentFile.files)
-  }, [])
-
-  return { files, dependencies }
+    { dependencies: {}, files: [] }
+  )
 }
 
 export const createFile = (name: string, extension: string, content: string): GeneratedFile => {

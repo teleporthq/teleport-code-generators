@@ -3,22 +3,22 @@ import createRouterComponentGenerator from '../../component-generators/react/rea
 import { createFolder, createFile } from '../../shared/utils/project-utils'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
-export const buildFolderStructure = (params: FolderStructureParams): GeneratedFolder => {
-  const { componentFiles, pageFiles, publicFiles, srcFiles, distFiles } = params
-  const { distFolderName } = params
+export const buildFolderStructure = (
+  files: Record<string, GeneratedFile[]>,
+  distFolderName: string
+): GeneratedFolder => {
+  const pagesFolder = createFolder('pages', files.pages)
+  const componentsFolder = createFolder('components', files.components)
+  const staticFolder = createFolder('static', files.static)
+  const srcFolder = createFolder('src', files.src, [componentsFolder, pagesFolder, staticFolder])
 
-  const pagesFolder = createFolder('pages', pageFiles)
-  const componentsFolder = createFolder('components', componentFiles)
-  const staticFolder = createFolder('static', publicFiles)
-  const srcFolder = createFolder('src', srcFiles, [componentsFolder, pagesFolder, staticFolder])
-
-  return createFolder(distFolderName, distFiles, [srcFolder])
+  return createFolder(distFolderName, files.dist, [srcFolder])
 }
 
 export const createRouterIndexFile = async (root: ComponentUIDL) => {
   const routingComponentGenerator = createRouterComponentGenerator()
   const { code, externalDependencies } = await routingComponentGenerator.generateComponent(root)
-  const indexFile = createFile('index', FILE_EXTENSIONS.JS, code)
+  const routerFile = createFile('index', FILE_EXTENSIONS.JS, code)
 
-  return { indexFile, externalDependencies }
+  return { routerFile, externalDependencies }
 }

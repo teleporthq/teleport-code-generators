@@ -2,7 +2,7 @@ import createVueGenerator from '../../component-generators/vue/vue-component'
 import {
   createPageFile,
   createComponentFile,
-  joinComponentFiles,
+  joinComponentGeneratorOutput,
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
@@ -30,89 +30,133 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
   return vueGenerator
 }
 
-export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-  // Step 0: Initialize the component generator
-  const vueGenerator = initGenerator(options)
+const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+  const vueGenerator = initGenerator(generatorOptions)
 
-  const { components = {}, root } = uidl
-  const { states = [] } = root.content
-
-  const stateDefinitions = root.stateDefinitions || {}
-  const routerDefinitions = stateDefinitions.router || null
-
-  // Step 1: The first level stateBranches (the pages) transformation in react components is started
-  const pagePromises = states.map(async (stateBranch) => {
-    const pageParams: PageFactoryParams = {
-      componentGenerator: vueGenerator,
-      stateBranch,
-      routerDefinitions,
-      pageExtension: FILE_EXTENSIONS.VUE,
-      componentOptions: {
-        assetsPrefix: ASSETS_PREFIX,
-        localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
-      },
-    }
-    return createPageFile(pageParams)
-  })
-
-  // Step 2: The components generation process is started
-  const componentPromises = Object.keys(components).map(async (componentName) => {
-    const componentUIDL = components[componentName]
-    const componentParams: ComponentFactoryParams = {
-      componentUIDL,
-      componentGenerator: vueGenerator,
-      componentExtension: FILE_EXTENSIONS.VUE,
-      componentOptions: { assetsPrefix: ASSETS_PREFIX },
+  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
+    if (!mappingOptions.customMapping) {
+      return
     }
 
-    return createComponentFile(componentParams)
-  })
-
-  // Step 3: The process of creating the pages and the components is awaited
-  const createdPageFiles = await Promise.all(pagePromises)
-  const createdComponentFiles = await Promise.all(componentPromises)
-
-  // Step 4: The generated page and component files are joined
-  const joinedPageFiles = joinComponentFiles(createdPageFiles)
-  const pageFiles: GeneratedFile[] = [].concat(joinedPageFiles.files)
-
-  const joinedComponentFiles = joinComponentFiles(createdComponentFiles)
-  const componentFiles = joinedComponentFiles.files
-
-  // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
-  const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
-  const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
-  const publicFiles: GeneratedFile[] = [].concat(manifestFile).concat(htmlIndexFile)
-
-  // Step 6: Create the routing component (router.js)
-  const { routerFile, externalDependencies } = await createRouterFile(root)
-  const srcFiles: GeneratedFile[] = [].concat(routerFile)
-
-  const collectedDependencies = {
-    ...externalDependencies,
-    ...joinedPageFiles.dependencies,
-    ...joinedComponentFiles.dependencies,
+    vueGenerator.addMapping(mappingOptions.customMapping)
   }
 
-  // Step 7: External dependencies are added to the package.json file from the template project
-  const packageJSONFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
-    dependencies: collectedDependencies,
-    projectName: uidl.name,
-  })
-  const distFiles = [packageJSONFile]
+  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
+    // Step 0: Add any custom mappings found in the options
+    addCustomMapping(options)
 
-  // Step 8: Build the folder structure
-  const folderStructure = buildFolderStructure({
-    pageFiles,
-    componentFiles,
-    publicFiles,
-    srcFiles,
-    distFiles,
-    distFolderName: options.distPath || DEFAULT_OUTPUT_FOLDER,
-  })
+    const { components = {}, root } = uidl
+    const { states = [] } = root.content
+
+    const stateDefinitions = root.stateDefinitions || {}
+    const routerDefinitions = stateDefinitions.router || null
+
+    // Step 1: The first level stateBranches (the pages) transformation in react components is started
+    const pagePromises = states.map((stateBranch: StateBranch) => {
+      if (
+        typeof stateBranch.value !== 'string' ||
+        typeof stateBranch.content === 'string' ||
+        !routerDefinitions
+      ) {
+        return { files: [], dependencies: {} }
+      }
+
+      const componentUIDL: ComponentUIDL = {
+        name: stateBranch.value,
+        content: stateBranch.content,
+        stateDefinitions: {
+          routerDefinitions,
+        },
+      }
+
+      const pageParams: ComponentFactoryParams = {
+        componentGenerator: vueGenerator,
+        componentUIDL,
+        componentExtension: FILE_EXTENSIONS.VUE,
+        componentOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+        },
+      }
+      return createPageFile(pageParams)
+    })
+
+    // Step 2: The components generation process is started
+    const componentPromises = Object.keys(components).map((componentName) => {
+      const componentUIDL = components[componentName]
+      const componentParams: ComponentFactoryParams = {
+        componentUIDL,
+        componentGenerator: vueGenerator,
+        componentExtension: FILE_EXTENSIONS.VUE,
+        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+      }
+
+      return createComponentFile(componentParams)
+    })
+
+    // Step 3: The process of creating the pages and the components is awaited
+    const createdPageFiles = await Promise.all(pagePromises)
+    const createdComponentFiles = await Promise.all(componentPromises)
+
+    // Step 4: The generated page and component files are joined
+    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const pageFiles: GeneratedFile[] = [].concat(joinedPageFiles.files)
+
+    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const componentFiles = joinedComponentFiles.files
+
+    // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
+    const publicFiles: GeneratedFile[] = []
+    if (uidl.globals.manifest) {
+      const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
+      publicFiles.push(manifestFile)
+    }
+
+    const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
+    publicFiles.push(htmlIndexFile)
+
+    // Step 6: Create the routing component (router.js)
+    const { routerFile, externalDependencies } = await createRouterFile(root)
+    const srcFiles: GeneratedFile[] = [].concat(routerFile)
+
+    const collectedDependencies = {
+      ...externalDependencies,
+      ...joinedPageFiles.dependencies,
+      ...joinedComponentFiles.dependencies,
+    }
+
+    // Step 7: External dependencies are added to the package.json file from the template project
+    const packageJSONFile = createPackageJSONFile(
+      options.sourcePackageJson || DEFAULT_PACKAGE_JSON,
+      {
+        dependencies: collectedDependencies,
+        projectName: uidl.name,
+      }
+    )
+    const distFiles = [packageJSONFile]
+
+    // Step 8: Build the folder structure
+    const folderStructure = buildFolderStructure(
+      {
+        pages: pageFiles,
+        components: componentFiles,
+        public: publicFiles,
+        src: srcFiles,
+        dist: distFiles,
+      },
+      options.distPath || DEFAULT_OUTPUT_FOLDER
+    )
+
+    return {
+      outputFolder: folderStructure,
+      assetsPath: 'src' + ASSETS_PREFIX,
+    }
+  }
 
   return {
-    outputFolder: folderStructure,
-    assetsPath: 'src' + ASSETS_PREFIX,
+    addCustomMapping,
+    generateProject,
   }
 }
+
+export default createVueBasicGenerator
