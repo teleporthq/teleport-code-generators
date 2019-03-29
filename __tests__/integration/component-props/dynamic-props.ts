@@ -23,7 +23,9 @@ describe('React Props in Component', () => {
     })
 
     it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps)
+      const operation = generator.generateComponent(ComponentWithInValidProps, {
+        skipValidation: true,
+      })
 
       await expect(operation).rejects.toThrow(Error)
     })
@@ -48,7 +50,9 @@ describe('Vue Props in Component Generator', () => {
     })
 
     it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps)
+      const operation = generator.generateComponent(ComponentWithInValidProps, {
+        skipValidation: true,
+      })
       await expect(operation).rejects.toThrow(Error)
     })
   })

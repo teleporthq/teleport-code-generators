@@ -230,7 +230,7 @@
                     "name": "dropdown",
                     "attrs": {
                       "options": ["angular", "react", "vue"],
-                      "defaultValue": "react"
+                      "defaultValue": {"type":"static", "content": "react"}
                     }
                   },
                   {
@@ -253,9 +253,6 @@
                   {
                     "type": "Cards",
                     "name": "cards",
-                    "attrs": {
-                      "items": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
-                    },
                     "dependency": {
                       "type": "local"
                     }
@@ -274,8 +271,8 @@
                     "type": "form",
                     "name": "form",
                     "attrs": {
-                      "type": "GET",
-                      "url": "/"
+                      "type": { "type":"static", "content": "GET"},
+                      "url": { "type":"static", "content": "/"}
                     },
                     "children": [
                       {
@@ -291,7 +288,7 @@
                             "type": "textinput",
                             "name": "email-input",
                             "attrs": {
-                              "name": "email"
+                              "name": { "type":"static", "content": "email"}
                             }
                           }
                         ]
@@ -309,7 +306,7 @@
                             "type": "passwordinput",
                             "name": "pass-input",
                             "attrs": {
-                              "name": "pass"
+                              "name": {"type":"static", "content": "pass" }
                             }
                           }
                         ]
@@ -705,7 +702,7 @@
       "propDefinitions": {
         "items": {
           "type": "array",
-          "defaultValue": []
+          "defaultValue": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
         }
       },
       "content": {
@@ -735,7 +732,13 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "test": "$local.index"
+                "test": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "local",
+                    "id":"index" 
+                  }
+                }
               },
               "children": ["$local.item"],
               "dependency": {

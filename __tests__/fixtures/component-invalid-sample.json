@@ -20,7 +20,13 @@
         {
           "type": "container",
           "attrs": {
-            "data-test": "$props.test"
+            "data-test": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id":"test" 
+              }
+            }
           },
           "children": [
             {
