@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "name": "ComponentWithAttrProp",
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    }
+  },
+  "content": {
+    "type": "container",
+    "attrs": {
+      "data-test": "$props.test",
+      "data-static": "I am just a static string"
+    },
+    "children": []
+  }
+}

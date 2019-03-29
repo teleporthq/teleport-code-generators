@@ -258,3 +258,18 @@ interface PackageJSON {
   dependencies?: Record<string, string>
   [key: string]: any
 }
+
+interface UIDLDynamicReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop' | 'state' | 'local'
+    id: string
+  }
+}
+
+interface UIDLStaticReference {
+  type: 'static'
+  content: string
+}
+
+type UIDLNodeAttributeValue = UIDLDynamicReference | UIDLStaticReference

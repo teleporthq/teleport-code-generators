@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "name": "ComponentWithAttrProp",
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    }
+  },
+  "content": {
+    "type": "container",
+    "repeat": {
+      "content": {
+        "type": "container",
+        "name": "card-container",
+        "children": [{
+          "type": "container",
+          "name": "card",
+          "attrs": {
+            "test": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "local",
+                "id": "index"
+              }
+            }
+          },
+          "children": ["$local.item"],
+          "dependency": {
+            "type": "local"
+          }
+        }]
+      },
+      "dataSource": "$props.items",
+      "meta": {
+        "useIndex": true
+      }
+    }
+  }
+}

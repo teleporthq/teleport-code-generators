@@ -15,7 +15,10 @@ export const createUIDL = (
           {
             type: 'image',
             attrs: {
-              url: '/playground_assets',
+              url: {
+                type: 'static',
+                content: '/playground_assets',
+              },
             },
           },
           {
@@ -28,7 +31,10 @@ export const createUIDL = (
           {
             type: 'link',
             attrs: {
-              url: 'https://random',
+              url: {
+                type: 'static',
+                content: 'https://random',
+              },
             },
             style: {
               color: 'red',
@@ -41,7 +47,10 @@ export const createUIDL = (
       firstlvlchildren.push({
         type: 'container',
         attrs: {
-          'data-attr': 'test',
+          'data-attr': {
+            type: 'static',
+            content: 'test',
+          },
         },
         children: secondlvlchildren,
         style: {

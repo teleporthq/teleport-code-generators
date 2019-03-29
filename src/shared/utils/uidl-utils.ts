@@ -184,3 +184,37 @@ export const removeDynamicPrefix = (value: string, newPrefix?: string) => {
 
   return prefix + value.slice(indexOfFirstDot + 1)
 }
+
+// returns falsy or typecast object to UIDLDynamicReference and returns it
+export const isUIDLDynamicReference = (jsonObject: Record<string, unknown> | string) => {
+  if (typeof jsonObject === 'string') {
+    return false
+  }
+
+  const { content, type } = jsonObject as UIDLDynamicReference
+  if (
+    type === 'dynamic' &&
+    !Array.isArray(content) &&
+    typeof content === 'object' &&
+    ['prop', 'state', 'local'].indexOf(content.referenceType) !== -1 &&
+    typeof content.id === 'string'
+  ) {
+    return jsonObject as UIDLDynamicReference
+  }
+
+  return false
+}
+
+// returns falsy or typecast object to UIDLDynamicReference and returns it
+export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | string) => {
+  if (typeof jsonObject === 'string') {
+    return false
+  }
+
+  const { content, type } = jsonObject as UIDLStaticReference
+  if (type === 'static' && typeof content === 'string') {
+    return jsonObject as UIDLStaticReference
+  }
+
+  return false
+}

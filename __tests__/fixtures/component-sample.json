@@ -19,7 +19,13 @@
         {
           "type": "container",
           "attrs": {
-            "data-test": "$props.test"
+            "data-test": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "test"
+              }
+            }
           },
           "children": [
             {
@@ -98,6 +104,7 @@
             "@media (max-width: 835px)": {
                 "width": 228,
                 "borderColor": "$props.test",
+                
                 "height": 154
             },
             "@media (max-width: 640px)": {

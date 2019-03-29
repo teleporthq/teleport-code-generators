@@ -69,13 +69,13 @@
     "textinput": {
       "type": "input",
       "attrs": {
-        "type": "text"
+        "type": { "type": "static", "content": "text" }
       }
     },
     "passwordinput": {
       "type": "input",
       "attrs": {
-        "type": "password"
+        "type":  { "type":"static", "content": "password"}
       }
     },
     "numberinput": {
@@ -103,7 +103,10 @@
       "type": "a",
       "attrs": {
         "href": "$attrs.url",
-        "target": "_blank"
+        "target": {
+          "type": "static",
+          "content": "_blank"
+        }
       }
     },
     "button": {
