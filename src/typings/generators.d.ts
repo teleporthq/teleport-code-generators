@@ -272,6 +272,4 @@ interface UIDLStaticReference {
   content: string
 }
 
-type UIDLNodeAttributeValue = UIDLDynamicReference | UIDLStaticReference | string | number
-
-type UIDLNodeAttributeValues = UIDLNodeAttributeValue | UIDLNodeAttributeValue[]
+type UIDLNodeAttributeValue = UIDLDynamicReference | UIDLStaticReference

@@ -345,7 +345,7 @@ const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReferen
 const addAttributeToTag = (
   tag: types.JSXElement,
   attributeKey: string,
-  attributeValue: UIDLNodeAttributeValues
+  attributeValue: UIDLNodeAttributeValue
 ) => {
   // TODO review with addAttributeToNode from vue
   switch (attributeValue.type) {

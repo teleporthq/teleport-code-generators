@@ -274,7 +274,7 @@ const addAttributeToNode = (
   htmlNode: any,
   uidlNodeName: string,
   attributeKey: string,
-  attributeValue: UIDLNodeAttributeValues,
+  attributeValue: UIDLNodeAttributeValue,
   dataObject: Record<string, any>
 ) => {
   // TODO review with addAttributeToNode from react
