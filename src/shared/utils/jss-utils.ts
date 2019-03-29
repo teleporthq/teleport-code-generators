@@ -3,7 +3,7 @@ import jss from 'jss'
 
 jss.setup(preset())
 
-export const createCSSClass = (className: string, styleObject: StyleDefinitions) => {
+export const createCSSClass = (className: string, styleObject: UIDLStyleDefinitions) => {
   return jss
     .createStyleSheet(
       {

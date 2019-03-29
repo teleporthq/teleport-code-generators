@@ -21,7 +21,6 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
    */
   const reactInlineStyleComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
 
     if (!componentChunk) {
@@ -39,16 +38,14 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
         // Nested styles are ignored
         const rootStyles = cleanupNestedStyles(style)
-        const inlineStyles = transformDynamicStyles(
-          rootStyles,
-          (styleValue) =>
-            new ParsedASTNode(
-              t.memberExpression(
-                t.identifier('props'),
-                t.identifier(styleValue.replace('$props.', ''))
-              )
+        const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
+          return new ParsedASTNode(
+            t.memberExpression(
+              t.identifier('props'),
+              t.identifier(styleValue.replace('$props.', ''))
             )
-        )
+          )
+        })
 
         addJSXTagStyles(jsxASTTag, inlineStyles)
       }
