@@ -105,23 +105,38 @@
                 "type": "video",
                 "name": "video",
                 "attrs": {
-                  "autoPlay": true
+                  "autoPlay": {
+                    "type":"static",
+                    "content": true
+                  }
                 },
                 "children": [
                   {
                     "type": "source",
                     "name": "mp4-source",
                     "attrs": {
-                      "type": "video/mp4",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      "type": {
+                        "type": "static",
+                        "content": "video/mp4"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   },
                   {
                     "type": "source",
                     "name": "webm-source",
                     "attrs": {
-                      "type": "video/webm",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.webm"
+                      "type": {
+                        "type": "static",
+                        "content": "video/webm"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   }
                 ]
@@ -137,8 +152,8 @@
                     "type": "ExpandableArea",
                     "name": "area1",
                     "attrs": {
-                      "title": "First",
-                      "text": "Text"
+                      "title": { "type": "static", "content": "First"},
+                      "text": { "type": "static", "content": "Text"}
                     },
                     "dependency": {
                       "type": "local"
@@ -148,8 +163,8 @@
                     "type": "ExpandableArea",
                     "name": "area2",
                     "attrs": {
-                      "title": "Second",
-                      "text": "Text"
+                      "title": { "type": "static", "content": "Second"},
+                      "text": { "type": "static", "content": "Text"}
                     },
                     "dependency": {
                       "type": "local"
@@ -159,8 +174,8 @@
                     "type": "ExpandableArea",
                     "name": "area3",
                     "attrs": {
-                      "title": "Third",
-                      "text": "Text"
+                      "title": { "type": "static", "content": "Third"},
+                      "text": { "type": "static", "content": "Text"}
                     },
                     "dependency": {
                       "type": "local"

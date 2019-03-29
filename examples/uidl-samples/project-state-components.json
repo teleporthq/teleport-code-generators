@@ -112,16 +112,28 @@
                     "type": "source",
                     "name": "mp4-source",
                     "attrs": {
-                      "type": "video/mp4",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      "type": {
+                        "type": "static",
+                        "content": "video/mp4"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   },
                   {
                     "type": "source",
                     "name": "webm-source",
                     "attrs": {
-                      "type": "video/webm",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.webm"
+                      "type": {
+                        "type": "static",
+                        "content": "video/webm"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   }
                 ]

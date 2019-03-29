@@ -103,7 +103,10 @@
       "type": "a",
       "attrs": {
         "href": "$attrs.url",
-        "target": "_blank"
+        "target": {
+          "type": "static",
+          "content": "_blank"
+        }
       }
     },
     "button": {
