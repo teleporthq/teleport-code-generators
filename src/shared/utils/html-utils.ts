@@ -15,7 +15,10 @@ export const createTextNode = (content: string): HastText => {
 }
 
 export const addBooleanAttributeToNode = (node: HastNode, key: string) => {
-  node.properties[key] = true
+  node.properties[key] = ''
+  /* adding empty string as @starptech/prettyhtml-hast-to-html which we are currently
+  using for generating HTML supports boolean way of adding attributes only for HTML
+  attributes but not for Vue*/
 }
 
 export const addAttributeToNode = (node: HastNode, key: string, value: string) => {
