@@ -1,5 +1,5 @@
 // @ts-ignore
-import projectUIDL from '../fixtures/project-sample.json'
+import projectUIDLJSON from '../fixtures/project-sample.json'
 
 import {
   createReactBasicProject,
@@ -7,6 +7,8 @@ import {
   createVueBasicProject,
   createVueNuxtProject,
 } from '../../src'
+
+const projectUIDL = projectUIDLJSON as ProjectUIDL
 
 describe('React Basic Project Generator', () => {
   it('runs without crashing', async () => {

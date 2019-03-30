@@ -13,7 +13,7 @@ import vueProjectMapping from './vue-project-mapping.json'
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
   const vueGenerator = createVueGenerator({
-    customMapping: vueProjectMapping,
+    customMapping: vueProjectMapping as Mapping,
   })
   const vueRouterGenerator = createVueRouterFileGenerator()
 

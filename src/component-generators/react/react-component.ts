@@ -36,8 +36,8 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   const validator = new Validator()
 
   const resolver = new Resolver()
-  resolver.addMapping(htmlMapping)
-  resolver.addMapping(reactMapping)
+  resolver.addMapping(htmlMapping as Mapping)
+  resolver.addMapping(reactMapping as Mapping)
   resolver.addMapping(customMapping)
 
   const assemblyLine = new AssemblyLine()

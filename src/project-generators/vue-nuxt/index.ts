@@ -8,7 +8,7 @@ import { createManifestJSON, createHtmlIndexFile } from '../../shared/utils/proj
 export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
   const vueGenerator = createVueGenerator({
-    customMapping: { ...nuxtMapping },
+    customMapping: nuxtMapping as Mapping,
   })
 
   // Step 1: Building the folder structure (rooted in dist by default) for the Nuxt project

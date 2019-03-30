@@ -229,7 +229,7 @@
                     "type": "dropdown",
                     "name": "dropdown",
                     "attrs": {
-                      "options": ["angular", "react", "vue"],
+                      "options": {"type": "static", "content": ["angular", "react", "vue"]},
                       "defaultValue": {"type":"static", "content": "react"}
                     }
                   },
@@ -237,7 +237,7 @@
                     "type": "list",
                     "name": "list",
                     "attrs": {
-                      "items": ["angular", "react", "vue"]
+                      "items": {"type": "static", "content": ["angular", "react", "vue"]}
                     }
                   }
                 ]
@@ -746,7 +746,10 @@
               }
             }]
           },
-          "dataSource": "$props.items",
+          "dataSource": { 
+            "type": "dynamic",
+            "content": { "referenceType": "prop", "id": "items" }
+          },
           "meta": {
             "useIndex": true
           }

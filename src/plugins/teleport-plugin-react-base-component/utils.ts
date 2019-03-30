@@ -51,11 +51,7 @@ export const generateTreeStructure = (
 
     const contentAST = generateTreeStructure(repeatContent, accumulators)
 
-    const dataSourceIdentifier = isDynamicPrefixedValue(dataSource)
-      ? removeDynamicPrefix(dataSource as string, 'props')
-      : dataSource
-
-    const repeatAST = makeRepeatStructureWithMap(dataSourceIdentifier, contentAST, meta)
+    const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST, meta)
     mainTag.children.push(repeatAST)
   }
 
@@ -293,7 +289,7 @@ const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
 }
 
 const makeRepeatStructureWithMap = (
-  dataSource: string | any[],
+  dataSource: UIDLNodeAttributeValue,
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
@@ -301,12 +297,21 @@ const makeRepeatStructureWithMap = (
   const iteratorName = meta.iteratorName || 'item'
   const keyIdentifier = meta.useIndex ? 'index' : iteratorName
 
-  const source =
-    typeof dataSource === 'string'
-      ? t.identifier(dataSource)
-      : t.arrayExpression(dataSource.map((element) => convertValueToLiteral(element)))
+  let source
 
-  // todo test repeter with new dynamic reference
+  if (dataSource.type === 'static') {
+    source = t.arrayExpression(
+      (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
+    )
+  } else {
+    const dataSourceIdentifier = dataSource.content.id
+    const prefix = getReactVarNameForDynamicReference(dataSource)
+    source =
+      prefix === ''
+        ? t.identifier(dataSourceIdentifier)
+        : t.memberExpression(t.identifier(prefix), t.identifier(dataSourceIdentifier))
+  }
+
   const dynamicLocalReference: UIDLDynamicReference = {
     type: 'dynamic',
     content: {
@@ -331,7 +336,7 @@ const makeRepeatStructureWithMap = (
 const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReference) => {
   return {
     prop: 'props',
-    state: 'state',
+    state: '',
     static: '',
     local: '',
   }[dynamicReference.content.referenceType]
@@ -353,8 +358,8 @@ const addAttributeToTag = (
       const {
         content: { id },
       } = attributeValue
-      const reactVarName = getReactVarNameForDynamicReference(attributeValue)
-      addDynamicAttributeOnTag(tag, attributeKey, id, reactVarName)
+      const prefix = getReactVarNameForDynamicReference(attributeValue)
+      addDynamicAttributeOnTag(tag, attributeKey, id, prefix)
       return
     case 'static':
       const { content } = attributeValue

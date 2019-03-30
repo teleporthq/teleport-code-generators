@@ -7,7 +7,7 @@
           "path": "next/link"
       },
       "attrs": {
-        "href": "$attrs.transitionTo"
+        "href": { "type": "static", "content": "$attrs.transitionTo" }
       },
       "children": [
         {

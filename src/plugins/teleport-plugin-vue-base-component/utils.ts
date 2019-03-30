@@ -3,7 +3,7 @@ import * as types from '@babel/types'
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
-import { /*capitalize,*/ stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
 // content is each node from the UIDL
 // lookups contains
@@ -28,7 +28,15 @@ export const generateVueNodesTree = (
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
-      addAttributeToNode(htmlNode, name, attrKey, attrs[attrKey], dataObject)
+      const attrValue = attrs[attrKey]
+      // arrays are moved to the data object and referenced as dynamic keys (binding)
+      if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
+        const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
+        dataObject[dataObjectIdentifier] = attrValue.content
+        htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
+      } else {
+        addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
+      }
     })
   }
 
@@ -45,10 +53,10 @@ export const generateVueNodesTree = (
     const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
 
     let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
-    if (isDynamicPrefixedValue(dataSource)) {
-      dataObjectIdentifier = removeDynamicPrefix(dataSource as string)
+    if (dataSource.type === 'dynamic') {
+      dataObjectIdentifier = dataSource.content.id
     } else {
-      dataObject[dataObjectIdentifier] = dataSource
+      dataObject[dataObjectIdentifier] = dataSource.content
     }
 
     const iteratorName = meta.iteratorName || 'item'
@@ -272,10 +280,8 @@ const createPropCallStatement = (
 // Also arrays are added to the dataObject for better readability
 const addAttributeToNode = (
   htmlNode: any,
-  uidlNodeName: string,
   attributeKey: string,
-  attributeValue: UIDLNodeAttributeValue,
-  dataObject: Record<string, any>
+  attributeValue: UIDLNodeAttributeValue
 ) => {
   // TODO review with addAttributeToNode from react
   switch (attributeValue.type) {
@@ -287,21 +293,19 @@ const addAttributeToNode = (
       return
     case 'static':
       const primitiveValue = attributeValue.content
-      htmlUtils.addAttributeToNode(htmlNode, attributeKey, primitiveValue)
+      if (typeof attributeValue.content === 'boolean') {
+        htmlUtils.addBooleanAttributeToNode(htmlNode, attributeKey)
+      } else if (typeof attributeValue.content !== 'string') {
+        htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, primitiveValue.toString())
+      } else {
+        htmlUtils.addAttributeToNode(htmlNode, attributeKey, primitiveValue.toString())
+      }
       return
     default:
       throw new Error(
         `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
       )
   }
-
-  // TODO treat case when attributes is an array
-
-  // if (Array.isArray(attributeValue)) {
-  //   const dataObjectIdentifier = `${uidlNodeName}${capitalize(attributeKey)}`
-  //   dataObject[dataObjectIdentifier] = attributeValue
-  //   htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, dataObjectIdentifier)
-  // }
 }
 
 // This function decides how to add a text element inside another HTML node

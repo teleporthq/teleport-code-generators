@@ -60,8 +60,9 @@ export const resolveContentNode = (
     // Prefix the attributes which may point to local assets
     if (node.attrs && assetsPrefix) {
       Object.keys(node.attrs).forEach((attrKey) => {
-        if (typeof node.attrs[attrKey] === 'string') {
-          node.attrs[attrKey] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attrKey])
+        const attrValue = node.attrs[attrKey]
+        if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
+          node.attrs[attrKey].content = prefixPlaygroundAssetsURL(assetsPrefix, attrValue.content)
         }
       })
     }
@@ -81,8 +82,12 @@ export const resolveContentNode = (
 
       // Data source might be preset on a referenced attribute in the uidl node
       // ex: attrs[options] in case of a dropdown primitive with select/options
-      if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
-        const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
+      if (
+        typeof dataSource.content === 'string' &&
+        dataSource.content.startsWith('$attrs.') &&
+        node.attrs
+      ) {
+        const nodeDataSourceAttr = dataSource.content.replace('$attrs.', '')
         dataSource = node.attrs[nodeDataSourceAttr]
         delete node.attrs[nodeDataSourceAttr]
       }
@@ -208,9 +213,12 @@ const prefixAssetURLs = (style: StyleDefinitions, assetsPrefix: string): StyleDe
   }, {})
 }
 
-const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<string, any>) => {
+const mergeAttributes = (
+  mappedAttrs: Record<string, UIDLNodeAttributeValue>,
+  uidlAttrs: Record<string, UIDLNodeAttributeValue>
+) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
-  const resolvedAttrs: Record<string, any> = {}
+  const resolvedAttrs: Record<string, UIDLNodeAttributeValue> = {}
 
   // This will gather all the attributes from the UIDL which are mapped using the elements-mapping
   // These attributes will not be added on the tag as they are, but using the elements-mapping
@@ -219,15 +227,15 @@ const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<str
 
   // First we iterate through the mapping attributes and we add them to the result
   Object.keys(mappedAttrs).forEach((key) => {
-    const value = mappedAttrs[key]
-    if (!value) {
+    const attrValue = mappedAttrs[key]
+    if (!attrValue) {
       return
     }
 
-    if (typeof value === 'string' && value.startsWith('$attrs.')) {
+    if (typeof attrValue.content === 'string' && attrValue.content.startsWith('$attrs.')) {
       // we lookup for the attributes in the UIDL and use the element-mapping key to set them on the tag
       // (ex: Link has an url attribute in the UIDL, but it needs to be mapped to href in the case of HTML)
-      const uidlAttributeKey = value.replace('$attrs.', '')
+      const uidlAttributeKey = attrValue.content.replace('$attrs.', '')
       if (uidlAttrs && uidlAttrs[uidlAttributeKey]) {
         resolvedAttrs[key] = uidlAttrs[uidlAttributeKey]
         mappedAttributes.push(uidlAttributeKey)

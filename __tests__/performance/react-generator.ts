@@ -1,11 +1,13 @@
 // @ts-ignore
-import componentUIDL from '../fixtures/component-sample.json'
+import componentUIDLJSON from '../fixtures/component-sample.json'
 import { createUIDL } from '../fixtures/uidl'
 import { createReactComponentGenerator } from '../../src'
 
 import { performance } from 'perf_hooks'
 
 import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
+
+const componentUIDL = componentUIDLJSON as ComponentUIDL
 
 const generator = createReactComponentGenerator({
   variation: ReactComponentStylingFlavors.StyledJSX,
