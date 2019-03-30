@@ -84,7 +84,7 @@ export const generateVueNodesTree = (
           const alternateNode = getNodeFromContent(alternateContent, accumulators)
           htmlUtils.addAttributeToNode(consequentNode, 'v-if', conditionalStatement)
           htmlUtils.addChildNode(htmlNode, consequentNode)
-          htmlUtils.addAttributeToNode(alternateNode, 'v-else', '')
+          htmlUtils.addBooleanAttributeToNode(alternateNode, 'v-else')
           htmlUtils.addChildNode(htmlNode, alternateNode)
         } else {
           stateBranches.forEach((stateBranch) => {
