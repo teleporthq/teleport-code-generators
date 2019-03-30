@@ -10,6 +10,10 @@ module.exports = {
     "jsx",
     "node"
   ],
+  "moduleNameMapper": {
+    '^html-whitespace-sensitive-tag-names$':
+    '<rootDir>/__tests__/fixtures/html-whitespace-sensitive-tag-names.json'
+  },
   "modulePathIgnorePatterns": ["__tests__/fixtures"],
   "collectCoverage": false,
   "testEnvironment": "node",
