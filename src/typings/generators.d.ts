@@ -262,7 +262,7 @@ interface PackageJSON {
 interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'state' | 'local'
+    referenceType: 'prop' | 'state' | 'local' | 'attr'
     id: string
   }
 }

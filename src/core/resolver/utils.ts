@@ -20,6 +20,9 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
   }
 }
 
+// This function is taking a content node instance and returned a resolved version of it,
+// applying the rules set by the mapping structure passed as a parameter
+// The function performs mapping for: attributes, dependencies, repeat, style, events and so on
 export const resolveContentNode = (
   content: ContentNode,
   mapping: Mapping,
@@ -82,13 +85,11 @@ export const resolveContentNode = (
 
       // Data source might be preset on a referenced attribute in the uidl node
       // ex: attrs[options] in case of a dropdown primitive with select/options
-      if (
-        typeof dataSource.content === 'string' &&
-        dataSource.content.startsWith('$attrs.') &&
-        node.attrs
-      ) {
-        const nodeDataSourceAttr = dataSource.content.replace('$attrs.', '')
+      if (dataSource.type === 'dynamic' && dataSource.content.referenceType === 'attr') {
+        const nodeDataSourceAttr = dataSource.content.id
         dataSource = node.attrs[nodeDataSourceAttr]
+
+        // remove original attribute so it doesn't get added as a static/dynamic value on the node
         delete node.attrs[nodeDataSourceAttr]
       }
 
@@ -232,16 +233,15 @@ const mergeAttributes = (
       return
     }
 
-    if (typeof attrValue.content === 'string' && attrValue.content.startsWith('$attrs.')) {
+    if (attrValue.type === 'dynamic' && attrValue.content.referenceType === 'attr') {
       // we lookup for the attributes in the UIDL and use the element-mapping key to set them on the tag
-      // (ex: Link has an url attribute in the UIDL, but it needs to be mapped to href in the case of HTML)
-      const uidlAttributeKey = attrValue.content.replace('$attrs.', '')
+      // ex: Link has an 'url' attribute in the UIDL, but it needs to be mapped to 'href' in the case of HTML
+      const uidlAttributeKey = attrValue.content.id
       if (uidlAttrs && uidlAttrs[uidlAttributeKey]) {
         resolvedAttrs[key] = uidlAttrs[uidlAttributeKey]
         mappedAttributes.push(uidlAttributeKey)
       }
 
-      // in the case of mapped reference attributes ($attrs) we don't write them unless they are specified in the uidl
       return
     }
 
@@ -251,7 +251,7 @@ const mergeAttributes = (
   // The UIDL attributes can override the mapped attributes, so they come last
   if (uidlAttrs) {
     Object.keys(uidlAttrs).forEach((key) => {
-      // Skip the attributes that were mapped from $attrs
+      // Skip the attributes that were mapped as referenceType = 'attr'
       if (!mappedAttributes.includes(key)) {
         resolvedAttrs[key] = uidlAttrs[key]
       }

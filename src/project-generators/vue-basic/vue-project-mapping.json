@@ -3,7 +3,7 @@
     "navlink": {
       "type": "router-link",
       "attrs": {
-        "to": { "type": "static", "content": "$attrs.transitionTo" }
+        "to": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }
