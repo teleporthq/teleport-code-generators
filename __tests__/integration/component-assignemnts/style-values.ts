@@ -26,7 +26,7 @@ describe('React Props in Component', () => {
         ComponentWithNestedStyles as ComponentUIDL
       )
       expect(result.code).toContain('flex-direction: ${direction}')
-      expect(result.code).toContain(`align-selft: center`)
+      expect(result.code).toContain(`align-self: center`)
       expect(result.code).toContain('@media (max-width: 640px) {')
       expect(result.code).toContain(` @media (max-width: 634px) {`)
     })
@@ -55,10 +55,10 @@ describe('Vue Props in Component Generator', () => {
       expect(result.code).toContain('data-static')
     })
 
-    it('should support nested styles', async () => {
+    it.only('should support nested styles', async () => {
       const result = await generator.generateComponent(ComponentWithNestedStyles as ComponentUIDL)
-      expect(result.code).toContain('flex-direction: ${direction}')
-      expect(result.code).toContain(`align-selft: center`)
+      expect(result.code).toContain('{flexDirection: direction}')
+      expect(result.code).toContain(`align-self: center`)
       expect(result.code).toContain('@media (max-width: 640px) {')
       expect(result.code).toContain(` @media (max-width: 634px) {`)
     })

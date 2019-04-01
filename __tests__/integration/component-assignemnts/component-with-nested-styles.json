@@ -20,20 +20,20 @@
       "@media (max-width: 835px)": {
         "type": "nested-style",
         "content": {
-          "alignSelft": {
+          "alignSelf": {
             "type": "static",
             "content": "inherit"
           }
         }
       },
-      "alignSelft": {
+      "alignSelf": {
         "type": "static",
         "content": "center"
       },
       "@media (max-width: 640px)": {
         "type": "nested-style",
           "content": {
-            "alignSelft": {
+            "alignSelf": {
               "type": "static",
               "content": "left"
             }
@@ -42,7 +42,7 @@
       "@media (max-width: 634px)": {
         "type": "nested-style",
         "content": {
-          "alignSelft": {
+          "alignSelf": {
             "type": "static",
             "content": "right"
           }

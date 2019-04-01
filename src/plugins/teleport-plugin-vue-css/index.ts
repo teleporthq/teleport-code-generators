@@ -44,7 +44,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
           const vueFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
-            return `${styleKey}: ${rootStyles[styleKey].replace('$props.', '')}`
+            return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
           })
 
           addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
