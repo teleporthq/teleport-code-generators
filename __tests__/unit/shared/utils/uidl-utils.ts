@@ -3,23 +3,19 @@ import {
   isUIDLDynamicReference,
 } from '../../../../src/shared/utils/uidl-utils'
 
+import uidlStyleJSON from './uidl-utils-style.json'
+
 describe('cleanupDynamicStyles', () => {
-  const styleObject = {
-    margin: '20px',
-    padding: '$props.padding',
-    ':hover': {
-      margin: '10px',
-      padding: '$props.hoverPadding',
-    },
-  }
+  const styleObject = uidlStyleJSON as UIDLStyleDefinitions
 
   it('removes dynamic styles from nested style objects', () => {
-    const cleanedStyle = cleanupDynamicStyles(styleObject) as StyleDefinitions
+    cleanupDynamicStyles(styleObject)
+    const cleanedStyle = (cleanupDynamicStyles(styleObject) as unknown) as UIDLStyleDefinitions
     expect(cleanedStyle.padding).toBeUndefined()
-    expect(cleanedStyle.margin).toBe('20px')
-    const nestedStyle = cleanedStyle[':hover'] as StyleDefinitions
-    expect(nestedStyle.padding).toBeUndefined()
-    expect(nestedStyle.margin).toBe('10px')
+    expect(cleanedStyle.margin.content).toBe('20px')
+    const nestedStyle = (cleanedStyle[':hover'] as unknown) as UIDLStyleDefinitions
+    expect((nestedStyle.content as Record<string, any>).padding).toBeUndefined()
+    expect((nestedStyle.content as Record<string, any>).margin.content).toBe('10px')
   })
 })
 

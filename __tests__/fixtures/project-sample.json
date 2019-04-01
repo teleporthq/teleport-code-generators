@@ -144,8 +144,8 @@
               {
                 "type": "container",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -187,8 +187,8 @@
                 "type": "container",
                 "name": "random-name",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -204,8 +204,8 @@
                 "type": "container",
                 "name": "random-name",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -221,8 +221,8 @@
                 "type": "container",
                 "name": "lists",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -246,8 +246,8 @@
                 "type": "container",
                 "name": "cards-container",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -263,8 +263,8 @@
                 "type": "container",
                 "name": "form-container",
                 "style": {
-                  "width": "100%",
-                  "border": "1px solid red"
+                  "width": { "type": "static", "content": "100%" },
+                  "border": { "type": "static", "content": "1px solid red" }
                 },
                 "children": [
                   {
@@ -432,8 +432,8 @@
                 "name": "tab1",
                 "children": ["Click"],
                 "style": {
-                  "border": "1px solid black",
-                  "padding": "5px 10px"
+                  "padding": { "type": "static", "content":  "5px 10px" },
+                  "border": { "type": "static", "content": "1px solid black" }
                 },
                 "events": {
                   "click": [{
@@ -448,8 +448,8 @@
                 "name": "tab2",
                 "children": ["any"],
                 "style": {
-                  "border": "1px solid black",
-                  "padding": "5px 10px"
+                  "padding": { "type": "static", "content":  "5px 10px" },
+                  "border": { "type": "static", "content": "1px solid black" }
                 },
                 "events": {
                   "click": [{
@@ -464,8 +464,8 @@
                 "name": "tab3",
                 "children": ["of"],
                 "style": {
-                  "border": "1px solid black",
-                  "padding": "5px 10px"
+                  "padding": { "type": "static", "content":  "5px 10px" },
+                  "border": { "type": "static", "content": "1px solid black" }
                 },
                 "events": {
                   "click": [{
@@ -480,8 +480,8 @@
                 "name": "tab4",
                 "children": ["these"],
                 "style": {
-                  "border": "1px solid black",
-                  "padding": "5px 10px"
+                  "padding": { "type": "static", "content":  "5px 10px" },
+                  "border": { "type": "static", "content": "1px solid black" }
                 },
                 "events": {
                   "click": [{
@@ -497,23 +497,32 @@
             "type": "container",
             "name": "text",
             "style": {
-              "width": 100,
-              "height": 50,
-              "display": "flex",
-              "alignItems": "flex-start",
-              "backgroundColor": "#e4f2f8",
-              "borderColor": "#0089be",
-              "borderWidth": 0,
-              "borderStyle": "solid",
+              "width": { "type":"static", "content": 100 },
+              "height": { "type":"static", "content": 50 },
+              "display": { "type":"static", "content": "flex" },
+              "alignItems": { "type":"static", "content": "flex-start" },
+              "backgroundColor": { "type":"static", "content": "#e4f2f8" },
+              "borderColor": { "type":"static", "content": "#0089be" },
+              "borderWidth": { "type":"static", "content": 0 },
+              "borderStyle": { "type":"static", "content": "solid" },
               "@media (max-width: 835px)": {
-                  "width": 228,
-                  "height": 154
+                "type": "nested-style",
+                "content": {
+                  "width": { "type":"static", "content": 228 },
+                  "height": { "type":"static", "content": 154 }
+                }
               },
               "@media (max-width: 640px)": {
-                  "backgroundColor": "#e91e63"
+                "type": "nested-style",
+                "content": {
+                  "backgroundColor": { "type":"static", "content": "#e91e63" }
+                }
               },
               "@media (max-width: 634px)": {
-                  "height": 276
+                "type": "nested-style",
+                "content": {
+                  "height": { "type":"static", "content": 276 }
+                }
               }
             },
             "children": [
@@ -690,9 +699,9 @@
         "type": "container",
         "name": "card",
         "style": {
-          "margin": "10px",
-          "padding": "10px",
-          "border": "1px solid black"
+          "margin": { "type": "static", "content": "10px" },
+          "padding": { "type": "static", "content": "10px" },
+          "border": { "type": "static", "content": "1px solid black" }
         },
         "children": ["$props.children"]
       }
@@ -709,9 +718,9 @@
         "type": "container",
         "name": "cards-container",
         "style": {
-          "width": "100%",
-          "border": "1px solid red",
-          "display": "flex"
+          "width": { "type": "static", "content": "100%" },
+          "border": { "type": "static", "content": "1px solid red" },
+          "display": { "type": "static", "content": "flex" }
         },
         "children": [{
           "type": "text",
@@ -723,10 +732,10 @@
             "type": "container",
             "name": "card-container",
             "style": {
-              "backgroundColor": "royalblue",
-              "color": "white",
-              "margin": "10px",
-              "border": "1px solid black"
+              "margin": { "type": "static", "content": "10px" },
+              "border": { "type": "static", "content": "1px solid black" },
+              "backgroundColor": { "type": "static", "content": "royalblue" },
+              "color": { "type": "static", "content": "white" }
             },
             "children": [{
               "type": "Card",

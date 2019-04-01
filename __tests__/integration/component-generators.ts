@@ -1,5 +1,6 @@
 // @ts-ignore-next-line
 import uidlJSON from '../fixtures/component-sample.json'
+// @ts-ignore-next-line
 import invalidUidlJSON from '../fixtures/component-invalid-sample.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'

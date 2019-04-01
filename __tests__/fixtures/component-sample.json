@@ -32,8 +32,8 @@
               "type": "button",
               "children": ["Click"],
               "style": {
-                "border": "1px solid black",
-                "padding": "5px 10px"
+                "border": { "type": "static", "content": "1px solid black" },
+                "padding": { "type": "static", "content": "5px 10px"} 
               },
               "events": {
                 "onClick": [{
@@ -47,8 +47,8 @@
               "type": "button",
               "children": ["any"],
               "style": {
-                "border": "1px solid black",
-                "padding": "5px 10px"
+                "border": { "type": "static", "content": "1px solid black" },
+                "padding": { "type": "static", "content": "5px 10px"} 
               },
               "events": {
                 "onClick": [{
@@ -62,8 +62,8 @@
               "type": "button",
               "children": ["of"],
               "style": {
-                "border": "1px solid black",
-                "padding": "5px 10px"
+                "border": { "type": "static", "content": "1px solid black" },
+                "padding": { "type": "static", "content": "5px 10px"} 
               },
               "events": {
                 "onClick": [{
@@ -77,8 +77,8 @@
               "type": "button",
               "children": ["these"],
               "style": {
-                "border": "1px solid black",
-                "padding": "5px 10px"
+                "border": { "type": "static", "content": "1px solid black" },
+                "padding": { "type": "static", "content": "5px 10px"} 
               },
               "events": {
                 "onClick": [{
@@ -93,25 +93,32 @@
         {
           "type": "container",
           "style": {
-            "width": 100,
-            "height": 50,
-            "display": "flex",
-            "alignItems": "flex-start",
-            "backgroundColor": "#e4f2f8",
-            "borderColor": "$props.test",
-            "borderWidth": 0,
-            "borderStyle": "solid",
+            "width": { "type":"static", "content": 100 },
+            "height": { "type":"static", "content": 50 },
+            "display": { "type":"static", "content": "flex" },
+            "alignItems": { "type":"static", "content": "flex-start" },
+            "backgroundColor": { "type":"static", "content": "#e4f2f8" },
+            "borderColor": { "type":"static", "content": "#0089be" },
+            "borderWidth": { "type":"static", "content": 0 },
+            "borderStyle": { "type":"static", "content": "solid" },
             "@media (max-width: 835px)": {
-                "width": 228,
-                "borderColor": "$props.test",
-                
-                "height": 154
+              "type": "nested-style",
+              "content": {
+                "width": { "type":"static", "content": 228 },
+                "height": { "type":"static", "content": 154 }
+              }
             },
             "@media (max-width: 640px)": {
-                "backgroundColor": "#e91e63"
+              "type": "nested-style",
+              "content": {
+                "backgroundColor": { "type":"static", "content": "#e91e63" }
+              }
             },
             "@media (max-width: 634px)": {
-                "height": 276
+              "type": "nested-style",
+              "content": {
+                "height": { "type":"static", "content": 276 }
+              }
             }
           },
           "children": [
