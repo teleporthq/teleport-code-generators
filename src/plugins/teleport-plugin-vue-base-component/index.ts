@@ -25,7 +25,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const methodsObject: Record<string, any> = {}
     const stateDefinitions: Record<string, any> = uidl.stateDefinitions
 
-    const templateContent = generateVueNodesTree(uidl.content, {
+    const templateContent = generateVueNodesTree(uidl.node, {
       templateLookup,
       dependencies,
       dataObject,

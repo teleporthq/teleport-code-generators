@@ -3,7 +3,7 @@ import jss from 'jss'
 
 jss.setup(preset())
 
-const getContentOfStyleKey = (styleValue: UIDLNodeStyleValue) => {
+const getContentOfStyleKey = (styleValue: UIDLStyleValue) => {
   switch (styleValue.type) {
     case 'static':
       return styleValue.content

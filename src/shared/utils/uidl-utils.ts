@@ -6,7 +6,7 @@ import { ASSETS_IDENTIFIER } from '../../shared/constants'
  * Also the root path needs to be represented by the index file
  */
 export const extractPageMetadata = (
-  routerDefinitions: StateDefinition,
+  routerDefinitions: UIDLStateDefinition,
   stateName: string,
   options: { usePathAsFileName?: boolean; convertDefaultToIndex?: boolean } = {
     usePathAsFileName: false,
@@ -54,31 +54,42 @@ export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string
 }
 
 // Either receives the content node or the children element
-export const cloneElement = (node: ContentNode | Array<ContentNode | string>) =>
-  JSON.parse(JSON.stringify(node))
+export const cloneElement = (node: any) => JSON.parse(JSON.stringify(node))
 
-export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void) => {
+export const traverseNodes = (node: UIDLNode, fn: (node: UIDLNode) => void) => {
   fn(node)
 
-  if (node.children) {
-    node.children.forEach((child) => {
-      if (typeof child !== 'string') {
-        traverseNodes(child, fn)
-      }
+  if (node.type === 'element') {
+    node.content.children.forEach((child) => {
+      traverseNodes(child, fn)
     })
   }
 
-  if (node.repeat) {
-    traverseNodes(node.repeat.content, fn)
+  if (node.type === 'repeat') {
+    traverseNodes(node.content.node, fn)
   }
 
-  if (node.states && node.type === 'state') {
-    node.states.forEach((stateBranch) => {
-      if (typeof stateBranch.content !== 'string') {
-        traverseNodes(stateBranch.content, fn)
-      }
+  // if (node.states && node.type === 'state') {
+  //   node.states.forEach((stateBranch) => {
+  //     if (typeof stateBranch.content !== 'string') {
+  //       traverseNodes(stateBranch.content, fn)
+  //     }
+  //   })
+  //   return
+  // }
+}
+
+export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
+  if (node.type === 'element') {
+    fn(node.content)
+
+    node.content.children.forEach((child) => {
+      traverseElements(child, fn)
     })
-    return
+  }
+
+  if (node.type === 'repeat') {
+    traverseElements(node.content.node, fn)
   }
 }
 
@@ -253,9 +264,9 @@ export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | stri
     return false
   }
 
-  const { content, type } = jsonObject as UIDLStaticReference
+  const { content, type } = jsonObject as UIDLStaticValue
   if (type === 'static' && typeof content === 'string') {
-    return jsonObject as UIDLStaticReference
+    return jsonObject as UIDLStaticValue
   }
 
   return false

@@ -74,7 +74,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    resolveElement: resolver.resolveElement.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }

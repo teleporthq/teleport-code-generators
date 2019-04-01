@@ -192,7 +192,7 @@ export const createPageOutputs = async (
 
   const files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
-  const { name: value, content } = componentUIDL
+  const { name: value, node } = componentUIDL
   const { routerDefinitions } = componentUIDL.stateDefinitions
 
   const { componentName, fileName } = extractPageMetadata(routerDefinitions, value, {
@@ -200,7 +200,7 @@ export const createPageOutputs = async (
   })
   const pageUIDL: ComponentUIDL = {
     name: componentName,
-    content,
+    node,
     meta: {
       fileName,
     },

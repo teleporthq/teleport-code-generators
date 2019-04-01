@@ -3,9 +3,9 @@ import * as t from '@babel/types'
 import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import {
-  traverseNodes,
   cleanupNestedStyles,
   transformDynamicStyles,
+  traverseElements,
 } from '../../shared/utils/uidl-utils'
 
 interface InlineStyleConfig {
@@ -27,8 +27,8 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
       return structure
     }
 
-    traverseNodes(uidl.content, (node) => {
-      const { style, key } = node
+    traverseElements(uidl.node, (element) => {
+      const { style, key } = element
 
       if (style) {
         const jsxASTTag = componentChunk.meta.nodesLookup[key]

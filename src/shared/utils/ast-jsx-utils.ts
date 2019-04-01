@@ -196,7 +196,10 @@ export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
   return tag
 }
 
-export const addChildJSXTag = (tag: types.JSXElement, childNode: types.JSXElement) => {
+export const addChildJSXTag = (
+  tag: types.JSXElement,
+  childNode: types.JSXElement | types.JSXExpressionContainer
+) => {
   tag.children.push(childNode, types.jsxText('\n'))
 }
 

@@ -30,27 +30,27 @@ export default class Resolver {
       this.addMapping(customMapping)
     }
 
-    const content = cloneElement(uidl.content)
+    const node = cloneElement(uidl.node)
 
-    utils.resolveContentNode(content, this.mapping, localDependenciesPrefix, assetsPrefix)
+    utils.resolveContentNode(node, this.mapping, localDependenciesPrefix, assetsPrefix)
 
     const nodesLookup = {}
-    utils.createNodesLookup(content, nodesLookup)
-    utils.generateUniqueKeys(content, nodesLookup)
+    utils.createNodesLookup(node, nodesLookup)
+    utils.generateUniqueKeys(node, nodesLookup)
 
     return {
       ...uidl,
       name: sanitizeVariableName(uidl.name),
-      content,
+      node,
     }
   }
 
-  public resolveContentNode(node: ContentNode, options: GeneratorOptions = {}) {
+  public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
     const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
     const mapping = utils.mergeMappings(this.mapping, customMapping)
-    const returnNode = cloneElement(node)
+    const returnElement = cloneElement(element)
 
-    utils.resolveContentNode(returnNode, mapping, localDependenciesPrefix, assetsPrefix)
-    return returnNode
+    utils.resolveContentNode(returnElement, mapping, localDependenciesPrefix, assetsPrefix)
+    return returnElement
   }
 }

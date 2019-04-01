@@ -1,7 +1,7 @@
 {
   "elements": {
     "navlink": {
-      "type": "Link",
+      "elementType": "Link",
       "dependency": {
         "type": "library",
         "path": "react-router-dom",

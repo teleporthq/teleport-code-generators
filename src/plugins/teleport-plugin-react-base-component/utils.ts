@@ -8,125 +8,129 @@ import {
   addDynamicChild,
   addDynamicAttributeOnTag,
   generateASTDefinitionForJSXTag,
-  createConditionalJSXExpression,
-  createTernaryOperation,
 } from '../../shared/utils/ast-jsx-utils'
 
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 
 export const generateTreeStructure = (
-  content: ContentNode,
+  node: UIDLNode,
   accumulators: {
-    propDefinitions: Record<string, PropDefinition>
+    propDefinitions: Record<string, UIDLPropDefinition>
     stateIdentifiers: Record<string, StateIdentifier>
     nodesLookup: Record<string, types.JSXElement>
     dependencies: Record<string, ComponentDependency>
   }
-): types.JSXElement => {
-  const { type, children, key, attrs, dependency, events, repeat } = content
+) => {
   const { propDefinitions, stateIdentifiers, nodesLookup, dependencies } = accumulators
 
-  const mainTag = generateASTDefinitionForJSXTag(type)
-
-  if (attrs) {
-    Object.keys(attrs).forEach((attrKey) => {
-      addAttributeToTag(mainTag, attrKey, attrs[attrKey])
-    })
+  if (node.type === 'static') {
+    return node.content.toString()
   }
 
-  if (dependency) {
-    // Make a copy to avoid reference leaking
-    dependencies[type] = { ...dependency }
+  if (node.type === 'dynamic') {
+    return node.content.id // TODO: different approach, split addTextNode function?
   }
 
-  if (events) {
-    Object.keys(events).forEach((eventKey) => {
-      addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
-    })
-  }
+  if (node.type === 'element') {
+    const { elementType, children, key, attrs, dependency, events } = node.content
+    const mainTag = generateASTDefinitionForJSXTag(elementType)
 
-  if (repeat) {
-    const { content: repeatContent, dataSource, meta } = repeat
+    if (attrs) {
+      Object.keys(attrs).forEach((attrKey) => {
+        addAttributeToTag(mainTag, attrKey, attrs[attrKey])
+      })
+    }
 
-    const contentAST = generateTreeStructure(repeatContent, accumulators)
+    if (dependency) {
+      // Make a copy to avoid reference leaking
+      dependencies[elementType] = { ...dependency }
+    }
 
-    const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST, meta)
-    mainTag.children.push(repeatAST)
-  }
+    if (events) {
+      Object.keys(events).forEach((eventKey) => {
+        addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
+      })
+    }
 
-  if (children) {
-    children.forEach((child) => {
-      if (!child) {
-        return
-      }
+    if (children) {
+      children.forEach((child) => {
+        const childTag = generateTreeStructure(child, accumulators)
 
-      if (typeof child === 'string') {
-        addTextElementToTag(mainTag, child)
-        return
-      }
-
-      if (child.type === 'state') {
-        const { states = [], name: stateKey } = child
-        const isBooleanState =
-          stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
-        if (isBooleanState && states.length === 2) {
-          const consequentContent = states[0].content
-          const alternateContent = states[1].content
-          const consequent =
-            typeof consequentContent === 'string'
-              ? types.stringLiteral(consequentContent)
-              : generateTreeStructure(consequentContent, accumulators)
-          const alternate =
-            typeof alternateContent === 'string'
-              ? types.stringLiteral(alternateContent)
-              : generateTreeStructure(alternateContent, accumulators)
-          const jsxExpression = createTernaryOperation(
-            stateIdentifiers[stateKey].key,
-            consequent,
-            alternate
-          )
-          mainTag.children.push(jsxExpression)
+        if (typeof childTag === 'string') {
+          addTextElementToTag(mainTag, childTag)
         } else {
-          states.forEach((stateBranch) => {
-            const stateContent = stateBranch.content
-            const stateIdentifier = stateIdentifiers[stateKey]
-            if (!stateIdentifier) {
-              return
-            }
-
-            const stateSubTree =
-              typeof stateContent === 'string'
-                ? stateContent
-                : generateTreeStructure(stateContent, accumulators)
-
-            const jsxExpression = createConditionalJSXExpression(
-              stateSubTree,
-              stateBranch.value,
-              stateIdentifier
-            )
-
-            mainTag.children.push(jsxExpression)
-          })
+          addChildJSXTag(mainTag, childTag)
         }
 
-        return
-      }
+        // if (child.type === 'state') {
+        //   const { states = [], name: stateKey } = child
+        //   const isBooleanState =
+        //     stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
+        //   if (isBooleanState && states.length === 2) {
+        //     const consequentContent = states[0].content
+        //     const alternateContent = states[1].content
+        //     const consequent =
+        //       typeof consequentContent === 'string'
+        //         ? types.stringLiteral(consequentContent)
+        //         : generateTreeStructure(consequentContent, accumulators)
+        //     const alternate =
+        //       typeof alternateContent === 'string'
+        //         ? types.stringLiteral(alternateContent)
+        //         : generateTreeStructure(alternateContent, accumulators)
+        //     const jsxExpression = createTernaryOperation(
+        //       stateIdentifiers[stateKey].key,
+        //       consequent,
+        //       alternate
+        //     )
+        //     mainTag.children.push(jsxExpression)
+        //   } else {
+        //     states.forEach((stateBranch) => {
+        //       const stateContent = stateBranch.content
+        //       const stateIdentifier = stateIdentifiers[stateKey]
+        //       if (!stateIdentifier) {
+        //         return
+        //       }
 
-      const childTag = generateTreeStructure(child, accumulators)
+        //       const stateSubTree =
+        //         typeof stateContent === 'string'
+        //           ? stateContent
+        //           : generateTreeStructure(stateContent, accumulators)
 
-      addChildJSXTag(mainTag, childTag)
-    })
+        //       const jsxExpression = createConditionalJSXExpression(
+        //         stateSubTree,
+        //         stateBranch.value,
+        //         stateIdentifier
+        //       )
+
+        //       mainTag.children.push(jsxExpression)
+        //     })
+        //   }
+
+        //   return
+        // }
+      })
+    }
+
+    nodesLookup[key] = mainTag
+    return mainTag
+  }
+
+  if (node.type === 'repeat') {
+    const { node: repeatContent, dataSource, meta } = node.content
+
+    // TODO: Handle repeat non-JSXElement
+    const contentAST = generateTreeStructure(repeatContent, accumulators) as types.JSXElement
+
+    const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST, meta)
+    return repeatAST
   }
 
   // UIDL name should be unique
-  nodesLookup[key] = mainTag
-
-  return mainTag
 }
 
 export const createStateIdentifiers = (
-  stateDefinitions: Record<string, StateDefinition>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   dependencies: Record<string, ComponentDependency>
 ) => {
   dependencies.useState = {
@@ -183,7 +187,7 @@ const addEventHandlerToTag = (
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
   stateIdentifiers: Record<string, StateIdentifier>,
-  propDefinitions: Record<string, PropDefinition> = {},
+  propDefinitions: Record<string, UIDLPropDefinition> = {},
   t = types
 ) => {
   const eventHandlerASTStatements: types.ExpressionStatement[] = []
@@ -223,7 +227,7 @@ const addEventHandlerToTag = (
 
 const createPropCallStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  propDefinitions: Record<string, PropDefinition>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
   const { calls: propFunctionKey, args = [] } = eventHandlerStatement
@@ -289,7 +293,7 @@ const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
 }
 
 const makeRepeatStructureWithMap = (
-  dataSource: UIDLNodeAttributeValue,
+  dataSource: UIDLAttributeValue,
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
@@ -320,7 +324,7 @@ const makeRepeatStructureWithMap = (
   )
 }
 
-const getSourceIdentifier = (dataSource: UIDLNodeAttributeValue, t = types) => {
+const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
   switch (dataSource.type) {
     case 'static':
       return t.arrayExpression(
@@ -355,7 +359,7 @@ const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReferen
 const addAttributeToTag = (
   tag: types.JSXElement,
   attributeKey: string,
-  attributeValue: UIDLNodeAttributeValue
+  attributeValue: UIDLAttributeValue
 ) => {
   // TODO review with addAttributeToNode from vue
   switch (attributeValue.type) {

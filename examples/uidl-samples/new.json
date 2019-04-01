@@ -1,0 +1,84 @@
+{
+  "name": "New UIDL",
+  "propDefinitions": {
+    "title": {
+      "type": "string",
+      "defaultValue": "Hello"
+    },
+    "items": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "attrs": {
+        "data-static-attr": {
+          "type": "static",
+          "content": "test"
+        },
+        "data-dynamic-attr": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "title"
+          }
+        }
+      },
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "children": [
+              {
+                "type": "static",
+                "content": "Hello World!"
+              },
+              {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "title"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "repeat",
+          "content": {
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "local",
+                      "id": "item"
+                    }
+                  }
+                ]
+              }
+            },
+            "dataSource": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "items"
+              }
+            },
+            "meta": {
+              "useIndex": true,
+              "iteratorName": "item"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
