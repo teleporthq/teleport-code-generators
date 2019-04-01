@@ -56,8 +56,8 @@
   "dependencies": {
     "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.10",
     "ajv": "^6.9.1",
-    "hast-util-to-html": "^5.0.0",
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0",
     "prettier": "^1.16.4",

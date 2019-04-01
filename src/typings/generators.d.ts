@@ -241,6 +241,25 @@ interface GeneratedFile {
   extension: string
 }
 
+interface ComponentFactoryParams {
+  componentGenerator: ComponentGenerator
+  componentUIDL: ComponentUIDL
+  componentOptions: {
+    assetsPrefix: string
+    localDependenciesPrefix?: string
+  }
+  metadataOptions?: {
+    usePathAsFileName?: boolean
+    convertDefaultToIndex?: boolean
+  }
+  componentExtension?: string
+}
+
+interface ComponentGeneratorOutput {
+  files: GeneratedFile[]
+  dependencies: Record<string, string>
+}
+
 interface ProjectGeneratorOptions {
   sourcePackageJson?: PackageJSON
   distPath?: string

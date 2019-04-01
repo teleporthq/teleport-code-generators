@@ -5,7 +5,7 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/project-state-components.json'
 
-import { createReactNextProject } from '../../../src'
+import { createReactNextGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore
@@ -15,9 +15,7 @@ const writeToDisk = async (
   templatePath: string = 'project-template',
   distPath: string = 'dist'
 ) => {
-  // @ts-ignore
   await removeDir(path.join(__dirname, distPath))
-  // @ts-ignore
   await copyDirRec(templatePath, path.join(__dirname, distPath))
   const packageJsonTemplate = path.join(templatePath, 'package.json')
   const packageJson = await readJSON(packageJsonTemplate)
@@ -29,7 +27,7 @@ const writeToDisk = async (
     sourcePackageJson: packageJson,
     distPath,
   })
-  // @ts-ignore
+
   await writeFolder(outputFolder, __dirname)
 }
 
@@ -41,6 +39,13 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-// @ts-ignore
-writeToDisk(projectJson, createReactNextProject, path.join(__dirname, 'project-template'), 'dist')
+const generator = createReactNextGenerator()
+writeToDisk(
+  // @ts-ignore
+  projectJson as ProjectUIDL,
+  generator.generateProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
+
 // runInMemory(projectJson, createNextProject)

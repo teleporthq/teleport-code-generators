@@ -9,3 +9,10 @@ export const PRETTIER_CONFIG = {
   trailingComma: 'es5',
   bracketSpacing: true,
 }
+export const FILE_EXTENSIONS = {
+  CSS: '.css',
+  HTML: '.html',
+  JS: '.js',
+  JSON: '.json',
+  VUE: '.vue',
+}

@@ -1,220 +1,160 @@
 import reactProjectMapping from './react-project-mapping.json'
 
-import createRouterComponentGenerator from '../../component-generators/react/react-router'
 import createReactGenerator, {
   ReactComponentStylingFlavors,
 } from '../../component-generators/react/react-component'
 
-import { extractPageMetadata } from '../../shared/utils/uidl-utils'
-import { sanitizeVariableName } from '../../shared/utils/string-utils'
+import { createRouterIndexFile, buildFolderStructure } from './utils'
+
 import {
-  createPackageJSON,
-  createManifestJSON,
+  createPackageJSONFile,
   createHtmlIndexFile,
+  createPageOutputs,
+  createComponentOutputs,
+  joinGeneratorOutputs,
+  createManifestJSONFile,
 } from '../../shared/utils/project-utils'
 
-import { ASSETS_PREFIX, DEFAULT_OUTPUT_FOLDER, DEFAULT_PACKAGE_JSON } from './constants'
+import {
+  ASSETS_PREFIX,
+  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_OUTPUT_FOLDER,
+  DEFAULT_PACKAGE_JSON,
+} from './constants'
 
-export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-  // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
+const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
     variation: ReactComponentStylingFlavors.CSSModules,
   })
 
-  const routingComponentGenerator = createRouterComponentGenerator()
-
-  // Step 1: Building the folder structure (rooted in dist by default) for the React project
-  const componentsFolder: GeneratedFolder = {
-    name: 'components',
-    files: [],
-    subFolders: [],
-  }
-
-  const pagesFolder: GeneratedFolder = {
-    name: 'pages',
-    files: [],
-    subFolders: [],
-  }
-
-  const staticFolder: GeneratedFolder = {
-    name: 'static',
-    files: [],
-    subFolders: [],
-  }
-
-  const srcFolder: GeneratedFolder = {
-    name: 'src',
-    files: [],
-    subFolders: [componentsFolder, pagesFolder, staticFolder],
-  }
-
-  const distFolder: GeneratedFolder = {
-    name: options.distPath || DEFAULT_OUTPUT_FOLDER,
-    files: [],
-    subFolders: [srcFolder],
-  }
-
-  // Step 2: Initialization with project specific mappings and of other data structures
   reactGenerator.addMapping(reactProjectMapping as Mapping)
   if (options.customMapping) {
     reactGenerator.addMapping(options.customMapping)
   }
 
-  let collectedDependencies: Record<string, string> = {}
-  const { components = {}, root } = uidl
-  const { states } = root.content
-  const stateDefinitions = root.stateDefinitions
+  return reactGenerator
+}
 
-  const result = {
-    outputFolder: distFolder,
-    assetsPath: 'src' + ASSETS_PREFIX,
+const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+  const reactGenerator = initGenerator(generatorOptions)
+
+  const addCustomMapping = (mapping: Mapping) => {
+    reactGenerator.addMapping(mapping)
   }
 
-  if (!states || !stateDefinitions) {
-    return result
-  }
-
-  const routerDefinitions = stateDefinitions.router
-  if (!routerDefinitions) {
-    return result
-  }
-
-  // Step 3: Global settings are transformed into the root html file and the manifest file for PWA support
-  if (uidl.globals.manifest) {
-    const manifestJSON = createManifestJSON(uidl.globals.manifest, uidl.name, ASSETS_PREFIX)
-    const manifestFile: GeneratedFile = {
-      name: 'manifest',
-      extension: '.json',
-      content: JSON.stringify(manifestJSON, null, 2),
+  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
+    // Step 0: Add any custom mappings found in the options
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
     }
 
-    staticFolder.files.push(manifestFile)
-  }
+    const { components = {}, root } = uidl
+    const { states = [] } = root.content
 
-  const htmlIndexContent = createHtmlIndexFile(uidl, ASSETS_PREFIX)
-  if (htmlIndexContent) {
-    const htmlFile: GeneratedFile = {
-      name: 'index',
-      extension: '.html',
-      content: htmlIndexContent,
-    }
+    const stateDefinitions = root.stateDefinitions || {}
+    const routerDefinitions = stateDefinitions.router || null
 
-    srcFolder.files.push(htmlFile)
-  }
-
-  // Step 4: Routing component (index.js)
-  const routingComponent = await routingComponentGenerator.generateComponent(root)
-
-  srcFolder.files.push({
-    name: 'index',
-    extension: '.js',
-    content: routingComponent.code,
-  })
-
-  collectedDependencies = {
-    ...collectedDependencies,
-    ...routingComponent.externalDependencies,
-  }
-
-  // Step 5: Iterating through the first level state branches in the root and generating the components in the "/pages" folder
-  await Promise.all(
-    states.map(async (stateBranch) => {
-      const { value: pageKey, content: pageContent } = stateBranch
-
-      if (typeof pageKey !== 'string' || typeof pageContent === 'string') {
-        return
+    // Step 1: The first level stateBranches (the pages) transformation in react components is started
+    const pagePromises = states.map((stateBranch) => {
+      if (
+        typeof stateBranch.value !== 'string' ||
+        typeof stateBranch.content === 'string' ||
+        !routerDefinitions
+      ) {
+        return { files: [], dependencies: {} }
       }
 
-      // fileName and componentName may be overridden from the UIDL meta when defining the state keys/branches
-      const { componentName, fileName } = extractPageMetadata(routerDefinitions, pageKey)
-      const pageComponent = {
-        name: componentName,
-        content: pageContent,
-        meta: {
-          fileName,
+      const componentUIDL: ComponentUIDL = {
+        name: stateBranch.value,
+        content: stateBranch.content,
+        stateDefinitions: {
+          routerDefinitions,
         },
       }
 
-      const compiledComponent = await reactGenerator.generateComponent(pageComponent, {
-        localDependenciesPrefix: '../components/',
-        assetsPrefix: ASSETS_PREFIX,
-      })
-
-      let cssFile: GeneratedFile | null = null
-      if (compiledComponent.externalCSS) {
-        cssFile = {
-          name: fileName,
-          extension: '.css',
-          content: compiledComponent.externalCSS,
-        }
-
-        pagesFolder.files.push(cssFile)
+      const pageParams: ComponentFactoryParams = {
+        componentGenerator: reactGenerator,
+        componentUIDL,
+        componentOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+        },
       }
-
-      const jsFile: GeneratedFile = {
-        name: fileName,
-        extension: '.js',
-        content: compiledComponent.code,
-      }
-
-      collectedDependencies = {
-        ...collectedDependencies,
-        ...compiledComponent.externalDependencies,
-      }
-
-      pagesFolder.files.push(jsFile)
+      return createPageOutputs(pageParams)
     })
-  )
 
-  // Step 6: Components are generated into a separate /components folder
-  await Promise.all(
-    Object.keys(components).map(async (componentName) => {
-      const component = components[componentName]
-      const compiledComponent = await reactGenerator.generateComponent(component, {
-        assetsPrefix: ASSETS_PREFIX,
-      })
-
-      let cssFile: GeneratedFile | null = null
-      if (compiledComponent.externalCSS) {
-        cssFile = {
-          name: sanitizeVariableName(component.name),
-          extension: '.css',
-          content: compiledComponent.externalCSS,
-        }
-
-        componentsFolder.files.push(cssFile)
+    // Step 2: The components generation process is started
+    const componentPromises = Object.keys(components).map((componentName) => {
+      const componentUIDL = components[componentName]
+      const componentParams: ComponentFactoryParams = {
+        componentGenerator: reactGenerator,
+        componentUIDL,
+        componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
-
-      const jsFile: GeneratedFile = {
-        name: sanitizeVariableName(component.name),
-        extension: '.js',
-        content: compiledComponent.code,
-      }
-
-      collectedDependencies = {
-        ...collectedDependencies,
-        ...compiledComponent.externalDependencies,
-      }
-
-      componentsFolder.files.push(jsFile)
+      return createComponentOutputs(componentParams)
     })
-  )
 
-  // Step 7: External dependencies are added to the package.json file from the template project
-  const { sourcePackageJson } = options
+    // Step 3: The process of creating the pages and the components is awaited
+    const createdPageFiles = await Promise.all(pagePromises)
+    const createdComponentFiles = await Promise.all(componentPromises)
 
-  const packageJSON = createPackageJSON(sourcePackageJson || DEFAULT_PACKAGE_JSON, {
-    dependencies: collectedDependencies,
-    projectName: uidl.name,
-  })
+    // Step 4: The generated page and component files are joined
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
+    const pageFiles = joinedPageFiles.files
 
-  const packageFile: GeneratedFile = {
-    name: 'package',
-    extension: '.json',
-    content: JSON.stringify(packageJSON, null, 2),
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
+    const componentFiles = joinedComponentFiles.files
+
+    // Step 5: Global settings are transformed into the root html file and the manifest file for PWA support
+    const staticFiles: GeneratedFile[] = []
+    if (uidl.globals.manifest) {
+      const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
+      staticFiles.push(manifestFile)
+    }
+
+    // Step 6: Create the routing component (index.js)
+    const { routerFile, externalDependencies } = await createRouterIndexFile(root)
+    const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
+
+    const srcFiles: GeneratedFile[] = [htmlIndexFile, routerFile]
+
+    // Step 7: Join all the external dependencies
+    const collectedDependencies = {
+      ...externalDependencies,
+      ...joinedPageFiles.dependencies,
+      ...joinedComponentFiles.dependencies,
+    }
+
+    // Step 8: Create the package.json file
+    const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+      dependencies: collectedDependencies,
+      projectName: uidl.name,
+    })
+
+    const distFiles: GeneratedFile[] = [packageFile]
+
+    // Step 9: Build the folder structure
+    const distFolder = buildFolderStructure(
+      {
+        pages: pageFiles,
+        components: componentFiles,
+        src: srcFiles,
+        dist: distFiles,
+        static: staticFiles,
+      },
+      options.distPath || DEFAULT_OUTPUT_FOLDER
+    )
+
+    return {
+      outputFolder: distFolder,
+      assetsPath: 'src' + ASSETS_PREFIX,
+    }
   }
 
-  distFolder.files.push(packageFile)
-
-  return result
+  return {
+    addCustomMapping,
+    generateProject,
+  }
 }
+
+export default createReactBasicGenerator
