@@ -1,14 +1,12 @@
-// @ts-ignore-next-line
-import uidlJSON from '../fixtures/component-sample.json'
-// @ts-ignore-next-line
-import invalidUidlJSON from '../fixtures/component-invalid-sample.json'
+import uidlSampleJSON from '../fixtures/component-sample.json'
+import invalidUidlSampleJSON from '../fixtures/component-invalid-sample.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'
 
 import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
 
-const uidlSample = (uidlJSON as unknown) as ComponentUIDL
-const invalidUidlSample = (invalidUidlJSON as unknown) as ComponentUIDL
+const uidlSample = uidlSampleJSON as ComponentUIDL
+const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {

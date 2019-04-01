@@ -14,7 +14,6 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   // Step 0: Create component generators, this will be removed later when we have factory functions for proj generators
   const reactGenerator = createReactGenerator({
     variation: ReactComponentStylingFlavors.StyledJSX,
-    customMapping: nextMapping,
   })
 
   // Step 1: Building the folder structure (rooted in dist by default) for the Next project
@@ -43,7 +42,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   // Step 2: Initialization with project specific mappings and of other data structures
-  reactGenerator.addMapping(nextMapping)
+  reactGenerator.addMapping(nextMapping as Mapping)
   if (options.customMapping) {
     reactGenerator.addMapping(options.customMapping)
   }

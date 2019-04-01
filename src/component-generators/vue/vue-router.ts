@@ -7,7 +7,7 @@ import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.js
 import vueMapping from './vue-mapping.json'
 
 const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
-  const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, customMapping])
   const assemblyLine = new AssemblyLine([vueRoutingPlugin, importStatementsPlugin])
 
   const chunksLinker = new Builder()

@@ -87,7 +87,7 @@ export const addDynamicAttributeOnTag = (
   const content =
     prefix === ''
       ? t.identifier(value)
-      : t.memberExpression(t.identifier('props'), t.identifier(value))
+      : t.memberExpression(t.identifier(prefix), t.identifier(value))
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))

@@ -60,14 +60,14 @@ interface ContentNode {
   repeat?: RepeatDefinition
   dependency?: ComponentDependency
   style?: UIDLStyleDefinitions
-  attrs?: Record<string, any>
+  attrs?: Record<string, UIDLNodeAttributeValue>
   events?: EventDefinitions
   children?: Array<ContentNode | string>
 }
 
 interface RepeatDefinition {
   content: ContentNode
-  dataSource: string | any[]
+  dataSource: UIDLNodeAttributeValue
   meta?: {
     useIndex?: boolean
     iteratorName?: string
@@ -144,7 +144,7 @@ interface Mapping {
 interface ElementMapping {
   type: string
   dependency?: ComponentDependency
-  attrs?: Record<string, any>
+  attrs?: Record<string, UIDLNodeAttributeValue>
   children?: Array<ContentNode | string>
   repeat?: RepeatDefinition
 }
@@ -270,14 +270,14 @@ interface PackageJSON {
 interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'state' | 'local'
+    referenceType: 'prop' | 'state' | 'local' | 'attr'
     id: string
   }
 }
 
 interface UIDLStaticReference {
   type: 'static'
-  content: string
+  content: string | number | boolean | any[] // array<any> for data sources
 }
 
 type UIDLNodeAttributeValue = UIDLDynamicReference | UIDLStaticReference

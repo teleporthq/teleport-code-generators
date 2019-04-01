@@ -13,7 +13,7 @@ const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping }
 ): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([htmlMapping, vueMapping, customMapping])
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, customMapping])
   const assemblyLine = new AssemblyLine([
     vueComponentPlugin,
     vueStylePlugin,
