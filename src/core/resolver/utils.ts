@@ -182,32 +182,46 @@ const isPowerOfTen = (value: number) => {
  * @param style the style object on the current node
  * @param assetsPrefix a string representing the asset prefix
  */
-const prefixAssetURLs = (style: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
+const prefixAssetURLs = (
+  style: UIDLStyleDefinitions,
+  assetsPrefix: string
+): UIDLStyleDefinitions => {
   // iterate through all the style keys
   return Object.keys(style).reduce((acc, styleKey) => {
     const styleValue = style[styleKey]
 
-    // when objects are encountered, go recursively (ex: media queries, hover)
-    if (typeof styleValue === 'object') {
-      acc[styleKey] = prefixAssetURLs(styleValue, assetsPrefix)
-      return acc
-    }
+    switch (styleValue.type) {
+      case 'dynamic':
+        // dynamicStyles[styleKey] = styleValue
+        return acc
+      case 'static':
+        const staticContent = styleValue.content
+        if (typeof staticContent === 'number') {
+          acc[styleKey] = styleValue
+          return acc
+        }
 
-    // number values are ignored
-    if (typeof styleValue === 'number') {
-      acc[styleKey] = styleValue
-      return acc
-    }
-
-    // only whitelisted style properties are checked
-    if (STYLE_PROPERTIES_WITH_URL.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
-      // split the string at the beginning of the ASSETS_IDENTIFIER string
-      const startIndex = styleValue.indexOf(ASSETS_IDENTIFIER)
-      acc[styleKey] =
-        styleValue.slice(0, startIndex) +
-        prefixPlaygroundAssetsURL(assetsPrefix, styleValue.slice(startIndex, styleValue.length))
-    } else {
-      acc[styleKey] = styleValue
+        if (
+          typeof staticContent === 'string' &&
+          STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
+          staticContent.includes(ASSETS_IDENTIFIER)
+        ) {
+          // split the string at the beginning of the ASSETS_IDENTIFIER string
+          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER)
+          acc[styleKey] =
+            staticContent.slice(0, startIndex) +
+            prefixPlaygroundAssetsURL(
+              assetsPrefix,
+              staticContent.slice(startIndex, staticContent.length)
+            )
+        } else {
+          acc[styleKey] = styleValue
+        }
+        return acc
+      case 'nested-style':
+        acc[styleKey] = styleValue
+        acc[styleKey].content = prefixAssetURLs(styleValue.content, assetsPrefix)
+        return acc
     }
 
     return acc

@@ -82,82 +82,124 @@ export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void
   }
 }
 
-export const splitDynamicAndStaticStyles = (style: StyleDefinitions) => {
-  const staticStyles: StyleDefinitions = {}
-  const dynamicStyles: StyleDefinitions = {}
+interface SplitResponse {
+  staticStyles: UIDLStyleDefinitions
+  dynamicStyles: UIDLStyleDefinitions
+}
+export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitResponse => {
+  // const staticStyles: UIDLStyleDefinitions = {}
+  // const dynamicStyles: UIDLStyleDefinitions = {}
 
-  Object.keys(style).forEach((key) => {
-    const value = style[key]
+  const responsePayload: SplitResponse = { staticStyles: {}, dynamicStyles: {} }
 
-    if (typeof value === 'object') {
-      const nestedResult = splitDynamicAndStaticStyles(value)
-      if (Object.keys(nestedResult.dynamicStyles).length > 0) {
-        dynamicStyles[key] = nestedResult.dynamicStyles
-      }
-      if (Object.keys(nestedResult.staticStyles).length > 0) {
-        staticStyles[key] = nestedResult.staticStyles
-      }
-    } else if (typeof value === 'string' && value.startsWith('$props.')) {
-      dynamicStyles[key] = value
-    } else {
-      staticStyles[key] = value
+  Object.keys(style).reduce((acc: SplitResponse, styleKey) => {
+    const styleValue = style[styleKey]
+    const { staticStyles, dynamicStyles } = acc
+
+    switch (styleValue.type) {
+      case 'dynamic':
+        dynamicStyles[styleKey] = styleValue
+        return acc
+      case 'static':
+        staticStyles[styleKey] = styleValue
+        return acc
+      case 'nested-style':
+        const nestedResult = splitDynamicAndStaticStyles(styleValue.content)
+        if (Object.keys(nestedResult.dynamicStyles).length > 0) {
+          dynamicStyles[styleKey] = styleValue
+          dynamicStyles[styleKey].content = nestedResult.dynamicStyles
+        }
+        if (Object.keys(nestedResult.staticStyles).length > 0) {
+          staticStyles[styleKey] = styleValue
+          staticStyles[styleKey].content = nestedResult.staticStyles
+        }
+        return acc
+      default:
+        throw new Error(
+          `splitDynamicAndStaticStyles encountered an unknown style definition ${JSON.stringify(
+            styleValue,
+            null,
+            2
+          )}`
+        )
     }
-  })
 
-  return {
-    staticStyles,
-    dynamicStyles,
-  }
+    return acc
+  }, responsePayload)
+
+  return responsePayload
 }
 
+// TODO add tests
 // return only the root level styles, ignoring any :hover or @media keys which can be nested structures
-export const cleanupNestedStyles = (style: StyleDefinitions) => {
-  return Object.keys(style).reduce((resultedStyles: StyleDefinitions, styleKey: string) => {
+export const cleanupNestedStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
+  return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {
     const styleValue = style[styleKey]
 
-    if (typeof styleValue === 'object') {
-      // skip dynamic style
-      return resultedStyles
+    switch (styleValue.type) {
+      case 'nested-style':
+        return resultedStyles
+      default:
+        resultedStyles[styleKey] = styleValue
+        return resultedStyles
     }
-
-    resultedStyles[styleKey] = styleValue
-
-    return resultedStyles
   }, {})
 }
 
 // removes all the dynamic styles from the style object, including the nested structures
-export const cleanupDynamicStyles = (style: StyleDefinitions) => {
-  return Object.keys(style).reduce((resultedStyles: StyleDefinitions, styleKey: string) => {
+export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
+  return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {
     const styleValue = style[styleKey]
 
-    if (typeof styleValue === 'string' && styleValue.startsWith('$props.')) {
-      // skip dynamic style
-      return resultedStyles
+    switch (styleValue.type) {
+      case 'dynamic':
+        return resultedStyles
+      case 'nested-style':
+        resultedStyles[styleKey] = styleValue
+        resultedStyles[styleKey].content = cleanupDynamicStyles(styleValue.content)
+        return resultedStyles
+      case 'static':
+        resultedStyles[styleKey] = styleValue
+        return resultedStyles
+      default:
+        throw new Error(
+          `cleanupDynamicStyles encountered an unknown style definition ${JSON.stringify(
+            styleValue,
+            null,
+            2
+          )}`
+        )
     }
-
-    resultedStyles[styleKey] =
-      typeof styleValue === 'object' ? cleanupDynamicStyles(styleValue) : styleValue
-
-    return resultedStyles
   }, {})
 }
 
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
-  style: StyleDefinitions,
-  transform: (value: string, key?: string) => any
+  style: UIDLStyleDefinitions,
+  transform: (value: string, key?: string) => unknown
 ) => {
-  return Object.keys(style).reduce((acc: any, key) => {
-    const value = style[key]
-    if (typeof value === 'string' && value.startsWith('$props.')) {
-      acc[key] = transform(value, key)
-    } else if (typeof value === 'object') {
-      acc[key] = transformDynamicStyles(value, transform)
-    } else {
-      acc[key] = style[key]
+  return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
+    const styleValue = style[styleKey]
+
+    switch (styleValue.type) {
+      case 'dynamic':
+        resultedStyles[styleKey] = transform(styleValue.content.id, styleKey)
+        return resultedStyles
+      case 'nested-style':
+        resultedStyles[styleKey] = transformDynamicStyles(styleValue.content, transform)
+        return resultedStyles
+      case 'static':
+        resultedStyles[styleKey] = styleValue.content
+        return resultedStyles
+      default:
+        throw new Error(
+          `transformDynamicStyles encountered an unknown style definition ${JSON.stringify(
+            styleValue,
+            null,
+            2
+          )}`
+        )
     }
-    return acc
   }, {})
 }
 

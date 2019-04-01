@@ -59,7 +59,7 @@ interface ContentNode {
   states?: StateBranch[]
   repeat?: RepeatDefinition
   dependency?: ComponentDependency
-  style?: StyleDefinitions
+  style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLNodeAttributeValue>
   events?: EventDefinitions
   children?: Array<ContentNode | string>
@@ -88,10 +88,18 @@ interface EventHandlerStatement {
   args?: Array<string | number | boolean>
 }
 
-interface StyleDefinitions {
-  [k: string]: number | string | StyleDefinitions
+// interface StyleDefinitions {
+//   [k: string]: number | string | StyleDefinitions
+// }
+
+declare type UIDLNodeStyleValue = UIDLNodeAttributeValue | UIDLNestedStyleDeclaration
+
+interface UIDLNestedStyleDeclaration {
+  type: 'nested-style'
+  content: UIDLStyleDefinitions
 }
 
+declare type UIDLStyleDefinitions = Record<string, UIDLNodeStyleValue>
 interface EventDefinitions {
   [k: string]: EventHandlerStatement[]
 }
