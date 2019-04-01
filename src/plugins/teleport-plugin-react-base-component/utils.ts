@@ -297,20 +297,7 @@ const makeRepeatStructureWithMap = (
   const iteratorName = meta.iteratorName || 'item'
   const keyIdentifier = meta.useIndex ? 'index' : iteratorName
 
-  let source
-
-  if (dataSource.type === 'static') {
-    source = t.arrayExpression(
-      (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
-    )
-  } else {
-    const dataSourceIdentifier = dataSource.content.id
-    const prefix = getReactVarNameForDynamicReference(dataSource)
-    source =
-      prefix === ''
-        ? t.identifier(dataSourceIdentifier)
-        : t.memberExpression(t.identifier(prefix), t.identifier(dataSourceIdentifier))
-  }
+  const source = getSourceIdentifier(dataSource)
 
   const dynamicLocalReference: UIDLDynamicReference = {
     type: 'dynamic',
@@ -331,6 +318,24 @@ const makeRepeatStructureWithMap = (
       t.arrowFunctionExpression(arrowFunctionArguments, content),
     ])
   )
+}
+
+const getSourceIdentifier = (dataSource: UIDLNodeAttributeValue, t = types) => {
+  switch (dataSource.type) {
+    case 'static':
+      return t.arrayExpression(
+        (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
+      )
+    case 'dynamic': {
+      const dataSourceIdentifier = dataSource.content.id
+      const prefix = getReactVarNameForDynamicReference(dataSource)
+      return prefix === ''
+        ? t.identifier(dataSourceIdentifier)
+        : t.memberExpression(t.identifier(prefix), t.identifier(dataSourceIdentifier))
+    }
+    default:
+      throw new Error(`Invalid type for dataSource: ${dataSource}`)
+  }
 }
 
 const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReference) => {
