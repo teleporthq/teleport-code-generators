@@ -1,11 +1,15 @@
 // @ts-ignore-next-line
-import ComponentWithInValidProps from './component-with-invalid-attr-prop.json'
+// import ComponentWithInValidPropsJSON from './component-with-invalid-attr-prop.json'
 // @ts-ignore-next-line
-import ComponentWithValidProps from './component-with-valid-attr-prop.json'
+import ComponentWithValidPropsJSON from './component-with-valid-attr-prop.json'
 // @ts-ignore-next-line
-import ComponentWithRepeatProps from './component-with-repeat.json'
+import ComponentWithRepeatPropsJSON from './component-with-repeat.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
+
+const ComponentWithValidProps = ComponentWithValidPropsJSON as ComponentUIDL
+// const ComponentWithInValidProps = ComponentWithInValidPropsJSON as ComponentUIDL
+const ComponentWithRepeatProps = ComponentWithRepeatPropsJSON as ComponentUIDL
 
 describe('React Props in Component', () => {
   describe('supports props json declaration in attributes', () => {
@@ -22,13 +26,13 @@ describe('React Props in Component', () => {
       expect(result.code).toContain('test={index}>')
     })
 
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps, {
-        skipValidation: true,
-      })
+    // it('should fail to add old style attributes on component', async () => {
+    //   const operation = generator.generateComponent(ComponentWithInValidProps, {
+    //     skipValidation: true,
+    //   })
 
-      await expect(operation).rejects.toThrow(Error)
-    })
+    //   await expect(operation).rejects.toThrow(Error)
+    // })
   })
 })
 
@@ -49,11 +53,11 @@ describe('Vue Props in Component Generator', () => {
       expect(result.code).toContain(':test="index"')
     })
 
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps, {
-        skipValidation: true,
-      })
-      await expect(operation).rejects.toThrow(Error)
-    })
+    // it('should fail to add old style attributes on component', async () => {
+    //   const operation = generator.generateComponent(ComponentWithInValidProps, {
+    //     skipValidation: true,
+    //   })
+    //   await expect(operation).rejects.toThrow(Error)
+    // })
   })
 })

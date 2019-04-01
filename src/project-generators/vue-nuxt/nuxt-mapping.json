@@ -3,7 +3,7 @@
     "navlink": {
       "type": "nuxt-link",
       "attrs": {
-        "to": "$attrs.transitionTo"
+        "to": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }

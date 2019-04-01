@@ -37,5 +37,11 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-writeToDisk(projectJson, createVueBasicProject, path.join(__dirname, 'project-template'), 'dist')
+writeToDisk(
+  // @ts-ignore
+  projectJson as Mapping,
+  createVueBasicProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
 // runInMemory(projectJson, createVueProject)

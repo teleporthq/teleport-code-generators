@@ -7,7 +7,7 @@
           "path": "next/link"
       },
       "attrs": {
-        "href": "$attrs.transitionTo"
+        "href": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       },
       "children": [
         {

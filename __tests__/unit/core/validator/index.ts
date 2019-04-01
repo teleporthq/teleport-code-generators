@@ -16,7 +16,6 @@ describe('Validate UIDL', () => {
   it('returns customized error', () => {
     const validator = new Validator()
     const validationResult = validator.validateComponent(invalidUidlSample)
-    console.log('validationResult', validationResult)
     expect(typeof validationResult).toBe('object')
     expect(validationResult.valid).toEqual(false)
     expect(validationResult.errorMsg).toBe(

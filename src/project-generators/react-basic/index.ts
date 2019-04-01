@@ -55,7 +55,7 @@ export default async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) 
   }
 
   // Step 2: Initialization with project specific mappings and of other data structures
-  reactGenerator.addMapping(reactProjectMapping)
+  reactGenerator.addMapping(reactProjectMapping as Mapping)
   if (options.customMapping) {
     reactGenerator.addMapping(options.customMapping)
   }

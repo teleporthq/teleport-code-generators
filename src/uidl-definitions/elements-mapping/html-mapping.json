@@ -63,7 +63,7 @@
     "image": {
       "type": "img",
       "attrs": {
-        "src": "$attrs.url"
+        "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
     "textinput": {
@@ -81,19 +81,19 @@
     "numberinput": {
       "type": "input",
       "attrs": {
-        "type": "number"
+        "type": { "type": "static", "content": "number" }
       }
     },
     "checkbox": {
       "type": "input",
       "attrs": {
-        "type": "checkbox"
+        "type": { "type": "static", "content": "checkbox" }
       }
     },
     "radiobutton": {
       "type": "input",
       "attrs": {
-        "type": "radio"
+        "type": { "type": "static", "content": "radio" }
       }
     },
     "textarea": {
@@ -102,7 +102,7 @@
     "link": {
       "type": "a",
       "attrs": {
-        "href": "$attrs.url",
+        "href": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } },
         "target": {
           "type": "static",
           "content": "_blank"
@@ -115,8 +115,8 @@
     "form": {
       "type": "form",
       "attrs": {
-        "method": "$attrs.type",
-        "action": "$attrs.url"
+        "method": { "type": "dynamic", "content": { "referenceType": "attr", "id": "type" } },
+        "action": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
     "list": {
@@ -127,7 +127,7 @@
           "name": "item",
           "children": ["$local.item"]
         },
-        "dataSource": "$attrs.items",
+        "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "items" } },
         "meta": {
           "useIndex": true
         }
@@ -141,7 +141,7 @@
           "name": "option",
           "children": ["$local.item"]
         },
-        "dataSource": "$attrs.options"
+        "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "options" } }
       }
     },
     "video": {
@@ -168,7 +168,7 @@
     "source": {
       "type": "source",
       "attrs": {
-        "src": "$attrs.url"
+        "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
     "svg": {

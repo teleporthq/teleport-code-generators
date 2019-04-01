@@ -105,7 +105,10 @@
                 "type": "video",
                 "name": "video",
                 "attrs": {
-                  "autoPlay": true
+                  "autoPlay": {
+                    "type": "static",
+                    "content": true
+                  }
                 },
                 "children": [
                   {
@@ -149,8 +152,8 @@
                     "type": "ExpandableArea",
                     "name": "area1",
                     "attrs": {
-                      "title": "First",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "First" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -160,8 +163,8 @@
                     "type": "ExpandableArea",
                     "name": "area2",
                     "attrs": {
-                      "title": "Second",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Second" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -171,8 +174,8 @@
                     "type": "ExpandableArea",
                     "name": "area3",
                     "attrs": {
-                      "title": "Third",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Third" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -226,7 +229,7 @@
                     "type": "dropdown",
                     "name": "dropdown",
                     "attrs": {
-                      "options": ["angular", "react", "vue"],
+                      "options": { "type": "static", "content": ["angular", "react", "vue"] },
                       "defaultValue": {"type":"static", "content": "react"}
                     }
                   },
@@ -234,7 +237,7 @@
                     "type": "list",
                     "name": "list",
                     "attrs": {
-                      "items": ["angular", "react", "vue"]
+                      "items": { "type": "static", "content": ["angular", "react", "vue"] }
                     }
                   }
                 ]
@@ -250,6 +253,12 @@
                   {
                     "type": "Cards",
                     "name": "cards",
+                    "attrs": {
+                      "array": {
+                        "type": "static",
+                        "content": [1,2,3]
+                      }
+                    },
                     "dependency": {
                       "type": "local"
                     }
@@ -702,7 +711,13 @@
               }
             }]
           },
-          "dataSource": "$props.items",
+          "dataSource": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "items"
+            }
+          },
           "meta": {
             "useIndex": true
           }

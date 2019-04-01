@@ -31,7 +31,10 @@
           }
         }]
       },
-      "dataSource": "$props.items",
+      "dataSource":  { 
+        "type": "dynamic",
+        "content": { "referenceType": "prop", "id": "items" }
+      },
       "meta": {
         "useIndex": true
       }

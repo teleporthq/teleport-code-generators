@@ -1,9 +1,9 @@
-// @ts-ignore
-import componentUIDL from '../fixtures/component-sample.json'
+import componentUIDLJSON from '../fixtures/component-sample.json'
 import { createUIDL } from '../fixtures/uidl'
 import { createVueComponentGenerator } from '../../src'
 import { performance } from 'perf_hooks'
 
+const componentUIDL = componentUIDLJSON as ComponentUIDL
 const generator = createVueComponentGenerator()
 
 describe('Vue Generator Performance Run', () => {

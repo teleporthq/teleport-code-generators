@@ -40,5 +40,11 @@ const writeToDisk = async (
 //   console.log(JSON.stringify(result, null, 2))
 // }
 
-writeToDisk(projectJson, createReactBasicProject, path.join(__dirname, 'project-template'), 'dist')
+writeToDisk(
+  // @ts-ignore
+  projectJson as ProjectUIDL,
+  createReactBasicProject,
+  path.join(__dirname, 'project-template'),
+  'dist'
+)
 // runInMemory(projectJson, createReactProject)

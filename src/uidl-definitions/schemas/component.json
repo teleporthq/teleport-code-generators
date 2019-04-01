@@ -92,12 +92,7 @@
           "required": ["content", "dataSource"],
           "properties": {
             "content": { "$ref": "#/definitions/content" },
-            "dataSource": {
-              "oneOf": [
-                { "type": "string" },
-                { "type": "array" }
-              ]
-            },
+            "dataSource": {},
             "meta": {
               "type": "object",
               "additionalProperties": false,
