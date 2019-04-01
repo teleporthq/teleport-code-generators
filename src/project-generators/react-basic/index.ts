@@ -5,12 +5,13 @@ import createReactGenerator, {
 } from '../../component-generators/react/react-component'
 
 import { createRouterIndexFile, buildFolderStructure } from './utils'
+
 import {
   createPackageJSONFile,
   createHtmlIndexFile,
-  createPageFile,
-  createComponentFile,
-  joinComponentGeneratorOutput,
+  createPageOutputs,
+  createComponentOutputs,
+  joinGeneratorOutputs,
   createManifestJSONFile,
 } from '../../shared/utils/project-utils'
 import {
@@ -37,15 +38,10 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 
 const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-
   const reactGenerator = initGenerator(generatorOptions)
 
-  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
-    if (!mappingOptions.customMapping) {
-      return
-    }
-
-    reactGenerator.addMapping(mappingOptions.customMapping)
+  const addCustomMapping = (mapping: Mapping) => {
+    reactGenerator.addMapping(mapping)
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -56,7 +52,9 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     }
 
     // Step 1: Add any custom mappings found in the options
-    addCustomMapping(options)
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
+    }
 
     const { components = {}, root } = uidl
     const { states = [] } = root.content
@@ -91,7 +89,7 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
           skipValidation: true,
         },
       }
-      return createPageFile(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 3: The components generation process is started
@@ -100,9 +98,9 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
       const componentParams: ComponentFactoryParams = {
         componentGenerator: reactGenerator,
         componentUIDL,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX, skipValidation: true },
+        componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
-      return createComponentFile(componentParams)
+      return createComponentOutputs(componentParams)
     })
 
     // Step 4: The process of creating the pages and the components is awaited
@@ -110,10 +108,10 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 5: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles = joinedPageFiles.files
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 6: Global settings are transformed into the root html file and the manifest file for PWA support
@@ -125,7 +123,7 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
 
     // Step 7: Create the routing component (index.js)
     const { routerFile, externalDependencies } = await createRouterIndexFile(root)
-    const htmlIndexFile = createHtmlIndexFile({ uidl, assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
 
     const srcFiles: GeneratedFile[] = [htmlIndexFile, routerFile]
 

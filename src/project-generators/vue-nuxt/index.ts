@@ -12,12 +12,12 @@ import {
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
 import {
-  createPageFile,
-  createComponentFile,
+  createPageOutputs,
+  createComponentOutputs,
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
-  joinComponentGeneratorOutput,
+  joinGeneratorOutputs,
 } from '../../shared/utils/project-utils'
 import { Validator } from '../../core'
 
@@ -35,15 +35,10 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 
 const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-
   const vueGenerator = initGenerator(generatorOptions)
 
-  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
-    if (!mappingOptions.customMapping) {
-      return
-    }
-
-    vueGenerator.addMapping(mappingOptions.customMapping)
+  const addCustomMapping = (mapping: Mapping) => {
+    vueGenerator.addMapping(mapping)
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -53,7 +48,9 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       throw new Error(validationResult.errorMsg)
     }
     // Step 1: Add any custom mappings found in the options
-    addCustomMapping(options)
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
+    }
 
     const { components = {}, root } = uidl
     const { states = [] } = root.content
@@ -94,7 +91,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
         },
       }
 
-      return createPageFile(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 3: The components generation process is started
@@ -104,9 +101,9 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
         componentUIDL,
         componentExtension: FILE_EXTENSIONS.VUE,
         componentGenerator: vueGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX, skipValidation: true },
+        componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
-      return createComponentFile(componentParams)
+      return createComponentOutputs(componentParams)
     })
 
     // Step 4: The process of creating the pages and the components is awaited
@@ -114,10 +111,10 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 5: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles = joinedPageFiles.files
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
     // Step 6: Global settings are transformed into the manifest file for PWA support
@@ -127,8 +124,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       staticFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlIndexFile({
-      uidl,
+    const htmlIndexFile = createHtmlIndexFile(uidl, {
       assetsPrefix: ASSETS_PREFIX,
       fileName: 'app',
       appRootOverride: APP_ROOT_OVERRIDE,

@@ -1,7 +1,7 @@
 import {
-  createPageFile,
-  createComponentFile,
-  joinComponentGeneratorOutput,
+  createPageOutputs,
+  createComponentOutputs,
+  joinGeneratorOutputs,
   createManifestJSONFile,
   createPackageJSONFile,
 } from '../../shared/utils/project-utils'
@@ -39,15 +39,10 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 
 const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-
   const reactGenerator = initGenerator(generatorOptions)
 
-  const addCustomMapping = (mappingOptions: ProjectGeneratorOptions = {}) => {
-    if (!mappingOptions.customMapping) {
-      return
-    }
-
-    reactGenerator.addMapping(mappingOptions.customMapping)
+  const addCustomMapping = (mapping: Mapping) => {
+    reactGenerator.addMapping(mapping)
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
@@ -57,7 +52,9 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       throw new Error(validationResult.errorMsg)
     }
     // Step 1: Add any custom mappings found in the options
-    addCustomMapping(options)
+    if (options.customMapping) {
+      addCustomMapping(options.customMapping)
+    }
 
     const { components = {}, root } = uidl
     const { states = [] } = root.content
@@ -99,7 +96,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
           convertDefaultToIndex: true,
         },
       }
-      return createPageFile(pageParams)
+      return createPageOutputs(pageParams)
     })
 
     // Step 4: The components generation process is started
@@ -108,9 +105,9 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: reactGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX, skipValidation: true },
+        componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
-      return createComponentFile(componentParams)
+      return createComponentOutputs(componentParams)
     })
 
     // Step 5: The process of creating the pages and the components is awaited
@@ -118,10 +115,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const createdComponentFiles = await Promise.all(componentPromises)
 
     // Step 6: The generated page and component files are joined
-    const joinedPageFiles = joinComponentGeneratorOutput(createdPageFiles)
+    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles: GeneratedFile[] = documentComponentFile.concat(joinedPageFiles.files)
 
-    const joinedComponentFiles = joinComponentGeneratorOutput(createdComponentFiles)
+    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles: GeneratedFile[] = joinedComponentFiles.files
 
     // Step 7: Global settings are transformed into the manifest file for PWA support
