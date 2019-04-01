@@ -200,7 +200,9 @@ const prefixAssetURLs = (
           acc[styleKey] = styleValue
           return acc
         }
+
         if (
+          typeof staticContent === 'string' &&
           STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
           staticContent.includes(ASSETS_IDENTIFIER)
         ) {
