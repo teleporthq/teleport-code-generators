@@ -114,6 +114,14 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
           staticStyles[styleKey].content = nestedResult.staticStyles
         }
         return acc
+      default:
+        throw new Error(
+          `splitDynamicAndStaticStyles encountered an unknown style definition ${JSON.stringify(
+            styleValue,
+            null,
+            2
+          )}`
+        )
     }
 
     return acc

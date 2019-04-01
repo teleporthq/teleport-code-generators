@@ -2,7 +2,7 @@ import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { traverseNodes, transformDynamicStyles } from '../../shared/utils/uidl-utils'
-import { createCSSClass } from '../../shared/utils/jss-utils'
+import { createCSSClassFromStringMap } from '../../shared/utils/jss-utils'
 
 interface StyledJSXConfig {
   componentChunkName: string
@@ -30,13 +30,9 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
-
         // Generating the string templates for the dynamic styles
-        const styleRules = transformDynamicStyles(
-          style,
-          (styleValue) => `\$\{${styleValue.replace('$props.', 'props.')}\}`
-        )
-        styleJSXString.push(createCSSClass(className, styleRules))
+        const styleRules = transformDynamicStyles(style, (styleValue) => `\$\{${styleValue}\}`)
+        styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
 
         addClassStringOnJSXTag(root, className)
       }
