@@ -239,6 +239,7 @@ interface ComponentFactoryParams {
   componentOptions: {
     assetsPrefix: string
     localDependenciesPrefix?: string
+    skipValidation?: boolean
   }
   metadataOptions?: {
     usePathAsFileName?: boolean

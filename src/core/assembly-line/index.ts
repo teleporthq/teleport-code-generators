@@ -26,8 +26,7 @@ export default class AssemblyLine {
           console.warn(
             `The plugin ${
               plugin.name
-            } failed. Process continues. Moving forward to the next plugin.`,
-            err
+            } failed. Process continues. Moving forward to the next plugin. \n Reason: ${err} \n`
           )
         }
       },
