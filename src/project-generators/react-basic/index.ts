@@ -46,9 +46,11 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
     // Step 0: Validate project UIDL
-    const validationResult = validator.validateProject(uidl)
-    if (!validationResult.valid) {
-      throw new Error(validationResult.errorMsg)
+    if (!options.skipValidation) {
+      const validationResult = validator.validateProject(uidl)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.errorMsg)
+      }
     }
 
     // Step 1: Add any custom mappings found in the options
@@ -86,7 +88,6 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
         componentOptions: {
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
-          skipValidation: true,
         },
       }
       return createPageOutputs(pageParams)

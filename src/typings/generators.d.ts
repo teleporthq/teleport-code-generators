@@ -257,6 +257,7 @@ interface ProjectGeneratorOptions {
   sourcePackageJson?: PackageJSON
   distPath?: string
   customMapping?: Mapping
+  skipValidation?: boolean
 }
 
 type ProjectGeneratorFunction = (
