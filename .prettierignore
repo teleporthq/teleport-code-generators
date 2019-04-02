@@ -4,3 +4,7 @@
 **/*.js
 **/*.svg
 **/*.yml
+**/examples/project-exporters/react-basic/project-template/*
+**/examples/project-exporters/react-next/project-template/*
+**/examples/project-exporters/vue-basic/project-template/*
+**/examples/project-exporters/vue-nuxt/project-template/*
