@@ -199,9 +199,16 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, PropDefini
       case 'array':
         mappedType = Array
         break
+      case 'object':
+        mappedType = Object
+        break
       default:
         // don't handle anything else
-        return acc
+        throw new Error(
+          `createVuePropsDefinition encountered a unknown PropDefinition, ${JSON.stringify(
+            uidlPropDefinitions[name]
+          )}`
+        )
     }
 
     acc[name] = defaultValue ? { type: mappedType, default: defaultValue } : mappedType
