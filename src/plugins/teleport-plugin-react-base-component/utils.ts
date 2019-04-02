@@ -6,6 +6,7 @@ import {
   addChildJSXText,
   addAttributeToJSXTag,
   addDynamicAttributeOnTag,
+  createConditionalJSXExpression,
   generateASTDefinitionForJSXTag,
 } from '../../shared/utils/ast-jsx-utils'
 
@@ -32,11 +33,11 @@ export const generateTreeStructure = (
 
   if (node.type === 'element') {
     const { elementType, children, key, attrs, dependency, events } = node.content
-    const mainTag = generateASTDefinitionForJSXTag(elementType)
+    const elementTag = generateASTDefinitionForJSXTag(elementType)
 
     if (attrs) {
       Object.keys(attrs).forEach((attrKey) => {
-        addAttributeToTag(mainTag, attrKey, attrs[attrKey])
+        addAttributeToTag(elementTag, attrKey, attrs[attrKey])
       })
     }
 
@@ -47,7 +48,13 @@ export const generateTreeStructure = (
 
     if (events) {
       Object.keys(events).forEach((eventKey) => {
-        addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
+        addEventHandlerToTag(
+          elementTag,
+          eventKey,
+          events[eventKey],
+          stateIdentifiers,
+          propDefinitions
+        )
       })
     }
 
@@ -56,62 +63,15 @@ export const generateTreeStructure = (
         const childTag = generateTreeStructure(child, accumulators)
 
         if (typeof childTag === 'string') {
-          addChildJSXText(mainTag, childTag)
+          addChildJSXText(elementTag, childTag)
         } else {
-          addChildJSXTag(mainTag, childTag)
+          addChildJSXTag(elementTag, childTag)
         }
-
-        // if (child.type === 'state') {
-        //   const { states = [], name: stateKey } = child
-        //   const isBooleanState =
-        //     stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
-        //   if (isBooleanState && states.length === 2) {
-        //     const consequentContent = states[0].content
-        //     const alternateContent = states[1].content
-        //     const consequent =
-        //       typeof consequentContent === 'string'
-        //         ? types.stringLiteral(consequentContent)
-        //         : generateTreeStructure(consequentContent, accumulators)
-        //     const alternate =
-        //       typeof alternateContent === 'string'
-        //         ? types.stringLiteral(alternateContent)
-        //         : generateTreeStructure(alternateContent, accumulators)
-        //     const jsxExpression = createTernaryOperation(
-        //       stateIdentifiers[stateKey].key,
-        //       consequent,
-        //       alternate
-        //     )
-        //     mainTag.children.push(jsxExpression)
-        //   } else {
-        //     states.forEach((stateBranch) => {
-        //       const stateContent = stateBranch.content
-        //       const stateIdentifier = stateIdentifiers[stateKey]
-        //       if (!stateIdentifier) {
-        //         return
-        //       }
-
-        //       const stateSubTree =
-        //         typeof stateContent === 'string'
-        //           ? stateContent
-        //           : generateTreeStructure(stateContent, accumulators)
-
-        //       const jsxExpression = createConditionalJSXExpression(
-        //         stateSubTree,
-        //         stateBranch.value,
-        //         stateIdentifier
-        //       )
-
-        //       mainTag.children.push(jsxExpression)
-        //     })
-        //   }
-
-        //   return
-        // }
       })
     }
 
-    nodesLookup[key] = mainTag
-    return mainTag
+    nodesLookup[key] = elementTag
+    return elementTag
   }
 
   if (node.type === 'repeat') {
@@ -124,7 +84,19 @@ export const generateTreeStructure = (
     return repeatAST
   }
 
-  // UIDL name should be unique
+  if (node.type === 'conditional') {
+    const { reference, value } = node.content
+    const stateKey = reference.content.id
+    const stateIdentifier = stateIdentifiers[stateKey]
+
+    const subTree = generateTreeStructure(node.content.node, accumulators)
+
+    const condition: UIDLConditionalExpression = value
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : node.content.condition
+
+    return createConditionalJSXExpression(subTree, condition, stateIdentifier)
+  }
 }
 
 export const createStateIdentifiers = (

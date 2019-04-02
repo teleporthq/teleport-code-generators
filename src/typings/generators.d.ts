@@ -85,6 +85,24 @@ interface UIDLRepeatContent {
   }
 }
 
+interface UIDLConditionalNode {
+  type: 'conditional'
+  content: {
+    node: UIDLNode
+    reference: UIDLDynamicReference
+    value?: string | number | boolean
+    condition?: UIDLConditionalExpression
+  }
+}
+
+interface UIDLConditionalExpression {
+  conditions: Array<{
+    operation: string
+    operand?: string | boolean | number
+  }>
+  matchingCriteria?: string
+}
+
 interface UIDLElementNode {
   type: 'element'
   content: UIDLElement
@@ -101,7 +119,12 @@ interface UIDLElement {
   children?: UIDLNode[]
 }
 
-type UIDLNode = UIDLDynamicReference | UIDLStaticValue | UIDLRepeatNode | UIDLElementNode
+type UIDLNode =
+  | UIDLDynamicReference
+  | UIDLStaticValue
+  | UIDLRepeatNode
+  | UIDLElementNode
+  | UIDLConditionalNode
 
 type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
 
@@ -129,19 +152,6 @@ interface ComponentDependency {
     namedImport?: boolean
     originalName?: string
   }
-}
-
-interface StateBranch {
-  value: string | number | boolean | ConditionalExpression
-  content: UIDLNode
-}
-
-interface ConditionalExpression {
-  conditions: Array<{
-    operation: string
-    operand?: string | boolean | number
-  }>
-  matchingCriteria: string
 }
 
 interface WebManifest {

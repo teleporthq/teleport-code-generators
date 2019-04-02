@@ -10,6 +10,12 @@
       "defaultValue": []
     }
   },
+  "stateDefinitions": {
+    "isVisible": {
+      "type": "boolean",
+      "defaultValue": true
+    }
+  },
   "node": {
     "type": "element",
     "content": {
@@ -87,6 +93,29 @@
             "meta": {
               "useIndex": true,
               "iteratorName": "item"
+            }
+          }
+        },
+        {
+          "type": "conditional",
+          "content": {
+            "reference": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "state",
+                "id": "isVisible"
+              }
+            },
+            "value": true,
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [{
+                  "type": "static",
+                  "content": "Now you see me!"
+                }]
+              }
             }
           }
         }
