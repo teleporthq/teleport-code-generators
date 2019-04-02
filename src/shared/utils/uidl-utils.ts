@@ -191,14 +191,14 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
-  transform: (value: string, key?: string) => unknown
+  transform: (value: UIDLDynamicReference, key?: string) => unknown
 ) => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]
 
     switch (styleValue.type) {
       case 'dynamic':
-        resultedStyles[styleKey] = transform(styleValue.content.id, styleKey)
+        resultedStyles[styleKey] = transform(styleValue, styleKey)
         return resultedStyles
       case 'nested-style':
         resultedStyles[styleKey] = transformDynamicStyles(styleValue.content, transform)
@@ -250,4 +250,144 @@ export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | stri
   }
 
   return false
+}
+
+/**
+ * Transform properties like
+ * $props.something
+ * $local.something
+ * $state.something
+ *
+ * Into their json alternative which is used in beta release/0.6 and
+ * later.
+ */
+export const transformStringAssignmentToJson = (
+  declaration: string | number
+): UIDLNodeStyleValue | UIDLNodeAttributeValue => {
+  if (typeof declaration === 'number') {
+    return {
+      type: 'static',
+      content: declaration,
+    }
+  }
+
+  const parts = declaration.split('.')
+  const prefix = parts[0]
+  const path = parts.slice(1).join('.')
+
+  if (['$props', '$state', '$local'].indexOf(prefix) !== -1) {
+    let referenceType: 'prop' | 'state' | 'local' = 'prop'
+    if (prefix !== '$props') {
+      referenceType = prefix.replace('$', '') as 'state' | 'local'
+    }
+    return {
+      type: 'dynamic',
+      content: {
+        referenceType,
+        id: path,
+      },
+    }
+  }
+
+  return {
+    type: 'static',
+    content: declaration,
+  }
+}
+
+export const transformStylesAssignmentsToJson = (
+  styleObject: Record<string, unknown>
+): UIDLStyleDefinitions => {
+  const newStyleObject: UIDLStyleDefinitions = {}
+
+  Object.keys(styleObject).reduce((acc, key) => {
+    const styleContentAtKey = styleObject[key]
+    const entityType = typeof styleContentAtKey
+
+    if (['string', 'number'].indexOf(entityType) !== -1) {
+      acc[key] = transformStringAssignmentToJson(styleContentAtKey as string | number)
+      return acc
+    }
+
+    if (!Array.isArray(styleContentAtKey) && entityType === 'object') {
+      // if this value is already properly declared, make sure it is not
+      const { type, content } = styleContentAtKey as Record<string, unknown>
+
+      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
+        acc[key] = styleContentAtKey as UIDLNodeAttributeValue
+        return acc
+      }
+
+      if (type === 'nested-style') {
+        acc[key] = {
+          type: 'nested-style',
+          content: transformStylesAssignmentsToJson(content as Record<string, unknown>),
+        }
+        return acc
+      }
+
+      // if the supported types of objects did not match the previous if statement
+      // we are ready to begin parsing a new nested style
+      acc[key] = {
+        type: 'nested-style',
+        content: transformStylesAssignmentsToJson(styleContentAtKey as Record<string, unknown>),
+      }
+      return acc
+    }
+
+    throw new Error(
+      `transformStylesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+        styleContentAtKey,
+        null,
+        2
+      )}`
+    )
+  }, newStyleObject)
+
+  return newStyleObject
+}
+
+export const transformAttributesAssignmentsToJson = (
+  attributesObject: Record<string, unknown>
+): Record<string, UIDLNodeAttributeValue> => {
+  const newStyleObject: Record<string, UIDLNodeAttributeValue> = {}
+
+  Object.keys(attributesObject).reduce((acc, key) => {
+    const attributeContent = attributesObject[key]
+    const entityType = typeof attributeContent
+
+    if (['string', 'number'].indexOf(entityType) !== -1) {
+      acc[key] = transformStringAssignmentToJson(attributeContent as
+        | string
+        | number) as UIDLNodeAttributeValue
+      return acc
+    }
+
+    if (!Array.isArray(attributeContent) && entityType === 'object') {
+      // if this value is already properly declared, make sure it is not
+      const { type } = attributeContent as Record<string, unknown>
+      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
+        acc[key] = attributeContent as UIDLNodeAttributeValue
+        return acc
+      }
+
+      throw new Error(
+        `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+          attributeContent,
+          null,
+          2
+        )}`
+      )
+    }
+
+    throw new Error(
+      `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+        attributeContent,
+        null,
+        2
+      )}`
+    )
+  }, newStyleObject)
+
+  return newStyleObject
 }

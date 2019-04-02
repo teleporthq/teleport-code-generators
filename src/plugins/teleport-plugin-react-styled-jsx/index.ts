@@ -31,7 +31,16 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
         // Generating the string templates for the dynamic styles
-        const styleRules = transformDynamicStyles(style, (styleValue) => `\$\{${styleValue}\}`)
+        const styleRules = transformDynamicStyles(style, (styleValue) => {
+          if (styleValue.content.referenceType === 'prop') {
+            return `\$\{props.${styleValue.content.id}\}`
+          }
+          throw new Error(
+            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${
+              styleValue.content.referenceType
+            }`
+          )
+        })
         styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
 
         addClassStringOnJSXTag(root, className)

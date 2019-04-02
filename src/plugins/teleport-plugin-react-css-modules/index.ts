@@ -70,7 +70,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
               new ParsedASTNode(
                 t.arrowFunctionExpression(
                   [t.identifier('props')],
-                  t.memberExpression(t.identifier('props'), t.identifier(styleValue))
+                  t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
                 )
               )
           )
