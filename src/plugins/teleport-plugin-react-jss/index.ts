@@ -51,10 +51,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
             new ParsedASTNode(
               t.arrowFunctionExpression(
                 [t.identifier('props')],
-                t.memberExpression(
-                  t.identifier('props'),
-                  t.identifier(styleValue.replace('$props.', ''))
-                )
+                t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
               )
             )
         )

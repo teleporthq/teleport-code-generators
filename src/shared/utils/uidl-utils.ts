@@ -6,15 +6,15 @@ import { ASSETS_IDENTIFIER } from '../../shared/constants'
  * Also the root path needs to be represented by the index file
  */
 export const extractPageMetadata = (
-  routerDefinitions: UIDLStateDefinition,
+  routeDefinitions: UIDLStateDefinition,
   stateName: string,
   options: { usePathAsFileName?: boolean; convertDefaultToIndex?: boolean } = {
     usePathAsFileName: false,
     convertDefaultToIndex: false,
   }
 ): { fileName: string; componentName: string; path: string } => {
-  const defaultPage = routerDefinitions.defaultValue
-  const pageDefinitions = routerDefinitions.values || []
+  const defaultPage = routeDefinitions.defaultValue
+  const pageDefinitions = routeDefinitions.values || []
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
 
   // If not meta object is defined, the stateName is used
@@ -218,40 +218,6 @@ export const transformDynamicStyles = (
         )
     }
   }, {})
-}
-
-// returns falsy or typecast object to UIDLDynamicReference and returns it
-export const isUIDLDynamicReference = (jsonObject: Record<string, unknown> | string) => {
-  if (typeof jsonObject === 'string') {
-    return false
-  }
-
-  const { content, type } = jsonObject as UIDLDynamicReference
-  if (
-    type === 'dynamic' &&
-    !Array.isArray(content) &&
-    typeof content === 'object' &&
-    ['prop', 'state', 'local'].indexOf(content.referenceType) !== -1 &&
-    typeof content.id === 'string'
-  ) {
-    return jsonObject as UIDLDynamicReference
-  }
-
-  return false
-}
-
-// returns falsy or typecast object to UIDLDynamicReference and returns it
-export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | string) => {
-  if (typeof jsonObject === 'string') {
-    return false
-  }
-
-  const { content, type } = jsonObject as UIDLStaticValue
-  if (type === 'static' && typeof content === 'string') {
-    return jsonObject as UIDLStaticValue
-  }
-
-  return false
 }
 
 /**

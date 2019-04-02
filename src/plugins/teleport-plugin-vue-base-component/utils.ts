@@ -277,8 +277,7 @@ const createPropCallStatement = (
   )
 }
 
-// This function decides how to add an attribute based on the prefix
-// $props. $state. $local. have a different behavior, since they need to be bound with ':'
+// This function decides how to add an attribute based on the attribute type
 // Also arrays are added to the dataObject for better readability
 const addAttributeToNode = (
   htmlNode: any,

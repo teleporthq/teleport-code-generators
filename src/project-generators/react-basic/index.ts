@@ -56,14 +56,6 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
 
     // Step 1: The first level stateBranches (the pages) transformation in react components is started
     const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
-
       const componentUIDL: ComponentUIDL = {
         name: stateBranch.value,
         content: stateBranch.content,

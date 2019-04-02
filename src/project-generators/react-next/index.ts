@@ -47,30 +47,25 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
+    const rootElement = root.node.content as UIDLElement
 
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
+    // Look for conditional nodes in the first level children of the root element
+    const routerNodes = rootElement.children.filter(
+      (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
+    ) as UIDLConditionalNode[]
 
     // Step 1: The root html file is customized in next via the _document.js page
     const documentComponentFile = [].concat(createDocumentComponentFile(uidl))
 
     // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    const pagePromises = routerNodes.map((routeNode) => {
+      const { value, node } = routeNode.content
+      const pageName = value.toString()
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value,
-        content: stateBranch.content,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName,
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {
