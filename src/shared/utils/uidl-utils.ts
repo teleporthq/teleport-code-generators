@@ -176,14 +176,14 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
-  transform: (value: string, key?: string) => unknown
+  transform: (value: UIDLDynamicReference, key?: string) => unknown
 ) => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]
 
     switch (styleValue.type) {
       case 'dynamic':
-        resultedStyles[styleKey] = transform(styleValue.content.id, styleKey)
+        resultedStyles[styleKey] = transform(styleValue, styleKey)
         return resultedStyles
       case 'nested-style':
         resultedStyles[styleKey] = transformDynamicStyles(styleValue.content, transform)

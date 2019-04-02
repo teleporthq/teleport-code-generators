@@ -5,6 +5,12 @@
     "direction": {
       "type": "string",
       "defaultValue": "row"
+    },
+    "config": {
+      "type": "object",
+      "defaultValue": {
+        "height": 32
+      }
     }
   },
   "content": {
@@ -17,7 +23,14 @@
           "id": "direction"
         }
       },
-      "alignSelft": {
+      "height": {
+        "type": "dynamic",
+        "content": {
+          "referenceType": "prop",
+          "id": "config.height"
+        }
+      },
+      "alignSelf": {
         "type": "static",
         "content": "center"
       }

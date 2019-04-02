@@ -1,5 +1,5 @@
 // @ts-ignore-next-line
-import ComponentWithValidStyle from './component-with-valid-style.json'
+import ComponentWithValidJSON from './component-with-valid-style.json'
 // @ts-ignore-next-line
 import ComponentWithInValidStyle from './component-with-invalid-style.json'
 // @ts-ignore-next-line
@@ -8,14 +8,24 @@ import ComponentWithNestedStyles from './component-with-nested-styles.json'
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
 
+const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
+
 describe('React Styles in Component', () => {
   describe('supports props json declaration in styles', () => {
     const generator = createReactComponentGenerator()
 
     it('should add attributes on component', async () => {
-      const result = await generator.generateComponent(ComponentWithValidStyle as ComponentUIDL)
+      const result = await generator.generateComponent(ComponentWithValidStyle)
       expect(result.code).toContain('props.direction')
-      expect(result.code).toContain(`alignSelft: 'center'`)
+      expect(result.code).toContain(`alignSelf: 'center'`)
+    })
+
+    it('should support object props in styledjsx', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledJSX,
+      })
+      const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
+      expect(result.code).toContain(`align-self: center`)
     })
 
     it('should support nested styles', async () => {
@@ -25,7 +35,7 @@ describe('React Styles in Component', () => {
       const result = await styledJSXGenerator.generateComponent(
         ComponentWithNestedStyles as ComponentUIDL
       )
-      expect(result.code).toContain('flex-direction: ${direction}')
+      expect(result.code).toContain('flex-direction: ${props.direction}')
       expect(result.code).toContain(`align-self: center`)
       expect(result.code).toContain('@media (max-width: 640px) {')
       expect(result.code).toContain(`@media (max-width: 634px) {`)
@@ -49,8 +59,9 @@ describe('Vue Props in Component Generator', () => {
     const generator = createVueComponentGenerator()
 
     it('should add styles on component', async () => {
-      const result = await generator.generateComponent(ComponentWithValidStyle as ComponentUIDL)
-      expect(result.code).toContain('align-selft: center')
+      const result = await generator.generateComponent(ComponentWithValidStyle)
+      expect(result.code).toContain('align-self: center')
+      expect(result.code).toContain('config.height')
     })
 
     it('should support nested styles', async () => {

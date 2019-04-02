@@ -40,10 +40,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
         const rootStyles = cleanupNestedStyles(style)
         const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
           return new ParsedASTNode(
-            t.memberExpression(
-              t.identifier('props'),
-              t.identifier(styleValue.replace('$props.', ''))
-            )
+            t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
           )
         })
 
