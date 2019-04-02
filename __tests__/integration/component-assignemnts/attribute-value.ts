@@ -18,6 +18,7 @@ describe('React Props in Component', () => {
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidProps)
       expect(result.code).toContain('props.test')
+      expect(result.code).toContain('props.content.heading')
     })
 
     it('should run repeat attributes and data source', async () => {
@@ -45,6 +46,9 @@ describe('Vue Props in Component Generator', () => {
       expect(result.code).toContain(':data-test')
       expect(result.code).not.toContain(':data-static')
       expect(result.code).toContain('data-static')
+      expect(result.code).toContain('content.heading')
+      expect(result.code).toContain('content: {')
+      expect(result.code).toContain('heading: ')
     })
 
     it('should run repeat attributes and data source', async () => {

@@ -5,6 +5,12 @@
     "test": {
       "type": "string",
       "defaultValue": "123"
+    },
+    "content": {
+      "type": "object",
+      "defaultValue": {
+        "heading": "Hello World"
+      }
     }
   },
   "content": {
@@ -20,6 +26,13 @@
       "data-static": {
         "type": "static",
         "content": "I am just a static string"
+      },
+      "data-inner-value": {
+        "type": "dynamic",
+        "content": {
+          "referenceType":"prop",
+          "id": "content.heading"
+        }
       }
     },
     "children": []
