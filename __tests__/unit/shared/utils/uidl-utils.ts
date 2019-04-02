@@ -3,6 +3,7 @@ import {
   isUIDLDynamicReference,
   transformStringAssignmentToJson,
   transformStylesAssignmentsToJson,
+  transformAttributesAssignmentsToJson,
 } from '../../../../src/shared/utils/uidl-utils'
 
 import uidlStyleJSON from './uidl-utils-style.json'
@@ -195,5 +196,25 @@ describe('transformStylesAssignmentsToJson', () => {
     }
 
     expect(transformStylesAssignmentsToJson(nestedStyle)).toEqual(expectedStyle)
+  })
+})
+
+describe('transformAttributesAssignmentsToJson', () => {
+  it('transforms attrs styles to new json', () => {
+    const inputStyle = {
+      float: { type: 'static', content: 'left' },
+      width: 32,
+      height: '$state.expandedSize',
+      flexDirection: { type: 'dynamic', content: { referenceType: 'prop', id: 'direction' } },
+    }
+
+    const expectedStyle = {
+      float: { type: 'static', content: 'left' },
+      width: { type: 'static', content: 32 },
+      height: { type: 'dynamic', content: { referenceType: 'state', id: 'expandedSize' } },
+      flexDirection: { type: 'dynamic', content: { referenceType: 'prop', id: 'direction' } },
+    }
+
+    expect(transformAttributesAssignmentsToJson(inputStyle)).toEqual(expectedStyle)
   })
 })

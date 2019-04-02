@@ -355,3 +355,48 @@ export const transformStylesAssignmentsToJson = (
 
   return newStyleObject
 }
+
+export const transformAttributesAssignmentsToJson = (
+  attributesObject: Record<string, unknown>
+): Record<string, UIDLNodeAttributeValue> => {
+  const newStyleObject: Record<string, UIDLNodeAttributeValue> = {}
+
+  Object.keys(attributesObject).reduce((acc, key) => {
+    const attributeContent = attributesObject[key]
+    const entityType = typeof attributeContent
+
+    if (['string', 'number'].indexOf(entityType) !== -1) {
+      acc[key] = transformStringAssignmentToJson(attributeContent as
+        | string
+        | number) as UIDLNodeAttributeValue
+      return acc
+    }
+
+    if (!Array.isArray(attributeContent) && entityType === 'object') {
+      // if this value is already properly declared, make sure it is not
+      const { type } = attributeContent as Record<string, unknown>
+      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
+        acc[key] = attributeContent as UIDLNodeAttributeValue
+        return acc
+      }
+
+      throw new Error(
+        `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+          attributeContent,
+          null,
+          2
+        )}`
+      )
+    }
+
+    throw new Error(
+      `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
+        attributeContent,
+        null,
+        2
+      )}`
+    )
+  }, newStyleObject)
+
+  return newStyleObject
+}
