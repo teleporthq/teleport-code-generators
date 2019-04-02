@@ -41,6 +41,16 @@ export const extractPageMetadata = (
   }
 }
 
+export const extractRoutes = (rootComponent: ComponentUIDL) => {
+  // Assuming root element starts with a UIDLElementNode
+  const rootElement = rootComponent.node.content as UIDLElement
+
+  // Look for conditional nodes in the first level children of the root element
+  return rootElement.children.filter(
+    (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
+  ) as UIDLConditionalNode[]
+}
+
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
     return originalString

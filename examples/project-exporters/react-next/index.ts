@@ -5,7 +5,7 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 // @ts-ignore
 import projectJson from '../../uidl-samples/new-project.json'
 
-import createReactNextGenerator from '../../../src/project-generators/react-next'
+import { createReactNextGenerator } from '../../../src'
 
 const writeToDisk = async (
   // @ts-ignore

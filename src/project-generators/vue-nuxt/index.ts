@@ -19,10 +19,11 @@ import {
   createPackageJSONFile,
   joinGeneratorOutputs,
 } from '../../shared/utils/project-utils'
+import { extractRoutes } from '../../shared/utils/uidl-utils'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
-    customMapping: nuxtMapping as Mapping,
+    mapping: nuxtMapping as Mapping,
   })
 
   if (options.customMapping) {
@@ -46,27 +47,16 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
-
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
+    const routes = extractRoutes(root)
 
     // Step 1: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    const pagePromises = routes.map((routeNode) => {
+      const { value: pageName, node } = routeNode.content
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value as string,
-        content: stateBranch.content as ContentNode,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName.toString(),
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {
