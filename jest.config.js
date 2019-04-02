@@ -2,6 +2,13 @@ module.exports = {
   "transform": {
     "^.+\\.ts?$": "ts-jest"
   },
+  'globals': {
+    'ts-jest': {
+      'diagnostics': {
+        'warnOnly': true
+      }
+    }
+  },
   "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
   "moduleFileExtensions": [
     "ts",
