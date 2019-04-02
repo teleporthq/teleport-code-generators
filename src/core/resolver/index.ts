@@ -1,6 +1,6 @@
 import * as utils from './utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { cloneElement } from '../../shared/utils/uidl-utils'
+import { cloneObject } from '../../shared/utils/uidl-utils'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -25,14 +25,14 @@ export default class Resolver {
   }
 
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
-    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
-    if (customMapping) {
-      this.addMapping(customMapping)
+    const mapping = utils.mergeMappings(this.mapping, options.mapping)
+    const newOptions = {
+      ...options,
+      mapping,
     }
 
-    const node = cloneElement(uidl.node)
-
-    utils.resolveContentNode(node, this.mapping, localDependenciesPrefix, assetsPrefix)
+    const node = cloneObject(uidl.node)
+    utils.resolveNode(node, newOptions)
 
     const nodesLookup = {}
     utils.createNodesLookup(node, nodesLookup)
@@ -46,11 +46,13 @@ export default class Resolver {
   }
 
   public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
-    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
-    const mapping = utils.mergeMappings(this.mapping, customMapping)
-    const returnElement = cloneElement(element)
-
-    utils.resolveContentNode(returnElement, mapping, localDependenciesPrefix, assetsPrefix)
+    const mapping = utils.mergeMappings(this.mapping, options.mapping)
+    const newOptions = {
+      ...options,
+      mapping,
+    }
+    const returnElement = cloneObject(element)
+    utils.resolveElement(returnElement, newOptions)
     return returnElement
   }
 }

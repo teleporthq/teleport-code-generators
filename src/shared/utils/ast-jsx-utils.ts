@@ -207,21 +207,6 @@ export const addChildJSXText = (tag: types.JSXElement, text: string, t = types) 
   tag.children.push(t.jsxText(text), types.jsxText('\n'))
 }
 
-export const addDynamicChild = (
-  tag: types.JSXElement,
-  value: string,
-  prefix: string = '',
-  t = types
-) => {
-  // if no prefix is provided (ex: props or state) value is added directly inside the node
-  const content =
-    prefix === ''
-      ? t.identifier(value)
-      : t.memberExpression(t.identifier(prefix), t.identifier(value))
-
-  tag.children.push(t.jsxExpressionContainer(content))
-}
-
 // TODO: Replace with generic add attribute?
 export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types) => {
   const styleObjectExpression = objectToObjectExpression(styleMap, t)

@@ -9,11 +9,9 @@ import vueMapping from './vue-mapping.json'
 
 import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
 
-const createVueGenerator = (
-  { customMapping }: GeneratorOptions = { customMapping }
-): ComponentGenerator => {
+const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, customMapping])
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, mapping])
   const assemblyLine = new AssemblyLine([
     vueComponentPlugin,
     vueStylePlugin,

@@ -61,6 +61,18 @@
                       "referenceType": "local",
                       "id": "item"
                     }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "list",
+                      "attrs": {
+                        "items": {
+                          "type": "static",
+                          "content": ["angular", "react", "vue"]
+                        }
+                      }
+                    }
                   }
                 ]
               }

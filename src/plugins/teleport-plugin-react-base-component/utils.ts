@@ -5,12 +5,10 @@ import {
   addChildJSXTag,
   addChildJSXText,
   addAttributeToJSXTag,
-  addDynamicChild,
   addDynamicAttributeOnTag,
   generateASTDefinitionForJSXTag,
 } from '../../shared/utils/ast-jsx-utils'
 
-import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 
 export const generateTreeStructure = (
@@ -29,7 +27,7 @@ export const generateTreeStructure = (
   }
 
   if (node.type === 'dynamic') {
-    return node.content.id // TODO: different approach, split addTextNode function?
+    return makeDynamicValueExpression(node.content.id)
   }
 
   if (node.type === 'element') {
@@ -58,7 +56,7 @@ export const generateTreeStructure = (
         const childTag = generateTreeStructure(child, accumulators)
 
         if (typeof childTag === 'string') {
-          addTextElementToTag(mainTag, childTag)
+          addChildJSXText(mainTag, childTag)
         } else {
           addChildJSXTag(mainTag, childTag)
         }
@@ -324,6 +322,10 @@ const makeRepeatStructureWithMap = (
   )
 }
 
+const makeDynamicValueExpression = (identifier: string, t = types) => {
+  return t.jsxExpressionContainer(t.identifier(identifier))
+}
+
 const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
   switch (dataSource.type) {
     case 'static':
@@ -378,14 +380,5 @@ const addAttributeToTag = (
       throw new Error(
         `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
       )
-  }
-}
-
-const addTextElementToTag = (tag: types.JSXElement, text: string) => {
-  if (isDynamicPrefixedValue(text)) {
-    const propsPrefix = text.startsWith('$props') ? 'props' : ''
-    addDynamicChild(tag, removeDynamicPrefix(text), propsPrefix)
-  } else {
-    addChildJSXText(tag, text)
   }
 }

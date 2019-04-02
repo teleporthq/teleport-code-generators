@@ -54,19 +54,23 @@ export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string
 }
 
 // Either receives the content node or the children element
-export const cloneElement = (node: any) => JSON.parse(JSON.stringify(node))
+export const cloneObject = <T>(node: T): T => JSON.parse(JSON.stringify(node))
 
-export const traverseNodes = (node: UIDLNode, fn: (node: UIDLNode) => void) => {
-  fn(node)
+export const traverseNodes = (
+  node: UIDLNode,
+  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
+  parent: UIDLNode | null = null
+) => {
+  fn(node, parent)
 
   if (node.type === 'element') {
     node.content.children.forEach((child) => {
-      traverseNodes(child, fn)
+      traverseNodes(child, fn, node)
     })
   }
 
   if (node.type === 'repeat') {
-    traverseNodes(node.content.node, fn)
+    traverseNodes(node.content.node, fn, node)
   }
 
   // if (node.states && node.type === 'state') {
@@ -212,30 +216,6 @@ export const transformDynamicStyles = (
         )
     }
   }, {})
-}
-
-const dynamicPrefixes = ['$props.', '$state.', '$local.']
-
-export const isDynamicPrefixedValue = (value: any) => {
-  if (typeof value !== 'string') {
-    return false
-  }
-
-  return dynamicPrefixes.reduce((result, prefix) => {
-    // endsWith is added to avoid errors when the user is typing and reaches `$props.`
-    return result || (value.startsWith(prefix) && !value.endsWith(prefix))
-  }, false)
-}
-
-export const removeDynamicPrefix = (value: string, newPrefix?: string) => {
-  const indexOfFirstDot = value.indexOf('.')
-  if (indexOfFirstDot < 0) {
-    return value
-  }
-
-  const prefix = newPrefix ? newPrefix + '.' : '' // ex: props. or state. as a prefix
-
-  return prefix + value.slice(indexOfFirstDot + 1)
 }
 
 // returns falsy or typecast object to UIDLDynamicReference and returns it

@@ -22,7 +22,7 @@ describe('resolveContentNode', () => {
 
   it('returns a mapped content node with a custom mapping', () => {
     const resolver = new Resolver()
-    const resolvedNode = resolver.resolveContentNode(contentNode, { customMapping: mapping })
+    const resolvedNode = resolver.resolveContentNode(contentNode, { mapping })
     expect(resolvedNode.type).toBe('span')
     expect(resolvedNode.attrs.dummy.content).toBe('remains here')
   })

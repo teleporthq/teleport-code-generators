@@ -72,14 +72,16 @@ interface UIDLNestedStyleDeclaration {
 
 interface UIDLRepeatNode {
   type: 'repeat'
-  content: {
-    node: UIDLNode
-    dataSource: UIDLAttributeValue
-    meta?: {
-      useIndex?: boolean
-      iteratorName?: string
-      dataSourceIdentifier?: string
-    }
+  content: UIDLRepeatContent
+}
+
+interface UIDLRepeatContent {
+  node: UIDLNode
+  dataSource: UIDLAttributeValue
+  meta?: {
+    useIndex?: boolean
+    iteratorName?: string
+    dataSourceIdentifier?: string
   }
 }
 
@@ -209,7 +211,7 @@ interface ComponentGenerator {
 interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
-  customMapping?: Mapping
+  mapping?: Mapping
   skipValidation?: boolean
 }
 

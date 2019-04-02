@@ -124,28 +124,55 @@
     },
     "list": {
       "elementType": "ul",
-      "repeat": {
+      "children": [{
+        "type": "repeat",
         "content": {
-          "elementType": "li",
-          "name": "item",
-          "children": ["$local.item"]
-        },
-        "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "items" } },
-        "meta": {
-          "useIndex": true
+          "node": {
+            "type": "element",
+            "content": {
+              "elementType": "li",
+              "name": "item",
+              "children": [{
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id": "item"
+                }
+              }]
+            }
+          },
+          "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "items" } },
+          "meta": {
+            "useIndex": true
+          }
         }
-      }
+      }]
     },
     "dropdown": {
       "elementType": "select",
-      "repeat": {
+      "children": [{
+        "type": "repeat",
         "content": {
-          "elementType": "option",
-          "name": "option",
-          "children": ["$local.item"]
-        },
-        "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "options" } }
-      }
+          "node": {
+            "type": "element",
+            "content": {
+              "elementType": "option",
+              "name": "option",
+              "children": [{
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id": "item"
+                }
+              }]
+            }
+          },
+          "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "options" } },
+          "meta": {
+            "useIndex": true
+          }
+        }
+      }]
     },
     "video": {
       "elementType": "video",
