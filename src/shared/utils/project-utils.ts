@@ -182,10 +182,7 @@ export const createPackageJSONFile = (
 export const createPageOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
-  const { componentGenerator, componentUIDL, componentOptions, metadataOptions } = params
-
-  let files: GeneratedFile[] = []
-  let dependencies: Record<string, string> = {}
+  const { componentUIDL, metadataOptions } = params
 
   const { name: value, content } = componentUIDL
   const { routerDefinitions } = componentUIDL.stateDefinitions
@@ -202,27 +199,16 @@ export const createPageOutputs = async (
     },
   }
 
-  try {
-    const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
-      ...componentOptions,
-    })
-
-    files = compiledPageComponent.files
-    dependencies = compiledPageComponent.dependencies
-  } catch (error) {
-    console.warn(`Error on generating ${componentName} page ${error}`)
-  }
-
-  return { files, dependencies }
+  return createComponentOutputs({ ...params, componentUIDL: pageUIDL })
 }
 
 export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
+  const { componentGenerator, componentUIDL, componentOptions } = params
+
   let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
-
-  const { componentGenerator, componentUIDL, componentOptions } = params
 
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {

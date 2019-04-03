@@ -41,7 +41,9 @@ const createVueGenerator = (
       }
     }
     const files: GeneratedFile[] = []
-    const fileName = sanitizeVariableName(uidl.name)
+    // For page components, for some frameworks the filename will be the one set in the meta property
+    let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    fileName = sanitizeVariableName(fileName)
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
