@@ -5,9 +5,17 @@ import vueStylePlugin from '../../plugins/teleport-plugin-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '../../plugins/teleport-plugin-import-statements'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
-import vueMapping from './vue-mapping.json'
 
-import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
+import { createFile } from '../../shared/utils/project-utils'
+import { FILE_EXTENSIONS } from '../../shared/constants'
+import {
+  addSpacesToEachLine,
+  removeLastEmptyLine,
+  sanitizeVariableName,
+} from '../../shared/utils/string-utils'
+
+import vueMapping from './vue-mapping.json'
+import { buildVueFile } from './utils'
 
 const createVueGenerator = (
   { customMapping }: GeneratorOptions = { customMapping }
@@ -32,6 +40,8 @@ const createVueGenerator = (
         throw new Error(validationResult.errorMsg)
       }
     }
+    const files: GeneratedFile[] = []
+    const fileName = sanitizeVariableName(uidl.name)
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
@@ -41,26 +51,13 @@ const createVueGenerator = (
     const htmlCode = removeLastEmptyLine(chunksLinker.link(chunks.vuehtml))
 
     const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
-    let code = `<template>
-${formattedHTMLCode}
-</template>
+    const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)
 
-<script>
-${jsCode}
-</script>
-`
-
-    if (cssCode) {
-      code += `
-<style>
-${cssCode}
-</style>
-`
-    }
+    files.push(createFile(fileName, FILE_EXTENSIONS.VUE, vueCode))
 
     return {
-      code,
-      externalDependencies,
+      files,
+      dependencies: externalDependencies,
     }
   }
 

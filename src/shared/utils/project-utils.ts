@@ -8,7 +8,7 @@ import {
 } from './html-utils'
 
 import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
-import { slugify, sanitizeVariableName } from './string-utils'
+import { slugify } from './string-utils'
 import { FILE_EXTENSIONS } from '../constants'
 
 interface HtmlIndexFileOptions {
@@ -182,22 +182,18 @@ export const createPackageJSONFile = (
 export const createPageOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
-  const {
-    componentGenerator,
-    componentUIDL,
-    componentOptions,
-    metadataOptions,
-    componentExtension,
-  } = params
+  const { componentGenerator, componentUIDL, componentOptions, metadataOptions } = params
 
-  const files: GeneratedFile[] = []
+  let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
+
   const { name: value, content } = componentUIDL
   const { routerDefinitions } = componentUIDL.stateDefinitions
 
   const { componentName, fileName } = extractPageMetadata(routerDefinitions, value, {
     ...metadataOptions,
   })
+
   const pageUIDL: ComponentUIDL = {
     name: componentName,
     content,
@@ -210,17 +206,9 @@ export const createPageOutputs = async (
     const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
       ...componentOptions,
     })
-    const { externalCSS, externalDependencies, code } = compiledPageComponent
-    dependencies = externalDependencies
 
-    if (externalCSS) {
-      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
-      files.push(cssFile)
-    }
-
-    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
-    const pageFile = createFile(fileName, fileExtension, code)
-    files.push(pageFile)
+    files = compiledPageComponent.files
+    dependencies = compiledPageComponent.dependencies
   } catch (error) {
     console.warn(`Error on generating ${componentName} page ${error}`)
   }
@@ -231,27 +219,18 @@ export const createPageOutputs = async (
 export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
+  let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
-  const files: GeneratedFile[] = []
-  const { componentGenerator, componentUIDL, componentExtension, componentOptions } = params
+
+  const { componentGenerator, componentUIDL, componentOptions } = params
 
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
       ...componentOptions,
     })
 
-    const { code, externalCSS, externalDependencies } = compiledComponent
-    const fileName = sanitizeVariableName(componentUIDL.name)
-    dependencies = externalDependencies
-
-    if (externalCSS) {
-      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
-      files.push(cssFile)
-    }
-
-    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
-    const componentFile = createFile(fileName, fileExtension, code)
-    files.push(componentFile)
+    files = compiledComponent.files
+    dependencies = compiledComponent.dependencies
   } catch (error) {
     console.warn(`Error on generating ${componentUIDL.name} component ${error}`)
   }

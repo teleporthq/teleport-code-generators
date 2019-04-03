@@ -176,9 +176,8 @@ type ComponentPluginFactory<T> = (
 ) => ComponentPlugin
 
 interface CompiledComponent {
-  code: string
-  externalCSS?: string
-  externalDependencies: Record<string, string>
+  files: Array<GeneratedFile>
+  dependencies: Record<string, string>
 }
 
 interface ComponentGenerator {
