@@ -23,12 +23,16 @@ const writeToDisk = async (
     throw new Error('could not find a package.json in the template folder')
   }
 
-  const { outputFolder } = await generatorFunction(projectUIDL, {
-    sourcePackageJson: packageJson,
-    distPath,
-  })
-
-  await writeFolder(outputFolder, __dirname)
+  try {
+    const { outputFolder } = await generatorFunction(projectUIDL, {
+      sourcePackageJson: packageJson,
+      distPath,
+    })
+    // @ts-ignore
+    await writeFolder(outputFolder, __dirname)
+  } catch (error) {
+    throw new Error(error)
+  }
 }
 
 // const runInMemory = async (

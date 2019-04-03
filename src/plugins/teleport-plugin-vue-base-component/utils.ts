@@ -6,8 +6,6 @@ import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-ut
 
 import { ERROR_LOG_NAME } from '.'
 
-// TODO consider building a common generic template for generateNodeSyntax
-// which is shared between all base component generators
 interface VueComponentAccumulators {
   templateLookup: Record<string, any>
   dependencies: Record<string, ComponentDependency>
@@ -43,9 +41,28 @@ export const generateElementNode = (
 
   if (events) {
     Object.keys(events).forEach((eventKey) => {
-      const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(eventKey)}`
-      methodsObject[methodName] = events[eventKey]
-      htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+      if (events[eventKey].length === 1) {
+        const statement = events[eventKey][0]
+        const isPropEvent = statement && statement.type === 'propCall' && statement.calls
+
+        if (isPropEvent) {
+          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, `this.$emit('${statement.calls}')`)
+        } else {
+          htmlUtils.addAttributeToNode(
+            htmlNode,
+            statement.modifies,
+            statement.newState === '$toggle'
+              ? `${statement.modifies} = !${statement.modifies}`
+              : `${statement.modifies} = ${statement.newState}`
+          )
+        }
+      } else {
+        const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
+          eventKey
+        )}`
+        methodsObject[methodName] = events[eventKey]
+        htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+      }
     })
   }
 
@@ -82,6 +99,12 @@ export const generateRepeatNode = (
   const iteratorName = meta.iteratorName || 'item'
   const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
   const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
+  if (typeof repeatContentTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
+    )
+  }
 
   htmlUtils.addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
   htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
@@ -145,8 +168,6 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
         )}`
       )
   }
-
-  return result
 }
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
