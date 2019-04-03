@@ -16,7 +16,7 @@ import { ERROR_LOG_NAME } from '.'
 
 interface ReactComponentAccumulators {
   propDefinitions: Record<string, UIDLPropDefinition>
-  stateIdentifiers: Record<string, UIDLStateIdentifier>
+  stateIdentifiers: Record<string, StateIdentifier>
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, ComponentDependency>
 }
@@ -154,7 +154,7 @@ export const createStateIdentifiers = (
   }
 
   return Object.keys(stateDefinitions).reduce(
-    (acc: Record<string, UIDLStateIdentifier>, stateKey: string) => {
+    (acc: Record<string, StateIdentifier>, stateKey: string) => {
       acc[stateKey] = {
         key: stateKey,
         type: stateDefinitions[stateKey].type,
@@ -170,7 +170,7 @@ export const createStateIdentifiers = (
 
 export const makePureComponent = (
   name: string,
-  stateIdentifiers: Record<string, UIDLStateIdentifier>,
+  stateIdentifiers: Record<string, StateIdentifier>,
   jsxTagTree: types.JSXElement,
   t = types
 ) => {
@@ -197,7 +197,7 @@ const addEventHandlerToTag = (
   tag: types.JSXElement,
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
-  stateIdentifiers: Record<string, UIDLStateIdentifier>,
+  stateIdentifiers: Record<string, StateIdentifier>,
   propDefinitions: Record<string, UIDLPropDefinition> = {},
   t = types
 ) => {
@@ -264,7 +264,7 @@ const createPropCallStatement = (
 
 const createStateChangeStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  stateIdentifiers: Record<string, UIDLStateIdentifier>,
+  stateIdentifiers: Record<string, StateIdentifier>,
   t = types
 ) => {
   if (!eventHandlerStatement.modifies) {
@@ -293,7 +293,7 @@ const createStateChangeStatement = (
 /**
  * Creates an AST line for defining a single state hook
  */
-const makeStateHookAST = (stateIdentifier: UIDLStateIdentifier, t = types) => {
+const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
   const defaultValueArgument = convertValueToLiteral(stateIdentifier.default, stateIdentifier.type)
   return t.variableDeclaration('const', [
     t.variableDeclarator(

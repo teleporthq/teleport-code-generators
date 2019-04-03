@@ -230,7 +230,7 @@ type CodeGeneratorFunction<T> = (content: T) => string
 /**
  * This structure is used for keeping information about a single state key while creating a component
  */
-interface UIDLStateIdentifier {
+interface StateIdentifier {
   key: string
   type: string
   setter: string

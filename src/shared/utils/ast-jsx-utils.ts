@@ -219,7 +219,7 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 export const createConditionalJSXExpression = (
   content: types.JSXElement | types.JSXExpressionContainer | string,
   conditionalExpression: UIDLConditionalExpression,
-  stateIdentifier: UIDLStateIdentifier,
+  stateIdentifier: StateIdentifier,
   t = types
 ) => {
   let contentNode: types.Expression
@@ -268,7 +268,7 @@ export const createBinaryExpression = (
     operation: string
     operand?: string | number | boolean
   },
-  stateIdentifier: UIDLStateIdentifier,
+  stateIdentifier: StateIdentifier,
   t = types
 ) => {
   const { operand, operation } = condition
