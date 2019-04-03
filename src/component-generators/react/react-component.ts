@@ -10,7 +10,7 @@ import importStatementsPlugin from '../../plugins/teleport-plugin-import-stateme
 
 import { createFile } from '../../shared/utils/project-utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { FILE_EXTENSIONS } from '../../shared/constants'
+import { FILE_TYPE } from '../../shared/constants'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
@@ -73,8 +73,8 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const jsCode = chunksLinker.link(chunks.default)
     const cssCode = chunksLinker.link(chunks.cssmodule)
 
-    files.push(createFile(fileName, FILE_EXTENSIONS.JS, jsCode))
-    files.push(createFile(fileName, FILE_EXTENSIONS.CSS, cssCode))
+    files.push(createFile(fileName, FILE_TYPE.JS, jsCode))
+    files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
 
     return {
       files,

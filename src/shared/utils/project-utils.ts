@@ -9,7 +9,7 @@ import {
 
 import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify } from './string-utils'
-import { FILE_EXTENSIONS } from '../constants'
+import { FILE_TYPE } from '../constants'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
@@ -129,7 +129,7 @@ export const createHtmlIndexFile = (
     <!DOCTYPE html>
     ${htmlInnerString}`
 
-  return createFile(fileName, FILE_EXTENSIONS.HTML, content)
+  return createFile(fileName, FILE_TYPE.HTML, content)
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values
@@ -155,7 +155,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
     ...{ icons },
   }
 
-  return createFile('manifest', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+  return createFile('manifest', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
 }
 
 export const createPackageJSONFile = (
@@ -176,7 +176,7 @@ export const createPackageJSONFile = (
     },
   }
 
-  return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+  return createFile('package', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
 }
 
 export const createPageOutputs = async (
@@ -220,6 +220,7 @@ export const createComponentOutputs = async (
   } catch (error) {
     console.warn(`Error on generating ${componentUIDL.name} component ${error}`)
   }
+
   return { files, dependencies }
 }
 
@@ -242,8 +243,8 @@ export const joinGeneratorOutputs = (
   )
 }
 
-export const createFile = (name: string, extension: string, content: string): GeneratedFile => {
-  return { name, extension, content }
+export const createFile = (name: string, fileType: string, content: string): GeneratedFile => {
+  return { name, fileType, content }
 }
 
 export const createFolder = (

@@ -227,9 +227,9 @@ interface GeneratedFolder {
 }
 
 interface GeneratedFile {
-  content: string
   name: string
-  extension: string
+  fileType: string
+  content: string
 }
 
 interface ComponentFactoryParams {
@@ -243,7 +243,6 @@ interface ComponentFactoryParams {
     usePathAsFileName?: boolean
     convertDefaultToIndex?: boolean
   }
-  componentExtension?: string
 }
 
 interface ComponentGeneratorOutput {

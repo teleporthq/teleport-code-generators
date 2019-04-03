@@ -1,7 +1,7 @@
 import createRouterComponentGenerator from '../../component-generators/react/react-router'
 
 import { createFolder, createFile } from '../../shared/utils/project-utils'
-import { FILE_EXTENSIONS } from '../../shared/constants'
+import { FILE_TYPE } from '../../shared/constants'
 
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
@@ -18,7 +18,7 @@ export const buildFolderStructure = (
 export const createRouterIndexFile = async (root: ComponentUIDL) => {
   const routingComponentGenerator = createRouterComponentGenerator()
   const { code, externalDependencies } = await routingComponentGenerator.generateComponent(root)
-  const routerFile = createFile('index', FILE_EXTENSIONS.JS, code)
+  const routerFile = createFile('index', FILE_TYPE.JS, code)
 
   return { routerFile, externalDependencies }
 }

@@ -7,7 +7,7 @@ import { createPlugin as createImportStatementsPlugin } from '../../plugins/tele
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 
 import { createFile } from '../../shared/utils/project-utils'
-import { FILE_EXTENSIONS } from '../../shared/constants'
+import { FILE_TYPE } from '../../shared/constants'
 import {
   addSpacesToEachLine,
   removeLastEmptyLine,
@@ -55,7 +55,7 @@ const createVueGenerator = (
     const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
     const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)
 
-    files.push(createFile(fileName, FILE_EXTENSIONS.VUE, vueCode))
+    files.push(createFile(fileName, FILE_TYPE.VUE, vueCode))
 
     return {
       files,
