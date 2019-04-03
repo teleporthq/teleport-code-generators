@@ -7,8 +7,10 @@ import { ReactComponentStylingFlavors } from '../../src/component-generators/rea
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 // const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
-const findJsFile = (files: GeneratedFile[]) => files.find((file) => file.fileType === 'js')
-const findVueFile = (files: GeneratedFile[]) => files.find((file) => file.fileType === 'vue')
+const JS_FILE = 'js'
+const VUE_FILE = 'vue'
+const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
+  files.find((file) => file.fileType === type)
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {
@@ -16,9 +18,9 @@ describe('React Component Generator', () => {
       variation: ReactComponentStylingFlavors.CSSModules,
     })
 
-    it('should return code in an array of files', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(result.files).toBeDefined()
@@ -34,9 +36,9 @@ describe('React Component Generator', () => {
       variation: ReactComponentStylingFlavors.JSS,
     })
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
@@ -48,9 +50,9 @@ describe('React Component Generator', () => {
   describe('with InlineStyles', () => {
     const generator = createReactComponentGenerator()
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
@@ -67,7 +69,7 @@ describe('React Component Generator', () => {
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
@@ -81,12 +83,12 @@ describe('Vue Component Generator', () => {
   describe('with standard plugins', () => {
     const generator = createVueComponentGenerator()
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findVueFile(result.files)
+      const vueFile = findFileByType(result.files, VUE_FILE)
 
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<template>')
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('<template>')
       expect(result.dependencies).toBeDefined()
     })
   })
@@ -97,10 +99,10 @@ describe('Vue Component Generator', () => {
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findVueFile(result.files)
+      const vueFile = findFileByType(result.files, VUE_FILE)
 
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<fakediv')
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('<fakediv')
       expect(result.dependencies).toBeDefined()
     })
   })

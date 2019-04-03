@@ -9,8 +9,12 @@ import { createReactComponentGenerator, createVueComponentGenerator } from '../.
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
 
 const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
-const findJsFile = (files: GeneratedFile[]) => files.find((file) => file.fileType === 'js')
-const findVueFile = (files: GeneratedFile[]) => files.find((file) => file.fileType === 'vue')
+
+const JS_FILE = 'js'
+const VUE_FILE = 'vue'
+const CSS_FILE = 'css'
+const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
+  files.find((file) => file.fileType === type)
 
 describe('React Styles in Component', () => {
   describe('supports props json declaration in styles', () => {
@@ -18,7 +22,7 @@ describe('React Styles in Component', () => {
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('props.direction')
@@ -30,7 +34,7 @@ describe('React Styles in Component', () => {
         variation: ReactComponentStylingFlavors.StyledJSX,
       })
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain(`align-self: center`)
@@ -43,7 +47,7 @@ describe('React Styles in Component', () => {
       const result = await styledJSXGenerator.generateComponent(
         ComponentWithNestedStyles as ComponentUIDL
       )
-      const jsFile = findJsFile(result.files)
+      const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('flex-direction: ${props.direction}')
@@ -63,6 +67,24 @@ describe('React Styles in Component', () => {
       await expect(operation).rejects.toThrow(Error)
     })
   })
+
+  describe('React CSS file using CSS Modules', () => {
+    const generator = createReactComponentGenerator({
+      variation: ReactComponentStylingFlavors.CSSModules,
+    })
+
+    it('should return code in an array of files', async () => {
+      const result = await generator.generateComponent(ComponentWithValidStyle)
+      const jsFile = findFileByType(result.files, JS_FILE)
+      const cssFile = findFileByType(result.files, CSS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(cssFile).toBeDefined()
+      expect(jsFile.content).toContain('import React')
+      expect(jsFile.content).toContain('flexDirection: (props) => props.direction')
+      expect(cssFile.content).toContain(`align-self: center`)
+    })
+  })
 })
 
 describe('Vue Props in Component Generator', () => {
@@ -71,22 +93,22 @@ describe('Vue Props in Component Generator', () => {
 
     it('should add styles on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findVueFile(result.files)
+      const vueFile = findFileByType(result.files, VUE_FILE)
 
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('align-self: center')
-      expect(jsFile.content).toContain('config.height')
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('align-self: center')
+      expect(vueFile.content).toContain('config.height')
     })
 
     it('should support nested styles', async () => {
       const result = await generator.generateComponent(ComponentWithNestedStyles as ComponentUIDL)
-      const jsFile = findVueFile(result.files)
+      const vueFile = findFileByType(result.files, VUE_FILE)
 
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('{flexDirection: direction}')
-      expect(jsFile.content).toContain(`align-self: center`)
-      expect(jsFile.content).toContain('@media (max-width: 640px) {')
-      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('{flexDirection: direction}')
+      expect(vueFile.content).toContain(`align-self: center`)
+      expect(vueFile.content).toContain('@media (max-width: 640px) {')
+      expect(vueFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
     it('should fail to add old style attributes on component', async () => {
