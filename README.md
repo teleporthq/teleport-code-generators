@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.4 - Alpha!</h2>
+<h2 align="center">Code Generators v0.5 - Alpha!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -201,21 +201,7 @@ Besides the regular files and folders generated at the end of the process, proje
 * Creating the entry point for each application (it can be an `index.html` or something that is framework specific)
 * Generating a web manifest for PWA support
 
-### UIDL Validators
-
-The package also exports a module that performs UIDL validations for any given JSON structure, based on the [JSON Schema](link coming soon).
-
-```javascript
-import { UIDLValidators } from '@teleporthq/teleport-code-generators'
-
-const componentUIDL = { ... }
-const projectUIDL = { ... }
-
-UIDLValidators.validateComponent(componentUIDL) // true / error object
-UIDLValidators.validateProject(projectUIDL) // true / error object
-```
-
-When the validation fails, an **error** object is returned. Validation is performed using [https://github.com/epoberezkin/ajv](a standard JSON schema validator).
+Full documentation coming soon.
 
 ### Further Reading
 A few useful links to get you up to speed with the entire **teleport** ecosystem:
