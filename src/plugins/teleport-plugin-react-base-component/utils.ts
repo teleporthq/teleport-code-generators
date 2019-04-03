@@ -31,7 +31,7 @@ export const generateElementNode = (
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
-      addAttributeToTag(elementTag, attrKey, attrs[attrKey])
+      addAttributeToNode(elementTag, attrKey, attrs[attrKey])
     })
   }
 
@@ -74,7 +74,6 @@ export const generateRepeatNode = (
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
 
-  // TODO: Handle repeat non-JSXElement
   const contentAST = generateNodeSyntax(repeatContent, accumulators)
 
   if (typeof contentAST === 'string' || (contentAST as types.JSXExpressionContainer).expression) {
@@ -110,10 +109,10 @@ export const generateConditionalNode = (
 
 type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
 
-export const generateNodeSyntax = (
-  node: UIDLNode,
-  accumulators: ReactComponentAccumulators
-): GenerateNodeSyntaxReturnValue => {
+export const generateNodeSyntax: NodeSyntaxGenerator<
+  ReactComponentAccumulators,
+  GenerateNodeSyntaxReturnValue
+> = (node, accumulators) => {
   let result: string | types.JSXExpressionContainer | types.JSXElement = null
 
   switch (node.type) {
@@ -326,7 +325,7 @@ const makeRepeatStructureWithMap = (
       id: keyIdentifier,
     },
   }
-  addAttributeToTag(content, 'key', dynamicLocalReference)
+  addAttributeToNode(content, 'key', dynamicLocalReference)
 
   const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -376,12 +375,11 @@ const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReferen
  * @param attributeKey the key of the attribute that should be added on the current AST node
  * @param attributeValue the value(string, number, bool) of the attribute that should be added on the current AST node
  */
-const addAttributeToTag = (
-  tag: types.JSXElement,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
+const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
+  tag,
+  attributeKey,
+  attributeValue
 ) => {
-  // TODO review with addAttributeToNode from vue
   switch (attributeValue.type) {
     case 'dynamic':
       const {
@@ -396,7 +394,9 @@ const addAttributeToTag = (
       return
     default:
       throw new Error(
-        `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
+        `${ERROR_LOG_NAME} addAttributeToNode could not generate code for assignment of type ${JSON.stringify(
+          attributeValue
+        )}`
       )
   }
 }

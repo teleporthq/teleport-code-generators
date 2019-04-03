@@ -30,7 +30,7 @@ export const generateElementNode = (
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
       const attrValue = attrs[attrKey]
-      // arrays are moved to the data object and referenced as dynamic keys (binding)
+      // TODO change/fix via #136
       if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
         const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
         dataObject[dataObjectIdentifier] = attrValue.content
@@ -105,11 +105,21 @@ export const generateConditionalNode = (
     : node.content.condition
 
   const conditionalStatement = createConditionalStatement(conditionalKey, condition)
+
+  if (typeof conditionalTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
+    )
+  }
+
   htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
   return conditionalTag
 }
 
-export const generateNodeSyntax = (node: UIDLNode, accumulators: VueComponentAccumulators) => {
+export const generateNodeSyntax: NodeSyntaxGenerator<
+  VueComponentAccumulators,
+  string | HastNode
+> = (node, accumulators) => {
   let result: string | HastNode
   switch (node.type) {
     case 'static':
@@ -310,12 +320,11 @@ const createPropCallStatement = (
 
 // This function decides how to add an attribute based on the attribute type
 // Also arrays are added to the dataObject for better readability
-const addAttributeToNode = (
-  htmlNode: any,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
+const addAttributeToNode: AttributeAssignCodeMod<HastNode> = (
+  htmlNode,
+  attributeKey,
+  attributeValue
 ) => {
-  // TODO review with addAttributeToNode from react
   switch (attributeValue.type) {
     case 'dynamic':
       const {
@@ -335,7 +344,9 @@ const addAttributeToNode = (
       return
     default:
       throw new Error(
-        `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
+        `${ERROR_LOG_NAME} addAttributeToNode could not generate code for assignment of type ${JSON.stringify(
+          attributeValue
+        )}`
       )
   }
 }
