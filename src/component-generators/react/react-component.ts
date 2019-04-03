@@ -74,7 +74,10 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const cssCode = chunksLinker.link(chunks.cssmodule)
 
     files.push(createFile(fileName, FILE_TYPE.JS, jsCode))
-    files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
+
+    if (cssCode) {
+      files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
+    }
 
     return {
       files,
