@@ -209,6 +209,7 @@ export const createPageOutputs = async (
   try {
     const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
       ...componentOptions,
+      // skipValidation: true,
     })
     const { externalCSS, externalDependencies, code } = compiledPageComponent
     dependencies = externalDependencies

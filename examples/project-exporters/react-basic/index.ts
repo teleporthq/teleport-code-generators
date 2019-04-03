@@ -24,12 +24,16 @@ const writeToDisk = async (
     throw new Error('could not find a package.json in the template folder')
   }
 
-  const { outputFolder } = await generatorFunction(projectUIDL, {
-    sourcePackageJson: packageJson,
-    distPath,
-    customMapping,
-  })
-  await writeFolder(outputFolder, __dirname)
+  try {
+    const { outputFolder } = await generatorFunction(projectUIDL, {
+      sourcePackageJson: packageJson,
+      distPath,
+      customMapping,
+    })
+    await writeFolder(outputFolder, __dirname)
+  } catch (error) {
+    throw new Error(error)
+  }
 }
 
 const generator = createReactBasicGenerator()

@@ -19,6 +19,9 @@ import {
   DEFAULT_PACKAGE_JSON,
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
+
+import { Validator } from '../../core'
+
 import nextMapping from './next-mapping.json'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
@@ -35,6 +38,7 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 }
 
 const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+  const validator = new Validator()
   const reactGenerator = initGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
@@ -42,7 +46,14 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Add any custom mappings found in the options
+    // Step 0: Validate project UIDL
+    if (options.skipValidation) {
+      const validationResult = validator.validateProject(uidl)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.errorMsg)
+      }
+    }
+    // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       addCustomMapping(options.customMapping)
     }
@@ -50,7 +61,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
 
-    // Step 1: The root html file is customized in next via the _document.js page
+    // Step 2: The root html file is customized in next via the _document.js page
     const documentComponentFile = [].concat(createDocumentComponentFile(uidl))
 
     // Step 2: The first level conditional nodes are taken as project pages
@@ -79,7 +90,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       return createPageOutputs(pageParams)
     })
 
-    // Step 3: The components generation process is started
+    // Step 4: The components generation process is started
     const componentPromises = Object.keys(components).map((componentName) => {
       const componentUIDL = components[componentName]
       const componentParams: ComponentFactoryParams = {
@@ -90,18 +101,18 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       return createComponentOutputs(componentParams)
     })
 
-    // Step 3: The process of creating the pages and the components is awaited
+    // Step 5: The process of creating the pages and the components is awaited
     const createdPageFiles = await Promise.all(pagePromises)
     const createdComponentFiles = await Promise.all(componentPromises)
 
-    // Step 4: The generated page and component files are joined
+    // Step 6: The generated page and component files are joined
     const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles: GeneratedFile[] = documentComponentFile.concat(joinedPageFiles.files)
 
     const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles: GeneratedFile[] = joinedComponentFiles.files
 
-    // Step 5: Global settings are transformed into the manifest file for PWA support
+    // Step 7: Global settings are transformed into the manifest file for PWA support
     const staticFiles: GeneratedFile[] = []
     if (uidl.globals.manifest) {
       const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
@@ -113,14 +124,14 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       ...joinedComponentFiles.dependencies,
     }
 
-    // Step 6: External dependencies are added to the package.json file from the template project
+    // Step 8: External dependencies are added to the package.json file from the template project
     const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
     })
     const distFiles: GeneratedFile[] = [packageFile]
 
-    // Step 7: Build the folder structure
+    // Step 9: Build the folder structure
     const distFolder = buildFolderStructure(
       {
         pages: pageFiles,

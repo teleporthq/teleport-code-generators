@@ -47,11 +47,32 @@ export const generateVueNodesTree = (
 
     if (events) {
       Object.keys(events).forEach((eventKey) => {
-        const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
-          eventKey
-        )}`
-        methodsObject[methodName] = events[eventKey]
-        htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+        if (events[eventKey].length === 1) {
+          const statement = events[eventKey][0]
+          const isPropEvent = statement && statement.type === 'propCall' && statement.calls
+
+          if (isPropEvent) {
+            htmlUtils.addAttributeToNode(
+              htmlNode,
+              `@${eventKey}`,
+              `this.$emit('${statement.calls}')`
+            )
+          } else {
+            htmlUtils.addAttributeToNode(
+              htmlNode,
+              statement.modifies,
+              statement.newState === '$toggle'
+                ? `${statement.modifies} = !${statement.modifies}`
+                : `${statement.modifies} = ${statement.newState}`
+            )
+          }
+        } else {
+          const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
+            eventKey
+          )}`
+          methodsObject[methodName] = events[eventKey]
+          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+        }
       })
     }
 
