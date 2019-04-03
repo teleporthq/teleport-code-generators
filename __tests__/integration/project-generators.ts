@@ -38,7 +38,7 @@ describe('React Next Project Generator', () => {
     expect(result.outputFolder.files[0].name).toBe('package')
     const components = result.outputFolder.subFolders[1]
     const pages = result.outputFolder.subFolders[0]
-    expect(components.files[0].name).toBe('ExpandableArea')
+    expect(components.files[0].name).toBe('OneComponent')
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })

@@ -7,12 +7,15 @@
       "defaultValue": "123"
     }
   },
-  "content": {
-    "type": "container",
-    "style": {
-      "flexDirection": "$props.test",
-      "alignSelft": "center"
-    },
-    "children": []
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "attrs": {
+        "data-test": "$props.test",
+        "data-static": "I am just a static string"
+      },
+      "children": []
+    }
   }
 }

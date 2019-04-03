@@ -2,9 +2,12 @@ import { generateUniqueKeys, createNodesLookup } from '../../../../src/core/reso
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
-    const simpleContentNode: ContentNode = {
-      type: 'container',
-      name: 'container',
+    const simpleNode: UIDLNode = {
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'container',
+      },
     }
 
     const lookup = {
@@ -14,22 +17,28 @@ describe('generateUniqueKeys', () => {
       },
     }
 
-    generateUniqueKeys(simpleContentNode, lookup)
+    generateUniqueKeys(simpleNode, lookup)
 
-    expect(simpleContentNode.name).toBe('container')
-    expect(simpleContentNode.key).toBe('container')
+    expect(simpleNode.content.name).toBe('container')
+    expect(simpleNode.content.key).toBe('container')
   })
 
   it('adds name and generate unique key', async () => {
-    const contentNode: ContentNode = {
-      type: 'container',
-      name: 'container',
-      children: [
-        {
-          type: 'container',
-          name: 'container',
-        },
-      ],
+    const node: UIDLNode = {
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'container',
+        children: [
+          {
+            type: 'element',
+            content: {
+              elementType: 'container',
+              name: 'container',
+            },
+          },
+        ],
+      },
     }
 
     const lookup = {
@@ -39,12 +48,12 @@ describe('generateUniqueKeys', () => {
       },
     }
 
-    generateUniqueKeys(contentNode, lookup)
+    generateUniqueKeys(node, lookup)
 
-    expect(contentNode.name).toBe('container')
-    expect(contentNode.key).toBe('container')
+    expect(node.content.name).toBe('container')
+    expect(node.content.key).toBe('container')
 
-    const childNode = contentNode.children[0] as ContentNode
+    const childNode = node.content.children[0].content as UIDLElement
     expect(childNode.name).toBe('container')
     expect(childNode.key).toBe('container1')
   })
@@ -52,33 +61,39 @@ describe('generateUniqueKeys', () => {
 
 describe('createNodesLookup', () => {
   it('counts duplicate nodes inside the UIDL', async () => {
-    const simpleContentNode: ContentNode = {
-      type: 'container',
-      name: 'container',
-      children: [
-        {
-          type: 'container',
-          name: 'container',
-          children: [
-            {
-              type: 'text',
-              name: 'text',
+    const node: UIDLNode = {
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'container',
+        children: [
+          {
+            type: 'element',
+            content: {
+              elementType: 'container',
+              name: 'container',
+              children: [
+                {
+                  type: 'element',
+                  content: { elementType: 'text', name: 'text' },
+                },
+                {
+                  type: 'element',
+                  content: { elementType: 'text', name: 'text' },
+                },
+                {
+                  type: 'element',
+                  content: { elementType: 'text', name: 'text' },
+                },
+              ],
             },
-            {
-              type: 'text',
-              name: 'text',
-            },
-            {
-              type: 'text',
-              name: 'text',
-            },
-          ],
-        },
-      ],
+          },
+        ],
+      },
     }
 
     const lookup: Record<string, { count: number; nextKey: string }> = {}
-    createNodesLookup(simpleContentNode, lookup)
+    createNodesLookup(node, lookup)
 
     expect(lookup.container.count).toBe(2)
     expect(lookup.container.nextKey).toBe('0')
@@ -87,9 +102,12 @@ describe('createNodesLookup', () => {
   })
 
   it('adds zero padding when counting keys', async () => {
-    const simpleContentNode: ContentNode = {
-      type: 'container',
-      name: 'container',
+    const node: UIDLNode = {
+      type: 'element',
+      content: {
+        elementType: 'container',
+        name: 'container',
+      },
     }
 
     const lookup: Record<string, { count: number; nextKey: string }> = {
@@ -98,7 +116,7 @@ describe('createNodesLookup', () => {
         nextKey: '0',
       },
     }
-    createNodesLookup(simpleContentNode, lookup)
+    createNodesLookup(node, lookup)
 
     expect(lookup.container.count).toBe(10)
     expect(lookup.container.nextKey).toBe('00')

@@ -196,27 +196,15 @@ export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
   return tag
 }
 
-export const addChildJSXTag = (tag: types.JSXElement, childNode: types.JSXElement) => {
+export const addChildJSXTag = (
+  tag: types.JSXElement,
+  childNode: types.JSXElement | types.JSXExpressionContainer
+) => {
   tag.children.push(childNode, types.jsxText('\n'))
 }
 
 export const addChildJSXText = (tag: types.JSXElement, text: string, t = types) => {
   tag.children.push(t.jsxText(text), types.jsxText('\n'))
-}
-
-export const addDynamicChild = (
-  tag: types.JSXElement,
-  value: string,
-  prefix: string = '',
-  t = types
-) => {
-  // if no prefix is provided (ex: props or state) value is added directly inside the node
-  const content =
-    prefix === ''
-      ? t.identifier(value)
-      : t.memberExpression(t.identifier(prefix), t.identifier(value))
-
-  tag.children.push(t.jsxExpressionContainer(content))
 }
 
 // TODO: Replace with generic add attribute?
@@ -230,7 +218,7 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 
 export const createConditionalJSXExpression = (
   content: types.JSXElement | string,
-  stateValue: string | number | boolean | ConditionalExpression,
+  conditionalExpression: UIDLConditionalExpression,
   stateIdentifier: StateIdentifier,
   t = types
 ) => {
@@ -243,41 +231,25 @@ export const createConditionalJSXExpression = (
     | types.Identifier
 
   // When the stateValue is an object we will compute a logical/binary expression on the left side
-  if (typeof stateValue === 'object') {
-    const { conditions, matchingCriteria } = stateValue
-    const binaryExpressions = conditions.map((condition) =>
-      createBinaryExpression(condition, stateIdentifier)
-    )
+  const { conditions, matchingCriteria } = conditionalExpression
+  const binaryExpressions = conditions.map((condition) =>
+    createBinaryExpression(condition, stateIdentifier)
+  )
 
-    if (binaryExpressions.length === 1) {
-      binaryExpression = binaryExpressions[0]
-    } else {
-      // the first two binary expressions are put together as a logical expression
-      const [firstExp, secondExp] = binaryExpressions
-      const operation = matchingCriteria === 'all' ? '&&' : '||'
-      let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
-
-      // accumulate the rest of the expressions to the logical expression
-      for (let index = 2; index < binaryExpressions.length; index++) {
-        expression = t.logicalExpression(operation, expression, binaryExpressions[index])
-      }
-
-      binaryExpression = expression
-    }
+  if (binaryExpressions.length === 1) {
+    binaryExpression = binaryExpressions[0]
   } else {
-    // For regular values we use an === operation to compare the values or an unary expression for booleans
-    if (typeof stateValue === 'boolean') {
-      binaryExpression = stateValue
-        ? t.identifier(stateIdentifier.key)
-        : t.unaryExpression('!', t.identifier(stateIdentifier.key))
-    } else {
-      const stateValueIdentifier = convertValueToLiteral(stateValue, stateIdentifier.type)
-      binaryExpression = t.binaryExpression(
-        '===',
-        t.identifier(stateIdentifier.key),
-        stateValueIdentifier
-      )
+    // the first two binary expressions are put together as a logical expression
+    const [firstExp, secondExp] = binaryExpressions
+    const operation = matchingCriteria === 'all' ? '&&' : '||'
+    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
+
+    // accumulate the rest of the expressions to the logical expression
+    for (let index = 2; index < binaryExpressions.length; index++) {
+      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
     }
+
+    binaryExpression = expression
   }
 
   return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))

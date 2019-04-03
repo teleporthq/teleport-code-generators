@@ -4,75 +4,10 @@
   "globals": {
     "settings": {
       "language": "en",
-      "title": "teleportHQ"
+      "title": "UIDL v0.6 Project"
     },
-    "meta" : [
-      { "name": "description", "content": "Free Web tutorials" },
-      { "name": "keywords", "content": "prea bun, prea ca la tara" },
-      { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
-      { "property": "og:title", "content": "Free Web tutorials" },
-      { "property": "og:url", "content": "/playground_assets/asdasd.png" }
-    ],
-    "manifest": {
-      "icons": [
-        {
-          "src": "/playground_assets/icons-192.png",
-          "type": "image/png",
-          "sizes": "192x192"
-        },
-        {
-          "src": "/playground_assets/icons-512.png",
-          "type": "image/png",
-          "sizes": "512x512"
-        }
-      ],
-      "theme_color": "#822CEC",
-      "background_color": "#822CEC"
-    },
-    "assets": [
-      {
-        "type": "style",
-        "path": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css",
-        "meta": {
-          "target": "body"
-        }
-      }, 
-      {
-        "type": "script",
-        "path": "https://www.googletagmanager.com/gtm.js",
-        "meta": {
-          "defer": true
-        }
-      },
-      {
-        "type": "script",
-        "content": "console.log(\"inline script\")",
-        "meta": {
-          "target": "body"
-        }
-      },
-      {
-        "type": "font",
-        "path": "https://fonts.googleapis.com/css?family=Roboto"
-      },
-      {
-        "type": "style",
-        "content": "body{font-family: 'Roboto', sans-serif;}"
-      },
-      {
-        "type": "icon",
-        "path": "/playground_assets/favicon-32x32.png",
-        "meta": {
-          "type": "image/png",
-          "sizes": "32x32"
-        }
-      }
-    ],
-    "variables": {
-      "primaryColor": "#822CEC",
-      "secondaryColor": "#414141",
-      "spacing": "10px"
-    }
+    "assets": [],
+    "meta": []
   },
   "root": {
     "name": "App",
@@ -190,7 +125,7 @@
   },
   "components": {
     "OneComponent": {
-      "name": "OneComponent",
+      "name": "New UIDL",
       "propDefinitions": {
         "title": {
           "type": "string",

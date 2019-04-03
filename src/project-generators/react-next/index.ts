@@ -6,10 +6,11 @@ import {
   createPackageJSONFile,
 } from '../../shared/utils/project-utils'
 
+import { extractRoutes } from '../../shared/utils/uidl-utils'
+
 import createReactGenerator, {
   ReactComponentStylingFlavors,
 } from '../../component-generators/react/react-component'
-
 import { createDocumentComponentFile, buildFolderStructure } from './utils'
 
 import {
@@ -47,30 +48,20 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
-
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
+    const routeNodes = extractRoutes(root)
 
     // Step 1: The root html file is customized in next via the _document.js page
     const documentComponentFile = [].concat(createDocumentComponentFile(uidl))
 
-    // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    // Step 2: The first level conditional nodes are taken as project pages
+    const pagePromises = routeNodes.map((routeNode) => {
+      const { value, node } = routeNode.content
+      const pageName = value.toString()
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value,
-        content: stateBranch.content,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName,
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {

@@ -6,15 +6,15 @@ import { ASSETS_IDENTIFIER } from '../../shared/constants'
  * Also the root path needs to be represented by the index file
  */
 export const extractPageMetadata = (
-  routerDefinitions: StateDefinition,
+  routeDefinitions: UIDLStateDefinition,
   stateName: string,
   options: { usePathAsFileName?: boolean; convertDefaultToIndex?: boolean } = {
     usePathAsFileName: false,
     convertDefaultToIndex: false,
   }
 ): { fileName: string; componentName: string; path: string } => {
-  const defaultPage = routerDefinitions.defaultValue
-  const pageDefinitions = routerDefinitions.values || []
+  const defaultPage = routeDefinitions.defaultValue
+  const pageDefinitions = routeDefinitions.values || []
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
 
   // If not meta object is defined, the stateName is used
@@ -41,6 +41,16 @@ export const extractPageMetadata = (
   }
 }
 
+export const extractRoutes = (rootComponent: ComponentUIDL) => {
+  // Assuming root element starts with a UIDLElementNode
+  const rootElement = rootComponent.node.content as UIDLElement
+
+  // Look for conditional nodes in the first level children of the root element
+  return rootElement.children.filter(
+    (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
+  ) as UIDLConditionalNode[]
+}
+
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
     return originalString
@@ -53,32 +63,53 @@ export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string
   return `${prefix}/${originalString}`
 }
 
-// Either receives the content node or the children element
-export const cloneElement = (node: ContentNode | Array<ContentNode | string>) =>
-  JSON.parse(JSON.stringify(node))
+// Clones existing objects while keeping the type cast
+export const cloneObject = <T>(node: T): T => JSON.parse(JSON.stringify(node))
 
-export const traverseNodes = (node: ContentNode, fn: (node: ContentNode) => void) => {
-  fn(node)
+// This function parses all the UIDLNodes in a tree structure
+// enabling a function to be applied to each individual node
+export const traverseNodes = (
+  node: UIDLNode,
+  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
+  parent: UIDLNode | null = null
+) => {
+  fn(node, parent)
 
-  if (node.children) {
-    node.children.forEach((child) => {
-      if (typeof child !== 'string') {
-        traverseNodes(child, fn)
-      }
-    })
+  if (node.type === 'element') {
+    if (node.content.children) {
+      node.content.children.forEach((child) => {
+        traverseNodes(child, fn, node)
+      })
+    }
   }
 
-  if (node.repeat) {
-    traverseNodes(node.repeat.content, fn)
+  if (node.type === 'repeat') {
+    traverseNodes(node.content.node, fn, node)
   }
 
-  if (node.states && node.type === 'state') {
-    node.states.forEach((stateBranch) => {
-      if (typeof stateBranch.content !== 'string') {
-        traverseNodes(stateBranch.content, fn)
-      }
-    })
-    return
+  if (node.type === 'conditional') {
+    traverseNodes(node.content.node, fn, node)
+  }
+}
+
+// Parses a node structure recursively and applies a function to each UIDLElement instance
+export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
+  if (node.type === 'element') {
+    fn(node.content)
+
+    if (node.content.children) {
+      node.content.children.forEach((child) => {
+        traverseElements(child, fn)
+      })
+    }
+  }
+
+  if (node.type === 'repeat') {
+    traverseElements(node.content.node, fn)
+  }
+
+  if (node.type === 'conditional') {
+    traverseElements(node.content.node, fn)
   }
 }
 
@@ -203,64 +234,6 @@ export const transformDynamicStyles = (
   }, {})
 }
 
-const dynamicPrefixes = ['$props.', '$state.', '$local.']
-
-export const isDynamicPrefixedValue = (value: any) => {
-  if (typeof value !== 'string') {
-    return false
-  }
-
-  return dynamicPrefixes.reduce((result, prefix) => {
-    // endsWith is added to avoid errors when the user is typing and reaches `$props.`
-    return result || (value.startsWith(prefix) && !value.endsWith(prefix))
-  }, false)
-}
-
-export const removeDynamicPrefix = (value: string, newPrefix?: string) => {
-  const indexOfFirstDot = value.indexOf('.')
-  if (indexOfFirstDot < 0) {
-    return value
-  }
-
-  const prefix = newPrefix ? newPrefix + '.' : '' // ex: props. or state. as a prefix
-
-  return prefix + value.slice(indexOfFirstDot + 1)
-}
-
-// returns falsy or typecast object to UIDLDynamicReference and returns it
-export const isUIDLDynamicReference = (jsonObject: Record<string, unknown> | string) => {
-  if (typeof jsonObject === 'string') {
-    return false
-  }
-
-  const { content, type } = jsonObject as UIDLDynamicReference
-  if (
-    type === 'dynamic' &&
-    !Array.isArray(content) &&
-    typeof content === 'object' &&
-    ['prop', 'state', 'local'].indexOf(content.referenceType) !== -1 &&
-    typeof content.id === 'string'
-  ) {
-    return jsonObject as UIDLDynamicReference
-  }
-
-  return false
-}
-
-// returns falsy or typecast object to UIDLDynamicReference and returns it
-export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | string) => {
-  if (typeof jsonObject === 'string') {
-    return false
-  }
-
-  const { content, type } = jsonObject as UIDLStaticReference
-  if (type === 'static' && typeof content === 'string') {
-    return jsonObject as UIDLStaticReference
-  }
-
-  return false
-}
-
 /**
  * Transform properties like
  * $props.something
@@ -272,7 +245,7 @@ export const isUIDLStaticReference = (jsonObject: Record<string, unknown> | stri
  */
 export const transformStringAssignmentToJson = (
   declaration: string | number
-): UIDLNodeStyleValue | UIDLNodeAttributeValue => {
+): UIDLStaticValue | UIDLAttributeValue => {
   if (typeof declaration === 'number') {
     return {
       type: 'static',
@@ -323,7 +296,7 @@ export const transformStylesAssignmentsToJson = (
       const { type, content } = styleContentAtKey as Record<string, unknown>
 
       if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = styleContentAtKey as UIDLNodeAttributeValue
+        acc[key] = styleContentAtKey as UIDLAttributeValue
         return acc
       }
 
@@ -358,8 +331,8 @@ export const transformStylesAssignmentsToJson = (
 
 export const transformAttributesAssignmentsToJson = (
   attributesObject: Record<string, unknown>
-): Record<string, UIDLNodeAttributeValue> => {
-  const newStyleObject: Record<string, UIDLNodeAttributeValue> = {}
+): Record<string, UIDLAttributeValue> => {
+  const newStyleObject: Record<string, UIDLAttributeValue> = {}
 
   Object.keys(attributesObject).reduce((acc, key) => {
     const attributeContent = attributesObject[key]
@@ -368,7 +341,7 @@ export const transformAttributesAssignmentsToJson = (
     if (['string', 'number'].indexOf(entityType) !== -1) {
       acc[key] = transformStringAssignmentToJson(attributeContent as
         | string
-        | number) as UIDLNodeAttributeValue
+        | number) as UIDLAttributeValue
       return acc
     }
 
@@ -376,7 +349,7 @@ export const transformAttributesAssignmentsToJson = (
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
       if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = attributeContent as UIDLNodeAttributeValue
+        acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }
 

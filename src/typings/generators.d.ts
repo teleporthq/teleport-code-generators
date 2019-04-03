@@ -25,19 +25,19 @@ interface GlobalAsset {
 interface ComponentUIDL {
   $schema?: string
   name: string
-  content: ContentNode
+  node: UIDLNode
   meta?: Record<string, any>
-  propDefinitions?: Record<string, PropDefinition>
-  stateDefinitions?: Record<string, StateDefinition>
+  propDefinitions?: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-interface PropDefinition {
+interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | any[] | object | (() => void)
   meta?: Record<string, any>
 }
 
-interface StateDefinition {
+interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | any[] | object | (() => void)
   values?: Array<{
@@ -52,22 +52,32 @@ interface StateDefinition {
   actions?: string[]
 }
 
-interface ContentNode {
-  type: string
-  name?: string
-  key?: string // internal usage
-  states?: StateBranch[]
-  repeat?: RepeatDefinition
-  dependency?: ComponentDependency
-  style?: UIDLStyleDefinitions
-  attrs?: Record<string, UIDLNodeAttributeValue>
-  events?: EventDefinitions
-  children?: Array<ContentNode | string>
+interface UIDLDynamicReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop' | 'state' | 'local' | 'attr'
+    id: string
+  }
 }
 
-interface RepeatDefinition {
-  content: ContentNode
-  dataSource: UIDLNodeAttributeValue
+interface UIDLStaticValue {
+  type: 'static'
+  content: string | number | boolean | any[] // any[] for data sources
+}
+
+interface UIDLNestedStyleDeclaration {
+  type: 'nested-style'
+  content: UIDLStyleDefinitions
+}
+
+interface UIDLRepeatNode {
+  type: 'repeat'
+  content: UIDLRepeatContent
+}
+
+interface UIDLRepeatContent {
+  node: UIDLNode
+  dataSource: UIDLAttributeValue
   meta?: {
     useIndex?: boolean
     iteratorName?: string
@@ -75,9 +85,55 @@ interface RepeatDefinition {
   }
 }
 
-interface StateBranch {
-  value: string | number | boolean | ConditionalExpression
-  content: ContentNode | string
+interface UIDLConditionalNode {
+  type: 'conditional'
+  content: {
+    node: UIDLNode
+    reference: UIDLDynamicReference
+    value?: string | number | boolean
+    condition?: UIDLConditionalExpression
+  }
+}
+
+interface UIDLConditionalExpression {
+  conditions: Array<{
+    operation: string
+    operand?: string | boolean | number
+  }>
+  matchingCriteria?: string
+}
+
+interface UIDLElementNode {
+  type: 'element'
+  content: UIDLElement
+}
+
+interface UIDLElement {
+  elementType: string
+  name?: string
+  key?: string // internal usage
+  dependency?: ComponentDependency
+  style?: UIDLStyleDefinitions
+  attrs?: Record<string, UIDLAttributeValue>
+  events?: EventDefinitions
+  children?: UIDLNode[]
+}
+
+type UIDLNode =
+  | UIDLDynamicReference
+  | UIDLStaticValue
+  | UIDLRepeatNode
+  | UIDLElementNode
+  | UIDLConditionalNode
+
+type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
+
+type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
+
+type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
+
+interface EventDefinitions {
+  [k: string]: EventHandlerStatement[]
 }
 
 interface EventHandlerStatement {
@@ -88,22 +144,6 @@ interface EventHandlerStatement {
   args?: Array<string | number | boolean>
 }
 
-// interface StyleDefinitions {
-//   [k: string]: number | string | StyleDefinitions
-// }
-
-declare type UIDLNodeStyleValue = UIDLNodeAttributeValue | UIDLNestedStyleDeclaration
-
-interface UIDLNestedStyleDeclaration {
-  type: 'nested-style'
-  content: UIDLStyleDefinitions
-}
-
-declare type UIDLStyleDefinitions = Record<string, UIDLNodeStyleValue>
-interface EventDefinitions {
-  [k: string]: EventHandlerStatement[]
-}
-
 interface ComponentDependency {
   type: string
   path?: string
@@ -112,14 +152,6 @@ interface ComponentDependency {
     namedImport?: boolean
     originalName?: string
   }
-}
-
-interface ConditionalExpression {
-  conditions: Array<{
-    operation: string
-    operand?: string | boolean | number
-  }>
-  matchingCriteria: string
 }
 
 interface WebManifest {
@@ -134,19 +166,9 @@ interface WebManifest {
   theme_color?: string
 }
 
-/* mapping interfaces */
-
 interface Mapping {
-  elements?: Record<string, ElementMapping>
+  elements?: Record<string, UIDLElement> // maybe for convenience UIDLElements can be mapped directly?
   events?: Record<string, string>
-}
-
-interface ElementMapping {
-  type: string
-  dependency?: ComponentDependency
-  attrs?: Record<string, UIDLNodeAttributeValue>
-  children?: Array<ContentNode | string>
-  repeat?: RepeatDefinition
 }
 
 type ChunkContent = string | any | any[]
@@ -191,7 +213,7 @@ interface CompiledComponent {
 
 interface ComponentGenerator {
   generateComponent: (uidl: ComponentUIDL, options?: GeneratorOptions) => Promise<CompiledComponent>
-  resolveContentNode: (node: ContentNode, options?: GeneratorOptions) => ContentNode
+  resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
 }
@@ -199,7 +221,7 @@ interface ComponentGenerator {
 interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
-  customMapping?: Mapping
+  mapping?: Mapping
   skipValidation?: boolean
 }
 
@@ -285,18 +307,3 @@ interface PackageJSON {
   dependencies?: Record<string, string>
   [key: string]: any
 }
-
-interface UIDLDynamicReference {
-  type: 'dynamic'
-  content: {
-    referenceType: 'prop' | 'state' | 'local' | 'attr'
-    id: string
-  }
-}
-
-interface UIDLStaticReference {
-  type: 'static'
-  content: string | number | boolean | any[] // array<any> for data sources
-}
-
-type UIDLNodeAttributeValue = UIDLDynamicReference | UIDLStaticReference

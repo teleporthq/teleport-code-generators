@@ -6,8 +6,8 @@ import importStatementsPlugin from '../../plugins/teleport-plugin-import-stateme
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
-const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
-  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, customMapping])
+const createVuePipeline = ({ mapping }: GeneratorOptions = {}) => {
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, mapping])
   const assemblyLine = new AssemblyLine([vueRoutingPlugin, importStatementsPlugin])
 
   const chunksLinker = new Builder()

@@ -52,7 +52,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     uidl: ComponentUIDL,
     options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
-    if (!options.skipValidation) {
+    if (options.skipValidation) {
       const validationResult = validator.validateComponent(uidl)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
@@ -74,7 +74,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    resolveElement: resolver.resolveElement.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }

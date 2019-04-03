@@ -5,128 +5,102 @@ import {
   addChildJSXTag,
   addChildJSXText,
   addAttributeToJSXTag,
-  addDynamicChild,
   addDynamicAttributeOnTag,
-  generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
-  createTernaryOperation,
+  generateASTDefinitionForJSXTag,
 } from '../../shared/utils/ast-jsx-utils'
 
-import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 
 export const generateTreeStructure = (
-  content: ContentNode,
+  node: UIDLNode,
   accumulators: {
-    propDefinitions: Record<string, PropDefinition>
+    propDefinitions: Record<string, UIDLPropDefinition>
     stateIdentifiers: Record<string, StateIdentifier>
     nodesLookup: Record<string, types.JSXElement>
     dependencies: Record<string, ComponentDependency>
   }
-): types.JSXElement => {
-  const { type, children, key, attrs, dependency, events, repeat } = content
+) => {
   const { propDefinitions, stateIdentifiers, nodesLookup, dependencies } = accumulators
 
-  const mainTag = generateASTDefinitionForJSXTag(type)
-
-  if (attrs) {
-    Object.keys(attrs).forEach((attrKey) => {
-      addAttributeToTag(mainTag, attrKey, attrs[attrKey])
-    })
+  if (node.type === 'static') {
+    return node.content.toString()
   }
 
-  if (dependency) {
-    // Make a copy to avoid reference leaking
-    dependencies[type] = { ...dependency }
+  if (node.type === 'dynamic') {
+    return makeDynamicValueExpression(node.content.id)
   }
 
-  if (events) {
-    Object.keys(events).forEach((eventKey) => {
-      addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
-    })
+  if (node.type === 'element') {
+    const { elementType, children, key, attrs, dependency, events } = node.content
+    const elementTag = generateASTDefinitionForJSXTag(elementType)
+
+    if (attrs) {
+      Object.keys(attrs).forEach((attrKey) => {
+        addAttributeToTag(elementTag, attrKey, attrs[attrKey])
+      })
+    }
+
+    if (dependency) {
+      // Make a copy to avoid reference leaking
+      dependencies[elementType] = { ...dependency }
+    }
+
+    if (events) {
+      Object.keys(events).forEach((eventKey) => {
+        addEventHandlerToTag(
+          elementTag,
+          eventKey,
+          events[eventKey],
+          stateIdentifiers,
+          propDefinitions
+        )
+      })
+    }
+
+    if (children) {
+      children.forEach((child) => {
+        const childTag = generateTreeStructure(child, accumulators)
+
+        if (typeof childTag === 'string') {
+          addChildJSXText(elementTag, childTag)
+        } else {
+          addChildJSXTag(elementTag, childTag)
+        }
+      })
+    }
+
+    nodesLookup[key] = elementTag
+    return elementTag
   }
 
-  if (repeat) {
-    const { content: repeatContent, dataSource, meta } = repeat
+  if (node.type === 'repeat') {
+    const { node: repeatContent, dataSource, meta } = node.content
 
-    const contentAST = generateTreeStructure(repeatContent, accumulators)
+    // TODO: Handle repeat non-JSXElement
+    const contentAST = generateTreeStructure(repeatContent, accumulators) as types.JSXElement
 
     const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST, meta)
-    mainTag.children.push(repeatAST)
+    return repeatAST
   }
 
-  if (children) {
-    children.forEach((child) => {
-      if (!child) {
-        return
-      }
+  if (node.type === 'conditional') {
+    const { reference, value } = node.content
+    const stateKey = reference.content.id
+    const stateIdentifier = stateIdentifiers[stateKey]
 
-      if (typeof child === 'string') {
-        addTextElementToTag(mainTag, child)
-        return
-      }
+    const subTree = generateTreeStructure(node.content.node, accumulators)
 
-      if (child.type === 'state') {
-        const { states = [], name: stateKey } = child
-        const isBooleanState =
-          stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
-        if (isBooleanState && states.length === 2) {
-          const consequentContent = states[0].content
-          const alternateContent = states[1].content
-          const consequent =
-            typeof consequentContent === 'string'
-              ? types.stringLiteral(consequentContent)
-              : generateTreeStructure(consequentContent, accumulators)
-          const alternate =
-            typeof alternateContent === 'string'
-              ? types.stringLiteral(alternateContent)
-              : generateTreeStructure(alternateContent, accumulators)
-          const jsxExpression = createTernaryOperation(
-            stateIdentifiers[stateKey].key,
-            consequent,
-            alternate
-          )
-          mainTag.children.push(jsxExpression)
-        } else {
-          states.forEach((stateBranch) => {
-            const stateContent = stateBranch.content
-            const stateIdentifier = stateIdentifiers[stateKey]
-            if (!stateIdentifier) {
-              return
-            }
+    const condition: UIDLConditionalExpression = value
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : node.content.condition
 
-            const stateSubTree =
-              typeof stateContent === 'string'
-                ? stateContent
-                : generateTreeStructure(stateContent, accumulators)
-
-            const jsxExpression = createConditionalJSXExpression(
-              stateSubTree,
-              stateBranch.value,
-              stateIdentifier
-            )
-
-            mainTag.children.push(jsxExpression)
-          })
-        }
-
-        return
-      }
-
-      const childTag = generateTreeStructure(child, accumulators)
-
-      addChildJSXTag(mainTag, childTag)
-    })
+    return createConditionalJSXExpression(subTree, condition, stateIdentifier)
   }
-
-  // UIDL name should be unique
-  nodesLookup[key] = mainTag
-
-  return mainTag
 }
 
 export const createStateIdentifiers = (
-  stateDefinitions: Record<string, StateDefinition>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   dependencies: Record<string, ComponentDependency>
 ) => {
   dependencies.useState = {
@@ -183,7 +157,7 @@ const addEventHandlerToTag = (
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
   stateIdentifiers: Record<string, StateIdentifier>,
-  propDefinitions: Record<string, PropDefinition> = {},
+  propDefinitions: Record<string, UIDLPropDefinition> = {},
   t = types
 ) => {
   const eventHandlerASTStatements: types.ExpressionStatement[] = []
@@ -223,7 +197,7 @@ const addEventHandlerToTag = (
 
 const createPropCallStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  propDefinitions: Record<string, PropDefinition>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
   const { calls: propFunctionKey, args = [] } = eventHandlerStatement
@@ -289,7 +263,7 @@ const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
 }
 
 const makeRepeatStructureWithMap = (
-  dataSource: UIDLNodeAttributeValue,
+  dataSource: UIDLAttributeValue,
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
@@ -320,7 +294,11 @@ const makeRepeatStructureWithMap = (
   )
 }
 
-const getSourceIdentifier = (dataSource: UIDLNodeAttributeValue, t = types) => {
+const makeDynamicValueExpression = (identifier: string, t = types) => {
+  return t.jsxExpressionContainer(t.identifier(identifier))
+}
+
+const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
   switch (dataSource.type) {
     case 'static':
       return t.arrayExpression(
@@ -355,7 +333,7 @@ const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReferen
 const addAttributeToTag = (
   tag: types.JSXElement,
   attributeKey: string,
-  attributeValue: UIDLNodeAttributeValue
+  attributeValue: UIDLAttributeValue
 ) => {
   // TODO review with addAttributeToNode from vue
   switch (attributeValue.type) {
@@ -374,14 +352,5 @@ const addAttributeToTag = (
       throw new Error(
         `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
       )
-  }
-}
-
-const addTextElementToTag = (tag: types.JSXElement, text: string) => {
-  if (isDynamicPrefixedValue(text)) {
-    const propsPrefix = text.startsWith('$props') ? 'props' : ''
-    addDynamicChild(tag, removeDynamicPrefix(text), propsPrefix)
-  } else {
-    addChildJSXText(tag, text)
   }
 }

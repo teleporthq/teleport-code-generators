@@ -3,7 +3,7 @@ import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import { cammelCaseToDashCase, stringToCamelCase } from '../../shared/utils/string-utils'
 import { addJSXTagStyles, addDynamicAttributeOnTag } from '../../shared/utils/ast-jsx-utils'
 import {
-  traverseNodes,
+  traverseElements,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
@@ -53,8 +53,8 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     const cssClasses: string[] = []
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
 
-    traverseNodes(uidl.content, (node) => {
-      const { style, key } = node
+    traverseElements(uidl.node, (element) => {
+      const { style, key } = element
       if (style) {
         const root = astNodesLookup[key]
         const className = cammelCaseToDashCase(key)

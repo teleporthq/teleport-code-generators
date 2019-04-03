@@ -4,7 +4,7 @@ import uidlSample from '../../../fixtures/component-sample.json'
 import invalidUidlSample from '../../../fixtures/component-invalid-sample.json'
 import multiErrorsInvalidUidlSample from '../../../fixtures/component-invalid-sample-multiple-errors.json'
 
-describe('Validate UIDL', () => {
+describe.skip('Validate UIDL', () => {
   it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
     const validator = new Validator()
     const validationResult = validator.validateComponent(uidlSample)

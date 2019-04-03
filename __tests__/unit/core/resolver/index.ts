@@ -5,25 +5,25 @@ import mappingJSON from '../../../fixtures/mapping.json'
 const mapping = mappingJSON as Mapping
 
 describe('resolveContentNode', () => {
-  const contentNode = {
-    type: 'text',
+  const element = {
+    elementType: 'text',
     attrs: {
       dummy: { type: 'static', content: 'remains here' },
     },
-  } as ContentNode
+  } as UIDLElement
 
   it('returns a mapped content node', () => {
     const resolver = new Resolver()
     resolver.addMapping(mapping)
-    const resolvedNode = resolver.resolveContentNode(contentNode)
-    expect(resolvedNode.type).toBe('span')
-    expect(resolvedNode.attrs.dummy.content).toBe('remains here')
+    const resolvedElement = resolver.resolveElement(element)
+    expect(resolvedElement.elementType).toBe('span')
+    expect(resolvedElement.attrs.dummy.content).toBe('remains here')
   })
 
   it('returns a mapped content node with a custom mapping', () => {
     const resolver = new Resolver()
-    const resolvedNode = resolver.resolveContentNode(contentNode, { customMapping: mapping })
-    expect(resolvedNode.type).toBe('span')
-    expect(resolvedNode.attrs.dummy.content).toBe('remains here')
+    const resolvedElement = resolver.resolveElement(element, { mapping })
+    expect(resolvedElement.elementType).toBe('span')
+    expect(resolvedElement.attrs.dummy.content).toBe('remains here')
   })
 })
