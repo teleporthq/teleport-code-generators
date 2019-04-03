@@ -19,16 +19,8 @@ export default class AssemblyLine {
 
     const finalStructure: ComponentStructure = await this.plugins.reduce(
       async (previousPluginOperation: Promise<any>, plugin) => {
-        try {
-          const modifiedStructure = await previousPluginOperation
-          return plugin(modifiedStructure)
-        } catch (err) {
-          console.warn(
-            `The plugin ${
-              plugin.name
-            } failed. Process continues. Moving forward to the next plugin. \n Reason: ${err} \n`
-          )
-        }
+        const modifiedStructure = await previousPluginOperation
+        return plugin(modifiedStructure)
       },
       Promise.resolve(structure)
     )
