@@ -237,6 +237,13 @@ interface StateIdentifier {
   default: any
 }
 
+// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
+interface ConditionalIdentifier {
+  key: string
+  type: string
+  prefix?: string
+}
+
 interface HastNode {
   type: string
   tagName: string

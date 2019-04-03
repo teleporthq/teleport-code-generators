@@ -95,8 +95,7 @@ export const generateConditionalNode = (
   accumulators: ReactComponentAccumulators
 ) => {
   const { reference, value } = node.content
-  const stateKey = reference.content.id
-  const stateIdentifier = accumulators.stateIdentifiers[stateKey]
+  const conditionIdentifier = createConditionIdentifier(reference, accumulators)
 
   const subTree = generateNodeSyntax(node.content.node, accumulators)
 
@@ -104,7 +103,7 @@ export const generateConditionalNode = (
     ? { conditions: [{ operand: value, operation: '===' }] }
     : node.content.condition
 
-  return createConditionalJSXExpression(subTree, condition, stateIdentifier)
+  return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
 type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
@@ -337,6 +336,37 @@ const makeRepeatStructureWithMap = (
 
 const makeDynamicValueExpression = (identifier: string, t = types) => {
   return t.jsxExpressionContainer(t.identifier(identifier))
+}
+
+// Prepares an identifier (from props or state) to be used as a conditional rendering identifier
+// Assumes the type from the corresponding props/state definitions
+const createConditionIdentifier = (
+  dynamicReference: UIDLDynamicReference,
+  accumulators: ReactComponentAccumulators
+): ConditionalIdentifier => {
+  const { id, referenceType } = dynamicReference.content
+
+  switch (referenceType) {
+    case 'prop':
+      return {
+        key: id,
+        type: accumulators.propDefinitions[id].type,
+        prefix: 'props',
+      }
+    case 'state':
+      return {
+        key: id,
+        type: accumulators.stateIdentifiers[id].type,
+      }
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} createConditionIdentifier encountered an invalid reference type: ${JSON.stringify(
+          dynamicReference,
+          null,
+          2
+        )}`
+      )
+  }
 }
 
 const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
