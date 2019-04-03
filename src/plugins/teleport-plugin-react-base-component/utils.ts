@@ -113,24 +113,22 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
   ReactComponentAccumulators,
   GenerateNodeSyntaxReturnValue
 > = (node, accumulators) => {
-  let result: string | types.JSXExpressionContainer | types.JSXElement = null
-
   switch (node.type) {
     case 'static':
-      result = node.content.toString()
-      break
+      return node.content.toString()
+
     case 'dynamic':
-      result = makeDynamicValueExpression(node.content.id)
-      break
+      return makeDynamicValueExpression(node.content.id)
+
     case 'element':
-      result = generateElementNode(node, accumulators)
-      break
+      return generateElementNode(node, accumulators)
+
     case 'repeat':
-      result = generateRepeatNode(node, accumulators)
-      break
+      return generateRepeatNode(node, accumulators)
+
     case 'conditional':
-      result = generateConditionalNode(node, accumulators)
-      break
+      return generateConditionalNode(node, accumulators)
+
     default:
       throw new Error(
         `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
@@ -140,8 +138,6 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
         )}`
       )
   }
-
-  return result
 }
 
 export const createStateIdentifiers = (

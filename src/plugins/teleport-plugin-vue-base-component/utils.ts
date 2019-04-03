@@ -120,27 +120,21 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
   VueComponentAccumulators,
   string | HastNode
 > = (node, accumulators) => {
-  let result: string | HastNode
   switch (node.type) {
     case 'static':
-      result = node.content.toString()
-      break
+      return node.content.toString()
 
     case 'dynamic':
-      result = `{{${node.content.id}}}`
-      break
+      return `{{${node.content.id}}}`
 
     case 'element':
-      result = generateElementNode(node, accumulators)
-      break
+      return generateElementNode(node, accumulators)
 
     case 'repeat':
-      result = generateRepeatNode(node, accumulators)
-      break
+      return generateRepeatNode(node, accumulators)
 
     case 'conditional':
-      result = generateConditionalNode(node, accumulators)
-      break
+      return generateConditionalNode(node, accumulators)
 
     default:
       throw new Error(
