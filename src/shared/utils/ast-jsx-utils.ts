@@ -217,12 +217,20 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 }
 
 export const createConditionalJSXExpression = (
-  content: types.JSXElement | string,
+  content: types.JSXElement | types.JSXExpressionContainer | string,
   conditionalExpression: UIDLConditionalExpression,
   stateIdentifier: StateIdentifier,
   t = types
 ) => {
-  const contentNode = typeof content === 'string' ? t.stringLiteral(content) : content
+  let contentNode: types.Expression
+
+  if (typeof content === 'string') {
+    contentNode = t.stringLiteral(content)
+  } else if ((content as types.JSXExpressionContainer).expression) {
+    contentNode = (content as types.JSXExpressionContainer).expression as types.Expression
+  } else {
+    contentNode = content as types.JSXElement
+  }
 
   let binaryExpression:
     | types.LogicalExpression

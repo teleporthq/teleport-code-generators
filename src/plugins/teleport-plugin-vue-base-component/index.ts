@@ -1,4 +1,4 @@
-import { generateVueComponentJS, generateVueNodesTree, extractStateObject } from './utils'
+import { generateVueComponentJS, generateNodeSyntax, extractStateObject } from './utils'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
@@ -7,6 +7,8 @@ interface VueComponentConfig {
   jsFileAfter: string[]
   jsFileId: string
 }
+
+export const ERROR_LOG_NAME = `vue-base-component`
 
 export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
   const {
@@ -24,7 +26,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const dataObject: Record<string, any> = {}
     const methodsObject: Record<string, any> = {}
 
-    const templateContent = generateVueNodesTree(uidl.node, {
+    const templateContent = generateNodeSyntax(uidl.node, {
       templateLookup,
       dependencies,
       dataObject,

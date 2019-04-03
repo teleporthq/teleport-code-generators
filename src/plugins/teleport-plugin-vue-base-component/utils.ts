@@ -4,134 +4,169 @@ import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
-export const generateVueNodesTree = (
-  node: UIDLNode,
-  accumulators: {
-    templateLookup: Record<string, any>
-    dependencies: Record<string, ComponentDependency>
-    dataObject: Record<string, any>
-    methodsObject: Record<string, EventHandlerStatement[]>
-  }
+import { ERROR_LOG_NAME } from '.'
+
+interface VueComponentAccumulators {
+  templateLookup: Record<string, any>
+  dependencies: Record<string, ComponentDependency>
+  dataObject: Record<string, any>
+  methodsObject: Record<string, EventHandlerStatement[]>
+}
+
+export const generateElementNode = (
+  node: UIDLElementNode,
+  accumulators: VueComponentAccumulators
 ) => {
-  const { templateLookup, dependencies, dataObject, methodsObject } = accumulators
+  const { dependencies, dataObject, methodsObject, templateLookup } = accumulators
+  const { elementType, name, key, children, attrs, dependency, events } = node.content
+  const htmlNode = htmlUtils.createHTMLNode(elementType)
 
-  if (node.type === 'static') {
-    return node.content.toString()
+  if (dependency) {
+    dependencies[elementType] = { ...dependency }
   }
 
-  if (node.type === 'dynamic') {
-    return `{{${node.content.id}}}`
+  if (attrs) {
+    Object.keys(attrs).forEach((attrKey) => {
+      const attrValue = attrs[attrKey]
+      // TODO change/fix via #136
+      if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
+        const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
+        dataObject[dataObjectIdentifier] = attrValue.content
+        htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
+      } else {
+        addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
+      }
+    })
   }
 
-  if (node.type === 'element') {
-    const { elementType, name, key, children, attrs, dependency, events } = node.content
-    const htmlNode = htmlUtils.createHTMLNode(elementType)
+  if (events) {
+    Object.keys(events).forEach((eventKey) => {
+      if (events[eventKey].length === 1) {
+        const statement = events[eventKey][0]
+        const isPropEvent = statement && statement.type === 'propCall' && statement.calls
 
-    if (dependency) {
-      dependencies[elementType] = { ...dependency }
-    }
-
-    if (attrs) {
-      Object.keys(attrs).forEach((attrKey) => {
-        const attrValue = attrs[attrKey]
-        // arrays are moved to the data object and referenced as dynamic keys (binding)
-        if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
-          const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
-          dataObject[dataObjectIdentifier] = attrValue.content
-          htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
+        if (isPropEvent) {
+          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, `this.$emit('${statement.calls}')`)
         } else {
-          addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
+          htmlUtils.addAttributeToNode(
+            htmlNode,
+            statement.modifies,
+            statement.newState === '$toggle'
+              ? `${statement.modifies} = !${statement.modifies}`
+              : `${statement.modifies} = ${statement.newState}`
+          )
         }
-      })
-    }
-
-    if (events) {
-      Object.keys(events).forEach((eventKey) => {
-        if (events[eventKey].length === 1) {
-          const statement = events[eventKey][0]
-          const isPropEvent = statement && statement.type === 'propCall' && statement.calls
-
-          if (isPropEvent) {
-            htmlUtils.addAttributeToNode(
-              htmlNode,
-              `@${eventKey}`,
-              `this.$emit('${statement.calls}')`
-            )
-          } else {
-            htmlUtils.addAttributeToNode(
-              htmlNode,
-              statement.modifies,
-              statement.newState === '$toggle'
-                ? `${statement.modifies} = !${statement.modifies}`
-                : `${statement.modifies} = ${statement.newState}`
-            )
-          }
-        } else {
-          const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
-            eventKey
-          )}`
-          methodsObject[methodName] = events[eventKey]
-          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
-        }
-      })
-    }
-
-    if (children) {
-      children.forEach((child) => {
-        const childTag = generateVueNodesTree(child, accumulators)
-
-        if (typeof childTag === 'string') {
-          htmlUtils.addTextNode(htmlNode, childTag)
-        } else {
-          htmlUtils.addChildNode(htmlNode, childTag)
-        }
-      })
-    }
-
-    templateLookup[key] = htmlNode
-    return htmlNode
+      } else {
+        const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
+          eventKey
+        )}`
+        methodsObject[methodName] = events[eventKey]
+        htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+      }
+    })
   }
 
-  if (node.type === 'repeat') {
-    const { dataSource, node: repeatContent, meta = {} } = node.content
-    const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
+  if (children) {
+    children.forEach((child) => {
+      const childTag = generateNodeSyntax(child, accumulators)
 
-    let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
-    if (dataSource.type === 'dynamic') {
-      dataObjectIdentifier = dataSource.content.id
-    } else {
-      dataObject[dataObjectIdentifier] = dataSource.content
-    }
+      if (typeof childTag === 'string') {
+        htmlUtils.addTextNode(htmlNode, childTag)
+      } else {
+        htmlUtils.addChildNode(htmlNode, childTag)
+      }
+    })
+  }
 
-    const iteratorName = meta.iteratorName || 'item'
-    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
-    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+  templateLookup[key] = htmlNode
+  return htmlNode
+}
 
-    htmlUtils.addAttributeToNode(
-      repeatContentTag,
-      'v-for',
-      `${iterator} in ${dataObjectIdentifier}`
+export const generateRepeatNode = (
+  node: UIDLRepeatNode,
+  accumulators: VueComponentAccumulators
+) => {
+  const { dataSource, node: repeatContent, meta = {} } = node.content
+  const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
+
+  let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
+  if (dataSource.type === 'dynamic') {
+    dataObjectIdentifier = dataSource.content.id
+  } else {
+    accumulators.dataObject[dataObjectIdentifier] = dataSource.content
+  }
+
+  const iteratorName = meta.iteratorName || 'item'
+  const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
+  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
+  if (typeof repeatContentTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
     )
-    htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
-    return repeatContentTag
   }
 
-  if (node.type === 'conditional') {
-    const { reference, value } = node.content
-    const conditionalKey = reference.content.id
+  htmlUtils.addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
+  htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+  return repeatContentTag
+}
 
-    // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-    // a 'span' which is the less intrusive of all
+export const generateConditionalNode = (
+  node: UIDLConditionalNode,
+  accumulators: VueComponentAccumulators
+) => {
+  const { reference, value } = node.content
+  const conditionalKey = reference.content.id
 
-    const conditionalTag = generateVueNodesTree(node.content.node, accumulators)
+  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+  // a 'span' which is the less intrusive of all
 
-    const condition: UIDLConditionalExpression = value
-      ? { conditions: [{ operand: value, operation: '===' }] }
-      : node.content.condition
+  const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
 
-    const conditionalStatement = createConditionalStatement(conditionalKey, condition)
-    htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
-    return conditionalTag
+  const condition: UIDLConditionalExpression = value
+    ? { conditions: [{ operand: value, operation: '===' }] }
+    : node.content.condition
+
+  const conditionalStatement = createConditionalStatement(conditionalKey, condition)
+
+  if (typeof conditionalTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
+    )
+  }
+
+  htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
+  return conditionalTag
+}
+
+export const generateNodeSyntax: NodeSyntaxGenerator<
+  VueComponentAccumulators,
+  string | HastNode
+> = (node, accumulators) => {
+  switch (node.type) {
+    case 'static':
+      return node.content.toString()
+
+    case 'dynamic':
+      return `{{${node.content.id}}}`
+
+    case 'element':
+      return generateElementNode(node, accumulators)
+
+    case 'repeat':
+      return generateRepeatNode(node, accumulators)
+
+    case 'conditional':
+      return generateConditionalNode(node, accumulators)
+
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
+      )
   }
 }
 
@@ -300,12 +335,11 @@ const createPropCallStatement = (
 
 // This function decides how to add an attribute based on the attribute type
 // Also arrays are added to the dataObject for better readability
-const addAttributeToNode = (
-  htmlNode: any,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
+const addAttributeToNode: AttributeAssignCodeMod<HastNode> = (
+  htmlNode,
+  attributeKey,
+  attributeValue
 ) => {
-  // TODO review with addAttributeToNode from react
   switch (attributeValue.type) {
     case 'dynamic':
       const {
@@ -325,7 +359,9 @@ const addAttributeToNode = (
       return
     default:
       throw new Error(
-        `Could not generate code for assignment of type ${JSON.stringify(attributeValue)}`
+        `${ERROR_LOG_NAME} addAttributeToNode could not generate code for assignment of type ${JSON.stringify(
+          attributeValue
+        )}`
       )
   }
 }

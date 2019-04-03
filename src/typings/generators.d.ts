@@ -309,3 +309,26 @@ interface PackageJSON {
   dependencies?: Record<string, string>
   [key: string]: any
 }
+
+/**
+ * Function used to alter the generic generatedEntity by adding a attribute
+ * named attributeKey with attributeValue data. This type of function is meant
+ * to be used in generators that support attribute values on their presentation
+ * nodes.
+ *
+ * For example, a <div/> in HAST could get a new attribute tab-index with value 0
+ * with a function like this.
+ */
+type AttributeAssignCodeMod<T> = (
+  generatedEntity: T,
+  attributeKey: string,
+  attributeValue: UIDLAttributeValue
+) => void
+
+/**
+ * Function used to generate a presentation structure.
+ */
+type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
+  node: UIDLNode,
+  accumulators: Accumulators
+) => ReturnValues
