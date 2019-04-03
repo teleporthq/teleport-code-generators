@@ -12,6 +12,8 @@ import {
 
 import { capitalize } from '../../shared/utils/string-utils'
 
+import { ERROR_LOG_NAME } from '.'
+
 interface ReactComponentAccumulators {
   propDefinitions: Record<string, UIDLPropDefinition>
   stateIdentifiers: Record<string, StateIdentifier>
@@ -77,7 +79,7 @@ export const generateRepeatNode = (
 
   if (typeof contentAST === 'string' || (contentAST as types.JSXExpressionContainer).expression) {
     throw new Error(
-      `react-component generateRepeatNode found a repeat node that specified invalid content ${JSON.stringify(
+      `${ERROR_LOG_NAME} generateRepeatNode found a repeat node that specified invalid content ${JSON.stringify(
         contentAST,
         null,
         2
@@ -132,7 +134,7 @@ export const generateNodeSyntax = (
       break
     default:
       throw new Error(
-        `react-base-component generateTreeStructure encountered a node of unsupported type: ${JSON.stringify(
+        `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
           node,
           null,
           2

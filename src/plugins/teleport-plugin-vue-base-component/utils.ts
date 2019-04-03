@@ -4,114 +4,145 @@ import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
-export const generateVueNodesTree = (
-  node: UIDLNode,
-  accumulators: {
-    templateLookup: Record<string, any>
-    dependencies: Record<string, ComponentDependency>
-    dataObject: Record<string, any>
-    methodsObject: Record<string, EventHandlerStatement[]>
-  }
+import { ERROR_LOG_NAME } from '.'
+
+// TODO consider building a common generic template for generateNodeSyntax
+// which is shared between all base component generators
+interface VueComponentAccumulators {
+  templateLookup: Record<string, any>
+  dependencies: Record<string, ComponentDependency>
+  dataObject: Record<string, any>
+  methodsObject: Record<string, EventHandlerStatement[]>
+}
+
+export const generateElementNode = (
+  node: UIDLElementNode,
+  accumulators: VueComponentAccumulators
 ) => {
-  const { templateLookup, dependencies, dataObject, methodsObject } = accumulators
+  const { dependencies, dataObject, methodsObject, templateLookup } = accumulators
+  const { elementType, name, key, children, attrs, dependency, events } = node.content
+  const htmlNode = htmlUtils.createHTMLNode(elementType)
 
-  if (node.type === 'static') {
-    return node.content.toString()
+  if (dependency) {
+    dependencies[elementType] = { ...dependency }
   }
 
-  if (node.type === 'dynamic') {
-    return `{{${node.content.id}}}`
+  if (attrs) {
+    Object.keys(attrs).forEach((attrKey) => {
+      const attrValue = attrs[attrKey]
+      // arrays are moved to the data object and referenced as dynamic keys (binding)
+      if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
+        const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
+        dataObject[dataObjectIdentifier] = attrValue.content
+        htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
+      } else {
+        addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
+      }
+    })
   }
 
-  if (node.type === 'element') {
-    const { elementType, name, key, children, attrs, dependency, events } = node.content
-    const htmlNode = htmlUtils.createHTMLNode(elementType)
+  if (events) {
+    Object.keys(events).forEach((eventKey) => {
+      const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(eventKey)}`
+      methodsObject[methodName] = events[eventKey]
+      htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+    })
+  }
 
-    if (dependency) {
-      dependencies[elementType] = { ...dependency }
-    }
+  if (children) {
+    children.forEach((child) => {
+      const childTag = generateNodeSyntax(child, accumulators)
 
-    if (attrs) {
-      Object.keys(attrs).forEach((attrKey) => {
-        const attrValue = attrs[attrKey]
-        // arrays are moved to the data object and referenced as dynamic keys (binding)
-        if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
-          const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
-          dataObject[dataObjectIdentifier] = attrValue.content
-          htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
-        } else {
-          addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
-        }
-      })
-    }
+      if (typeof childTag === 'string') {
+        htmlUtils.addTextNode(htmlNode, childTag)
+      } else {
+        htmlUtils.addChildNode(htmlNode, childTag)
+      }
+    })
+  }
 
-    if (events) {
-      Object.keys(events).forEach((eventKey) => {
-        const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
-          eventKey
+  templateLookup[key] = htmlNode
+  return htmlNode
+}
+
+export const generateRepeatNode = (
+  node: UIDLRepeatNode,
+  accumulators: VueComponentAccumulators
+) => {
+  const { dataSource, node: repeatContent, meta = {} } = node.content
+  const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
+
+  let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
+  if (dataSource.type === 'dynamic') {
+    dataObjectIdentifier = dataSource.content.id
+  } else {
+    accumulators.dataObject[dataObjectIdentifier] = dataSource.content
+  }
+
+  const iteratorName = meta.iteratorName || 'item'
+  const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
+  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
+  htmlUtils.addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
+  htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+  return repeatContentTag
+}
+
+export const generateConditionalNode = (
+  node: UIDLConditionalNode,
+  accumulators: VueComponentAccumulators
+) => {
+  const { reference, value } = node.content
+  const conditionalKey = reference.content.id
+
+  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+  // a 'span' which is the less intrusive of all
+
+  const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
+
+  const condition: UIDLConditionalExpression = value
+    ? { conditions: [{ operand: value, operation: '===' }] }
+    : node.content.condition
+
+  const conditionalStatement = createConditionalStatement(conditionalKey, condition)
+  htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
+  return conditionalTag
+}
+
+export const generateNodeSyntax = (node: UIDLNode, accumulators: VueComponentAccumulators) => {
+  let result: string | HastNode
+  switch (node.type) {
+    case 'static':
+      result = node.content.toString()
+      break
+
+    case 'dynamic':
+      result = `{{${node.content.id}}}`
+      break
+
+    case 'element':
+      result = generateElementNode(node, accumulators)
+      break
+
+    case 'repeat':
+      result = generateRepeatNode(node, accumulators)
+      break
+
+    case 'conditional':
+      result = generateConditionalNode(node, accumulators)
+      break
+
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
+          node,
+          null,
+          2
         )}`
-        methodsObject[methodName] = events[eventKey]
-        htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
-      })
-    }
-
-    if (children) {
-      children.forEach((child) => {
-        const childTag = generateVueNodesTree(child, accumulators)
-
-        if (typeof childTag === 'string') {
-          htmlUtils.addTextNode(htmlNode, childTag)
-        } else {
-          htmlUtils.addChildNode(htmlNode, childTag)
-        }
-      })
-    }
-
-    templateLookup[key] = htmlNode
-    return htmlNode
+      )
   }
 
-  if (node.type === 'repeat') {
-    const { dataSource, node: repeatContent, meta = {} } = node.content
-    const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
-
-    let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
-    if (dataSource.type === 'dynamic') {
-      dataObjectIdentifier = dataSource.content.id
-    } else {
-      dataObject[dataObjectIdentifier] = dataSource.content
-    }
-
-    const iteratorName = meta.iteratorName || 'item'
-    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
-    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
-
-    htmlUtils.addAttributeToNode(
-      repeatContentTag,
-      'v-for',
-      `${iterator} in ${dataObjectIdentifier}`
-    )
-    htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
-    return repeatContentTag
-  }
-
-  if (node.type === 'conditional') {
-    const { reference, value } = node.content
-    const conditionalKey = reference.content.id
-
-    // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-    // a 'span' which is the less intrusive of all
-
-    const conditionalTag = generateVueNodesTree(node.content.node, accumulators)
-
-    const condition: UIDLConditionalExpression = value
-      ? { conditions: [{ operand: value, operation: '===' }] }
-      : node.content.condition
-
-    const conditionalStatement = createConditionalStatement(conditionalKey, condition)
-    htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
-    return conditionalTag
-  }
+  return result
 }
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {

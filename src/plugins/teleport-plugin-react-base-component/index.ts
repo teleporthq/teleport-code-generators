@@ -8,6 +8,8 @@ interface JSXConfig {
   importChunkName: string
 }
 
+export const ERROR_LOG_NAME = `react-base-component`
+
 export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const {
     componentChunkName = 'react-component',
