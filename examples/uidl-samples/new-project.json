@@ -105,6 +105,15 @@
                     {
                       "type": "static",
                       "content": "Page 3"
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "OneComponent",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
                     }
                   ]
                 }
