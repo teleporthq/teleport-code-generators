@@ -1,10 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/project.json",
-  "name": "Teleport Project",
   "globals": {
     "settings": {
-      "language": "en",
-      "title": "teleportHQ"
+      "language": 1,
+      "title": "teleportHQ",
+      "key": "test"
     },
     "meta" : [
       { "name": "description", "content": "Free Web tutorials" },
@@ -38,7 +38,7 @@
         }
       }, 
       {
-        "type": "script",
+        "type": "scripts",
         "path": "https://www.googletagmanager.com/gtm.js",
         "meta": {
           "defer": true
@@ -105,38 +105,23 @@
                 "type": "video",
                 "name": "video",
                 "attrs": {
-                  "autoPlay": {
-                    "type": "static",
-                    "content": true
-                  }
+                  "autoPlay": true
                 },
                 "children": [
                   {
                     "type": "source",
                     "name": "mp4-source",
                     "attrs": {
-                      "type": {
-                        "type": "static",
-                        "content": "video/mp4"
-                      },
-                      "url": {
-                        "type": "static",
-                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
-                      }
+                      "type": "video/mp4",
+                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
                     }
                   },
                   {
                     "type": "source",
                     "name": "webm-source",
                     "attrs": {
-                      "type": {
-                        "type": "static",
-                        "content": "video/webm"
-                      },
-                      "url": {
-                        "type": "static",
-                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
-                      }
+                      "type": "video/webm",
+                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.webm"
                     }
                   }
                 ]
@@ -152,8 +137,8 @@
                     "type": "ExpandableArea",
                     "name": "area1",
                     "attrs": {
-                      "title": {"type": "static", "content": "First" },
-                      "text": {"type": "static", "content": "Text" }
+                      "title": "First",
+                      "text": "Text"
                     },
                     "dependency": {
                       "type": "local"
@@ -163,8 +148,8 @@
                     "type": "ExpandableArea",
                     "name": "area2",
                     "attrs": {
-                      "title": {"type": "static", "content": "Second" },
-                      "text": {"type": "static", "content": "Text" }
+                      "title": "Second",
+                      "text": "Text"
                     },
                     "dependency": {
                       "type": "local"
@@ -174,8 +159,8 @@
                     "type": "ExpandableArea",
                     "name": "area3",
                     "attrs": {
-                      "title": {"type": "static", "content": "Third" },
-                      "text": {"type": "static", "content": "Text" }
+                      "title": "Third",
+                      "text": "Text"
                     },
                     "dependency": {
                       "type": "local"
@@ -229,15 +214,15 @@
                     "type": "dropdown",
                     "name": "dropdown",
                     "attrs": {
-                      "options": { "type": "static", "content": ["angular", "react", "vue"] },
-                      "defaultValue": {"type":"static", "content": "react"}
+                      "options": ["angular", "react", "vue"],
+                      "defaultValue": "react"
                     }
                   },
                   {
                     "type": "list",
                     "name": "list",
                     "attrs": {
-                      "items": { "type": "static", "content": ["angular", "react", "vue"] }
+                      "items": ["angular", "react", "vue"]
                     }
                   }
                 ]
@@ -254,10 +239,7 @@
                     "type": "Cards",
                     "name": "cards",
                     "attrs": {
-                      "array": {
-                        "type": "static",
-                        "content": [1,2,3]
-                      }
+                      "items": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
                     },
                     "dependency": {
                       "type": "local"
@@ -277,8 +259,8 @@
                     "type": "form",
                     "name": "form",
                     "attrs": {
-                      "type": { "type":"static", "content": "GET"},
-                      "url": { "type":"static", "content": "/"}
+                      "type": "GET",
+                      "url": "/"
                     },
                     "children": [
                       {
@@ -294,7 +276,7 @@
                             "type": "textinput",
                             "name": "email-input",
                             "attrs": {
-                              "name": { "type":"static", "content": "email"}
+                              "name": "email"
                             }
                           }
                         ]
@@ -312,10 +294,18 @@
                             "type": "passwordinput",
                             "name": "pass-input",
                             "attrs": {
-                              "name": {"type":"static", "content": "pass" }
+                              "name": "pass"
                             }
                           }
                         ]
+                      },
+                      {
+                        "type": "datepicker",
+                        "dependency": {
+                          "type": "package",
+                          "path": "react-datepicker",
+                          "version": "1.0.0"
+                        }
                       },
                       {
                         "type": "button",
@@ -372,7 +362,12 @@
                   "content": "Collapse"
                 },
                 {
-                  "value": false,
+                  "value": {
+                    "matchingCriteria": "any",
+                    "conditions": [{
+                      "operation": "!"
+                    }]
+                  },
                   "content": "Expand"
                 }
               ]
@@ -526,14 +521,34 @@
                   "children": ["This is the first tab"]
                 }
               },{
-                "value": 1,
+                "value": {
+                  "matchingCriteria": "any",
+                  "conditions": [{
+                    "operand": 3,
+                    "operation": "==="
+                  }]
+                },
                 "content": {
                   "type": "text",
                   "name": "text2",
                   "children": ["This is the second tab"]
                 }
               },{
-                "value": 2,
+                "value": {
+                  "matchingCriteria": "any",
+                  "conditions": [{
+                    "operand": 3,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 4,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 5,
+                    "operation": ">="
+                  }]
+                },
                 "content": {
                   "type": "text",
                   "name": "text3",
@@ -544,6 +559,14 @@
                   "matchingCriteria": "all",
                   "conditions": [{
                     "operand": 3,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 4,
+                    "operation": ">="
+                  },
+                  {
+                    "operand": 5,
                     "operation": ">="
                   }]
                 },
@@ -667,7 +690,7 @@
       "propDefinitions": {
         "items": {
           "type": "array",
-          "defaultValue": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
+          "defaultValue": []
         }
       },
       "content": {
@@ -697,13 +720,7 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "test": {
-                  "type": "dynamic",
-                  "content": {
-                    "referenceType": "local",
-                    "id":"index" 
-                  }
-                }
+                "test": "$local.index"
               },
               "children": ["$local.item"],
               "dependency": {
@@ -711,13 +728,7 @@
               }
             }]
           },
-          "dataSource": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "items"
-            }
-          },
+          "dataSource": "$props.items",
           "meta": {
             "useIndex": true
           }

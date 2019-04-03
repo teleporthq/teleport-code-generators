@@ -122,6 +122,10 @@
         "message": {
           "type": "string",
           "defaultValue": ""
+        },
+        "items": {
+          "type": "array",
+          "defaultValue": ["Hello", "is it me", "you're", "looking", "for?"]
         }
       },
       "content": {
@@ -147,7 +151,13 @@
           {
             "type": "list",
             "attrs": {
-              "items": ["Hello", "is it me", "you're", "looking", "for?"]
+              "items": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "items"
+                }
+              }
             }
           }
         ]
@@ -207,7 +217,13 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "test": "$local.index"
+                "test": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "local",
+                    "id":"index" 
+                  }
+                }
               },
               "children": ["$local.item"],
               "dependency": {

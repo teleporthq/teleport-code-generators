@@ -1,5 +1,5 @@
 import * as t from '@babel/types'
-import { extractPageMetadata } from '../../shared/utils/uidl-utils'
+import { extractPageMetadata, extractRoutes } from '../../shared/utils/uidl-utils'
 
 interface VueRouterConfig {
   codeChunkName: string
@@ -25,13 +25,12 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       t.callExpression(t.identifier('Vue.use'), [t.identifier('Router')])
     )
 
-    const { stateDefinitions = {} } = uidl
-    const { states: pages = [] } = uidl.content
-    const { router: routerDefinitions } = stateDefinitions
+    const routes = extractRoutes(uidl)
+    const routeDefinitions = uidl.stateDefinitions.route
 
-    const routesAST = pages.map((page) => {
-      const pageKey = page.value as string
-      const { fileName, componentName, path } = extractPageMetadata(routerDefinitions, pageKey)
+    const routesAST = routes.map((routeNode) => {
+      const pageKey = routeNode.content.value.toString()
+      const { fileName, componentName, path } = extractPageMetadata(routeDefinitions, pageKey)
 
       dependencies[componentName] = { type: 'local', path: `./views/${fileName}` }
 

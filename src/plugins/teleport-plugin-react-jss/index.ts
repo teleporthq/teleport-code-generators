@@ -9,7 +9,7 @@ import {
 import { makeJSSDefaultExport } from './utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { traverseNodes, transformDynamicStyles } from '../../shared/utils/uidl-utils'
+import { transformDynamicStyles, traverseElements } from '../../shared/utils/uidl-utils'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -30,7 +30,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
   const reactJSSComponentStyleChunksPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
-    const { content } = uidl
+    const { node } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -40,8 +40,8 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap = {}
 
-    traverseNodes(content, (node) => {
-      const { style, key } = node
+    traverseElements(node, (element) => {
+      const { style, key } = element
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
@@ -51,10 +51,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
             new ParsedASTNode(
               t.arrowFunctionExpression(
                 [t.identifier('props')],
-                t.memberExpression(
-                  t.identifier('props'),
-                  t.identifier(styleValue.replace('$props.', ''))
-                )
+                t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
               )
             )
         )

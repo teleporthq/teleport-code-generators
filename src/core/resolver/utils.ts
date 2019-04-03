@@ -1,13 +1,13 @@
 import {
   prefixPlaygroundAssetsURL,
-  cloneElement,
+  traverseElements,
   traverseNodes,
 } from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
-type ContentNodesLookup = Record<string, { count: number; nextKey: string }>
+type ElementsLookup = Record<string, { count: number; nextKey: string }>
 
 export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
   if (!newMapping) {
@@ -20,80 +20,94 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
   }
 }
 
-export const resolveContentNode = (
-  content: ContentNode,
-  mapping: Mapping,
-  localDependenciesPrefix: string,
-  assetsPrefix?: string
-) => {
-  const { events: eventsMapping, elements: elementsMapping } = mapping
-  traverseNodes(content, (node) => {
-    const mappedElement = elementsMapping[node.type] || { type: node.type }
-
-    // Setting up the name of the node based on the type, if it is not supplied
-    node.name = node.name || node.type
-
-    // Mapping the type according to the elements mapping
-    node.type = mappedElement.type
-
-    // If the mapping contains children, insert that structure into the UIDL
-    if (mappedElement.children) {
-      const originalNodeChildren = node.children || []
-      node.children = cloneElement(mappedElement.children)
-      replaceChildrenPlaceholder(node, originalNodeChildren)
+export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
+  traverseNodes(uidlNode, (node, parentNode) => {
+    if (node.type === 'element') {
+      resolveElement(node.content, options)
     }
 
-    // Resolve dependency with the UIDL having priority
-    if (node.dependency || mappedElement.dependency) {
-      node.dependency = resolveDependency(mappedElement, node.dependency, localDependenciesPrefix)
-    }
-
-    // Resolve assets prefix inside style (ex: background-image)
-    if (node.style && assetsPrefix) {
-      node.style = prefixAssetURLs(node.style, assetsPrefix)
-    }
-
-    if (node.events && eventsMapping) {
-      node.events = resolveEvents(node.events, eventsMapping)
-    }
-
-    // Prefix the attributes which may point to local assets
-    if (node.attrs && assetsPrefix) {
-      Object.keys(node.attrs).forEach((attrKey) => {
-        if (typeof node.attrs[attrKey] === 'string') {
-          node.attrs[attrKey] = prefixPlaygroundAssetsURL(assetsPrefix, node.attrs[attrKey])
-        }
-      })
-    }
-
-    // Merge UIDL attributes to the attributes coming from the mapping object
-    if (mappedElement.attrs) {
-      node.attrs = mergeAttributes(mappedElement.attrs, node.attrs)
-    }
-
-    // The UIDL has priority over the mapping repeat
-    const repeatStructure = node.repeat || mappedElement.repeat
-    if (repeatStructure) {
-      let dataSource = repeatStructure.dataSource
-
-      // We clone the content in case the content node is coming from the mapping to avoid reference leaking
-      const clonedContent = cloneElement(repeatStructure.content)
-
-      // Data source might be preset on a referenced attribute in the uidl node
-      // ex: attrs[options] in case of a dropdown primitive with select/options
-      if (typeof dataSource === 'string' && dataSource.startsWith('$attrs.') && node.attrs) {
-        const nodeDataSourceAttr = dataSource.replace('$attrs.', '')
-        dataSource = node.attrs[nodeDataSourceAttr]
-        delete node.attrs[nodeDataSourceAttr]
-      }
-
-      node.repeat = {
-        dataSource,
-        content: clonedContent,
-        meta: repeatStructure.meta,
-      }
+    if (node.type === 'repeat') {
+      resolveRepeat(node.content, parentNode)
     }
   })
+}
+
+export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
+  const { mapping, localDependenciesPrefix, assetsPrefix } = options
+  const { events: eventsMapping, elements: elementsMapping } = mapping
+  const originalElement = element
+  const mappedElement = elementsMapping[originalElement.elementType] || {
+    elementType: originalElement.elementType, // identity mapping
+  }
+
+  // Setting up the name of the node based on the type, if it is not supplied
+  originalElement.name = originalElement.name || originalElement.elementType
+
+  // Mapping the type according to the elements mapping
+  originalElement.elementType = mappedElement.elementType
+
+  // If the mapping contains children, insert that structure into the UIDL
+  // if (mappedElement.children) {
+  //   const originalNodeChildren = originalElement.children || []
+  //   node.children = cloneElement(mappedElement.children)
+  //   replaceChildrenPlaceholder(node, originalNodeChildren)
+  // }
+
+  // Resolve dependency with the UIDL having priority
+  if (originalElement.dependency || mappedElement.dependency) {
+    originalElement.dependency = resolveDependency(
+      mappedElement,
+      originalElement.dependency,
+      localDependenciesPrefix
+    )
+  }
+
+  // Resolve assets prefix inside style (ex: background-image)
+  if (originalElement.style && assetsPrefix) {
+    originalElement.style = prefixAssetURLs(originalElement.style, assetsPrefix)
+  }
+
+  // Map events separately
+  if (originalElement.events && eventsMapping) {
+    originalElement.events = resolveEvents(originalElement.events, eventsMapping)
+  }
+
+  // Prefix the attributes which may point to local assets
+  if (originalElement.attrs && assetsPrefix) {
+    Object.keys(originalElement.attrs).forEach((attrKey) => {
+      const attrValue = originalElement.attrs[attrKey]
+      if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
+        originalElement.attrs[attrKey].content = prefixPlaygroundAssetsURL(
+          assetsPrefix,
+          attrValue.content
+        )
+      }
+    })
+  }
+
+  // Merge UIDL attributes to the attributes coming from the mapping object
+  if (mappedElement.attrs) {
+    originalElement.attrs = mergeAttributes(mappedElement.attrs, originalElement.attrs)
+  }
+
+  if (mappedElement.children) {
+    const originalChildren = originalElement.children || []
+    originalElement.children = [...originalChildren, ...mappedElement.children]
+  }
+}
+
+const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) => {
+  const { dataSource } = repeatContent
+  if (dataSource.type === 'dynamic' && dataSource.content.referenceType === 'attr') {
+    const nodeDataSourceAttr = dataSource.content.id
+    const parentElement = parentNode.type === 'element' ? parentNode.content : null
+
+    if (parentElement) {
+      repeatContent.dataSource = parentElement.attrs[nodeDataSourceAttr]
+      // remove original attribute so it doesn't get added as a static/dynamic value on the node
+      delete parentElement.attrs[nodeDataSourceAttr]
+    }
+  }
 }
 
 // Generates an unique key for each node in the UIDL.
@@ -101,23 +115,18 @@ export const resolveContentNode = (
 // it uses an incremental key which is padded with 0, so it can generate things like:
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
-export const generateUniqueKeys = (content: ContentNode, nodesLookup: ContentNodesLookup) => {
-  traverseNodes(content, (node) => {
-    // skip generating keys for the state nodes
-    if (node.type === 'state') {
-      return
-    }
-
+export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
+  traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
-    const nodeOcurrence = nodesLookup[node.name]
+    const nodeOcurrence = lookup[element.name]
 
     if (nodeOcurrence.count === 1) {
       // If the name ocurrence is unique we use it as it is
-      node.key = node.name
+      element.key = element.name
     } else {
       const currentKey = nodeOcurrence.nextKey
-      node.key = generateKey(node.name, currentKey)
+      element.key = generateKey(element.name, currentKey)
       nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
     }
   })
@@ -138,27 +147,22 @@ const generateNextIncrementalKey = (currentKey: string): string => {
   return returnValue
 }
 
-export const createNodesLookup = (content: ContentNode, lookup: ContentNodesLookup) => {
-  traverseNodes(content, (node) => {
-    // we don't add state names in the lookup
-    if (node.type === 'state') {
-      return
-    }
-
-    const nodeName = node.name
-    if (!lookup[nodeName]) {
-      lookup[nodeName] = {
+export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
+  traverseElements(node, (element) => {
+    const elementName = element.name
+    if (!lookup[elementName]) {
+      lookup[elementName] = {
         count: 0,
         nextKey: '0',
       }
     }
 
-    lookup[nodeName].count++
-    const newCount = lookup[nodeName].count
+    lookup[elementName].count++
+    const newCount = lookup[elementName].count
     if (newCount > 9 && isPowerOfTen(newCount)) {
       // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
       // nextKey will start either from: '0', '00', '000', etc.
-      lookup[nodeName].nextKey = '0' + lookup[nodeName].nextKey
+      lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
     }
   })
 }
@@ -176,41 +180,58 @@ const isPowerOfTen = (value: number) => {
  * @param style the style object on the current node
  * @param assetsPrefix a string representing the asset prefix
  */
-const prefixAssetURLs = (style: StyleDefinitions, assetsPrefix: string): StyleDefinitions => {
+const prefixAssetURLs = (
+  style: UIDLStyleDefinitions,
+  assetsPrefix: string
+): UIDLStyleDefinitions => {
   // iterate through all the style keys
   return Object.keys(style).reduce((acc, styleKey) => {
     const styleValue = style[styleKey]
 
-    // when objects are encountered, go recursively (ex: media queries, hover)
-    if (typeof styleValue === 'object') {
-      acc[styleKey] = prefixAssetURLs(styleValue, assetsPrefix)
-      return acc
-    }
+    switch (styleValue.type) {
+      case 'dynamic':
+        // dynamicStyles[styleKey] = styleValue
+        return acc
+      case 'static':
+        const staticContent = styleValue.content
+        if (typeof staticContent === 'number') {
+          acc[styleKey] = styleValue
+          return acc
+        }
 
-    // number values are ignored
-    if (typeof styleValue === 'number') {
-      acc[styleKey] = styleValue
-      return acc
-    }
-
-    // only whitelisted style properties are checked
-    if (STYLE_PROPERTIES_WITH_URL.includes(styleKey) && styleValue.includes(ASSETS_IDENTIFIER)) {
-      // split the string at the beginning of the ASSETS_IDENTIFIER string
-      const startIndex = styleValue.indexOf(ASSETS_IDENTIFIER)
-      acc[styleKey] =
-        styleValue.slice(0, startIndex) +
-        prefixPlaygroundAssetsURL(assetsPrefix, styleValue.slice(startIndex, styleValue.length))
-    } else {
-      acc[styleKey] = styleValue
+        if (
+          typeof staticContent === 'string' &&
+          STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
+          staticContent.includes(ASSETS_IDENTIFIER)
+        ) {
+          // split the string at the beginning of the ASSETS_IDENTIFIER string
+          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER)
+          acc[styleKey] =
+            staticContent.slice(0, startIndex) +
+            prefixPlaygroundAssetsURL(
+              assetsPrefix,
+              staticContent.slice(startIndex, staticContent.length)
+            )
+        } else {
+          acc[styleKey] = styleValue
+        }
+        return acc
+      case 'nested-style':
+        acc[styleKey] = styleValue
+        acc[styleKey].content = prefixAssetURLs(styleValue.content, assetsPrefix)
+        return acc
     }
 
     return acc
   }, {})
 }
 
-const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<string, any>) => {
+const mergeAttributes = (
+  mappedAttrs: Record<string, UIDLAttributeValue>,
+  uidlAttrs: Record<string, UIDLAttributeValue>
+) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
-  const resolvedAttrs: Record<string, any> = {}
+  const resolvedAttrs: Record<string, UIDLAttributeValue> = {}
 
   // This will gather all the attributes from the UIDL which are mapped using the elements-mapping
   // These attributes will not be added on the tag as they are, but using the elements-mapping
@@ -219,21 +240,20 @@ const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<str
 
   // First we iterate through the mapping attributes and we add them to the result
   Object.keys(mappedAttrs).forEach((key) => {
-    const value = mappedAttrs[key]
-    if (!value) {
+    const attrValue = mappedAttrs[key]
+    if (!attrValue) {
       return
     }
 
-    if (typeof value === 'string' && value.startsWith('$attrs.')) {
+    if (attrValue.type === 'dynamic' && attrValue.content.referenceType === 'attr') {
       // we lookup for the attributes in the UIDL and use the element-mapping key to set them on the tag
-      // (ex: Link has an url attribute in the UIDL, but it needs to be mapped to href in the case of HTML)
-      const uidlAttributeKey = value.replace('$attrs.', '')
+      // ex: Link has an 'url' attribute in the UIDL, but it needs to be mapped to 'href' in the case of HTML
+      const uidlAttributeKey = attrValue.content.id
       if (uidlAttrs && uidlAttrs[uidlAttributeKey]) {
         resolvedAttrs[key] = uidlAttrs[uidlAttributeKey]
         mappedAttributes.push(uidlAttributeKey)
       }
 
-      // in the case of mapped reference attributes ($attrs) we don't write them unless they are specified in the uidl
       return
     }
 
@@ -243,7 +263,7 @@ const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<str
   // The UIDL attributes can override the mapped attributes, so they come last
   if (uidlAttrs) {
     Object.keys(uidlAttrs).forEach((key) => {
-      // Skip the attributes that were mapped from $attrs
+      // Skip the attributes that were mapped as referenceType = 'attr'
       if (!mappedAttributes.includes(key)) {
         resolvedAttrs[key] = uidlAttrs[key]
       }
@@ -254,7 +274,7 @@ const mergeAttributes = (mappedAttrs: Record<string, any>, uidlAttrs: Record<str
 }
 
 const resolveDependency = (
-  mappedElement: ElementMapping,
+  mappedElement: UIDLElement,
   uidlDependency?: ComponentDependency,
   localDependenciesPrefix = './'
 ) => {
@@ -263,7 +283,7 @@ const resolveDependency = (
   if (nodeDependency && nodeDependency.type === 'local') {
     // When a dependency is specified without a path, we infer it is a local import.
     // This might be removed at a later point
-    nodeDependency.path = nodeDependency.path || localDependenciesPrefix + mappedElement.type
+    nodeDependency.path = nodeDependency.path || localDependenciesPrefix + mappedElement.elementType
   }
 
   return nodeDependency
@@ -271,34 +291,34 @@ const resolveDependency = (
 
 // Traverses the content node tree and replaces the $children placeholder with
 // the original children of the node being mapped
-const replaceChildrenPlaceholder = (
-  node: ContentNode,
-  originalChildren: Array<ContentNode | string>
-) => {
-  if (!node.children) {
-    return
-  }
+// const replaceChildrenPlaceholder = (
+//   node: ContentNode,
+//   originalChildren: Array<ContentNode | string>
+// ) => {
+//   if (!node.children) {
+//     return
+//   }
 
-  const initialValue: Array<ContentNode | string> = []
-  node.children = node.children.reduce((acc, child) => {
-    if (typeof child === 'string') {
-      if (child === '$children') {
-        // When $children is encountered it is replaced by all the children of the original node from the UIDL
-        acc.push(...originalChildren)
-        return acc
-      }
+//   const initialValue: Array<ContentNode | string> = []
+//   node.children = node.children.reduce((acc, child) => {
+//     if (typeof child === 'string') {
+//       if (child === '$children') {
+//         // When $children is encountered it is replaced by all the children of the original node from the UIDL
+//         acc.push(...originalChildren)
+//         return acc
+//       }
 
-      // String nodes are just pushed the way they are
-      acc.push(child)
-      return acc
-    }
+//       // String nodes are just pushed the way they are
+//       acc.push(child)
+//       return acc
+//     }
 
-    // The child node is pushed after the $children token was replaced
-    replaceChildrenPlaceholder(child, originalChildren)
-    acc.push(child)
-    return acc
-  }, initialValue)
-}
+//     // The child node is pushed after the $children token was replaced
+//     replaceChildrenPlaceholder(child, originalChildren)
+//     acc.push(child)
+//     return acc
+//   }, initialValue)
+// }
 
 const resolveEvents = (events: EventDefinitions, eventsMapping: Record<string, string>) => {
   const resultedEvents: EventDefinitions = {}

@@ -2,7 +2,7 @@ import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
 // @ts-ignore
-import projectJson from '../../uidl-samples/project-state-components.json'
+import projectJson from '../../uidl-samples/new-project.json'
 
 import { createVueBasicGenerator } from '../../../src'
 
@@ -22,11 +22,15 @@ const writeToDisk = async (
     throw new Error('could not find a package.json in the template folder')
   }
 
-  const { outputFolder } = await generatorFunction(projectUIDL, {
-    sourcePackageJson: packageJson,
-    distPath,
-  })
-  await writeFolder(outputFolder, __dirname)
+  try {
+    const { outputFolder } = await generatorFunction(projectUIDL, {
+      sourcePackageJson: packageJson,
+      distPath,
+    })
+    await writeFolder(outputFolder, __dirname)
+  } catch (error) {
+    throw new Error(error)
+  }
 }
 
 // const runInMemory = async (
@@ -40,7 +44,8 @@ const writeToDisk = async (
 const generator = createVueBasicGenerator()
 
 writeToDisk(
-  projectJson,
+  // @ts-ignore
+  projectJson as ProjectUIDL,
   generator.generateProject,
   path.join(__dirname, 'project-template'),
   'dist'

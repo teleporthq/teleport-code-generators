@@ -18,10 +18,12 @@ import {
   createPackageJSONFile,
   joinGeneratorOutputs,
 } from '../../shared/utils/project-utils'
+import { extractRoutes } from '../../shared/utils/uidl-utils'
+import { Validator } from '../../core'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
-    customMapping: { ...nuxtMapping },
+    mapping: nuxtMapping as Mapping,
   })
 
   if (options.customMapping) {
@@ -32,6 +34,7 @@ const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => 
 }
 
 const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+  const validator = new Validator()
   const vueGenerator = initGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
@@ -39,33 +42,30 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
   }
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Add any custom mappings found in the options
+    // Step 0: Validate project UIDL
+    if (options.skipValidation) {
+      const validationResult = validator.validateProject(uidl)
+      if (!validationResult.valid) {
+        throw new Error(validationResult.errorMsg)
+      }
+    }
+
+    // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       addCustomMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
-
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
+    const routes = extractRoutes(root)
 
     // Step 1: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    const pagePromises = routes.map((routeNode) => {
+      const { value: pageName, node } = routeNode.content
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value as string,
-        content: stateBranch.content as ContentNode,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName.toString(),
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {
@@ -84,7 +84,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       return createPageOutputs(pageParams)
     })
 
-    // Step 2: The components generation process is started
+    // Step 3: The components generation process is started
     const componentPromises = Object.keys(components).map((componentName) => {
       const componentUIDL = components[componentName]
       const componentParams: ComponentFactoryParams = {
@@ -95,18 +95,18 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       return createComponentOutputs(componentParams)
     })
 
-    // Step 3: The process of creating the pages and the components is awaited
+    // Step 4: The process of creating the pages and the components is awaited
     const createdPageFiles = await Promise.all(pagePromises)
     const createdComponentFiles = await Promise.all(componentPromises)
 
-    // Step 4: The generated page and component files are joined
+    // Step 5: The generated page and component files are joined
     const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     const pageFiles = joinedPageFiles.files
 
     const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     const componentFiles = joinedComponentFiles.files
 
-    // Step 5: Global settings are transformed into the manifest file for PWA support
+    // Step 6: Global settings are transformed into the manifest file for PWA support
     const staticFiles: GeneratedFile[] = []
     if (uidl.globals.manifest) {
       const manifestFile = createManifestJSONFile(uidl, ASSETS_PREFIX)
@@ -119,12 +119,13 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       appRootOverride: APP_ROOT_OVERRIDE,
     })
 
+    // Step 7: Join all the external dependencies
     const collectedDependencies = {
       ...joinedPageFiles.dependencies,
       ...joinedComponentFiles.dependencies,
     }
 
-    // Step 6: External dependencies are added to the package.json file from the template project
+    // Step 8: External dependencies are added to the package.json file from the template project
     const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
@@ -132,7 +133,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
 
     const distFiles = [htmlIndexFile, packageFile]
 
-    // Step 7: Build the folder structure
+    // Step 9: Build the folder structure
     const folderStructure = buildFolderStructure(
       {
         pages: pageFiles,

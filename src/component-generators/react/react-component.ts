@@ -40,8 +40,8 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   const validator = new Validator()
 
   const resolver = new Resolver()
-  resolver.addMapping(htmlMapping)
-  resolver.addMapping(reactMapping)
+  resolver.addMapping(htmlMapping as Mapping)
+  resolver.addMapping(reactMapping as Mapping)
   resolver.addMapping(customMapping)
 
   const assemblyLine = new AssemblyLine()
@@ -56,7 +56,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     uidl: ComponentUIDL,
     options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
-    if (!options.skipValidation) {
+    if (options.skipValidation) {
       const validationResult = validator.validateComponent(uidl)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
@@ -84,7 +84,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    resolveElement: resolver.resolveElement.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }

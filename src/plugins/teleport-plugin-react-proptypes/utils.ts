@@ -3,7 +3,7 @@ import { objectToObjectExpression, ParsedASTNode } from '../../shared/utils/ast-
 
 export const buildDefaultPropsAst = (
   componentName: string,
-  propDefinitions: Record<string, PropDefinition>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
   if (!propDefinitions) {
@@ -41,7 +41,7 @@ export const buildDefaultPropsAst = (
 export const buildTypesOfPropsAst = (
   componentName: string,
   propTypesNames: string,
-  propDefinitions: Record<string, PropDefinition>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
   if (!propDefinitions) {
