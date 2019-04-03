@@ -219,7 +219,7 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 export const createConditionalJSXExpression = (
   content: types.JSXElement | types.JSXExpressionContainer | string,
   conditionalExpression: UIDLConditionalExpression,
-  stateIdentifier: StateIdentifier,
+  stateIdentifier: UIDLStateIdentifier,
   t = types
 ) => {
   let contentNode: types.Expression
@@ -263,15 +263,26 @@ export const createConditionalJSXExpression = (
   return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
 }
 
-const createBinaryExpression = (
+export const createBinaryExpression = (
   condition: {
     operation: string
     operand?: string | number | boolean
   },
-  stateIdentifier: StateIdentifier,
+  stateIdentifier: UIDLStateIdentifier,
   t = types
 ) => {
   const { operand, operation } = condition
+
+  if (operation === '===') {
+    if (operand === true) {
+      return t.identifier(stateIdentifier.key)
+    }
+
+    if (operand === false) {
+      return t.unaryExpression('!', t.identifier(stateIdentifier.key))
+    }
+  }
+
   if (operand !== undefined) {
     const stateValueIdentifier = convertValueToLiteral(operand, stateIdentifier.type)
 
