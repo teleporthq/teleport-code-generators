@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/project.json",
-  "name": "Teleport Project",
+  "name": "myVueProject",
   "globals": {
     "settings": {
       "language": "en",
@@ -77,8 +77,8 @@
   "root": {
     "name": "App",
     "stateDefinitions": {
-      "router": {
-        "type": "router",
+      "route": {
+        "type": "string",
         "defaultValue": "index",
         "values": [
           {
@@ -87,681 +87,230 @@
               "path": "/",
               "componentName": "Home"
             }
+          },
+          {
+            "value": "about",
+            "meta": {
+              "path": "/about",
+              "componentName": "About"
+            }
+          },
+          {
+            "value": "contact-us",
+            "meta": {
+              "path": "/here-we-are",
+              "componentName": "Us"
+            }
           }
         ]
       }
     },
-    "content": {
-      "type": "state",
-      "name": "router",
-      "states": [
-        {
-          "value": "index",
-          "content": {
-            "type": "group",
-            "name": "container",
-            "children": [
-              {
-                "type": "video",
-                "name": "video",
-                "attrs": {
-                  "autoPlay": {
-                    "type":"static",
-                    "content": true
-                  }
-                },
-                "children": [
-                  {
-                    "type": "source",
-                    "name": "mp4-source",
-                    "attrs": {
-                      "type": {
-                        "type": "static",
-                        "content": "video/mp4"
-                      },
-                      "url": {
-                        "type": "static",
-                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
-                      }
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "children": [
+                    {
+                      "type": "static",
+                      "content": "Page 1"
                     }
-                  },
-                  {
-                    "type": "source",
-                    "name": "webm-source",
-                    "attrs": {
-                      "type": {
-                        "type": "static",
-                        "content": "video/webm"
-                      },
-                      "url": {
-                        "type": "static",
-                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
-                      }
-                    }
-                  }
-                ]
+                  ]
+                }
               },
-              {
-                "type": "container",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "ExpandableArea",
-                    "name": "area1",
-                    "attrs": {
-                      "title": { "type": "static", "content": "First"},
-                      "text": { "type": "static", "content": "Text"}
-                    },
-                    "dependency": {
-                      "type": "local"
-                    }
-                  },
-                  {
-                    "type": "ExpandableArea",
-                    "name": "area2",
-                    "attrs": {
-                      "title": { "type": "static", "content": "Second"},
-                      "text": { "type": "static", "content": "Text"}
-                    },
-                    "dependency": {
-                      "type": "local"
-                    }
-                  },
-                  {
-                    "type": "ExpandableArea",
-                    "name": "area3",
-                    "attrs": {
-                      "title": { "type": "static", "content": "Third"},
-                      "text": { "type": "static", "content": "Text"}
-                    },
-                    "dependency": {
-                      "type": "local"
-                    }
-                  }
-                ]
-              },
-              {
-                "type": "container",
-                "name": "random-name",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "TabSelector",
-                    "name": "tabs",
-                    "dependency": {
-                      "type": "local"
-                    }
-                  }
-                ]
-              },
-              {
-                "type": "container",
-                "name": "random-name",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "Modal",
-                    "name": "modal",
-                    "dependency": {
-                      "type": "local"
-                    }
-                  }
-                ]
-              },
-              {
-                "type": "container",
-                "name": "lists",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "dropdown",
-                    "name": "dropdown",
-                    "attrs": {
-                      "options": {"type": "static", "content": ["angular", "react", "vue"]},
-                      "defaultValue": {"type":"static", "content": "react"}
-                    }
-                  },
-                  {
-                    "type": "list",
-                    "name": "list",
-                    "attrs": {
-                      "items": {"type": "static", "content": ["angular", "react", "vue"]}
-                    }
-                  }
-                ]
-              },
-              {
-                "type": "container",
-                "name": "cards-container",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "Cards",
-                    "name": "cards",
-                    "dependency": {
-                      "type": "local"
-                    }
-                  }
-                ]
-              },
-              {
-                "type": "container",
-                "name": "form-container",
-                "style": {
-                  "width": { "type": "static", "content": "100%" },
-                  "border": { "type": "static", "content": "1px solid red" }
-                },
-                "children": [
-                  {
-                    "type": "form",
-                    "name": "form",
-                    "attrs": {
-                      "type": { "type":"static", "content": "GET"},
-                      "url": { "type":"static", "content": "/"}
-                    },
-                    "children": [
-                      {
-                        "type": "container",
-                        "name": "email-group",
-                        "children": [
-                          {
-                            "type": "label",
-                            "name": "email-label",
-                            "children": ["Email:"]
-                          },
-                          {
-                            "type": "textinput",
-                            "name": "email-input",
-                            "attrs": {
-                              "name": { "type":"static", "content": "email"}
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "container",
-                        "name": "pass-group",
-                        "children": [
-                          {
-                            "type": "label",
-                            "name": "pass-label",
-                            "children": ["Password:"]
-                          },
-                          {
-                            "type": "passwordinput",
-                            "name": "pass-input",
-                            "attrs": {
-                              "name": {"type":"static", "content": "pass" }
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "datepicker",
-                        "dependency": {
-                          "type": "package",
-                          "path": "react-datepicker",
-                          "version": "1.0.0"
-                        }
-                      },
-                      {
-                        "type": "button",
-                        "name": "submit",
-                        "children": ["Login"]
-                      }
-                    ]
-                  }
-                ]
+              "value": "index",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
               }
-            ]
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "children": [
+                    {
+                      "type": "static",
+                      "content": "Page 2"
+                    }
+                  ]
+                }
+              },
+              "value": "about",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },{
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "children": [
+                    {
+                      "type": "static",
+                      "content": "Page 3"
+                    }
+                  ]
+                }
+              },
+              "value": "contact-us",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
           }
-        }
-      ]
+        ]
+      }
     }
   },
   "components": {
-    "ExpandableArea": {
-      "name": "ExpandableArea",
+    "OneComponent": {
+      "name": "OneComponent",
       "propDefinitions": {
         "title": {
           "type": "string",
           "defaultValue": "Hello"
         },
-        "text": {
-          "type": "string",
-          "defaultValue": "Is it me you're looking for?"
-        }
-      },
-      "stateDefinitions": {
-        "isExpanded": {
-          "type": "boolean",
-          "defaultValue": false
-        }
-      },
-      "content": {
-        "type": "container",
-        "name": "container",
-        "children": [
-          {
-            "type": "text",
-            "name": "title",
-            "children": ["$props.title"]
-          },
-          {
-            "type": "button",
-            "name": "button",
-            "children": [{
-              "type": "state",
-              "name": "isExpanded",
-              "states": [
-                {
-                  "value": true,
-                  "content": "Collapse"
-                },
-                {
-                  "value": {
-                    "matchingCriteria": "any",
-                    "conditions": [{
-                      "operation": "!"
-                    }]
-                  },
-                  "content": "Expand"
-                }
-              ]
-            }],
-            "events": {
-              "click": [
-                {
-                  "type": "stateChange",
-                  "modifies": "isExpanded",
-                  "newState": "$toggle"
-                }
-              ]
-            }
-          },
-          {
-            "type": "state",
-            "name": "isExpanded",
-            "states": [
-              {
-                "value": true,
-                "content": {
-                  "type": "container",
-                  "name": "expanded-area",
-                  "children": ["$props.text"]
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "TabSelector": {
-      "name": "TabSelector",
-      "stateDefinitions": {
-        "activeTab": {
-          "type": "number",
-          "defaultValue": 0
-        }
-      },
-      "content": {
-        "type": "container",
-        "name": "container",
-        "children": [
-          {
-            "type": "container",
-            "name": "tabs",
-            "children": [
-              {
-                "type": "button",
-                "name": "tab1",
-                "children": ["Click"],
-                "style": {
-                  "padding": { "type": "static", "content":  "5px 10px" },
-                  "border": { "type": "static", "content": "1px solid black" }
-                },
-                "events": {
-                  "click": [{
-                    "type": "stateChange",
-                    "modifies": "activeTab",
-                    "newState": 0
-                  }]
-                }
-              },
-              {
-                "type": "button",
-                "name": "tab2",
-                "children": ["any"],
-                "style": {
-                  "padding": { "type": "static", "content":  "5px 10px" },
-                  "border": { "type": "static", "content": "1px solid black" }
-                },
-                "events": {
-                  "click": [{
-                    "type": "stateChange",
-                    "modifies": "activeTab",
-                    "newState": 1
-                  }]
-                }
-              },
-              {
-                "type": "button",
-                "name": "tab3",
-                "children": ["of"],
-                "style": {
-                  "padding": { "type": "static", "content":  "5px 10px" },
-                  "border": { "type": "static", "content": "1px solid black" }
-                },
-                "events": {
-                  "click": [{
-                    "type": "stateChange",
-                    "modifies": "activeTab",
-                    "newState": 2
-                  }]
-                }
-              },
-              {
-                "type": "button",
-                "name": "tab4",
-                "children": ["these"],
-                "style": {
-                  "padding": { "type": "static", "content":  "5px 10px" },
-                  "border": { "type": "static", "content": "1px solid black" }
-                },
-                "events": {
-                  "click": [{
-                    "type": "stateChange",
-                    "modifies": "activeTab",
-                    "newState": 3
-                  }]
-                }
-              }
-            ]
-          },
-          {
-            "type": "container",
-            "name": "text",
-            "style": {
-              "width": { "type":"static", "content": 100 },
-              "height": { "type":"static", "content": 50 },
-              "display": { "type":"static", "content": "flex" },
-              "alignItems": { "type":"static", "content": "flex-start" },
-              "backgroundColor": { "type":"static", "content": "#e4f2f8" },
-              "borderColor": { "type":"static", "content": "#0089be" },
-              "borderWidth": { "type":"static", "content": 0 },
-              "borderStyle": { "type":"static", "content": "solid" },
-              "@media (max-width: 835px)": {
-                "type": "nested-style",
-                "content": {
-                  "width": { "type":"static", "content": 228 },
-                  "height": { "type":"static", "content": 154 }
-                }
-              },
-              "@media (max-width: 640px)": {
-                "type": "nested-style",
-                "content": {
-                  "backgroundColor": { "type":"static", "content": "#e91e63" }
-                }
-              },
-              "@media (max-width: 634px)": {
-                "type": "nested-style",
-                "content": {
-                  "height": { "type":"static", "content": 276 }
-                }
-              }
-            },
-            "children": [
-              "Active tab: ",
-              "$state.activeTab"
-            ]
-          },
-          {
-            "type": "state",
-            "name": "activeTab",
-            "states": [
-              {
-                "value": 0,
-                "content": {
-                  "type": "text",
-                  "name": "text1",
-                  "children": ["This is the first tab"]
-                }
-              },{
-                "value": {
-                  "matchingCriteria": "any",
-                  "conditions": [{
-                    "operand": 3,
-                    "operation": "==="
-                  }]
-                },
-                "content": {
-                  "type": "text",
-                  "name": "text2",
-                  "children": ["This is the second tab"]
-                }
-              },{
-                "value": {
-                  "matchingCriteria": "any",
-                  "conditions": [{
-                    "operand": 3,
-                    "operation": ">="
-                  },
-                  {
-                    "operand": 4,
-                    "operation": ">="
-                  },
-                  {
-                    "operand": 5,
-                    "operation": ">="
-                  }]
-                },
-                "content": {
-                  "type": "text",
-                  "name": "text3",
-                  "children": ["This is the third tab"]
-                }
-              },{
-                "value": {
-                  "matchingCriteria": "all",
-                  "conditions": [{
-                    "operand": 3,
-                    "operation": ">="
-                  },
-                  {
-                    "operand": 4,
-                    "operation": ">="
-                  },
-                  {
-                    "operand": 5,
-                    "operation": ">="
-                  }]
-                },
-                "content": {
-                  "type": "text",
-                  "name": "text4",
-                  "children": ["This is the fourth tab"]
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "Modal": {
-      "name": "Modal",
-      "stateDefinitions": {
-        "isOpen": {
-          "type": "boolean",
-          "defaultValue": false
-        }
-      },
-      "content": {
-        "type": "group",
-        "name": "container",
-        "children": [
-          {
-            "type": "button",
-            "name": "openmodal",
-            "children": ["Show Popup"],
-            "events": {
-              "click": [{
-                "type": "stateChange",
-                "modifies": "isOpen",
-                "newState": true
-              }]
-            }
-          },
-          {
-            "type": "state",
-            "name": "isOpen",
-            "states": [
-              {
-                "value": true,
-                "content": {
-                  "type": "ModalWindow",
-                  "name": "window",
-                  "dependency": {
-                    "type": "local"
-                  },
-                  "events": {
-                    "onClose": [{
-                      "type": "stateChange",
-                      "modifies": "isOpen",
-                      "newState": false
-                    }]
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "ModalWindow": {
-      "name": "ModalWindow",
-      "propDefinitions": {
-        "message": {
-          "type": "string",
-          "defaultValue": "Hello"
-        },
-        "onClose": {
-          "type": "func",
-          "defaultValue": "() => {}"
-        }
-      },
-      "content": {
-        "type": "container",
-        "name": "container",
-        "children": [
-          {
-            "type": "text",
-            "name": "text",
-            "children": ["$props.message"]
-          },
-          {
-            "type": "button",
-            "name": "close",
-            "children": ["Close me"],
-            "events": {
-              "click": [{
-                "type": "propCall",
-                "calls": "onClose"
-              }]
-            }
-          }
-        ]
-      }
-    },
-    "Card": {
-      "name": "Card",
-      "propDefinitions": {
-        "item": {
-          "type": "string",
-          "defaultValue": ""
-        }
-      },
-      "content": {
-        "type": "container",
-        "name": "card",
-        "style": {
-          "margin": { "type": "static", "content": "10px" },
-          "padding": { "type": "static", "content": "10px" },
-          "border": { "type": "static", "content": "1px solid black" }
-        },
-        "children": ["$props.children"]
-      }
-    },
-    "Cards": {
-      "name": "Cards",
-      "propDefinitions": {
         "items": {
           "type": "array",
-          "defaultValue": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
+          "defaultValue": []
         }
       },
-      "content": {
-        "type": "container",
-        "name": "cards-container",
-        "style": {
-          "width": { "type": "static", "content": "100%" },
-          "border": { "type": "static", "content": "1px solid red" },
-          "display": { "type": "static", "content": "flex" }
-        },
-        "children": [{
-          "type": "text",
-          "name": "joker",
-          "children": ["Last"]
-        }],
-        "repeat": {
-          "content": {
-            "type": "container",
-            "name": "card-container",
-            "style": {
-              "margin": { "type": "static", "content": "10px" },
-              "border": { "type": "static", "content": "1px solid black" },
-              "backgroundColor": { "type": "static", "content": "royalblue" },
-              "color": { "type": "static", "content": "white" }
+      "stateDefinitions": {
+        "isVisible": {
+          "type": "boolean",
+          "defaultValue": true
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "attrs": {
+            "data-static-attr": {
+              "type": "static",
+              "content": "test"
             },
-            "children": [{
-              "type": "Card",
-              "name": "card",
-              "attrs": {
-                "test": {
+            "data-dynamic-attr": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "title"
+              }
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Hello World!"
+                  },
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "title"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "repeat",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "text",
+                    "children": [
+                      {
+                        "type": "dynamic",
+                        "content": {
+                          "referenceType": "local",
+                          "id": "item"
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "list",
+                          "attrs": {
+                            "items": {
+                              "type": "static",
+                              "content": ["angular", "react", "vue"]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "dataSource": {
                   "type": "dynamic",
                   "content": {
-                    "referenceType": "local",
-                    "id":"index" 
+                    "referenceType": "prop",
+                    "id": "items"
+                  }
+                },
+                "meta": {
+                  "useIndex": true,
+                  "iteratorName": "item"
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "reference": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "state",
+                    "id": "isVisible"
+                  }
+                },
+                "value": true,
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "text",
+                    "children": [{
+                      "type": "static",
+                      "content": "Now you see me!"
+                    }]
                   }
                 }
-              },
-              "children": ["$local.item"],
-              "dependency": {
-                "type": "local"
               }
-            }]
-          },
-          "dataSource": { 
-            "type": "dynamic",
-            "content": { "referenceType": "prop", "id": "items" }
-          },
-          "meta": {
-            "useIndex": true
-          }
+            }
+          ]
         }
       }
     }

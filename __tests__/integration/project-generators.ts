@@ -1,5 +1,5 @@
 // @ts-ignore
-import projectUIDLJSON from '../fixtures/project-sample-new.json'
+import projectUIDLJSON from '../fixtures/project-sample.json'
 
 import {
   createReactBasicGenerator,

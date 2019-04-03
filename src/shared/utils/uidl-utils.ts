@@ -76,9 +76,11 @@ export const traverseNodes = (
   fn(node, parent)
 
   if (node.type === 'element') {
-    node.content.children.forEach((child) => {
-      traverseNodes(child, fn, node)
-    })
+    if (node.content.children) {
+      node.content.children.forEach((child) => {
+        traverseNodes(child, fn, node)
+      })
+    }
   }
 
   if (node.type === 'repeat') {
@@ -95,9 +97,11 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
   if (node.type === 'element') {
     fn(node.content)
 
-    node.content.children.forEach((child) => {
-      traverseElements(child, fn)
-    })
+    if (node.content.children) {
+      node.content.children.forEach((child) => {
+        traverseElements(child, fn)
+      })
+    }
   }
 
   if (node.type === 'repeat') {
