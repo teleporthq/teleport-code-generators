@@ -263,7 +263,7 @@ export const createConditionalJSXExpression = (
   return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
 }
 
-const createBinaryExpression = (
+export const createBinaryExpression = (
   condition: {
     operation: string
     operand?: string | number | boolean
@@ -272,6 +272,17 @@ const createBinaryExpression = (
   t = types
 ) => {
   const { operand, operation } = condition
+
+  if (operation === '===') {
+    if (operand === true) {
+      return t.identifier(stateIdentifier.key)
+    }
+
+    if (operand === false) {
+      return t.unaryExpression('!', t.identifier(stateIdentifier.key))
+    }
+  }
+
   if (operand !== undefined) {
     const stateValueIdentifier = convertValueToLiteral(operand, stateIdentifier.type)
 
