@@ -35,22 +35,18 @@ export const generateVueNodesTree = (
   if (events) {
     Object.keys(events).forEach((eventKey) => {
       if (events[eventKey].length === 1) {
-        const eventDetails = events[eventKey][0]
-        const isPropEvent = eventDetails && eventDetails.type === 'propCall' && eventDetails.calls
+        const statement = events[eventKey][0]
+        const isPropEvent = statement && statement.type === 'propCall' && statement.calls
 
         if (isPropEvent) {
-          htmlUtils.addAttributeToNode(
-            htmlNode,
-            `@${eventKey}`,
-            `this.$emit('${eventDetails.calls}')`
-          )
+          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, `this.$emit('${statement.calls}')`)
         } else {
           htmlUtils.addAttributeToNode(
             htmlNode,
-            eventDetails.modifies,
-            typeof eventDetails.newState === 'boolean'
-              ? `${eventDetails.modifies} = !${eventDetails.modifies}`
-              : `${eventDetails.modifies} = ${eventDetails.newState}`
+            statement.modifies,
+            statement.newState === '$toggle'
+              ? `${statement.modifies} = !${statement.modifies}`
+              : `${statement.modifies} = ${statement.newState}`
           )
         }
       } else {
