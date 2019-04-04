@@ -11,6 +11,7 @@ interface VueComponentAccumulators {
   dependencies: Record<string, ComponentDependency>
   dataObject: Record<string, any>
   methodsObject: Record<string, EventHandlerStatement[]>
+  stateObject: Record<string, any>
 }
 
 export const generateElementNode = (
@@ -117,26 +118,30 @@ export const generateConditionalNode = (
 ) => {
   const { reference, value } = node.content
   const conditionalKey = reference.content.id
+  if (accumulators.stateObject[conditionalKey]) {
+    // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+    // a 'span' which is the less intrusive of all
 
-  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-  // a 'span' which is the less intrusive of all
+    const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
 
-  const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
+    const condition: UIDLConditionalExpression = value
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : node.content.condition
 
-  const condition: UIDLConditionalExpression = value
-    ? { conditions: [{ operand: value, operation: '===' }] }
-    : node.content.condition
+    const conditionalStatement = createConditionalStatement(conditionalKey, condition)
 
-  const conditionalStatement = createConditionalStatement(conditionalKey, condition)
+    if (typeof conditionalTag === 'string') {
+      throw new Error(
+        `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
+      )
+    }
 
-  if (typeof conditionalTag === 'string') {
-    throw new Error(
-      `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
-    )
+    htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
+    return conditionalTag
+  } else {
+    console.warn(`No state is available with id '${conditionalKey}' Please check your UIDL`)
+    return
   }
-
-  htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
-  return conditionalTag
 }
 
 export const generateNodeSyntax: NodeSyntaxGenerator<

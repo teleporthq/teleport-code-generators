@@ -25,12 +25,16 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const templateLookup: { [key: string]: any } = {}
     const dataObject: Record<string, any> = {}
     const methodsObject: Record<string, any> = {}
+    const stateObject: Record<string, any> = uidl.stateDefinitions
+      ? extractStateObject(uidl.stateDefinitions)
+      : {}
 
     const templateContent = generateNodeSyntax(uidl.node, {
       templateLookup,
       dependencies,
       dataObject,
       methodsObject,
+      stateObject,
     })
 
     chunks.push({
@@ -44,7 +48,6 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
       linkAfter: [],
     })
 
-    const stateObject = uidl.stateDefinitions ? extractStateObject(uidl.stateDefinitions) : {}
     const jsContent = generateVueComponentJS(
       uidl,
       Object.keys(dependencies),
