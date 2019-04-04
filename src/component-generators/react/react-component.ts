@@ -25,7 +25,7 @@ export const enum ReactComponentStylingFlavors {
   CSSModules = 'CSSModules',
 }
 
-interface ReactGeneratorFactoryParams {
+export interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
   customMapping?: Mapping
 }
