@@ -8,6 +8,10 @@ import reactPropTypesPlugin from '../../plugins/teleport-plugin-react-proptypes'
 import reactCSSModulesPlugin from '../../plugins/teleport-plugin-react-css-modules'
 import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
+import { createFile } from '../../shared/utils/project-utils'
+import { sanitizeVariableName } from '../../shared/utils/string-utils'
+import { FILE_TYPE } from '../../shared/constants'
+
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 
@@ -58,17 +62,26 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
         throw new Error(validationResult.errorMsg)
       }
     }
+    const files: GeneratedFile[] = []
+    // For page components, for some frameworks the filename will be the one set in the meta property
+    let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    fileName = sanitizeVariableName(fileName)
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
-    const code = chunksLinker.link(chunks.default)
-    const externalCSS = chunksLinker.link(chunks.cssmodule)
+    const jsCode = chunksLinker.link(chunks.default)
+    const cssCode = chunksLinker.link(chunks.cssmodule)
+
+    files.push(createFile(fileName, FILE_TYPE.JS, jsCode))
+
+    if (cssCode) {
+      files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
+    }
 
     return {
-      code,
-      externalCSS,
-      externalDependencies,
+      files,
+      dependencies: externalDependencies,
     }
   }
 

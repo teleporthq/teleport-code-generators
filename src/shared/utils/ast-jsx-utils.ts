@@ -217,23 +217,32 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 }
 
 export const createConditionalJSXExpression = (
-  content: types.JSXElement | string,
+  content: types.JSXElement | types.JSXExpressionContainer | string,
   conditionalExpression: UIDLConditionalExpression,
-  stateIdentifier: StateIdentifier,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
-  const contentNode = typeof content === 'string' ? t.stringLiteral(content) : content
+  let contentNode: types.Expression
+
+  if (typeof content === 'string') {
+    contentNode = t.stringLiteral(content)
+  } else if ((content as types.JSXExpressionContainer).expression) {
+    contentNode = (content as types.JSXExpressionContainer).expression as types.Expression
+  } else {
+    contentNode = content as types.JSXElement
+  }
 
   let binaryExpression:
     | types.LogicalExpression
     | types.BinaryExpression
     | types.UnaryExpression
     | types.Identifier
+    | types.MemberExpression
 
   // When the stateValue is an object we will compute a logical/binary expression on the left side
   const { conditions, matchingCriteria } = conditionalExpression
   const binaryExpressions = conditions.map((condition) =>
-    createBinaryExpression(condition, stateIdentifier)
+    createBinaryExpression(condition, conditionalIdentifier)
   )
 
   if (binaryExpressions.length === 1) {
@@ -255,27 +264,38 @@ export const createConditionalJSXExpression = (
   return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
 }
 
-const createBinaryExpression = (
+export const createBinaryExpression = (
   condition: {
     operation: string
     operand?: string | number | boolean
   },
-  stateIdentifier: StateIdentifier,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
   const { operand, operation } = condition
-  if (operand !== undefined) {
-    const stateValueIdentifier = convertValueToLiteral(operand, stateIdentifier.type)
+  const identifier = conditionalIdentifier.prefix
+    ? t.memberExpression(
+        t.identifier(conditionalIdentifier.prefix),
+        t.identifier(conditionalIdentifier.key)
+      )
+    : t.identifier(conditionalIdentifier.key)
 
-    return t.binaryExpression(
-      convertToBinaryOperator(operation),
-      t.identifier(stateIdentifier.key),
-      stateValueIdentifier
-    )
+  if (operation === '===') {
+    if (operand === true) {
+      return identifier
+    }
+
+    if (operand === false) {
+      return t.unaryExpression('!', identifier)
+    }
+  }
+
+  if (operand !== undefined) {
+    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
+
+    return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
   } else {
-    return operation
-      ? t.unaryExpression(convertToUnaryOperator(operation), t.identifier(stateIdentifier.key))
-      : t.identifier(stateIdentifier.key)
+    return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
   }
 }
 
