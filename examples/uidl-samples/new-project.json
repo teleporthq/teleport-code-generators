@@ -267,11 +267,11 @@
                 "reference": {
                   "type": "dynamic",
                   "content": {
-                    "referenceType": "state",
-                    "id": "isVisible"
+                    "referenceType": "prop",
+                    "id": "title"
                   }
                 },
-                "value": true,
+                "value": "matching",
                 "node": {
                   "type": "element",
                   "content": {
