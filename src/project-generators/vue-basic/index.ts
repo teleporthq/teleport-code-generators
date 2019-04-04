@@ -15,7 +15,6 @@ import {
   DEFAULT_PACKAGE_JSON,
 } from './constants'
 import vueProjectMapping from './vue-project-mapping.json'
-import { FILE_EXTENSIONS } from '../../shared/constants'
 import { createRouterFile, buildFolderStructure } from './utils'
 import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
@@ -70,7 +69,6 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const pageParams: ComponentFactoryParams = {
         componentGenerator: vueGenerator,
         componentUIDL,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentOptions: {
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
@@ -85,7 +83,6 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: vueGenerator,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
 

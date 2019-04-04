@@ -8,8 +8,8 @@ import {
 } from './html-utils'
 
 import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
-import { slugify, sanitizeVariableName } from './string-utils'
-import { FILE_EXTENSIONS } from '../constants'
+import { slugify } from './string-utils'
+import { FILE_TYPE } from '../constants'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
@@ -129,7 +129,7 @@ export const createHtmlIndexFile = (
     <!DOCTYPE html>
     ${htmlInnerString}`
 
-  return createFile(fileName, FILE_EXTENSIONS.HTML, content)
+  return createFile(fileName, FILE_TYPE.HTML, content)
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values
@@ -155,7 +155,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
     ...{ icons },
   }
 
-  return createFile('manifest', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+  return createFile('manifest', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
 }
 
 export const createPackageJSONFile = (
@@ -176,28 +176,21 @@ export const createPackageJSONFile = (
     },
   }
 
-  return createFile('package', FILE_EXTENSIONS.JSON, JSON.stringify(content, null, 2))
+  return createFile('package', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
 }
 
 export const createPageOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
-  const {
-    componentGenerator,
-    componentUIDL,
-    componentOptions,
-    metadataOptions,
-    componentExtension,
-  } = params
+  const { componentUIDL, metadataOptions } = params
 
-  const files: GeneratedFile[] = []
-  let dependencies: Record<string, string> = {}
   const { name: pageName, node } = componentUIDL
-  const routeDefinitions = componentUIDL.stateDefinitions.route
+  const { route: routeDefinitions } = componentUIDL.stateDefinitions
 
   const { componentName, fileName } = extractPageMetadata(routeDefinitions, pageName, {
     ...metadataOptions,
   })
+
   const pageUIDL: ComponentUIDL = {
     name: componentName,
     node,
@@ -206,56 +199,28 @@ export const createPageOutputs = async (
     },
   }
 
-  try {
-    const compiledPageComponent = await componentGenerator.generateComponent(pageUIDL, {
-      ...componentOptions,
-      // skipValidation: true,
-    })
-    const { externalCSS, externalDependencies, code } = compiledPageComponent
-    dependencies = externalDependencies
-
-    if (externalCSS) {
-      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
-      files.push(cssFile)
-    }
-
-    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
-    const pageFile = createFile(fileName, fileExtension, code)
-    files.push(pageFile)
-  } catch (error) {
-    console.warn(`Error on generating ${componentName} page ${error}`)
-  }
-
-  return { files, dependencies }
+  return createComponentOutputs({ ...params, componentUIDL: pageUIDL })
 }
 
 export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
+  const { componentGenerator, componentUIDL, componentOptions } = params
+
+  let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
-  const files: GeneratedFile[] = []
-  const { componentGenerator, componentUIDL, componentExtension, componentOptions } = params
 
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
       ...componentOptions,
     })
 
-    const { code, externalCSS, externalDependencies } = compiledComponent
-    const fileName = sanitizeVariableName(componentUIDL.name)
-    dependencies = externalDependencies
-
-    if (externalCSS) {
-      const cssFile = createFile(fileName, FILE_EXTENSIONS.CSS, externalCSS)
-      files.push(cssFile)
-    }
-
-    const fileExtension = componentExtension || FILE_EXTENSIONS.JS
-    const componentFile = createFile(fileName, fileExtension, code)
-    files.push(componentFile)
+    files = compiledComponent.files
+    dependencies = compiledComponent.dependencies
   } catch (error) {
     console.warn(`Error on generating ${componentUIDL.name} component ${error}`)
   }
+
   return { files, dependencies }
 }
 
@@ -278,8 +243,8 @@ export const joinGeneratorOutputs = (
   )
 }
 
-export const createFile = (name: string, extension: string, content: string): GeneratedFile => {
-  return { name, extension, content }
+export const createFile = (name: string, fileType: string, content: string): GeneratedFile => {
+  return { name, fileType, content }
 }
 
 export const createFolder = (

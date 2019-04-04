@@ -9,7 +9,6 @@ import {
   APP_ROOT_OVERRIDE,
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
-import { FILE_EXTENSIONS } from '../../shared/constants'
 
 import {
   createPageOutputs,
@@ -76,7 +75,6 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
-        componentExtension: FILE_EXTENSIONS.VUE,
         metadataOptions: {
           usePathAsFileName: true,
           convertDefaultToIndex: true,
@@ -91,7 +89,6 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       const componentUIDL = components[componentName]
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentGenerator: vueGenerator,
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }

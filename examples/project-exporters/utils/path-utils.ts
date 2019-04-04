@@ -135,7 +135,8 @@ export const writeFolder = async (folder: GeneratedFolder, currentPath: string) 
   }
 
   for (const file of files) {
-    const fileName = file.name + file.extension
+    const fileName = `${file.name}.${file.fileType}`
+
     await writeTextFile(folderPath, fileName, file.content)
     console.info('Created file: ', path.join(folderPath, fileName))
   }

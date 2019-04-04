@@ -1,6 +1,6 @@
 import createVueRouterFileGenerator from '../../component-generators/vue/vue-router'
 import { createFile, createFolder } from '../../shared/utils/project-utils'
-import { FILE_EXTENSIONS } from '../../shared/constants'
+import { FILE_TYPE } from '../../shared/constants'
 
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
@@ -17,7 +17,7 @@ export const buildFolderStructure = (
 export const createRouterFile = async (root: ComponentUIDL) => {
   const vueRouterGenerator = createVueRouterFileGenerator()
   const { code, externalDependencies } = await vueRouterGenerator.generateComponent(root)
-  const routerFile = createFile('router', FILE_EXTENSIONS.JS, code)
+  const routerFile = createFile('router', FILE_TYPE.JS, code)
 
   return { routerFile, externalDependencies }
 }

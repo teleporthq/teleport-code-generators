@@ -52,6 +52,16 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    },
+                    "padding": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    }
+                  },
                   "children": [
                     {
                       "type": "static",
@@ -77,6 +87,16 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    },
+                    "padding": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    }
+                  },
                   "children": [
                     {
                       "type": "static",
@@ -101,6 +121,16 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    },
+                    "padding": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    }
+                  },
                   "children": [
                     {
                       "type": "static",
