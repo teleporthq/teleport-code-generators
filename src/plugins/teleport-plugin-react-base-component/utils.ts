@@ -117,7 +117,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return makeDynamicValueExpression(node.content.id)
+      return types.jsxExpressionContainer(makeDynamicValueExpression(node))
 
     case 'element':
       return generateElementNode(node, accumulators)
@@ -334,8 +334,11 @@ const makeRepeatStructureWithMap = (
   )
 }
 
-const makeDynamicValueExpression = (identifier: string, t = types) => {
-  return t.jsxExpressionContainer(t.identifier(identifier))
+const makeDynamicValueExpression = (identifier: UIDLDynamicReference, t = types) => {
+  const prefix = getReactVarNameForDynamicReference(identifier)
+  return prefix === ''
+    ? t.identifier(identifier.content.id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier
@@ -376,11 +379,7 @@ const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
         (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
       )
     case 'dynamic': {
-      const dataSourceIdentifier = dataSource.content.id
-      const prefix = getReactVarNameForDynamicReference(dataSource)
-      return prefix === ''
-        ? t.identifier(dataSourceIdentifier)
-        : t.memberExpression(t.identifier(prefix), t.identifier(dataSourceIdentifier))
+      return makeDynamicValueExpression(dataSource)
     }
     default:
       throw new Error(`Invalid type for dataSource: ${dataSource}`)
