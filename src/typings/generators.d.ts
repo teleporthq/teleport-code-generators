@@ -55,7 +55,7 @@ interface UIDLStateDefinition {
 interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'state' | 'local' | 'attr'
+    referenceType: 'prop' | 'state' | 'local' | 'attr' | 'children'
     id: string
   }
 }

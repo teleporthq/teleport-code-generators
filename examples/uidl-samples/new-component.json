@@ -118,6 +118,34 @@
               }
             }
           }
+        },
+        {
+          "type": "element",
+          "content": {
+            "elementType": "video",
+            "attrs": {
+              "autoPlay": {
+                "type": "static",
+                "content": true
+              }
+            },
+            "children": [{
+              "type": "element",
+              "content": {
+                "elementType": "source",
+                "attrs": {
+                  "type": {
+                    "type": "static",
+                    "content": "video/mp4"
+                  },
+                  "url": {
+                    "type": "static",
+                    "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                  }
+                }
+              }
+            }]
+          }
         }
       ]
     }

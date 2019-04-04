@@ -223,7 +223,7 @@ export const createPageOutputs = async (
     const pageFile = createFile(fileName, fileExtension, code)
     files.push(pageFile)
   } catch (error) {
-    console.warn(`Error on generating ${componentName} page ${error}`)
+    console.warn(`Error on generating "${componentName}" page\n`, error)
   }
 
   return { files, dependencies }
@@ -254,7 +254,7 @@ export const createComponentOutputs = async (
     const componentFile = createFile(fileName, fileExtension, code)
     files.push(componentFile)
   } catch (error) {
-    console.warn(`Error on generating ${componentUIDL.name} component ${error}`)
+    console.warn(`Error on generating "${componentUIDL.name}" component\n`, error)
   }
   return { files, dependencies }
 }

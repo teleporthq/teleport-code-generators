@@ -16,7 +16,7 @@
             "elementType": "a",
             "name": "link",
             "children": [
-              { "type": "dynamic", "content": { "referenceType": "attr-children", "id": "children" } }
+              { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
             ]
           }
         }
