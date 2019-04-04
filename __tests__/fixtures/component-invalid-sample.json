@@ -1,180 +1,126 @@
 {
-    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
-    "name": "TabSelector",
-    "stateDefinitions": {
-      "activeTab": {
-        "type": "number",
-        "defaultValue": 0
-      }
+  "name": "New UIDL",
+  "propDefinitions": {
+    "title": {
+      "type": "string",
+      "defaultValue": "Hello"
     },
-    "propDefinitions": {
-      "test": {
-        "type": "string",
-        "defaultValue": "123"
-      }
-    },
+    "items": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "stateDefinitions": {
+    "isVisible": {
+      "type": "boolean",
+      "defaultValue": true,
+      "test":"test"
+    }
+  },
+  "node": {
+    "type": "element",
     "content": {
-      "type": "container",
-      "key": "string",
+      "elementType": "container",
+      "attrs": {
+        "data-static-attr": {
+          "type": "static",
+          "content": "test"
+        },
+        "data-dynamic-attr": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "title"
+          }
+        }
+      },
       "children": [
         {
-          "type": "container",
-          "attrs": {
-            "data-test": {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "children": [
+              {
+                "type": "static",
+                "content": "Hello World!"
+              },
+              {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "title"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "repeat",
+          "content": {
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "local",
+                      "id": "item"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "list",
+                      "attrs": {
+                        "items": {
+                          "type": "static",
+                          "content": ["angular", "react", "vue"]
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "dataSource": {
               "type": "dynamic",
               "content": {
                 "referenceType": "prop",
-                "id":"test" 
+                "id": "items"
               }
+            },
+            "meta": {
+              "useIndex": true,
+              "iteratorName": "item"
             }
-          },
-          "children": [
-            {
-              "type": "button",
-              "children": ["Click"],
-              "style": {
-                "border": { "type": "static", "content": "1px solid black" },
-                "padding": { "type": "static", "content": "5px 10px"} 
-              },
-              "events": {
-                "onClick": [{
-                  "type": "stateChange",
-                  "modifies": "activeTab",
-                  "newState": 0
-                }]
-              }
-            },
-            {
-              "type": "button",
-              "children": ["any"],
-              "style": {
-                "border": { "type": "static", "content": "1px solid black" },
-                "padding": { "type": "static", "content": "5px 10px"} 
-              },
-              "events": {
-                "onClick": [{
-                  "type": "stateChange",
-                  "modifies": "activeTab",
-                  "newState": 1
-                }]
-              }
-            },
-            {
-              "type": "button",
-              "children": ["of"],
-              "style": {
-                "border": { "type": "static", "content": "1px solid black" },
-                "padding": { "type": "static", "content": "5px 10px"} 
-              },
-              "events": {
-                "onClick": [{
-                  "type": "stateChange",
-                  "modifies": "activeTab",
-                  "newState": 2
-                }]
-              }
-            },
-            {
-              "type": "button",
-              "children": ["these"],
-              "style": {
-                "border": { "type": "static", "content": "1px solid black" },
-                "padding": { "type": "static", "content": "5px 10px"} 
-              },
-              "events": {
-                "onClick": [{
-                  "type": "stateChange",
-                  "modifies": "activeTab",
-                  "newState": 3
-                }]
-              }
-            }
-          ]
+          }
         },
         {
-          "type": "container",
-          "style": {
-            "width": { "type":"static", "content": 100 },
-            "height": { "type":"static", "content": 50 },
-            "display": { "type":"static", "content": "flex" },
-            "alignItems": { "type":"static", "content": "flex-start" },
-            "backgroundColor": { "type":"static", "content": "#e4f2f8" },
-            "borderColor": { "type":"static", "content": "#0089be" },
-            "borderWidth": { "type":"static", "content": 0 },
-            "borderStyle": { "type":"static", "content": "solid" },
-            "@media (max-width: 835px)": {
-              "type": "nested-style",
+          "type": "conditional",
+          "content": {
+            "reference": {
+              "type": "dynamic",
               "content": {
-                "width": { "type":"static", "content": 228 },
-                "height": { "type":"static", "content": 154 }
+                "referenceType": "state",
+                "id": "isVisible"
               }
             },
-            "@media (max-width: 640px)": {
-              "type": "nested-style",
+            "value": true,
+            "node": {
+              "type": "element",
               "content": {
-                "backgroundColor": { "type":"static", "content": "#e91e63" }
-              }
-            },
-            "@media (max-width: 634px)": {
-              "type": "nested-style",
-              "content": {
-                "height": { "type":"static", "content": 276 }
-              }
-            }
-          },
-          "children": [
-            "Active tab: ",
-            "$state.activeTab"
-          ]
-        },
-        {
-          "type": "state",
-          "states": [
-            {
-              "value": 0,
-              "content": {
-                "type": "container",
+                "elementType": "text",
                 "children": [{
-                  "type": "text",
-                  "children": ["This is the first tab"]
+                  "type": "static",
+                  "content": "Now you see me!"
                 }]
-              }
-            },{
-              "value": 1,
-              "content": {
-                "type": "text",
-                "children": ["This is the second tab"]
-              }
-            },{
-              "value": {
-                "matchingCriteria": "any",
-                "conditions": [{
-                  "operand": 2,
-                  "operation": "==="
-                }]
-              },
-              "content": {
-                "type": "text",
-                "children": ["This is the third tab"]
-              }
-            },{
-              "value": {
-                "matchingCriteria": "all",
-                "conditions": [{
-                  "operand": 3,
-                  "operation": ">="
-                }, {
-                  "operand": 5,
-                  "operation": "<"
-                }]
-              },
-              "content": {
-                "type": "text",
-                "children": ["This is the fourth tab"]
               }
             }
-          ]
+          }
         }
       ]
     }
   }
+}

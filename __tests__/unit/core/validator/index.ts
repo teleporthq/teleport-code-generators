@@ -7,12 +7,12 @@ import multiErrorsInvalidComponentUidlSample from '../../../fixtures/component-i
 import projectUidlSample from '../../../fixtures/project-sample.json'
 import invalidProjectUidlSample from '../../../fixtures/project-invalid-sample.json'
 
-describe.skip('Validate UIDL', () => {
+describe('Validate UIDL', () => {
   describe('Component UIDL', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponent(componentUidlSample)
-
+      console.log('result', validationResult)
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
@@ -23,19 +23,16 @@ describe.skip('Validate UIDL', () => {
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(false)
       expect(validationResult.errorMsg).toBe(
-        'UIDL Validation error. Please check the following: \n - Path .content: should NOT have additional properties. {"additionalProperty":"key"}'
+        `UIDL Validation error. Please check the following: 
+ - Path .stateDefinitions['isVisible']: should NOT have additional properties. {"additionalProperty":"test"}`
       )
     })
     it('returns multiple customized errors', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponent(multiErrorsInvalidComponentUidlSample)
       const expectedErrorMsg = `UIDL Validation error. Please check the following: 
- - Path .content: should NOT have additional properties. {"additionalProperty":"types"},
- - Path .content: should NOT have additional properties. {"additionalProperty":"key"},
- - Path .content: should have required property \'type\'. {"missingProperty":"type"},
- - Path .stateDefinitions[\'activeTab\'].type: should be string. Received number,
- - Path .stateDefinitions[\'activeTab\'].type: should be equal to one of the allowed values. {"allowedValues":["string","boolean","number","object","func","array","router"]},
- - Path .propDefinitions[\'test\'].type: should be equal to one of the allowed values. {"allowedValues":["string","boolean","number","array","func","object","children"]}`
+ - Path : should NOT have additional properties. {\"additionalProperty\":\"nodes\"},
+ - Path : should have required property 'node'. {\"missingProperty\":\"node\"}`
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(false)
       expect(validationResult.errorMsg).toBe(expectedErrorMsg)

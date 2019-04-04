@@ -132,9 +132,7 @@ type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
 
 type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
-interface EventDefinitions {
-  [k: string]: EventHandlerStatement[]
-}
+type EventDefinitions = Record<string, EventHandlerStatement[]>
 
 interface EventHandlerStatement {
   type: string
