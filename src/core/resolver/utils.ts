@@ -190,7 +190,7 @@ const prefixAssetURLs = (
 
     switch (styleValue.type) {
       case 'dynamic':
-        // dynamicStyles[styleKey] = styleValue
+        acc[styleKey] = styleValue
         return acc
       case 'static':
         const staticContent = styleValue.content
