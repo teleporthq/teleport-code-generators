@@ -3,6 +3,9 @@ import createRouterComponentGenerator from '../../component-generators/react/rea
 import { createFolder, createFile } from '../../shared/utils/project-utils'
 import { FILE_EXTENSIONS } from '../../shared/constants'
 
+import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
+
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
   distFolderName: string

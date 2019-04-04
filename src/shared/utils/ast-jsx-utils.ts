@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
 import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
+import { ConditionalExpression, StateIdentifier } from '../../typings/uidl-definitions'
 
 type BinaryOperator =
   | '==='

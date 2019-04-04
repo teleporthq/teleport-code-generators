@@ -11,6 +11,16 @@ import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify, sanitizeVariableName } from './string-utils'
 import { FILE_EXTENSIONS } from '../constants'
 
+import {
+  GeneratedFile,
+  PackageJSON,
+  ComponentFactoryParams,
+  ComponentGeneratorOutput,
+  GeneratedFolder,
+} from '../../typings/generators'
+
+import { ProjectUIDL, WebManifest, ComponentUIDL } from '../../typings/uidl-definitions'
+
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
   fileName?: string

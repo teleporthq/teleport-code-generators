@@ -5,6 +5,8 @@ import importStatementsPlugin from '../../plugins/teleport-plugin-import-stateme
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
+import { GeneratorOptions } from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
 
 const createVuePipeline = ({ customMapping }: GeneratorOptions = {}) => {
   const resolver = new Resolver({ ...htmlMapping, ...vueMapping, ...customMapping })

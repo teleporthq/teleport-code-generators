@@ -1,4 +1,5 @@
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
+import { StateDefinition, ContentNode, StyleDefinitions } from '../../typings/uidl-definitions'
 
 /**
  * A couple of different cases which need to be handled

@@ -1,5 +1,6 @@
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as htmlGenerator } from './generators/html-to-string'
+import { ChunkDefinition, CodeGeneratorFunction, ChunkContent } from '../../typings/generators'
 
 export default class Builder {
   private chunkDefinitions: ChunkDefinition[] = []

@@ -10,6 +10,13 @@ import importStatementsPlugin from '../../plugins/teleport-plugin-import-stateme
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
+import {
+  Mapping,
+  ComponentGenerator,
+  GeneratorOptions,
+  CompiledComponent,
+} from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
 
 export const enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',

@@ -14,6 +14,14 @@ import {
 
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
+import {
+  ContentNode,
+  PropDefinition,
+  StateIdentifier,
+  ComponentDependency,
+  StateDefinition,
+  EventHandlerStatement,
+} from '../../typings/uidl-definitions'
 
 export const generateTreeStructure = (
   content: ContentNode,

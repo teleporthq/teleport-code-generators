@@ -19,6 +19,15 @@ import { FILE_EXTENSIONS } from '../../shared/constants'
 import { createRouterFile, buildFolderStructure } from './utils'
 import { Validator } from '../../core'
 
+import {
+  ProjectGeneratorOptions,
+  ComponentGenerator,
+  Mapping,
+  ComponentFactoryParams,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ProjectUIDL, StateBranch, ComponentUIDL } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
     customMapping: vueProjectMapping,
