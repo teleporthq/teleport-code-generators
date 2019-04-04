@@ -1,4 +1,5 @@
 import { generateUniqueKeys, createNodesLookup } from '../../../../src/core/resolver/utils'
+import { ContentNode } from '../../../../src/typings/uidl-definitions'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {

@@ -1,4 +1,5 @@
 import { generateVueComponentJS, generateVueNodesTree, extractStateObject } from './utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string

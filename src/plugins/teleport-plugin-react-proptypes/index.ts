@@ -1,4 +1,5 @@
 import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface ReactJSPropTypesConfig {
   componentChunkName?: string

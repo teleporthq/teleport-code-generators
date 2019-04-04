@@ -23,6 +23,15 @@ import {
 
 import { Validator } from '../../core'
 
+import {
+  ComponentGenerator,
+  ComponentFactoryParams,
+  ProjectGeneratorOptions,
+  Mapping,
+  GeneratedFile,
+} from '../../typings/generators.js'
+import { ProjectUIDL, ComponentUIDL } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
     variation: ReactComponentStylingFlavors.CSSModules,

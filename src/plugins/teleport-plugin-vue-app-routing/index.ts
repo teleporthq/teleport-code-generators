@@ -1,5 +1,6 @@
 import * as t from '@babel/types'
 import { extractPageMetadata } from '../../shared/utils/uidl-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface VueRouterConfig {
   codeChunkName: string

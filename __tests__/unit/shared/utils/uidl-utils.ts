@@ -1,4 +1,5 @@
 import { cleanupDynamicStyles } from '../../../../src/shared/utils/uidl-utils'
+import { StyleDefinitions } from '../../../../src/typings/uidl-definition'
 
 describe('cleanupDynamicStyles', () => {
   const styleObject = {

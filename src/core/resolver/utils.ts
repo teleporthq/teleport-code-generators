@@ -4,6 +4,13 @@ import {
   traverseNodes,
 } from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
+import {
+  EventDefinitions,
+  ContentNode,
+  ComponentDependency,
+  StyleDefinitions,
+} from '../../typings/uidl-definitions'
+import { ElementMapping, Mapping } from '../../typings/generators'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 

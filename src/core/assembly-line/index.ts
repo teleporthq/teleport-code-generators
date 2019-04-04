@@ -1,4 +1,6 @@
 import { extractExternalDependencies, groupChunksByFileId } from './utils'
+import { ComponentStructure, ComponentPlugin } from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
 
 export default class AssemblyLine {
   private plugins: ComponentPlugin[]

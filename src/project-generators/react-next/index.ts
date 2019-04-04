@@ -23,6 +23,15 @@ import { Validator } from '../../core'
 
 import nextMapping from './next-mapping.json'
 
+import {
+  ProjectGeneratorOptions,
+  ComponentGenerator,
+  Mapping,
+  ComponentFactoryParams,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ProjectUIDL, ComponentUIDL } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
     variation: ReactComponentStylingFlavors.StyledJSX,

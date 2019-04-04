@@ -4,6 +4,15 @@ import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import {
+  PropDefinition,
+  StateDefinition,
+  EventHandlerStatement,
+  ComponentUIDL,
+  ConditionalExpression,
+  ComponentDependency,
+  ContentNode,
+} from '../../typings/uidl-definitions'
 
 // content is each node from the UIDL
 // lookups contains

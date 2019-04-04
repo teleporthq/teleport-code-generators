@@ -1,5 +1,6 @@
 import { makeDefaultExport } from '../../shared/utils/ast-js-utils'
 import { makePureComponent, generateTreeStructure, createStateIdentifiers } from './utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface JSXConfig {
   componentChunkName: string

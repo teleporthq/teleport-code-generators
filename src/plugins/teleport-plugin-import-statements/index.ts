@@ -1,4 +1,6 @@
 import { makeGenericImportStatement } from '../../shared/utils/ast-js-utils'
+import { ComponentPluginFactory, ComponentPlugin, ChunkDefinition } from '../../typings/generators'
+import { ComponentDependency } from '../../typings/uidl-definitions'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
