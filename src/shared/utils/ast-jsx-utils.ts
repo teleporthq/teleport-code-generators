@@ -219,7 +219,7 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 export const createConditionalJSXExpression = (
   content: types.JSXElement | types.JSXExpressionContainer | string,
   conditionalExpression: UIDLConditionalExpression,
-  stateIdentifier: StateIdentifier,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
   let contentNode: types.Expression
@@ -237,11 +237,12 @@ export const createConditionalJSXExpression = (
     | types.BinaryExpression
     | types.UnaryExpression
     | types.Identifier
+    | types.MemberExpression
 
   // When the stateValue is an object we will compute a logical/binary expression on the left side
   const { conditions, matchingCriteria } = conditionalExpression
   const binaryExpressions = conditions.map((condition) =>
-    createBinaryExpression(condition, stateIdentifier)
+    createBinaryExpression(condition, conditionalIdentifier)
   )
 
   if (binaryExpressions.length === 1) {
@@ -268,33 +269,33 @@ export const createBinaryExpression = (
     operation: string
     operand?: string | number | boolean
   },
-  stateIdentifier: StateIdentifier,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
   const { operand, operation } = condition
+  const identifier = conditionalIdentifier.prefix
+    ? t.memberExpression(
+        t.identifier(conditionalIdentifier.prefix),
+        t.identifier(conditionalIdentifier.key)
+      )
+    : t.identifier(conditionalIdentifier.key)
 
   if (operation === '===') {
     if (operand === true) {
-      return t.identifier(stateIdentifier.key)
+      return identifier
     }
 
     if (operand === false) {
-      return t.unaryExpression('!', t.identifier(stateIdentifier.key))
+      return t.unaryExpression('!', identifier)
     }
   }
 
   if (operand !== undefined) {
-    const stateValueIdentifier = convertValueToLiteral(operand, stateIdentifier.type)
+    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
 
-    return t.binaryExpression(
-      convertToBinaryOperator(operation),
-      t.identifier(stateIdentifier.key),
-      stateValueIdentifier
-    )
+    return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
   } else {
-    return operation
-      ? t.unaryExpression(convertToUnaryOperator(operation), t.identifier(stateIdentifier.key))
-      : t.identifier(stateIdentifier.key)
+    return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
   }
 }
 

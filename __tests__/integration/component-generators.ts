@@ -7,6 +7,10 @@ import { ReactComponentStylingFlavors } from '../../src/component-generators/rea
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 // const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
+const JS_FILE = 'js'
+const VUE_FILE = 'vue'
+const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
+  files.find((file) => file.fileType === type)
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {
@@ -14,11 +18,16 @@ describe('React Component Generator', () => {
       variation: ReactComponentStylingFlavors.CSSModules,
     })
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('import React')
-      expect(result.externalCSS).toBeDefined()
-      expect(result.externalDependencies).toBeDefined()
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files).toBeDefined()
+      expect(Array.isArray(result.files)).toBeTruthy()
+      expect(result.files.length).toBeTruthy()
+      expect(jsFile.content).toContain('import React')
+      expect(result.dependencies).toBeDefined()
     })
   })
 
@@ -27,22 +36,28 @@ describe('React Component Generator', () => {
       variation: ReactComponentStylingFlavors.JSS,
     })
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('import React')
-      expect(result.externalCSS).toBe('')
-      expect(result.externalDependencies).toBeDefined()
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files.length).toBe(1)
+      expect(jsFile.content).toContain('import React')
+      expect(result.dependencies).toBeDefined()
     })
   })
 
   describe('with InlineStyles', () => {
     const generator = createReactComponentGenerator()
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('import React')
-      expect(result.externalCSS).toBe('')
-      expect(result.externalDependencies).toBeDefined()
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files.length).toBe(1)
+      expect(jsFile.content).toContain('import React')
+      expect(result.dependencies).toBeDefined()
     })
   })
 
@@ -54,9 +69,12 @@ describe('React Component Generator', () => {
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('<fakediv')
-      expect(result.externalCSS).toBe('')
-      expect(result.externalDependencies).toBeDefined()
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files.length).toBe(1)
+      expect(jsFile.content).toContain('<fakediv')
+      expect(result.dependencies).toBeDefined()
     })
   })
 })
@@ -65,11 +83,13 @@ describe('Vue Component Generator', () => {
   describe('with standard plugins', () => {
     const generator = createVueComponentGenerator()
 
-    it('should return the code as string', async () => {
+    it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('<template>')
-      expect(result.externalCSS).toBeUndefined()
-      expect(result.externalDependencies).toBeDefined()
+      const vueFile = findFileByType(result.files, VUE_FILE)
+
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('<template>')
+      expect(result.dependencies).toBeDefined()
     })
   })
 
@@ -79,9 +99,11 @@ describe('Vue Component Generator', () => {
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)
-      expect(result.code).toContain('<fakediv')
-      expect(result.externalCSS).toBeUndefined()
-      expect(result.externalDependencies).toBeDefined()
+      const vueFile = findFileByType(result.files, VUE_FILE)
+
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain('<fakediv')
+      expect(result.dependencies).toBeDefined()
     })
   })
 })

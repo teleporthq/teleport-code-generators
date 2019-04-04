@@ -25,9 +25,9 @@ describe('React Basic Project Generator', () => {
     const srcFolder = result.outputFolder.subFolders[0]
 
     expect(srcFolder.files[0].name).toBe('index')
-    expect(srcFolder.files[0].extension).toBe('.html')
+    expect(srcFolder.files[0].fileType).toBe('html')
     expect(srcFolder.files[1].name).toBe('index')
-    expect(srcFolder.files[1].extension).toBe('.js')
+    expect(srcFolder.files[1].fileType).toBe('js')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('pages')
   })
@@ -48,9 +48,9 @@ describe('React Basic Project Generator', () => {
   //   const srcFolder = result.outputFolder.subFolders[0]
 
   //   expect(srcFolder.files[0].name).toBe('index')
-  //   expect(srcFolder.files[0].extension).toBe('.html')
+  //   expect(srcFolder.files[0].fileType).toBe('html')
   //   expect(srcFolder.files[1].name).toBe('index')
-  //   expect(srcFolder.files[1].extension).toBe('.js')
+  //   expect(srcFolder.files[1].fileType).toBe('js')
   //   expect(srcFolder.subFolders[0].name).toBe('components')
   //   expect(srcFolder.subFolders[1].name).toBe('pages')
   // })

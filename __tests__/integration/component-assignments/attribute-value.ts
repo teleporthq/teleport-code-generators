@@ -11,20 +11,31 @@ const ComponentWithValidProps = ComponentWithValidPropsJSON as ComponentUIDL
 const ComponentWithInValidProps = (ComponentWithInValidPropsJSON as unknown) as ComponentUIDL
 const ComponentWithRepeatProps = ComponentWithRepeatPropsJSON as ComponentUIDL
 
+const JS_FILE = 'js'
+const VUE_FILE = 'vue'
+const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
+  files.find((file) => file.fileType === type)
+
 describe('React Props in Component', () => {
   describe('supports props json declaration in attributes', () => {
     const generator = createReactComponentGenerator()
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidProps)
-      expect(result.code).toContain('props.test')
-      expect(result.code).toContain('props.content.heading')
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('props.test')
+      expect(jsFile.content).toContain('props.content.heading')
     })
 
     it('should run repeat attributes and data source', async () => {
       const result = await generator.generateComponent(ComponentWithRepeatProps)
-      expect(result.code).toContain('key={index}>')
-      expect(result.code).toContain('test={index}>')
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('key={index}>')
+      expect(jsFile.content).toContain('test={index}>')
     })
 
     it('should fail to add old style attributes on component', async () => {
@@ -43,18 +54,22 @@ describe('Vue Props in Component Generator', () => {
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidProps)
-      expect(result.code).toContain(':data-test')
-      expect(result.code).not.toContain(':data-static')
-      expect(result.code).toContain('data-static')
-      expect(result.code).toContain('content.heading')
-      expect(result.code).toContain('content: {')
-      expect(result.code).toContain('heading: ')
+      const vueFile = findFileByType(result.files, VUE_FILE)
+
+      expect(vueFile.content).toContain(':data-test')
+      expect(vueFile.content).not.toContain(':data-static')
+      expect(vueFile.content).toContain('data-static')
+      expect(vueFile.content).toContain('content.heading')
+      expect(vueFile.content).toContain('content: {')
+      expect(vueFile.content).toContain('heading: ')
     })
 
     it('should run repeat attributes and data source', async () => {
       const result = await generator.generateComponent(ComponentWithRepeatProps)
-      expect(result.code).toContain(':key="index"')
-      expect(result.code).toContain(':test="index"')
+      const vueFile = findFileByType(result.files, VUE_FILE)
+
+      expect(vueFile.content).toContain(':key="index"')
+      expect(vueFile.content).toContain(':test="index"')
     })
 
     it('should fail to add old style attributes on component', async () => {

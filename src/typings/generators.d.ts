@@ -206,9 +206,8 @@ type ComponentPluginFactory<T> = (
 ) => ComponentPlugin
 
 interface CompiledComponent {
-  code: string
-  externalCSS?: string
-  externalDependencies: Record<string, string>
+  files: Array<GeneratedFile>
+  dependencies: Record<string, string>
 }
 
 interface ComponentGenerator {
@@ -237,6 +236,13 @@ interface StateIdentifier {
   default: any
 }
 
+// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
+interface ConditionalIdentifier {
+  key: string
+  type: string
+  prefix?: string
+}
+
 interface HastNode {
   type: string
   tagName: string
@@ -258,9 +264,9 @@ interface GeneratedFolder {
 }
 
 interface GeneratedFile {
-  content: string
   name: string
-  extension: string
+  fileType: string
+  content: string
 }
 
 interface ComponentFactoryParams {
@@ -275,7 +281,6 @@ interface ComponentFactoryParams {
     usePathAsFileName?: boolean
     convertDefaultToIndex?: boolean
   }
-  componentExtension?: string
 }
 
 interface ComponentGeneratorOutput {
