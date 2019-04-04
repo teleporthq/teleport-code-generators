@@ -117,7 +117,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return makeDynamicValueExpression(node.content.id)
+      return makeDynamicValueExpression(node)
 
     case 'element':
       return generateElementNode(node, accumulators)
@@ -334,8 +334,11 @@ const makeRepeatStructureWithMap = (
   )
 }
 
-const makeDynamicValueExpression = (identifier: string, t = types) => {
-  return t.jsxExpressionContainer(t.identifier(identifier))
+const makeDynamicValueExpression = (identifier: UIDLDynamicReference, t = types) => {
+  const prefix = getReactVarNameForDynamicReference(identifier)
+  return t.jsxExpressionContainer(
+    t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
+  )
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier
