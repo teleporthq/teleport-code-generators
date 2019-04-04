@@ -117,7 +117,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return makeDynamicValueExpression(node)
+      return types.jsxExpressionContainer(makeDynamicValueExpression(node))
 
     case 'element':
       return generateElementNode(node, accumulators)
