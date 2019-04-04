@@ -41,7 +41,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
 
   const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
     // Step 0: Validate project UIDL
-    if (options.skipValidation) {
+    if (!options.skipValidation) {
       const validationResult = validator.validateProject(uidl)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)

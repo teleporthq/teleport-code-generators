@@ -22,7 +22,6 @@ export default class Validator {
 
   public validateComponent(input: any): ValidationResult {
     const valid = this.componentValidator(input)
-
     if (!valid && this.componentValidator.errors) {
       return { valid: false, errorMsg: formatErrors(this.componentValidator.errors) }
     }

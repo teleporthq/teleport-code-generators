@@ -1,7 +1,7 @@
 // @ts-ignore
 import uidlSample from '../fixtures/project-sample.json'
 // @ts-ignore
-// import invalidUidlSample from '../fixtures/project-invalid-sample.json'
+import invalidUidlSample from '../fixtures/project-invalid-sample.json'
 
 import {
   createReactBasicGenerator,
@@ -31,29 +31,29 @@ describe('React Basic Project Generator', () => {
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('pages')
   })
-  // it('throws error when invalid UIDL sample is used', async () => {
-  //   const result = generator.generateProject(invalidUidlSample)
+  it('throws error when invalid UIDL sample is used', async () => {
+    const result = generator.generateProject(invalidUidlSample)
 
-  //   await expect(result).rejects.toThrow(Error)
-  // })
+    await expect(result).rejects.toThrow(Error)
+  })
 
-  // it('works when validation step is skiped', async () => {
-  //   const options = { skipValidation: true }
-  //   const result = await generator.generateProject(invalidUidlSample, options)
+  it('works when validation step is skiped', async () => {
+    const options = { skipValidation: true }
+    const result = await generator.generateProject(invalidUidlSample, options)
 
-  //   expect(result.assetsPath).toBeDefined()
-  //   expect(result.outputFolder.name).toBe('dist')
-  //   expect(result.outputFolder.files[0].name).toBe('package')
+    expect(result.assetsPath).toBeDefined()
+    expect(result.outputFolder.name).toBe('dist')
+    expect(result.outputFolder.files[0].name).toBe('package')
 
-  //   const srcFolder = result.outputFolder.subFolders[0]
+    const srcFolder = result.outputFolder.subFolders[0]
 
-  //   expect(srcFolder.files[0].name).toBe('index')
-  //   expect(srcFolder.files[0].fileType).toBe('html')
-  //   expect(srcFolder.files[1].name).toBe('index')
-  //   expect(srcFolder.files[1].fileType).toBe('js')
-  //   expect(srcFolder.subFolders[0].name).toBe('components')
-  //   expect(srcFolder.subFolders[1].name).toBe('pages')
-  // })
+    expect(srcFolder.files[0].name).toBe('index')
+    expect(srcFolder.files[0].fileType).toBe('html')
+    expect(srcFolder.files[1].name).toBe('index')
+    expect(srcFolder.files[1].fileType).toBe('js')
+    expect(srcFolder.subFolders[0].name).toBe('components')
+    expect(srcFolder.subFolders[1].name).toBe('pages')
+  })
 })
 
 describe('React Next Project Generator', () => {
@@ -73,26 +73,26 @@ describe('React Next Project Generator', () => {
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })
-  // it('throws error when invalid UIDL sample is used', async () => {
-  //   const result = generator.generateProject(invalidUidlSample)
+  it('throws error when invalid UIDL sample is used', async () => {
+    const result = generator.generateProject(invalidUidlSample)
 
-  //   await expect(result).rejects.toThrow(Error)
-  // })
-  // it('works when validation step is skiped', async () => {
-  //   const options = { skipValidation: true }
-  //   const result = await generator.generateProject(invalidUidlSample, options)
+    await expect(result).rejects.toThrow(Error)
+  })
+  it('works when validation step is skiped', async () => {
+    const options = { skipValidation: true }
+    const result = await generator.generateProject(invalidUidlSample, options)
 
-  //   expect(result.assetsPath).toBeDefined()
-  //   expect(result.outputFolder.name).toBe('dist')
-  //   expect(result.outputFolder.files[0].name).toBe('package')
+    expect(result.assetsPath).toBeDefined()
+    expect(result.outputFolder.name).toBe('dist')
+    expect(result.outputFolder.files[0].name).toBe('package')
 
-  //   const components = result.outputFolder.subFolders[1]
-  //   const pages = result.outputFolder.subFolders[0]
+    const components = result.outputFolder.subFolders[1]
+    const pages = result.outputFolder.subFolders[0]
 
-  //   expect(components.files[0].name).toBe('OneComponent')
-  //   expect(pages.files[0].name).toBe('_document')
-  //   expect(pages.files[1].name).toBe('index')
-  // })
+    expect(components.files[0].name).toBe('OneComponent')
+    expect(pages.files[0].name).toBe('_document')
+    expect(pages.files[1].name).toBe('index')
+  })
 })
 
 describe('Vue Basic Project Generator', () => {
@@ -104,19 +104,19 @@ describe('Vue Basic Project Generator', () => {
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
   })
-  // it('throws error when invalid UIDL sample is used', async () => {
-  //   const result = generator.generateProject(invalidUidlSample)
+  it('throws error when invalid UIDL sample is used', async () => {
+    const result = generator.generateProject(invalidUidlSample)
 
-  //   await expect(result).rejects.toThrow(Error)
-  // })
+    await expect(result).rejects.toThrow(Error)
+  })
 
-  // it('works when validation step is skiped', async () => {
-  //   const options = { skipValidation: true }
-  //   const result = await generator.generateProject(invalidUidlSample, options)
+  it('works when validation step is skiped', async () => {
+    const options = { skipValidation: true }
+    const result = await generator.generateProject(invalidUidlSample, options)
 
-  //   expect(result.assetsPath).toBeDefined()
-  //   expect(result.outputFolder.name).toBe('dist')
-  // })
+    expect(result.assetsPath).toBeDefined()
+    expect(result.outputFolder.name).toBe('dist')
+  })
 })
 
 describe('Vue Nuxt Project Generator', () => {
@@ -129,16 +129,16 @@ describe('Vue Nuxt Project Generator', () => {
     expect(result.outputFolder.name).toBe('dist')
   })
 
-  // it('throws error when invalid UIDL sample is used', async () => {
-  //   const result = generator.generateProject(invalidUidlSample)
+  it('throws error when invalid UIDL sample is used', async () => {
+    const result = generator.generateProject(invalidUidlSample)
 
-  //   await expect(result).rejects.toThrow(Error)
-  // })
+    await expect(result).rejects.toThrow(Error)
+  })
 
-  // it('works when validation step is skiped', async () => {
-  //   const options = { skipValidation: true }
-  //   const result = await generator.generateProject(invalidUidlSample, options)
-  //   expect(result.assetsPath).toBeDefined()
-  //   expect(result.outputFolder.name).toBe('dist')
-  // })
+  it('works when validation step is skiped', async () => {
+    const options = { skipValidation: true }
+    const result = await generator.generateProject(invalidUidlSample, options)
+    expect(result.assetsPath).toBeDefined()
+    expect(result.outputFolder.name).toBe('dist')
+  })
 })
