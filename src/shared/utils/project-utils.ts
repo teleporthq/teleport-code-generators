@@ -213,6 +213,7 @@ export const createComponentOutputs = async (
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
       ...componentOptions,
+      skipValidation: true,
     })
 
     files = compiledComponent.files

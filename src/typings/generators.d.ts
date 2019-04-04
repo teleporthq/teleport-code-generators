@@ -52,10 +52,12 @@ interface UIDLStateDefinition {
   actions?: string[]
 }
 
+type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
+
 interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'state' | 'local' | 'attr' | 'children'
+    referenceType: ReferenceType
     id: string
   }
 }
@@ -132,9 +134,7 @@ type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
 
 type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
-interface EventDefinitions {
-  [k: string]: EventHandlerStatement[]
-}
+type EventDefinitions = Record<string, EventHandlerStatement[]>
 
 interface EventHandlerStatement {
   type: string
@@ -206,7 +206,7 @@ type ComponentPluginFactory<T> = (
 ) => ComponentPlugin
 
 interface CompiledComponent {
-  files: Array<GeneratedFile>
+  files: GeneratedFile[]
   dependencies: Record<string, string>
 }
 

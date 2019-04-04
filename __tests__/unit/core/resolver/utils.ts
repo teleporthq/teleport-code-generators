@@ -3,16 +3,11 @@ import {
   createNodesLookup,
   resolveChildren,
 } from '../../../../src/core/resolver/utils'
+import { elementNode, staticNode, dynamicNode } from '../../../../src/shared/builders/uidl-builders'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
-    const simpleNode: UIDLNode = {
-      type: 'element',
-      content: {
-        elementType: 'container',
-        name: 'container',
-      },
-    }
+    const simpleNode = elementNode('container')
 
     const lookup = {
       container: {
@@ -28,22 +23,7 @@ describe('generateUniqueKeys', () => {
   })
 
   it('adds name and generate unique key', async () => {
-    const node: UIDLNode = {
-      type: 'element',
-      content: {
-        elementType: 'container',
-        name: 'container',
-        children: [
-          {
-            type: 'element',
-            content: {
-              elementType: 'container',
-              name: 'container',
-            },
-          },
-        ],
-      },
-    }
+    const node = elementNode('container', {}, [elementNode('container')])
 
     const lookup = {
       container: {
@@ -65,36 +45,9 @@ describe('generateUniqueKeys', () => {
 
 describe('createNodesLookup', () => {
   it('counts duplicate nodes inside the UIDL', async () => {
-    const node: UIDLNode = {
-      type: 'element',
-      content: {
-        elementType: 'container',
-        name: 'container',
-        children: [
-          {
-            type: 'element',
-            content: {
-              elementType: 'container',
-              name: 'container',
-              children: [
-                {
-                  type: 'element',
-                  content: { elementType: 'text', name: 'text' },
-                },
-                {
-                  type: 'element',
-                  content: { elementType: 'text', name: 'text' },
-                },
-                {
-                  type: 'element',
-                  content: { elementType: 'text', name: 'text' },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    }
+    const node = elementNode('container', {}, [
+      elementNode('container', {}, [elementNode('text'), elementNode('text'), elementNode('text')]),
+    ])
 
     const lookup: Record<string, { count: number; nextKey: string }> = {}
     createNodesLookup(node, lookup)
@@ -106,13 +59,7 @@ describe('createNodesLookup', () => {
   })
 
   it('adds zero padding when counting keys', async () => {
-    const node: UIDLNode = {
-      type: 'element',
-      content: {
-        elementType: 'container',
-        name: 'container',
-      },
-    }
+    const node = elementNode('container')
 
     const lookup: Record<string, { count: number; nextKey: string }> = {
       container: {
@@ -129,19 +76,8 @@ describe('createNodesLookup', () => {
 
 describe('resolveChildren', () => {
   it('merges the children when no placeholder is found', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'from-mapping',
-      },
-    ]
-
-    const originalChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'original-text',
-      },
-    ]
+    const mappedChildren = [staticNode('from-mapping')]
+    const originalChildren = [staticNode('original-text')]
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(2)
@@ -150,12 +86,7 @@ describe('resolveChildren', () => {
   })
 
   it('adds the mapped children if no original children are found', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'from-mapping',
-      },
-    ]
+    const mappedChildren = [staticNode('from-mapping')]
 
     const result = resolveChildren(mappedChildren)
     expect(result.length).toBe(1)
@@ -163,22 +94,8 @@ describe('resolveChildren', () => {
   })
 
   it('inserts the original children instead of the placeholder', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'dynamic',
-        content: {
-          referenceType: 'children',
-          id: 'children',
-        },
-      },
-    ]
-
-    const originalChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'original-text',
-      },
-    ]
+    const mappedChildren = [dynamicNode('children', 'children')]
+    const originalChildren = [staticNode('original-text')]
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(1)
@@ -186,30 +103,8 @@ describe('resolveChildren', () => {
   })
 
   it('inserts the original children in the nested structure, instead of the placeholder', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'element',
-        content: {
-          elementType: 'container',
-          children: [
-            {
-              type: 'dynamic',
-              content: {
-                referenceType: 'children',
-                id: 'children',
-              },
-            },
-          ],
-        },
-      },
-    ]
-
-    const originalChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'original-text',
-      },
-    ]
+    const mappedChildren = [elementNode('container', {}, [dynamicNode('children', 'children')])]
+    const originalChildren = [staticNode('original-text')]
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(1)
@@ -219,37 +114,16 @@ describe('resolveChildren', () => {
   })
 
   it('inserts multiple nodes instead of the placeholder', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'element',
-        content: {
-          elementType: 'container',
-          children: [
-            {
-              type: 'dynamic',
-              content: {
-                referenceType: 'children',
-                id: 'children',
-              },
-            },
-            {
-              type: 'static',
-              content: 'remains here',
-            },
-          ],
-        },
-      },
+    const mappedChildren = [
+      elementNode('container', {}, [
+        dynamicNode('children', 'children'),
+        staticNode('remains here'),
+      ]),
     ]
 
     const originalChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'original-text',
-      },
-      {
-        type: 'static',
-        content: 'other-original-text',
-      },
+      staticNode('original-text'),
+      staticNode('other-original-text'),
     ]
 
     const result = resolveChildren(mappedChildren, originalChildren)
@@ -262,44 +136,17 @@ describe('resolveChildren', () => {
   })
 
   it('inserts multiple nodes instead of multiple placeholders', () => {
-    const mappedChildren: UIDLNode[] = [
-      {
-        type: 'element',
-        content: {
-          elementType: 'container',
-          children: [
-            {
-              type: 'dynamic',
-              content: {
-                referenceType: 'children',
-                id: 'children',
-              },
-            },
-            {
-              type: 'static',
-              content: 'remains here',
-            },
-            {
-              type: 'dynamic',
-              content: {
-                referenceType: 'children',
-                id: 'children',
-              },
-            },
-          ],
-        },
-      },
+    const mappedChildren = [
+      elementNode('container', {}, [
+        dynamicNode('children', 'children'),
+        staticNode('remains here'),
+        dynamicNode('children', 'children'),
+      ]),
     ]
 
     const originalChildren: UIDLNode[] = [
-      {
-        type: 'static',
-        content: 'original-text',
-      },
-      {
-        type: 'static',
-        content: 'other-original-text',
-      },
+      staticNode('original-text'),
+      staticNode('other-original-text'),
     ]
 
     const result = resolveChildren(mappedChildren, originalChildren)
