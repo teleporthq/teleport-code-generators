@@ -16,6 +16,7 @@ import {
 
 import vueMapping from './vue-mapping.json'
 import { buildVueFile } from './utils'
+import { parseComponentJSON } from '../../core/parser/component'
 
 const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
@@ -28,16 +29,18 @@ const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): Compon
 
   const chunksLinker = new Builder()
 
-  const generateComponent = async (
-    uidl: ComponentUIDL,
-    options: GeneratorOptions = {}
+  const generateComponent: GenerateComponentFunction = async (
+    input,
+    options = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
-      const validationResult = validator.validateComponent(uidl)
+      const validationResult = validator.validateComponent(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseComponentJSON(input)
+
     const files: GeneratedFile[] = []
     // For page components, for some frameworks the filename will be the one set in the meta property
     let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name

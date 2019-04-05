@@ -14,6 +14,7 @@ import { FILE_TYPE } from '../../shared/constants'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
+import { parseComponentJSON } from '../../core/parser/component'
 
 export const enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',
@@ -52,16 +53,18 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   const chunksLinker = new Builder()
 
-  const generateComponent = async (
-    uidl: ComponentUIDL,
-    options: GeneratorOptions = {}
+  const generateComponent: GenerateComponentFunction = async (
+    input,
+    options = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
-      const validationResult = validator.validateComponent(uidl)
+      const validationResult = validator.validateComponent(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseComponentJSON(input)
+
     const files: GeneratedFile[] = []
     // For page components, for some frameworks the filename will be the one set in the meta property
     let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name

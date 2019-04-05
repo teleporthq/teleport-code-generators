@@ -23,6 +23,7 @@ import {
 } from './constants'
 
 import { Validator } from '../../core'
+import { parseProjectJSON } from '../../core/parser/project'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
@@ -45,14 +46,15 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Validate project UIDL
+  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+    // Step 0: Validate project input and transform to UIDL
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(uidl)
+      const validationResult = validator.validateProject(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
