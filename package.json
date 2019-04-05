@@ -61,6 +61,7 @@
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0",
     "prettier": "^1.16.4",
+    "repeat-string": "^1.6.1",
     "rimraf": "^2.6.3"
   },
   "config": {
