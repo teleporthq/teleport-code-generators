@@ -21,6 +21,14 @@ import {
 import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
 
+import {
+  ProjectGeneratorOptions,
+  ComponentGenerator,
+  ComponentFactoryParams,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ProjectUIDL, ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
     mapping: nuxtMapping as Mapping,

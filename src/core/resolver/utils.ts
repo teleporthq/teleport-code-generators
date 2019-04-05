@@ -5,6 +5,17 @@ import {
   cloneObject,
 } from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
+import {
+  EventDefinitions,
+  UIDLElement,
+  UIDLNode,
+  ComponentDependency,
+  UIDLStyleDefinitions,
+  UIDLRepeatContent,
+  UIDLAttributeValue,
+  Mapping,
+} from '../../typings/uidl-definitions'
+import { GeneratorOptions } from '../../typings/generators'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 

@@ -3,6 +3,18 @@ import * as types from '@babel/types'
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
 import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import {
+  UIDLPropDefinition,
+  UIDLStateDefinition,
+  EventHandlerStatement,
+  ComponentUIDL,
+  UIDLConditionalExpression,
+  ComponentDependency,
+  UIDLElementNode,
+  UIDLRepeatNode,
+  UIDLConditionalNode,
+} from '../../typings/uidl-definitions'
+import { NodeSyntaxGenerator, HastNode, AttributeAssignCodeMod } from '../../typings/generators'
 
 import { ERROR_LOG_NAME } from '.'
 

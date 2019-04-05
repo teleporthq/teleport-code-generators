@@ -7,11 +7,11 @@ import projectJson from '../../uidl-samples/new-project.json'
 import customMapping from './custom-mapping.json'
 
 import { createReactBasicGenerator } from '../../../src'
+import { ProjectUIDL } from '../../../src/typings/uidl-definitions'
+import { ProjectGeneratorFunction } from '../../../src/typings/generators'
 
 const writeToDisk = async (
-  // @ts-ignore
   projectUIDL: ProjectUIDL,
-  // @ts-ignore
   generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'

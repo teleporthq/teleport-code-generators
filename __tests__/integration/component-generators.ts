@@ -1,9 +1,12 @@
+// @ts-ignore
 import uidlSampleJSON from '../fixtures/component-sample.json'
+// @ts-ignore
 import invalidUidlSampleJSON from '../fixtures/component-invalid-sample.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../src'
-
-import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
+import { ComponentUIDL } from '../../src/typings/uidl-definitions'
+import { GeneratedFile } from '../../src/typings/generators'
+import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL

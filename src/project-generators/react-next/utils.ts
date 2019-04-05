@@ -11,6 +11,9 @@ import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 import { createFile, createFolder } from '../../shared/utils/project-utils'
 import { FILE_TYPE } from '../../shared/constants'
 
+import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
+import { ProjectUIDL } from '../../typings/uidl-definitions'
+
 export const createDocumentComponent = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
 

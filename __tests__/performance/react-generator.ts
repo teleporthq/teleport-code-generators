@@ -4,8 +4,8 @@ import { createUIDL } from '../fixtures/uidl'
 import { createReactComponentGenerator } from '../../src'
 
 import { performance } from 'perf_hooks'
-
-import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component.js'
+import { ComponentUIDL } from '../../src/typings/uidl-definitions'
+import { ReactComponentStylingFlavors } from '../../src/component-generators/react/react-component'
 
 const componentUIDL = componentUIDLJSON as ComponentUIDL
 

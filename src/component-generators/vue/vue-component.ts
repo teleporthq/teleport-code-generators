@@ -17,6 +17,14 @@ import {
 import vueMapping from './vue-mapping.json'
 import { buildVueFile } from './utils'
 
+import {
+  GeneratorOptions,
+  ComponentGenerator,
+  CompiledComponent,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
+
 const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
   const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, mapping])

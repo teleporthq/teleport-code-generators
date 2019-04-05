@@ -14,15 +14,22 @@ import { FILE_TYPE } from '../../shared/constants'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
+import {
+  ComponentGenerator,
+  GeneratorOptions,
+  CompiledComponent,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
 
-export const enum ReactComponentStylingFlavors {
+export enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',
   CSSModules = 'CSSModules',
 }
 
-interface ReactGeneratorFactoryParams {
+export interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
   customMapping?: Mapping
 }

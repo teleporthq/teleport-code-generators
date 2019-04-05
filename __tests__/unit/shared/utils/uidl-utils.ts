@@ -4,7 +4,7 @@ import {
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
 } from '../../../../src/shared/utils/uidl-utils'
-
+import { UIDLStyleDefinitions } from '../../../../src/typings/uidl-definitions'
 import uidlStyleJSON from './uidl-utils-style.json'
 
 describe('cleanupDynamicStyles', () => {

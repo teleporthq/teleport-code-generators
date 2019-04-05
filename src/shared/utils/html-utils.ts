@@ -1,3 +1,5 @@
+import { HastNode, HastText } from '../../typings/generators'
+
 export const createHTMLNode = (tagName: string, children = []): HastNode => {
   return {
     type: 'element',

@@ -7,6 +7,7 @@ import {
   transformDynamicStyles,
   traverseElements,
 } from '../../shared/utils/uidl-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface InlineStyleConfig {
   componentChunkName: string

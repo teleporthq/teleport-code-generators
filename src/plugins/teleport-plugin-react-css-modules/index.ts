@@ -9,6 +9,7 @@ import {
   transformDynamicStyles,
 } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string

@@ -19,6 +19,14 @@ import { createRouterFile, buildFolderStructure } from './utils'
 import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
 
+import {
+  ProjectGeneratorOptions,
+  ComponentGenerator,
+  ComponentFactoryParams,
+  GeneratedFile,
+} from '../../typings/generators'
+import { ProjectUIDL, Mapping, ComponentUIDL } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
     mapping: vueProjectMapping as Mapping,

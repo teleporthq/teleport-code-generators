@@ -1,6 +1,8 @@
 import * as utils from './utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
 import { cloneObject } from '../../shared/utils/uidl-utils'
+import { GeneratorOptions } from '../../typings/generators'
+import { ComponentUIDL, UIDLElement, Mapping } from '../../typings/uidl-definitions'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into

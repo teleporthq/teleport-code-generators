@@ -2,6 +2,9 @@ import createVueRouterFileGenerator from '../../component-generators/vue/vue-rou
 import { createFile, createFolder } from '../../shared/utils/project-utils'
 import { FILE_TYPE } from '../../shared/constants'
 
+import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
+
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
   distFolderName: string
