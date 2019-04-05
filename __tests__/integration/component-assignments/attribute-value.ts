@@ -38,7 +38,7 @@ describe('React Props in Component', () => {
       expect(jsFile.content).toContain('test={index}>')
     })
 
-    it('should fail to add old style attributes on component', async () => {
+    it.skip('should fail to add old style attributes on component', async () => {
       const operation = generator.generateComponent(ComponentWithInValidProps, {
         skipValidation: true,
       })
@@ -72,7 +72,7 @@ describe('Vue Props in Component Generator', () => {
       expect(vueFile.content).toContain(':test="index"')
     })
 
-    it('should fail to add old style attributes on component', async () => {
+    it.skip('should fail to add old style attributes on component', async () => {
       const operation = generator.generateComponent(ComponentWithInValidProps, {
         skipValidation: true,
       })

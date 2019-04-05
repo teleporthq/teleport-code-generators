@@ -56,7 +56,7 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
-    it('should fail to add old style attributes on component', async () => {
+    it.skip('should fail to add old style attributes on component', async () => {
       const operation = generator.generateComponent(
         (ComponentWithInValidStyle as unknown) as ComponentUIDL,
         {
@@ -111,7 +111,7 @@ describe('Vue Props in Component Generator', () => {
       expect(vueFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
-    it('should fail to add old style attributes on component', async () => {
+    it.skip('should fail to add old style attributes on component', async () => {
       const operation = generator.generateComponent(
         (ComponentWithInValidStyle as unknown) as ComponentUIDL,
         {
