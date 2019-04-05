@@ -95,9 +95,10 @@ export const generateConditionalNode = (
   accumulators: ReactComponentAccumulators
 ) => {
   const { reference, value } = node.content
+  const conditionIdentifier = createConditionIdentifier(reference, accumulators)
   const stateKey = reference.content.id
   const stateIdentifier = accumulators.stateIdentifiers[stateKey]
-  
+
   if (stateIdentifier) {
     const subTree = generateNodeSyntax(node.content.node, accumulators)
 
@@ -105,7 +106,7 @@ export const generateConditionalNode = (
       ? { conditions: [{ operand: value, operation: '===' }] }
       : node.content.condition
 
-    return createConditionalJSXExpression(subTree, condition, stateIdentifier)
+    return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
   }
 
   console.warn(`No state is available with id '${stateKey}' Please check your UIDL`)
