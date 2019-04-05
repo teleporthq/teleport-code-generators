@@ -31,7 +31,7 @@
       
       "children": [
         "hello I am a test",
-        "$props.content",
+        "$props.content.heading",
         "$props.children",
         {
           "type": "element",
@@ -51,7 +51,7 @@
 
             "children": [
               "hello I am a test",
-              "$props.content",
+              "$props.content.heading",
               "$props.children"
             ]
           }

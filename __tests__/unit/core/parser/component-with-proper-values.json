@@ -49,8 +49,8 @@
       
       "children": [
         {"type":"static", "content": "hello I am a test"},
-        {"type": "dynamic", "content": {"referenceType": "prop", "id": "title"}},
-        {"type": "slot", "content": {"id": "children "}},
+        {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+        {"type": "dynamic", "content": {"referenceType":"prop", "id": "children"}},
         {
           "type": "element",
           "content": {
@@ -87,8 +87,8 @@
 
             "children": [
               {"type":"static", "content": "hello I am a test"},
-              {"type": "dynamic", "content": {"referenceType": "prop", "id": "title"}},
-              {"type": "slot", "content": {"id": "children "}}
+              {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+              {"type": "dynamic", "content": {"referenceType": "prop", "id": "children"}}
             ]
           }
         }

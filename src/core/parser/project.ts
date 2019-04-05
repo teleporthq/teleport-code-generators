@@ -11,10 +11,12 @@ export const parseProjectJSON = (input: Record<string, unknown>): ProjectUIDL =>
   }
 
   result.root = parseComponentJSON(root)
-  result.components = Object.keys(components).reduce((parsedComponnets, key) => {
-    parsedComponnets[key] = parseComponentJSON(components[key])
-    return parsedComponnets
-  }, {})
+  if (result.components) {
+    result.components = Object.keys(components).reduce((parsedComponnets, key) => {
+      parsedComponnets[key] = parseComponentJSON(components[key])
+      return parsedComponnets
+    }, {})
+  }
 
   return result
 }
