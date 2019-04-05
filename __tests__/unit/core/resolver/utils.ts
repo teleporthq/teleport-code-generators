@@ -1,9 +1,10 @@
+import { elementNode, staticNode, dynamicNode } from '../../../../src/shared/builders/uidl-builders'
 import {
   generateUniqueKeys,
   createNodesLookup,
   resolveChildren,
 } from '../../../../src/core/resolver/utils'
-import { elementNode, staticNode, dynamicNode } from '../../../../src/shared/builders/uidl-builders'
+import { UIDLElement, UIDLNode } from '../../../../src/typings/uidl-definitions'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {

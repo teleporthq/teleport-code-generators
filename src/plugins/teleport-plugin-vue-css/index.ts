@@ -6,6 +6,8 @@ import {
 } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
 import { addClassToNode, addAttributeToNode } from '../../shared/utils/html-utils'
+import { UIDLDynamicReference } from '../../typings/uidl-definitions'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface VueStyleChunkConfig {
   chunkName: string

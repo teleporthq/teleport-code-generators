@@ -1,6 +1,7 @@
+import * as types from '@babel/types'
 import { makeDefaultExport } from '../../shared/utils/ast-js-utils'
 import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
-import * as types from '@babel/types'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface JSXConfig {
   componentChunkName: string

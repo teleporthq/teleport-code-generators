@@ -1,4 +1,3 @@
-// @ts-ignore
 import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
@@ -6,11 +5,11 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 import projectJson from '../../uidl-samples/new-project.json'
 
 import { createReactNextGenerator } from '../../../src'
+import { ProjectUIDL } from '../../../src/typings/uidl-definitions'
+import { ProjectGeneratorFunction } from '../../../src/typings/generators'
 
 const writeToDisk = async (
-  // @ts-ignore
   projectUIDL: ProjectUIDL,
-  // @ts-ignore
   generatorFunction: ProjectGeneratorFunction,
   templatePath: string = 'project-template',
   distPath: string = 'dist'
@@ -28,7 +27,6 @@ const writeToDisk = async (
       sourcePackageJson: packageJson,
       distPath,
     })
-    // @ts-ignore
     await writeFolder(outputFolder, __dirname)
   } catch (error) {
     throw new Error(error)

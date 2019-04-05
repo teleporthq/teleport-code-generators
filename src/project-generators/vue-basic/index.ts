@@ -20,6 +20,15 @@ import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
 import { parseProjectJSON } from '../../core/parser/project'
 
+import {
+  ProjectGeneratorOptions,
+  ComponentGenerator,
+  ComponentFactoryParams,
+  GeneratedFile,
+  GenerateProjectFunction,
+} from '../../typings/generators'
+import { Mapping, ComponentUIDL } from '../../typings/uidl-definitions'
+
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
     mapping: vueProjectMapping as Mapping,

@@ -1,5 +1,7 @@
 import { createFolder } from '../../shared/utils/project-utils'
 
+import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
+
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
   distFolderName: string

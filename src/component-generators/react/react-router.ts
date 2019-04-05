@@ -5,6 +5,7 @@ import { AssemblyLine, Builder, Resolver } from '../../core'
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '../../core/parser/component'
+import { Mapping } from '../../typings/uidl-definitions'
 
 const createRouterComponentGenerator = () => {
   const resolver = new Resolver([htmlMapping as Mapping, reactMapping as Mapping])

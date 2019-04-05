@@ -1,5 +1,6 @@
 import preset from 'jss-preset-default'
 import jss from 'jss'
+import { UIDLStyleDefinitions, UIDLStyleValue } from '../../typings/uidl-definitions'
 
 jss.setup(preset())
 

@@ -1,4 +1,5 @@
 import * as t from '@babel/types'
+import { ComponentDependency } from '../../typings/uidl-definitions'
 
 export const registerRouterDeps = (dependencies: Record<string, ComponentDependency>): void => {
   dependencies.React = {

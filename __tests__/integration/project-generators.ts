@@ -9,6 +9,7 @@ import {
   createVueBasicGenerator,
   createVueNuxtGenerator,
 } from '../../src'
+import { ProjectUIDL } from '../../src/typings/uidl-definitions'
 
 const projectUIDL = uidlSample as ProjectUIDL
 

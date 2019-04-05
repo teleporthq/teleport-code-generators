@@ -3,6 +3,8 @@ import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { transformDynamicStyles, traverseElements } from '../../shared/utils/uidl-utils'
 import { createCSSClassFromStringMap } from '../../shared/utils/jss-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
+import { UIDLElement } from '../../typings/uidl-definitions'
 
 interface StyledJSXConfig {
   componentChunkName: string

@@ -11,6 +11,24 @@ import {
 } from '../../shared/utils/ast-jsx-utils'
 
 import { capitalize } from '../../shared/utils/string-utils'
+import {
+  UIDLElementNode,
+  UIDLPropDefinition,
+  UIDLRepeatNode,
+  UIDLConditionalNode,
+  UIDLConditionalExpression,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
+  ComponentDependency,
+  UIDLStateDefinition,
+  EventHandlerStatement,
+} from '../../typings/uidl-definitions'
+import {
+  StateIdentifier,
+  NodeSyntaxGenerator,
+  AttributeAssignCodeMod,
+  ConditionalIdentifier,
+} from '../../typings/generators'
 
 import { ERROR_LOG_NAME } from '.'
 

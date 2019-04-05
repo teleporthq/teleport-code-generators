@@ -16,14 +16,18 @@ import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.js
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '../../core/parser/component'
 
-export const enum ReactComponentStylingFlavors {
+import { ComponentGenerator, CompiledComponent, GeneratedFile } from '../../typings/generators'
+
+import { Mapping } from '../../typings/uidl-definitions'
+
+export enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',
   CSSModules = 'CSSModules',
 }
 
-interface ReactGeneratorFactoryParams {
+export interface ReactGeneratorFactoryParams {
   variation?: ReactComponentStylingFlavors
   customMapping?: Mapping
 }

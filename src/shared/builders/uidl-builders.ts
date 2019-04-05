@@ -1,3 +1,13 @@
+import {
+  UIDLNode,
+  UIDLAttributeValue,
+  UIDLElementNode,
+  UIDLStaticValue,
+  UIDLDynamicReference,
+  ReferenceType,
+  ComponentUIDL,
+} from '../../typings/uidl-definitions'
+
 export const component = (name: string, node: UIDLNode): ComponentUIDL => {
   return {
     name,

@@ -2,6 +2,7 @@ import { Resolver } from '../../../../src/core'
 // @ts-ignore
 import mappingJSON from '../../../fixtures/mapping.json'
 import { element, staticNode } from '../../../../src/shared/builders/uidl-builders'
+import { Mapping } from '../../../../src/typings/uidl-definitions'
 
 const mapping = mappingJSON as Mapping
 

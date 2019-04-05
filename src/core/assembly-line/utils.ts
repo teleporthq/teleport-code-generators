@@ -1,3 +1,6 @@
+import { ComponentDependency } from '../../typings/uidl-definitions'
+import { ChunkDefinition } from '../../typings/generators'
+
 export const extractExternalDependencies = (
   dependencies: Record<string, ComponentDependency>
 ): Record<string, string> => {

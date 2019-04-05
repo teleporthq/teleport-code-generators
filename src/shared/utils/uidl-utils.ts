@@ -1,4 +1,15 @@
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
+import {
+  ComponentUIDL,
+  UIDLStateDefinition,
+  UIDLStyleDefinitions,
+  UIDLConditionalNode,
+  UIDLElement,
+  UIDLNode,
+  UIDLStaticValue,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
+} from '../../typings/uidl-definitions'
 
 /**
  * A couple of different cases which need to be handled

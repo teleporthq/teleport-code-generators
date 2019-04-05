@@ -9,7 +9,8 @@ import {
 import { makeJSSDefaultExport } from './utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { transformDynamicStyles, traverseElements } from '../../shared/utils/uidl-utils'
+import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface JSSConfig {
   styleChunkName?: string
