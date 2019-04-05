@@ -16,7 +16,12 @@ import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.js
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '../../core/parser/component'
 
-import { ComponentGenerator, CompiledComponent, GeneratedFile } from '../../typings/generators'
+import {
+  ComponentGenerator,
+  CompiledComponent,
+  GeneratedFile,
+  GenerateComponentFunction,
+} from '../../typings/generators'
 
 import { Mapping } from '../../typings/uidl-definitions'
 

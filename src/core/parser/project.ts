@@ -1,5 +1,7 @@
 import { parseComponentJSON } from './component'
 
+import { ProjectUIDL, ComponentUIDL } from '../../typings/uidl-definitions'
+
 export const parseProjectJSON = (input: Record<string, unknown>): ProjectUIDL => {
   const root = input.root as ComponentUIDL
   const components = (input.components || {}) as Record<string, ComponentUIDL>

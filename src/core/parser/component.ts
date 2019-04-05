@@ -3,6 +3,8 @@ import {
   transformAttributesAssignmentsToJson,
 } from '../../shared/utils/uidl-utils'
 
+import { ComponentUIDL, UIDLNode } from '../../typings/uidl-definitions'
+
 export const parseComponentJSON = (input: Record<string, unknown>): ComponentUIDL => {
   const node = input.node as UIDLNode
   const result: ComponentUIDL = {
