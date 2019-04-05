@@ -12,7 +12,6 @@ describe('Validate UIDL', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponent(componentUidlSample)
-      console.log('result', validationResult)
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
