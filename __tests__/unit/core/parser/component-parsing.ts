@@ -17,13 +17,13 @@ describe('parseProjectJSON', () => {
   it('transforms primitive project values', () => {
     const componentResult = parseProjectJSON({
       root: componentInputJSON,
-      component: {
+      components: {
         test: componentInputJSON,
       },
     })
     expect(componentResult).toEqual({
       root: componentResultJSON,
-      component: {
+      components: {
         test: componentResultJSON,
       },
     })

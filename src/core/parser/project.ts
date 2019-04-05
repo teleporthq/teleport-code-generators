@@ -1,19 +1,27 @@
 import { parseComponentJSON } from './component'
 
 import { ProjectUIDL, ComponentUIDL } from '../../typings/uidl-definitions'
+import { cloneObject } from '../../shared/utils/uidl-utils'
 
-export const parseProjectJSON = (input: Record<string, unknown>): ProjectUIDL => {
-  const root = input.root as ComponentUIDL
-  const components = (input.components || {}) as Record<string, ComponentUIDL>
+interface ParseProjectJSONParams {
+  noClone?: boolean
+}
+
+export const parseProjectJSON = (
+  input: Record<string, unknown>,
+  params: ParseProjectJSONParams = {}
+): ProjectUIDL => {
+  const safeInput = params.noClone ? input : cloneObject(input)
+  const root = safeInput.root as ComponentUIDL
 
   const result = {
-    ...(input as ProjectUIDL),
+    ...(safeInput as ProjectUIDL),
   }
 
   result.root = parseComponentJSON(root)
   if (result.components) {
-    result.components = Object.keys(components).reduce((parsedComponnets, key) => {
-      parsedComponnets[key] = parseComponentJSON(components[key])
+    result.components = Object.keys(result.components).reduce((parsedComponnets, key) => {
+      parsedComponnets[key] = parseComponentJSON(result.components[key])
       return parsedComponnets
     }, {})
   }
