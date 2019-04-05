@@ -177,21 +177,24 @@
     "video": {
       "elementType": "video",
       "children": [
-        { "type": "dynamic", "content": { "referenceType": "attr-children", "id": "children" } },
-        { "type": "static", "content": "This browser does not support the video formats given" }
+        { "type": "static", "content": "Keep" },
+        { "type": "static", "content": "it here" },
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
+        { "type": "static", "content": "This browser does not support the video formats given" },
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
       ]
     },
     "audio": {
       "elementType": "audio",
       "children": [
-        { "type": "dynamic", "content": { "referenceType": "attr-children", "id": "children" } },
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
         { "type": "static", "content": "This browser does not support the audio formats given" }
       ]
     },
     "picture": {
       "elementType": "picture",
       "children": [
-        { "type": "dynamic", "content": { "referenceType": "attr-children", "id": "children" } },
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
         { "type": "static", "content": "This browser does not support the image formats given" }
       ]
     },

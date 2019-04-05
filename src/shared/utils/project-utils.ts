@@ -219,7 +219,7 @@ export const createComponentOutputs = async (
     files = compiledComponent.files
     dependencies = compiledComponent.dependencies
   } catch (error) {
-    console.warn(`Error on generating ${componentUIDL.name} component ${error.stack}`)
+    console.warn(`Error on generating "${componentUIDL.name}" component\n`, error)
   }
 
   return { files, dependencies }

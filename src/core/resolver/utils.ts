@@ -2,6 +2,7 @@ import {
   prefixPlaygroundAssetsURL,
   traverseElements,
   traverseNodes,
+  cloneObject,
 } from '../../shared/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '../../shared/constants'
 
@@ -46,13 +47,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Mapping the type according to the elements mapping
   originalElement.elementType = mappedElement.elementType
 
-  // If the mapping contains children, insert that structure into the UIDL
-  // if (mappedElement.children) {
-  //   const originalNodeChildren = originalElement.children || []
-  //   node.children = cloneElement(mappedElement.children)
-  //   replaceChildrenPlaceholder(node, originalNodeChildren)
-  // }
-
   // Resolve dependency with the UIDL having priority
   if (originalElement.dependency || mappedElement.dependency) {
     originalElement.dependency = resolveDependency(
@@ -87,13 +81,69 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
-    originalElement.attrs = mergeAttributes(mappedElement.attrs, originalElement.attrs)
+    originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
   }
 
   if (mappedElement.children) {
-    const originalChildren = originalElement.children || []
-    originalElement.children = [...originalChildren, ...mappedElement.children]
+    originalElement.children = resolveChildren(mappedElement.children, originalElement.children)
   }
+}
+
+export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {
+  let newChildren = cloneObject(mappedChildren)
+
+  let placeholderFound = false
+  newChildren.forEach((childNode) => {
+    traverseNodes(childNode, (node, parentNode) => {
+      if (!isPlaceholderNode(node)) {
+        return // we're only interested in placeholder nodes
+      }
+
+      if (parentNode !== null) {
+        if (parentNode.type === 'element') {
+          // children nodes can only be added to type 'element'
+          // filter out the placeholder node and add the original children instead
+          parentNode.content.children = replacePlaceholderNode(
+            parentNode.content.children,
+            originalChildren
+          )
+          placeholderFound = true
+        }
+      } else {
+        // when parent is null, we work on the root children array for the given element
+        newChildren = replacePlaceholderNode(newChildren, originalChildren)
+        placeholderFound = true
+      }
+    })
+  })
+
+  // If a placeholder was found, it was removed and replaced with the original children somewhere inside the newChildren array
+  if (placeholderFound) {
+    return newChildren
+  }
+
+  // If no placeholder was found, newChildren are appended to the original children
+  return [...originalChildren, ...newChildren]
+}
+
+const isPlaceholderNode = (node: UIDLNode) =>
+  node.type === 'dynamic' && node.content.referenceType === 'children'
+
+// Replaces a single occurrence of the placeholder node (referenceType = 'children') with the original children of the element
+const replacePlaceholderNode = (nodes: UIDLNode[], insertedNodes: UIDLNode[]) => {
+  for (let index = 0; index < nodes.length; index++) {
+    if (isPlaceholderNode(nodes[index])) {
+      const retValue = [
+        ...nodes.slice(0, index),
+        ...insertedNodes,
+        ...nodes.slice(index + 1, nodes.length),
+      ]
+
+      return retValue
+    }
+  }
+
+  return nodes
 }
 
 const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) => {
@@ -226,7 +276,7 @@ const prefixAssetURLs = (
   }, {})
 }
 
-const mergeAttributes = (
+const resolveAttributes = (
   mappedAttrs: Record<string, UIDLAttributeValue>,
   uidlAttrs: Record<string, UIDLAttributeValue>
 ) => {
@@ -288,37 +338,6 @@ const resolveDependency = (
 
   return nodeDependency
 }
-
-// Traverses the content node tree and replaces the $children placeholder with
-// the original children of the node being mapped
-// const replaceChildrenPlaceholder = (
-//   node: ContentNode,
-//   originalChildren: Array<ContentNode | string>
-// ) => {
-//   if (!node.children) {
-//     return
-//   }
-
-//   const initialValue: Array<ContentNode | string> = []
-//   node.children = node.children.reduce((acc, child) => {
-//     if (typeof child === 'string') {
-//       if (child === '$children') {
-//         // When $children is encountered it is replaced by all the children of the original node from the UIDL
-//         acc.push(...originalChildren)
-//         return acc
-//       }
-
-//       // String nodes are just pushed the way they are
-//       acc.push(child)
-//       return acc
-//     }
-
-//     // The child node is pushed after the $children token was replaced
-//     replaceChildrenPlaceholder(child, originalChildren)
-//     acc.push(child)
-//     return acc
-//   }, initialValue)
-// }
 
 const resolveEvents = (events: EventDefinitions, eventsMapping: Record<string, string>) => {
   const resultedEvents: EventDefinitions = {}
