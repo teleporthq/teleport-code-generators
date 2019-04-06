@@ -13,6 +13,7 @@ import {
   UIDLElementNode,
   UIDLRepeatNode,
   UIDLConditionalNode,
+  UIDLSlotNode,
 } from '../../typings/uidl-definitions'
 import { NodeSyntaxGenerator, HastNode, AttributeAssignCodeMod } from '../../typings/generators'
 
@@ -151,6 +152,27 @@ export const generateConditionalNode = (
   return conditionalTag
 }
 
+export const generateSlotNode = (node: UIDLSlotNode, accumulators: VueComponentAccumulators) => {
+  const slotNode = htmlUtils.createHTMLNode('slot')
+
+  if (node.content.name) {
+    htmlUtils.addAttributeToNode(slotNode, 'name', node.content.name)
+  }
+
+  if (node.content.fallback) {
+    const { fallback } = node.content
+    const fallbackContent = generateNodeSyntax(fallback, accumulators)
+
+    if (typeof fallbackContent === 'string') {
+      htmlUtils.addTextNode(slotNode, fallbackContent)
+    } else {
+      htmlUtils.addChildNode(slotNode, fallbackContent)
+    }
+  }
+
+  return slotNode
+}
+
 export const generateNodeSyntax: NodeSyntaxGenerator<
   VueComponentAccumulators,
   string | HastNode
@@ -170,6 +192,9 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
 
     case 'conditional':
       return generateConditionalNode(node, accumulators)
+
+    case 'slot':
+      return generateSlotNode(node, accumulators)
 
     default:
       throw new Error(

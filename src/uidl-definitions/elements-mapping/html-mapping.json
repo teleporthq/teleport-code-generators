@@ -177,11 +177,8 @@
     "video": {
       "elementType": "video",
       "children": [
-        { "type": "static", "content": "Keep" },
-        { "type": "static", "content": "it here" },
         { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
-        { "type": "static", "content": "This browser does not support the video formats given" },
-        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
+        { "type": "static", "content": "This browser does not support the video formats given" }
       ]
     },
     "audio": {

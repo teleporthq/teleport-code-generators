@@ -101,6 +101,10 @@ export const traverseNodes = (
   if (node.type === 'conditional') {
     traverseNodes(node.content.node, fn, node)
   }
+
+  if (node.type === 'slot' && node.content.fallback) {
+    traverseNodes(node.content.fallback, fn, node)
+  }
 }
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
@@ -121,6 +125,10 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
   if (node.type === 'conditional') {
     traverseElements(node.content.node, fn)
+  }
+
+  if (node.type === 'slot' && node.content.fallback) {
+    traverseElements(node.content.fallback, fn)
   }
 }
 

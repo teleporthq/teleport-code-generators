@@ -6,6 +6,7 @@ import {
   UIDLDynamicReference,
   ReferenceType,
   ComponentUIDL,
+  UIDLSlotNode,
 } from '../../typings/uidl-definitions'
 
 export const component = (name: string, node: UIDLNode): ComponentUIDL => {
@@ -52,6 +53,16 @@ export const dynamicNode = (referenceType: ReferenceType, id: string): UIDLDynam
     content: {
       referenceType,
       id,
+    },
+  }
+}
+
+export const slotNode = (fallback?: UIDLNode, name?: string): UIDLSlotNode => {
+  return {
+    type: 'slot',
+    content: {
+      fallback,
+      name,
     },
   }
 }

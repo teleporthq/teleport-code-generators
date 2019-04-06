@@ -67,6 +67,14 @@ export interface UIDLStaticValue {
   content: string | number | boolean | any[] // any[] for data sources
 }
 
+export interface UIDLSlotNode {
+  type: 'slot'
+  content: {
+    name?: string
+    fallback?: UIDLNode
+  }
+}
+
 export interface UIDLNestedStyleDeclaration {
   type: 'nested-style'
   content: UIDLStyleDefinitions
@@ -127,6 +135,7 @@ export type UIDLNode =
   | UIDLRepeatNode
   | UIDLElementNode
   | UIDLConditionalNode
+  | UIDLSlotNode
 
 export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
 
