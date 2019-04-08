@@ -30,6 +30,8 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
       computedLiteralValue = t.arrayExpression(
         value.map((element) => convertValueToLiteral(element))
       )
+    } else if (value === Object) {
+      computedLiteralValue = t.identifier('Object')
     } else if (typeof value === 'object') {
       computedLiteralValue = objectToObjectExpression(value, t)
     } else if (value === String) {

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "name": "ComponentWithPrimitiveProps",
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    },
+    "content": {
+      "type": "object",
+      "defaultValue": {
+        "heading": "Hello World"
+      }
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+
+      "style": {
+        "flexDirection": {
+          "type": "dynamic",
+          "content": {
+            "referenceType":"prop",
+            "id": "test"
+          }
+        },
+        "alignSelf": {"type":"static", "content": "center"}
+      },
+
+      "attrs": {
+        "data-test": {
+          "type": "dynamic",
+          "content": {
+            "referenceType":"prop",
+            "id": "test"
+          }
+        },
+        "data-static": { "type":"static", "content":"I am just a static string"},
+        "data-inner-value": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType":"prop",
+                  "id": "content.heading"
+                }
+              }
+      },
+      
+      "children": [
+        {"type":"static", "content": "hello I am a test"},
+        {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+        {"type": "dynamic", "content": {"referenceType":"prop", "id": "children"}},
+        {
+          "type": "element",
+          "content": {
+            "elementType": "container",
+            
+            "style": {
+              "flexDirection": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType":"prop",
+                  "id": "test"
+                }
+              },
+              "alignSelf": {"type":"static", "content": "center"}
+            },
+      
+            "attrs": {
+              "data-test": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType":"prop",
+                  "id": "test"
+                }
+              },
+              "data-static": { "type":"static", "content":"I am just a static string"},
+              "data-inner-value": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType":"prop",
+                  "id": "content.heading"
+                }
+              }
+            },
+
+            "children": [
+              {"type":"static", "content": "hello I am a test"},
+              {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+              {"type": "dynamic", "content": {"referenceType": "prop", "id": "children"}}
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -9,7 +9,6 @@ import {
   APP_ROOT_OVERRIDE,
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
-import { FILE_EXTENSIONS } from '../../shared/constants'
 
 import {
   createPageOutputs,
@@ -19,20 +18,23 @@ import {
   createPackageJSONFile,
   joinGeneratorOutputs,
 } from '../../shared/utils/project-utils'
+
+import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
+import { parseProjectJSON } from '../../core/parser/project'
 
 import {
   ProjectGeneratorOptions,
   ComponentGenerator,
-  Mapping,
   ComponentFactoryParams,
   GeneratedFile,
+  GenerateProjectFunction,
 } from '../../typings/generators'
-import { ProjectUIDL, ComponentUIDL, ContentNode } from '../../typings/uidl-definitions'
+import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
-    customMapping: { ...nuxtMapping },
+    mapping: nuxtMapping as Mapping,
   })
 
   if (options.customMapping) {
@@ -50,14 +52,15 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Validate project UIDL
+  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+    // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(uidl)
+      const validationResult = validator.validateProject(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
@@ -65,27 +68,16 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
+    const routes = extractRoutes(root)
 
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
-
-    // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    // Step 1: The first level stateBranches (the pages) transformation in react components is started
+    const pagePromises = routes.map((routeNode) => {
+      const { value: pageName, node } = routeNode.content
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value as string,
-        content: stateBranch.content as ContentNode,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName.toString(),
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {
@@ -95,7 +87,6 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
-        componentExtension: FILE_EXTENSIONS.VUE,
         metadataOptions: {
           usePathAsFileName: true,
           convertDefaultToIndex: true,
@@ -110,7 +101,6 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       const componentUIDL = components[componentName]
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentGenerator: vueGenerator,
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }

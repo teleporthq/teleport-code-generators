@@ -1,178 +1,211 @@
 {
   "elements": {
     "container": {
-      "type": "div"
+      "elementType": "div"
     },
     "group": {
-      "type": "div"
+      "elementType": "div"
     },
     "main": {
-      "type": "main"
+      "elementType": "main"
     },
     "header": {
-      "type": "header"
+      "elementType": "header"
     },
     "nav": {
-      "type": "nav"
+      "elementType": "nav"
     },
     "section": {
-      "type": "section"
+      "elementType": "section"
     },
     "article": {
-      "type": "article"
+      "elementType": "article"
     },
     "aside": {
-      "type": "aside"
+      "elementType": "aside"
     },
     "footer": {
-      "type": "footer"
+      "elementType": "footer"
     },
     "text": {
-      "type": "span"
+      "elementType": "span"
     },
     "textblock": {
-      "type": "p"
+      "elementType": "p"
     },
     "strongtext": {
-      "type": "strong"
+      "elementType": "strong"
     },
     "formattedtext": {
-      "type": "pre"
+      "elementType": "pre"
     },
     "label": {
-      "type": "label"
+      "elementType": "label"
     },
     "heading1": {
-      "type": "h1"
+      "elementType": "h1"
     },
     "heading2": {
-      "type": "h2"
+      "elementType": "h2"
     },
     "heading3": {
-      "type": "h3"
+      "elementType": "h3"
     },
     "heading4": {
-      "type": "h4"
+      "elementType": "h4"
     },
     "heading5": {
-      "type": "h5"
+      "elementType": "h5"
     },
     "heading6": {
-      "type": "h6"
+      "elementType": "h6"
     },
     "image": {
-      "type": "img",
+      "elementType": "img",
       "attrs": {
-        "src": "$attrs.url"
+        "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
     "textinput": {
-      "type": "input",
+      "elementType": "input",
       "attrs": {
-        "type": "text"
+        "type": { "type": "static", "content": "text" }
       }
     },
     "passwordinput": {
-      "type": "input",
+      "elementType": "input",
       "attrs": {
-        "type": "password"
+        "type":  { "type":"static", "content": "password"}
       }
     },
     "numberinput": {
-      "type": "input",
+      "elementType": "input",
       "attrs": {
-        "type": "number"
+        "type": { "type": "static", "content": "number" }
       }
     },
     "checkbox": {
-      "type": "input",
+      "elementType": "input",
       "attrs": {
-        "type": "checkbox"
+        "type": { "type": "static", "content": "checkbox" }
       }
     },
     "radiobutton": {
-      "type": "input",
+      "elementType": "input",
       "attrs": {
-        "type": "radio"
+        "type": { "type": "static", "content": "radio" }
       }
     },
     "textarea": {
-      "type": "textarea"
+      "elementType": "textarea"
     },
     "link": {
-      "type": "a",
+      "elementType": "a",
       "attrs": {
-        "href": "$attrs.url",
-        "target": "_blank"
-      }
-    },
-    "button": {
-      "type": "button"
-    },
-    "form": {
-      "type": "form",
-      "attrs": {
-        "method": "$attrs.type",
-        "action": "$attrs.url"
-      }
-    },
-    "list": {
-      "type": "ul",
-      "repeat": {
-        "content": {
-          "type": "li",
-          "name": "item",
-          "children": ["$local.item"]
+        "href": {
+          "type": "dynamic",
+          "content": { "referenceType": "attr", "id": "url" }
         },
-        "dataSource": "$attrs.items",
-        "meta": {
-          "useIndex": true
+        "target": {
+          "type": "static",
+          "content": "_blank"
         }
       }
     },
-    "dropdown": {
-      "type": "select",
-      "repeat": {
-        "content": {
-          "type": "option",
-          "name": "option",
-          "children": ["$local.item"]
-        },
-        "dataSource": "$attrs.options"
+    "button": {
+      "elementType": "button"
+    },
+    "form": {
+      "elementType": "form",
+      "attrs": {
+        "method": { "type": "dynamic", "content": { "referenceType": "attr", "id": "type" } },
+        "action": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
+    "list": {
+      "elementType": "ul",
+      "children": [{
+        "type": "repeat",
+        "content": {
+          "node": {
+            "type": "element",
+            "content": {
+              "elementType": "li",
+              "name": "item",
+              "children": [{
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id": "item"
+                }
+              }]
+            }
+          },
+          "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "items" } },
+          "meta": {
+            "useIndex": true
+          }
+        }
+      }]
+    },
+    "dropdown": {
+      "elementType": "select",
+      "children": [{
+        "type": "repeat",
+        "content": {
+          "node": {
+            "type": "element",
+            "content": {
+              "elementType": "option",
+              "name": "option",
+              "children": [{
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id": "item"
+                }
+              }]
+            }
+          },
+          "dataSource": { "type": "dynamic", "content": { "referenceType": "attr", "id": "options" } },
+          "meta": {
+            "useIndex": true
+          }
+        }
+      }]
+    },
     "video": {
-      "type": "video",
+      "elementType": "video",
       "children": [
-        "$children",
-        "This browser does not support the video formats given"
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
+        { "type": "static", "content": "This browser does not support the video formats given" }
       ]
     },
     "audio": {
-      "type": "audio",
+      "elementType": "audio",
       "children": [
-        "$children",
-        "This browser does not support the audio formats given"
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
+        { "type": "static", "content": "This browser does not support the audio formats given" }
       ]
     },
     "picture": {
-      "type": "picture",
+      "elementType": "picture",
       "children": [
-        "$children",
-        "This browser does not support the image formats given"
+        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
+        { "type": "static", "content": "This browser does not support the image formats given" }
       ]
     },
     "source": {
-      "type": "source",
+      "elementType": "source",
       "attrs": {
-        "src": "$attrs.url"
+        "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
       }
     },
     "svg": {
-      "type": "svg"
+      "elementType": "svg"
     },
     "line": {
-      "type": "hr"
+      "elementType": "hr"
     }
   },
   "events": {

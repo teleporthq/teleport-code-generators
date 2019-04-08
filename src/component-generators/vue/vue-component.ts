@@ -5,18 +5,31 @@ import vueStylePlugin from '../../plugins/teleport-plugin-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '../../plugins/teleport-plugin-import-statements'
 
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
+
+import { createFile } from '../../shared/utils/project-utils'
+import { FILE_TYPE } from '../../shared/constants'
+import {
+  addSpacesToEachLine,
+  removeLastEmptyLine,
+  sanitizeVariableName,
+} from '../../shared/utils/string-utils'
+
 import vueMapping from './vue-mapping.json'
+import { buildVueFile } from './utils'
+import { parseComponentJSON } from '../../core/parser/component'
 
-import { addSpacesToEachLine, removeLastEmptyLine } from '../../shared/utils/string-utils'
+import {
+  GeneratorOptions,
+  ComponentGenerator,
+  CompiledComponent,
+  GenerateComponentFunction,
+  GeneratedFile,
+} from '../../typings/generators'
+import { Mapping } from '../../typings/uidl-definitions'
 
-import { GeneratorOptions, ComponentGenerator, CompiledComponent } from '../../typings/generators'
-import { ComponentUIDL } from '../../typings/uidl-definitions'
-
-const createVueGenerator = (
-  { customMapping }: GeneratorOptions = { customMapping }
-): ComponentGenerator => {
+const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([htmlMapping, vueMapping, customMapping])
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, mapping])
   const assemblyLine = new AssemblyLine([
     vueComponentPlugin,
     vueStylePlugin,
@@ -25,16 +38,22 @@ const createVueGenerator = (
 
   const chunksLinker = new Builder()
 
-  const generateComponent = async (
-    uidl: ComponentUIDL,
-    options: GeneratorOptions = {}
+  const generateComponent: GenerateComponentFunction = async (
+    input,
+    options = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
-      const validationResult = validator.validateComponent(uidl)
+      const validationResult = validator.validateComponent(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseComponentJSON(input)
+
+    const files: GeneratedFile[] = []
+    // For page components, for some frameworks the filename will be the one set in the meta property
+    let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    fileName = sanitizeVariableName(fileName)
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
@@ -44,32 +63,19 @@ const createVueGenerator = (
     const htmlCode = removeLastEmptyLine(chunksLinker.link(chunks.vuehtml))
 
     const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
-    let code = `<template>
-${formattedHTMLCode}
-</template>
+    const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)
 
-<script>
-${jsCode}
-</script>
-`
-
-    if (cssCode) {
-      code += `
-<style>
-${cssCode}
-</style>
-`
-    }
+    files.push(createFile(fileName, FILE_TYPE.VUE, vueCode))
 
     return {
-      code,
-      externalDependencies,
+      files,
+      dependencies: externalDependencies,
     }
   }
 
   return {
     generateComponent,
-    resolveContentNode: resolver.resolveContentNode.bind(resolver),
+    resolveElement: resolver.resolveElement.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }

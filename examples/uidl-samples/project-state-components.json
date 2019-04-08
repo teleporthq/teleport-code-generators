@@ -105,23 +105,38 @@
                 "type": "video",
                 "name": "video",
                 "attrs": {
-                  "autoPlay": true
+                  "autoPlay": {
+                    "type": "static",
+                    "content": true
+                  }
                 },
                 "children": [
                   {
                     "type": "source",
                     "name": "mp4-source",
                     "attrs": {
-                      "type": "video/mp4",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      "type": {
+                        "type": "static",
+                        "content": "video/mp4"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   },
                   {
                     "type": "source",
                     "name": "webm-source",
                     "attrs": {
-                      "type": "video/webm",
-                      "url": "https://www.quirksmode.org/html5/videos/big_buck_bunny.webm"
+                      "type": {
+                        "type": "static",
+                        "content": "video/webm"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
                     }
                   }
                 ]
@@ -137,8 +152,8 @@
                     "type": "ExpandableArea",
                     "name": "area1",
                     "attrs": {
-                      "title": "First",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "First" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -148,8 +163,8 @@
                     "type": "ExpandableArea",
                     "name": "area2",
                     "attrs": {
-                      "title": "Second",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Second" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -159,8 +174,8 @@
                     "type": "ExpandableArea",
                     "name": "area3",
                     "attrs": {
-                      "title": "Third",
-                      "text": "Text"
+                      "title": {"type": "static", "content": "Third" },
+                      "text": {"type": "static", "content": "Text" }
                     },
                     "dependency": {
                       "type": "local"
@@ -214,15 +229,15 @@
                     "type": "dropdown",
                     "name": "dropdown",
                     "attrs": {
-                      "options": ["angular", "react", "vue"],
-                      "defaultValue": "react"
+                      "options": { "type": "static", "content": ["angular", "react", "vue"] },
+                      "defaultValue": {"type":"static", "content": "react"}
                     }
                   },
                   {
                     "type": "list",
                     "name": "list",
                     "attrs": {
-                      "items": ["angular", "react", "vue"]
+                      "items": { "type": "static", "content": ["angular", "react", "vue"] }
                     }
                   }
                 ]
@@ -239,7 +254,10 @@
                     "type": "Cards",
                     "name": "cards",
                     "attrs": {
-                      "items": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
+                      "array": {
+                        "type": "static",
+                        "content": [1,2,3]
+                      }
                     },
                     "dependency": {
                       "type": "local"
@@ -259,8 +277,8 @@
                     "type": "form",
                     "name": "form",
                     "attrs": {
-                      "type": "GET",
-                      "url": "/"
+                      "type": { "type":"static", "content": "GET"},
+                      "url": { "type":"static", "content": "/"}
                     },
                     "children": [
                       {
@@ -276,7 +294,7 @@
                             "type": "textinput",
                             "name": "email-input",
                             "attrs": {
-                              "name": "email"
+                              "name": { "type":"static", "content": "email"}
                             }
                           }
                         ]
@@ -294,7 +312,7 @@
                             "type": "passwordinput",
                             "name": "pass-input",
                             "attrs": {
-                              "name": "pass"
+                              "name": {"type":"static", "content": "pass" }
                             }
                           }
                         ]
@@ -649,7 +667,7 @@
       "propDefinitions": {
         "items": {
           "type": "array",
-          "defaultValue": []
+          "defaultValue": ["Hello!", "is", "it", "me", "you're", "looking", "for?"]
         }
       },
       "content": {
@@ -679,7 +697,13 @@
               "type": "Card",
               "name": "card",
               "attrs": {
-                "test": "$local.index"
+                "test": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "local",
+                    "id":"index" 
+                  }
+                }
               },
               "children": ["$local.item"],
               "dependency": {
@@ -687,7 +711,13 @@
               }
             }]
           },
-          "dataSource": "$props.items",
+          "dataSource": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "items"
+            }
+          },
           "meta": {
             "useIndex": true
           }

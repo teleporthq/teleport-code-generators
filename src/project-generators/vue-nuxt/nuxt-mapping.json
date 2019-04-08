@@ -1,9 +1,9 @@
 {
   "elements": {
     "navlink": {
-      "type": "nuxt-link",
+      "elementType": "nuxt-link",
       "attrs": {
-        "to": "$attrs.transitionTo"
+        "to": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }

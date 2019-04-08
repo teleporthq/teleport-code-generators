@@ -15,22 +15,23 @@ import {
   DEFAULT_PACKAGE_JSON,
 } from './constants'
 import vueProjectMapping from './vue-project-mapping.json'
-import { FILE_EXTENSIONS } from '../../shared/constants'
 import { createRouterFile, buildFolderStructure } from './utils'
+import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
+import { parseProjectJSON } from '../../core/parser/project'
 
 import {
   ProjectGeneratorOptions,
   ComponentGenerator,
-  Mapping,
   ComponentFactoryParams,
   GeneratedFile,
+  GenerateProjectFunction,
 } from '../../typings/generators'
-import { ProjectUIDL, StateBranch, ComponentUIDL } from '../../typings/uidl-definitions'
+import { Mapping, ComponentUIDL } from '../../typings/uidl-definitions'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
-    customMapping: vueProjectMapping,
+    mapping: vueProjectMapping as Mapping,
   })
 
   if (options.customMapping) {
@@ -48,47 +49,38 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Validate project UIDL
+  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+    // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(uidl)
+      const validationResult = validator.validateProject(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseProjectJSON(input)
+
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       addCustomMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
+    const routes = extractRoutes(root)
 
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
-
-    // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch: StateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    // Step 1: The first level conditional nodes are taken as project pages
+    const pagePromises = routes.map((routeNode) => {
+      const { value, node } = routeNode.content
+      const pageName = value.toString()
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value,
-        content: stateBranch.content,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName,
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {
         componentGenerator: vueGenerator,
         componentUIDL,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentOptions: {
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
@@ -103,7 +95,6 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: vueGenerator,
-        componentExtension: FILE_EXTENSIONS.VUE,
         componentOptions: { assetsPrefix: ASSETS_PREFIX },
       }
 

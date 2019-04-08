@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
-import { ConditionalExpression, StateIdentifier } from '../../typings/uidl-definitions'
+import { UIDLConditionalExpression } from '../../typings/uidl-definitions'
+import { ConditionalIdentifier } from '../../typings/generators'
 
 type BinaryOperator =
   | '==='
@@ -88,7 +89,7 @@ export const addDynamicAttributeOnTag = (
   const content =
     prefix === ''
       ? t.identifier(value)
-      : t.memberExpression(t.identifier('props'), t.identifier(value))
+      : t.memberExpression(t.identifier(prefix), t.identifier(value))
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
@@ -197,27 +198,15 @@ export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
   return tag
 }
 
-export const addChildJSXTag = (tag: types.JSXElement, childNode: types.JSXElement) => {
+export const addChildJSXTag = (
+  tag: types.JSXElement,
+  childNode: types.JSXElement | types.JSXExpressionContainer
+) => {
   tag.children.push(childNode, types.jsxText('\n'))
 }
 
 export const addChildJSXText = (tag: types.JSXElement, text: string, t = types) => {
   tag.children.push(t.jsxText(text), types.jsxText('\n'))
-}
-
-export const addDynamicChild = (
-  tag: types.JSXElement,
-  value: string,
-  prefix: string = '',
-  t = types
-) => {
-  // if no prefix is provided (ex: props or state) value is added directly inside the node
-  const content =
-    prefix === ''
-      ? t.identifier(value)
-      : t.memberExpression(t.identifier(prefix), t.identifier(value))
-
-  tag.children.push(t.jsxExpressionContainer(content))
 }
 
 // TODO: Replace with generic add attribute?
@@ -230,81 +219,85 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 }
 
 export const createConditionalJSXExpression = (
-  content: types.JSXElement | string,
-  stateValue: string | number | boolean | ConditionalExpression,
-  stateIdentifier: StateIdentifier,
+  content: types.JSXElement | types.JSXExpressionContainer | string,
+  conditionalExpression: UIDLConditionalExpression,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
-  const contentNode = typeof content === 'string' ? t.stringLiteral(content) : content
+  let contentNode: types.Expression
+
+  if (typeof content === 'string') {
+    contentNode = t.stringLiteral(content)
+  } else if ((content as types.JSXExpressionContainer).expression) {
+    contentNode = (content as types.JSXExpressionContainer).expression as types.Expression
+  } else {
+    contentNode = content as types.JSXElement
+  }
 
   let binaryExpression:
     | types.LogicalExpression
     | types.BinaryExpression
     | types.UnaryExpression
     | types.Identifier
+    | types.MemberExpression
 
   // When the stateValue is an object we will compute a logical/binary expression on the left side
-  if (typeof stateValue === 'object') {
-    const { conditions, matchingCriteria } = stateValue
-    const binaryExpressions = conditions.map((condition) =>
-      createBinaryExpression(condition, stateIdentifier)
-    )
+  const { conditions, matchingCriteria } = conditionalExpression
+  const binaryExpressions = conditions.map((condition) =>
+    createBinaryExpression(condition, conditionalIdentifier)
+  )
 
-    if (binaryExpressions.length === 1) {
-      binaryExpression = binaryExpressions[0]
-    } else {
-      // the first two binary expressions are put together as a logical expression
-      const [firstExp, secondExp] = binaryExpressions
-      const operation = matchingCriteria === 'all' ? '&&' : '||'
-      let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
-
-      // accumulate the rest of the expressions to the logical expression
-      for (let index = 2; index < binaryExpressions.length; index++) {
-        expression = t.logicalExpression(operation, expression, binaryExpressions[index])
-      }
-
-      binaryExpression = expression
-    }
+  if (binaryExpressions.length === 1) {
+    binaryExpression = binaryExpressions[0]
   } else {
-    // For regular values we use an === operation to compare the values or an unary expression for booleans
-    if (typeof stateValue === 'boolean') {
-      binaryExpression = stateValue
-        ? t.identifier(stateIdentifier.key)
-        : t.unaryExpression('!', t.identifier(stateIdentifier.key))
-    } else {
-      const stateValueIdentifier = convertValueToLiteral(stateValue, stateIdentifier.type)
-      binaryExpression = t.binaryExpression(
-        '===',
-        t.identifier(stateIdentifier.key),
-        stateValueIdentifier
-      )
+    // the first two binary expressions are put together as a logical expression
+    const [firstExp, secondExp] = binaryExpressions
+    const operation = matchingCriteria === 'all' ? '&&' : '||'
+    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
+
+    // accumulate the rest of the expressions to the logical expression
+    for (let index = 2; index < binaryExpressions.length; index++) {
+      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
     }
+
+    binaryExpression = expression
   }
 
   return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
 }
 
-const createBinaryExpression = (
+export const createBinaryExpression = (
   condition: {
     operation: string
     operand?: string | number | boolean
   },
-  stateIdentifier: StateIdentifier,
+  conditionalIdentifier: ConditionalIdentifier,
   t = types
 ) => {
   const { operand, operation } = condition
-  if (operand !== undefined) {
-    const stateValueIdentifier = convertValueToLiteral(operand, stateIdentifier.type)
+  const identifier = conditionalIdentifier.prefix
+    ? t.memberExpression(
+        t.identifier(conditionalIdentifier.prefix),
+        t.identifier(conditionalIdentifier.key)
+      )
+    : t.identifier(conditionalIdentifier.key)
 
-    return t.binaryExpression(
-      convertToBinaryOperator(operation),
-      t.identifier(stateIdentifier.key),
-      stateValueIdentifier
-    )
+  if (operation === '===') {
+    if (operand === true) {
+      return identifier
+    }
+
+    if (operand === false) {
+      return t.unaryExpression('!', identifier)
+    }
+  }
+
+  if (operand !== undefined) {
+    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
+
+    return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
   } else {
-    return operation
-      ? t.unaryExpression(convertToUnaryOperator(operation), t.identifier(stateIdentifier.key))
-      : t.identifier(stateIdentifier.key)
+    return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
   }
 }
 

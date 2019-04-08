@@ -5,140 +5,198 @@ import {
   addChildJSXTag,
   addChildJSXText,
   addAttributeToJSXTag,
-  addDynamicChild,
   addDynamicAttributeOnTag,
-  generateASTDefinitionForJSXTag,
   createConditionalJSXExpression,
-  createTernaryOperation,
+  generateASTDefinitionForJSXTag,
 } from '../../shared/utils/ast-jsx-utils'
 
-import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize } from '../../shared/utils/string-utils'
 import {
-  ContentNode,
-  PropDefinition,
-  StateIdentifier,
+  UIDLElementNode,
+  UIDLPropDefinition,
+  UIDLRepeatNode,
+  UIDLConditionalNode,
+  UIDLConditionalExpression,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
   ComponentDependency,
-  StateDefinition,
+  UIDLStateDefinition,
   EventHandlerStatement,
+  UIDLSlotNode,
 } from '../../typings/uidl-definitions'
+import {
+  StateIdentifier,
+  NodeSyntaxGenerator,
+  AttributeAssignCodeMod,
+  ConditionalIdentifier,
+} from '../../typings/generators'
 
-export const generateTreeStructure = (
-  content: ContentNode,
-  accumulators: {
-    propDefinitions: Record<string, PropDefinition>
-    stateIdentifiers: Record<string, StateIdentifier>
-    nodesLookup: Record<string, types.JSXElement>
-    dependencies: Record<string, ComponentDependency>
-  }
-): types.JSXElement => {
-  const { type, children, key, attrs, dependency, events, repeat } = content
-  const { propDefinitions, stateIdentifiers, nodesLookup, dependencies } = accumulators
+import { ERROR_LOG_NAME } from '.'
 
-  const mainTag = generateASTDefinitionForJSXTag(type)
+interface ReactComponentAccumulators {
+  propDefinitions: Record<string, UIDLPropDefinition>
+  stateIdentifiers: Record<string, StateIdentifier>
+  nodesLookup: Record<string, types.JSXElement>
+  dependencies: Record<string, ComponentDependency>
+}
+
+export const generateElementNode = (
+  node: UIDLElementNode,
+  accumulators: ReactComponentAccumulators
+) => {
+  const { dependencies, stateIdentifiers, propDefinitions, nodesLookup } = accumulators
+  const { elementType, children, key, attrs, dependency, events } = node.content
+  const elementTag = generateASTDefinitionForJSXTag(elementType)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
-      addAttributeToTag(mainTag, attrKey, attrs[attrKey])
+      addAttributeToNode(elementTag, attrKey, attrs[attrKey])
     })
   }
 
   if (dependency) {
     // Make a copy to avoid reference leaking
-    dependencies[type] = { ...dependency }
+    dependencies[elementType] = { ...dependency }
   }
 
   if (events) {
     Object.keys(events).forEach((eventKey) => {
-      addEventHandlerToTag(mainTag, eventKey, events[eventKey], stateIdentifiers, propDefinitions)
+      addEventHandlerToTag(
+        elementTag,
+        eventKey,
+        events[eventKey],
+        stateIdentifiers,
+        propDefinitions
+      )
     })
-  }
-
-  if (repeat) {
-    const { content: repeatContent, dataSource, meta } = repeat
-
-    const contentAST = generateTreeStructure(repeatContent, accumulators)
-
-    const dataSourceIdentifier = isDynamicPrefixedValue(dataSource)
-      ? removeDynamicPrefix(dataSource as string, 'props')
-      : dataSource
-
-    const repeatAST = makeRepeatStructureWithMap(dataSourceIdentifier, contentAST, meta)
-    mainTag.children.push(repeatAST)
   }
 
   if (children) {
     children.forEach((child) => {
-      if (!child) {
-        return
+      const childTag = generateNodeSyntax(child, accumulators)
+
+      if (typeof childTag === 'string') {
+        addChildJSXText(elementTag, childTag)
+      } else {
+        addChildJSXTag(elementTag, childTag)
       }
-
-      if (typeof child === 'string') {
-        addTextElementToTag(mainTag, child)
-        return
-      }
-
-      if (child.type === 'state') {
-        const { states = [], name: stateKey } = child
-        const isBooleanState =
-          stateIdentifiers[stateKey] && stateIdentifiers[stateKey].type === 'boolean'
-        if (isBooleanState && states.length === 2) {
-          const consequentContent = states[0].content
-          const alternateContent = states[1].content
-          const consequent =
-            typeof consequentContent === 'string'
-              ? types.stringLiteral(consequentContent)
-              : generateTreeStructure(consequentContent, accumulators)
-          const alternate =
-            typeof alternateContent === 'string'
-              ? types.stringLiteral(alternateContent)
-              : generateTreeStructure(alternateContent, accumulators)
-          const jsxExpression = createTernaryOperation(
-            stateIdentifiers[stateKey].key,
-            consequent,
-            alternate
-          )
-          mainTag.children.push(jsxExpression)
-        } else {
-          states.forEach((stateBranch) => {
-            const stateContent = stateBranch.content
-            const stateIdentifier = stateIdentifiers[stateKey]
-            if (!stateIdentifier) {
-              return
-            }
-
-            const stateSubTree =
-              typeof stateContent === 'string'
-                ? stateContent
-                : generateTreeStructure(stateContent, accumulators)
-
-            const jsxExpression = createConditionalJSXExpression(
-              stateSubTree,
-              stateBranch.value,
-              stateIdentifier
-            )
-
-            mainTag.children.push(jsxExpression)
-          })
-        }
-
-        return
-      }
-
-      const childTag = generateTreeStructure(child, accumulators)
-
-      addChildJSXTag(mainTag, childTag)
     })
   }
 
-  // UIDL name should be unique
-  nodesLookup[key] = mainTag
+  nodesLookup[key] = elementTag
+  return elementTag
+}
 
-  return mainTag
+export const generateRepeatNode = (
+  node: UIDLRepeatNode,
+  accumulators: ReactComponentAccumulators
+) => {
+  const { node: repeatContent, dataSource, meta } = node.content
+
+  const contentAST = generateNodeSyntax(repeatContent, accumulators)
+
+  if (typeof contentAST === 'string' || (contentAST as types.JSXExpressionContainer).expression) {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateRepeatNode found a repeat node that specified invalid content ${JSON.stringify(
+        contentAST,
+        null,
+        2
+      )}`
+    )
+  }
+
+  const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST as types.JSXElement, meta)
+  return repeatAST
+}
+
+export const generateConditionalNode = (
+  node: UIDLConditionalNode,
+  accumulators: ReactComponentAccumulators
+) => {
+  const { reference, value } = node.content
+  const conditionIdentifier = createConditionIdentifier(reference, accumulators)
+
+  const subTree = generateNodeSyntax(node.content.node, accumulators)
+
+  const condition: UIDLConditionalExpression = value
+    ? { conditions: [{ operand: value, operation: '===' }] }
+    : node.content.condition
+
+  return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
+}
+
+export const generateSlotNode = (
+  node: UIDLSlotNode,
+  accumulators: ReactComponentAccumulators,
+  t = types
+) => {
+  const childrenProp: UIDLDynamicReference = {
+    type: 'dynamic',
+    content: {
+      referenceType: 'prop',
+      id: 'children',
+    },
+  }
+
+  const childrenExpression = makeDynamicValueExpression(childrenProp)
+
+  if (node.content.fallback) {
+    const fallbackContent = generateNodeSyntax(node.content.fallback, accumulators)
+    let expression: types.Expression
+
+    if (typeof fallbackContent === 'string') {
+      expression = t.stringLiteral(fallbackContent)
+    } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
+      expression = (fallbackContent as types.JSXExpressionContainer).expression as types.Expression
+    } else {
+      expression = fallbackContent as types.JSXElement
+    }
+
+    // props.children with fallback
+    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, expression))
+  }
+
+  return t.jsxExpressionContainer(childrenExpression)
+}
+
+type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
+
+export const generateNodeSyntax: NodeSyntaxGenerator<
+  ReactComponentAccumulators,
+  GenerateNodeSyntaxReturnValue
+> = (node, accumulators) => {
+  switch (node.type) {
+    case 'static':
+      return node.content.toString()
+
+    case 'dynamic':
+      return types.jsxExpressionContainer(makeDynamicValueExpression(node))
+
+    case 'element':
+      return generateElementNode(node, accumulators)
+
+    case 'repeat':
+      return generateRepeatNode(node, accumulators)
+
+    case 'conditional':
+      return generateConditionalNode(node, accumulators)
+
+    case 'slot':
+      return generateSlotNode(node, accumulators)
+
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
+      )
+  }
 }
 
 export const createStateIdentifiers = (
-  stateDefinitions: Record<string, StateDefinition>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   dependencies: Record<string, ComponentDependency>
 ) => {
   dependencies.useState = {
@@ -195,7 +253,7 @@ const addEventHandlerToTag = (
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
   stateIdentifiers: Record<string, StateIdentifier>,
-  propDefinitions: Record<string, PropDefinition> = {},
+  propDefinitions: Record<string, UIDLPropDefinition> = {},
   t = types
 ) => {
   const eventHandlerASTStatements: types.ExpressionStatement[] = []
@@ -235,7 +293,7 @@ const addEventHandlerToTag = (
 
 const createPropCallStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  propDefinitions: Record<string, PropDefinition>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
   const { calls: propFunctionKey, args = [] } = eventHandlerStatement
@@ -301,7 +359,7 @@ const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
 }
 
 const makeRepeatStructureWithMap = (
-  dataSource: string | any[],
+  dataSource: UIDLAttributeValue,
   content: types.JSXElement,
   meta: Record<string, any> = {},
   t = types
@@ -309,12 +367,16 @@ const makeRepeatStructureWithMap = (
   const iteratorName = meta.iteratorName || 'item'
   const keyIdentifier = meta.useIndex ? 'index' : iteratorName
 
-  const source =
-    typeof dataSource === 'string'
-      ? t.identifier(dataSource)
-      : t.arrayExpression(dataSource.map((element) => convertValueToLiteral(element)))
+  const source = getSourceIdentifier(dataSource)
 
-  addAttributeToTag(content, 'key', `$local.${keyIdentifier}`)
+  const dynamicLocalReference: UIDLDynamicReference = {
+    type: 'dynamic',
+    content: {
+      referenceType: 'local',
+      id: keyIdentifier,
+    },
+  }
+  addAttributeToNode(content, 'key', dynamicLocalReference)
 
   const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
@@ -328,26 +390,94 @@ const makeRepeatStructureWithMap = (
   )
 }
 
-/**
- * @param tag the ref to the AST tag under construction
- * @param key the key of the attribute that should be added on the current AST node
- * @param value the value(string, number, bool) of the attribute that should be added on the current AST node
- */
-const addAttributeToTag = (tag: types.JSXElement, key: string, value: any) => {
-  if (isDynamicPrefixedValue(value)) {
-    const attrValue = removeDynamicPrefix(value)
-    const propsPrefix = value.startsWith('$props') ? 'props' : ''
-    addDynamicAttributeOnTag(tag, key, attrValue, propsPrefix)
-  } else {
-    addAttributeToJSXTag(tag, { name: key, value })
+const makeDynamicValueExpression = (identifier: UIDLDynamicReference, t = types) => {
+  const prefix = getReactVarNameForDynamicReference(identifier)
+  return prefix === ''
+    ? t.identifier(identifier.content.id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
+}
+
+// Prepares an identifier (from props or state) to be used as a conditional rendering identifier
+// Assumes the type from the corresponding props/state definitions
+const createConditionIdentifier = (
+  dynamicReference: UIDLDynamicReference,
+  accumulators: ReactComponentAccumulators
+): ConditionalIdentifier => {
+  const { id, referenceType } = dynamicReference.content
+
+  switch (referenceType) {
+    case 'prop':
+      return {
+        key: id,
+        type: accumulators.propDefinitions[id].type,
+        prefix: 'props',
+      }
+    case 'state':
+      return {
+        key: id,
+        type: accumulators.stateIdentifiers[id].type,
+      }
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} createConditionIdentifier encountered an invalid reference type: ${JSON.stringify(
+          dynamicReference,
+          null,
+          2
+        )}`
+      )
   }
 }
 
-const addTextElementToTag = (tag: types.JSXElement, text: string) => {
-  if (isDynamicPrefixedValue(text)) {
-    const propsPrefix = text.startsWith('$props') ? 'props' : ''
-    addDynamicChild(tag, removeDynamicPrefix(text), propsPrefix)
-  } else {
-    addChildJSXText(tag, text)
+const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
+  switch (dataSource.type) {
+    case 'static':
+      return t.arrayExpression(
+        (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
+      )
+    case 'dynamic': {
+      return makeDynamicValueExpression(dataSource)
+    }
+    default:
+      throw new Error(`Invalid type for dataSource: ${dataSource}`)
+  }
+}
+
+const getReactVarNameForDynamicReference = (dynamicReference: UIDLDynamicReference) => {
+  return {
+    prop: 'props',
+    state: '',
+    static: '',
+    local: '',
+  }[dynamicReference.content.referenceType]
+}
+
+/**
+ * @param tag the ref to the AST tag under construction
+ * @param attributeKey the key of the attribute that should be added on the current AST node
+ * @param attributeValue the value(string, number, bool) of the attribute that should be added on the current AST node
+ */
+const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
+  tag,
+  attributeKey,
+  attributeValue
+) => {
+  switch (attributeValue.type) {
+    case 'dynamic':
+      const {
+        content: { id },
+      } = attributeValue
+      const prefix = getReactVarNameForDynamicReference(attributeValue)
+      addDynamicAttributeOnTag(tag, attributeKey, id, prefix)
+      return
+    case 'static':
+      const { content } = attributeValue
+      addAttributeToJSXTag(tag, { name: attributeKey, value: content })
+      return
+    default:
+      throw new Error(
+        `${ERROR_LOG_NAME} addAttributeToNode could not generate code for assignment of type ${JSON.stringify(
+          attributeValue
+        )}`
+      )
   }
 }

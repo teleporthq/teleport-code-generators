@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "component.json",
-  "title": "Component UIDL",
+  "name": "Component UIDL",
   "type": "object",
-  "required": ["name", "content"],
+  "required": ["name", "node"],
   "additionalProperties": false,
   "properties": {
     "$schema": {
@@ -14,160 +14,12 @@
       "type": "string",
       "default": "MyComponent"
     },
-    "content": {
-      "$ref": "#/definitions/content"
-    },
-    "meta": {
-      "type": "object"
-    },
-    "stateDefinitions": {
-      "$ref": "#/definitions/stateDefinitions"
-    },
-    "propDefinitions": {
-      "$ref": "#/definitions/propDefinitions"
-    }
+    "node": {"$ref": "#/definitions/node"},
+    "meta": {"type": "object"},
+    "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
+    "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
   },
   "definitions": {
-    "content": {
-      "type": "object",
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "default": "container"
-        },
-        "name": {
-          "type": "string",
-          "default": "container"
-        },
-        "states": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["value", "content"],
-            "additionalProperties": false,
-            "properties": {
-              "value": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["matchingCriteria", "conditions"],
-                    "properties": {
-                      "conditions": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": ["operation"],
-                          "additionalProperties": false,
-                          "properties": {
-                            "operation": { "type": "string" },
-                            "operand": { }
-                          }
-                        }
-                      },
-                      "matchingCriteria": { "type": "string", "enum": ["all", "any"] }
-                    }
-                  },
-                  { "type": "boolean" },
-                  { "type": "number" },
-                  { "type": "string" }
-                ]
-              },
-              "content": {
-                "oneOf": [
-                  { "$ref": "#/definitions/content" },
-                  { "type": "string" }
-                ]
-              }
-            }
-          }
-        },
-        "repeat": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["content", "dataSource"],
-          "properties": {
-            "content": { "$ref": "#/definitions/content" },
-            "dataSource": {
-              "oneOf": [
-                { "type": "string" },
-                { "type": "array" }
-              ]
-            },
-            "meta": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "useIndex": { "type": "boolean" },
-                "iteratorName": { "type": "string" },
-                "dataSourceIdentifier": { "type":"string" }
-              }
-            }
-          }
-        },
-        "dependency": {
-          "$ref": "#/definitions/dependency"
-        },
-        "events": {
-          "type": "object",
-          "patternProperties": {
-            ".*": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["type"],
-                "additionalProperties": false,
-                "properties": {
-                  "type": { "type": "string", "enum": ["stateChange", "propCall"] },
-                  "modifies": { "type": "string" },
-                  "newState": { },
-                  "calls": { "type": "string" },
-                  "args": { "type": "array" }
-                }
-              }
-            }
-          }
-        },
-        "style": {
-          "$ref": "#/definitions/style"
-        },
-        "attrs": {
-          "type": "object"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              { "$ref": "#/definitions/content" },
-              { "type": "string" }
-            ]
-          },
-          "default": []
-        }
-      }
-    },
-    "style": {
-      "type": "object",
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/definitions/style"
-            }
-          ]
-        }
-      }
-    },
     "dependency": {
       "type": "object",
       "additionalProperties": false,
@@ -198,7 +50,10 @@
           "additionalProperties": false,
           "required": ["type"],
           "properties": {
-            "type": {"type": "string", "enum": ["string", "boolean", "number", "array", "func", "object", "children"]},
+            "type": {
+              "type": "string",
+              "enum": ["string", "boolean", "number", "array", "func", "object", "children"]
+            },
             "defaultValue": {},
             "meta": {"type": "object"}
           }
@@ -237,6 +92,231 @@
           }
         }
       }
-    }
-  }
+    },
+    "node": {
+      "type":"object",
+      "properties": {
+        "type": {
+          "type":"string",
+          "enum": ["static", "dynamic", "element", "repeat","conditional","slot"]
+        },
+        "content": {
+          "oneOf": [{
+            "$ref": "#/definitions/staticValueContent" 
+          },{
+            "$ref": "#/definitions/dynamicReferenceContent"
+          },{
+            "$ref": "#/definitions/repeatNodeContent" 
+          },{
+           "$ref": "#/definitions/elementNodeContent"
+          },{
+            "$ref": "#/definitions/conditionalNodeContent"
+          },{
+            "$ref": "#/definitions/slotNodeContent"
+          }]
+        }
+      }
+    },
+    "staticValueContent": {
+      "oneOf": [ 
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array"} 
+      ] 
+    },
+    "dynamicReferenceContent": {
+      "type": "object",
+      "required": ["referenceType","id" ],
+      "additionalProperties": false,
+      "properties": {
+        "referenceType" :{
+          "type": "string",
+          "enum":  ["prop", "state", "local", "attr"]
+        },
+        "id": { "type": "string" }
+      }
+    },
+    "repeatNodeContent": {
+      "type": "object",
+      "required": [ "node", "dataSource" ],
+      "properties": {
+        "node":{ "$ref": "#/definitions/node"},
+        "dataSource":{"$ref": "#/definitions/attributeValue"},
+        "meta": {
+          "type":"object",
+          "properties": {
+            "useIndex": {"type": "boolean"},
+            "iteratorName": {"type": "string"},
+            "dataSourceIdentifier": {"type": "string"}
+          }
+        }
+      }
+    },
+    "attributeValue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["static", "dynamic"]
+        },
+        "content": {
+          "oneOf": [
+            {"$ref":"#/definitions/dynamicReferenceContent"},
+            {"$ref":"#/definitions/staticValueContent"}
+          ]
+        }
+      }
+    },
+    "conditionalNodeContent": {
+      "type":"object",
+      "required": [ "node", "reference" ],
+      "properties": {
+        "node":{ "$ref": "#/definitions/node"},
+        "reference":{
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["dynamic"]
+            },
+            "content": {"$ref":"#/definitions/dynamicReferenceContent"}
+          }
+        },
+        "value": {
+          "oneOf": [ 
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" }
+          ]
+        },
+        "condition": {"$ref":"#/definitions/conditionalExpression"}
+      }
+    },
+    "conditionalExpression":{
+      "type":"object",
+      "required": ["conditions"],
+      "properties": {
+        "conditions":  {
+          "type":"array",
+          "items": {
+            "type":"object",
+            "required": ["operation"],
+            "properties": {
+              "operation": {"type": "string"}, 
+              "operand": {
+                "oneOf": [ 
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              }
+            }
+          }
+        },
+        "matchingCriteria": { "type": "string" }
+      }
+    },
+    "elementNodeContent": {
+      "type": "object",
+      "required": ["elementType"],
+      "properties": {
+        "elementType": {"type": "string"},
+        "name": {"type": "string"},
+        "key": {"type": "string"},
+        "dependency": {"$ref": "#/definitions/componentDependency"},
+        "style": {"$ref": "#/definitions/styleDefinitions"},
+        "attrs": {
+          "type": "object",
+           "patternProperties": {
+            ".*": { "$ref": "#/definitions/attributeValue" }
+          }
+        }, 
+        "events":{"$ref": "#/definitions/eventDefinitions"},
+        "children": { "type": "array", "items": {"$ref": "#/definitions/node"}}
+      }
+    },
+    "componentDependency": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string"},
+        "path": {"type": "string"},
+        "version": {"type": "string"},
+        "meta": {
+          "type":"object",
+          "properties": {
+            "namedImport": {"type": "boolean"},
+             "originalName": {"type": "string"}
+          }
+        }
+      }
+    },
+    "styleDefinitions":{
+      "type": "object",
+      "patternProperties": {
+        ".*": { "$ref": "#/definitions/styleValue" }
+      }
+    },
+    "styleValue": {
+      "type": "object",
+      "oneOf": [
+        {"$ref":"#/definitions/attributeValue"},
+        {"$ref":"#/definitions/nestedStyleDeclaration"}
+      ]
+    },
+    "nestedStyleDeclaration": {
+      "type": "object",
+      "required": ["type", "content"],
+      "properties":{
+        "type": {
+          "type": "string",
+          "enum": ["nested-style"]
+        },
+        "content":{"$ref": "#/definitions/styleDefinitions"}
+      }
+    },
+    "eventDefinitions":{
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type":"array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {"type": "string"},
+              "modifies": {"type": "string"},
+              "newState": {
+                "oneOf": [ 
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              },
+              "calls": {"type": "string"},
+              "args": { 
+                "type": "array",
+                "items": {
+                  "oneOf": [ 
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "boolean" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "slotNodeContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fallback": { "$ref": "#/definitions/node" },
+        "name": { "type": "string" }
+      }
+    }  
+  }      
 }

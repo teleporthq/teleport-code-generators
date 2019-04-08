@@ -1,7 +1,7 @@
 {
   "elements": {
     "navlink": {
-      "type": "Link",
+      "elementType": "Link",
       "dependency": {
         "type": "library",
         "path": "react-router-dom",
@@ -11,7 +11,7 @@
         }
       },
       "attrs": {
-        "to": "$attrs.transitionTo"
+        "to":{ "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }
