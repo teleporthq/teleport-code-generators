@@ -2,7 +2,7 @@ import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
 // @ts-ignore
-import projectJson from '../../uidl-samples/project-state-components.json'
+import projectJson from '../../uidl-samples/new-project.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 
@@ -36,21 +36,12 @@ const writeToDisk = async (
   }
 }
 
-// const runInMemory = async (
-//   projectUIDL: ProjectUIDL,
-//   generatorFunction: ProjectGeneratorFunction
-// ) => {
-//   const result = await generatorFunction(projectUIDL)
-//   console.log(JSON.stringify(result, null, 2))
-// }
-
 const generator = createReactBasicGenerator()
 
 writeToDisk(
-  projectJson,
+  // @ts-ignore
+  projectJson as ProjectUIDL,
   generator.generateProject,
   path.join(__dirname, 'project-template'),
   'dist'
 )
-
-// runInMemory(projectJson, createReactProject)

@@ -22,7 +22,6 @@ export default class Validator {
 
   public validateComponent(input: any): ValidationResult {
     const valid = this.componentValidator(input)
-
     if (!valid && this.componentValidator.errors) {
       return { valid: false, errorMsg: formatErrors(this.componentValidator.errors) }
     }
@@ -30,7 +29,7 @@ export default class Validator {
     return { valid: true, errorMsg: '' }
   }
 
-  public validateProject(input: any): ValidationResult {
+  public validateProject(input: Record<string, unknown>): ValidationResult {
     const valid = this.projectValidator(input)
 
     if (!valid && this.projectValidator.errors) {

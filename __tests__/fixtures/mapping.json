@@ -1,7 +1,7 @@
 {
   "elements": {
     "text": {
-      "type": "span"
+      "elementType": "span"
     }
   }
 }

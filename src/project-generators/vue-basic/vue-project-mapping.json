@@ -1,9 +1,9 @@
 {
   "elements": {
     "navlink": {
-      "type": "router-link",
+      "elementType": "router-link",
       "attrs": {
-        "to": "$attrs.transitionTo"
+        "to": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }

@@ -1,5 +1,6 @@
 // @ts-ignore
 import uidlSample from '../fixtures/project-sample.json'
+// @ts-ignore
 import invalidUidlSample from '../fixtures/project-invalid-sample.json'
 
 import {
@@ -8,12 +9,15 @@ import {
   createVueBasicGenerator,
   createVueNuxtGenerator,
 } from '../../src'
+import { ProjectUIDL } from '../../src/typings/uidl-definitions'
+
+const projectUIDL = uidlSample as ProjectUIDL
 
 describe('React Basic Project Generator', () => {
   const generator = createReactBasicGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(uidlSample)
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -22,9 +26,9 @@ describe('React Basic Project Generator', () => {
     const srcFolder = result.outputFolder.subFolders[0]
 
     expect(srcFolder.files[0].name).toBe('index')
-    expect(srcFolder.files[0].extension).toBe('.html')
+    expect(srcFolder.files[0].fileType).toBe('html')
     expect(srcFolder.files[1].name).toBe('index')
-    expect(srcFolder.files[1].extension).toBe('.js')
+    expect(srcFolder.files[1].fileType).toBe('js')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('pages')
   })
@@ -45,9 +49,9 @@ describe('React Basic Project Generator', () => {
     const srcFolder = result.outputFolder.subFolders[0]
 
     expect(srcFolder.files[0].name).toBe('index')
-    expect(srcFolder.files[0].extension).toBe('.html')
+    expect(srcFolder.files[0].fileType).toBe('html')
     expect(srcFolder.files[1].name).toBe('index')
-    expect(srcFolder.files[1].extension).toBe('.js')
+    expect(srcFolder.files[1].fileType).toBe('js')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('pages')
   })
@@ -57,7 +61,7 @@ describe('React Next Project Generator', () => {
   const generator = createReactNextGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(uidlSample)
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -66,7 +70,7 @@ describe('React Next Project Generator', () => {
     const components = result.outputFolder.subFolders[1]
     const pages = result.outputFolder.subFolders[0]
 
-    expect(components.files[0].name).toBe('ExpandableArea')
+    expect(components.files[0].name).toBe('OneComponent')
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })
@@ -86,7 +90,7 @@ describe('React Next Project Generator', () => {
     const components = result.outputFolder.subFolders[1]
     const pages = result.outputFolder.subFolders[0]
 
-    expect(components.files[0].name).toBe('ExpandableArea')
+    expect(components.files[0].name).toBe('OneComponent')
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })
@@ -96,7 +100,7 @@ describe('Vue Basic Project Generator', () => {
   const generator = createVueBasicGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(uidlSample)
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')
@@ -120,7 +124,7 @@ describe('Vue Nuxt Project Generator', () => {
   const generator = createVueNuxtGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(uidlSample)
+    const result = await generator.generateProject(projectUIDL)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe('dist')

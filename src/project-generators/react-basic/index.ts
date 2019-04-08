@@ -14,6 +14,7 @@ import {
   joinGeneratorOutputs,
   createManifestJSONFile,
 } from '../../shared/utils/project-utils'
+import { extractRoutes } from '../../shared/utils/uidl-utils'
 import {
   ASSETS_PREFIX,
   LOCAL_DEPENDENCIES_PREFIX,
@@ -22,22 +23,23 @@ import {
 } from './constants'
 
 import { Validator } from '../../core'
+import { parseProjectJSON } from '../../core/parser/project'
 
 import {
   ComponentGenerator,
   ComponentFactoryParams,
   ProjectGeneratorOptions,
-  Mapping,
   GeneratedFile,
-} from '../../typings/generators.js'
-import { ProjectUIDL, ComponentUIDL } from '../../typings/uidl-definitions'
+  GenerateProjectFunction,
+} from '../../typings/generators'
+import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactGenerator({
     variation: ReactComponentStylingFlavors.CSSModules,
   })
 
-  reactGenerator.addMapping(reactProjectMapping)
+  reactGenerator.addMapping(reactProjectMapping as Mapping)
   if (options.customMapping) {
     reactGenerator.addMapping(options.customMapping)
   }
@@ -53,14 +55,15 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Validate project UIDL
+  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+    // Step 0: Validate project input and transform to UIDL
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(uidl)
+      const validationResult = validator.validateProject(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
@@ -68,27 +71,17 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     }
 
     const { components = {}, root } = uidl
-    const { states = [] } = root.content
+    const routeNodes = extractRoutes(root)
 
-    const stateDefinitions = root.stateDefinitions || {}
-    const routerDefinitions = stateDefinitions.router || null
-
-    // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const pagePromises = states.map((stateBranch) => {
-      if (
-        typeof stateBranch.value !== 'string' ||
-        typeof stateBranch.content === 'string' ||
-        !routerDefinitions
-      ) {
-        return { files: [], dependencies: {} }
-      }
+    // Step 1: The first level conditionals become the pages
+    const pagePromises = routeNodes.map((routeNode) => {
+      const { value, node } = routeNode.content
+      const pageName = value.toString()
 
       const componentUIDL: ComponentUIDL = {
-        name: stateBranch.value,
-        content: stateBranch.content,
-        stateDefinitions: {
-          routerDefinitions,
-        },
+        name: pageName,
+        node,
+        stateDefinitions: root.stateDefinitions,
       }
 
       const pageParams: ComponentFactoryParams = {

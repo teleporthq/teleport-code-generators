@@ -1,8 +1,8 @@
 import * as utils from './utils'
 import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { cloneElement } from '../../shared/utils/uidl-utils'
-import { GeneratorOptions, Mapping } from '../../typings/generators'
-import { ContentNode, ComponentUIDL } from '../../typings/uidl-definitions'
+import { cloneObject } from '../../shared/utils/uidl-utils'
+import { GeneratorOptions } from '../../typings/generators'
+import { ComponentUIDL, UIDLElement, Mapping } from '../../typings/uidl-definitions'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -27,32 +27,34 @@ export default class Resolver {
   }
 
   public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
-    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
-    if (customMapping) {
-      this.addMapping(customMapping)
+    const mapping = utils.mergeMappings(this.mapping, options.mapping)
+    const newOptions = {
+      ...options,
+      mapping,
     }
 
-    const content = cloneElement(uidl.content)
-
-    utils.resolveContentNode(content, this.mapping, localDependenciesPrefix, assetsPrefix)
+    const node = cloneObject(uidl.node)
+    utils.resolveNode(node, newOptions)
 
     const nodesLookup = {}
-    utils.createNodesLookup(content, nodesLookup)
-    utils.generateUniqueKeys(content, nodesLookup)
+    utils.createNodesLookup(node, nodesLookup)
+    utils.generateUniqueKeys(node, nodesLookup)
 
     return {
       ...uidl,
       name: sanitizeVariableName(uidl.name),
-      content,
+      node,
     }
   }
 
-  public resolveContentNode(node: ContentNode, options: GeneratorOptions = {}) {
-    const { customMapping, localDependenciesPrefix = './', assetsPrefix } = options
-    const mapping = utils.mergeMappings(this.mapping, customMapping)
-    const returnNode = cloneElement(node)
-
-    utils.resolveContentNode(returnNode, mapping, localDependenciesPrefix, assetsPrefix)
-    return returnNode
+  public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
+    const mapping = utils.mergeMappings(this.mapping, options.mapping)
+    const newOptions = {
+      ...options,
+      mapping,
+    }
+    const returnElement = cloneObject(element)
+    utils.resolveElement(returnElement, newOptions)
+    return returnElement
   }
 }

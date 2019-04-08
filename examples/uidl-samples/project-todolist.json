@@ -57,8 +57,20 @@
             "type": "Todo",
             "name": "todo",
             "attrs": {
-              "todo": "$local.item",
-              "index": "$local.index"
+              "todo": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id":"item" 
+                }
+              },
+              "index": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "local",
+                  "id":"index" 
+                }
+              }
             },
             "events": {
               "onDelete": [{
