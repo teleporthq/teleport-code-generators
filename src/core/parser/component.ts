@@ -11,6 +11,7 @@ import {
   UIDLNode,
   UIDLConditionalNode,
   UIDLRepeatNode,
+  UIDLSlotNode,
 } from '../../typings/uidl-definitions'
 
 export const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
@@ -70,6 +71,15 @@ export const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       }
 
       return repeatNode
+
+    case 'slot':
+      const slotNode = node as UIDLSlotNode
+
+      if (slotNode.content.fallback) {
+        slotNode.content.fallback = parseComponentNode(slotNode.content.fallback)
+      }
+
+      return slotNode
 
     case 'dynamic':
     case 'static':

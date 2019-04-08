@@ -125,7 +125,11 @@ export const generateConditionalNode = (
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
-export const generateSlotNode = (node: UIDLSlotNode, accumulators: ReactComponentAccumulators) => {
+export const generateSlotNode = (
+  node: UIDLSlotNode,
+  accumulators: ReactComponentAccumulators,
+  t = types
+) => {
   const childrenProp: UIDLDynamicReference = {
     type: 'dynamic',
     content: {
@@ -141,7 +145,7 @@ export const generateSlotNode = (node: UIDLSlotNode, accumulators: ReactComponen
     let expression: types.Expression
 
     if (typeof fallbackContent === 'string') {
-      expression = types.stringLiteral(fallbackContent)
+      expression = t.stringLiteral(fallbackContent)
     } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
       expression = (fallbackContent as types.JSXExpressionContainer).expression as types.Expression
     } else {
@@ -149,12 +153,10 @@ export const generateSlotNode = (node: UIDLSlotNode, accumulators: ReactComponen
     }
 
     // props.children with fallback
-    return types.jsxExpressionContainer(
-      types.logicalExpression('||', childrenExpression, expression)
-    )
+    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, expression))
   }
 
-  return types.jsxExpressionContainer(childrenExpression)
+  return t.jsxExpressionContainer(childrenExpression)
 }
 
 type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
