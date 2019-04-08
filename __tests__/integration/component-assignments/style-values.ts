@@ -1,12 +1,12 @@
 // @ts-ignore-next-line
 import ComponentWithValidJSON from './component-with-valid-style.json'
 // @ts-ignore-next-line
-import ComponentWithInValidStyle from './component-with-invalid-style.json'
-// @ts-ignore-next-line
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
+import { ComponentUIDL } from '../../../src/typings/uidl-definitions.js'
+import { GeneratedFile } from '../../../src/typings/generators.js'
 
 const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
 
@@ -55,17 +55,6 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })
-
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(
-        (ComponentWithInValidStyle as unknown) as ComponentUIDL,
-        {
-          skipValidation: true,
-        }
-      )
-
-      await expect(operation).rejects.toThrow(Error)
-    })
   })
 
   describe('React CSS file using CSS Modules', () => {
@@ -109,16 +98,6 @@ describe('Vue Props in Component Generator', () => {
       expect(vueFile.content).toContain(`align-self: center`)
       expect(vueFile.content).toContain('@media (max-width: 640px) {')
       expect(vueFile.content).toContain(`@media (max-width: 634px) {`)
-    })
-
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(
-        (ComponentWithInValidStyle as unknown) as ComponentUIDL,
-        {
-          skipValidation: true,
-        }
-      )
-      await expect(operation).rejects.toThrow(Error)
     })
   })
 })
