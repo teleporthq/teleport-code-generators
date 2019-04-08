@@ -120,6 +120,10 @@
           }
         },
         {
+          "type": "slot",
+          "content": {}
+        },
+        {
           "type": "element",
           "content": {
             "elementType": "video",

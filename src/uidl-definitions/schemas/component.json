@@ -98,7 +98,7 @@
       "properties": {
         "type": {
           "type":"string",
-          "enum": ["static", "dynamic", "element", "repeat","conditional"]
+          "enum": ["static", "dynamic", "element", "repeat","conditional","slot"]
         },
         "content": {
           "oneOf": [{
@@ -111,17 +111,19 @@
            "$ref": "#/definitions/elementNodeContent"
           },{
             "$ref": "#/definitions/conditionalNodeContent"
+          },{
+            "$ref": "#/definitions/slotNodeContent"
           }]
         }
       }
     },
     "staticValueContent": {
-          "oneOf": [ 
-            { "type": "string" },
-            { "type": "number" },
-            { "type": "boolean" },
-            { "type": "array"} 
-          ] 
+      "oneOf": [ 
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array"} 
+      ] 
     },
     "dynamicReferenceContent": {
       "type": "object",
@@ -307,6 +309,14 @@
           }
         }
       }
-    }   
+    },
+    "slotNodeContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fallback": { "$ref": "#/definitions/node" },
+        "name": { "type": "string" }
+      }
+    }  
   }      
 }

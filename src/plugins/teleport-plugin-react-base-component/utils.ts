@@ -22,6 +22,7 @@ import {
   ComponentDependency,
   UIDLStateDefinition,
   EventHandlerStatement,
+  UIDLSlotNode,
 } from '../../typings/uidl-definitions'
 import {
   StateIdentifier,
@@ -124,6 +125,40 @@ export const generateConditionalNode = (
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
+export const generateSlotNode = (
+  node: UIDLSlotNode,
+  accumulators: ReactComponentAccumulators,
+  t = types
+) => {
+  const childrenProp: UIDLDynamicReference = {
+    type: 'dynamic',
+    content: {
+      referenceType: 'prop',
+      id: 'children',
+    },
+  }
+
+  const childrenExpression = makeDynamicValueExpression(childrenProp)
+
+  if (node.content.fallback) {
+    const fallbackContent = generateNodeSyntax(node.content.fallback, accumulators)
+    let expression: types.Expression
+
+    if (typeof fallbackContent === 'string') {
+      expression = t.stringLiteral(fallbackContent)
+    } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
+      expression = (fallbackContent as types.JSXExpressionContainer).expression as types.Expression
+    } else {
+      expression = fallbackContent as types.JSXElement
+    }
+
+    // props.children with fallback
+    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, expression))
+  }
+
+  return t.jsxExpressionContainer(childrenExpression)
+}
+
 type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
 
 export const generateNodeSyntax: NodeSyntaxGenerator<
@@ -145,6 +180,9 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
 
     case 'conditional':
       return generateConditionalNode(node, accumulators)
+
+    case 'slot':
+      return generateSlotNode(node, accumulators)
 
     default:
       throw new Error(

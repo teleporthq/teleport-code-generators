@@ -86,41 +86,76 @@ export const traverseNodes = (
 ) => {
   fn(node, parent)
 
-  if (node.type === 'element') {
-    if (node.content.children) {
-      node.content.children.forEach((child) => {
-        traverseNodes(child, fn, node)
-      })
-    }
-  }
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseNodes(child, fn, node)
+        })
+      }
+      break
 
-  if (node.type === 'repeat') {
-    traverseNodes(node.content.node, fn, node)
-  }
+    case 'repeat':
+      traverseNodes(node.content.node, fn, node)
+      break
 
-  if (node.type === 'conditional') {
-    traverseNodes(node.content.node, fn, node)
+    case 'conditional':
+      traverseNodes(node.content.node, fn, node)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseNodes(node.content.fallback, fn, node)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+      break
+
+    default:
+      throw new Error(
+        `traverseNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
   }
 }
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
 export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
-  if (node.type === 'element') {
-    fn(node.content)
+  switch (node.type) {
+    case 'element':
+      fn(node.content)
 
-    if (node.content.children) {
-      node.content.children.forEach((child) => {
-        traverseElements(child, fn)
-      })
-    }
-  }
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseElements(child, fn)
+        })
+      }
 
-  if (node.type === 'repeat') {
-    traverseElements(node.content.node, fn)
-  }
+      break
 
-  if (node.type === 'conditional') {
-    traverseElements(node.content.node, fn)
+    case 'repeat':
+      traverseElements(node.content.node, fn)
+      break
+
+    case 'conditional':
+      traverseElements(node.content.node, fn)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseElements(node.content.fallback, fn)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+      break
+
+    default:
+      throw new Error(
+        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
   }
 }
 
