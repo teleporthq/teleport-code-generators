@@ -118,9 +118,10 @@ export const generateConditionalNode = (
 
   const subTree = generateNodeSyntax(node.content.node, accumulators)
 
-  const condition: UIDLConditionalExpression = value
-    ? { conditions: [{ operand: value, operation: '===' }] }
-    : node.content.condition
+  const condition: UIDLConditionalExpression =
+    value !== undefined && value !== null
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : node.content.condition
 
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
@@ -130,6 +131,7 @@ export const generateSlotNode = (
   accumulators: ReactComponentAccumulators,
   t = types
 ) => {
+  // TODO: Handle multiple slots with props['slot-name']
   const childrenProp: UIDLDynamicReference = {
     type: 'dynamic',
     content: {

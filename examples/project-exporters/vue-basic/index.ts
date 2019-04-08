@@ -2,7 +2,7 @@ import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
 // @ts-ignore
-import projectJson from '../../uidl-samples/new-project.json'
+import projectJson from '../../uidl-samples/project.json'
 
 import { createVueBasicGenerator } from '../../../src'
 import { ProjectUIDL } from '../../../src/typings/uidl-definitions'
