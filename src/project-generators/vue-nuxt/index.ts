@@ -18,16 +18,19 @@ import {
   createPackageJSONFile,
   joinGeneratorOutputs,
 } from '../../shared/utils/project-utils'
+
 import { extractRoutes } from '../../shared/utils/uidl-utils'
 import { Validator } from '../../core'
+import { parseProjectJSON } from '../../core/parser/project'
 
 import {
   ProjectGeneratorOptions,
   ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
+  GenerateProjectFunction,
 } from '../../typings/generators'
-import { ProjectUIDL, ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
+import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
   const vueGenerator = createVueGenerator({
@@ -49,14 +52,15 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject = async (uidl: ProjectUIDL, options: ProjectGeneratorOptions = {}) => {
-    // Step 0: Validate project UIDL
+  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+    // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(uidl)
+      const validationResult = validator.validateProject(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
+    const uidl = parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {

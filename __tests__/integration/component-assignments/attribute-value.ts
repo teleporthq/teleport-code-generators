@@ -1,14 +1,13 @@
 // @ts-ignore-next-line
-import ComponentWithInValidPropsJSON from './component-with-invalid-attr-prop.json'
-// @ts-ignore-next-line
 import ComponentWithValidPropsJSON from './component-with-valid-attr-prop.json'
 // @ts-ignore-next-line
 import ComponentWithRepeatPropsJSON from './component-with-repeat.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
+import { ComponentUIDL } from '../../../src/typings/uidl-definitions.js'
+import { GeneratedFile } from '../../../src/typings/generators.js'
 
 const ComponentWithValidProps = ComponentWithValidPropsJSON as ComponentUIDL
-const ComponentWithInValidProps = (ComponentWithInValidPropsJSON as unknown) as ComponentUIDL
 const ComponentWithRepeatProps = ComponentWithRepeatPropsJSON as ComponentUIDL
 
 const JS_FILE = 'js'
@@ -37,14 +36,6 @@ describe('React Props in Component', () => {
       expect(jsFile.content).toContain('key={index}>')
       expect(jsFile.content).toContain('test={index}>')
     })
-
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps, {
-        skipValidation: true,
-      })
-
-      await expect(operation).rejects.toThrow(Error)
-    })
   })
 })
 
@@ -70,13 +61,6 @@ describe('Vue Props in Component Generator', () => {
 
       expect(vueFile.content).toContain(':key="index"')
       expect(vueFile.content).toContain(':test="index"')
-    })
-
-    it('should fail to add old style attributes on component', async () => {
-      const operation = generator.generateComponent(ComponentWithInValidProps, {
-        skipValidation: true,
-      })
-      await expect(operation).rejects.toThrow(Error)
     })
   })
 })

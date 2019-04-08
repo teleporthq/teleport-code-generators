@@ -175,3 +175,19 @@ export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
   node: UIDLNode,
   accumulators: Accumulators
 ) => ReturnValues
+
+export interface ProjectGeneratorOutput {
+  outputFolder: GeneratedFolder
+  assetsPath: string
+}
+
+export type GenerateProjectFunction = (
+  input: Record<string, unknown>,
+  options: ProjectGeneratorOptions
+) => Promise<ProjectGeneratorOutput>
+
+export type GenerateComponentFunction = (
+  // TODO rename to ComponentGeneratorOptions
+  input: Record<string, unknown>,
+  options: GeneratorOptions
+) => Promise<CompiledComponent>
