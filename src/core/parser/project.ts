@@ -18,7 +18,7 @@ export const parseProjectJSON = (
     ...(safeInput as ProjectUIDL),
   }
 
-  result.root = parseComponentJSON(root)
+  result.root = parseComponentJSON(root, { noClone: true })
   if (result.components) {
     result.components = Object.keys(result.components).reduce((parsedComponnets, key) => {
       parsedComponnets[key] = parseComponentJSON(result.components[key])
