@@ -3,7 +3,7 @@ import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import { cammelCaseToDashCase, stringToCamelCase } from '../../shared/utils/string-utils'
 import { addJSXTagStyles, addDynamicAttributeOnTag } from '../../shared/utils/ast-jsx-utils'
 import {
-  traverseElements,
+  traverseNodes,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
@@ -54,8 +54,8 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     const cssClasses: string[] = []
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
 
-    traverseElements(uidl.node, (element) => {
-      const { style, key } = element
+    traverseNodes(uidl.content, (node) => {
+      const { style, key } = node
       if (style) {
         const root = astNodesLookup[key]
         const className = cammelCaseToDashCase(key)
@@ -71,7 +71,10 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
               new ParsedASTNode(
                 t.arrowFunctionExpression(
                   [t.identifier('props')],
-                  t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
+                  t.memberExpression(
+                    t.identifier('props'),
+                    t.identifier(styleValue.replace('$props.', ''))
+                  )
                 )
               )
           )

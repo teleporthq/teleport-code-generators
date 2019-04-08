@@ -9,7 +9,7 @@ import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
 import { createFile, createFolder } from '../../shared/utils/project-utils'
-import { FILE_TYPE } from '../../shared/constants'
+import { FILE_EXTENSIONS } from '../../shared/constants'
 
 import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
 import { ProjectUIDL } from '../../typings/uidl-definitions'
@@ -160,7 +160,7 @@ export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile | 
     return []
   }
 
-  return createFile('_document', FILE_TYPE.JS, documentComponent)
+  return createFile('_document', FILE_EXTENSIONS.JS, documentComponent)
 }
 
 export const buildFolderStructure = (

@@ -1,12 +1,34 @@
 import {
   ComponentUIDL,
+  ContentNode,
   ProjectUIDL,
   ComponentDependency,
-  Mapping,
-  UIDLElement,
-  UIDLNode,
-  UIDLAttributeValue,
+  RepeatDefinition,
 } from './uidl-definitions'
+
+export interface Mapping {
+  elements?: Record<string, ElementMapping>
+  events?: Record<string, string>
+}
+
+export interface ElementMapping {
+  type: string
+  dependency?: ComponentDependency
+  attrs?: Record<string, any>
+  children?: Array<ContentNode | string>
+  repeat?: RepeatDefinition
+}
+
+export interface CompiledComponent {
+  code: string
+  externalCSS?: string
+  externalDependencies: Record<string, string>
+}
+
+/**
+ * The structure of a component contains multiple chunks, and information
+ * about how these chunks work together
+ */
 
 export type ChunkContent = string | any | any[]
 
@@ -23,10 +45,6 @@ export interface ChunkDefinition {
   linkAfter: string[]
 }
 
-/**
- * The structure of a component contains multiple chunks, and information
- * about how these chunks work together
- */
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
   uidl: ComponentUIDL
@@ -43,14 +61,9 @@ export type ComponentPluginFactory<T> = (
   configuration?: Partial<T & ComponentDefaultPluginParams>
 ) => ComponentPlugin
 
-export interface CompiledComponent {
-  files: GeneratedFile[]
-  dependencies: Record<string, string>
-}
-
 export interface ComponentGenerator {
   generateComponent: (uidl: ComponentUIDL, options?: GeneratorOptions) => Promise<CompiledComponent>
-  resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
+  resolveContentNode: (node: ContentNode, options?: GeneratorOptions) => ContentNode
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
 }
@@ -58,28 +71,11 @@ export interface ComponentGenerator {
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
-  mapping?: Mapping
+  customMapping?: Mapping
   skipValidation?: boolean
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
-
-/**
- * This structure is used for keeping information about a single state key while creating a component
- */
-export interface StateIdentifier {
-  key: string
-  type: string
-  setter: string
-  default: any
-}
-
-// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
-export interface ConditionalIdentifier {
-  key: string
-  type: string
-  prefix?: string
-}
 
 export interface HastNode {
   type: string
@@ -102,9 +98,9 @@ export interface GeneratedFolder {
 }
 
 export interface GeneratedFile {
-  name: string
-  fileType: string
   content: string
+  name: string
+  extension: string
 }
 
 export interface ComponentFactoryParams {
@@ -119,6 +115,7 @@ export interface ComponentFactoryParams {
     usePathAsFileName?: boolean
     convertDefaultToIndex?: boolean
   }
+  componentExtension?: string
 }
 
 export interface ComponentGeneratorOutput {
@@ -152,42 +149,3 @@ export interface PackageJSON {
   dependencies?: Record<string, string>
   [key: string]: any
 }
-
-/**
- * Function used to alter the generic generatedEntity by adding a attribute
- * named attributeKey with attributeValue data. This type of function is meant
- * to be used in generators that support attribute values on their presentation
- * nodes.
- *
- * For example, a <div/> in HAST could get a new attribute tab-index with value 0
- * with a function like this.
- */
-export type AttributeAssignCodeMod<T> = (
-  generatedEntity: T,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
-) => void
-
-/**
- * Function used to generate a presentation structure.
- */
-export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
-  node: UIDLNode,
-  accumulators: Accumulators
-) => ReturnValues
-
-export interface ProjectGeneratorOutput {
-  outputFolder: GeneratedFolder
-  assetsPath: string
-}
-
-export type GenerateProjectFunction = (
-  input: Record<string, unknown>,
-  options: ProjectGeneratorOptions
-) => Promise<ProjectGeneratorOutput>
-
-export type GenerateComponentFunction = (
-  // TODO rename to ComponentGeneratorOptions
-  input: Record<string, unknown>,
-  options: GeneratorOptions
-) => Promise<CompiledComponent>

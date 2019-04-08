@@ -1,12 +1,11 @@
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import {
+  traverseNodes,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
-  traverseElements,
 } from '../../shared/utils/uidl-utils'
 import { createCSSClass } from '../../shared/utils/jss-utils'
 import { addClassToNode, addAttributeToNode } from '../../shared/utils/html-utils'
-import { UIDLDynamicReference } from '../../typings/uidl-definitions'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface VueStyleChunkConfig {
@@ -26,15 +25,15 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
 
-    const { node } = uidl
+    const { content } = uidl
 
     const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
     const templateLookup = templateChunk.meta.lookup
 
     const jssStylesArray = []
 
-    traverseElements(node, (element) => {
-      const { style, key } = element
+    traverseNodes(content, (node) => {
+      const { style, key } = node
 
       if (style) {
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
@@ -46,7 +45,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
           const vueFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
-            return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
+            return `${styleKey}: ${rootStyles[styleKey].replace('$props.', '')}`
           })
 
           addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)

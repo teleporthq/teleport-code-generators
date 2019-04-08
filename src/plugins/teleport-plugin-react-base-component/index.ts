@@ -1,6 +1,5 @@
-import * as types from '@babel/types'
 import { makeDefaultExport } from '../../shared/utils/ast-js-utils'
-import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
+import { makePureComponent, generateTreeStructure, createStateIdentifiers } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
 interface JSXConfig {
@@ -8,8 +7,6 @@ interface JSXConfig {
   exportChunkName: string
   importChunkName: string
 }
-
-export const ERROR_LOG_NAME = `react-base-component`
 
 export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const {
@@ -36,12 +33,12 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
 
-    const jsxTagStructure = generateNodeSyntax(uidl.node, {
+    const jsxTagStructure = generateTreeStructure(uidl.content, {
       propDefinitions: uidl.propDefinitions || {},
       stateIdentifiers,
       nodesLookup,
       dependencies,
-    }) as types.JSXElement
+    })
 
     const pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure)
 

@@ -1,126 +1,166 @@
 {
-  "name": "New UIDL",
-  "propDefinitions": {
-    "title": {
-      "type": "string",
-      "defaultValue": "Hello"
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+    "name": "TabSelector",
+    "stateDefinitions": {
+      "activeTab": {
+        "type": "number",
+        "defaultValue": 0
+      }
     },
-    "items": {
-      "type": "array",
-      "defaultValue": []
-    }
-  },
-  "stateDefinitions": {
-    "isVisible": {
-      "type": "boolean",
-      "defaultValue": true,
-      "test":"test"
-    }
-  },
-  "node": {
-    "type": "element",
+    "propDefinitions": {
+      "test": {
+        "type": "string",
+        "defaultValue": "123"
+      }
+    },
     "content": {
-      "elementType": "container",
-      "attrs": {
-        "data-static-attr": {
-          "type": "static",
-          "content": "test"
-        },
-        "data-dynamic-attr": {
-          "type": "dynamic",
-          "content": {
-            "referenceType": "prop",
-            "id": "title"
-          }
-        }
-      },
+      "type": "container",
+      "key": "string",
       "children": [
         {
-          "type": "element",
-          "content": {
-            "elementType": "text",
-            "children": [
-              {
-                "type": "static",
-                "content": "Hello World!"
+          "type": "container",
+          "attrs": {
+            "data-test": "$props.test"
+          },
+          "children": [
+            {
+              "type": "button",
+              "children": ["Click"],
+              "style": {
+                "border": "1px solid black",
+                "padding": "5px 10px"
               },
-              {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "prop",
-                  "id": "title"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "repeat",
-          "content": {
-            "node": {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "local",
-                      "id": "item"
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "list",
-                      "attrs": {
-                        "items": {
-                          "type": "static",
-                          "content": ["angular", "react", "vue"]
-                        }
-                      }
-                    }
-                  }
-                ]
+              "events": {
+                "onClick": [{
+                  "type": "stateChange",
+                  "modifies": "activeTab",
+                  "newState": 0
+                }]
               }
             },
-            "dataSource": {
-              "type": "dynamic",
-              "content": {
-                "referenceType": "prop",
-                "id": "items"
+            {
+              "type": "button",
+              "children": ["any"],
+              "style": {
+                "border": "1px solid black",
+                "padding": "5px 10px"
+              },
+              "events": {
+                "onClick": [{
+                  "type": "stateChange",
+                  "modifies": "activeTab",
+                  "newState": 1
+                }]
               }
             },
-            "meta": {
-              "useIndex": true,
-              "iteratorName": "item"
-            }
-          }
-        },
-        {
-          "type": "conditional",
-          "content": {
-            "reference": {
-              "type": "dynamic",
-              "content": {
-                "referenceType": "state",
-                "id": "isVisible"
+            {
+              "type": "button",
+              "children": ["of"],
+              "style": {
+                "border": "1px solid black",
+                "padding": "5px 10px"
+              },
+              "events": {
+                "onClick": [{
+                  "type": "stateChange",
+                  "modifies": "activeTab",
+                  "newState": 2
+                }]
               }
             },
-            "value": true,
-            "node": {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "children": [{
-                  "type": "static",
-                  "content": "Now you see me!"
+            {
+              "type": "button",
+              "children": ["these"],
+              "style": {
+                "border": "1px solid black",
+                "padding": "5px 10px"
+              },
+              "events": {
+                "onClick": [{
+                  "type": "stateChange",
+                  "modifies": "activeTab",
+                  "newState": 3
                 }]
               }
             }
-          }
+          ]
+        },
+        {
+          "type": "container",
+          "style": {
+            "width": 100,
+            "height": 50,
+            "display": "flex",
+            "alignItems": "flex-start",
+            "backgroundColor": "#e4f2f8",
+            "borderColor": "$props.test",
+            "borderWidth": 0,
+            "borderStyle": "solid",
+            "@media (max-width: 835px)": {
+                "width": 228,
+                "borderColor": "$props.test",
+                "height": 154
+            },
+            "@media (max-width: 640px)": {
+                "backgroundColor": "#e91e63"
+            },
+            "@media (max-width: 634px)": {
+                "height": 276
+            }
+          },
+          "children": [
+            "Active tab: ",
+            "$state.activeTab"
+          ]
+        },
+        {
+          "type": "state",
+          "states": [
+            {
+              "value": 0,
+              "content": {
+                "type": "container",
+                "children": [{
+                  "type": "text",
+                  "children": ["This is the first tab"]
+                }]
+              }
+            },{
+              "value": 1,
+              "content": {
+                "type": "text",
+                "children": ["This is the second tab"]
+              }
+            },{
+              "value": {
+                "matchingCriteria": "any",
+                "conditions": [{
+                  "operand": 2,
+                  "operation": "==="
+                }]
+              },
+              "content": {
+                "type": "text",
+                "children": ["This is the third tab"]
+              }
+            },{
+              "value": {
+                "matchingCriteria": "all",
+                "conditions": [{
+                  "operand": 3,
+                  "operation": ">="
+                }, {
+                  "operand": 5,
+                  "operation": "<"
+                }]
+              },
+              "content": {
+                "type": "text",
+                "children": ["This is the fourth tab"]
+              }
+            }
+          ]
         }
       ]
     }
   }
-}

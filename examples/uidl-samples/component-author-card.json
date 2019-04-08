@@ -22,7 +22,7 @@
       "width": "100%",
       "height": "100%",
       "display": "flex",
-      "flexDirection": { "content": { "type": "props", "id": "direction" } }
+      "flexDirection": "$props.direction"
     },
     "children": [
       {
@@ -42,8 +42,8 @@
             "type": "image",
             "name": "img",
             "attrs": {
-              "src": { "type": "dynamic", "content": { "type": "props", "id": "avatarUrl"} },
-              "alt": { "type": "dynamic", "content": { "type": "props", "id": "authorName"} }
+              "src": "$props.avatarUrl",
+              "alt": "$props.authorName"
             }
           }
         ]
