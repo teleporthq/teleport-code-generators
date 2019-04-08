@@ -1,10 +1,9 @@
 import { addClassStringOnJSXTag, generateStyledJSXTag } from '../../shared/utils/ast-jsx-utils'
 
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
-import { transformDynamicStyles, traverseElements } from '../../shared/utils/uidl-utils'
-import { createCSSClassFromStringMap } from '../../shared/utils/jss-utils'
+import { traverseNodes, transformDynamicStyles } from '../../shared/utils/uidl-utils'
+import { createCSSClass } from '../../shared/utils/jss-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
-import { UIDLElement } from '../../typings/uidl-definitions'
 
 interface StyledJSXConfig {
   componentChunkName: string
@@ -16,7 +15,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
   const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
 
-    const { node } = uidl
+    const { content } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -27,23 +26,18 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
     const styleJSXString: string[] = []
 
-    traverseElements(node, (element) => {
-      const { style, key } = element
+    traverseNodes(content, (node) => {
+      const { style, key } = node
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
+
         // Generating the string templates for the dynamic styles
-        const styleRules = transformDynamicStyles(style, (styleValue) => {
-          if (styleValue.content.referenceType === 'prop') {
-            return `\$\{props.${styleValue.content.id}\}`
-          }
-          throw new Error(
-            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${
-              styleValue.content.referenceType
-            }`
-          )
-        })
-        styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
+        const styleRules = transformDynamicStyles(
+          style,
+          (styleValue) => `\$\{${styleValue.replace('$props.', 'props.')}\}`
+        )
+        styleJSXString.push(createCSSClass(className, styleRules))
 
         addClassStringOnJSXTag(root, className)
       }
@@ -54,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     }
 
     const jsxASTNodeReference = generateStyledJSXTag(styleJSXString.join('\n'))
-    const rootJSXNode = jsxNodesLookup[(node.content as UIDLElement).key] // TODO: Check for other types
+    const rootJSXNode = jsxNodesLookup[content.key]
 
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure

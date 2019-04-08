@@ -1,7 +1,7 @@
 {
   "elements": {
-    "container": {
-      "elementType": "div"
+    "slot": {
+      "type": "slot"
     }
   },
   "events": {

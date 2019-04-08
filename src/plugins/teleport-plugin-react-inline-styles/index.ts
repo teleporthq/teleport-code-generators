@@ -3,9 +3,9 @@ import * as t from '@babel/types'
 import { addJSXTagStyles } from '../../shared/utils/ast-jsx-utils'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import {
+  traverseNodes,
   cleanupNestedStyles,
   transformDynamicStyles,
-  traverseElements,
 } from '../../shared/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
@@ -22,14 +22,15 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
    */
   const reactInlineStyleComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
+
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
 
     if (!componentChunk) {
       return structure
     }
 
-    traverseElements(uidl.node, (element) => {
-      const { style, key } = element
+    traverseNodes(uidl.content, (node) => {
+      const { style, key } = node
 
       if (style) {
         const jsxASTTag = componentChunk.meta.nodesLookup[key]
@@ -39,11 +40,16 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
         // Nested styles are ignored
         const rootStyles = cleanupNestedStyles(style)
-        const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
-          return new ParsedASTNode(
-            t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-          )
-        })
+        const inlineStyles = transformDynamicStyles(
+          rootStyles,
+          (styleValue) =>
+            new ParsedASTNode(
+              t.memberExpression(
+                t.identifier('props'),
+                t.identifier(styleValue.replace('$props.', ''))
+              )
+            )
+        )
 
         addJSXTagStyles(jsxASTTag, inlineStyles)
       }

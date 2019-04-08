@@ -13,7 +13,6 @@ coverage/
 .vscode
 *.swp
 *.swo
-.history/
 
 # Logs
 logs

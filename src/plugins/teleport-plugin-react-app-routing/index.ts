@@ -1,7 +1,7 @@
 import * as t from '@babel/types'
 
 import { generateASTDefinitionForJSXTag } from '../../shared/utils/ast-jsx-utils'
-import { extractPageMetadata, extractRoutes } from '../../shared/utils/uidl-utils'
+import { extractPageMetadata } from '../../shared/utils/uidl-utils'
 import { registerRouterDeps, makePureComponent } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
 
@@ -23,17 +23,19 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
     registerRouterDeps(dependencies)
 
-    const { stateDefinitions = {} } = uidl
+    const { content, stateDefinitions = {} } = uidl
+    const { states: pages = [] } = uidl.content
+    const { router: routerDefinitions } = stateDefinitions
 
-    const routes = extractRoutes(uidl)
+    const routeJSXDefinitions = pages.map((page) => {
+      const { value: pageKey } = page
 
-    const routeJSXDefinitions = routes.map((conditionalNode) => {
-      const { value: routeKey } = conditionalNode.content
+      if (typeof pageKey !== 'string' || typeof content === 'string') {
+        console.warn('Route is not correctly specified. Expected route value to be a string.')
+        return null
+      }
 
-      const { fileName, componentName, path } = extractPageMetadata(
-        stateDefinitions.route,
-        routeKey.toString()
-      )
+      const { fileName, componentName, path } = extractPageMetadata(routerDefinitions, pageKey)
       const route = generateASTDefinitionForJSXTag('Route')
 
       dependencies[componentName] = {

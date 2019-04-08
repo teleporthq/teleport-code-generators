@@ -1,7 +1,7 @@
 {
   "elements": {
     "Datepicker": {
-      "elementType": "ReactDatepicker",
+      "type": "ReactDatepicker",
       "dependency": {
         "type": "package",
         "path": "react-datepicker",

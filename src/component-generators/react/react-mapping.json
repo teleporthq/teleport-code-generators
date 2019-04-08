@@ -1,7 +1,7 @@
 {
   "elements": {
     "group": {
-      "elementType": "Fragment",
+      "type": "Fragment",
       "dependency": {
         "type": "library",
         "path": "react",

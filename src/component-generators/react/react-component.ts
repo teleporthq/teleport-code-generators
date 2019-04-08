@@ -8,24 +8,17 @@ import reactPropTypesPlugin from '../../plugins/teleport-plugin-react-proptypes'
 import reactCSSModulesPlugin from '../../plugins/teleport-plugin-react-css-modules'
 import importStatementsPlugin from '../../plugins/teleport-plugin-import-statements'
 
-import { createFile } from '../../shared/utils/project-utils'
-import { sanitizeVariableName } from '../../shared/utils/string-utils'
-import { FILE_TYPE } from '../../shared/constants'
-
 import htmlMapping from '../../uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
-import { parseComponentJSON } from '../../core/parser/component'
-
 import {
+  Mapping,
   ComponentGenerator,
+  GeneratorOptions,
   CompiledComponent,
-  GeneratedFile,
-  GenerateComponentFunction,
 } from '../../typings/generators'
+import { ComponentUIDL } from '../../typings/uidl-definitions'
 
-import { Mapping } from '../../typings/uidl-definitions'
-
-export enum ReactComponentStylingFlavors {
+export const enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',
@@ -50,8 +43,8 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   const validator = new Validator()
 
   const resolver = new Resolver()
-  resolver.addMapping(htmlMapping as Mapping)
-  resolver.addMapping(reactMapping as Mapping)
+  resolver.addMapping(htmlMapping)
+  resolver.addMapping(reactMapping)
   resolver.addMapping(customMapping)
 
   const assemblyLine = new AssemblyLine()
@@ -62,44 +55,33 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
 
   const chunksLinker = new Builder()
 
-  const generateComponent: GenerateComponentFunction = async (
-    input,
-    options = {}
+  const generateComponent = async (
+    uidl: ComponentUIDL,
+    options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
-      const validationResult = validator.validateComponent(input)
+      const validationResult = validator.validateComponent(uidl)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
     }
-    const uidl = parseComponentJSON(input)
-
-    const files: GeneratedFile[] = []
-    // For page components, for some frameworks the filename will be the one set in the meta property
-    let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
-    fileName = sanitizeVariableName(fileName)
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
-    const jsCode = chunksLinker.link(chunks.default)
-    const cssCode = chunksLinker.link(chunks.cssmodule)
-
-    files.push(createFile(fileName, FILE_TYPE.JS, jsCode))
-
-    if (cssCode) {
-      files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
-    }
+    const code = chunksLinker.link(chunks.default)
+    const externalCSS = chunksLinker.link(chunks.cssmodule)
 
     return {
-      files,
-      dependencies: externalDependencies,
+      code,
+      externalCSS,
+      externalDependencies,
     }
   }
 
   return {
     generateComponent,
-    resolveElement: resolver.resolveElement.bind(resolver),
+    resolveContentNode: resolver.resolveContentNode.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
   }

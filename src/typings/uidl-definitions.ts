@@ -25,19 +25,19 @@ export interface GlobalAsset {
 export interface ComponentUIDL {
   $schema?: string
   name: string
-  node: UIDLNode
+  content: ContentNode
   meta?: Record<string, any>
-  propDefinitions?: Record<string, UIDLPropDefinition>
-  stateDefinitions?: Record<string, UIDLStateDefinition>
+  propDefinitions?: Record<string, PropDefinition>
+  stateDefinitions?: Record<string, StateDefinition>
 }
 
-export interface UIDLPropDefinition {
+export interface PropDefinition {
   type: string
   defaultValue?: string | number | boolean | any[] | object | (() => void)
   meta?: Record<string, any>
 }
 
-export interface UIDLStateDefinition {
+export interface StateDefinition {
   type: string
   defaultValue: string | number | boolean | any[] | object | (() => void)
   values?: Array<{
@@ -52,42 +52,22 @@ export interface UIDLStateDefinition {
   actions?: string[]
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
-
-export interface UIDLDynamicReference {
-  type: 'dynamic'
-  content: {
-    referenceType: ReferenceType
-    id: string
-  }
+export interface ContentNode {
+  type: string
+  name?: string
+  key?: string // internal usage
+  states?: StateBranch[]
+  repeat?: RepeatDefinition
+  dependency?: ComponentDependency
+  style?: StyleDefinitions
+  attrs?: Record<string, any>
+  events?: EventDefinitions
+  children?: Array<ContentNode | string>
 }
 
-export interface UIDLStaticValue {
-  type: 'static'
-  content: string | number | boolean | any[] // any[] for data sources
-}
-
-export interface UIDLSlotNode {
-  type: 'slot'
-  content: {
-    name?: string
-    fallback?: UIDLNode
-  }
-}
-
-export interface UIDLNestedStyleDeclaration {
-  type: 'nested-style'
-  content: UIDLStyleDefinitions
-}
-
-export interface UIDLRepeatNode {
-  type: 'repeat'
-  content: UIDLRepeatContent
-}
-
-export interface UIDLRepeatContent {
-  node: UIDLNode
-  dataSource: UIDLAttributeValue
+export interface RepeatDefinition {
+  content: ContentNode
+  dataSource: string | any[]
   meta?: {
     useIndex?: boolean
     iteratorName?: string
@@ -95,55 +75,10 @@ export interface UIDLRepeatContent {
   }
 }
 
-export interface UIDLConditionalNode {
-  type: 'conditional'
-  content: {
-    node: UIDLNode
-    reference: UIDLDynamicReference
-    value?: string | number | boolean
-    condition?: UIDLConditionalExpression
-  }
+export interface StateBranch {
+  value: string | number | boolean | ConditionalExpression
+  content: ContentNode | string
 }
-
-export interface UIDLConditionalExpression {
-  conditions: Array<{
-    operation: string
-    operand?: string | boolean | number
-  }>
-  matchingCriteria?: string
-}
-
-export interface UIDLElementNode {
-  type: 'element'
-  content: UIDLElement
-}
-
-export interface UIDLElement {
-  elementType: string
-  name?: string
-  key?: string // internal usage
-  dependency?: ComponentDependency
-  style?: UIDLStyleDefinitions
-  attrs?: Record<string, UIDLAttributeValue>
-  events?: EventDefinitions
-  children?: UIDLNode[]
-}
-
-export type UIDLNode =
-  | UIDLDynamicReference
-  | UIDLStaticValue
-  | UIDLRepeatNode
-  | UIDLElementNode
-  | UIDLConditionalNode
-  | UIDLSlotNode
-
-export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
-
-export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
-
-export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
-
-export type EventDefinitions = Record<string, EventHandlerStatement[]>
 
 export interface EventHandlerStatement {
   type: string
@@ -151,6 +86,14 @@ export interface EventHandlerStatement {
   newState?: string | number | boolean
   calls?: string
   args?: Array<string | number | boolean>
+}
+
+export interface StyleDefinitions {
+  [k: string]: number | string | StyleDefinitions
+}
+
+export interface EventDefinitions {
+  [k: string]: EventHandlerStatement[]
 }
 
 export interface ComponentDependency {
@@ -163,6 +106,24 @@ export interface ComponentDependency {
   }
 }
 
+export interface ConditionalExpression {
+  conditions: Array<{
+    operation: string
+    operand?: string | boolean | number
+  }>
+  matchingCriteria: string
+}
+
+/**
+ * This structure is used for keeping information about a single state key while creating a component
+ */
+export interface StateIdentifier {
+  key: string
+  type: string
+  setter: string
+  default: any
+}
+
 export interface WebManifest {
   short_name?: string
   name?: string
@@ -173,9 +134,4 @@ export interface WebManifest {
   orientation?: string
   scope?: string
   theme_color?: string
-}
-
-export interface Mapping {
-  elements?: Record<string, UIDLElement>
-  events?: Record<string, string>
 }

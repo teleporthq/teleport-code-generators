@@ -2,53 +2,42 @@ import * as types from '@babel/types'
 
 import * as htmlUtils from '../../shared/utils/html-utils'
 import { objectToObjectExpression, convertValueToLiteral } from '../../shared/utils/ast-js-utils'
+import { isDynamicPrefixedValue, removeDynamicPrefix } from '../../shared/utils/uidl-utils'
 import { capitalize, stringToUpperCamelCase } from '../../shared/utils/string-utils'
 import {
-  UIDLPropDefinition,
-  UIDLStateDefinition,
+  PropDefinition,
+  StateDefinition,
   EventHandlerStatement,
   ComponentUIDL,
-  UIDLConditionalExpression,
+  ConditionalExpression,
   ComponentDependency,
-  UIDLElementNode,
-  UIDLRepeatNode,
-  UIDLConditionalNode,
-  UIDLSlotNode,
+  ContentNode,
 } from '../../typings/uidl-definitions'
-import { NodeSyntaxGenerator, HastNode, AttributeAssignCodeMod } from '../../typings/generators'
 
-import { ERROR_LOG_NAME } from '.'
-
-interface VueComponentAccumulators {
-  templateLookup: Record<string, any>
-  dependencies: Record<string, ComponentDependency>
-  dataObject: Record<string, any>
-  methodsObject: Record<string, EventHandlerStatement[]>
-}
-
-export const generateElementNode = (
-  node: UIDLElementNode,
-  accumulators: VueComponentAccumulators
+// content is each node from the UIDL
+// lookups contains
+export const generateVueNodesTree = (
+  content: ContentNode,
+  accumulators: {
+    templateLookup: Record<string, any>
+    dependencies: Record<string, ComponentDependency>
+    dataObject: Record<string, any>
+    methodsObject: Record<string, EventHandlerStatement[]>
+    stateDefinitions: Record<string, any>
+  }
 ) => {
-  const { dependencies, dataObject, methodsObject, templateLookup } = accumulators
-  const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = htmlUtils.createHTMLNode(elementType)
+  const { type, name, key, children, attrs, dependency, repeat, events } = content
+  const { templateLookup, dependencies, dataObject, methodsObject, stateDefinitions } = accumulators
+
+  const htmlNode = htmlUtils.createHTMLNode(type)
 
   if (dependency) {
-    dependencies[elementType] = { ...dependency }
+    dependencies[type] = { ...dependency }
   }
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
-      const attrValue = attrs[attrKey]
-      // TODO change/fix via #136
-      if (attrValue.type === 'static' && Array.isArray(attrValue.content)) {
-        const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
-        dataObject[dataObjectIdentifier] = attrValue.content
-        htmlUtils.addAttributeToNode(htmlNode, `:${attrKey}`, dataObjectIdentifier)
-      } else {
-        addAttributeToNode(htmlNode, attrKey, attrs[attrKey])
-      }
+      addAttributeToNode(htmlNode, name, attrKey, attrs[attrKey], dataObject)
     })
   }
 
@@ -79,135 +68,78 @@ export const generateElementNode = (
     })
   }
 
+  if (repeat) {
+    const { dataSource, content: repeatContent, meta = {} } = repeat
+    const repeatContentTag = generateVueNodesTree(repeatContent, accumulators)
+
+    let dataObjectIdentifier = meta.dataSourceIdentifier || `${name}Items`
+    if (isDynamicPrefixedValue(dataSource)) {
+      dataObjectIdentifier = removeDynamicPrefix(dataSource as string)
+    } else {
+      dataObject[dataObjectIdentifier] = dataSource
+    }
+
+    const iteratorName = meta.iteratorName || 'item'
+    const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
+    const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+
+    htmlUtils.addAttributeToNode(
+      repeatContentTag,
+      'v-for',
+      `${iterator} in ${dataObjectIdentifier}`
+    )
+    htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+    htmlUtils.addChildNode(htmlNode, repeatContentTag)
+  }
+
   if (children) {
     children.forEach((child) => {
-      const childTag = generateNodeSyntax(child, accumulators)
-
-      if (typeof childTag === 'string') {
-        htmlUtils.addTextNode(htmlNode, childTag)
-      } else {
-        htmlUtils.addChildNode(htmlNode, childTag)
+      if (typeof child === 'string') {
+        addTextToNode(htmlNode, child)
+        return
       }
+
+      if (child.type === 'state' && child.states) {
+        const stateBranches = child.states || []
+        const stateKey = child.name
+        const isBooleanState =
+          stateDefinitions[stateKey] && stateDefinitions[stateKey].type === 'boolean'
+        if (isBooleanState && stateBranches.length === 2) {
+          const conditionalStatement = createConditionalStatement(stateKey, stateBranches[0].value)
+          const consequentContent = stateBranches[0].content
+          const alternateContent = stateBranches[1].content
+          const consequentNode = getNodeFromContent(consequentContent, accumulators)
+          const alternateNode = getNodeFromContent(alternateContent, accumulators)
+          htmlUtils.addAttributeToNode(consequentNode, 'v-if', conditionalStatement)
+          htmlUtils.addChildNode(htmlNode, consequentNode)
+          htmlUtils.addBooleanAttributeToNode(alternateNode, 'v-else')
+          htmlUtils.addChildNode(htmlNode, alternateNode)
+        } else {
+          stateBranches.forEach((stateBranch) => {
+            const stateContent = stateBranch.content
+
+            // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+            // a 'span' which is the less intrusive of all
+            const stateBranchNode = getNodeFromContent(stateContent, accumulators)
+            const conditionalStatement = createConditionalStatement(stateKey, stateBranch.value)
+            htmlUtils.addAttributeToNode(stateBranchNode, 'v-if', conditionalStatement)
+            htmlUtils.addChildNode(htmlNode, stateBranchNode)
+          })
+        }
+        return
+      }
+
+      const childTag = generateVueNodesTree(child, accumulators)
+      htmlUtils.addChildNode(htmlNode, childTag)
     })
   }
 
   templateLookup[key] = htmlNode
+
   return htmlNode
 }
 
-export const generateRepeatNode = (
-  node: UIDLRepeatNode,
-  accumulators: VueComponentAccumulators
-) => {
-  const { dataSource, node: repeatContent, meta = {} } = node.content
-  const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
-
-  let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
-  if (dataSource.type === 'dynamic') {
-    dataObjectIdentifier = dataSource.content.id
-  } else {
-    accumulators.dataObject[dataObjectIdentifier] = dataSource.content
-  }
-
-  const iteratorName = meta.iteratorName || 'item'
-  const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
-  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
-
-  if (typeof repeatContentTag === 'string') {
-    throw new Error(
-      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
-    )
-  }
-
-  htmlUtils.addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
-  htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
-  return repeatContentTag
-}
-
-export const generateConditionalNode = (
-  node: UIDLConditionalNode,
-  accumulators: VueComponentAccumulators
-) => {
-  const { reference, value } = node.content
-  const conditionalKey = reference.content.id
-
-  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-  // a 'span' which is the less intrusive of all
-
-  const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
-
-  const condition: UIDLConditionalExpression = value
-    ? { conditions: [{ operand: value, operation: '===' }] }
-    : node.content.condition
-
-  const conditionalStatement = createConditionalStatement(conditionalKey, condition)
-
-  if (typeof conditionalTag === 'string') {
-    throw new Error(
-      `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
-    )
-  }
-
-  htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
-  return conditionalTag
-}
-
-export const generateSlotNode = (node: UIDLSlotNode, accumulators: VueComponentAccumulators) => {
-  const slotNode = htmlUtils.createHTMLNode('slot')
-
-  if (node.content.name) {
-    htmlUtils.addAttributeToNode(slotNode, 'name', node.content.name)
-  }
-
-  if (node.content.fallback) {
-    const { fallback } = node.content
-    const fallbackContent = generateNodeSyntax(fallback, accumulators)
-
-    if (typeof fallbackContent === 'string') {
-      htmlUtils.addTextNode(slotNode, fallbackContent)
-    } else {
-      htmlUtils.addChildNode(slotNode, fallbackContent)
-    }
-  }
-
-  return slotNode
-}
-
-export const generateNodeSyntax: NodeSyntaxGenerator<
-  VueComponentAccumulators,
-  string | HastNode
-> = (node, accumulators) => {
-  switch (node.type) {
-    case 'static':
-      return node.content.toString()
-
-    case 'dynamic':
-      return `{{${node.content.id}}}`
-
-    case 'element':
-      return generateElementNode(node, accumulators)
-
-    case 'repeat':
-      return generateRepeatNode(node, accumulators)
-
-    case 'conditional':
-      return generateConditionalNode(node, accumulators)
-
-    case 'slot':
-      return generateSlotNode(node, accumulators)
-
-    default:
-      throw new Error(
-        `${ERROR_LOG_NAME} generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
-          node,
-          null,
-          2
-        )}`
-      )
-  }
-}
-
-export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
+export const extractStateObject = (stateDefinitions: Record<string, StateDefinition>) => {
   return Object.keys(stateDefinitions).reduce((result, key) => {
     result[key] = stateDefinitions[key].defaultValue
     return result
@@ -270,7 +202,7 @@ export const generateVueComponentJS = (
   )
 }
 
-const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDefinition>) => {
+const createVuePropsDefinition = (uidlPropDefinitions: Record<string, PropDefinition>) => {
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
     const { type, defaultValue } = uidlPropDefinitions[name]
@@ -287,16 +219,9 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
       case 'array':
         mappedType = Array
         break
-      case 'object':
-        mappedType = Object
-        break
       default:
         // don't handle anything else
-        throw new Error(
-          `createVuePropsDefinition encountered a unknown PropDefinition, ${JSON.stringify(
-            uidlPropDefinitions[name]
-          )}`
-        )
+        return acc
     }
 
     acc[name] = defaultValue ? { type: mappedType, default: defaultValue } : mappedType
@@ -306,7 +231,7 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
 
 const createMethodsObject = (
   methods: Record<string, EventHandlerStatement[]>,
-  propDefinitions: Record<string, UIDLPropDefinition>,
+  propDefinitions: Record<string, PropDefinition>,
   t = types
 ) => {
   return Object.keys(methods).map((eventKey) => {
@@ -344,7 +269,7 @@ const createStateChangeStatement = (statement: EventHandlerStatement, t = types)
 
 const createPropCallStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  propDefinitions: Record<string, UIDLPropDefinition>,
+  propDefinitions: Record<string, PropDefinition>,
   t = types
 ) => {
   const { calls: propFunctionKey, args = [] } = eventHandlerStatement
@@ -370,40 +295,52 @@ const createPropCallStatement = (
   )
 }
 
-// This function decides how to add an attribute based on the attribute type
+// This function decides how to add an attribute based on the prefix
+// $props. $state. $local. have a different behavior, since they need to be bound with ':'
 // Also arrays are added to the dataObject for better readability
-const addAttributeToNode: AttributeAssignCodeMod<HastNode> = (
-  htmlNode,
-  attributeKey,
-  attributeValue
+const addAttributeToNode = (
+  htmlNode: any,
+  uidlNodeName: string,
+  key: string,
+  value: string,
+  dataObject: Record<string, any>
 ) => {
-  switch (attributeValue.type) {
-    case 'dynamic':
-      const {
-        content: { id },
-      } = attributeValue
-      htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, id)
-      return
-    case 'static':
-      const primitiveValue = attributeValue.content
-      if (typeof attributeValue.content === 'boolean') {
-        htmlUtils.addBooleanAttributeToNode(htmlNode, attributeKey)
-      } else if (typeof attributeValue.content !== 'string') {
-        htmlUtils.addAttributeToNode(htmlNode, `:${attributeKey}`, primitiveValue.toString())
-      } else {
-        htmlUtils.addAttributeToNode(htmlNode, attributeKey, primitiveValue.toString())
-      }
-      return
-    default:
-      throw new Error(
-        `${ERROR_LOG_NAME} addAttributeToNode could not generate code for assignment of type ${JSON.stringify(
-          attributeValue
-        )}`
-      )
+  if (isDynamicPrefixedValue(value)) {
+    const attrValue = removeDynamicPrefix(value)
+    htmlUtils.addAttributeToNode(htmlNode, `:${key}`, attrValue)
+  } else if (Array.isArray(value)) {
+    const dataObjectIdentifier = `${uidlNodeName}${capitalize(key)}`
+    dataObject[dataObjectIdentifier] = value
+    htmlUtils.addAttributeToNode(htmlNode, `:${key}`, dataObjectIdentifier)
+  } else {
+    htmlUtils.addAttributeToNode(htmlNode, key, value)
   }
 }
 
-const createConditionalStatement = (stateKey: string, stateValue: UIDLConditionalExpression) => {
+// This function decides how to add a text element inside another HTML node
+// $props. $state. $local. have a different behavior, they need to be rendered inside {{ }}
+const addTextToNode = (htmlNode: any, text: string) => {
+  if (isDynamicPrefixedValue(text)) {
+    // special treatment for $props.children where we need to add a <slot></slot> tag
+    if (text === '$props.children') {
+      const slot = htmlUtils.createHTMLNode('slot')
+      htmlUtils.addChildNode(htmlNode, slot)
+    } else {
+      htmlUtils.addTextNode(htmlNode, `{{${removeDynamicPrefix(text)}}}`)
+    }
+  } else {
+    htmlUtils.addTextNode(htmlNode, text)
+  }
+}
+
+const createConditionalStatement = (
+  stateKey: string,
+  stateValue: string | number | boolean | ConditionalExpression
+) => {
+  if (typeof stateValue !== 'object') {
+    return stringifyConditionalExpression(stateKey, '===', stateValue)
+  }
+
   const { matchingCriteria, conditions } = stateValue
   const stringConditions = conditions.map(({ operation, operand }) => {
     return `(${stringifyConditionalExpression(stateKey, operation, operand)})`
@@ -427,4 +364,10 @@ const stringifyConditionalExpression = (
   }
 
   return `${identifier} ${operation} ${value}`
+}
+
+const getNodeFromContent = (content: any, accumulators) => {
+  return typeof content === 'string'
+    ? htmlUtils.createHTMLNode('span', [htmlUtils.createTextNode(content)])
+    : generateVueNodesTree(content, accumulators)
 }
