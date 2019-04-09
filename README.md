@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.5 - Alpha!</h2>
+<h2 align="center">Code Generators v0.6 - Alpha!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -63,11 +63,17 @@ const reactGenerator = createReactComponentGenerator()
 
 // define a UIDL representation
 const componentUIDL = {
-    "name": "MyComponent",
+  "name": "MyComponent",
+  "node": {
+    "type": "element",
     "content": {
-        "type": "text",
-        "children": ["Teleport World!"]
+      "elementType": "text", // equivalent of the span
+      "children": [{
+        "type": "static", // equivalent of the text node inside
+        "content": "Teleport World!"
+      }]
     }
+  }
 }
 
 // get the code
@@ -111,11 +117,17 @@ import { createReactComponentGenerator } from '@teleporthq/teleport-code-generat
 
 // define a UIDL representation
 const componentUIDL = {
-    "name": "MyComponent",
+  "name": "MyComponent",
+  "node": {
+    "type": "element",
     "content": {
-        "type": "text",
-        "children": ["Teleport World!"]
+      "elementType": "text",
+      "children": [{
+        "type": "static",
+        "content": "Teleport World!"
+      }]
     }
+  }
 }
 
 // instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
@@ -143,11 +155,17 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-code-generator
 
 // define a UIDL representation 
 const componentUIDL = {
-    "name": "MyComponent",
+  "name": "MyComponent",
+  "node": {
+    "type": "element",
     "content": {
-        "type": "text",
-        "children": ["Teleport World!"]
+      "elementType": "text", // equivalent of the span
+      "children": [{
+        "type": "static", // equivalent of the text node inside
+        "content": "Teleport World!"
+      }]
     }
+  }
 }
 
 // instantiate a vue generator
@@ -246,11 +264,11 @@ We're especially interested in opening discussions around the issues tagged with
 
 We also have a couple of milestone down the line:
 
-### Beta Release
-This is our immediately planned release for both the teleportHQ platform, as well as for the new generators and website. ETA for this release is mid April 2019, but this also depends on the release of other parts of the ecosystem.
+### Beta Release 0.7
+We plan on releasing this around mid May 2019. Most of the issues tackled during this milestone [can be found here](https://github.com/teleporthq/teleport-code-generators/milestone/4).
 
 ### Official Release
-Our official release will be a switch to version `1.0`. ETA for this is around May/June 2019. Hopefully, by then, we'll have more people contributing to the code generators.
+Our official release will be a switch to version `1.0`. ETA for this is around mid June/July 2019. Hopefully, by then, we'll have more people contributing to the code generators.
 
 <h2 id="contributions">💕 Contributions</h2>
 
