@@ -220,7 +220,7 @@
     "elementNodeContent": {
       "type": "object",
       "required": ["elementType"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "elementType": {"type": "string"},
         "name": {"type": "string"},
