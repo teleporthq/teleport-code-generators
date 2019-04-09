@@ -154,10 +154,10 @@ const createDocumentASTDefinition = (htmlNode, t = types) => {
   ])
 }
 
-export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile | [] => {
+export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile => {
   const documentComponent = createDocumentComponent(uidl)
   if (!documentComponent) {
-    return []
+    return null
   }
 
   return createFile('_document', FILE_TYPE.JS, documentComponent)

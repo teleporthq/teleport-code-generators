@@ -2,7 +2,7 @@ import path from 'path'
 import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-utils'
 
 // @ts-ignore
-import projectJson from '../../uidl-samples/new-project.json'
+import projectJson from '../../uidl-samples/project.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 

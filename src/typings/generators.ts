@@ -49,7 +49,7 @@ export interface CompiledComponent {
 }
 
 export interface ComponentGenerator {
-  generateComponent: (uidl: ComponentUIDL, options?: GeneratorOptions) => Promise<CompiledComponent>
+  generateComponent: GenerateComponentFunction
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
@@ -189,5 +189,5 @@ export type GenerateProjectFunction = (
 export type GenerateComponentFunction = (
   // TODO rename to ComponentGeneratorOptions
   input: Record<string, unknown>,
-  options: GeneratorOptions
+  options?: GeneratorOptions
 ) => Promise<CompiledComponent>

@@ -54,16 +54,21 @@ export const generateElementNode = (
 
   if (events) {
     Object.keys(events).forEach((eventKey) => {
+      const eventHandlerKey = `@${eventKey}`
       if (events[eventKey].length === 1) {
         const statement = events[eventKey][0]
         const isPropEvent = statement && statement.type === 'propCall' && statement.calls
 
         if (isPropEvent) {
-          htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, `this.$emit('${statement.calls}')`)
+          htmlUtils.addAttributeToNode(
+            htmlNode,
+            eventHandlerKey,
+            `this.$emit('${statement.calls}')`
+          )
         } else {
           htmlUtils.addAttributeToNode(
             htmlNode,
-            statement.modifies,
+            eventHandlerKey,
             statement.newState === '$toggle'
               ? `${statement.modifies} = !${statement.modifies}`
               : `${statement.modifies} = ${statement.newState}`
@@ -74,7 +79,7 @@ export const generateElementNode = (
           eventKey
         )}`
         methodsObject[methodName] = events[eventKey]
-        htmlUtils.addAttributeToNode(htmlNode, `@${eventKey}`, methodName)
+        htmlUtils.addAttributeToNode(htmlNode, eventHandlerKey, methodName)
       }
     })
   }
@@ -134,18 +139,19 @@ export const generateConditionalNode = (
   // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
 
-  const conditionalTag = generateNodeSyntax(node.content.node, accumulators)
+  let conditionalTag = generateNodeSyntax(node.content.node, accumulators)
 
-  const condition: UIDLConditionalExpression = value
-    ? { conditions: [{ operand: value, operation: '===' }] }
-    : node.content.condition
+  const condition: UIDLConditionalExpression =
+    value !== null && value !== undefined
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : node.content.condition
 
   const conditionalStatement = createConditionalStatement(conditionalKey, condition)
 
   if (typeof conditionalTag === 'string') {
-    throw new Error(
-      `${ERROR_LOG_NAME} generateConditionalNode received an unsuported conditionalTag ${conditionalTag}`
-    )
+    const wrappingSpan = htmlUtils.createHTMLNode('span')
+    htmlUtils.addTextNode(wrappingSpan, conditionalTag)
+    conditionalTag = wrappingSpan
   }
 
   htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
@@ -290,6 +296,9 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
       case 'object':
         mappedType = Object
         break
+      case 'func':
+        mappedType = Function
+        break
       default:
         // don't handle anything else
         throw new Error(
@@ -403,10 +412,19 @@ const addAttributeToNode: AttributeAssignCodeMod<HastNode> = (
   }
 }
 
-const createConditionalStatement = (stateKey: string, stateValue: UIDLConditionalExpression) => {
-  const { matchingCriteria, conditions } = stateValue
+const createConditionalStatement = (
+  conditionalKey: string,
+  conditionalExpression: UIDLConditionalExpression
+) => {
+  const { matchingCriteria, conditions } = conditionalExpression
+  if (conditions.length === 1) {
+    // Separate handling for single condition to avoid unnecessary () around
+    const { operation, operand } = conditions[0]
+    return stringifyConditionalExpression(conditionalKey, operation, operand)
+  }
+
   const stringConditions = conditions.map(({ operation, operand }) => {
-    return `(${stringifyConditionalExpression(stateKey, operation, operand)})`
+    return `(${stringifyConditionalExpression(conditionalKey, operation, operand)})`
   })
 
   const joinOperator = matchingCriteria === 'all' ? '&&' : '||'
