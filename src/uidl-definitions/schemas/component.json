@@ -220,6 +220,7 @@
     "elementNodeContent": {
       "type": "object",
       "required": ["elementType"],
+      "additionalProperties": true,
       "properties": {
         "elementType": {"type": "string"},
         "name": {"type": "string"},
@@ -229,7 +230,13 @@
         "attrs": {
           "type": "object",
            "patternProperties": {
-            ".*": { "$ref": "#/definitions/attributeValue" }
+            ".*": { "oneOf": [
+              { "$ref": "#/definitions/attributeValue" },
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "array"}
+            ] }
           }
         }, 
         "events":{"$ref": "#/definitions/eventDefinitions"},
@@ -255,7 +262,17 @@
     "styleDefinitions":{
       "type": "object",
       "patternProperties": {
-        ".*": { "$ref": "#/definitions/styleValue" }
+        ".*": { "oneOf": [
+          { "$ref": "#/definitions/styleValue" },
+          { "type": "string" },
+          { "type": "number" },
+          { 
+            "type": "object",
+            "patternProperties": {
+              ".*": {"$ref": "#/definitions/styleDefinitions"}
+            }
+          }
+        ] }
       }
     },
     "styleValue": {

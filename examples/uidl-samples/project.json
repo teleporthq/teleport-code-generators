@@ -53,13 +53,10 @@
                 "content": {
                   "elementType": "container",
                   "style": {
-                    "border": {
-                      "type": "static",
-                      "content": "1px solid black"
-                    },
+                    "border": "1px solid green",
                     "padding": {
                       "type": "static",
-                      "content": "1px solid black"
+                      "content": "10px"
                     }
                   },
                   "children": [
@@ -360,6 +357,16 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "style": {
+            "border": {
+              "type": "static",
+              "content": "1px solid green"
+            },
+            "margin": {
+              "type": "static",
+              "content": "10px"
+            }
+          },
           "children": [
             {
               "type": "element",
