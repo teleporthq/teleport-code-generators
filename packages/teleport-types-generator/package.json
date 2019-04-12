@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-types-generator",
+  "version": "0.0.6",
+  "description": "> TODO: description",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/packages/teleport-types-generator",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1",
+    "build": "rimraf -f lib && tsc"
+  },
+  "bugs": {
+    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-types-uidl-definitions": "0.0.6"
+  }
+}

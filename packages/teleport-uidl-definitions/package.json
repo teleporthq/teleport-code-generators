@@ -1,0 +1,26 @@
+{
+  "name": "@teleporthq/teleport-uidl-definitions",
+  "version": "0.0.6",
+  "description": "> TODO: description",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/packages/teleport-uidl-definitions",
+  "license": "MIT",
+  "main": "lib/teleport-uidl-definitions.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+  }
+}

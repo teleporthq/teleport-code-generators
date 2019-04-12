@@ -1,0 +1,34 @@
+{
+  "name": "@teleporthq/teleport-shared",
+  "version": "0.0.6",
+  "description": "> TODO: description",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/packages/teleport-shared",
+  "license": "MIT",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1",
+    "build": "rimraf -f lib && tsc"
+  },
+  "bugs": {
+    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@babel/types": "^7.3.3",
+    "jss": "^9.8.7",
+    "jss-preset-default": "^4.5.0",
+    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
+    "@teleporthq/teleport-types-generator": "0.0.6",
+    "@teleporthq/teleport-types-constants": "0.0.6"
+  }
+}
