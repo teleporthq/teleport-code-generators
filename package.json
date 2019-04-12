@@ -56,12 +56,11 @@
   "dependencies": {
     "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.10",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
     "ajv": "^6.9.1",
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0",
     "prettier": "^1.16.4",
-    "repeat-string": "^1.6.1",
     "rimraf": "^2.6.3"
   },
   "config": {
