@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-shared",
+  "name": "@teleporthq/teleport-builders",
   "version": "0.0.6",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-shared",
+  "homepage": "https://teleporthq.io/packages/teleport-builders",
   "license": "MIT",
   "directories": {
     "lib": "lib",
@@ -24,12 +24,11 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
+    "prettier": "^1.16.4",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
+    "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
-    "jss": "^9.8.7",
-    "jss-preset-default": "^4.5.0",
-    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
     "@teleporthq/teleport-types-generator": "0.0.6",
-    "@teleporthq/teleport-types-constants": "0.0.6",
-    "@teleporthq/teleport-builders": "0.0.6"
+    "@teleporthq/teleport-shared": "0.0.6"
   }
 }

@@ -1,4 +1,4 @@
-import { generator } from '../../../../src/core/builder/generators/html-to-string'
+import { generator } from '@teleporthq/teleport-builders/lib/generators/html-to-string'
 import {
   createHTMLNode,
   addAttributeToNode,
@@ -17,9 +17,13 @@ import {
   ComponentFactoryParams,
   ComponentGeneratorOutput,
   GeneratedFolder,
-} from '../../../../src/typings/generators'
+} from '@teleporthq/teleport-types-generator'
 
-import { ProjectUIDL, WebManifest, ComponentUIDL } from '../../../../src/typings/uidl-definitions'
+import {
+  ProjectUIDL,
+  WebManifest,
+  ComponentUIDL,
+} from '@teleporthq/teleport-types-uidl-definitions'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string

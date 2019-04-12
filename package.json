@@ -1,17 +1,14 @@
 {
-  "name": "@teleporthq/teleport-code-generators",
+  "name": "root",
   "workspaces": [
     "packages/*"
   ],
   "private": true,
   "description": "Code generators and UIDL definition library",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
     "start": "tsc -w",
-    "build": "npm run clean && tsc",
-    "clean": "rimraf dist",
     "lint": "tslint -p ./",
+    "build": "lerna run build",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:watch": "jest --watch",
