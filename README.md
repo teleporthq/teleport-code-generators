@@ -80,7 +80,7 @@ const componentUIDL = {
 reactGenerator
   .generateComponent(componentUIDL)
   .then(result => {
-    console.log(result.code)
+    console.log(result.files[0].content)
   })
   .catch(err => {
     console.log(err)
@@ -137,7 +137,7 @@ const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
 reactGenerator
   .generateComponent(componentUIDL)
   .then(result => {
-    console.log(result.code)
+    console.log(result.files[0].content)
   })
   .catch(err => {
     console.log(err)
@@ -175,7 +175,7 @@ const vueGenerator = createVueComponentGenerator()
 vueGenerator
   .generateComponent(componentUIDL)
   .then(result => {
-    console.log(result.code)
+    console.log(result.files[0].content)
   })
   .catch(err => {
     console.log(err)
