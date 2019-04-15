@@ -33,16 +33,13 @@ export enum ReactComponentStylingFlavors {
 }
 
 export interface ReactGeneratorFactoryParams {
-  variation?: ReactComponentStylingFlavors
+  variation?: any
   customMapping?: Mapping
 }
 
-const stylePlugins = {}
-// Removed style plugins need to add once they are also converted into packages
-
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
-  const { variation = ReactComponentStylingFlavors.InlineStyles, customMapping } = params
-  const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
+  const { variation, customMapping } = params
+  const stylePlugin = variation ? variation.default : reactInlineStylesPlugin
   const validator = new Validator()
 
   const resolver = new Resolver()
