@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-assembly-line",
+  "name": "@teleporthq/teleport-react-inline-styles",
   "version": "0.0.6",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-assembly-line",
+  "homepage": "https://teleporthq.io/packages/teleport-react-inline-styles",
   "license": "MIT",
   "main": "lib/index.js",
   "directories": {
@@ -28,7 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@teleporthq/teleport-types-generator": "0.0.6",
-    "@teleporthq/teleport-types-uidl-definitions": "0.0.6"
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-shared": "0.0.6",
+    "@teleporthq/teleport-types-generator": "0.0.6"
   }
 }

@@ -24,6 +24,9 @@
   "bugs": {
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@teleporthq/teleport-shared": "0.0.6",
     "@teleporthq/teleport-types-uidl-definitions": "0.0.6"

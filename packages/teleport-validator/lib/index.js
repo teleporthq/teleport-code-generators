@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var ajv_1 = __importDefault(require("ajv"));
-var component_json_1 = __importDefault(require("@teleporthq/teleport-uidl-definitions/src/schemas/component.json"));
-var project_json_1 = __importDefault(require("@teleporthq/teleport-uidl-definitions/src/schemas/project.json"));
+var component_json_1 = __importDefault(require("@teleporthq/teleport-uidl-definitions/lib/schemas/component.json"));
+var project_json_1 = __importDefault(require("@teleporthq/teleport-uidl-definitions/lib/schemas/project.json"));
 var Validator = /** @class */ (function () {
     function Validator() {
         var ajv = new ajv_1.default({
