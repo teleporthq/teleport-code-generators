@@ -9,7 +9,7 @@ import {
 
 import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify } from './string-utils'
-import { FILE_TYPE } from '../constants'
+import { FILE_TYPE } from '@teleporthq/teleport-constants'
 
 import {
   GeneratedFile,

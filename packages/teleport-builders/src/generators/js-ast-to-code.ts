@@ -8,7 +8,7 @@ import { format } from 'prettier/standalone'
 import parserBabylon from 'prettier/parser-babylon'
 import parserPostCSS from 'prettier/parser-postcss'
 
-import { PRETTIER_CONFIG } from '@teleporthq/teleport-shared/lib/constants'
+import { PRETTIER_CONFIG } from '@teleporthq/teleport-constants'
 import { CodeGeneratorFunction } from '@teleporthq/teleport-types-generator'
 
 export const generator: CodeGeneratorFunction<types.Node> = (ast) => {

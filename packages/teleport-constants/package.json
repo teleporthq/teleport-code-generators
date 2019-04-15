@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-types-uidl-definitions",
+  "name": "@teleporthq/teleport-constants",
   "version": "0.0.6",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-types-uidl-definitions",
+  "homepage": "https://teleporthq.io/packages/teleport-constants",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

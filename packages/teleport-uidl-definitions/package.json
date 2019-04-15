@@ -22,5 +22,6 @@
   },
   "bugs": {
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
-  }
+  },
+  "dependencies": {}
 }

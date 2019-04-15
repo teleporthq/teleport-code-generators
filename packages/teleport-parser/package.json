@@ -25,7 +25,7 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
-    "@teleporthq/teleport-shared": "0.0.6"
+    "@teleporthq/teleport-shared": "0.0.6",
+    "@teleporthq/teleport-types-uidl-definitions": "0.0.6"
   }
 }

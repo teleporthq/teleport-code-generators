@@ -25,11 +25,12 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "jss": "^9.8.7",
-    "jss-preset-default": "^4.5.0",
-    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
-    "@teleporthq/teleport-types-generator": "0.0.6",
+    "@teleporthq/teleport-builders": "0.0.6",
+    "@teleporthq/teleport-constants": "0.0.6",
     "@teleporthq/teleport-types-constants": "0.0.6",
-    "@teleporthq/teleport-builders": "0.0.6"
+    "@teleporthq/teleport-types-generator": "0.0.6",
+    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
+    "jss": "^9.8.7",
+    "jss-preset-default": "^4.5.0"
   }
 }

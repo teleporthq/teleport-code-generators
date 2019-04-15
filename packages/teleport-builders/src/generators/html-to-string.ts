@@ -4,7 +4,7 @@ import parserHTML from 'prettier/parser-html'
 import parserPostCSS from 'prettier/parser-postcss'
 
 import toHTML from '@starptech/prettyhtml-hast-to-html'
-import { PRETTIER_CONFIG } from '@teleporthq/teleport-shared/lib/constants'
+import { PRETTIER_CONFIG } from '@teleporthq/teleport-constants'
 import { CodeGeneratorFunction, HastNode } from '@teleporthq/teleport-types-generator'
 
 export const generator: CodeGeneratorFunction<HastNode> = (htmlObject) => {

@@ -24,11 +24,11 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
-    "prettier": "^1.16.4",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
     "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
+    "@teleporthq/teleport-constants": "0.0.6",
     "@teleporthq/teleport-types-generator": "0.0.6",
-    "@teleporthq/teleport-shared": "0.0.6"
+    "prettier": "^1.16.4"
   }
 }
