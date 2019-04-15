@@ -94,28 +94,35 @@
       }
     },
     "node": {
-      "type":"object",
-      "properties": {
-        "type": {
-          "type":"string",
-          "enum": ["static", "dynamic", "element", "repeat","conditional","slot"]
+      "oneOf": [
+        {
+          "type": "string"
         },
-        "content": {
-          "oneOf": [{
-            "$ref": "#/definitions/staticValueContent" 
-          },{
-            "$ref": "#/definitions/dynamicReferenceContent"
-          },{
-            "$ref": "#/definitions/repeatNodeContent" 
-          },{
-           "$ref": "#/definitions/elementNodeContent"
-          },{
-            "$ref": "#/definitions/conditionalNodeContent"
-          },{
-            "$ref": "#/definitions/slotNodeContent"
-          }]
+        {
+          "type":"object",
+          "properties": {
+            "type": {
+              "type":"string",
+              "enum": ["static", "dynamic", "element", "repeat","conditional","slot"]
+            },
+            "content": {
+              "oneOf": [{
+                "$ref": "#/definitions/staticValueContent" 
+              },{
+                "$ref": "#/definitions/dynamicReferenceContent"
+              },{
+                "$ref": "#/definitions/repeatNodeContent" 
+              },{
+                "$ref": "#/definitions/elementNodeContent"
+              },{
+                "$ref": "#/definitions/conditionalNodeContent"
+              },{
+                "$ref": "#/definitions/slotNodeContent"
+              }]
+            }
+          }
         }
-      }
+      ]
     },
     "staticValueContent": {
       "oneOf": [ 
