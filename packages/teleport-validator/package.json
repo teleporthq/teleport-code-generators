@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-validator",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-validator",
@@ -29,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@teleporthq/teleport-uidl-definitions": "0.0.6",
+    "@teleporthq/teleport-uidl-definitions": "^0.0.7",
     "ajv": "^6.9.1"
   }
 }

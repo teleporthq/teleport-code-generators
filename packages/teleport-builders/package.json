@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-builders",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-builders",
@@ -32,8 +32,8 @@
     "@babel/generator": "^7.3.3",
     "@babel/types": "^7.3.3",
     "@starptech/prettyhtml-hast-to-html": "^0.8.17",
-    "@teleporthq/teleport-constants": "0.0.6",
-    "@teleporthq/teleport-types-generator": "0.0.6",
+    "@teleporthq/teleport-constants": "^0.0.7",
+    "@teleporthq/teleport-types-generator": "^0.0.7",
     "prettier": "^1.16.4"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-react-inline-styles",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-react-inline-styles",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-shared": "0.0.6",
-    "@teleporthq/teleport-types-generator": "0.0.6"
+    "@teleporthq/teleport-shared": "^0.0.7",
+    "@teleporthq/teleport-types-generator": "^0.0.7"
   }
 }

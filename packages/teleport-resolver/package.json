@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-resolver",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-resolver",
@@ -29,9 +29,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "0.0.6",
-    "@teleporthq/teleport-types-generator": "0.0.6",
-    "@teleporthq/teleport-types-uidl-definitions": "0.0.6",
-    "@teleporthq/teleport-constants": "0.0.6"
+    "@teleporthq/teleport-constants": "^0.0.7",
+    "@teleporthq/teleport-shared": "^0.0.7",
+    "@teleporthq/teleport-types-generator": "^0.0.7",
+    "@teleporthq/teleport-types-uidl-definitions": "^0.0.7"
   }
 }
