@@ -7,7 +7,7 @@ import vueComponentPlugin from '@teleporthq/teleport-vue-base-component'
 import vueStylePlugin from '@teleporthq/teleport-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-react-import-statements'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/src/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
 
 import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-constants'

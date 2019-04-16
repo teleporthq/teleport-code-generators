@@ -22,7 +22,8 @@
   },
   "scripts": {
     "test": "echo \"Error: run tests from root\" && exit 1",
-    "build": "rimraf -f lib && tsc"
+    "build": "rimraf -f lib && tsc",
+    "clean": "rimraf -f lib/"
   },
   "bugs": {
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"

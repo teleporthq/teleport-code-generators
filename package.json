@@ -16,6 +16,7 @@
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
     "prepare": "npm run build",
+    "clean": "lerna run clean",
     "add-contributor": "all-contributors add",
     "create-react-next": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
     "create-react-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
@@ -26,7 +27,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "pretty-quick --staged && npm run lint"
+      "pre-commit": "npm run clean && pretty-quick --staged && npm run lint"
     }
   },
   "repository": {

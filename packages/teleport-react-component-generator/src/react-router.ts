@@ -4,7 +4,7 @@ import AssemblyLine from '@teleporthq/teleport-assembly-line'
 import Builder from '@teleporthq/teleport-builders'
 import Resolver from '@teleporthq/teleport-resolver'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/src/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
 import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'

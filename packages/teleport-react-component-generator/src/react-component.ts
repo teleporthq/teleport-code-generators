@@ -12,7 +12,7 @@ import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
 import { sanitizeVariableName } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-constants'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/src/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
 

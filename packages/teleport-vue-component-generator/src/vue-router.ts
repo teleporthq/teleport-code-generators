@@ -7,7 +7,7 @@ import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
 import vueRoutingPlugin from '@teleporthq/teleport-vue-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/src/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'
 import { GeneratorOptions } from '@teleporthq/teleport-types-generator'
 import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'

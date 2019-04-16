@@ -6,18 +6,20 @@
   "homepage": "https://teleporthq.io/packages/teleport-uidl-definitions",
   "license": "MIT",
   "directories": {
-    "src": "src",
+    "lib": "lib",
     "test": "__tests__"
   },
   "files": [
-    "src"
+    "lib"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
   },
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "test": "echo \"Error: run tests from root\" && exit 1",
+    "build": "rimraf -f lib && mkdir lib && cp -r src/ lib/",
+    "clean": "rimraf -f lib/"
   },
   "bugs": {
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
