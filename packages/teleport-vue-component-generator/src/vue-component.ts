@@ -3,55 +3,41 @@ import Builder from '@teleporthq/teleport-builders'
 import Resolver from '@teleporthq/teleport-resolver'
 import Validator from '@teleporthq/teleport-validator'
 
-import reactComponentPlugin from '@teleporthq/teleport-react-base-component'
-import reactInlineStylesPlugin from '@teleporthq/teleport-react-inline-styles'
-import reactPropTypesPlugin from '@teleporthq/teleport-react-proptypes'
-import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
-
-import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-constants'
+import vueComponentPlugin from '@teleporthq/teleport-vue-base-component'
+import vueStylePlugin from '@teleporthq/teleport-vue-css'
+import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-react-import-statements'
 
 import htmlMapping from '@teleporthq/teleport-uidl-definitions/src/elements-mapping/html-mapping.json'
-import reactMapping from './react-mapping.json'
+
+import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-constants'
+import {
+  addSpacesToEachLine,
+  removeLastEmptyLine,
+  sanitizeVariableName,
+} from '@teleporthq/teleport-shared/lib/utils/string-utils'
+
+import vueMapping from './vue-mapping.json'
+import { buildVueFile } from './utils'
 import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
 
 import {
+  GeneratorOptions,
   ComponentGenerator,
   CompiledComponent,
-  GeneratedFile,
   GenerateComponentFunction,
+  GeneratedFile,
 } from '@teleporthq/teleport-types-generator'
-
 import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'
 
-export enum ReactComponentStylingFlavors {
-  InlineStyles = 'InlineStyles',
-  StyledJSX = 'StyledJSX',
-  JSS = 'JSS',
-  CSSModules = 'CSSModules',
-}
-
-export interface ReactGeneratorFactoryParams {
-  variation?: any
-  customMapping?: Mapping
-}
-
-const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
-  const { variation, customMapping } = params
-  const stylePlugin = variation ? variation.default : reactInlineStylesPlugin
+const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
-
-  const resolver = new Resolver()
-  resolver.addMapping(htmlMapping as Mapping)
-  resolver.addMapping(reactMapping as Mapping)
-  resolver.addMapping(customMapping)
-
-  const assemblyLine = new AssemblyLine()
-  assemblyLine.addPlugin(reactComponentPlugin)
-  assemblyLine.addPlugin(stylePlugin)
-  assemblyLine.addPlugin(reactPropTypesPlugin)
-  assemblyLine.addPlugin(importStatementsPlugin)
+  const resolver = new Resolver([htmlMapping as Mapping, vueMapping as Mapping, mapping])
+  const assemblyLine = new AssemblyLine([
+    vueComponentPlugin,
+    vueStylePlugin,
+    createImportStatementsPlugin({ fileId: 'vuejs' }),
+  ])
 
   const chunksLinker = new Builder()
 
@@ -75,14 +61,14 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
-    const jsCode = chunksLinker.link(chunks.default)
-    const cssCode = chunksLinker.link(chunks.cssmodule)
+    const jsCode = removeLastEmptyLine(chunksLinker.link(chunks.vuejs))
+    const cssCode = removeLastEmptyLine(chunksLinker.link(chunks.vuecss))
+    const htmlCode = removeLastEmptyLine(chunksLinker.link(chunks.vuehtml))
 
-    files.push(createFile(fileName, FILE_TYPE.JS, jsCode))
+    const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
+    const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)
 
-    if (cssCode) {
-      files.push(createFile(fileName, FILE_TYPE.CSS, cssCode))
-    }
+    files.push(createFile(fileName, FILE_TYPE.VUE, vueCode))
 
     return {
       files,
@@ -98,4 +84,4 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
   }
 }
 
-export default createReactGenerator
+export default createVueGenerator

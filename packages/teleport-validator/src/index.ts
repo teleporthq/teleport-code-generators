@@ -1,6 +1,6 @@
 import Ajv from 'ajv'
-import componentSchema from '@teleporthq/teleport-uidl-definitions/lib/schemas/component.json'
-import projectSchema from '@teleporthq/teleport-uidl-definitions/lib/schemas/project.json'
+import componentSchema from '@teleporthq/teleport-uidl-definitions/src/schemas/component.json'
+import projectSchema from '@teleporthq/teleport-uidl-definitions/src/schemas/project.json'
 
 interface ValidationResult {
   valid: boolean

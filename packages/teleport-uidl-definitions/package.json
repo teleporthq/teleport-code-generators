@@ -5,13 +5,12 @@
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-uidl-definitions",
   "license": "MIT",
-  "main": "lib/teleport-uidl-definitions.js",
   "directories": {
-    "lib": "lib",
+    "src": "src",
     "test": "__tests__"
   },
   "files": [
-    "lib"
+    "src"
   ],
   "repository": {
     "type": "git",
