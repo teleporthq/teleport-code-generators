@@ -21,6 +21,10 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
 
+    if (uidl.node.type === 'conditional') {
+      throw new Error('Please check the UIDL structure, Root element cannot be a conditional')
+    }
+
     dependencies.React = {
       type: 'library',
       path: 'react',
