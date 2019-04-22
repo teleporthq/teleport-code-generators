@@ -1,0 +1,48 @@
+{
+  "name": "@teleporthq/teleport-react-component-generator",
+  "version": "0.0.7",
+  "description": "> TODO: description",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/packages/teleport-react-component-generator",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1",
+    "build": "rimraf -f lib && tsc",
+    "clean": "rimraf -f lib/"
+  },
+  "bugs": {
+    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-assembly-line": "^0.0.7",
+    "@teleporthq/teleport-builders": "^0.0.7",
+    "@teleporthq/teleport-constants": "^0.0.7",
+    "@teleporthq/teleport-parser": "^0.0.7",
+    "@teleporthq/teleport-react-app-routing": "^0.0.7",
+    "@teleporthq/teleport-react-base-component": "^0.0.7",
+    "@teleporthq/teleport-react-import-statements": "^0.0.7",
+    "@teleporthq/teleport-react-inline-styles": "^0.0.7",
+    "@teleporthq/teleport-react-proptypes": "^0.0.7",
+    "@teleporthq/teleport-resolver": "^0.0.7",
+    "@teleporthq/teleport-shared": "^0.0.7",
+    "@teleporthq/teleport-types-generator": "^0.0.7",
+    "@teleporthq/teleport-types-uidl-definitions": "^0.0.7",
+    "@teleporthq/teleport-uidl-definitions": "^0.0.7",
+    "@teleporthq/teleport-validator": "^0.0.7"
+  }
+}

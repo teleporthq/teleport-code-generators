@@ -1,0 +1,38 @@
+{
+  "name": "@teleporthq/teleport-vue-base-component",
+  "version": "0.0.7",
+  "description": "> TODO: description",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/packages/teleport-vue-base-component",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1",
+    "build": "rimraf -f lib && tsc",
+    "clean": "rimraf -f lib/"
+  },
+  "bugs": {
+    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-shared": "^0.0.7",
+    "@teleporthq/teleport-types-generator": "^0.0.7",
+    "@teleporthq/teleport-types-uidl-definitions": "^0.0.7"
+  }
+}

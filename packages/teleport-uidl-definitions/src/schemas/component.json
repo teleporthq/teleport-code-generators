@@ -1,0 +1,339 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "component.json",
+  "name": "Component UIDL",
+  "type": "object",
+  "required": ["name", "node"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "name": {
+      "type": "string",
+      "default": "MyComponent"
+    },
+    "node": {"$ref": "#/definitions/node"},
+    "meta": {"type": "object"},
+    "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
+    "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
+  },
+  "definitions": {
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["package", "local", "library"],
+          "examples": ["package", "local", "library"]
+        },
+        "path": {"type": "string"},
+        "version": {"type": "string", "default": "1.0.0"},
+        "meta": {
+          "type": "object", 
+          "additionalProperties": false,
+          "properties": {
+            "namedImport": {"type": "boolean", "default": false},
+            "originalName": {"type": "string"}
+          }
+        }
+      }
+    },
+    "propDefinitions": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "boolean", "number", "array", "func", "object", "children"]
+            },
+            "defaultValue": {},
+            "meta": {"type": "object"}
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "defaultValue"],
+          "properties": {
+            "type": {"type":"string", "enum": ["string", "boolean", "number", "object", "func", "array", "router"]},
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {},
+                  "meta": { 
+                    "type": "object",
+                    "properties": {
+                      "componentName": { "type": "string" },
+                      "path": { "type": "string" },
+                      "fileName": { "type": "string" }
+                    }
+                  },
+                  "transitions": { "type": "object" }
+                }
+              }
+            },
+            "defaultValue": {},
+            "actions": {"type": "array"}
+          }
+        }
+      }
+    },
+    "node": {
+      "type":"object",
+      "properties": {
+        "type": {
+          "type":"string",
+          "enum": ["static", "dynamic", "element", "repeat","conditional","slot"]
+        },
+        "content": {
+          "oneOf": [{
+            "$ref": "#/definitions/staticValueContent" 
+          },{
+            "$ref": "#/definitions/dynamicReferenceContent"
+          },{
+            "$ref": "#/definitions/repeatNodeContent" 
+          },{
+           "$ref": "#/definitions/elementNodeContent"
+          },{
+            "$ref": "#/definitions/conditionalNodeContent"
+          },{
+            "$ref": "#/definitions/slotNodeContent"
+          }]
+        }
+      }
+    },
+    "staticValueContent": {
+      "oneOf": [ 
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array"} 
+      ] 
+    },
+    "dynamicReferenceContent": {
+      "type": "object",
+      "required": ["referenceType","id" ],
+      "additionalProperties": false,
+      "properties": {
+        "referenceType" :{
+          "type": "string",
+          "enum":  ["prop", "state", "local", "attr"]
+        },
+        "id": { "type": "string" }
+      }
+    },
+    "repeatNodeContent": {
+      "type": "object",
+      "required": [ "node", "dataSource" ],
+      "properties": {
+        "node":{ "$ref": "#/definitions/node"},
+        "dataSource":{"$ref": "#/definitions/attributeValue"},
+        "meta": {
+          "type":"object",
+          "properties": {
+            "useIndex": {"type": "boolean"},
+            "iteratorName": {"type": "string"},
+            "dataSourceIdentifier": {"type": "string"}
+          }
+        }
+      }
+    },
+    "attributeValue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["static", "dynamic"]
+        },
+        "content": {
+          "oneOf": [
+            {"$ref":"#/definitions/dynamicReferenceContent"},
+            {"$ref":"#/definitions/staticValueContent"}
+          ]
+        }
+      }
+    },
+    "conditionalNodeContent": {
+      "type":"object",
+      "required": [ "node", "reference" ],
+      "properties": {
+        "node":{ "$ref": "#/definitions/node"},
+        "reference":{
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["dynamic"]
+            },
+            "content": {"$ref":"#/definitions/dynamicReferenceContent"}
+          }
+        },
+        "value": {
+          "oneOf": [ 
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" }
+          ]
+        },
+        "condition": {"$ref":"#/definitions/conditionalExpression"}
+      }
+    },
+    "conditionalExpression":{
+      "type":"object",
+      "required": ["conditions"],
+      "properties": {
+        "conditions":  {
+          "type":"array",
+          "items": {
+            "type":"object",
+            "required": ["operation"],
+            "properties": {
+              "operation": {"type": "string"}, 
+              "operand": {
+                "oneOf": [ 
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              }
+            }
+          }
+        },
+        "matchingCriteria": { "type": "string" }
+      }
+    },
+    "elementNodeContent": {
+      "type": "object",
+      "required": ["elementType"],
+      "additionalProperties": false,
+      "properties": {
+        "elementType": {"type": "string"},
+        "name": {"type": "string"},
+        "key": {"type": "string"},
+        "dependency": {"$ref": "#/definitions/componentDependency"},
+        "style": {"$ref": "#/definitions/styleDefinitions"},
+        "attrs": {
+          "type": "object",
+           "patternProperties": {
+            ".*": { "oneOf": [
+              { "$ref": "#/definitions/attributeValue" },
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "array"}
+            ] }
+          }
+        }, 
+        "events":{"$ref": "#/definitions/eventDefinitions"},
+        "children": { "type": "array", "items": {"$ref": "#/definitions/node"}}
+      }
+    },
+    "componentDependency": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string"},
+        "path": {"type": "string"},
+        "version": {"type": "string"},
+        "meta": {
+          "type":"object",
+          "properties": {
+            "namedImport": {"type": "boolean"},
+             "originalName": {"type": "string"}
+          }
+        }
+      }
+    },
+    "styleDefinitions":{
+      "type": "object",
+      "patternProperties": {
+        ".*": { "oneOf": [
+          { "$ref": "#/definitions/styleValue" },
+          { "type": "string" },
+          { "type": "number" },
+          { 
+            "type": "object",
+            "patternProperties": {
+              ".*": {"$ref": "#/definitions/styleDefinitions"}
+            }
+          }
+        ] }
+      }
+    },
+    "styleValue": {
+      "type": "object",
+      "oneOf": [
+        {"$ref":"#/definitions/attributeValue"},
+        {"$ref":"#/definitions/nestedStyleDeclaration"}
+      ]
+    },
+    "nestedStyleDeclaration": {
+      "type": "object",
+      "required": ["type", "content"],
+      "properties":{
+        "type": {
+          "type": "string",
+          "enum": ["nested-style"]
+        },
+        "content":{"$ref": "#/definitions/styleDefinitions"}
+      }
+    },
+    "eventDefinitions":{
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type":"array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {"type": "string"},
+              "modifies": {"type": "string"},
+              "newState": {
+                "oneOf": [ 
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              },
+              "calls": {"type": "string"},
+              "args": { 
+                "type": "array",
+                "items": {
+                  "oneOf": [ 
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "boolean" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "slotNodeContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fallback": { "$ref": "#/definitions/node" },
+        "name": { "type": "string" }
+      }
+    }  
+  }      
+}

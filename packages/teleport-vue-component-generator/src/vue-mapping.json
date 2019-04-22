@@ -1,0 +1,10 @@
+{
+  "elements": {
+    "container": {
+      "elementType": "div"
+    }
+  },
+  "events": {
+    "click": "click"
+  }
+}

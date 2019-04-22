@@ -4,6 +4,7 @@
 *.pyc
 build/
 dist/
+lib/
 coverage/
 *.log*
 *.sublime-project
