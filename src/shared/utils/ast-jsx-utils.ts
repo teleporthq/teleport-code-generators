@@ -111,7 +111,7 @@ export const generateStyledJSXTag = (
   return jsxTag
 }
 
-const stringAsTemplateLiteral = (str: string, t = types) => {
+export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
   `
