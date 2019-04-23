@@ -1,12 +1,15 @@
 import * as t from '@babel/types'
 
-import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 import {
   extractPageMetadata,
   extractRoutes,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import { registerRouterDeps, makePureComponent } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string

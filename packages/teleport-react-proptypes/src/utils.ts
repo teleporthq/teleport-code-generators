@@ -2,8 +2,8 @@ import * as types from '@babel/types'
 import {
   objectToObjectExpression,
   ParsedASTNode,
-} from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
-import { UIDLPropDefinition } from '@teleporthq/teleport-types-uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
+import { UIDLPropDefinition } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export const buildDefaultPropsAst = (
   componentName: string,

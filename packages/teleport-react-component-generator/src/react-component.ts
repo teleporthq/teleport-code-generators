@@ -1,29 +1,26 @@
-import AssemblyLine from '@teleporthq/teleport-assembly-line'
-import Builder from '@teleporthq/teleport-builders'
-import Resolver from '@teleporthq/teleport-resolver'
-import Validator from '@teleporthq/teleport-validator'
+import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
 
 import reactComponentPlugin from '@teleporthq/teleport-react-base-component'
 import reactInlineStylesPlugin from '@teleporthq/teleport-react-inline-styles'
 import reactPropTypesPlugin from '@teleporthq/teleport-react-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
 
-import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-constants'
+import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
-import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
+import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 
 import {
   ComponentGenerator,
   CompiledComponent,
   GeneratedFile,
   GenerateComponentFunction,
-} from '@teleporthq/teleport-types-generator'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
-import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'
+import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export enum ReactComponentStylingFlavors {
   InlineStyles = 'InlineStyles',

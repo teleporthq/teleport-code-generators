@@ -1,13 +1,16 @@
 import * as t from '@babel/types'
 
-import { addJSXTagStyles } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { ParsedASTNode } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { addJSXTagStyles } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
+import { ParsedASTNode } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import {
   cleanupNestedStyles,
   transformDynamicStyles,
   traverseElements,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface InlineStyleConfig {
   componentChunkName: string

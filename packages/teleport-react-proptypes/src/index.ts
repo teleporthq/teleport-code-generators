@@ -1,5 +1,8 @@
 import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface ReactJSPropTypesConfig {
   componentChunkName?: string

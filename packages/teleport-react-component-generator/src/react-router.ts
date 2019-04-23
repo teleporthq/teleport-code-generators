@@ -1,13 +1,12 @@
 import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
 import reactAppRoutingPlugin from '@teleporthq/teleport-react-app-routing'
-import AssemblyLine from '@teleporthq/teleport-assembly-line'
-import Builder from '@teleporthq/teleport-builders'
-import Resolver from '@teleporthq/teleport-resolver'
+import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-core'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
 import reactMapping from './react-mapping.json'
-import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
-import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'
+
+import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
+import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const createRouterComponentGenerator = () => {
   const resolver = new Resolver([htmlMapping as Mapping, reactMapping as Mapping])

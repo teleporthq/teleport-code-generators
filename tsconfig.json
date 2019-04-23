@@ -2,10 +2,8 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es5",
-    "outDir": "dist",
     "declaration": true,
     "lib": ["es2015", "dom"],
-    "rootDir": "src",
     "sourceMap": true,
     "types": ["node", "jest"],
     "emitDecoratorMetadata": true,
@@ -15,8 +13,7 @@
     "noUnusedLocals": true,
     "resolveJsonModule": true,
     "typeRoots" : [
-      "../node_modules/@types",
-      "./typings"
+      "../node_modules/@types"
     ],
   },
   "exclude": [

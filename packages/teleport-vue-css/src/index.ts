@@ -1,16 +1,19 @@
-import { cammelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   traverseElements,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { createCSSClass } from '@teleporthq/teleport-generator-shared/lib/utils/jss-utils'
 import {
   addClassToNode,
   addAttributeToNode,
-} from '@teleporthq/teleport-shared/lib/utils/html-utils'
-import { UIDLDynamicReference } from '@teleporthq/teleport-types-uidl-definitions'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
+} from '@teleporthq/teleport-generator-shared/lib/utils/html-utils'
+import { UIDLDynamicReference } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface VueStyleChunkConfig {
   chunkName: string

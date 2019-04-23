@@ -1,25 +1,22 @@
-import AssemblyLine from '@teleporthq/teleport-assembly-line'
-import Builder from '@teleporthq/teleport-builders'
-import Resolver from '@teleporthq/teleport-resolver'
-import Validator from '@teleporthq/teleport-validator'
+import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
 
 import vueComponentPlugin from '@teleporthq/teleport-vue-base-component'
 import vueStylePlugin from '@teleporthq/teleport-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-react-import-statements'
 
-import htmlMapping from '@teleporthq/teleport-uidl-definitions/lib/elements-mapping/html-mapping.json'
+import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
 
-import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-constants'
+import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 import {
   addSpacesToEachLine,
   removeLastEmptyLine,
   sanitizeVariableName,
-} from '@teleporthq/teleport-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
 import vueMapping from './vue-mapping.json'
 import { buildVueFile } from './utils'
-import { parseComponentJSON } from '@teleporthq/teleport-parser/lib/component'
+import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 
 import {
   GeneratorOptions,
@@ -27,8 +24,8 @@ import {
   CompiledComponent,
   GenerateComponentFunction,
   GeneratedFile,
-} from '@teleporthq/teleport-types-generator'
-import { Mapping } from '@teleporthq/teleport-types-uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): ComponentGenerator => {
   const validator = new Validator()
