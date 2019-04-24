@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-react-app-routing",
+  "name": "@teleporthq/teleport-component-generator-react",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-react-app-routing",
+  "homepage": "https://teleporthq.io/packages/teleport-react-component-generator",
   "license": "MIT",
   "main": "lib/index.js",
   "directories": {
@@ -29,7 +29,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-generator-shared": "^0.7.0"
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.7.0",
+    "@teleporthq/teleport-plugin-react-base-component": "^0.7.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.7.0",
+    "@teleporthq/teleport-plugin-react-inline-styles": "^0.7.0",
+    "@teleporthq/teleport-plugin-react-proptypes": "^0.7.0",
+    "@teleporthq/teleport-generator-shared": "^0.7.0",
+    "@teleporthq/teleport-generator-core": "^0.7.0"
   }
 }

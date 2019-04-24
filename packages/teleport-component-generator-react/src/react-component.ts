@@ -1,9 +1,9 @@
 import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
 
-import reactComponentPlugin from '@teleporthq/teleport-react-base-component'
-import reactInlineStylesPlugin from '@teleporthq/teleport-react-inline-styles'
-import reactPropTypesPlugin from '@teleporthq/teleport-react-proptypes'
-import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
+import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
+import reactInlineStylesPlugin from '../../teleport-plugin-react-inline-styles/lib'
+import reactPropTypesPlugin from '../../teleport-plugin-react-proptypes/lib'
+import importStatementsPlugin from '../../teleport-plugin-import-statements/lib'
 
 import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'

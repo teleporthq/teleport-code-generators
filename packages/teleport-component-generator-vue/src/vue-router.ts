@@ -2,8 +2,8 @@ import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-
 
 import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 
-import vueRoutingPlugin from '@teleporthq/teleport-vue-app-routing'
-import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
+import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
 import vueMapping from './vue-mapping.json'

@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-react-base-component",
+  "name": "@teleporthq/teleport-plugin-import-statements",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-react-base-component",
+  "homepage": "https://teleporthq.io/packages/teleport-react-import-statements",
   "license": "MIT",
   "main": "lib/index.js",
   "directories": {
@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@babel/types": "^7.3.3",
     "@teleporthq/teleport-generator-shared": "^0.7.0"
   }
 }

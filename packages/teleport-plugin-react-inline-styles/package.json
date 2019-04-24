@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-react-import-statements",
+  "name": "@teleporthq/teleport-plugin-react-inline-styles",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-react-import-statements",
+  "homepage": "https://teleporthq.io/packages/teleport-react-inline-styles",
   "license": "MIT",
   "main": "lib/index.js",
   "directories": {
@@ -29,6 +29,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@babel/types": "^7.3.3",
     "@teleporthq/teleport-generator-shared": "^0.7.0"
   }
 }

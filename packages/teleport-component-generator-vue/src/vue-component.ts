@@ -1,8 +1,8 @@
 import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
 
-import vueComponentPlugin from '@teleporthq/teleport-vue-base-component'
-import vueStylePlugin from '@teleporthq/teleport-vue-css'
-import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-react-import-statements'
+import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
+import vueStylePlugin from '@teleporthq/teleport-plugin-vue-css'
+import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
 import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
 

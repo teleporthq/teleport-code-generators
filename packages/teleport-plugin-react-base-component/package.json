@@ -1,9 +1,9 @@
 {
-  "name": "@teleporthq/teleport-react-inline-styles",
+  "name": "@teleporthq/teleport-plugin-react-base-component",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-react-inline-styles",
+  "homepage": "https://teleporthq.io/packages/teleport-react-base-component",
   "license": "MIT",
   "main": "lib/index.js",
   "directories": {

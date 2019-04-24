@@ -1,12 +1,12 @@
 {
-  "name": "@teleporthq/teleport-react-styled-jsx",
+  "name": "@teleporthq/teleport-plugin-vue-app-routing",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-react-styled-jsx",
+  "homepage": "https://teleporthq.io/packages/teleport-vue-app-routing",
   "license": "MIT",
   "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "types": "lib/index.s.ts",
   "directories": {
     "lib": "lib",
     "test": "__tests__"
@@ -30,6 +30,7 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
+    "@babel/types": "^7.3.3",
     "@teleporthq/teleport-generator-shared": "^0.7.0"
   }
 }

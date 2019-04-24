@@ -1,12 +1,11 @@
 {
-  "name": "@teleporthq/teleport-vue-base-component",
+  "name": "@teleporthq/teleport-plugin-vue-css",
   "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-vue-base-component",
+  "homepage": "https://teleporthq.io/packages/teleport-vue-css",
   "license": "MIT",
   "main": "lib/index.js",
-  "types": "lib/index.d.ts",
   "directories": {
     "lib": "lib",
     "test": "__tests__"
@@ -30,7 +29,6 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@babel/types": "^7.3.3",
     "@teleporthq/teleport-generator-shared": "^0.7.0"
   }
 }

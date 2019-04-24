@@ -1,5 +1,5 @@
-import importStatementsPlugin from '@teleporthq/teleport-react-import-statements'
-import reactAppRoutingPlugin from '@teleporthq/teleport-react-app-routing'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-core'
 
 import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
