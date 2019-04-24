@@ -1,16 +1,19 @@
 import {
   addClassStringOnJSXTag,
   generateStyledJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 
-import { cammelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   transformDynamicStyles,
   traverseElements,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClassFromStringMap } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
-import { UIDLElement } from '@teleporthq/teleport-types-uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { createCSSClassFromStringMap } from '@teleporthq/teleport-generator-shared/lib/utils/jss-utils'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { UIDLElement } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 interface StyledJSXConfig {
   componentChunkName: string

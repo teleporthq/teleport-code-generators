@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-vue-component-generator",
-  "version": "0.0.7",
+  "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-vue-component-generator",
@@ -30,19 +30,11 @@
     "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@teleporthq/teleport-assembly-line": "^0.0.7",
-    "@teleporthq/teleport-builders": "^0.0.7",
-    "@teleporthq/teleport-constants": "^0.0.7",
-    "@teleporthq/teleport-parser": "^0.0.7",
-    "@teleporthq/teleport-react-import-statements": "^0.0.7",
-    "@teleporthq/teleport-resolver": "^0.0.7",
-    "@teleporthq/teleport-shared": "^0.0.7",
-    "@teleporthq/teleport-types-generator": "^0.0.7",
-    "@teleporthq/teleport-types-uidl-definitions": "^0.0.7",
-    "@teleporthq/teleport-uidl-definitions": "^0.0.7",
-    "@teleporthq/teleport-validator": "^0.0.7",
-    "@teleporthq/teleport-vue-app-routing": "^0.0.7",
-    "@teleporthq/teleport-vue-base-component": "^0.0.7",
-    "@teleporthq/teleport-vue-css": "^0.0.7"
+    "@teleporthq/teleport-react-import-statements": "^0.7.0",
+    "@teleporthq/teleport-generator-shared": "^0.7.0",
+    "@teleporthq/teleport-generator-core": "^0.7.0",
+    "@teleporthq/teleport-vue-app-routing": "^0.7.0",
+    "@teleporthq/teleport-vue-base-component": "^0.7.0",
+    "@teleporthq/teleport-vue-css": "^0.7.0"
   }
 }

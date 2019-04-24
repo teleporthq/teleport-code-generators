@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-react-app-routing",
-  "version": "0.0.7",
+  "version": "0.7.0",
   "description": "> TODO: description",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/packages/teleport-react-app-routing",
@@ -30,8 +30,6 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-shared": "^0.0.7",
-    "@teleporthq/teleport-types-generator": "^0.0.7",
-    "@teleporthq/teleport-types-uidl-definitions": "^0.0.7"
+    "@teleporthq/teleport-generator-shared": "^0.7.0"
   }
 }

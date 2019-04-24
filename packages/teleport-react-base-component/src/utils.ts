@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { convertValueToLiteral } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import {
   addChildJSXTag,
   addChildJSXText,
@@ -8,9 +8,9 @@ import {
   addDynamicAttributeOnTag,
   createConditionalJSXExpression,
   generateASTDefinitionForJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 
-import { capitalize } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { capitalize } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   UIDLElementNode,
   UIDLPropDefinition,
@@ -23,13 +23,13 @@ import {
   UIDLStateDefinition,
   EventHandlerStatement,
   UIDLSlotNode,
-} from '@teleporthq/teleport-types-uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   StateIdentifier,
   NodeSyntaxGenerator,
   AttributeAssignCodeMod,
   ConditionalIdentifier,
-} from '@teleporthq/teleport-types-generator'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 import { ERROR_LOG_NAME } from '.'
 

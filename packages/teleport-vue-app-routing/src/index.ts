@@ -2,8 +2,11 @@ import * as t from '@babel/types'
 import {
   extractPageMetadata,
   extractRoutes,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types-generator'
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface VueRouterConfig {
   codeChunkName: string

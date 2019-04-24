@@ -1,10 +1,10 @@
-import { makeGenericImportStatement } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { makeGenericImportStatement } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkDefinition,
-} from '@teleporthq/teleport-types-generator'
-import { ComponentDependency } from '@teleporthq/teleport-types-uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentDependency } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
