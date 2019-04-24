@@ -17,8 +17,15 @@ export const generateStyledComponent = (name: string, type: string, styles: obje
 const mapStyles = (styles: object) => {
   let style = ''
   Object.keys(styles).forEach((item) => {
-    style = `${style};
-    ${cammelCaseToDashCase(item)}: ${styles[item]}`
+    if (typeof styles[item] === 'string') {
+      style = `${style}
+      ${cammelCaseToDashCase(item)}: ${styles[item]};`
+    } else {
+      style = `${style}
+      ${item} {
+        ${mapStyles(styles[item])}
+      };`
+    }
   })
   return style
 }
