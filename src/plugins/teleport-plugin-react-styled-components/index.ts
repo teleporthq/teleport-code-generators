@@ -1,7 +1,5 @@
-import * as t from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
-import { generateStyledComponent } from './utils'
-import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
+import { generateStyledComponent, createJSXSpreadAttribute } from './utils'
 import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
@@ -29,17 +27,18 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${stringToUpperCamelCase(key)}Wrapper`
+        jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
+          if (styleValue.content.referenceType === 'prop') {
+            return `\$\{props => props.${styleValue.content.id}\}`
+          }
+          throw new Error(
+            `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${
+              styleValue.content.referenceType
+            }`
+          )
+        })
         root.openingElement.name.name = className
-        jssStyleMap[className] = transformDynamicStyles(
-          style,
-          (styleValue) =>
-            new ParsedASTNode(
-              t.arrowFunctionExpression(
-                [t.identifier('props')],
-                t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-              )
-            )
-        )
+        root.openingElement.attributes.push(createJSXSpreadAttribute())
         const code = {
           type: 'js',
           name: className,

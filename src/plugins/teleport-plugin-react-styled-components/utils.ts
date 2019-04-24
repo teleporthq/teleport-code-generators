@@ -1,6 +1,6 @@
 import * as t from '@babel/types'
-import { stringAsTemplateLiteral } from '../../shared/utils/ast-jsx-utils'
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
+import { stringAsTemplateLiteral } from '../../shared/utils/ast-jsx-utils'
 
 export const generateStyledComponent = (name: string, type: string, styles: object) => {
   return t.variableDeclaration('const', [
@@ -21,4 +21,8 @@ const mapStyles = (styles: object) => {
     ${cammelCaseToDashCase(item)}: ${styles[item]}`
   })
   return style
+}
+
+export const createJSXSpreadAttribute = () => {
+  return t.jsxSpreadAttribute(t.identifier('props'))
 }
