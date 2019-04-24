@@ -3,6 +3,7 @@ import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generator
 import { generateStyledComponent } from './utils'
 import { ParsedASTNode } from '../../shared/utils/ast-js-utils'
 import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
+import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -20,12 +21,15 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       return structure
     }
 
+    const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap = {}
 
     traverseElements(node, (element) => {
       const { style, key, elementType } = element
-      const className = `${key}Wrapper`
       if (style) {
+        const root = jsxNodesLookup[key]
+        const className = `${stringToUpperCamelCase(key)}Wrapper`
+        root.openingElement.name.name = className
         jssStyleMap[className] = transformDynamicStyles(
           style,
           (styleValue) =>
