@@ -40,7 +40,7 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
     })
 
-    it('should support nested styles', async () => {
+    it('should support nested styles in styledjsx', async () => {
       const styledJSXGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledJSX,
       })
@@ -51,6 +51,33 @@ describe('React Styles in Component', () => {
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('flex-direction: ${props.direction}')
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should support object props in styled-components', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(ComponentWithValidStyle)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain(`align-self: center`)
+    })
+
+    it('should support nested styles in styled-components', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedStyles as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('flex-direction: ${(props) => props.direction}')
       expect(jsFile.content).toContain(`align-self: center`)
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
