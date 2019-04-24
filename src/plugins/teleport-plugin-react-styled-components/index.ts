@@ -30,6 +30,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
         const className = `${stringToUpperCamelCase(key)}Wrapper`
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
+            root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
             return `\$\{props => props.${styleValue.content.id}\}`
           }
           throw new Error(
@@ -39,7 +40,6 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           )
         })
         root.openingElement.name.name = className
-        root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
         const code = {
           type: 'js',
           name: className,
