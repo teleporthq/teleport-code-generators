@@ -22,7 +22,3 @@ const mapStyles = (styles: object) => {
   })
   return style
 }
-
-export const createJSXSpreadAttribute = () => {
-  return t.jsxSpreadAttribute(t.identifier('props'))
-}

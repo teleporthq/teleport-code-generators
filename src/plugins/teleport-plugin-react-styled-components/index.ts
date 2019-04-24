@@ -1,7 +1,8 @@
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
-import { generateStyledComponent, createJSXSpreadAttribute } from './utils'
+import { generateStyledComponent } from './utils'
 import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import { createJSXSpreadAttribute } from '../../shared/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -38,7 +39,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           )
         })
         root.openingElement.name.name = className
-        root.openingElement.attributes.push(createJSXSpreadAttribute())
+        root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
         const code = {
           type: 'js',
           name: className,

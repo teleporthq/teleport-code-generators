@@ -333,3 +333,7 @@ export const createTernaryOperation = (
     types.conditionalExpression(types.identifier(stateKey), leftNode, rightNode)
   )
 }
+
+export const createJSXSpreadAttribute = (name: string) => {
+  return types.jsxSpreadAttribute(types.identifier(name))
+}
