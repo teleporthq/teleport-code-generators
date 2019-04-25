@@ -9,7 +9,7 @@ import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/proj
 import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
-import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
+import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
 import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 

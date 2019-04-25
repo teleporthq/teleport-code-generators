@@ -6,12 +6,10 @@
   "private": true,
   "description": "Code generators and UIDL definition library",
   "scripts": {
-    "start": "tsc -w",
     "lint": "tslint -p ./",
     "build": "lerna run build",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
-    "test:watch": "jest --watch",
     "test:coverage": "npm run test -- --coverage --no-cache",
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
@@ -22,8 +20,8 @@
     "create-react-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
     "create-vue-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-basic/index.ts",
     "create-vue-nuxt": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-nuxt/index.ts",
-    "local:publish": "lerna exec -- npm publish  --registry http://localhost:4873",
-    "local:unpublish": "lerna exec -- npm unpublish -f  --registry http://localhost:4873"
+    "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
+    "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
   "husky": {
     "hooks": {

@@ -4,7 +4,8 @@ import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
 import vueStylePlugin from '@teleporthq/teleport-plugin-vue-css'
 import { createPlugin as createImportStatementsPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
-import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
+import htmlMapping from './html-mapping.json'
+import vueMapping from './vue-mapping.json'
 
 import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
@@ -14,7 +15,6 @@ import {
   sanitizeVariableName,
 } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
-import vueMapping from './vue-mapping.json'
 import { buildVueFile } from './utils'
 import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 

@@ -1,0 +1,26 @@
+{
+  "elements": {
+    "navlink": {
+      "elementType": "Link",
+      "dependency": {
+          "type": "library",
+          "path": "next/link"
+      },
+      "attrs": {
+        "href": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
+      },
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "a",
+            "name": "link",
+            "children": [
+              { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

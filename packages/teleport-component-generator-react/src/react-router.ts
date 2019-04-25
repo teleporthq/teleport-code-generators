@@ -2,7 +2,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-core'
 
-import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
+import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
 
 import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'

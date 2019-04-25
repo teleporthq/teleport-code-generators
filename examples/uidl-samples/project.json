@@ -61,6 +61,15 @@
                   },
                   "children": [
                     {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
+                    {
                       "type": "static",
                       "content": "Page 1"
                     }
@@ -96,6 +105,15 @@
                   },
                   "children": [
                     {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
+                    {
                       "type": "static",
                       "content": "Page 2"
                     }
@@ -130,6 +148,15 @@
                   },
                   "children": [
                     {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
+                    {
                       "type": "static",
                       "content": "Page 3"
                     },
@@ -160,6 +187,62 @@
     }
   },
   "components": {
+    "Navbar": {
+      "name": "Navbar",
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "group",
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Home"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/about"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "About"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/here-we-are"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Contact"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
     "OneComponent": {
       "name": "New UIDL",
       "propDefinitions": {

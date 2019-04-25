@@ -1,31 +1,24 @@
 {
   "name": "@teleporthq/teleport-generator-shared",
   "version": "0.7.0",
-  "description": "> TODO: description",
-  "author": "JayaKrishna <namburu1995@gmail.com>",
-  "homepage": "https://teleporthq.io/packages/teleport-shared",
+  "description": "",
+  "author": "teleportHQ",
   "license": "MIT",
-  "directories": {
-    "lib": "lib",
-    "test": "__tests__"
-  },
-  "files": [
-    "lib"
-  ],
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JayaKrishnaNamburu/teleport-code-generators.git"
-  },
-  "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1",
-    "build": "rimraf -f lib && tsc",
-    "clean": "rimraf -f lib/"
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
   },
   "bugs": {
-    "url": "https://github.com/JayaKrishnaNamburu/teleport-code-generators/issues"
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
   },
   "dependencies": {
     "@babel/generator": "^7.4.0",

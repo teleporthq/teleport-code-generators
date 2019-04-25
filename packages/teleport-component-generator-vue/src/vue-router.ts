@@ -5,8 +5,9 @@ import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/pars
 import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
-import htmlMapping from '@teleporthq/teleport-generator-shared/src/uidl-definitions/elements-mapping/html-mapping.json'
+import htmlMapping from './html-mapping.json'
 import vueMapping from './vue-mapping.json'
+
 import { GeneratorOptions } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
