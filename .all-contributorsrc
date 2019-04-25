@@ -105,6 +105,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "a",
+      "name": "Shuvalov Anton",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/1410106?v=4",
+      "profile": "http://shuvalov.info",
+      "contributions": [
+        "projectManagement",
+        "example"
+      ]
     }
   ],
   "contributorsPerLine": 7
