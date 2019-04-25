@@ -6,9 +6,15 @@
   "useWorkspaces": true,
   "npmClient": "yarn",
   "changelog": {
+    "repo": "teleporthq/teleport-code-generators",
+    "cacheDir": ".changelog",
     "labels": {
-      "feature": "New Feature",
-      "bug": "Bug Fix"
+      "enhancement": ":rocket: New Feature",
+      "react generators": ":electric_plug: React Generators",
+      "vue generators": ":electric_plug: Vue Generator",
+      "core": ":earth_asia: Core",
+      "bug": ":bug: Bug Fix",
+      "uidl": ":crystal_ball: UIDL"
     }
   }
 }
