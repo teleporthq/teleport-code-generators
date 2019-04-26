@@ -28,9 +28,10 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${stringToUpperCamelCase(key)}Wrapper`
+        let needInjectionOfProps: boolean = false
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
-            root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
+            needInjectionOfProps = true
             return `\$\{props => props.${styleValue.content.id}\}`
           }
           throw new Error(
@@ -39,6 +40,9 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
             }`
           )
         })
+        if (needInjectionOfProps) {
+          root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
+        }
         root.openingElement.name.name = className
         const code = {
           type: 'js',
