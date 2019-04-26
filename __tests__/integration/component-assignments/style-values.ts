@@ -2,6 +2,8 @@
 import ComponentWithValidJSON from './component-with-valid-style.json'
 // @ts-ignore-next-line
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
+// @ts-ignore-next-line
+import ComponentWithInvalidStateStyles from './component-with-invalid-state-styles.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
@@ -56,6 +58,20 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
+    it('should throw error when a state is being refered in generated StyledJSX ', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledJSX,
+      })
+      try {
+        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+        expect(true).toBe(false)
+      } catch (e) {
+        expect(e.message).toContain(
+          'Error running transformDynamicStyles in reactStyledJSXChunkPlugin'
+        )
+      }
+    })
+
     it('should support object props in styled-components', async () => {
       const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledComponents,
@@ -81,6 +97,29 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should inject props only once for styled components', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledJSXGenerator.generateComponent(ComponentWithValidJSON)
+      const jsFile = findFileByType(result.files, JS_FILE)
+      expect(jsFile.content).toContain('<ContainerWrapper {...props} />')
+    })
+
+    it('should throw error when a state is being refered in generated StyledComponents ', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      try {
+        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+        expect(true).toBe(false)
+      } catch (e) {
+        expect(e.message).toContain(
+          'Error running transformDynamicStyles in reactStyledComponentsPlugin'
+        )
+      }
     })
   })
 
