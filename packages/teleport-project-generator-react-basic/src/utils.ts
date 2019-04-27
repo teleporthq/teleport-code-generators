@@ -1,10 +1,16 @@
-import createRouterComponentGenerator from '../../component-generators/react/react-router'
+import { createReactRouterComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
-import { createFolder, createFile } from '../../shared/utils/project-utils'
-import { FILE_TYPE } from '../../shared/constants'
+import {
+  createFolder,
+  createFile,
+} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
-import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
-import { ComponentUIDL } from '../../typings/uidl-definitions'
+import {
+  GeneratedFile,
+  GeneratedFolder,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
@@ -19,7 +25,7 @@ export const buildFolderStructure = (
 }
 
 export const createRouterIndexFile = async (root: ComponentUIDL) => {
-  const routingComponentGenerator = createRouterComponentGenerator()
+  const routingComponentGenerator = createReactRouterComponentGenerator()
   const { code, externalDependencies } = await routingComponentGenerator.generateComponent(root)
   const routerFile = createFile('index', FILE_TYPE.JS, code)
 

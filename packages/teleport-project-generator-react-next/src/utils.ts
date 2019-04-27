@@ -1,18 +1,24 @@
-import { generator } from '../../core/builder/generators/js-ast-to-code'
+import { generator } from '@teleporthq/teleport-generator-shared/lib/generators/js-ast-to-code'
 import {
   generateASTDefinitionForJSXTag,
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
-} from '../../shared/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '../../shared/utils/uidl-utils'
-import { createFile, createFolder } from '../../shared/utils/project-utils'
-import { FILE_TYPE } from '../../shared/constants'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import {
+  createFile,
+  createFolder,
+} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
-import { GeneratedFile, GeneratedFolder } from '../../typings/generators'
-import { ProjectUIDL } from '../../typings/uidl-definitions'
+import {
+  GeneratedFile,
+  GeneratedFolder,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export const createDocumentComponent = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals

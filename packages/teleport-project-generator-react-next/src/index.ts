@@ -4,13 +4,11 @@ import {
   joinGeneratorOutputs,
   createManifestJSONFile,
   createPackageJSONFile,
-} from '../../shared/utils/project-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
-import { extractRoutes } from '../../shared/utils/uidl-utils'
+import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 
-import createReactGenerator, {
-  ReactComponentStylingFlavors,
-} from '../../component-generators/react/react-component'
+import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 import { createDocumentComponentFile, buildFolderStructure } from './utils'
 
 import {
@@ -20,10 +18,10 @@ import {
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
 
-import { Validator } from '../../core'
+import { Validator } from '@teleporthq/teleport-generator-core'
 
 import nextMapping from './next-mapping.json'
-import { parseProjectJSON } from '../../core/parser/project'
+import { parseProjectJSON } from '@teleporthq/teleport-generator-core/lib/parser/project'
 
 import {
   ProjectGeneratorOptions,
@@ -31,12 +29,12 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
-} from '../../typings/generators'
-import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactGenerator({
-    variation: ReactComponentStylingFlavors.StyledJSX,
+  const reactGenerator = createReactComponentGenerator({
+    variation: 'StyledJSX',
   })
 
   reactGenerator.addMapping(nextMapping as Mapping)

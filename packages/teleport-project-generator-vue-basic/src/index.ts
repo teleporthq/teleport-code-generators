@@ -1,4 +1,4 @@
-import createVueGenerator from '../../component-generators/vue/vue-component'
+import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import {
   createPageOutputs,
   createComponentOutputs,
@@ -6,7 +6,7 @@ import {
   createManifestJSONFile,
   createHtmlIndexFile,
   createPackageJSONFile,
-} from '../../shared/utils/project-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
   ASSETS_PREFIX,
@@ -16,9 +16,9 @@ import {
 } from './constants'
 import vueProjectMapping from './vue-project-mapping.json'
 import { createRouterFile, buildFolderStructure } from './utils'
-import { extractRoutes } from '../../shared/utils/uidl-utils'
-import { Validator } from '../../core'
-import { parseProjectJSON } from '../../core/parser/project'
+import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { Validator } from '@teleporthq/teleport-generator-core'
+import { parseProjectJSON } from '@teleporthq/teleport-generator-core/lib/parser/project'
 
 import {
   ProjectGeneratorOptions,
@@ -26,11 +26,11 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
-} from '../../typings/generators'
-import { Mapping, ComponentUIDL } from '../../typings/uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueGenerator({
+  const vueGenerator = createVueComponentGenerator({
     mapping: vueProjectMapping as Mapping,
   })
 

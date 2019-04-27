@@ -1,9 +1,10 @@
 import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
 
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
-import reactInlineStylesPlugin from '../../teleport-plugin-react-inline-styles/lib'
-import reactPropTypesPlugin from '../../teleport-plugin-react-proptypes/lib'
-import importStatementsPlugin from '../../teleport-plugin-import-statements/lib'
+import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
+import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
+import reactPropTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
@@ -22,21 +23,19 @@ import {
 
 import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-export enum ReactComponentStylingFlavors {
-  InlineStyles = 'InlineStyles',
-  StyledJSX = 'StyledJSX',
-  JSS = 'JSS',
-  CSSModules = 'CSSModules',
+const stylePlugins = {
+  InlineStyles: reactInlineStylesPlugin,
+  StyledJSX: reactStyledJSXPlugin,
 }
 
 export interface ReactGeneratorFactoryParams {
-  variation?: any
+  variation?: string
   customMapping?: Mapping
 }
 
 const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): ComponentGenerator => {
   const { variation, customMapping } = params
-  const stylePlugin = variation ? variation.default : reactInlineStylesPlugin
+  const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
   const validator = new Validator()
 
   const resolver = new Resolver()

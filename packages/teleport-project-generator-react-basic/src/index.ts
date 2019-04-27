@@ -1,8 +1,6 @@
 import reactProjectMapping from './react-project-mapping.json'
 
-import createReactGenerator, {
-  ReactComponentStylingFlavors,
-} from '../../component-generators/react/react-component'
+import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
 import { createRouterIndexFile, buildFolderStructure } from './utils'
 
@@ -35,8 +33,8 @@ import {
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactGenerator({
-    variation: ReactComponentStylingFlavors.CSSModules,
+  const reactGenerator = createReactComponentGenerator({
+    variation: 'CSSModules',
   })
 
   reactGenerator.addMapping(reactProjectMapping as Mapping)

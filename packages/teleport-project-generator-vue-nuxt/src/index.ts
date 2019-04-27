@@ -1,4 +1,4 @@
-import createVueGenerator from '../../component-generators/vue/vue-component'
+import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { buildFolderStructure } from './utils'
 import nuxtMapping from './nuxt-mapping.json'
 
@@ -17,11 +17,11 @@ import {
   createHtmlIndexFile,
   createPackageJSONFile,
   joinGeneratorOutputs,
-} from '../../shared/utils/project-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
-import { extractRoutes } from '../../shared/utils/uidl-utils'
-import { Validator } from '../../core'
-import { parseProjectJSON } from '../../core/parser/project'
+import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { Validator } from '@teleporthq/teleport-generator-core'
+import { parseProjectJSON } from '@teleporthq/teleport-generator-core/lib/parser/project'
 
 import {
   ProjectGeneratorOptions,
@@ -29,11 +29,11 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
-} from '../../typings/generators'
-import { ComponentUIDL, Mapping } from '../../typings/uidl-definitions'
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueGenerator({
+  const vueGenerator = createVueComponentGenerator({
     mapping: nuxtMapping as Mapping,
   })
 

@@ -19,5 +19,10 @@
   },
   "scripts": {
     "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.7.0",
+    "@teleporthq/teleport-generator-core": "^0.7.0",
+    "@teleporthq/teleport-component-generator-vue": "^0.7.0"
   }
 }

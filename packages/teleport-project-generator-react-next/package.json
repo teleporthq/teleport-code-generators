@@ -19,5 +19,11 @@
   },
   "scripts": {
     "build": "tsc"
+  },
+  "dependencies": {
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-generator-shared": "^0.7.0",
+    "@teleporthq/teleport-generator-core": "^0.7.0",
+    "@teleporthq/teleport-component-generator-react": "^0.7.0"
   }
 }
