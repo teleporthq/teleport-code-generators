@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-generator-core",
-  "version": "0.7.0",
+  "version": "0.6.0",
   "description": "",
   "author": "teleportHQ",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.7.0",
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
     "ajv": "^6.10.0"
   }
 }

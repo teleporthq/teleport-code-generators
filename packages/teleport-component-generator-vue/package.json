@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-vue",
-  "version": "0.7.0",
+  "version": "0.6.0",
   "description": "",
   "author": "teleportHQ",
   "license": "MIT",
@@ -21,11 +21,11 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.7.0",
-    "@teleporthq/teleport-generator-shared": "^0.7.0",
-    "@teleporthq/teleport-generator-core": "^0.7.0",
-    "@teleporthq/teleport-plugin-vue-app-routing": "^0.7.0",
-    "@teleporthq/teleport-plugin-vue-base-component": "^0.7.0",
-    "@teleporthq/teleport-plugin-vue-css": "^0.7.0"
+    "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-app-routing": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-base-component": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-css": "^0.6.0"
   }
 }

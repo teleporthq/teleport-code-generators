@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-styled-jsx",
-  "version": "0.7.0",
+  "version": "0.6.0",
   "description": "",
   "author": "teleportHQ",
   "license": "MIT",
@@ -21,6 +21,6 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.7.0"
+    "@teleporthq/teleport-generator-shared": "^0.6.0"
   }
 }

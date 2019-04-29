@@ -1,6 +1,6 @@
 {
-  "name": "teleport-project-generator-vue-nuxt",
-  "version": "0.7.0",
+  "name": "@teleporthq/teleport-project-generator-vue-nuxt",
+  "version": "0.6.0",
   "description": "",
   "author": "teleportHQ",
   "license": "MIT",
@@ -21,8 +21,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.7.0",
-    "@teleporthq/teleport-generator-core": "^0.7.0",
-    "@teleporthq/teleport-component-generator-vue": "^0.7.0"
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-component-generator-vue": "^0.6.0"
   }
 }

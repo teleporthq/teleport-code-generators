@@ -1,6 +1,6 @@
 {
-  "name": "teleport-project-generator-react-next",
-  "version": "0.7.0",
+  "name": "@teleporthq/teleport-project-generator-react-next",
+  "version": "0.6.0",
   "description": "",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-generator-shared": "^0.7.0",
-    "@teleporthq/teleport-generator-core": "^0.7.0",
-    "@teleporthq/teleport-component-generator-react": "^0.7.0"
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-component-generator-react": "^0.6.0"
   }
 }
