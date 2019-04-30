@@ -20,15 +20,40 @@ const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
 
 describe('React Styles in Component', () => {
   describe('supports usage of state in styles', () => {
-    const generator = createReactComponentGenerator()
-
-    it('Inline Styles should refer state in styles, when state is mapped', async () => {
+    it('Inline Styles should refer state in styles when state is mapped', async () => {
+      const generator = createReactComponentGenerator()
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('display: active')
       expect(jsFile.content).toContain('height: props.config.height')
+    })
+
+    it('CSSModules should refer state in styles when state is mapped', async () => {
+      const generator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.CSSModules,
+      })
+      const result = await generator.generateComponent(ComponentWithStateReference)
+      const jsFile = findFileByType(result.files, JS_FILE)
+      const cssFile = findFileByType(result.files, CSS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(cssFile).toBeDefined()
+      expect(jsFile.content).toContain('display: active')
+      expect(jsFile.content).toContain('height: props.config.height')
+    })
+
+    it('JSS should through error when state is refered', async () => {
+      const generator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.JSS,
+      })
+      try {
+        const result = await generator.generateComponent(ComponentWithStateReference)
+      } catch (e) {
+        expect(e.message).toContain('reactJSSComponentStyleChunksPlugin')
+        expect(e.message).toContain('styleValue.content.referenceType value state')
+      }
     })
   })
 
@@ -85,7 +110,7 @@ describe('React Styles in Component', () => {
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
       expect(jsFile.content).toContain('import React')
-      expect(jsFile.content).toContain('flexDirection: (props) => props.direction')
+      expect(jsFile.content).toContain('flexDirection: props.direction')
       expect(cssFile.content).toContain(`align-self: center`)
     })
   })
