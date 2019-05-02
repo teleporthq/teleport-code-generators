@@ -3,8 +3,7 @@ import componentInputJSON from './component-with-primitive-values.json'
 // @ts-ignore
 import componentResultJSON from './component-with-proper-values.json'
 
-import { parseComponentJSON } from '../../src/parser/component'
-import { parseProjectJSON } from '../../src/parser/project'
+import { parseComponentJSON, parseProjectJSON } from '../../src/parser'
 
 describe('parseComponentJSON', () => {
   it('transforms primitive component values', () => {

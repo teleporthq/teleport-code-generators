@@ -19,9 +19,9 @@ module.exports = {
   ],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
-    '<rootDir>/__tests__/fixtures/html-whitespace-sensitive-tag-names.json'
+    '<rootDir>/examples/test-samples/html-whitespace-sensitive-tag-names.json'
   },
-  "modulePathIgnorePatterns": ["__tests__/fixtures"],
+  "modulePathIgnorePatterns": ["__tests__/integration"],
   "collectCoverage": false,
   "testEnvironment": "node",
   "collectCoverageFrom": [

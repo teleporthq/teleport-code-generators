@@ -1,0 +1,126 @@
+{
+  "name": "New UIDL",
+  "propDefinitions": {
+    "title": {
+      "type": "string",
+      "defaultValue": "Hello"
+    },
+    "items": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "stateDefinitions": {
+    "isVisible": {
+      "type": "boolean",
+      "defaultValue": true,
+      "test":"test"
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "attrs": {
+        "data-static-attr": {
+          "type": "static",
+          "content": "test"
+        },
+        "data-dynamic-attr": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "title"
+          }
+        }
+      },
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "children": [
+              {
+                "type": "static",
+                "content": "Hello World!"
+              },
+              {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "title"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "repeat",
+          "content": {
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "local",
+                      "id": "item"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "list",
+                      "attrs": {
+                        "items": {
+                          "type": "static",
+                          "content": ["angular", "react", "vue"]
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "dataSource": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "items"
+              }
+            },
+            "meta": {
+              "useIndex": true,
+              "iteratorName": "item"
+            }
+          }
+        },
+        {
+          "type": "conditional",
+          "content": {
+            "reference": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "state",
+                "id": "isVisible"
+              }
+            },
+            "value": true,
+            "node": {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "children": [{
+                  "type": "static",
+                  "content": "Now you see me!"
+                }]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

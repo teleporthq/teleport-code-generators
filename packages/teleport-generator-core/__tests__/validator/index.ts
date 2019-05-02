@@ -1,11 +1,15 @@
 import { Validator } from '../../src'
 
-import componentUidlSample from '../../../../__tests__/fixtures/component-sample.json'
-import invalidComponentUidlSample from '../../../../__tests__/fixtures/component-invalid-sample.json'
-import multiErrorsInvalidComponentUidlSample from '../../../../__tests__/fixtures/component-invalid-sample-multiple-errors.json'
-
-import projectUidlSample from '../../../../__tests__/fixtures/project-sample.json'
-import invalidProjectUidlSample from '../../../../__tests__/fixtures/project-invalid-sample.json'
+// @ts-ignore
+import componentUidlSample from './component-sample.json'
+// @ts-ignore
+import invalidComponentUidlSample from './component-invalid-sample.json'
+// @ts-ignore
+import multiErrorsInvalidComponentUidlSample from './component-invalid-sample-multiple-errors.json'
+// @ts-ignore
+import projectUidlSample from './project-sample.json'
+// @ts-ignore
+import invalidProjectUidlSample from './project-invalid-sample.json'
 
 describe('Validate UIDL', () => {
   describe('Component UIDL', () => {
