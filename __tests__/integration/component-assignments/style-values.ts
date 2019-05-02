@@ -4,6 +4,10 @@ import ComponentWithValidJSON from './component-with-valid-style.json'
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
 // @ts-ignore-next-line
 import ComponentWithInvalidStateStyles from './component-with-invalid-state-styles.json'
+// @ts-ignore-next-line
+import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
+// @ts-ignore-next-line
+import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple-prop-ref-styles.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
@@ -72,6 +76,20 @@ describe('React Styles in Component', () => {
       }
     })
 
+    it('should explicitly send prop if style is using one prop variable', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithValidSingleStlye
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container height={props.config.height}')
+      expect(jsFile.content).toContain('height: ${(props) => props.height}')
+    })
+
     it('should support object props in styled-components', async () => {
       const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledComponents,
@@ -83,7 +101,7 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
     })
 
-    it('should support nested styles in styled-components', async () => {
+    it('should support nested styles in styled-components with single prop', async () => {
       const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledComponents,
       })
@@ -93,7 +111,24 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('flex-direction: ${(props) => props.flexDirection}')
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should support nested styles in styled-components with multiple props', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedMultiplePropRef as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('flex-direction: ${(props) => props.direction}')
+      expect(jsFile.content).toContain('height: ${(props) => props.config.height}')
       expect(jsFile.content).toContain(`align-self: center`)
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)

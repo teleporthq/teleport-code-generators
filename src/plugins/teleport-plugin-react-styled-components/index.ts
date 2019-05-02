@@ -2,7 +2,10 @@ import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generator
 import { generateStyledComponent } from './utils'
 import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
-import { createJSXSpreadAttribute } from '../../shared/utils/ast-jsx-utils'
+import {
+  createJSXSpreadAttribute,
+  addDynamicAttributeOnTag,
+} from '../../shared/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -28,12 +31,24 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${stringToUpperCamelCase(key)}`
-        let needInjectionOfProps: boolean = false
+        let timesReferred: number = 0
 
-        jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
+        Object.keys(style).map((item) => {
+          // @ts-ignore-next-line
+          if (style[item].content.referenceType === 'prop') {
+            timesReferred++
+          }
+        })
+
+        jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
           if (styleValue.content.referenceType === 'prop') {
-            needInjectionOfProps = true
-            return `\$\{props => props.${styleValue.content.id}\}`
+            switch (timesReferred) {
+              case 1:
+                addDynamicAttributeOnTag(root, attribute, styleValue.content.id, 'props')
+                return `\$\{props => props.${attribute}\}`
+              default:
+                return `\$\{props => props.${styleValue.content.id}\}`
+            }
           }
 
           throw new Error(
@@ -43,7 +58,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           )
         })
 
-        if (needInjectionOfProps) {
+        if (timesReferred > 1) {
           root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
         }
 
