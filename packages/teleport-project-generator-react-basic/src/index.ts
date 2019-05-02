@@ -20,8 +20,7 @@ import {
   DEFAULT_PACKAGE_JSON,
 } from './constants'
 
-import { Validator } from '@teleporthq/teleport-generator-core'
-import { parseProjectJSON } from '@teleporthq/teleport-generator-core/lib/parser/project'
+import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
   ComponentGenerator,
@@ -61,7 +60,7 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
         throw new Error(validationResult.errorMsg)
       }
     }
-    const uidl = parseProjectJSON(input)
+    const uidl = Parser.parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {

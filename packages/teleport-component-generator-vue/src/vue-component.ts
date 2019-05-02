@@ -1,4 +1,10 @@
-import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
+import {
+  AssemblyLine,
+  Builder,
+  Resolver,
+  Validator,
+  Parser,
+} from '@teleporthq/teleport-generator-core'
 
 import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
 import vueStylePlugin from '@teleporthq/teleport-plugin-vue-css'
@@ -16,7 +22,6 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
 import { buildVueFile } from './utils'
-import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 
 import {
   GeneratorOptions,
@@ -48,7 +53,7 @@ const createVueGenerator = ({ mapping }: GeneratorOptions = { mapping }): Compon
         throw new Error(validationResult.errorMsg)
       }
     }
-    const uidl = parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(input)
 
     const files: GeneratedFile[] = []
     // For page components, for some frameworks the filename will be the one set in the meta property

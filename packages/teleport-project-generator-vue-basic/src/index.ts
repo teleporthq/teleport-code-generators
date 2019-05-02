@@ -17,8 +17,7 @@ import {
 import vueProjectMapping from './vue-project-mapping.json'
 import { createRouterFile, buildFolderStructure } from './utils'
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { Validator } from '@teleporthq/teleport-generator-core'
-import { parseProjectJSON } from '@teleporthq/teleport-generator-core/lib/parser/project'
+import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
   ProjectGeneratorOptions,
@@ -57,7 +56,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
         throw new Error(validationResult.errorMsg)
       }
     }
-    const uidl = parseProjectJSON(input)
+    const uidl = Parser.parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {

@@ -8,13 +8,61 @@ import {
 import {
   UIDLDynamicReference,
   ComponentUIDL,
+  ProjectUIDL,
   UIDLNode,
   UIDLConditionalNode,
   UIDLRepeatNode,
   UIDLSlotNode,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-export const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
+interface ParseComponentJSONParams {
+  noClone?: boolean
+}
+
+export const parseComponentJSON = (
+  input: Record<string, unknown>,
+  params: ParseComponentJSONParams = {}
+): ComponentUIDL => {
+  const safeInput = params.noClone ? input : cloneObject(input)
+
+  const node = safeInput.node as Record<string, unknown>
+  const result: ComponentUIDL = {
+    ...(safeInput as ComponentUIDL),
+  }
+
+  // other parsers for other sections of the component here
+  result.node = parseComponentNode(node)
+
+  return result
+}
+
+interface ParseProjectJSONParams {
+  noClone?: boolean
+}
+
+export const parseProjectJSON = (
+  input: Record<string, unknown>,
+  params: ParseProjectJSONParams = {}
+): ProjectUIDL => {
+  const safeInput = params.noClone ? input : cloneObject(input)
+  const root = safeInput.root as ComponentUIDL
+
+  const result = {
+    ...(safeInput as ProjectUIDL),
+  }
+
+  result.root = parseComponentJSON(root, { noClone: true })
+  if (result.components) {
+    result.components = Object.keys(result.components).reduce((parsedComponnets, key) => {
+      parsedComponnets[key] = parseComponentJSON(result.components[key])
+      return parsedComponnets
+    }, {})
+  }
+
+  return result
+}
+
+const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   // console.log(node.type, node.content)
   switch ((node as UIDLNode).type) {
     case 'element':
@@ -88,25 +136,4 @@ export const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
     default:
       throw new Error(`parseComponentNode attempted to parsed invalid node type ${node.type}`)
   }
-}
-
-interface ParseComponentJSONParams {
-  noClone?: boolean
-}
-
-export const parseComponentJSON = (
-  input: Record<string, unknown>,
-  params: ParseComponentJSONParams = {}
-): ComponentUIDL => {
-  const safeInput = params.noClone ? input : cloneObject(input)
-
-  const node = safeInput.node as Record<string, unknown>
-  const result: ComponentUIDL = {
-    ...(safeInput as ComponentUIDL),
-  }
-
-  // other parsers for other sections of the component here
-  result.node = parseComponentNode(node)
-
-  return result
 }

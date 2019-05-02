@@ -1,6 +1,4 @@
-import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-core'
-
-import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
+import { AssemblyLine, Builder, Resolver, Parser } from '@teleporthq/teleport-generator-core'
 
 import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -21,7 +19,7 @@ const createVuePipeline = ({ mapping }: GeneratorOptions = {}) => {
     input: Record<string, unknown>,
     options: GeneratorOptions = {}
   ) => {
-    const uidl = parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(input)
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
     const code = chunksLinker.link(chunks.default)

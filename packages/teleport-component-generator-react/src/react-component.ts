@@ -1,4 +1,10 @@
-import { AssemblyLine, Builder, Resolver, Validator } from '@teleporthq/teleport-generator-core'
+import {
+  AssemblyLine,
+  Builder,
+  Resolver,
+  Validator,
+  Parser,
+} from '@teleporthq/teleport-generator-core'
 
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
 import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
@@ -12,7 +18,6 @@ import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
-import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 
 import {
   ComponentGenerator,
@@ -61,7 +66,7 @@ const createReactGenerator = (params: ReactGeneratorFactoryParams = {}): Compone
         throw new Error(validationResult.errorMsg)
       }
     }
-    const uidl = parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(input)
 
     const files: GeneratedFile[] = []
     // For page components, for some frameworks the filename will be the one set in the meta property

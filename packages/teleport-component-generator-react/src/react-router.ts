@@ -1,11 +1,10 @@
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
-import { AssemblyLine, Builder, Resolver } from '@teleporthq/teleport-generator-core'
+import { AssemblyLine, Builder, Resolver, Parser } from '@teleporthq/teleport-generator-core'
 
 import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
 
-import { parseComponentJSON } from '@teleporthq/teleport-generator-core/lib/parser/component'
 import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const createRouterComponentGenerator = () => {
@@ -17,7 +16,7 @@ const createRouterComponentGenerator = () => {
   // TODO change to respect the same output as normal component?
   // TODO validate UIDL in here as well?
   const generateComponent = async (input: Record<string, unknown>) => {
-    const uidl = parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(input)
     const resolvedUIDL = resolver.resolveUIDL(uidl)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
 
