@@ -8,6 +8,9 @@ import {
 
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
 import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
+import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
+import reactCSSModulesPlugin from '@teleporthq/teleport-plugin-react-css-modules'
+import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
 import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
 import reactPropTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -30,7 +33,10 @@ import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const stylePlugins = {
   InlineStyles: reactInlineStylesPlugin,
+  StyledComponents: reactStyledComponentsPlugin,
   StyledJSX: reactStyledJSXPlugin,
+  CSSModules: reactCSSModulesPlugin,
+  JSS: reactJSSPlugin,
 }
 
 export interface ReactGeneratorFactoryParams {

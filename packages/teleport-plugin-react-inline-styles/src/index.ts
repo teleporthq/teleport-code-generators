@@ -43,9 +43,11 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
         // Nested styles are ignored
         const rootStyles = cleanupNestedStyles(style)
         const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
-          return new ParsedASTNode(
-            t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-          )
+          const expression =
+            styleValue.content.referenceType === 'state'
+              ? t.identifier(styleValue.content.id)
+              : t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
+          return new ParsedASTNode(expression)
         })
 
         addJSXTagStyles(jsxASTTag, inlineStyles)

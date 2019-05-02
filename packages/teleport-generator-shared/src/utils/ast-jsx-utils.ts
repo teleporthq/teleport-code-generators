@@ -111,7 +111,7 @@ export const generateStyledJSXTag = (
   return jsxTag
 }
 
-const stringAsTemplateLiteral = (str: string, t = types) => {
+export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
   `
@@ -200,13 +200,14 @@ export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
 
 export const addChildJSXTag = (
   tag: types.JSXElement,
-  childNode: types.JSXElement | types.JSXExpressionContainer
+  childNode: types.JSXElement | types.JSXExpressionContainer,
+  t = types
 ) => {
-  tag.children.push(childNode, types.jsxText('\n'))
+  tag.children.push(childNode, t.jsxText('\n'))
 }
 
 export const addChildJSXText = (tag: types.JSXElement, text: string, t = types) => {
-  tag.children.push(t.jsxText(text), types.jsxText('\n'))
+  tag.children.push(t.jsxText(text), t.jsxText('\n'))
 }
 
 // TODO: Replace with generic add attribute?
@@ -329,7 +330,11 @@ export const createTernaryOperation = (
   rightNode: types.JSXElement | types.StringLiteral,
   t = types
 ) => {
-  return types.jsxExpressionContainer(
-    types.conditionalExpression(types.identifier(stateKey), leftNode, rightNode)
+  return t.jsxExpressionContainer(
+    t.conditionalExpression(t.identifier(stateKey), leftNode, rightNode)
   )
+}
+
+export const createJSXSpreadAttribute = (name: string, t = types) => {
+  return t.jsxSpreadAttribute(t.identifier(name))
 }

@@ -1,11 +1,17 @@
-import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { generateStyledComponent, countPropReferences } from './utils'
-import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
-import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
+import {
+  traverseElements,
+  transformDynamicStyles,
+} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { stringToUpperCamelCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   createJSXSpreadAttribute,
   addDynamicAttributeOnTag,
-} from '../../shared/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -31,6 +37,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${stringToUpperCamelCase(key)}`
+        // @ts-ignore-next-line
         const timesReferred = countPropReferences(style, 0)
 
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
