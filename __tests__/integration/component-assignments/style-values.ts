@@ -3,6 +3,14 @@ import ComponentWithValidJSON from './component-with-valid-style.json'
 // @ts-ignore-next-line
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
 // @ts-ignore-next-line
+import ComponentWithInvalidStateStyles from './component-with-invalid-state-styles.json'
+// @ts-ignore-next-line
+import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
+// @ts-ignore-next-line
+import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple-prop-ref-styles.json'
+// @ts-ignore-next-line
+import ComponentWithNestedSinglePropRef from './component-with-nested-single-prop-ref-styles.json'
+// @ts-ignore-next-line
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
@@ -80,7 +88,7 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
     })
 
-    it('should support nested styles', async () => {
+    it('should support nested styles in styledjsx', async () => {
       const styledJSXGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledJSX,
       })
@@ -94,6 +102,119 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should throw error when a state is being refered in generated StyledJSX ', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledJSX,
+      })
+      try {
+        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+        expect(true).toBe(false)
+      } catch (e) {
+        expect(e.message).toContain(
+          'Error running transformDynamicStyles in reactStyledJSXChunkPlugin'
+        )
+      }
+    })
+
+    it('should explicitly send prop if style is using one prop variable', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithValidSingleStlye
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container height={props.config.height}')
+      expect(jsFile.content).toContain('height: ${(props) => props.height}')
+    })
+
+    it('should support object props in styled-components', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(ComponentWithValidStyle)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain(`align-self: center`)
+    })
+
+    it('should support nested styles in styled-components with single prop', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedStyles as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('flex-direction: ${(props) => props.flexDirection}')
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should support nested styles in styled-components with multiple prop refs', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedMultiplePropRef as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('flex-direction: ${(props) => props.direction}')
+      expect(jsFile.content).toContain('height: ${(props) => props.config.height}')
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should support nested styles in styled-components with single prop  ref', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedSinglePropRef as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('<Container alignSelf={props.direction}')
+      expect(jsFile.content).toContain('align-self: ${(props) => props.alignSelf}')
+      expect(jsFile.content).toContain('@media (max-width: 835px) {')
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should inject props only once for styled components', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledJSXGenerator.generateComponent(ComponentWithValidJSON)
+      const jsFile = findFileByType(result.files, JS_FILE)
+      expect(jsFile.content).toContain('<Container {...props} />')
+    })
+
+    it('should throw error when a state is being refered in generated StyledComponents ', async () => {
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      try {
+        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+        expect(true).toBe(false)
+      } catch (e) {
+        expect(e.message).toContain(
+          'Error running transformDynamicStyles in reactStyledComponentsPlugin'
+        )
+      }
     })
   })
 

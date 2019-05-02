@@ -1,0 +1,55 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+    "name": "ComponentWithAttrProp",
+    "stateDefinitions": {
+      "active": {
+        "type": "boolean",
+        "defaultValue": true
+      }
+    },
+    "propDefinitions": {
+      "direction": {
+        "type": "string",
+        "defaultValue": "row"
+      },
+      "config": {
+        "type": "object",
+        "defaultValue": {
+          "height": 32
+        }
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "container",
+        "style": {
+          "flexDirection": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "direction"
+            }
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+                "referenceType": "state",
+                "id": "active"
+            }
+          },
+          "height": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "config.height"
+            }
+          },
+          "alignSelf": {
+            "type": "static",
+            "content": "center"
+          }
+        }
+      }
+    }
+  }
