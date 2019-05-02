@@ -46,16 +46,21 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       if (style) {
         const root = jsxNodesLookup[key]
         const className = cammelCaseToDashCase(key)
-        jssStyleMap[className] = transformDynamicStyles(
-          style,
-          (styleValue) =>
-            new ParsedASTNode(
+        jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
+          if (styleValue.content.referenceType === 'prop') {
+            return new ParsedASTNode(
               t.arrowFunctionExpression(
                 [t.identifier('props')],
                 t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
               )
             )
-        )
+          }
+          throw new Error(
+            `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${
+              styleValue.content.referenceType
+            }`
+          )
+        })
         addDynamicAttributeOnTag(root, 'className', `classes['${className}']`, 'props')
       }
     })

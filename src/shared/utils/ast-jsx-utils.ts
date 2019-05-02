@@ -111,7 +111,7 @@ export const generateStyledJSXTag = (
   return jsxTag
 }
 
-const stringAsTemplateLiteral = (str: string, t = types) => {
+export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
   `
@@ -332,4 +332,8 @@ export const createTernaryOperation = (
   return types.jsxExpressionContainer(
     types.conditionalExpression(types.identifier(stateKey), leftNode, rightNode)
   )
+}
+
+export const createJSXSpreadAttribute = (name: string) => {
+  return types.jsxSpreadAttribute(types.identifier(name))
 }

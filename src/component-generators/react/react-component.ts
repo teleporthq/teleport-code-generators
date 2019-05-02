@@ -2,6 +2,7 @@ import { AssemblyLine, Builder, Resolver, Validator } from '../../core'
 
 import reactComponentPlugin from '../../plugins/teleport-plugin-react-base-component'
 import reactStyledJSXPlugin from '../../plugins/teleport-plugin-react-styled-jsx'
+import reactStyledComponentsPlugin from '../../plugins/teleport-plugin-react-styled-components'
 import reactJSSPlugin from '../../plugins/teleport-plugin-react-jss'
 import reactInlineStylesPlugin from '../../plugins/teleport-plugin-react-inline-styles'
 import reactPropTypesPlugin from '../../plugins/teleport-plugin-react-proptypes'
@@ -30,6 +31,7 @@ export enum ReactComponentStylingFlavors {
   StyledJSX = 'StyledJSX',
   JSS = 'JSS',
   CSSModules = 'CSSModules',
+  StyledComponents = 'StyledComponents',
 }
 
 export interface ReactGeneratorFactoryParams {
@@ -41,6 +43,7 @@ const stylePlugins = {
   [ReactComponentStylingFlavors.InlineStyles]: reactInlineStylesPlugin,
   [ReactComponentStylingFlavors.CSSModules]: reactCSSModulesPlugin,
   [ReactComponentStylingFlavors.StyledJSX]: reactStyledJSXPlugin,
+  [ReactComponentStylingFlavors.StyledComponents]: reactStyledComponentsPlugin,
   [ReactComponentStylingFlavors.JSS]: reactJSSPlugin,
 }
 

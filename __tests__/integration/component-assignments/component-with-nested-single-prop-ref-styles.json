@@ -1,0 +1,59 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+    "name": "ComponentWithNestedSinglePropRef",
+    "propDefinitions": {
+      "direction": {
+        "type": "string",
+        "defaultValue": "left"
+      },
+      "config": {
+        "type": "object",
+        "defaultValue": {
+          "height": 32
+        }
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "container",
+        "style": {
+          "@media (max-width: 835px)": {
+            "type": "nested-style",
+            "content": {
+              "alignSelf": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "direction"
+                }
+              }
+            }
+          },
+          "alignSelf": {
+            "type": "static",
+            "content": "center"
+          },
+          "@media (max-width: 640px)": {
+            "type": "nested-style",
+              "content": {
+                "alignSelf": {
+                  "type": "static",
+                  "content": "left"
+                }
+            }
+          },
+          "@media (max-width: 634px)": {
+            "type": "nested-style",
+            "content": {
+              "alignSelf": {
+                "type": "static",
+                "content": "right"
+              }
+            }
+          }
+        },
+        "children": []
+      }
+    }
+  }
