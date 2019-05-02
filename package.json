@@ -16,10 +16,6 @@
     "prepare": "npm run build",
     "clean": "lerna run clean",
     "add-contributor": "all-contributors add",
-    "create-react-next": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-next/index.ts",
-    "create-react-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/react-basic/index.ts",
-    "create-vue-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-basic/index.ts",
-    "create-vue-nuxt": "TS_NODE_FILES=true ts-node --project tsconfig.json ./examples/project-exporters/vue-nuxt/index.ts",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
@@ -38,7 +34,6 @@
   "devDependencies": {
     "@types/babel-types": "^7.0.6",
     "@types/jest": "^24.0.11",
-    "@types/node": "^11.13.5",
     "@types/rimraf": "^2.0.2",
     "all-contributors-cli": "^6.3.0",
     "codecov": "^3.3.0",
@@ -50,7 +45,6 @@
     "lerna-changelog": "^0.8.2",
     "pretty-quick": "^1.10.0",
     "ts-jest": "^24.0.2",
-    "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.4.3"

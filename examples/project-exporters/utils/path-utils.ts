@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import path from 'path'
 import rimraf from 'rimraf'
-import { GeneratedFolder } from '../../../src/typings/generators'
+import { GeneratedFolder } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 interface FileInfo {
   filename: string
