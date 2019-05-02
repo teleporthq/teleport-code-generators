@@ -27,23 +27,28 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       const { style, key, elementType } = element
       if (style) {
         const root = jsxNodesLookup[key]
-        const className = `${stringToUpperCamelCase(key)}Wrapper`
+        const className = `${stringToUpperCamelCase(key)}`
         let needInjectionOfProps: boolean = false
+
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
             needInjectionOfProps = true
             return `\$\{props => props.${styleValue.content.id}\}`
           }
+
           throw new Error(
             `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${
               styleValue.content.referenceType
             }`
           )
         })
+
         if (needInjectionOfProps) {
           root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
         }
+
         root.openingElement.name.name = className
+
         const code = {
           type: 'js',
           name: className,

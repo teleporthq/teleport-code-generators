@@ -105,7 +105,7 @@ describe('React Styles in Component', () => {
       })
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidJSON)
       const jsFile = findFileByType(result.files, JS_FILE)
-      expect(jsFile.content).toContain('<ContainerWrapper {...props} />')
+      expect(jsFile.content).toContain('<Container {...props} />')
     })
 
     it('should throw error when a state is being refered in generated StyledComponents ', async () => {
