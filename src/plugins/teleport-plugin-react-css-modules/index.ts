@@ -65,16 +65,13 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
-          const inlineStyles = transformDynamicStyles(
-            rootStyles,
-            (styleValue) =>
-              new ParsedASTNode(
-                t.arrowFunctionExpression(
-                  [t.identifier('props')],
-                  t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-                )
-              )
-          )
+          const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
+            const expression =
+              styleValue.content.referenceType === 'state'
+                ? t.identifier(styleValue.content.id)
+                : t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
+            return new ParsedASTNode(expression)
+          })
 
           addJSXTagStyles(root, inlineStyles)
         }
