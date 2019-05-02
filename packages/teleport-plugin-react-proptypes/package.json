@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-plugin-react-proptypes",
   "version": "0.6.0",
-  "description": "",
+  "description": "A plugin for generating prop-types according to the component specification",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

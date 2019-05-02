@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-generator-core",
   "version": "0.6.0",
-  "description": "",
+  "description": "The core components of a component/project generator",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

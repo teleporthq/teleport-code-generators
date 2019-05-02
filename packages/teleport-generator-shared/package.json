@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-generator-shared",
   "version": "0.6.0",
-  "description": "",
+  "description": "A utility belt for the entire teleportHQ ecosystem",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

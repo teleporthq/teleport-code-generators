@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-plugin-import-statements",
   "version": "0.6.0",
-  "description": "",
+  "description": "A plugin for handling import statements in JavaScript code",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

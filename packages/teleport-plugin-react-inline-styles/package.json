@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-plugin-react-inline-styles",
   "version": "0.6.0",
-  "description": "",
+  "description": "A plugin for injecting the styles as inline styles inside React components",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

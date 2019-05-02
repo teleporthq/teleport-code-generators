@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-plugin-vue-app-routing",
   "version": "0.6.0",
-  "description": "",
+  "description": "A plugin for generating the routing file for a Vue project",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

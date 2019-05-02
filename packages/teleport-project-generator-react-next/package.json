@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-generator-react-next",
   "version": "0.6.0",
-  "description": "",
+  "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

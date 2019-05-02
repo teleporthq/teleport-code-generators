@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-generator-react-basic",
   "version": "0.6.0",
-  "description": "",
+  "description": "Project generator using React and React-Router, on top of a standard webpack config",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-component-generator-react",
   "version": "0.6.0",
-  "description": "",
+  "description": "Component generator capable of creating React components with a number of different style flavors",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
