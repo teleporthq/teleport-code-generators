@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "name": "StyledComponent",
+  "stateDefinitions": {
+    "active": {
+      "type": "string",
+      "defaultValue": "block"
+    }
+  },
+  "propDefinitions": {
+    "direction": {
+      "type": "string",
+      "defaultValue": "row"
+    },
+    "config": {
+      "type": "object",
+      "defaultValue": {
+        "height": 32
+      }
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "children": ["Hello There !",
+        {
+          "type": "element",
+          "content": {
+            "elementType": "button",
+            "name": "click",
+            "children": ["click me !"],
+            "events": {
+              "click": [
+                {
+                  "type": "stateChange",
+                  "modifies": "active",
+                  "newState": "none"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "elementType": "container",
+      "style": {
+        "flexDirection": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "direction"
+          }
+        },
+        "display": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "state",
+            "id": "active"
+          }
+        },
+        "height": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "config.height"
+          }
+        },
+        "alignSelf": {
+          "type": "static",
+          "content": "center"
+        }
+      }
+    }
+  }
+}
