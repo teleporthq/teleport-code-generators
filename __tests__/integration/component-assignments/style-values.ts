@@ -8,6 +8,8 @@ import ComponentWithInvalidStateStyles from './component-with-invalid-state-styl
 import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
 // @ts-ignore-next-line
 import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple-prop-ref-styles.json'
+// @ts-ignore-next-line
+import ComponentWithNestedSinglePropRef from './component-with-nested-single-prop-ref-styles.json'
 
 import { createReactComponentGenerator, createVueComponentGenerator } from '../../../src'
 import { ReactComponentStylingFlavors } from '../../../src/component-generators/react/react-component'
@@ -117,7 +119,7 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
-    it('should support nested styles in styled-components with multiple props', async () => {
+    it('should support nested styles in styled-components with multiple prop refs', async () => {
       const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactComponentStylingFlavors.StyledComponents,
       })
@@ -130,6 +132,24 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain('flex-direction: ${(props) => props.direction}')
       expect(jsFile.content).toContain('height: ${(props) => props.config.height}')
       expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('@media (max-width: 640px) {')
+      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
+    })
+
+    it('should support nested styles in styled-components with single prop  ref', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactComponentStylingFlavors.StyledComponents,
+      })
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithNestedSinglePropRef as ComponentUIDL
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain(`align-self: center`)
+      expect(jsFile.content).toContain('<Container alignSelf={props.direction}')
+      expect(jsFile.content).toContain('align-self: ${(props) => props.alignSelf}')
+      expect(jsFile.content).toContain('@media (max-width: 835px) {')
       expect(jsFile.content).toContain('@media (max-width: 640px) {')
       expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })

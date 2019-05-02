@@ -1,5 +1,5 @@
 import { ComponentPluginFactory, ComponentPlugin } from '../../typings/generators'
-import { generateStyledComponent } from './utils'
+import { generateStyledComponent, countPropReferences } from './utils'
 import { traverseElements, transformDynamicStyles } from '../../shared/utils/uidl-utils'
 import { stringToUpperCamelCase } from '../../shared/utils/string-utils'
 import {
@@ -31,14 +31,8 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${stringToUpperCamelCase(key)}`
-        let timesReferred: number = 0
-
-        Object.keys(style).map((item) => {
-          // @ts-ignore-next-line
-          if (style[item].content.referenceType === 'prop') {
-            timesReferred++
-          }
-        })
+        // @ts-ignore-next-line
+        const timesReferred = countPropReferences(style, 0)
 
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
           if (styleValue.content.referenceType === 'prop') {

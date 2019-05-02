@@ -1,6 +1,7 @@
 import * as t from '@babel/types'
 import { cammelCaseToDashCase } from '../../shared/utils/string-utils'
 import { stringAsTemplateLiteral } from '../../shared/utils/ast-jsx-utils'
+import { UIDLStyleValue } from '../../typings/uidl-definitions'
 
 export const generateStyledComponent = (name: string, type: string, styles: object) => {
   return t.variableDeclaration('const', [
@@ -28,4 +29,15 @@ const mapStyles = (styles: object) => {
     }
   })
   return style
+}
+
+export const countPropReferences = (style: UIDLStyleValue, timesReferred: number) => {
+  Object.keys(style).map((item) => {
+    if (style[item].type === 'dynamic' && style[item].content.referenceType === 'prop') {
+      timesReferred++
+    } else if (style[item].type === 'nested-style') {
+      timesReferred = countPropReferences(style[item].content, timesReferred)
+    }
+  })
+  return timesReferred
 }
