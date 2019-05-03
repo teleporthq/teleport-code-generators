@@ -1,0 +1,29 @@
+{
+  "name": "@teleporthq/teleport-project-generator-react-next",
+  "version": "0.6.0",
+  "description": "Project generator for a standard Next.js project",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-component-generator-react": "^0.6.0"
+  }
+}

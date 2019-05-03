@@ -1,128 +1,79 @@
-### Version 0.4.1
-- Merge pull request #74 from teleporthq/hotfix/0.4
-- refactor(resolver): uniform implementation of util functions
-- refactor(deprecation): deprecate react-all generator
-- Merge pull request #2 from teleporthq/master
-- fix code samples
-- Update README.md
-- Merge pull request #76 from paulbrie/master
-- refactor(dependencies): move extract dependencies inside assembly line
-- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
-- fix(vue output): remove style tag if it is not needed
-- refactor(plugins): using a generic traversal method
-- refactor(style plugins): handling dynamic values in nested styles
+## Unreleased (2019-04-26)
 
-### Version 0.4.1
-- Add files via upload
-- Update README.md
-- fix: all attributes checked for assets prefix
-- next version bump
+#### :crystal_ball: UIDL
+* [#173](https://github.com/teleporthq/teleport-code-generators/pull/173) refactor(uidl-samples/component-schema): Update component
+ schema to a… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
-### Version 0.4.0
-- fix import
-- Merge pull request #56 from mihaiserban/ISSUE-51
-- docs: update README.md
-- docs: update .all-contributorsrc
-- Merge pull request #57 from teleporthq/all-contributors/add-mihaiserban
-- refactor(entire utils folder): rename and refactor util files from shared/utils
-- refactor(entire utils folder): rename and refactor util files from shared/utils
-- Merge branch '58-uniform-naming-for-utils' of https://github.com/teleporthq/teleport-code-generators into 58-uniform-naming-for-utils
-- Merge pull request #59 from teleporthq/58-uniform-naming-for-utils
-- fix(component generators): bind exposed methods to preserve 'this'
-- Merge pull request #60 from teleporthq/3-addMapping-fixed
-- feat: add sanitize function for component names
-- Merge pull request #61 from teleporthq/5-ensure-safe-component-naming
-- Update README.md
-- clone method for uidl structures and performance tests WIP
-- test(performance): Performance tests for component generation
-- missing package.json updates
-- test(performance): New limits for travis build
-- Merge pull request #62 from teleporthq/46-dont-change-input-uidl
-- fix(vue formatting): html parser update for prettier
-- fix(test): fix test assertion
-- Merge pull request #65 from teleporthq/17-template-formatting-vue
-- refactor(naming): style key in UIDL
-- Merge pull request #66 from teleporthq/style-renaming
-- Merge pull request #1 from teleporthq/master
-- add support for ts-node debugging in VSCode
-- improve addSpacesToEachLine, fix warnings
-- simpler link function, review chunk types
-- fix for unformatted css in generated html and js files
-- refactor(chunks): Refactor typings, chunk names, plugin interface
-- remove file
-- Merge pull request #69 from paulbrie/master
-- fix: tests
-- Merge pull request #71 from teleporthq/cleanup-builder-and-chunk
-- test(component generators): tests for all style flavors
-- Merge branch 'master' of https://github.com/mihaiserban/teleport-code-generators into ISSUE-52
-- Merge pull request #68 from mihaiserban/ISSUE-52
-- refactor(key uniqueness): UIDL structure update
-- test: temporary threshold for performance tests
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Luca Guzzon ([@lguzzon](https://github.com/lguzzon))
 
-### Version 0.3.1
 
-### Version 0.3.0
-- project reorganization
-- fixed tests
-- Update README.md
-- Update README.md
-- improve vue component identation
-- remove comments
-- move rimraf to dependecies
-- indent only html structures in vue component generator
-- remove warnings in .ts files outside of rootDir (dev experience)
-- docs: Add support for commitizen and CODE_OF_CONDUCT
-- Update CODE_OF_CONDUCT.md
-- suppress specific warnings
-- Merge pull request #53 from paulbrie/master
+## v0.6.0 (2019-04-09)
 
-### Version 0.3.1
-- initial commit
-- update Readme
-- update package-lock
-- tests fix
-- Update README.md
-- Update README.md
-- Update README.md
-- update README
-- update README
-- Merge pull request #1 from teleporthq/update-doc
-- Update README.md
-- Update README.md
-- Update README.md
-- default styling plugin for react set to inline styles
-- update dependencies for template projects
-- react flavor enum values as strings, not numbers
-- rename enum
-- video element mapping
-- undo project cleanup
-- Update README.md
-- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
-- Update README.md
-- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
-- Update README.md
-- Update README.md
-- Update README.md
-- Update README.md
-- Update README.md
-- Update README.md
-- Update README.md
-- video mapping updated in uidl
-- video mapping updated in uidl
-- Update README.md
-- Merge pull request #47 from mihaitaba/patch-1
-- support for picture + assets prefix refactoring
-- Merge branch 'master' of github.com:teleporthq/teleport-code-generators
-- assets prefix for project globals - manifest and html head
-- default packageJSON for react and next
-- Add @alexnm as a contributor
-- Add @vladnicula as a contributor
-- Add @paulbrie as a contributor
-- Add @mihaitaba as a contributor
-- all-contributors dependency
-- Update README.md
-- enforce curly braces
-- prettier format line to 100
-- Merge branch 'master' of https://github.com/teleporthq/teleport-code-generators
-- module reorganization
-- function order
+#### :crystal_ball: UIDL
+* [#143](https://github.com/teleporthq/teleport-code-generators/pull/143) feat(uidl-schema): uidl-schema-update ([@anamariaoros](https://github.com/anamariaoros))
+
+#### Committers: 4
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Anamaria Oros ([@anamariaoros](https://github.com/anamariaoros))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Vlad Nicula ([@vladnicula](https://github.com/vladnicula))
+
+
+## v0.5.1 (2019-04-04)
+
+#### :electric_plug: React Generators
+* [#144](https://github.com/teleporthq/teleport-code-generators/pull/144) feat(conditional render): support props as conditional identifier ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Vue Generator
+* [#144](https://github.com/teleporthq/teleport-code-generators/pull/144) feat(conditional render): support props as conditional identifier ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 4
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Pașca Ionuț ([@ovidiuionut94](https://github.com/ovidiuionut94))
+- Vlad Nicula ([@vladnicula](https://github.com/vladnicula))
+- [@alexpausan](https://github.com/alexpausan)
+
+
+## v0.5.0 (2019-04-03)
+
+#### :rocket: New Feature
+* Component generators should validate input UIDL ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: React Generators
+* [#89](https://github.com/teleporthq/teleport-code-generators/pull/89) Ternary Expression for boolean states ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Vue Generator
+* [#116](https://github.com/teleporthq/teleport-code-generators/pull/116) refactor(html-to-util-string): Switching the HAST to Html builder for… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#103](https://github.com/teleporthq/teleport-code-generators/pull/103) Ternary Expressions for Vue ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#83](https://github.com/teleporthq/teleport-code-generators/pull/83) vue generators on par with react ([@alexnm](https://github.com/alexnm))
+
+#### :earth_asia: Core
+* [#135](https://github.com/teleporthq/teleport-code-generators/pull/135) fix(try-catch-removal): removing try catch from assembly line-plugins ([@anamariaoros](https://github.com/anamariaoros))
+
+#### :crystal_ball: UIDL
+* [#82](https://github.com/teleporthq/teleport-code-generators/pull/82) refactor(schemas): Updated schemas with enum values ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 6
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Anamaria Oros ([@anamariaoros](https://github.com/anamariaoros))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Paul BRIE ([@paulbrie](https://github.com/paulbrie))
+- Pașca Ionuț ([@ovidiuionut94](https://github.com/ovidiuionut94))
+- Vlad Nicula ([@vladnicula](https://github.com/vladnicula))
+
+
+## v0.4.0 (2019-03-07)
+
+#### :electric_plug: Vue Generator
+* [#65](https://github.com/teleporthq/teleport-code-generators/pull/65) fix(vue formatting): html parser update for prettier ([@alexnm](https://github.com/alexnm))
+
+#### :earth_asia: Core
+* [#71](https://github.com/teleporthq/teleport-code-generators/pull/71) Cleanup builder and chunk ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Mihai Serban ([@mihaiserban](https://github.com/mihaiserban))
+- Paul BRIE ([@paulbrie](https://github.com/paulbrie))

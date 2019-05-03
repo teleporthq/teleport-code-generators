@@ -1,0 +1,28 @@
+{
+  "name": "@teleporthq/teleport-project-generator-react-basic",
+  "version": "0.6.0",
+  "description": "Project generator using React and React-Router, on top of a standard webpack config",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-component-generator-react": "^0.6.0"
+  }
+}

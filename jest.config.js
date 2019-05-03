@@ -19,9 +19,8 @@ module.exports = {
   ],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
-    '<rootDir>/__tests__/fixtures/html-whitespace-sensitive-tag-names.json'
+    '<rootDir>/packages/teleport-component-generator-vue/setup/html-whitespace-sensitive-tag-names.json'
   },
-  "modulePathIgnorePatterns": ["__tests__/fixtures"],
   "collectCoverage": false,
   "testEnvironment": "node",
   "collectCoverageFrom": [

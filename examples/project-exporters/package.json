@@ -1,0 +1,27 @@
+{
+  "name": "project-exporters",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "create-react-next": "TS_NODE_FILES=true ts-node --project tsconfig.json ./react-next/index.ts",
+    "create-react-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./react-basic/index.ts",
+    "create-vue-basic": "TS_NODE_FILES=true ts-node --project tsconfig.json ./vue-basic/index.ts",
+    "create-vue-nuxt": "TS_NODE_FILES=true ts-node --project tsconfig.json ./vue-nuxt/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
+    "@teleporthq/teleport-project-generator-react-next": "^0.6.0",
+    "@teleporthq/teleport-project-generator-vue-basic": "^0.6.0",
+    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.6.0",
+    "rimraf": "^2.6.3"
+  }
+}

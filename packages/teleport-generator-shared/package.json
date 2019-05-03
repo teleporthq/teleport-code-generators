@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-generator-shared",
+  "version": "0.6.0",
+  "description": "A utility belt for the entire teleportHQ ecosystem",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.4.0",
+    "@babel/types": "^7.3.3",
+    "jss": "^9.8.7",
+    "jss-preset-default": "^4.5.0",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
+    "prettier": "^1.17.0"
+  }
+}

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
   "name": "New UIDL",
   "propDefinitions": {
     "title": {

@@ -6,9 +6,9 @@ import projectJson from '../../uidl-samples/project.json'
 // @ts-ignore
 import customMapping from './custom-mapping.json'
 
-import { createReactBasicGenerator } from '../../../src'
-import { ProjectUIDL } from '../../../src/typings/uidl-definitions'
-import { ProjectGeneratorFunction } from '../../../src/typings/generators'
+import createReactBasicGenerator from '@teleporthq/teleport-project-generator-react-basic'
+import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectGeneratorFunction } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 const writeToDisk = async (
   projectUIDL: ProjectUIDL,

@@ -1,0 +1,27 @@
+{
+  "name": "@teleporthq/teleport-plugin-react-css-modules",
+  "version": "0.6.0",
+  "description": "A plugin for handling the styles as a separate css-module file for React components",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@babel/types": "^7.3.3"
+  }
+}

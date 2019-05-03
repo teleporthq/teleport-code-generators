@@ -1,0 +1,26 @@
+{
+  "name": "@teleporthq/teleport-plugin-react-styled-jsx",
+  "version": "0.6.0",
+  "description": "A plugin for injecting the styles as a styled-jsx tag inside React components",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0"
+  }
+}

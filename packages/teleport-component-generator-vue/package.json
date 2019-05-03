@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-component-generator-vue",
+  "version": "0.6.0",
+  "description": "Component generator capable of creating Vue components",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-app-routing": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-base-component": "^0.6.0",
+    "@teleporthq/teleport-plugin-vue-css": "^0.6.0"
+  }
+}
