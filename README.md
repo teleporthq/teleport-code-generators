@@ -130,7 +130,8 @@ const componentUIDL = {
   }
 }
 
-// instantiate a generator, selecting the styled-jsx plugin for handling styles (other options: CSSModules, JSS, InlineStyles)
+/* instantiate a generator, selecting the styled-jsx plugin for handling styles
+(other options: CSSModules, JSS, InlineStyles, StyledComponents) */
 const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
 
 // get the code
