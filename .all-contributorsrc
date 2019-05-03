@@ -105,6 +105,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Utwo",
+      "name": "Utwo",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/282668?v=4",
+      "profile": "http://utwo.ro",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7
