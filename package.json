@@ -13,15 +13,14 @@
     "test:coverage": "npm run test -- --coverage --no-cache",
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
-    "prepare": "npm run build",
-    "clean": "lerna run clean",
     "add-contributor": "all-contributors add",
+    "publish": "lerna run publish",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run clean && pretty-quick --staged && npm run lint"
+      "pre-commit": "pretty-quick --staged && npm run lint"
     }
   },
   "repository": {
@@ -49,15 +48,7 @@
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.4.3"
   },
-  "dependencies": {
-    "@babel/generator": "^7.4.0",
-    "@babel/types": "^7.4.0",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
-    "ajv": "^6.10.0",
-    "jss": "^9.8.7",
-    "jss-preset-default": "^4.5.0",
-    "prettier": "^1.17.0"
-  },
+  "dependencies": {},
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
