@@ -1,8 +1,29 @@
-## Unreleased (2019-04-26)
+## Unreleased (2019-05-03)
+
+#### :rocket: New Feature
+* `teleport-component-generator-react`, `teleport-component-generator-vue`, `teleport-generator-core`, `teleport-generator-shar
+ed`, `teleport-plugin-import-statements`, `teleport-plugin-react-app-routing`, `teleport-plugin-react-base-component`, `telepor
+t-plugin-react-css-modules`, `teleport-plugin-react-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-proptyp
+es`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-plugin-vue-app-routing`, `telepor
+t-plugin-vue-base-component`, `teleport-plugin-vue-css`, `teleport-project-generator-react-basic`, `teleport-project-generator-
+react-next`, `teleport-project-generator-vue-basic`, `teleport-project-generator-vue-nuxt`
+  * [#194](https://github.com/teleporthq/teleport-code-generators/pull/194) Feature/lerna ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* Other
+  * [#195](https://github.com/teleporthq/teleport-code-generators/pull/195) Feature/teleport plugin styled components ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: React Generators
+* [#195](https://github.com/teleporthq/teleport-code-generators/pull/195) Feature/teleport plugin styled components ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#201](https://github.com/teleporthq/teleport-code-generators/pull/201) fix(style-flavours): Fixed style flavours w.r.t to their behaviour ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :nail_care: Style Flavours
+* [#195](https://github.com/teleporthq/teleport-code-generators/pull/195) Feature/teleport plugin styled components ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#201](https://github.com/teleporthq/teleport-code-generators/pull/201) fix(style-flavours): Fixed style flavours w.r.t to their behaviour ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :bug: Bug Fix
+* [#201](https://github.com/teleporthq/teleport-code-generators/pull/201) fix(style-flavours): Fixed style flavours w.r.t to their behaviour ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
 #### :crystal_ball: UIDL
-* [#173](https://github.com/teleporthq/teleport-code-generators/pull/173) refactor(uidl-samples/component-schema): Update component
- schema to a… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#173](https://github.com/teleporthq/teleport-code-generators/pull/173) refactor(uidl-samples/component-schema): Update component schema to a… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
 #### Committers: 3
 - Alex Moldovan ([@alexnm](https://github.com/alexnm))
