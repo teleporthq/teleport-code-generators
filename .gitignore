@@ -34,3 +34,5 @@ node_modules/
 *.tgz
 
 .changelog
+
+examples/project-exporters/yarn.lock
