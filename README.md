@@ -276,7 +276,15 @@ Finally, you can publish all the packages with lerna on the local verdaccio serv
 yarn local:publish
 ```
 
-If you navigate to `https://localhost:4873` you should see your published packages. To generate the projects locally, you can now try one of the four tasks:
+If you navigate to `https://localhost:4873` you should see your published packages.
+
+Now it's time to move to the project exporter:
+```
+cd examples/project-exporters
+yarn
+```
+
+After the dependencies are installed (including the teleporthq packages from verdaccio), you can generate the projects locally, with one of the four tasks:
 
 ```
 npm run create-react-basic
