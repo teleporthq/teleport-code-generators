@@ -1,0 +1,20 @@
+{
+  "name": "component-exporters",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "create-react-component": "TS_NODE_FILES=true ts-node --project tsconfig.json ./react/index.ts",
+    "create-vue-component": "TS_NODE_FILES=true ts-node --project tsconfig.json ./vue/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-component-generator-react": "^0.0.6"
+  }
+}

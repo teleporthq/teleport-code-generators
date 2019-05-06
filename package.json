@@ -15,6 +15,7 @@
     "commitizen": "git-cz",
     "add-contributor": "all-contributors add",
     "publish": "lerna run publish",
+    "watch": "lerna run build:watch",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },

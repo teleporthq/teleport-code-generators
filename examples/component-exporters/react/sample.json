@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
+  "name": "SampleReactComponent",
+  "node":  {
+    "type": "element",
+    "content": {
+      "elementType": "text",
+      "children": [{
+        "type": "static",
+        "content": "Now you see me!"
+      }]
+    }
+  }
+}
