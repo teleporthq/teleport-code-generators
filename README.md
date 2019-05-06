@@ -231,15 +231,53 @@ A few useful links to get you up to speed with the entire **teleport** ecosystem
 
 <h2 id="development">💻 Development</h2>
 
-This project is writen with **TypeScript** and has a pretty standard setup. In order to give it a spin locally, you have to:
+This project uses:
+* [TypeScript](https://www.typescriptlang.org/) for type safety and easy refactoring
+* [lerna](https://github.com/lerna/lerna) for managing the monorepo with multiple npm packages
+* [jest](https://jestjs.io/) for all types of tests and for calculating the code coverage
+* [verdaccio](https://verdaccio.org/) for testing out the published packages in a local environment
+
+
+In order to give it a spin locally, we recommend using `yarn`, as it integrates better with `lerna` and all the contributors are using:
 
 ```
-npm install
+yarn
+```
+This installs the dependencies in the root folder, but also creates the symlinks between the independent modules inside the `packages` folder.
+
+To complete the lerna setup, you need to run:
+
+```
+yarn build
+```
+This will run the `build` task inside each individual package, creating the output `lib` folder.
+
+Running the test suite:
+```
+yarn test
+yarn test:coverage
 ```
 
-Project generators are running locally in the `/examples` folder, where you'll find a number of UIDL samples as well as the code that writes the files and folders to disk.
+Additionally, we have a separate project inside the solution that is testing the project generator packages. You will find this in the `/examples/project-exporters` folder. This solution however, requires the packages to be published on a registry. For testing the immediate changes on a project generator, we rely on `verdaccio` as a private local npm server.
 
-To generate the projects locally, you can try one of these four examples:
+To use verdaccio you have to install it globally and then run it (starts the server on port 4873 by default):
+```
+yarn global add verdaccio
+verdaccio
+```
+
+You need to setup a user on your local server (follow the instructions):
+```
+npm adduser --registry http://localhost:4873
+```
+
+Finally, you can publish all the packages with lerna on the local verdaccio server:
+```
+yarn local:publish
+```
+
+If you navigate to `https://localhost:4873` you should see your published packages. To generate the projects locally, you can now try one of the four tasks:
+
 ```
 npm run create-react-basic
 npm run create-react-next
@@ -247,15 +285,9 @@ npm run create-vue-basic
 npm run create-vue-nuxt
 ```
 
-Files and folders for each template are generated after you run the corresponding npm task in `/examples/projects-exporters/<project-template>`.
+Files and folders for each template are generated after you run the corresponding npm task in `/examples/projects-exporters/<project-template>/dist`.
 
-Running the test suite:
-```
-npm run test
-npm run test:coverage
-```
-
-Please [open an issue](https://github.com/teleporthq/teleport-code-generators/issues) for any irregularity, potential bug that you find while running the codebase, or if you simply have any questions or curiosities about this project.
+Please [open an issue](https://github.com/teleporthq/teleport-code-generators/issues) for any irregularity, potential bug that you find while running this, or if you simply have any questions or curiosities about this project.
 
 <h2 id="planning">🤖 Planning</h2>
 
