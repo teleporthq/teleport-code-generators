@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/src/uidl-definitions/schemas/component.json",
+  "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
   "name": "BigSample",
   "node": {
     "type": "element",
