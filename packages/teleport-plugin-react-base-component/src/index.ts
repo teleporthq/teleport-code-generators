@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 import { makeDefaultExport } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
-import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
+import {
+  makePureComponent,
+  generateNodeSyntax,
+  createStateIdentifiers,
+  generateRootNode,
+} from './utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -38,15 +43,24 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
+    let pureComponent
 
-    const jsxTagStructure = generateNodeSyntax(uidl.node, {
-      propDefinitions: uidl.propDefinitions || {},
-      stateIdentifiers,
-      nodesLookup,
-      dependencies,
-    }) as types.JSXElement
+    if (
+      uidl.node.type === 'static' ||
+      uidl.node.type === 'dynamic' ||
+      uidl.node.type === 'conditional'
+    ) {
+      pureComponent = generateRootNode(uidl.node, uidl.name)
+    } else {
+      const jsxTagStructure = generateNodeSyntax(uidl.node, {
+        propDefinitions: uidl.propDefinitions || {},
+        stateIdentifiers,
+        nodesLookup,
+        dependencies,
+      }) as types.JSXElement
 
-    const pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure)
+      pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure)
+    }
 
     structure.chunks.push({
       type: 'js',

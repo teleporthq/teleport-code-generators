@@ -23,6 +23,7 @@ import {
   UIDLStateDefinition,
   EventHandlerStatement,
   UIDLSlotNode,
+  UIDLNode,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   StateIdentifier,
@@ -481,5 +482,50 @@ const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
           attributeValue
         )}`
       )
+  }
+}
+
+export const generateRootNode = (node: UIDLNode, name: string) => {
+  switch (node.type) {
+    case 'static': {
+      const arrowFunction = types.arrowFunctionExpression(
+        [types.identifier('props')],
+        types.stringLiteral(node.content.toString())
+      )
+      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+      const component = types.variableDeclaration('const', [declarator])
+      return component
+    }
+    case 'dynamic': {
+      const memberExpression = types.memberExpression(
+        types.identifier('props'),
+        types.identifier(node.content.id)
+      )
+      const arrowFunction = types.arrowFunctionExpression(
+        [types.identifier('props')],
+        memberExpression
+      )
+      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+      const component = types.variableDeclaration('const', [declarator])
+      return component
+    }
+    case 'conditional': {
+      const memberExpression = types.memberExpression(
+        types.identifier('props'),
+        types.identifier(node.content.reference.content.id)
+      )
+      const logicalExpression = types.logicalExpression(
+        '&&',
+        memberExpression,
+        types.stringLiteral(node.content.node.content.toString())
+      )
+      const arrowFunction = types.arrowFunctionExpression(
+        [types.identifier('props')],
+        logicalExpression
+      )
+      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+      const component = types.variableDeclaration('const', [declarator])
+      return component
+    }
   }
 }
