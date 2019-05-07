@@ -1,0 +1,17 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
+    "name": "ComponentWithDynamicRootNode",
+    "propDefinitions": {
+      "name": {
+        "type": "string",
+        "defaultValue": "Teleport Code Generators"
+      }
+    },
+    "node": {
+      "type": "dynamic",
+      "content": {
+        "referenceType": "prop",
+        "id": "name"
+      }
+    }
+  }

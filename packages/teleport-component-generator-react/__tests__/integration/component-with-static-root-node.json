@@ -1,0 +1,8 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
+    "name": "ComponentWithStaticRootNode",
+    "node": {
+      "type": "static",
+      "content": "Teleport Code Generators"
+    }
+  }

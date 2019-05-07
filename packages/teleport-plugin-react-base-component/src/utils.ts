@@ -485,46 +485,65 @@ const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
   }
 }
 
-export const generateRootNode = (node: UIDLNode, name: string) => {
+export const generateRootNode = (
+  node: UIDLNode,
+  name: string,
+  accumulators: ReactComponentAccumulators
+) => {
   switch (node.type) {
     case 'static': {
       const arrowFunction = types.arrowFunctionExpression(
         [types.identifier('props')],
         types.stringLiteral(node.content.toString())
       )
+
       const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+
       const component = types.variableDeclaration('const', [declarator])
+
       return component
     }
+
     case 'dynamic': {
       const memberExpression = types.memberExpression(
         types.identifier('props'),
         types.identifier(node.content.id)
       )
+
       const arrowFunction = types.arrowFunctionExpression(
         [types.identifier('props')],
         memberExpression
       )
+
       const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+
       const component = types.variableDeclaration('const', [declarator])
+
       return component
     }
+
     case 'conditional': {
+      const expressionRightHand: types.JSXElement | types.StringLiteral =
+        typeof node.content.node.content === 'string'
+          ? types.stringLiteral(node.content.node.content.toString())
+          : generateElementNode(node.content.node as UIDLElementNode, accumulators)
+
       const memberExpression = types.memberExpression(
         types.identifier('props'),
         types.identifier(node.content.reference.content.id)
       )
-      const logicalExpression = types.logicalExpression(
-        '&&',
-        memberExpression,
-        types.stringLiteral(node.content.node.content.toString())
-      )
+
+      const logicalExpression = types.logicalExpression('&&', memberExpression, expressionRightHand)
+
       const arrowFunction = types.arrowFunctionExpression(
         [types.identifier('props')],
         logicalExpression
       )
+
       const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
+
       const component = types.variableDeclaration('const', [declarator])
+
       return component
     }
   }
