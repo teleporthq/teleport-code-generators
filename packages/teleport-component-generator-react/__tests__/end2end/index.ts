@@ -48,6 +48,22 @@ describe('React Component Generator', () => {
     })
   })
 
+  describe('with StyledComponents', () => {
+    const generator = createReactComponentGenerator({
+      variation: 'StyledComponents',
+    })
+
+    it('should return the files containing the code as string', async () => {
+      const result = await generator.generateComponent(uidlSample)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files.length).toBe(1)
+      expect(jsFile.content).toContain('import React')
+      expect(result.dependencies).toBeDefined()
+    })
+  })
+
   describe('with InlineStyles', () => {
     const generator = createReactComponentGenerator()
 
