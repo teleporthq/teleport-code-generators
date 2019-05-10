@@ -46,7 +46,15 @@ describe('Testing the functionality for StyledComponents', () => {
     const style = {
       height: staticNode('100px'),
     }
-    const uidlSample = component('StyledComponents', elementNode('container', {}, [], style))
+    const element = elementNode('container', {}, [], style)
+    const elementWithKey = {
+      ...element,
+      content: {
+        ...element.content,
+        key: 'container',
+      },
+    }
+    const uidlSample = component('StyledComponents', elementWithKey)
     const structure: ComponentStructure = {
       uidl: uidlSample,
       chunks: [componentChunk],
@@ -62,7 +70,16 @@ describe('Testing the functionality for StyledComponents', () => {
   })
 
   it('Generator should not break when chunks are missing', async () => {
-    const uidlSample = component('StyledComponents', elementNode('container', {}, [], {}))
+    const element = elementNode('container', {}, [], {})
+    const elementWithKey = {
+      ...element,
+      content: {
+        ...element.content,
+        key: 'container',
+      },
+    }
+    const uidlSample = component('StyledComponents', elementWithKey)
+
     const structure: ComponentStructure = {
       uidl: uidlSample,
       chunks: [],

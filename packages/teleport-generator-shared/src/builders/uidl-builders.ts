@@ -43,7 +43,6 @@ export const element = (
     attrs,
     style,
     children,
-    key: elementType,
   }
 }
 
