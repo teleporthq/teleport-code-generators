@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-generator-shared",
+  "name": "@teleporthq/teleport-component-generator",
   "version": "0.6.0",
-  "description": "A utility belt for the entire teleportHQ ecosystem",
+  "description": "Generic component generator",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -21,10 +21,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@babel/generator": "^7.4.0",
-    "@babel/types": "^7.3.3",
-    "jss": "^9.8.7",
-    "jss-preset-default": "^4.5.0",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.17"
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-generator-core": "^0.6.0"
   }
 }
