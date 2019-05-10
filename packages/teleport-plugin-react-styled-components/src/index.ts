@@ -74,6 +74,10 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       }
     })
 
+    if (!Object.keys(jssStyleMap).length) {
+      return structure
+    }
+
     dependencies.styled = {
       type: 'library',
       path: 'styled-components',
