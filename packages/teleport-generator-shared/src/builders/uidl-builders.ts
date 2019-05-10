@@ -7,6 +7,7 @@ import {
   ReferenceType,
   ComponentUIDL,
   UIDLSlotNode,
+  UIDLStyleValue,
 } from '../typings/uidl'
 
 export const component = (name: string, node: UIDLNode): ComponentUIDL => {
@@ -19,24 +20,30 @@ export const component = (name: string, node: UIDLNode): ComponentUIDL => {
 export const elementNode = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
-  children?: UIDLNode[]
+  children?: UIDLNode[],
+  style?: Record<string, UIDLStyleValue>
 ): UIDLElementNode => {
   return {
     type: 'element',
-    content: element(elementType, attrs, children),
+    content: style
+      ? element(elementType, attrs, children, style)
+      : element(elementType, attrs, children),
   }
 }
 
 export const element = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
-  children?: UIDLNode[]
+  children?: UIDLNode[],
+  style?: Record<string, UIDLStyleValue>
 ) => {
   return {
     elementType,
     name: elementType,
     attrs,
+    style,
     children,
+    key: elementType,
   }
 }
 

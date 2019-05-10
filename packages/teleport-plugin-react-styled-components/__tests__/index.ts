@@ -1,6 +1,7 @@
 import {
   component,
   elementNode,
+  staticNode,
 } from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
 import {
   ComponentStructure,
@@ -13,7 +14,15 @@ describe('Testing the functionality for StyledComponents', () => {
   const componentChunk: ChunkDefinition = {
     name: 'react-component',
     meta: {
-      nodesLookup: {},
+      nodesLookup: {
+        container: {
+          openingElement: {
+            name: {
+              name: '',
+            },
+          },
+        },
+      },
     },
     type: 'js',
     linkAfter: ['import-local'],
@@ -27,7 +36,41 @@ describe('Testing the functionality for StyledComponents', () => {
       chunks: [componentChunk],
       dependencies: {},
     }
+
     const { dependencies } = await plugin(structure)
+
+    expect(Object.keys(dependencies).length).toBe(0)
+  })
+
+  it('Should add styled as dependency', async () => {
+    const style = {
+      height: staticNode('100px'),
+    }
+    const uidlSample = component('StyledComponents', elementNode('container', {}, [], style))
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      chunks: [componentChunk],
+      dependencies: {},
+    }
+
+    const { dependencies } = await plugin(structure)
+    const { styled } = dependencies
+
+    expect(Object.keys(dependencies).length).toBeGreaterThan(0)
+    expect(styled.type).toBe('library')
+    expect(styled.path).toBe('styled-components')
+  })
+
+  it('Generator should not break when chunks are missing', async () => {
+    const uidlSample = component('StyledComponents', elementNode('container', {}, [], {}))
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      chunks: [],
+      dependencies: {},
+    }
+
+    const { dependencies } = await plugin(structure)
+
     expect(Object.keys(dependencies).length).toBe(0)
   })
 })
