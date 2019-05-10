@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-js",
   "version": "0.6.0",
-  "description": "A plugin for creating the styles of a Vue component",
+  "description": "A post-processing function that formats js code chunks using prettier and the prettier-js plugin",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

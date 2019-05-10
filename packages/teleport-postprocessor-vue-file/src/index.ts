@@ -6,10 +6,26 @@ import {
 import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 const processor: PostProcessingFunction = (codeChunks) => {
-  // TODO: console.warn / skip
-  const jsCode = removeLastEmptyLine(codeChunks[FILE_TYPE.JS])
-  const cssCode = removeLastEmptyLine(codeChunks[FILE_TYPE.CSS])
-  const htmlCode = removeLastEmptyLine(codeChunks[FILE_TYPE.HTML])
+  let jsCode
+  let cssCode
+  let htmlCode
+
+  if (codeChunks[FILE_TYPE.HTML]) {
+    htmlCode = removeLastEmptyLine(codeChunks[FILE_TYPE.HTML])
+  } else {
+    throw new Error('No code chunk of type HTML found, vue file concatenation aborded')
+  }
+
+  if (codeChunks[FILE_TYPE.JS]) {
+    jsCode = removeLastEmptyLine(codeChunks[FILE_TYPE.JS])
+  } else {
+    throw new Error('No code chunk of type JS found, vue file concatenation aborded')
+  }
+
+  // if no CSS, skip the <style></style>
+  if (codeChunks[FILE_TYPE.CSS]) {
+    cssCode = removeLastEmptyLine(codeChunks[FILE_TYPE.CSS])
+  }
 
   const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
   const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)

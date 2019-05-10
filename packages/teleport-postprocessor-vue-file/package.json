@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-postprocessor-vue-file",
   "version": "0.6.0",
-  "description": "A plugin for creating the styles of a Vue component",
+  "description": "A post-processing function that concatenates html/js/css code chunks into a single code chunk of type vue",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

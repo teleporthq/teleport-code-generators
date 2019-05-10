@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-html",
   "version": "0.6.0",
-  "description": "",
+  "description": "A post-processing function that formats html code chunks using prettier and the prettier-html plugin",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

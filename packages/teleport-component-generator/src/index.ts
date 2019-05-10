@@ -25,15 +25,6 @@ export interface GeneratorFactoryParams {
   postprocessors?: PostProcessingFunction[]
 }
 
-const fileBundler = (uidl: ComponentUIDL, codeChunks: any) => {
-  let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
-  fileName = sanitizeVariableName(fileName)
-
-  return Object.keys(codeChunks).map((fileId) => {
-    return createFile(fileName, fileId, codeChunks[fileId])
-  })
-}
-
 export const createGenerator = (
   params: GeneratorFactoryParams = { mappings: [], plugins: [], postprocessors: [] }
 ): ComponentGenerator => {
@@ -93,3 +84,12 @@ export const createGenerator = (
 }
 
 export default createGenerator()
+
+const fileBundler = (uidl: ComponentUIDL, codeChunks: any) => {
+  let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+  fileName = sanitizeVariableName(fileName)
+
+  return Object.keys(codeChunks).map((fileId) => {
+    return createFile(fileName, fileId, codeChunks[fileId])
+  })
+}
