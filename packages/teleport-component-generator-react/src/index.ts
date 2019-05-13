@@ -1,2 +1,56 @@
-export { default as createReactComponentGenerator } from './react-component'
-export { default as createReactRouterComponentGenerator } from './react-router'
+import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
+import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
+import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
+import reactCSSModulesPlugin from '@teleporthq/teleport-plugin-react-css-modules'
+import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
+import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
+import reactPropTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+
+import { createGenerator } from '@teleporthq/teleport-component-generator'
+
+import htmlMapping from './html-mapping.json'
+import reactMapping from './react-mapping.json'
+
+import { ComponentGenerator } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+
+import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+
+const stylePlugins = {
+  InlineStyles: reactInlineStylesPlugin,
+  StyledComponents: reactStyledComponentsPlugin,
+  StyledJSX: reactStyledJSXPlugin,
+  CSSModules: reactCSSModulesPlugin,
+  JSS: reactJSSPlugin,
+}
+
+export interface ReactGeneratorFactoryParams {
+  variation?: string
+  customMapping?: Mapping
+}
+
+export const createReactComponentGenerator = (
+  params: ReactGeneratorFactoryParams = {}
+): ComponentGenerator => {
+  const { variation, customMapping } = params
+  const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
+
+  const generator = createGenerator()
+
+  generator.addMapping(htmlMapping as Mapping)
+  generator.addMapping(reactMapping)
+  generator.addMapping(customMapping)
+
+  generator.addPlugin(reactComponentPlugin)
+  generator.addPlugin(stylePlugin)
+  generator.addPlugin(reactPropTypesPlugin)
+  generator.addPlugin(importStatementsPlugin)
+
+  generator.addPostProcessor(prettierJS)
+
+  return generator
+}
+
+export default createReactComponentGenerator

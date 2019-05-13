@@ -36,6 +36,8 @@
     "@teleporthq/teleport-plugin-react-jss": "^0.6.0",
     "@teleporthq/teleport-plugin-react-proptypes": "^0.6.0",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.6.0",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.6.0"
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.6.0",
+    "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
+    "@teleporthq/teleport-project-generator-vue-basic": "^0.6.0"
   }
 }

@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.6.0",
-    "@teleporthq/teleport-generator-core": "^0.6.0",
     "@teleporthq/teleport-plugin-react-app-routing": "^0.6.0",
     "@teleporthq/teleport-plugin-react-base-component": "^0.6.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
