@@ -235,24 +235,27 @@ export const createStateIdentifiers = (
 export const makePureComponent = (
   name: string,
   stateIdentifiers: Record<string, StateIdentifier>,
-  jsxTagTree: types.JSXElement & string,
+  jsxTagTree: types.JSXElement | string | types.JSXExpressionContainer | types.LogicalExpression,
   nodeType: string,
   t = types
 ) => {
   let arrowFunctionBody: any
   switch (nodeType) {
     case 'static':
-      arrowFunctionBody = types.stringLiteral(jsxTagTree)
+      arrowFunctionBody = typeof jsxTagTree === 'string' && types.stringLiteral(jsxTagTree)
       break
     case 'dynamic':
     case 'conditional':
       arrowFunctionBody =
         Object.keys(stateIdentifiers).length === 0
           ? jsxTagTree
-          : generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree)
+          : generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree as types.JSXElement)
       break
     default:
-      arrowFunctionBody = generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree)
+      arrowFunctionBody = generateReturnExpressionSyntax(
+        stateIdentifiers,
+        jsxTagTree as types.JSXElement
+      )
       break
   }
 
