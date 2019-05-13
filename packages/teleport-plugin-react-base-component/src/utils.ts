@@ -23,7 +23,6 @@ import {
   UIDLStateDefinition,
   EventHandlerStatement,
   UIDLSlotNode,
-  UIDLNode,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   StateIdentifier,
@@ -78,6 +77,9 @@ export const generateElementNode = (
 
       if (typeof childTag === 'string') {
         addChildJSXText(elementTag, childTag)
+      } else if (childTag.type === 'LogicalExpression') {
+        const expression: types.JSXExpressionContainer = types.jsxExpressionContainer(childTag)
+        addChildJSXTag(elementTag, expression)
       } else {
         addChildJSXTag(elementTag, childTag)
       }
@@ -162,7 +164,11 @@ export const generateSlotNode = (
   return t.jsxExpressionContainer(childrenExpression)
 }
 
-type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
+type GenerateNodeSyntaxReturnValue =
+  | string
+  | types.JSXExpressionContainer
+  | types.JSXElement
+  | types.LogicalExpression
 
 export const generateNodeSyntax: NodeSyntaxGenerator<
   ReactComponentAccumulators,
@@ -173,7 +179,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return types.jsxExpressionContainer(makeDynamicValueExpression(node))
+      return makeDynamicValueExpression(node)
 
     case 'element':
       return generateElementNode(node, accumulators)
@@ -229,24 +235,46 @@ export const createStateIdentifiers = (
 export const makePureComponent = (
   name: string,
   stateIdentifiers: Record<string, StateIdentifier>,
-  jsxTagTree: types.JSXElement,
+  jsxTagTree: types.JSXElement & string,
+  nodeType: string,
   t = types
 ) => {
-  const returnStatement = t.returnStatement(jsxTagTree)
+  let arrowFunctionBody: any
+  switch (nodeType) {
+    case 'static':
+      arrowFunctionBody = types.stringLiteral(jsxTagTree)
+      break
+    case 'dynamic':
+    case 'conditional':
+      arrowFunctionBody =
+        Object.keys(stateIdentifiers).length === 0
+          ? jsxTagTree
+          : generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree)
+      break
+    default:
+      arrowFunctionBody = generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree)
+      break
+  }
 
-  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
-    makeStateHookAST(stateIdentifiers[stateKey])
-  )
-
-  const arrowFunction = t.arrowFunctionExpression(
-    [t.identifier('props')],
-    t.blockStatement([...stateHooks, returnStatement] || [])
-  )
+  const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])
 
   return component
+}
+
+const generateReturnExpressionSyntax = (
+  stateIdentifiers: Record<string, StateIdentifier>,
+  jsxTagTree: types.JSXElement,
+  t = types
+) => {
+  const returnStatement = t.returnStatement(jsxTagTree)
+  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
+    makeStateHookAST(stateIdentifiers[stateKey])
+  )
+
+  return t.blockStatement([...stateHooks, returnStatement] || [])
 }
 
 // Adds all the event handlers and all the instructions for each event handler
@@ -482,69 +510,5 @@ const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
           attributeValue
         )}`
       )
-  }
-}
-
-export const generateRootNode = (
-  node: UIDLNode,
-  name: string,
-  accumulators: ReactComponentAccumulators
-) => {
-  switch (node.type) {
-    case 'static': {
-      const arrowFunction = types.arrowFunctionExpression(
-        [types.identifier('props')],
-        types.stringLiteral(node.content.toString())
-      )
-
-      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
-
-      const component = types.variableDeclaration('const', [declarator])
-
-      return component
-    }
-
-    case 'dynamic': {
-      const memberExpression = types.memberExpression(
-        types.identifier('props'),
-        types.identifier(node.content.id)
-      )
-
-      const arrowFunction = types.arrowFunctionExpression(
-        [types.identifier('props')],
-        memberExpression
-      )
-
-      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
-
-      const component = types.variableDeclaration('const', [declarator])
-
-      return component
-    }
-
-    case 'conditional': {
-      const expressionRightHand: types.JSXElement | types.StringLiteral =
-        typeof node.content.node.content === 'string'
-          ? types.stringLiteral(node.content.node.content.toString())
-          : generateElementNode(node.content.node as UIDLElementNode, accumulators)
-
-      const memberExpression = types.memberExpression(
-        types.identifier('props'),
-        types.identifier(node.content.reference.content.id)
-      )
-
-      const logicalExpression = types.logicalExpression('&&', memberExpression, expressionRightHand)
-
-      const arrowFunction = types.arrowFunctionExpression(
-        [types.identifier('props')],
-        logicalExpression
-      )
-
-      const declarator = types.variableDeclarator(types.identifier(name), arrowFunction)
-
-      const component = types.variableDeclaration('const', [declarator])
-
-      return component
-    }
   }
 }

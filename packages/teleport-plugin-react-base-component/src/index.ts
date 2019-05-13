@@ -1,11 +1,6 @@
 import * as types from '@babel/types'
 import { makeDefaultExport } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
-import {
-  makePureComponent,
-  generateNodeSyntax,
-  createStateIdentifiers,
-  generateRootNode,
-} from './utils'
+import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -51,17 +46,9 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     }
     let pureComponent: types.VariableDeclaration
 
-    if (
-      uidl.node.type === 'static' ||
-      uidl.node.type === 'dynamic' ||
-      uidl.node.type === 'conditional'
-    ) {
-      pureComponent = generateRootNode(uidl.node, uidl.name, accumulators)
-    } else {
-      const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators) as types.JSXElement
+    const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators)
 
-      pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure)
-    }
+    pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure, uidl.node.type)
 
     structure.chunks.push({
       type: 'js',

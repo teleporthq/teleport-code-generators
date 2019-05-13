@@ -264,7 +264,7 @@ export const createConditionalJSXExpression = (
     binaryExpression = expression
   }
 
-  return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
+  return t.logicalExpression('&&', binaryExpression, contentNode)
 }
 
 export const createBinaryExpression = (

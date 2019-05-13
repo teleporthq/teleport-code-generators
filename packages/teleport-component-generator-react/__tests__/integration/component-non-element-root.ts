@@ -59,9 +59,10 @@ describe('React Component Generator support for non elements as root', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files).toBeDefined()
-    expect(jsFile.content).toContain('import React')
+    expect(jsFile.content).toContain('import React, { useState }')
     expect(result.dependencies).toBeDefined()
-    expect(jsFile.content).toContain('(props) => props.isVisible && <span>Now you see me!</span>')
+    expect(jsFile.content).toContain('[isVisible, setIsVisible]')
+    expect(jsFile.content).toContain('isVisible && <span>Now you see me!</span>')
     expect(result.files.length).toBeTruthy()
   })
 })
