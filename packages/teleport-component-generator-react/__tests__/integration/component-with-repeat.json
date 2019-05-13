@@ -32,7 +32,13 @@
                       }
                     }
                   },
-                  "children": [{"type": "dynamic", "content": { "referenceType": "local", "id": "item" }}]
+                  "children": [{
+                    "type": "dynamic",
+                    "content": { 
+                      "referenceType": "local", 
+                      "id": "item" 
+                    }
+                  }]
                 }
               }]
             }

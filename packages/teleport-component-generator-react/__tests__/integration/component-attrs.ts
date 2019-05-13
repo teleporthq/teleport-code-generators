@@ -1,8 +1,6 @@
 // @ts-ignore-next-line
 import ComponentWithValidPropsJSON from './component-with-valid-attr-prop.json'
 // @ts-ignore-next-line
-import ComponentWithRepeatPropsJSON from './component-with-repeat.json'
-// @ts-ignore-next-line
 import ComponentWithOldFormatAttributesJSON from './component-with-old-format-attributes.json'
 
 import { createReactComponentGenerator } from '../../src'
@@ -10,7 +8,31 @@ import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings
 import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 const ComponentWithValidProps = ComponentWithValidPropsJSON as ComponentUIDL
-const ComponentWithRepeatProps = ComponentWithRepeatPropsJSON as ComponentUIDL
+
+import {
+  component,
+  definition,
+  repeatNode,
+  dynamicNode,
+  elementNode,
+} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+
+const uidl = component(
+  'ComponentWithAttrProp',
+  elementNode('container', {}, [
+    repeatNode(
+      elementNode('div', {}, [
+        elementNode('div', { test: dynamicNode('local', 'index') }, [dynamicNode('local', 'item')]),
+      ]),
+      dynamicNode('prop', 'items'),
+      {
+        useIndex: true,
+      }
+    ),
+  ]),
+  { items: definition('object', { test: '123' }) },
+  {}
+)
 
 const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
@@ -39,7 +61,7 @@ describe('React Props in Component', () => {
     })
 
     it('should run repeat attributes and data source', async () => {
-      const result = await generator.generateComponent(ComponentWithRepeatProps)
+      const result = await generator.generateComponent(uidl)
       const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
