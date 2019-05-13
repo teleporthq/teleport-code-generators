@@ -14,12 +14,15 @@
         {
           "type": "element",
           "content": {
-            "elementType": "text",
+            "elementType": "Text",
             "style": {
               "margin": {
                 "type": "static",
                 "content": "10px"
               }
+            },
+            "dependency": {
+              "type": "local"
             },
             "children": [
               {

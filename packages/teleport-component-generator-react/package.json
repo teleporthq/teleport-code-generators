@@ -18,7 +18,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "build:watch": "tsc -w"
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.6.0",

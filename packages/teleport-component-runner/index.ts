@@ -7,7 +7,7 @@ import styledComponentPlugin from '@teleporthq/teleport-plugin-react-styled-comp
 import propTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+// import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -28,7 +28,7 @@ genericGenerator.addPlugin(styledComponentPlugin)
 genericGenerator.addPlugin(propTypesPlugin)
 genericGenerator.addPlugin(importStatementsPlugin)
 
-genericGenerator.addPostProcessor(prettierJS)
+// genericGenerator.addPostProcessor(prettierJS)
 
 const run = async (uidl: ComponentUIDL, generator: ComponentGenerator) => {
   const result = await generator.generateComponent(uidl)
