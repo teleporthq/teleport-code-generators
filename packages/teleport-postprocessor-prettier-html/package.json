@@ -1,0 +1,28 @@
+{
+  "name": "@teleporthq/teleport-postprocessor-prettier-html",
+  "version": "0.6.0",
+  "description": "A post-processing function that formats html code chunks using prettier and the prettier-html plugin",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "prettier": "^1.17.0"
+  }
+}

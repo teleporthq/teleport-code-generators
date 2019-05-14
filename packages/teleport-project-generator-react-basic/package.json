@@ -18,11 +18,16 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "build:watch": "tsc -w"
   },
   "dependencies": {
     "@teleporthq/teleport-generator-shared": "^0.6.0",
     "@teleporthq/teleport-generator-core": "^0.6.0",
-    "@teleporthq/teleport-component-generator-react": "^0.6.0"
+    "@teleporthq/teleport-component-generator": "^0.6.0",
+    "@teleporthq/teleport-component-generator-react": "^0.6.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.6.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.6.0"
   }
 }

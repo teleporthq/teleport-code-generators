@@ -48,11 +48,14 @@ export interface CompiledComponent {
   dependencies: Record<string, string>
 }
 
+export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
+
 export interface ComponentGenerator {
   generateComponent: GenerateComponentFunction
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
+  addPostProcessor: (fn: PostProcessingFunction) => void
 }
 
 export interface GeneratorOptions {

@@ -122,11 +122,11 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     publicFiles.push(htmlIndexFile)
 
     // Step 7: Create the routing component (router.js)
-    const { routerFile, externalDependencies } = await createRouterFile(root)
+    const { routerFile, dependencies: routerDependencies } = await createRouterFile(root)
     const srcFiles: GeneratedFile[] = [].concat(routerFile)
 
     const collectedDependencies = {
-      ...externalDependencies,
+      ...routerDependencies,
       ...joinedPageFiles.dependencies,
       ...joinedComponentFiles.dependencies,
     }

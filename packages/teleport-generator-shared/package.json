@@ -18,14 +18,14 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "build:watch": "tsc -w"
   },
   "dependencies": {
     "@babel/generator": "^7.4.0",
     "@babel/types": "^7.3.3",
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
-    "prettier": "^1.17.0"
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17"
   }
 }
