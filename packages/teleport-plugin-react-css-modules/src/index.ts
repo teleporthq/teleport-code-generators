@@ -19,6 +19,7 @@ import {
   ComponentPluginFactory,
   ComponentPlugin,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string
@@ -32,7 +33,7 @@ const defaultConfigProps = {
   componentChunkName: 'react-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  fileId: 'cssmodule',
+  fileId: FILE_TYPE.CSS,
   camelCaseClassNames: true,
 }
 

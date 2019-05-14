@@ -57,7 +57,7 @@ export default class Builder {
       const { type, content, name } = unprocessedChunks[indexToRemove]
       const compiledContent = this.generateByType(type, content)
       if (compiledContent) {
-        resultingString.push(compiledContent)
+        resultingString.push(compiledContent + '\n')
       }
 
       unprocessedChunks.splice(indexToRemove, 1)
@@ -75,7 +75,7 @@ export default class Builder {
       return ''
     }
     if (Array.isArray(content)) {
-      return content.map((contentItem) => this.generateByType(type, contentItem)).join('')
+      return content.map((contentItem) => this.generateByType(type, contentItem)).join('\n')
     }
 
     if (!this.generators[type]) {

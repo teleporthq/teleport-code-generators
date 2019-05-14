@@ -19,10 +19,8 @@ describe('createHtmlIndexFile', () => {
     expect(result.name).toBe('app')
     expect(result.fileType).toBe('html')
     expect(result.content).toContain('<!DOCTYPE html>')
-    expect(result.content).toContain(
-      '<meta property="og:url" content="playground/playground_assets/'
-    )
-    expect(result.content).toContain('<body>\n    SomeRandomText?\n    ')
+    expect(result.content).toContain('content="playground/playground_assets')
+    expect(result.content).toContain('<body>SomeRandomText?')
   })
 
   it('returns index file with no prefixed assets and index file', () => {
@@ -32,7 +30,7 @@ describe('createHtmlIndexFile', () => {
     expect(result.name).toBe('index')
     expect(result.fileType).toBe('html')
     expect(result.content).toContain('<!DOCTYPE html>')
-    expect(result.content).toContain('<meta property="og:url" content="/playground_assets/')
+    expect(result.content).toContain('content="/playground_assets')
   })
 })
 

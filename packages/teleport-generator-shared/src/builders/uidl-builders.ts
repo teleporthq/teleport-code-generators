@@ -4,6 +4,7 @@ import {
   ComponentDependency,
   UIDLNode,
   UIDLSlotNode,
+  UIDLStyleValue,
   UIDLRepeatNode,
   UIDLElementNode,
   UIDLStaticValue,
@@ -42,11 +43,14 @@ export const elementNode = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
-  dependency?: ComponentDependency
+  dependency?: ComponentDependency,
+  style?: Record<string, UIDLStyleValue>
 ): UIDLElementNode => {
   return {
     type: 'element',
-    content: element(elementType, attrs, children, dependency),
+    content: style
+      ? element(elementType, attrs, children, dependency, style)
+      : element(elementType, attrs, children, dependency),
   }
 }
 
@@ -54,13 +58,15 @@ export const element = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
-  dependency?: ComponentDependency
+  dependency?: ComponentDependency,
+  style?: Record<string, UIDLStyleValue>
 ) => {
   return {
     elementType,
     name: elementType,
     dependency,
     attrs,
+    style,
     children,
   }
 }

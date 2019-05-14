@@ -1,9 +1,5 @@
-import { createVueRouterComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
-import {
-  createFile,
-  createFolder,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import createVueRouterComponentGenerator from './component-generators/router-component'
+import { createFolder } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
   GeneratedFile,
@@ -25,8 +21,13 @@ export const buildFolderStructure = (
 
 export const createRouterFile = async (root: ComponentUIDL) => {
   const vueRouterGenerator = createVueRouterComponentGenerator()
-  const { code, externalDependencies } = await vueRouterGenerator.generateComponent(root)
-  const routerFile = createFile('router', FILE_TYPE.JS, code)
 
-  return { routerFile, externalDependencies }
+  // Routes are defined in router.js
+  root.meta = root.meta || {}
+  root.meta.fileName = 'router'
+
+  const { files, dependencies } = await vueRouterGenerator.generateComponent(root)
+  const routerFile = files[0]
+
+  return { routerFile, dependencies }
 }

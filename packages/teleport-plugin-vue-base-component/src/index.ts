@@ -3,6 +3,7 @@ import {
   ComponentPluginFactory,
   ComponentPlugin,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
@@ -18,8 +19,8 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
   const {
     vueTemplateChunkName = 'vue-template-chunk',
     vueJSChunkName = 'vue-js-chunk',
-    htmlFileId = 'vuehtml',
-    jsFileId = 'vuejs',
+    htmlFileId = FILE_TYPE.HTML,
+    jsFileId = FILE_TYPE.JS,
     jsFileAfter = ['import-lib', 'import-pack', 'import-local'],
   } = config || {}
 

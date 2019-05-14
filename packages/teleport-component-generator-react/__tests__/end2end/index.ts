@@ -15,9 +15,7 @@ const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {
-    const generator = createReactComponentGenerator({
-      variation: 'CSSModules',
-    })
+    const generator = createReactComponentGenerator('CSSModules')
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -33,8 +31,22 @@ describe('React Component Generator', () => {
   })
 
   describe('with JSS', () => {
+    const generator = createReactComponentGenerator('JSS')
+
+    it('should return the files containing the code as string', async () => {
+      const result = await generator.generateComponent(uidlSample)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(result.files.length).toBe(1)
+      expect(jsFile.content).toContain('import React')
+      expect(result.dependencies).toBeDefined()
+    })
+  })
+
+  describe('with StyledComponents', () => {
     const generator = createReactComponentGenerator({
-      variation: 'JSS',
+      variation: 'StyledComponents',
     })
 
     it('should return the files containing the code as string', async () => {
@@ -63,10 +75,8 @@ describe('React Component Generator', () => {
   })
 
   describe('with Custom Mapping', () => {
-    const generator = createReactComponentGenerator({
-      variation: 'InlineStyles',
-      customMapping: { elements: { container: { elementType: 'fakediv' } } },
-    })
+    const mapping = { elements: { container: { elementType: 'fakediv' } } }
+    const generator = createReactComponentGenerator('InlineStyles', { mapping })
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -81,9 +91,7 @@ describe('React Component Generator', () => {
 })
 
 describe('React Component Validator', () => {
-  const generator = createReactComponentGenerator({
-    variation: 'CSSModules',
-  })
+  const generator = createReactComponentGenerator('CSSModules')
 
   it('works with valid UIDL sample', async () => {
     const result = await generator.generateComponent(uidlSample)
