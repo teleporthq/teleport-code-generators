@@ -1,13 +1,8 @@
 // @ts-ignore-next-line
-import ComponentWithValidPropsJSON from './component-with-valid-attr-prop.json'
-// @ts-ignore-next-line
 import ComponentWithOldFormatAttributesJSON from './component-with-old-format-attributes.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-
-const ComponentWithValidProps = ComponentWithValidPropsJSON as ComponentUIDL
 
 import {
   component,
@@ -22,7 +17,15 @@ const uidl = component(
   elementNode('container', {}, [
     repeatNode(
       elementNode('div', {}, [
-        elementNode('div', { test: dynamicNode('local', 'index') }, [dynamicNode('local', 'item')]),
+        elementNode(
+          'div',
+          {
+            test: dynamicNode('local', 'index'),
+            'data-test': dynamicNode('prop', 'test'),
+            'data-inner-value': dynamicNode('prop', 'content.heading'),
+          },
+          [dynamicNode('local', 'item')]
+        ),
       ]),
       dynamicNode('prop', 'items'),
       {
@@ -30,7 +33,11 @@ const uidl = component(
       }
     ),
   ]),
-  { items: definition('object', { test: '123' }) },
+  {
+    items: definition('object', { test: '123' }),
+    test: definition('string', '123'),
+    content: definition('object', { heading: 'Hello World' }),
+  },
   {}
 )
 
@@ -43,7 +50,7 @@ describe('React Props in Component', () => {
     const generator = createReactComponentGenerator()
 
     it('should add attributes on component', async () => {
-      const result = await generator.generateComponent(ComponentWithValidProps)
+      const result = await generator.generateComponent(uidl)
       const jsFile = findFileByType(result.files, JS_FILE)
 
       expect(jsFile).toBeDefined()
@@ -66,7 +73,7 @@ describe('React Props in Component', () => {
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('key={index}>')
-      expect(jsFile.content).toContain('test={index}>')
+      expect(jsFile.content).toContain('test={index}')
     })
   })
 })
