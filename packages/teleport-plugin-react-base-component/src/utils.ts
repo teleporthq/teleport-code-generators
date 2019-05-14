@@ -77,11 +77,10 @@ export const generateElementNode = (
 
       if (typeof childTag === 'string') {
         addChildJSXText(elementTag, childTag)
-      } else if (childTag.type === 'LogicalExpression') {
-        const expression: types.JSXExpressionContainer = types.jsxExpressionContainer(childTag)
-        addChildJSXTag(elementTag, expression)
-      } else {
+      } else if (childTag.type === 'JSXExpressionContainer') {
         addChildJSXTag(elementTag, childTag)
+      } else {
+        addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
       }
     })
   }
@@ -169,6 +168,8 @@ type GenerateNodeSyntaxReturnValue =
   | types.JSXExpressionContainer
   | types.JSXElement
   | types.LogicalExpression
+  | types.Identifier
+  | types.MemberExpression
 
 export const generateNodeSyntax: NodeSyntaxGenerator<
   ReactComponentAccumulators,
@@ -235,7 +236,7 @@ export const createStateIdentifiers = (
 export const makePureComponent = (
   name: string,
   stateIdentifiers: Record<string, StateIdentifier>,
-  jsxTagTree: types.JSXElement | string | types.JSXExpressionContainer | types.LogicalExpression,
+  jsxTagTree: GenerateNodeSyntaxReturnValue,
   nodeType: string,
   t = types
 ) => {
