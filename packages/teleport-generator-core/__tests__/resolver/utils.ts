@@ -1,6 +1,7 @@
 import {
-  elementNode,
   staticNode,
+  repeatNode,
+  elementNode,
   dynamicNode,
 } from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
 import { generateUniqueKeys, createNodesLookup, resolveChildren } from '../../src/resolver/utils'
@@ -72,6 +73,25 @@ describe('createNodesLookup', () => {
 
     expect(lookup.container.count).toBe(10)
     expect(lookup.container.nextKey).toBe('00')
+  })
+})
+
+describe('resolveNode', () => {
+  it('elementNode', () => {
+    const elementNodeSample = elementNode('container')
+    expect(elementNodeSample.content.name).toBe('container')
+  })
+  it('repeatNode', () => {
+    const repeatNodeSample = repeatNode(
+      elementNode('div', {}, [dynamicNode('local', 'item')]),
+      dynamicNode('prop', 'items'),
+      {
+        useIndex: true,
+      }
+    )
+    expect(repeatNodeSample.content.node.type).toBe('element')
+    expect(repeatNodeSample.content.node.content).toHaveProperty('name', 'div')
+    expect(repeatNodeSample.content.node.content).toHaveProperty('children')
   })
 })
 

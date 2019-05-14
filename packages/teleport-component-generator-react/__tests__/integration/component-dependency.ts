@@ -66,13 +66,54 @@ describe('Component with dependency ', () => {
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain("import { ReactDatepicker } from 'react-datepicker'")
     })
+
+    it('fails to render if dependency option is not known', async () => {
+      const result = await generator.generateComponent(
+        uidl(
+          dependencySample('ReactDatepicker', 'package', 'react-datepicker', '', {
+            test: true,
+          })
+        )
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).not.toContain("import { ReactDatepicker } from 'react-datepicker'")
+    })
+
+    it('fails to render code if dependency path is not valid', async () => {
+      const result = await generator.generateComponent(
+        uidl(
+          dependencySample('ReactDatepicker', 'test', 'react-datepicker', '', {
+            namedImport: true,
+          })
+        )
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).not.toContain("import { ReactDatepicker } from 'react-datepicker'")
+    })
+
+    it('renders code with original name', async () => {
+      const result = await generator.generateComponent(
+        uidl(
+          dependencySample('Router', 'package', 'react-router', '', {
+            namedImport: true,
+            originalName: 'BrowserRouter',
+          })
+        )
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain("import { BrowserRouter as Router } from 'react-router'")
+    })
   })
 
   describe('from local', () => {
     it('renders code with imported package', async () => {
       const result = await generator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'package', '../react-datepicker', '', {
+          dependencySample('ReactDatepicker', 'local', '../react-datepicker', '', {
             namedImport: false,
           })
         )
@@ -86,7 +127,7 @@ describe('Component with dependency ', () => {
     it('renders code with named import ', async () => {
       const result = await generator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'package', '../react-datepicker', '', {
+          dependencySample('ReactDatepicker', 'local', '../react-datepicker', '', {
             namedImport: true,
           })
         )
@@ -94,6 +135,36 @@ describe('Component with dependency ', () => {
       const jsFile = findFileByType(result.files, JS_FILE)
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain("import { ReactDatepicker } from '../react-datepicker'")
+    })
+
+    it('renders code with original name', async () => {
+      const result = await generator.generateComponent(
+        uidl(
+          dependencySample('Router', 'local', 'react-router', '', {
+            namedImport: true,
+            originalName: 'BrowserRouter',
+          })
+        )
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain("import { BrowserRouter as Router } from 'react-router'")
+    })
+  })
+
+  describe('from library', () => {
+    it('renders code with named import ', async () => {
+      const result = await generator.generateComponent(
+        uidl(
+          dependencySample('write', 'library', 'fs', '', {
+            namedImport: true,
+          })
+        )
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain("import { write } from 'fs'")
     })
   })
 })

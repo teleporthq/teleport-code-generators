@@ -146,7 +146,6 @@ export const createHtmlIndexFile = (
 export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string): GeneratedFile => {
   const manifest = uidl.globals.manifest
   const projectName = uidl.name
-
   const defaultManifest: WebManifest = {
     short_name: projectName,
     name: projectName,
@@ -155,7 +154,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
   }
 
   const icons = manifest.icons.map((icon) => {
-    const src = prefixPlaygroundAssetsURL(assetsPrefix, icon.src)
+    const src = prefixPlaygroundAssetsURL(assetsPrefix || '', icon.src)
     return { ...icon, src }
   })
 
