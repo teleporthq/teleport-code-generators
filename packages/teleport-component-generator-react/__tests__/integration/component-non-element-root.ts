@@ -1,14 +1,17 @@
 // @ts-ignore
-import ComponentWithStaticRootNode from '../integration/component-with-static-root-node.json'
-// @ts-ignore
-import ComponentWithDynamicRootNode from '../integration/component-with-dynamic-root-node.json'
-// @ts-ignore
 import ComponentWithConditionalRootStringNode from '../integration/component-with-conditional-root-string-child-node.json'
 // @ts-ignore
 import ComponentWithConditionalRootArrayNode from '../integration/component-with-conditional-root-array-child-node.json'
 
 import { createReactComponentGenerator } from '../../src'
 import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import {
+  component,
+  staticNode,
+  dynamicNode,
+  elementNode,
+  conditionalNode,
+} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
 
 const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
@@ -17,7 +20,8 @@ const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
 describe('React Component Generator support for non elements as root', () => {
   const generator = createReactComponentGenerator()
   it('should support static as root node', async () => {
-    const result = await generator.generateComponent(ComponentWithStaticRootNode)
+    const uidl = component('StaticRootComponent', staticNode('Teleport Code Generators'))
+    const result = await generator.generateComponent(uidl)
     const jsFile = findFileByType(result.files, JS_FILE)
 
     expect(jsFile).toBeDefined()
@@ -29,7 +33,14 @@ describe('React Component Generator support for non elements as root', () => {
   })
 
   it('should support dynamic as root node', async () => {
-    const result = await generator.generateComponent(ComponentWithDynamicRootNode)
+    const prop = {
+      name: {
+        type: 'string',
+        defaultValue: 'Teleport',
+      },
+    }
+    const uidl = component('DynamicRootComponent', dynamicNode('prop', 'name'), prop)
+    const result = await generator.generateComponent(uidl)
     const jsFile = findFileByType(result.files, JS_FILE)
 
     expect(jsFile).toBeDefined()
