@@ -46,7 +46,7 @@ describe('Testing the functionality for StyledComponents', () => {
     const style = {
       height: staticNode('100px'),
     }
-    const element = elementNode('container', {}, [], style)
+    const element = elementNode('container', {}, [], { type: 'package' }, style)
     const elementWithKey = {
       ...element,
       content: {

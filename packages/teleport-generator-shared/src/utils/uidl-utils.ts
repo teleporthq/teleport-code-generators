@@ -19,7 +19,10 @@ import {
 export const extractPageMetadata = (
   routeDefinitions: UIDLStateDefinition,
   stateName: string,
-  options: { usePathAsFileName?: boolean; convertDefaultToIndex?: boolean } = {
+  options: {
+    usePathAsFileName?: boolean
+    convertDefaultToIndex?: boolean
+  } = {
     usePathAsFileName: false,
     convertDefaultToIndex: false,
   }
