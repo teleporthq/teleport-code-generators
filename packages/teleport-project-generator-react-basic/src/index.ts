@@ -32,9 +32,7 @@ import {
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactComponentGenerator({
-    variation: 'CSSModules',
-  })
+  const reactGenerator = createReactComponentGenerator('CSSModules')
 
   reactGenerator.addMapping(reactProjectMapping as Mapping)
   if (options.customMapping) {

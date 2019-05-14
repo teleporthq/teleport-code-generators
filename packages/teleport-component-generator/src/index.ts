@@ -19,6 +19,8 @@ import {
 
 import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
+import htmlMapping from './html-mapping.json'
+
 export interface GeneratorFactoryParams {
   mappings?: Mapping[]
   plugins?: ComponentPlugin[]
@@ -31,7 +33,7 @@ export const createGenerator = (
   const { mappings, plugins, postprocessors } = params
 
   const validator = new Validator()
-  const resolver = new Resolver(mappings)
+  const resolver = new Resolver([htmlMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
   const processors: PostProcessingFunction[] = postprocessors

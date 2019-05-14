@@ -11,12 +11,12 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { createGenerator } from '@teleporthq/teleport-component-generator'
 
-import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
 
-import { ComponentGenerator } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import {
+  ComponentGenerator,
+  GeneratorOptions,
+} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
 const stylePlugins = {
   InlineStyles: reactInlineStylesPlugin,
@@ -26,22 +26,16 @@ const stylePlugins = {
   JSS: reactJSSPlugin,
 }
 
-export interface ReactGeneratorFactoryParams {
-  variation?: string
-  customMapping?: Mapping
-}
-
 export const createReactComponentGenerator = (
-  params: ReactGeneratorFactoryParams = {}
+  variation: string = 'InlineStyles',
+  { mapping }: GeneratorOptions = { mapping }
 ): ComponentGenerator => {
-  const { variation, customMapping } = params
   const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
 
   const generator = createGenerator()
 
-  generator.addMapping(htmlMapping as Mapping)
   generator.addMapping(reactMapping)
-  generator.addMapping(customMapping)
+  generator.addMapping(mapping)
 
   generator.addPlugin(reactComponentPlugin)
   generator.addPlugin(stylePlugin)

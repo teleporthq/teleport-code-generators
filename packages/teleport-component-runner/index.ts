@@ -11,11 +11,8 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 
 // import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-
 // import component from './uidl.json'
 import project from './project.json'
-import htmlMapping from './html-mapping.json'
 import reactMapping from './react-mapping.json'
 // import { ComponentGenerator } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
@@ -23,8 +20,7 @@ import reactMapping from './react-mapping.json'
 // const vueGenerator = createVueComponentGenerator()
 const genericGenerator = createGenerator()
 
-genericGenerator.addMapping(htmlMapping as Mapping)
-genericGenerator.addMapping(reactMapping as Mapping)
+genericGenerator.addMapping(reactMapping)
 
 genericGenerator.addPlugin(reactPlugin)
 genericGenerator.addPlugin(styledComponentPlugin)
@@ -48,7 +44,7 @@ genericGenerator.addPlugin(importStatementsPlugin)
 const run = async (createProjectGenerator) => {
   const projectGen = createProjectGenerator()
   const { outputFolder } = await projectGen.generateProject(project, {})
-  console.info(outputFolder)
+  console.info(JSON.stringify(outputFolder, null, 2))
 }
 
 run(createVueProjectGenerator)

@@ -8,21 +8,18 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import vueFile from '@teleporthq/teleport-postprocessor-vue-file'
 
-import htmlMapping from './html-mapping.json'
 import vueMapping from './vue-mapping.json'
 
 import {
   GeneratorOptions,
   ComponentGenerator,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export const createVueComponentGenerator = (
   { mapping }: GeneratorOptions = { mapping }
 ): ComponentGenerator => {
   const generator = createGenerator()
 
-  generator.addMapping(htmlMapping as Mapping)
   generator.addMapping(vueMapping)
   generator.addMapping(mapping)
 

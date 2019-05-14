@@ -22,6 +22,11 @@ export const buildFolderStructure = (
 
 export const createRouterIndexFile = async (root: ComponentUIDL) => {
   const routingComponentGenerator = createReactRouterGenerator()
+
+  // React router is generated in index.js
+  root.meta = root.meta || {}
+  root.meta.fileName = 'index'
+
   const { files, dependencies } = await routingComponentGenerator.generateComponent(root)
   const routerFile = files[0]
 

@@ -21,6 +21,11 @@ export const buildFolderStructure = (
 
 export const createRouterFile = async (root: ComponentUIDL) => {
   const vueRouterGenerator = createVueRouterComponentGenerator()
+
+  // Routes are defined in router.js
+  root.meta = root.meta || {}
+  root.meta.fileName = 'router'
+
   const { files, dependencies } = await vueRouterGenerator.generateComponent(root)
   const routerFile = files[0]
 

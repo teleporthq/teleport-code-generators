@@ -5,23 +5,10 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import htmlMapping from './html-mapping.json'
-import vueMapping from './vue-mapping.json'
+import { ComponentGenerator } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
-import {
-  GeneratorOptions,
-  ComponentGenerator,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-
-const createVueRouterGenerator = (
-  { mapping }: GeneratorOptions = { mapping }
-): ComponentGenerator => {
+const createVueRouterGenerator = (): ComponentGenerator => {
   const generator = createGenerator()
-
-  generator.addMapping(htmlMapping as Mapping)
-  generator.addMapping(vueMapping)
-  generator.addMapping(mapping)
 
   generator.addPlugin(vueRoutingPlugin)
   generator.addPlugin(importStatementsPlugin)
