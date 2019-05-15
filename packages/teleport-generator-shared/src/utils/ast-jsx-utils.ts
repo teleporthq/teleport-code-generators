@@ -219,8 +219,16 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
   tag.openingElement.attributes.push(styleJSXAttr)
 }
 
+type ContentType =
+  | types.JSXElement
+  | types.JSXExpressionContainer
+  | types.LogicalExpression
+  | string
+  | types.Identifier
+  | types.MemberExpression
+
 export const createConditionalJSXExpression = (
-  content: types.JSXElement | types.JSXExpressionContainer | string,
+  content: ContentType,
   conditionalExpression: UIDLConditionalExpression,
   conditionalIdentifier: ConditionalIdentifier,
   t = types
@@ -229,10 +237,10 @@ export const createConditionalJSXExpression = (
 
   if (typeof content === 'string') {
     contentNode = t.stringLiteral(content)
-  } else if ((content as types.JSXExpressionContainer).expression) {
-    contentNode = (content as types.JSXExpressionContainer).expression as types.Expression
+  } else if (content.type === 'JSXExpressionContainer') {
+    contentNode = content.expression as types.Expression
   } else {
-    contentNode = content as types.JSXElement
+    contentNode = content
   }
 
   let binaryExpression:
@@ -264,7 +272,7 @@ export const createConditionalJSXExpression = (
     binaryExpression = expression
   }
 
-  return t.jsxExpressionContainer(t.logicalExpression('&&', binaryExpression, contentNode))
+  return t.logicalExpression('&&', binaryExpression, contentNode)
 }
 
 export const createBinaryExpression = (

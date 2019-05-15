@@ -1,0 +1,27 @@
+{
+    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
+    "name": "ComponentWithConditionalRootNode",
+    "propDefinitions": {
+      "test": {
+        "type": "boolean",
+        "defaultValue": false
+      }
+    },
+    "node": {
+      "type": "conditional",
+      "content": {
+        "node": {
+          "type": "static",
+          "content": "test"
+        },
+        "value": true,
+        "reference": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "test"
+          }
+        }
+      }
+    }
+  }
