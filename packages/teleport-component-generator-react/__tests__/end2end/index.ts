@@ -45,9 +45,7 @@ describe('React Component Generator', () => {
   })
 
   describe('with StyledComponents', () => {
-    const generator = createReactComponentGenerator({
-      variation: 'StyledComponents',
-    })
+    const generator = createReactComponentGenerator('StyledComponents')
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
