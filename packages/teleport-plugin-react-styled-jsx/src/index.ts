@@ -3,7 +3,7 @@ import {
   generateStyledJSXTag,
 } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 
-import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   transformDynamicStyles,
   traverseElements,
@@ -40,7 +40,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
       const { style, key } = element
       if (style) {
         const root = jsxNodesLookup[key]
-        const className = cammelCaseToDashCase(key)
+        const className = camelCaseToDashCase(key)
         // Generating the string templates for the dynamic styles
         const styleRules = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {

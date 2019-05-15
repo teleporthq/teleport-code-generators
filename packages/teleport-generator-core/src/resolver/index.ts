@@ -44,17 +44,12 @@ export default class Resolver {
     utils.createNodesLookup(node, nodesLookup)
     utils.generateUniqueKeys(node, nodesLookup)
 
-    // ensure fileName preserves the original uidl.name or the meta.fileName
-    // the name in the UIDL is sanitized to be used in the code generation process (as a var name)
-    const meta = uidl.meta || {}
-    meta.fileName = meta.fileName || uidl.name
     const name = sanitizeVariableName(uidl.name)
 
     return {
       ...uidl,
       name,
       node,
-      meta,
     }
   }
 

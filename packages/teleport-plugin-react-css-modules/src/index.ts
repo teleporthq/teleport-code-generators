@@ -1,8 +1,8 @@
 import * as t from '@babel/types'
 import { ParsedASTNode } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import {
-  cammelCaseToDashCase,
-  stringToCamelCase,
+  camelCaseToDashCase,
+  dashCaseToCamelCase,
 } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   addJSXTagStyles,
@@ -68,8 +68,8 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
       const { style, key } = element
       if (style) {
         const root = astNodesLookup[key]
-        const className = cammelCaseToDashCase(key)
-        const classNameInJS = stringToCamelCase(className)
+        const className = camelCaseToDashCase(key)
+        const classNameInJS = dashCaseToCamelCase(className)
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
 
         if (Object.keys(dynamicStyles).length) {
@@ -109,7 +109,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
      * The name of the file is either in the meta of the component generator
      * or we fallback to the name of the component
      */
-    const cssFileName = (meta && meta.fileName) || name
+    const cssFileName = (meta && meta.fileName) || camelCaseToDashCase(name)
     dependencies[styleObjectImportName] = {
       type: 'local',
       path: `./${cssFileName}.css`,

@@ -7,7 +7,7 @@ import {
   traverseElements,
   transformDynamicStyles,
 } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { stringToUpperCamelCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   createJSXSpreadAttribute,
   addDynamicAttributeOnTag,
@@ -36,7 +36,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       const { style, key, elementType } = element
       if (style) {
         const root = jsxNodesLookup[key]
-        const className = `${stringToUpperCamelCase(key)}`
+        const className = `${dashCaseToUpperCamelCase(key)}`
         // @ts-ignore-next-line
         const timesReferred = countPropReferences(style, 0)
 
