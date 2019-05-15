@@ -17,10 +17,8 @@ export const buildDefaultPropsAst = (
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     (acc: any, key) => {
       const { defaultValue } = propDefinitions[key]
-      if (defaultValue) {
-        acc.values[key] = defaultValue
-        acc.count++
-      }
+      acc.values[key] = defaultValue
+      acc.count++
       return acc
     },
     { values: {}, count: 0 }
@@ -54,12 +52,15 @@ export const buildTypesOfPropsAst = (
 
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     (acc: any, key) => {
-      const { defaultValue, type } = propDefinitions[key]
-      if (defaultValue) {
-        const astValue = t.memberExpression(t.identifier(propTypesNames), t.identifier(type))
-        acc.values[key] = new ParsedASTNode(astValue)
-        acc.count++
-      }
+      const { type, isRequired } = propDefinitions[key]
+      const astValue = isRequired
+        ? t.memberExpression(
+            t.memberExpression(t.identifier(propTypesNames), t.identifier('type')),
+            t.identifier('isRequired')
+          )
+        : t.memberExpression(t.identifier(propTypesNames), t.identifier(type))
+      acc.values[key] = new ParsedASTNode(astValue)
+      acc.count++
       return acc
     },
     { values: {}, count: 0 }
