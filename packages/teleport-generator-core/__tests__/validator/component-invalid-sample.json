@@ -8,6 +8,10 @@
     "items": {
       "type": "array",
       "defaultValue": []
+    },
+    "test": {
+      "type": "string",
+      "defaultValues": "test"
     }
   },
   "stateDefinitions": {
@@ -15,6 +19,10 @@
       "type": "boolean",
       "defaultValue": true,
       "test":"test"
+    },
+    "test": {
+      "type": "string",
+      "defaultValues": "test"
     }
   },
   "node": {
@@ -48,7 +56,7 @@
                 "type": "dynamic",
                 "content": {
                   "referenceType": "prop",
-                  "id": "title"
+                  "id": "titles"
                 }
               }
             ]
