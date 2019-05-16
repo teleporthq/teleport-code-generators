@@ -54,7 +54,24 @@
               "type": "string",
               "enum": ["string", "boolean", "number", "array", "func", "object", "children"]
             },
-            "defaultValue": {},
+            "defaultValue": {
+              "oneOf": [
+                { "type": "number" },
+                { "type": "boolean" },
+                { "type": "string" },
+                { "type": "object" }, 
+                {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      { "type": "number" },
+                      { "type": "string" },
+                      { "type": "object" }
+                    ]
+                  }
+                }
+              ]
+            },
             "meta": {"type": "object"}
           }
         }

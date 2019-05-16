@@ -5,6 +5,7 @@ import {
   ChunkDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentDependency } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
@@ -17,7 +18,7 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
     importLocalsChunkName = 'import-local',
-    fileId = null,
+    fileId = FILE_TYPE.JS,
   } = config || {}
 
   const importPlugin: ComponentPlugin = async (structure) => {

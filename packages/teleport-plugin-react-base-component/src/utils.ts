@@ -77,8 +77,10 @@ export const generateElementNode = (
 
       if (typeof childTag === 'string') {
         addChildJSXText(elementTag, childTag)
-      } else {
+      } else if (childTag.type === 'JSXExpressionContainer') {
         addChildJSXTag(elementTag, childTag)
+      } else {
+        addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
       }
     })
   }
@@ -161,7 +163,13 @@ export const generateSlotNode = (
   return t.jsxExpressionContainer(childrenExpression)
 }
 
-type GenerateNodeSyntaxReturnValue = string | types.JSXExpressionContainer | types.JSXElement
+type GenerateNodeSyntaxReturnValue =
+  | string
+  | types.JSXExpressionContainer
+  | types.JSXElement
+  | types.LogicalExpression
+  | types.Identifier
+  | types.MemberExpression
 
 export const generateNodeSyntax: NodeSyntaxGenerator<
   ReactComponentAccumulators,
@@ -172,7 +180,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return types.jsxExpressionContainer(makeDynamicValueExpression(node))
+      return makeDynamicValueExpression(node)
 
     case 'element':
       return generateElementNode(node, accumulators)
@@ -228,24 +236,49 @@ export const createStateIdentifiers = (
 export const makePureComponent = (
   name: string,
   stateIdentifiers: Record<string, StateIdentifier>,
-  jsxTagTree: types.JSXElement,
+  jsxTagTree: GenerateNodeSyntaxReturnValue,
+  nodeType: string,
   t = types
 ) => {
-  const returnStatement = t.returnStatement(jsxTagTree)
+  let arrowFunctionBody: any
+  switch (nodeType) {
+    case 'static':
+      arrowFunctionBody = typeof jsxTagTree === 'string' && types.stringLiteral(jsxTagTree)
+      break
+    case 'dynamic':
+    case 'conditional':
+      arrowFunctionBody =
+        Object.keys(stateIdentifiers).length === 0
+          ? jsxTagTree
+          : generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree as types.JSXElement)
+      break
+    default:
+      arrowFunctionBody = generateReturnExpressionSyntax(
+        stateIdentifiers,
+        jsxTagTree as types.JSXElement
+      )
+      break
+  }
 
-  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
-    makeStateHookAST(stateIdentifiers[stateKey])
-  )
-
-  const arrowFunction = t.arrowFunctionExpression(
-    [t.identifier('props')],
-    t.blockStatement([...stateHooks, returnStatement] || [])
-  )
+  const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])
 
   return component
+}
+
+const generateReturnExpressionSyntax = (
+  stateIdentifiers: Record<string, StateIdentifier>,
+  jsxTagTree: types.JSXElement,
+  t = types
+) => {
+  const returnStatement = t.returnStatement(jsxTagTree)
+  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
+    makeStateHookAST(stateIdentifiers[stateKey])
+  )
+
+  return t.blockStatement([...stateHooks, returnStatement] || [])
 }
 
 // Adds all the event handlers and all the instructions for each event handler

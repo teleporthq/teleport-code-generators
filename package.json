@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "tslint -p ./",
     "build": "lerna run build",
+    "dev": "lerna run --parallel build:watch",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:coverage": "npm run test -- --coverage --no-cache",

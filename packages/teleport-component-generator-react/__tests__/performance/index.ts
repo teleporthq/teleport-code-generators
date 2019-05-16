@@ -10,9 +10,7 @@ import { ComponentUIDL, UIDLElement } from '@teleporthq/teleport-generator-share
 
 const componentUIDL = componentUIDLJSON as ComponentUIDL
 
-const generator = createReactComponentGenerator({
-  variation: 'StyledJSX',
-})
+const generator = createReactComponentGenerator('StyledJSX')
 
 describe('React Generator Performance Run', () => {
   describe('with realistic component sample', () => {

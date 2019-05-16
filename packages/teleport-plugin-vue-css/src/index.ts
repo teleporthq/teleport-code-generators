@@ -14,6 +14,7 @@ import {
   ComponentPluginFactory,
   ComponentPlugin,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 interface VueStyleChunkConfig {
   chunkName: string
@@ -26,7 +27,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
   const {
     chunkName = 'vue-style-chunk',
     vueTemplateChunk = 'vue-template-chunk',
-    styleFileId = 'vuecss',
+    styleFileId = FILE_TYPE.CSS,
   } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {

@@ -33,9 +33,7 @@ import {
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactComponentGenerator({
-    variation: 'CSSModules',
-  })
+  const reactGenerator = createReactComponentGenerator('CSSModules')
 
   reactGenerator.addMapping(reactProjectMapping as Mapping)
   if (options.customMapping) {
@@ -127,14 +125,14 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     }
 
     // Step 7: Create the routing component (index.js)
-    const { routerFile, externalDependencies } = await createRouterIndexFile(root)
+    const { routerFile, dependencies: routerDependencies } = await createRouterIndexFile(root)
     const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
 
     const srcFiles: GeneratedFile[] = [htmlIndexFile, routerFile]
 
     // Step 8: Join all the external dependencies
     const collectedDependencies = {
-      ...externalDependencies,
+      ...routerDependencies,
       ...joinedPageFiles.dependencies,
       ...joinedComponentFiles.dependencies,
     }
