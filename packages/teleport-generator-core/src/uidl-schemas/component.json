@@ -117,6 +117,8 @@
         },
         {
           "type":"object",
+          "additionalProperties": false,
+          "required": ["type", "content"],
           "properties": {
             "type": {
               "type":"string",
@@ -246,6 +248,7 @@
       "required": ["elementType"],
       "additionalProperties": false,
       "properties": {
+        "additionalProperties": false,
         "elementType": {"type": "string"},
         "name": {"type": "string"},
         "key": {"type": "string"},
