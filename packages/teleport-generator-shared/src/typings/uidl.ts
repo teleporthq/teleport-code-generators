@@ -34,7 +34,7 @@ export interface ComponentUIDL {
 export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | any[] | object | (() => void)
-  isRequired: boolean
+  isRequired: false
   meta?: Record<string, any>
 }
 
