@@ -13,7 +13,7 @@ import { createDocumentComponentFile, buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
+  // DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
   LOCAL_DEPENDENCIES_PREFIX,
 } from './constants'
@@ -28,6 +28,7 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -52,7 +53,11 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
       const validationResult = validator.validateProject(input)
@@ -141,6 +146,15 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const distFiles: GeneratedFile[] = [packageFile]
 
     // Step 9: Build the folder structure
+    // const distFolder = buildFolderStructure(
+    //   {
+    //     pages: pageFiles,
+    //     components: componentFiles,
+    //     dist: distFiles,
+    //     static: staticFiles,
+    //   },
+    //   options.distPath || DEFAULT_OUTPUT_FOLDER
+    // )
     const distFolder = buildFolderStructure(
       {
         pages: pageFiles,
@@ -148,9 +162,8 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
         dist: distFiles,
         static: staticFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
-
     return {
       outputFolder: distFolder,
       assetsPath: ASSETS_PREFIX.slice(1),

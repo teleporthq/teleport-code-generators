@@ -28,6 +28,7 @@ import {
   ProjectGeneratorOptions,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -52,7 +53,11 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input and transform to UIDL
     if (!options.skipValidation) {
       const validationResult = validator.validateProject(input)

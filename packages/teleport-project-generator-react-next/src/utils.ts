@@ -10,13 +10,14 @@ import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import {
   createFile,
-  createFolder,
+  // createFolder,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
 import {
   GeneratedFile,
   GeneratedFolder,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -169,13 +170,72 @@ export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile =>
   return createFile('_document', FILE_TYPE.JS, documentComponent)
 }
 
+// export const buildFolderStructure = (
+//   files: Record<string, GeneratedFile[]>,
+//   distFolderName: string
+// ): GeneratedFolder => {
+//   const pagesFolder = createFolder('pages', files.pages)
+//   const componentsFolder = createFolder('components', files.components)
+//   const staticFolder = createFolder('static', files.static)
+
+//   return createFolder(distFolderName, files.dist, [pagesFolder, componentsFolder, staticFolder])
+// }
+
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
-  distFolderName: string
+  templateDefinition: TemplateDefinition
 ): GeneratedFolder => {
-  const pagesFolder = createFolder('pages', files.pages)
-  const componentsFolder = createFolder('components', files.components)
-  const staticFolder = createFolder('static', files.static)
+  const { dist, pages, components } = files
 
-  return createFolder(distFolderName, files.dist, [pagesFolder, componentsFolder, staticFolder])
+  const { templateFolder } = templateDefinition
+  templateFolder.files = templateFolder.files.concat(dist)
+
+  const componentsPath = templateDefinition.meta.componentsPath
+  const componentsFolder = componentsPath
+    ? findFolderByPath(templateFolder, componentsPath)
+    : findFolderByName(templateFolder, 'components')
+
+  componentsFolder.files = componentsFolder.files.concat(components)
+
+  const pagesPath = templateDefinition.meta.pagesPath
+  const pagesFolder = pagesPath
+    ? findFolderByPath(templateFolder, pagesPath)
+    : findFolderByName(templateFolder, 'pages')
+
+  pagesFolder.files = pagesFolder.files.concat(pages)
+
+  return templateFolder
+}
+
+const findFolderByName = (rootFolder: GeneratedFolder, folderToFind: string): GeneratedFolder => {
+  if (rootFolder.name === folderToFind) {
+    return rootFolder
+  }
+
+  if (!rootFolder.subFolders.length) {
+    return null
+  }
+
+  for (const subFolder of rootFolder.subFolders) {
+    const foundFolder = findFolderByName(subFolder, folderToFind)
+    if (foundFolder) {
+      return foundFolder
+    }
+  }
+
+  return null
+}
+
+const findFolderByPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
+  if (!folderPath || !folderPath.length) {
+    return rootFolder
+  }
+
+  const folderPathClone = JSON.parse(JSON.stringify(folderPath))
+  const path = folderPathClone.shift()
+  const subFolder = rootFolder.subFolders.find((folder) => {
+    return folder.name === path
+  })
+
+  return subFolder ? findFolderByPath(subFolder, folderPathClone) : null
 }

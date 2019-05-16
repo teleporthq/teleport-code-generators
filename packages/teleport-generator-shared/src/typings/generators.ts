@@ -1,6 +1,5 @@
 import {
   ComponentUIDL,
-  ProjectUIDL,
   ComponentDependency,
   Mapping,
   UIDLElement,
@@ -103,8 +102,9 @@ export interface GeneratedFolder {
 
 export interface GeneratedFile {
   name: string
-  fileType: string
   content: string
+  fileType?: string
+  contentEncoding?: string
 }
 
 export interface ComponentFactoryParams {
@@ -133,13 +133,13 @@ export interface ProjectGeneratorOptions {
   skipValidation?: boolean
 }
 
-export type ProjectGeneratorFunction = (
-  uidl: ProjectUIDL,
-  options?: ProjectGeneratorOptions
-) => Promise<{
-  outputFolder: GeneratedFolder
-  assetsPath?: string
-}>
+// export type ProjectGeneratorFunction = (
+//   uidl: ProjectUIDL,
+//   options?: ProjectGeneratorOptions
+// ) => Promise<{
+//   outputFolder: GeneratedFolder
+//   assetsPath?: string
+// }>
 
 export interface PackageJSON {
   name: string
@@ -183,7 +183,8 @@ export interface ProjectGeneratorOutput {
 
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
-  options: ProjectGeneratorOptions
+  template: TemplateDefinition,
+  options?: ProjectGeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
 export type GenerateComponentFunction = (
@@ -191,3 +192,60 @@ export type GenerateComponentFunction = (
   input: Record<string, unknown>,
   options?: GeneratorOptions
 ) => Promise<CompiledComponent>
+
+/**
+ * Interfaces used in the publishers
+ */
+export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFactoryParams>) => U
+
+export interface Publisher<T, U> {
+  publish: (options?: T) => Promise<PublisherResponse<U>>
+  getProject: () => GeneratedFolder | undefined
+  setProject: (project: GeneratedFolder) => unknown
+}
+
+export interface PublisherFactoryParams {
+  project?: GeneratedFolder
+  projectName?: string
+}
+export interface PublisherResponse<T> {
+  success: boolean
+  payload?: T
+}
+
+/**
+ * Interfaces used in the packers
+ */
+export interface AssetsDefinition {
+  assets: AssetInfo[]
+  meta?: {
+    prefix: string | string[]
+  }
+}
+
+export interface AssetInfo {
+  data: string
+  name: string
+  type: string
+}
+
+export interface TemplateDefinition {
+  templateFolder?: GeneratedFolder
+  remote: RemoteTemplateDefinition
+  meta?: {
+    componentsPath?: string[]
+    pagesPath?: string[]
+    assetsPath?: string[]
+    srcFilesPath?: string[]
+    distFilesPath?: string[]
+  }
+}
+
+export interface RemoteTemplateDefinition {
+  githubRepo?: GithubProjectInfo
+}
+
+export interface GithubProjectInfo {
+  owner: string
+  repo: string
+}

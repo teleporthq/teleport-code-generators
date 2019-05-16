@@ -1,0 +1,27 @@
+{
+  "name": "@teleporthq/teleport-publisher-zip",
+  "version": "0.6.0",
+  "description": "Project zip publisher",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "jszip": "^3.2.1"
+  }
+}
