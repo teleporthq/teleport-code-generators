@@ -5,7 +5,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
-describe('Should add Default Proos and PropTypes to the component Generation', () => {
+describe('Should add Default Props and PropTypes to the component Generation', () => {
   const plugin = createPlugin()
   const reactChunk = {
     type: 'js',
@@ -22,9 +22,9 @@ describe('Should add Default Proos and PropTypes to the component Generation', (
   }
 
   it('Should throw error when the chunk is supplied', async () => {
-    const uidlSmaple = component('SimpleComponent', elementNode('container'))
+    const uidlSample = component('SimpleComponent', elementNode('container'))
     const structure: ComponentStructure = {
-      uidl: uidlSmaple,
+      uidl: uidlSample,
       chunks: [],
       dependencies: {},
     }
@@ -47,9 +47,9 @@ describe('Should add Default Proos and PropTypes to the component Generation', (
       },
     }
     // @ts-ignore-next-line
-    const uidlSmaple = component('SimpleComponent', elementNode('container'), props)
+    const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
-      uidl: uidlSmaple,
+      uidl: uidlSample,
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }
@@ -78,9 +78,9 @@ describe('Should add Default Proos and PropTypes to the component Generation', (
       },
     }
     // @ts-ignore-next-line
-    const uidlSmaple = component('SimpleComponent', elementNode('container'), props)
+    const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
-      uidl: uidlSmaple,
+      uidl: uidlSample,
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }
@@ -110,9 +110,9 @@ describe('Should add Default Proos and PropTypes to the component Generation', (
       },
     }
     // @ts-ignore-next-line
-    const uidlSmaple = component('SimpleComponent', elementNode('container'), props)
+    const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
-      uidl: uidlSmaple,
+      uidl: uidlSample,
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }
@@ -121,6 +121,7 @@ describe('Should add Default Proos and PropTypes to the component Generation', (
     const defaultProps = result.chunks.filter(
       (chunk) => chunk.name === 'react-component-default-props'
     )
+
     const propTypes = result.chunks.filter(
       (chunk) => chunk.name === 'react-component-types-of-props'
     )
