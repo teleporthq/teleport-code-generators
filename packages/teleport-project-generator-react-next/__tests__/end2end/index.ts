@@ -21,7 +21,7 @@ describe('React Next Project Generator', () => {
     const components = result.outputFolder.subFolders[1]
     const pages = result.outputFolder.subFolders[0]
 
-    expect(components.files[0].name).toBe('OneComponent')
+    expect(components.files[0].name).toBe('one-component')
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })
@@ -41,7 +41,7 @@ describe('React Next Project Generator', () => {
     const components = result.outputFolder.subFolders[1]
     const pages = result.outputFolder.subFolders[0]
 
-    expect(components.files[0].name).toBe('OneComponent')
+    expect(components.files[0].name).toBe('one-component')
     expect(pages.files[0].name).toBe('_document')
     expect(pages.files[1].name).toBe('index')
   })

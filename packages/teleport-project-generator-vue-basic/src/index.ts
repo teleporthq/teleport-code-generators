@@ -1,10 +1,9 @@
-import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
+import { createHtmlEntryFile, createRouterFile, createVueGenerator } from './component-generators'
 import {
   createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
-  createHtmlIndexFile,
   createPackageJSONFile,
   generateLocalDependenciesPrefix,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
@@ -15,14 +14,13 @@ import {
   DEFAULT_COMPONENT_FILES_PATH,
   DEFAULT_PAGE_FILES_PATH,
 } from './constants'
-import vueProjectMapping from './vue-project-mapping.json'
-import { createRouterFile, buildFolderStructure } from './utils'
+
+import { buildFolderStructure } from './utils'
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
   ProjectGeneratorOptions,
-  ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
@@ -30,21 +28,9 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: vueProjectMapping as Mapping,
-  })
-
-  if (options.customMapping) {
-    vueGenerator.addMapping(options.customMapping)
-  }
-
-  return vueGenerator
-}
-
 const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const vueGenerator = initGenerator(generatorOptions)
+  const vueGenerator = createVueGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     vueGenerator.addMapping(mapping)
@@ -66,7 +52,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      vueGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -129,7 +115,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       publicFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
     publicFiles.push(htmlIndexFile)
 
     // Step 7: Create the routing component (router.js)

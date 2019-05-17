@@ -16,6 +16,7 @@ import {
   Mapping,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { GeneratorOptions } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
@@ -343,8 +344,17 @@ const resolveDependency = (
   const nodeDependency = uidlDependency || mappedElement.dependency
   if (nodeDependency && nodeDependency.type === 'local') {
     // When a dependency is specified without a path, we infer it is a local import.
-    // This might be removed at a later point
-    nodeDependency.path = nodeDependency.path || localDependenciesPrefix + mappedElement.elementType
+
+    // ex: PrimaryButton component should be written in a file called primary-button
+    const componentName = mappedElement.elementType
+    const componentFileName = camelCaseToDashCase(componentName)
+
+    // concatenate a trailing slash in case it's missing
+    if (localDependenciesPrefix[localDependenciesPrefix.length - 1] !== '/') {
+      localDependenciesPrefix = localDependenciesPrefix + '/'
+    }
+
+    nodeDependency.path = nodeDependency.path || localDependenciesPrefix + componentFileName
   }
 
   return nodeDependency

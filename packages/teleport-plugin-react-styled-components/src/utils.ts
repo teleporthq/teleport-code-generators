@@ -1,5 +1,5 @@
 import * as t from '@babel/types'
-import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import { stringAsTemplateLiteral } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 import { UIDLStyleValue } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -20,7 +20,7 @@ const mapStyles = (styles: object) => {
   Object.keys(styles).forEach((item) => {
     if (typeof styles[item] === 'string') {
       style = `${style}
-      ${cammelCaseToDashCase(item)}: ${styles[item]};`
+      ${camelCaseToDashCase(item)}: ${styles[item]};`
     } else {
       style = `${style}
       ${item} {
@@ -31,12 +31,16 @@ const mapStyles = (styles: object) => {
   return style
 }
 
-export const countPropReferences = (style: UIDLStyleValue, timesReferred: number) => {
+export const countPropReferences = (
+  style: Record<string, UIDLStyleValue>,
+  timesReferred: number
+) => {
   Object.keys(style).map((item) => {
-    if (style[item].type === 'dynamic' && style[item].content.referenceType === 'prop') {
+    const styleAttr = style[item]
+    if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
       timesReferred++
-    } else if (style[item].type === 'nested-style') {
-      timesReferred = countPropReferences(style[item].content, timesReferred)
+    } else if (styleAttr.type === 'nested-style') {
+      timesReferred = countPropReferences(styleAttr.content, timesReferred)
     }
   })
   return timesReferred

@@ -1,4 +1,4 @@
-import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
@@ -46,7 +46,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       if (style) {
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
         const root = templateLookup[key]
-        const className = cammelCaseToDashCase(key)
+        const className = camelCaseToDashCase(key)
         jssStylesArray.push(createCSSClass(className, staticStyles))
 
         if (Object.keys(dynamicStyles).length) {

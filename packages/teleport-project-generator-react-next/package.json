@@ -25,6 +25,8 @@
     "@babel/types": "^7.3.3",
     "@teleporthq/teleport-generator-shared": "^0.6.0",
     "@teleporthq/teleport-generator-core": "^0.6.0",
-    "@teleporthq/teleport-component-generator-react": "^0.6.0"
+    "@teleporthq/teleport-component-generator": "^0.6.0",
+    "@teleporthq/teleport-component-generator-react": "^0.6.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.6.0"
   }
 }

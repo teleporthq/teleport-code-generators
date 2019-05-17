@@ -1,6 +1,5 @@
-import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
+import { createVueGenerator, createHtmlEntryFile } from './component-generators'
 import { buildFolderStructure } from './utils'
-import nuxtMapping from './nuxt-mapping.json'
 
 import {
   ASSETS_PREFIX,
@@ -14,7 +13,6 @@ import {
   createPageOutputs,
   createComponentOutputs,
   createManifestJSONFile,
-  createHtmlIndexFile,
   createPackageJSONFile,
   joinGeneratorOutputs,
   generateLocalDependenciesPrefix,
@@ -25,7 +23,6 @@ import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
   ProjectGeneratorOptions,
-  ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
@@ -33,21 +30,9 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: nuxtMapping as Mapping,
-  })
-
-  if (options.customMapping) {
-    vueGenerator.addMapping(options.customMapping)
-  }
-
-  return vueGenerator
-}
-
 const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const vueGenerator = initGenerator(generatorOptions)
+  const vueGenerator = createVueGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     vueGenerator.addMapping(mapping)
@@ -69,7 +54,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      vueGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -135,9 +120,8 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       staticFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlIndexFile(uidl, {
+    const htmlIndexFile = createHtmlEntryFile(uidl, {
       assetsPrefix: ASSETS_PREFIX,
-      fileName: 'app',
       appRootOverride: APP_ROOT_OVERRIDE,
     })
 

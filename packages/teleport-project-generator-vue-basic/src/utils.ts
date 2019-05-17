@@ -1,4 +1,3 @@
-import createVueRouterComponentGenerator from './component-generators/router-component'
 import { injectFilesToPath } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
@@ -6,7 +5,6 @@ import {
   GeneratedFolder,
   TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   DEFAULT_SRC_FILES_PATH,
   DEFAULT_COMPONENT_FILES_PATH,
@@ -37,17 +35,4 @@ export const buildFolderStructure = (
   templateFolder = injectFilesToPath(templateFolder, publicFilesPath, publicFiles)
 
   return templateFolder
-}
-
-export const createRouterFile = async (root: ComponentUIDL) => {
-  const vueRouterGenerator = createVueRouterComponentGenerator()
-
-  // Routes are defined in router.js
-  root.meta = root.meta || {}
-  root.meta.fileName = 'router'
-
-  const { files, dependencies } = await vueRouterGenerator.generateComponent(root)
-  const routerFile = files[0]
-
-  return { routerFile, dependencies }
 }

@@ -1,4 +1,3 @@
-import { generator } from '@teleporthq/teleport-generator-shared/lib/generators/js-ast-to-code'
 import {
   generateASTDefinitionForJSXTag,
   addAttributeToJSXTag,
@@ -13,11 +12,7 @@ import {
   DEFAULT_STATIC_FILES_PATH,
 } from './constants'
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import {
-  createFile,
-  injectFilesToPath,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { injectFilesToPath } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
   GeneratedFolder,
@@ -26,7 +21,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-export const createDocumentComponent = (uidl: ProjectUIDL) => {
+export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = generateASTDefinitionForJSXTag('html')
@@ -133,13 +128,10 @@ export const createDocumentComponent = (uidl: ProjectUIDL) => {
 
   // Create AST representation of the class CustomDocument extends Document
   // https://github.com/zeit/next.js#custom-document
-  const documentAST = createDocumentASTDefinition(htmlNode)
-
-  // Convert AST to string
-  return generator(documentAST)
+  return createDocumentWrapperAST(htmlNode)
 }
 
-const createDocumentASTDefinition = (htmlNode, t = types) => {
+const createDocumentWrapperAST = (htmlNode, t = types) => {
   return t.program([
     t.importDeclaration(
       [
@@ -164,15 +156,6 @@ const createDocumentASTDefinition = (htmlNode, t = types) => {
     ),
     t.exportDefaultDeclaration(t.identifier('CustomDocument')),
   ])
-}
-
-export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile => {
-  const documentComponent = createDocumentComponent(uidl)
-  if (!documentComponent) {
-    return null
-  }
-
-  return createFile('_document', FILE_TYPE.JS, documentComponent)
 }
 
 export const buildFolderStructure = (

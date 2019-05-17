@@ -1,3 +1,4 @@
+import { createReactGenerator, createDocumentFile } from './component-generators'
 import {
   createPageOutputs,
   createComponentOutputs,
@@ -9,8 +10,7 @@ import {
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-import { createDocumentComponentFile, buildFolderStructure } from './utils'
+import { buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
@@ -21,11 +21,8 @@ import {
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
-import nextMapping from './next-mapping.json'
-
 import {
   ProjectGeneratorOptions,
-  ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
@@ -33,20 +30,9 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactComponentGenerator('StyledJSX')
-
-  reactGenerator.addMapping(nextMapping as Mapping)
-  if (options.customMapping) {
-    reactGenerator.addMapping(options.customMapping)
-  }
-
-  return reactGenerator
-}
-
 const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const reactGenerator = initGenerator(generatorOptions)
+  const reactGenerator = createReactGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     reactGenerator.addMapping(mapping)
@@ -68,14 +54,14 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      reactGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
 
     // Step 2: The root html file is customized in next via the _document.js page
-    const documentComponentFile = createDocumentComponentFile(uidl)
+    const documentComponentFile = createDocumentFile(uidl)
 
     // Step 2: The first level conditional nodes are taken as project pages
     const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
