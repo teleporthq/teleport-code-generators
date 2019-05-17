@@ -1,0 +1,23 @@
+{
+  "technology": {
+    "type": "VueNuxt"
+  },
+  "publisher": {
+    "type": "Disk"
+  },
+  "template": {
+    "remote": {
+      "githubRepo": {
+        "owner": "ionutpasca",
+        "repo": "nextjs"
+      }
+    },
+    "meta": {
+      "componentsPath": [
+        "components",
+        "playgroundComponents"
+      ]
+    }
+  },
+  "assets": {}
+}

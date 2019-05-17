@@ -24,7 +24,7 @@ export interface PackerFactoryParams {
 
 export type PackerFactory = (
   projectUIDL: ProjectUIDL,
-  params: PackerFactoryParams
+  params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
   loadTemplate: (template?: TemplateDefinition) => Promise<GeneratedFolder>
@@ -37,7 +37,7 @@ export type PackerFactory = (
 
 const createTeleportPacker: PackerFactory = (
   projectUIDL: ProjectUIDL,
-  params?: PackerFactoryParams
+  params: PackerFactoryParams = {}
 ) => {
   let { assets, generatorFunction, publisher, template } = params
 
@@ -79,7 +79,7 @@ const createTeleportPacker: PackerFactory = (
     return template.templateFolder
   }
 
-  const pack = async (uidl?: ProjectUIDL, packParams?: PackerFactoryParams) => {
+  const pack = async (uidl?: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
     const definedProjectUIDL = uidl || projectUIDL
     if (!definedProjectUIDL) {
       throw new Error(NO_PROJECT_UIDL_PROVIDED)

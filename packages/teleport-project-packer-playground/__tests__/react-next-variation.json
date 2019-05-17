@@ -1,0 +1,26 @@
+{
+  "technology": {
+    "type": "ReactNext",
+    "meta": {
+      "variation": "InlineStyles"
+    }
+  },
+  "publisher": {
+    "type": "Disk"
+  },
+  "template": {
+    "remote": {
+      "githubRepo": {
+        "owner": "ionutpasca",
+        "repo": "nextjs"
+      }
+    },
+    "meta": {
+      "componentsPath": [
+        "components",
+        "playgroundComponents"
+      ]
+    }
+  },
+  "assets": {}
+}

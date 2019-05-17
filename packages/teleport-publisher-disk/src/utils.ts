@@ -25,7 +25,7 @@ export const writeFolder = async (folder: GeneratedFolder, currentPath: string):
 
 const writeFilesToFolder = async (folderPath: string, files: GeneratedFile[]): Promise<void> => {
   const promises = files.map((file) => {
-    const fileName = `${file.name}.${file.fileType}`
+    const fileName = file.fileType ? `${file.name}.${file.fileType}` : file.name
     const filePath = join(folderPath, fileName)
     return writeContentToFile(filePath, file.content, file.contentEncoding)
   })

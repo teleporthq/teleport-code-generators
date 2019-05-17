@@ -7,7 +7,6 @@ import {
 import { BUILD_COMMAND, PUBLISH_DIRECTORY } from './constants'
 import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from './errors'
 import { deployToNetlify } from './netlifyClient'
-// import { DUMMY_PROJECT } from './dummyProj'
 
 export interface NetlifyFactoryParams extends PublisherFactoryParams {
   accessToken: string
@@ -41,16 +40,6 @@ const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPubl
     project = projectToSet
   }
 
-  // const getBuildCommand = (): string => buildCommand
-  // const setBuildCommand = (command: string): void => {
-  //   buildCommand = command
-  // }
-
-  // const getPublishDirectory = (): string => publishDirectory
-  // const setPublishDirectory = (directory: string): void => {
-  //   publishDirectory = directory
-  // }
-
   const publish = async (options: NetlifyFactoryParams = defaultPublisherParams) => {
     const projectToPublish = options.project || project
     if (!projectToPublish) {
@@ -80,17 +69,3 @@ const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPubl
 }
 
 export default createNetlifyPublisher
-
-// const publisher = createNetlifyPublisher()
-
-// publisher
-//   .publish({
-//     project: DUMMY_PROJECT,
-//     accessToken: '3a07c4dec3b834593e2da9eaa02d7cb37dfb4f981a8311964d1cc21420a3d298',
-//   })
-//   .then((result) => {
-//     console.log('result', result, '\n', result.payload.json)
-//   })
-//   .catch((error) => {
-//     console.log('error', error)
-//   })

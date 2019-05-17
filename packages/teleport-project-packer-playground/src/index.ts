@@ -18,9 +18,6 @@ import createDiskPublisher from '@teleporthq/teleport-publisher-disk'
 import createNowPublisher from '@teleporthq/teleport-publisher-now'
 import createNetlifyPublisher from '@teleporthq/teleport-publisher-netlify'
 
-import projectJson from '../../../examples/uidl-samples/project.json'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import {
   GITHUB_TEMPLATE_OWNER,
   REACT_BASIC_GITHUB_PROJECT,
@@ -78,7 +75,7 @@ const projectTemplates = {
   VueNuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
 }
 
-const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params?: PackerFactoryParams) => {
+const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params: PackerFactoryParams = {}) => {
   const { assets, publisher, technology } = params
   let { template } = params
 
@@ -90,7 +87,7 @@ const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params?: PackerFactory
     return template.templateFolder
   }
 
-  const pack = async (packParams?: PackerFactoryParams): Promise<PublisherResponse<any>> => {
+  const pack = async (packParams: PackerFactoryParams = {}): Promise<PublisherResponse<any>> => {
     const projectAssets = packParams.assets || assets
 
     const packTechnology = packParams.technology || technology
@@ -102,10 +99,10 @@ const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params?: PackerFactory
     const publisherFactory = projectPublishers[packPublisher.type] || createZipPublisher
     const projectPublisher = publisherFactory({ ...packPublisher.meta })
 
-    const projectTemplate =
-      packParams.template || template || (technology && technology.type)
-        ? projectTemplates[technology.type]
-        : projectTemplates.ReactNext
+    const templateByTechnology =
+      technology && technology.type ? projectTemplates[technology.type] : projectTemplates.ReactNext
+
+    const projectTemplate = packParams.template || template || templateByTechnology
 
     packer.setAssets(projectAssets)
     packer.setGeneratorFunction(projectGenerator.generateProject)
@@ -122,90 +119,3 @@ const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params?: PackerFactory
 }
 
 export default createPlaygroundPacker
-
-/**
- * Testing
- */
-const assetFile = readFileSync(join(__dirname, './test.png'))
-const base64File = new Buffer(assetFile).toString('base64')
-
-const assetsData = {
-  assets: [
-    {
-      data: base64File,
-      name: 'test',
-      type: 'png',
-    },
-  ],
-  meta: {
-    prefix: ['test'],
-  },
-}
-
-const packerVariations = [
-  {
-    technology: {
-      type: 'ReactNext',
-      meta: {
-        variation: 'InlineStyles',
-      },
-    },
-    publisher: {
-      type: 'Disk',
-      meta: {
-        outputPath: '/home/ionut/packer-test',
-        projectName: projectJson.name,
-      },
-    },
-    assets: assetsData,
-  },
-  {
-    technology: {
-      type: 'ReactBasic',
-    },
-    publisher: {
-      type: 'Zip',
-      meta: {
-        outputPath: '/home/ionut/packer-test',
-      },
-    },
-    template: {
-      remote: {
-        githubRepo: {
-          owner: 'ionutpasca',
-          repo: 'nextjs',
-        },
-      },
-      meta: {
-        componentsPath: ['components', 'playgroundComponents'],
-      },
-    },
-    assets: assetsData,
-  },
-
-  {
-    technology: {
-      type: 'VueNuxt',
-    },
-    publisher: {
-      type: 'Zip',
-      meta: {
-        outputPath: '/home/ionut/packer-test',
-      },
-    },
-    template: {
-      remote: {
-        githubRepo: {
-          owner: 'ionutpasca',
-          repo: 'nextjs',
-        },
-      },
-      meta: {},
-    },
-    assets: assetsData,
-  },
-]
-
-const playgroundPacker = createPlaygroundPacker(projectJson as ProjectUIDL, packerVariations[2])
-
-playgroundPacker.pack()

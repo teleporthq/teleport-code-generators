@@ -54,8 +54,12 @@ const destructureProjectFiles = (folderInfo: ProjectFolderInfo): NowFile[] => {
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
 
   folder.files.forEach((file: GeneratedFile) => {
+    const fileName = file.fileType
+      ? `${folderToPutFileTo}${file.name}.${file.fileType}`
+      : `${folderToPutFileTo}${file.name}`
+
     const nowFile: NowFile = {
-      file: `${folderToPutFileTo}${file.name}.${file.fileType}`,
+      file: fileName,
       data: file.content,
     }
 
