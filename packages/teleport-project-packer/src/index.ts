@@ -8,6 +8,12 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { injectAssetsToProject, fetchTemplate } from './utils'
+import {
+  NO_PROJECT_UIDL_PROVIDED,
+  NO_TEMPLATE_PROVIDED,
+  NO_GENERATOR_FUNCTION_PROVIDED,
+  NO_PUBLISHER_PROVIDED,
+} from './errors'
 
 export interface PackerFactoryParams {
   publisher?: Publisher<any, any>
@@ -16,11 +22,11 @@ export interface PackerFactoryParams {
   assets?: AssetsDefinition
 }
 
-type PackerFactory = (
+export type PackerFactory = (
   projectUIDL: ProjectUIDL,
   params: PackerFactoryParams
 ) => {
-  pack: () => Promise<PublisherResponse<any>>
+  pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
   loadTemplate: (template?: TemplateDefinition) => Promise<GeneratedFolder>
   setPublisher: (publisher: Publisher<any, any>) => void
   setGeneratorFunction: (generatorFunction: GenerateProjectFunction) => void
@@ -35,7 +41,7 @@ const createTeleportPacker: PackerFactory = (
 ) => {
   let { assets, generatorFunction, publisher, template } = params
 
-  const setPublisher = (publisherToSet: Publisher<any, any>): void => {
+  const setPublisher = (publisherToSet: Publisher<unknown, unknown>): void => {
     publisher = publisherToSet
   }
 
@@ -68,20 +74,44 @@ const createTeleportPacker: PackerFactory = (
     if (!template.remote) {
       return null
     }
-    return fetchTemplate(template.remote)
+
+    template.templateFolder = await fetchTemplate(template.remote)
+    return template.templateFolder
   }
 
-  const pack = async () => {
+  const pack = async (uidl?: ProjectUIDL, packParams?: PackerFactoryParams) => {
+    const definedProjectUIDL = uidl || projectUIDL
+    if (!definedProjectUIDL) {
+      throw new Error(NO_PROJECT_UIDL_PROVIDED)
+    }
+
+    const packTemplate = packParams.template || template
+    if (!packTemplate) {
+      throw new Error(NO_TEMPLATE_PROVIDED)
+    }
+
+    const packGeneratorFunction = packParams.generatorFunction || generatorFunction
+    if (!packGeneratorFunction) {
+      throw new Error(NO_GENERATOR_FUNCTION_PROVIDED)
+    }
+
+    const packPublisher = packParams.publisher || publisher
+    if (!packPublisher) {
+      throw new Error(NO_PUBLISHER_PROVIDED)
+    }
+
+    const packAssets = packParams.assets || assets
+
     if (template && template.remote) {
       template.templateFolder = await fetchTemplate(template.remote)
     }
 
-    const { assetsPath, outputFolder } = await generatorFunction(projectUIDL, template)
+    const { assetsPath, outputFolder } = await packGeneratorFunction(projectUIDL, template)
 
-    const project = await injectAssetsToProject(outputFolder, assets, assetsPath)
+    const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 
-    publisher.setProject(project)
-    return publisher.publish()
+    packPublisher.setProject(project)
+    return packPublisher.publish()
   }
 
   return {

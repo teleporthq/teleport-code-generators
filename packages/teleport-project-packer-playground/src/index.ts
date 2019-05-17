@@ -56,7 +56,7 @@ export interface PublisherDefinition {
 const projectGenerators = {
   ReactBasic: createReactGenerator,
   ReactNext: createReactNextGenerator,
-  Vue: createVueGenerator,
+  VueBasic: createVueGenerator,
   VueNuxt: createVueNuxtGenerator,
 }
 
@@ -79,24 +79,35 @@ const projectTemplates = {
 }
 
 const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params?: PackerFactoryParams) => {
-  const { assets, publisher, technology, template } = params
+  const { assets, publisher, technology } = params
+  let { template } = params
 
   const packer = createTeleportPacker(projectUIDL, { assets, template })
 
   const loadTemplate = async (templateToLoad?: TemplateDefinition): Promise<GeneratedFolder> => {
-    return packer.loadTemplate(templateToLoad)
+    template = templateToLoad || template
+    template.templateFolder = await packer.loadTemplate(template)
+    return template.templateFolder
   }
 
-  const pack = async (): Promise<PublisherResponse<any>> => {
-    const generatorFactory = projectGenerators[technology.type] || createReactNextGenerator
-    const projectGenerator = generatorFactory({ ...technology.meta })
+  const pack = async (packParams?: PackerFactoryParams): Promise<PublisherResponse<any>> => {
+    const projectAssets = packParams.assets || assets
 
-    const publisherFactory = projectPublishers[publisher.type] || createZipPublisher
-    const projectPublisher = publisherFactory({ ...publisher.meta })
+    const packTechnology = packParams.technology || technology
+    const packPublisher = packParams.publisher || publisher
 
-    const projectTemplate = template || projectTemplates[technology.type]
+    const generatorFactory = projectGenerators[packTechnology.type] || createReactNextGenerator
+    const projectGenerator = generatorFactory({ ...packTechnology.meta })
 
-    packer.setAssets(assets)
+    const publisherFactory = projectPublishers[packPublisher.type] || createZipPublisher
+    const projectPublisher = publisherFactory({ ...packPublisher.meta })
+
+    const projectTemplate =
+      packParams.template || template || (technology && technology.type)
+        ? projectTemplates[technology.type]
+        : projectTemplates.ReactNext
+
+    packer.setAssets(projectAssets)
     packer.setGeneratorFunction(projectGenerator.generateProject)
     packer.setPublisher(projectPublisher)
     packer.setTemplate(projectTemplate)
@@ -148,10 +159,9 @@ const packerVariations = [
     },
     assets: assetsData,
   },
-
   {
     technology: {
-      type: 'ReactNext',
+      type: 'ReactBasic',
     },
     publisher: {
       type: 'Zip',
@@ -167,13 +177,35 @@ const packerVariations = [
         },
       },
       meta: {
-        componentsPath: ['components', 'generatedComponents'],
+        componentsPath: ['components', 'playgroundComponents'],
       },
+    },
+    assets: assetsData,
+  },
+
+  {
+    technology: {
+      type: 'VueNuxt',
+    },
+    publisher: {
+      type: 'Zip',
+      meta: {
+        outputPath: '/home/ionut/packer-test',
+      },
+    },
+    template: {
+      remote: {
+        githubRepo: {
+          owner: 'ionutpasca',
+          repo: 'nextjs',
+        },
+      },
+      meta: {},
     },
     assets: assetsData,
   },
 ]
 
-const playgroundPacker = createPlaygroundPacker(projectJson as ProjectUIDL, packerVariations[1])
+const playgroundPacker = createPlaygroundPacker(projectJson as ProjectUIDL, packerVariations[2])
 
 playgroundPacker.pack()

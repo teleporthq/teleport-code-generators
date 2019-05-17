@@ -26,12 +26,16 @@ const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublisher> = 
 ): DiskPublisher => {
   let { project, outputPath } = params
 
-  const getProject = (): GeneratedFolder => project
+  const getProject = (): GeneratedFolder => {
+    return project
+  }
   const setProject = (projectToSet: GeneratedFolder): void => {
     project = projectToSet
   }
 
-  const getOutputPath = (): string => outputPath
+  const getOutputPath = (): string => {
+    return outputPath
+  }
   const setOutputPath = (path: string): void => {
     outputPath = path
   }

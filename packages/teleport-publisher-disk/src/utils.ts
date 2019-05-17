@@ -6,7 +6,7 @@ import {
   GeneratedFile,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
-export const writeFolder = async (folder: GeneratedFolder, currentPath: string) => {
+export const writeFolder = async (folder: GeneratedFolder, currentPath: string): Promise<void> => {
   const { name, files, subFolders } = folder
 
   const folderPath = join(currentPath, name)
@@ -20,24 +20,28 @@ export const writeFolder = async (folder: GeneratedFolder, currentPath: string) 
     writeSubFoldersToFolder(folderPath, subFolders),
   ]
 
-  return Promise.all(promises)
+  await Promise.all(promises)
 }
 
 const writeFilesToFolder = async (folderPath: string, files: GeneratedFile[]): Promise<void> => {
-  for (const file of files) {
+  const promises = files.map((file) => {
     const fileName = `${file.name}.${file.fileType}`
     const filePath = join(folderPath, fileName)
-    await writeContentToFile(filePath, file.content, file.contentEncoding)
-  }
+    return writeContentToFile(filePath, file.content, file.contentEncoding)
+  })
+
+  await Promise.all(promises)
 }
 
 const writeSubFoldersToFolder = async (
   folderPath: string,
   subFolders: GeneratedFolder[]
 ): Promise<void> => {
-  for (const subfolder of subFolders) {
-    await writeFolder(subfolder, folderPath)
-  }
+  const promises = subFolders.map((subFolder) => {
+    return writeFolder(subFolder, folderPath)
+  })
+
+  await Promise.all(promises)
 }
 
 const createDirectory = (pathToDir: string): Promise<void> => {

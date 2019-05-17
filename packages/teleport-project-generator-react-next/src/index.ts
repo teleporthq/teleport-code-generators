@@ -2,6 +2,7 @@ import {
   createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
+  generateLocalDependenciesPrefix,
   createManifestJSONFile,
   createPackageJSONFile,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
@@ -13,9 +14,9 @@ import { createDocumentComponentFile, buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
-  // DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
-  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
@@ -77,6 +78,11 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const documentComponentFile = createDocumentComponentFile(uidl)
 
     // Step 2: The first level conditional nodes are taken as project pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -91,8 +97,8 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
         componentGenerator: reactGenerator,
         componentUIDL,
         componentOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
         metadataOptions: {
           usePathAsFileName: true,
@@ -144,24 +150,16 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const distFiles: GeneratedFile[] = [packageFile]
 
     // Step 9: Build the folder structure
-    // const distFolder = buildFolderStructure(
-    //   {
-    //     pages: pageFiles,
-    //     components: componentFiles,
-    //     dist: distFiles,
-    //     static: staticFiles,
-    //   },
-    //   options.distPath || DEFAULT_OUTPUT_FOLDER
-    // )
     const distFolder = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        dist: distFiles,
-        static: staticFiles,
+        componentFiles,
+        distFiles,
+        pageFiles,
+        staticFiles,
       },
       template
     )
+
     return {
       outputFolder: distFolder,
       assetsPath: ASSETS_PREFIX.slice(1),

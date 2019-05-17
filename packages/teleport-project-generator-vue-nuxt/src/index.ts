@@ -4,10 +4,10 @@ import nuxtMapping from './nuxt-mapping.json'
 
 import {
   ASSETS_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
   APP_ROOT_OVERRIDE,
-  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import {
@@ -17,6 +17,7 @@ import {
   createHtmlIndexFile,
   createPackageJSONFile,
   joinGeneratorOutputs,
+  generateLocalDependenciesPrefix,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
@@ -74,7 +75,12 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     const { components = {}, root } = uidl
     const routes = extractRoutes(root)
 
-    // Step 1: The first level stateBranches (the pages) transformation in react components is started
+    // Step 2: The first level stateBranches (the pages) transformation in react components is started
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routes.map((routeNode) => {
       const { value: pageName, node } = routeNode.content
 
@@ -88,8 +94,8 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
         componentGenerator: vueGenerator,
         componentUIDL,
         componentOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
         metadataOptions: {
           usePathAsFileName: true,
@@ -152,12 +158,12 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     // Step 9: Build the folder structure
     const folderStructure = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        static: staticFiles,
-        dist: distFiles,
+        componentFiles,
+        pageFiles,
+        distFiles,
+        staticFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
 
     return {

@@ -11,13 +11,14 @@ import {
   createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
+  generateLocalDependenciesPrefix,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import {
   ASSETS_PREFIX,
-  LOCAL_DEPENDENCIES_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
@@ -73,7 +74,12 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
 
-    // Step 1: The first level conditionals become the pages
+    // Step 2: The first level conditionals become the pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -88,8 +94,8 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
         componentGenerator: reactGenerator,
         componentUIDL,
         componentOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
         },
       }
       return createPageOutputs(pageParams)
@@ -148,13 +154,13 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     // Step 10: Build the folder structure
     const distFolder = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        src: srcFiles,
-        dist: distFiles,
-        static: staticFiles,
+        pageFiles,
+        componentFiles,
+        srcFiles,
+        distFiles,
+        staticFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
 
     return {

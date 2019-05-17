@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import fetch from 'cross-fetch'
 import ZipPublisher from '@teleporthq/teleport-publisher-zip'
 import { GeneratedFolder } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { CANNOT_ZIP_PROJECT } from './errors'

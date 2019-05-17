@@ -241,6 +241,8 @@ export interface TemplateDefinition {
     assetsPath?: string[]
     srcFilesPath?: string[]
     distFilesPath?: string[]
+    staticFilesPath?: string[]
+    publicFilesPath?: string[]
   }
 }
 
