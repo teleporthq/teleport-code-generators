@@ -52,6 +52,7 @@ export type PostProcessingFunction = (codeChunks: Record<string, string>) => Rec
 
 export interface ComponentGenerator {
   generateComponent: GenerateComponentFunction
+  linkCodeChunks: (chunks: Record<string, ChunkDefinition[]>, fileName: string) => GeneratedFile[]
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
