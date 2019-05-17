@@ -17,7 +17,7 @@ export const buildDefaultPropsAst = (
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     (acc: any, key) => {
       const { defaultValue } = propDefinitions[key]
-      if (typeof defaultValue !== undefined) {
+      if (typeof defaultValue !== 'undefined') {
         acc.values[key] = defaultValue
         acc.count++
       }

@@ -38,9 +38,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
 
     // TODO used the name from the mappings of the component, not from the UIDL
     const hasDefaultProps = Object.keys(uidl.propDefinitions).some(
-      (prop) =>
-        uidl.propDefinitions[prop].defaultValue &&
-        typeof uidl.propDefinitions[prop].defaultValue !== undefined
+      (prop) => typeof uidl.propDefinitions[prop].defaultValue !== 'undefined'
     )
 
     const typesOfPropsAst = buildTypesOfPropsAst(name, 'PropTypes', uidl.propDefinitions)

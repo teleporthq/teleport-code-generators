@@ -319,8 +319,8 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
     }
 
     acc[name] =
-      typeof defaultValue !== undefined ? { type: mappedType, default: defaultValue } : mappedType
-    acc[name] = isRequired ? { ...{ required: isRequired }, ...acc[name] } : acc[name]
+      typeof defaultValue !== 'undefined' ? { type: mappedType, default: defaultValue } : mappedType
+    acc[name] = isRequired ? { required: isRequired, ...acc[name] } : acc[name]
 
     return acc
   }, {})
