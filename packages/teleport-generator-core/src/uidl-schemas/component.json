@@ -72,6 +72,9 @@
                 }
               ]
             },
+            "isRequired": {
+              "type": "boolean"
+            },
             "meta": {"type": "object"}
           }
         }

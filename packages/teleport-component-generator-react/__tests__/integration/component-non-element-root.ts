@@ -52,7 +52,7 @@ describe('React Component Generator support for non elements as root', () => {
     expect(result.files.length).toBeTruthy()
   })
 
-  it('should support conditional string as root node', async () => {
+  it('should support conditional as root node', async () => {
     const result = await generator.generateComponent(ComponentWithConditionalRootStringNode)
     const jsFile = findFileByType(result.files, JS_FILE)
 

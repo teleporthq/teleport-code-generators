@@ -289,7 +289,7 @@ export const generateVueComponentJS = (
 const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDefinition>) => {
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
-    const { type, defaultValue } = uidlPropDefinitions[name]
+    const { type, defaultValue, isRequired } = uidlPropDefinitions[name]
     switch (type) {
       case 'string':
         mappedType = String
@@ -318,7 +318,10 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
         )
     }
 
-    acc[name] = defaultValue ? { type: mappedType, default: defaultValue } : mappedType
+    acc[name] =
+      typeof defaultValue !== 'undefined' ? { type: mappedType, default: defaultValue } : mappedType
+    acc[name] = isRequired ? { required: isRequired, ...acc[name] } : acc[name]
+
     return acc
   }, {})
 }

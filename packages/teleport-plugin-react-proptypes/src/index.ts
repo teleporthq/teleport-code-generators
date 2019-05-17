@@ -37,10 +37,13 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
     }
 
     // TODO used the name from the mappings of the component, not from the UIDL
-    const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
+    const hasDefaultProps = Object.keys(uidl.propDefinitions).some(
+      (prop) => typeof uidl.propDefinitions[prop].defaultValue !== 'undefined'
+    )
+
     const typesOfPropsAst = buildTypesOfPropsAst(name, 'PropTypes', uidl.propDefinitions)
 
-    if (!defaultPropsAst && !typesOfPropsAst) {
+    if (!hasDefaultProps && !typesOfPropsAst) {
       return structure
     }
 
@@ -50,12 +53,16 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
       version: '15.7.2',
     }
 
-    chunks.push({
-      type: 'js',
-      name: defaultPropsChunkName,
-      linkAfter: [componentChunkName],
-      content: defaultPropsAst,
-    })
+    if (hasDefaultProps) {
+      const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
+      chunks.push({
+        type: 'js',
+        name: defaultPropsChunkName,
+        linkAfter: [componentChunkName],
+        content: defaultPropsAst,
+      })
+      exportChunk.linkAfter.push(defaultPropsChunkName)
+    }
 
     chunks.push({
       type: 'js',
@@ -65,7 +72,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
     })
 
     // push export of component after declarations of types
-    exportChunk.linkAfter.push(typesOfPropsChunkName, defaultPropsChunkName)
+    exportChunk.linkAfter.push(typesOfPropsChunkName)
 
     return structure
   }
