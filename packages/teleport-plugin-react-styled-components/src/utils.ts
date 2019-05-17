@@ -1,5 +1,5 @@
 import * as t from '@babel/types'
-import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import { stringAsTemplateLiteral } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 import { UIDLStyleValue } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -20,7 +20,7 @@ const mapStyles = (styles: object) => {
   Object.keys(styles).forEach((item) => {
     if (typeof styles[item] === 'string') {
       style = `${style}
-      ${cammelCaseToDashCase(item)}: ${styles[item]};`
+      ${camelCaseToDashCase(item)}: ${styles[item]};`
     } else {
       style = `${style}
       ${item} {

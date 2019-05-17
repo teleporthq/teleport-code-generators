@@ -7,7 +7,7 @@ import {
 } from '@teleporthq/teleport-generator-core'
 
 import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
 import {
   ComponentGenerator,
@@ -89,7 +89,7 @@ export default createGenerator()
 
 const fileBundler = (uidl: ComponentUIDL, codeChunks: any) => {
   let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
-  fileName = sanitizeVariableName(fileName)
+  fileName = camelCaseToDashCase(fileName)
 
   return Object.keys(codeChunks).map((fileId) => {
     return createFile(fileName, fileId, codeChunks[fileId])

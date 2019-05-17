@@ -7,7 +7,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import {
   capitalize,
-  stringToUpperCamelCase,
+  dashCaseToUpperCamelCase,
 } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   UIDLPropDefinition,
@@ -85,7 +85,7 @@ export const generateElementNode = (
           )
         }
       } else {
-        const methodName = `handle${stringToUpperCamelCase(name)}${stringToUpperCamelCase(
+        const methodName = `handle${dashCaseToUpperCamelCase(name)}${dashCaseToUpperCamelCase(
           eventKey
         )}`
         methodsObject[methodName] = events[eventKey]

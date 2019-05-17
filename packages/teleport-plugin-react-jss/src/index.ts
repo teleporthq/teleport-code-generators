@@ -8,7 +8,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
 import { makeJSSDefaultExport } from './utils'
 
-import { cammelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import {
   traverseElements,
   transformDynamicStyles,
@@ -51,7 +51,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       const { style, key } = element
       if (style) {
         const root = jsxNodesLookup[key]
-        const className = cammelCaseToDashCase(key)
+        const className = camelCaseToDashCase(key)
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
             return new ParsedASTNode(

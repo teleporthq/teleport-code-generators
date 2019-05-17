@@ -1,26 +1,12 @@
-export const cammelCaseToDashCase = (name: string): string => {
-  let ret = ''
-  let prevLowercase = false
+export const camelCaseToDashCase = (str: string): string =>
+  str.replace(/([a-zA-Z])(?=[A-Z])/g, '$1-').toLowerCase()
 
-  for (const s of name) {
-    const isUppercase = s.toUpperCase() === s
-    if (isUppercase && prevLowercase) {
-      ret += '-'
-    }
-
-    ret += s
-    prevLowercase = !isUppercase
-  }
-
-  return ret.replace(/-+/g, '-').toLowerCase()
-}
-
-export const stringToCamelCase = (str: string): string =>
-  str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+export const dashCaseToCamelCase = (str: string): string =>
+  str.replace(/[-_]+(.)?/g, (_, chr) => (chr ? chr.toUpperCase() : ''))
 
 export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1)
 
-export const stringToUpperCamelCase = (str: string) => capitalize(stringToCamelCase(str))
+export const dashCaseToUpperCamelCase = (str: string) => capitalize(dashCaseToCamelCase(str))
 
 // Replaces all ocurrences of non alpha-numeric characters in the string (except _)
 export const sanitizeVariableName = (str: string): string => str.replace(/\W/g, '')
