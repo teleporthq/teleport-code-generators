@@ -6,31 +6,23 @@ import {
 
 // @ts-ignore
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
+import { HastNode, HastText } from '../../src/typings/generators'
 
 describe('createHtmlIndexFile', () => {
   it('returns index file with prefixed assets and app file', () => {
     const HtmlIndexFileOptions = {
       assetsPrefix: 'playground',
       fileName: 'app',
-      appRootOverride: 'SomeRandomText?',
+      appRootOverride: '-root-placeholder-',
     }
     const result = createHtmlIndexFile(uidlSample, HtmlIndexFileOptions)
 
-    expect(result.name).toBe('app')
-    expect(result.fileType).toBe('html')
-    expect(result.content).toContain('<!DOCTYPE html>')
-    expect(result.content).toContain('content="playground/playground_assets')
-    expect(result.content).toContain('<body>SomeRandomText?')
-  })
+    expect(result.tagName).toBe('html')
+    expect(result.children.length).toBe(2)
 
-  it('returns index file with no prefixed assets and index file', () => {
-    const HtmlIndexFileOptions = {}
-    const result = createHtmlIndexFile(uidlSample, HtmlIndexFileOptions)
-
-    expect(result.name).toBe('index')
-    expect(result.fileType).toBe('html')
-    expect(result.content).toContain('<!DOCTYPE html>')
-    expect(result.content).toContain('content="/playground_assets')
+    const body = result.children[1] as HastNode
+    expect(body.children[0].type).toBe('text')
+    expect((body.children[0] as HastText).value).toBe(HtmlIndexFileOptions.appRootOverride)
   })
 })
 

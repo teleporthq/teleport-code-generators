@@ -1,4 +1,3 @@
-import { generator } from '../generators/html-to-string'
 import {
   createHTMLNode,
   addAttributeToNode,
@@ -17,21 +16,18 @@ import {
   ComponentFactoryParams,
   ComponentGeneratorOutput,
   GeneratedFolder,
+  HastNode,
 } from '../typings/generators'
 
 import { ProjectUIDL, WebManifest, ComponentUIDL } from '../typings/uidl'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
-  fileName?: string
   appRootOverride?: string
 }
 
-export const createHtmlIndexFile = (
-  uidl: ProjectUIDL,
-  options: HtmlIndexFileOptions
-): GeneratedFile => {
-  const { assetsPrefix = '', fileName = 'index', appRootOverride } = options
+export const createHtmlIndexFile = (uidl: ProjectUIDL, options: HtmlIndexFileOptions): HastNode => {
+  const { assetsPrefix = '', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -134,12 +130,7 @@ export const createHtmlIndexFile = (
     }
   })
 
-  const htmlInnerString = generator(htmlNode)
-  const content = `
-    <!DOCTYPE html>
-    ${htmlInnerString}`
-
-  return createFile(fileName, FILE_TYPE.HTML, content)
+  return htmlNode
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values

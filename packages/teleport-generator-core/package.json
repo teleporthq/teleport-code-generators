@@ -23,6 +23,9 @@
   },
   "dependencies": {
     "@teleporthq/teleport-generator-shared": "^0.6.0",
-    "ajv": "^6.10.0"
+    "ajv": "^6.10.0",
+    "@babel/generator": "^7.4.0",
+    "@babel/types": "^7.3.3",
+    "@starptech/prettyhtml-hast-to-html": "^0.8.17"
   }
 }

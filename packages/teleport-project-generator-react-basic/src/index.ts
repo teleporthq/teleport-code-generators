@@ -1,12 +1,13 @@
-import reactProjectMapping from './react-project-mapping.json'
+import {
+  createRouterIndexFile,
+  createHtmlEntryFile,
+  createComponentGenerator,
+} from './component-generators'
 
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-
-import { createRouterIndexFile, buildFolderStructure } from './utils'
+import { buildFolderStructure } from './utils'
 
 import {
   createPackageJSONFile,
-  createHtmlIndexFile,
   createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
@@ -23,7 +24,6 @@ import {
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
-  ComponentGenerator,
   ComponentFactoryParams,
   ProjectGeneratorOptions,
   GeneratedFile,
@@ -31,20 +31,9 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactComponentGenerator('CSSModules')
-
-  reactGenerator.addMapping(reactProjectMapping as Mapping)
-  if (options.customMapping) {
-    reactGenerator.addMapping(options.customMapping)
-  }
-
-  return reactGenerator
-}
-
 const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const reactGenerator = initGenerator(generatorOptions)
+  const reactGenerator = createComponentGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     reactGenerator.addMapping(mapping)
@@ -58,11 +47,12 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
         throw new Error(validationResult.errorMsg)
       }
     }
+
     const uidl = Parser.parseProjectJSON(input)
 
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      reactGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -119,9 +109,9 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
       staticFiles.push(manifestFile)
     }
 
-    // Step 7: Create the routing component (index.js)
+    // Step 7: Create the routing component (index.js) and the html entry file (index.html)
     const { routerFile, dependencies: routerDependencies } = await createRouterIndexFile(root)
-    const htmlIndexFile = createHtmlIndexFile(uidl, { assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
 
     const srcFiles: GeneratedFile[] = [htmlIndexFile, routerFile]
 

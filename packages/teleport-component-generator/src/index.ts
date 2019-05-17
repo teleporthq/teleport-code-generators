@@ -10,6 +10,7 @@ import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/proj
 import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 
 import {
+  ChunkDefinition,
   ComponentGenerator,
   CompiledComponent,
   GenerateComponentFunction,
@@ -17,7 +18,7 @@ import {
   PostProcessingFunction,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 
-import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 import htmlMapping from './html-mapping.json'
 
@@ -64,12 +65,32 @@ export const createGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    const files = fileBundler(uidl, codeChunks)
+    const fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    const files = fileBundler(fileName, codeChunks)
 
     return {
       files,
       dependencies: externalDependencies,
     }
+  }
+
+  /**
+   * Builds each individual chunk and applies the post processors
+   * @param chunks All the raw chunks (ASTs, HASTs or JSS/strings)
+   * @param fileName The name of the output file
+   */
+  const linkCodeChunks = (chunks: Record<string, ChunkDefinition[]>, fileName: string) => {
+    let codeChunks: Record<string, string> = {}
+
+    Object.keys(chunks).forEach((fileId) => {
+      codeChunks[fileId] = chunksLinker.link(chunks[fileId])
+    })
+
+    processors.forEach((processor) => {
+      codeChunks = processor(codeChunks)
+    })
+
+    return fileBundler(fileName, codeChunks)
   }
 
   const addPostProcessor = (fn: PostProcessingFunction) => {
@@ -78,6 +99,7 @@ export const createGenerator = (
 
   return {
     generateComponent,
+    linkCodeChunks,
     resolveElement: resolver.resolveElement.bind(resolver),
     addMapping: resolver.addMapping.bind(resolver),
     addPlugin: assemblyLine.addPlugin.bind(assemblyLine),
@@ -87,11 +109,10 @@ export const createGenerator = (
 
 export default createGenerator()
 
-const fileBundler = (uidl: ComponentUIDL, codeChunks: any) => {
-  let fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
-  fileName = camelCaseToDashCase(fileName)
+const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
+  const cleanFileName = camelCaseToDashCase(fileName)
 
   return Object.keys(codeChunks).map((fileId) => {
-    return createFile(fileName, fileId, codeChunks[fileId])
+    return createFile(cleanFileName, fileId, codeChunks[fileId])
   })
 }
