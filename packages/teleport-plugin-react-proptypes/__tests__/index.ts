@@ -46,7 +46,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
         defaultValue: 'Teleport',
       },
     }
-    // @ts-ignore-next-line
+
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
@@ -77,7 +77,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
         type: 'string',
       },
     }
-    // @ts-ignore-next-line
+
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
@@ -109,7 +109,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
         isRequired: true,
       },
     }
-    // @ts-ignore-next-line
+
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,

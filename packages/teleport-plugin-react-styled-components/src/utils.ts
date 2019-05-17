@@ -31,12 +31,16 @@ const mapStyles = (styles: object) => {
   return style
 }
 
-export const countPropReferences = (style: UIDLStyleValue, timesReferred: number) => {
+export const countPropReferences = (
+  style: Record<string, UIDLStyleValue>,
+  timesReferred: number
+) => {
   Object.keys(style).map((item) => {
-    if (style[item].type === 'dynamic' && style[item].content.referenceType === 'prop') {
+    const styleAttr = style[item]
+    if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
       timesReferred++
-    } else if (style[item].type === 'nested-style') {
-      timesReferred = countPropReferences(style[item].content, timesReferred)
+    } else if (styleAttr.type === 'nested-style') {
+      timesReferred = countPropReferences(styleAttr.content, timesReferred)
     }
   })
   return timesReferred

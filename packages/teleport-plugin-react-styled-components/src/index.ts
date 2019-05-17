@@ -37,7 +37,6 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       if (style) {
         const root = jsxNodesLookup[key]
         const className = `${dashCaseToUpperCamelCase(key)}`
-        // @ts-ignore-next-line
         const timesReferred = countPropReferences(style, 0)
 
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
