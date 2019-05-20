@@ -205,14 +205,14 @@ export const createPageOutputs = async (
 export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
-  const { componentGenerator, componentUIDL, componentOptions } = params
+  const { componentGenerator, componentUIDL, generatorOptions } = params
 
   let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
 
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
-      ...componentOptions,
+      ...generatorOptions,
       skipValidation: true,
     })
 

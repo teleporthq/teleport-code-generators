@@ -66,9 +66,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const pageParams: ComponentFactoryParams = {
         componentGenerator: vueGenerator,
         componentUIDL,
-        componentOptions: {
+        generatorOptions: {
           assetsPrefix: ASSETS_PREFIX,
           localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
       }
       return createPageOutputs(pageParams)
@@ -80,7 +81,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: vueGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
 
       return createComponentOutputs(componentParams)
