@@ -70,7 +70,7 @@ describe('Testing the functionality for StyledComponents', () => {
   })
 
   it('Generator should not break when chunks are missing', async () => {
-    const element = elementNode('container', {}, [], {})
+    const element = elementNode('container', {}, [])
     const elementWithKey = {
       ...element,
       content: {
