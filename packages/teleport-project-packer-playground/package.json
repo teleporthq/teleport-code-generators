@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-packer-playground",
   "version": "0.6.0",
-  "description": "Teleport playground packer",
+  "description": "Teleport playground packer - use this package is you want to use all the project generators and all the publishers only from one package",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

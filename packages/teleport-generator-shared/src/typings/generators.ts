@@ -137,14 +137,6 @@ export interface ProjectGeneratorOptions {
   skipValidation?: boolean
 }
 
-// export type ProjectGeneratorFunction = (
-//   uidl: ProjectUIDL,
-//   options?: ProjectGeneratorOptions
-// ) => Promise<{
-//   outputFolder: GeneratedFolder
-//   assetsPath?: string
-// }>
-
 export interface PackageJSON {
   name: string
   description: string
@@ -204,8 +196,8 @@ export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFacto
 
 export interface Publisher<T, U> {
   publish: (options?: T) => Promise<PublisherResponse<U>>
-  getProject: () => GeneratedFolder | undefined
-  setProject: (project: GeneratedFolder) => unknown
+  getProject: () => GeneratedFolder | void
+  setProject: (project: GeneratedFolder) => void
 }
 
 export interface PublisherFactoryParams {
@@ -235,7 +227,7 @@ export interface AssetInfo {
 
 export interface TemplateDefinition {
   templateFolder?: GeneratedFolder
-  remote: RemoteTemplateDefinition
+  remote?: RemoteTemplateDefinition
   meta?: {
     componentsPath?: string[]
     pagesPath?: string[]
@@ -248,10 +240,28 @@ export interface TemplateDefinition {
 }
 
 export interface RemoteTemplateDefinition {
-  githubRepo?: GithubProjectInfo
+  githubRepo?: GithubProjectMeta
 }
 
-export interface GithubProjectInfo {
+export interface GithubProjectMeta {
   owner: string
   repo: string
+  auth?: {
+    basic?: {
+      username: string
+      accessToken: string
+    }
+    oauthToken?: string
+  }
+}
+
+export type TemplateProvider<T> = (
+  config?: T
+) => {
+  getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
+}
+
+export interface LoadTemplateResponse {
+  success: boolean
+  payload: GeneratedFolder | string | Error
 }

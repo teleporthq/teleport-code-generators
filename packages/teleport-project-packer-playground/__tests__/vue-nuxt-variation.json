@@ -6,16 +6,31 @@
     "type": "Disk"
   },
   "template": {
-    "remote": {
-      "githubRepo": {
-        "owner": "ionutpasca",
-        "repo": "nextjs"
-      }
+    "templateFolder": {
+      "name": "vue-nuxt",
+      "files": [],
+      "subFolders": [
+        {
+          "name": "components",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "pages",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "static",
+          "files": [],
+          "subFolders": []              
+        }
+      ]
     },
     "meta": {
       "componentsPath": [
         "components",
-        "playgroundComponents"
+        "playground-components"
       ]
     }
   },

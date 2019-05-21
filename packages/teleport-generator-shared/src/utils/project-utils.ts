@@ -282,10 +282,10 @@ export const generateLocalDependenciesPrefix = (
     components folder, we only need to go back one step, so we are removing
     the forst element from both the paths ('src') and build the dependencyPrefix accordingly
   */
-  const { componentsPath, pagesPath } = removeCommonStartingPointsFromPaths(
+  const [componentsPath, pagesPath] = removeCommonStartingPointsFromPaths([
     initialComponentsPath,
-    initialPagesPath
-  )
+    initialPagesPath,
+  ])
 
   // We have to go back as many folders as there are defined in the pages path
   dependencyPrefix += '../'.repeat(pagesPath.length)
@@ -299,26 +299,41 @@ export const generateLocalDependenciesPrefix = (
   return dependencyPrefix
 }
 
-const removeCommonStartingPointsFromPaths = (
-  componentsPath: string[],
-  pagesPath: string[]
-): { componentsPath: string[]; pagesPath: string[] } => {
-  const componentsPathLength =
-    componentsPath.length > pagesPath.length ? componentsPath.length : pagesPath.length
+const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
+  const pathsClone = JSON.parse(JSON.stringify(paths))
 
-  let i = 0
-  let isEqual = true
-  while (i < componentsPathLength && isEqual) {
-    if (componentsPath[i] === pagesPath[i]) {
-      componentsPath.shift()
-      pagesPath.shift()
+  const shortestPathLength = Math.min(
+    ...pathsClone.map((path) => {
+      return path.length
+    })
+  )
+
+  let elementIndex = 0
+  let elementsFromIndexAreEqual = true
+
+  while (elementIndex < shortestPathLength && elementsFromIndexAreEqual) {
+    const firstPathElementsFromIndex = pathsClone.map((path: string[]) => {
+      return path[0]
+    })
+
+    if (elementsFromArrayAreEqual(firstPathElementsFromIndex)) {
+      // If the first elements from every path are equal, remove it
+      pathsClone.forEach((path) => {
+        path.shift()
+      })
     } else {
-      isEqual = false
+      elementsFromIndexAreEqual = false
     }
-    i += 1
+    elementIndex += 1
   }
 
-  return { componentsPath, pagesPath }
+  return pathsClone
+}
+
+const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
+  return arrayOfElements.every((element: string) => {
+    return element === arrayOfElements[0]
+  })
 }
 
 export const injectFilesToPath = (

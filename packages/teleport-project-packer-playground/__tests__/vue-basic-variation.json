@@ -6,16 +6,38 @@
     "type": "Disk"
   },
   "template": {
-    "remote": {
-      "githubRepo": {
-        "owner": "ionutpasca",
-        "repo": "nextjs"
-      }
+    "templateFolder": {
+      "name": "vue-basic",
+      "files": [],
+      "subFolders": [
+        {
+          "name": "src",
+          "files": [],
+          "subFolders": [
+            {
+              "name": "components",
+              "files": [],
+              "subFolders": []              
+            },
+            {
+              "name": "views",
+              "files": [],
+              "subFolders": []              
+            },
+            {
+              "name": "public",
+              "files": [],
+              "subFolders": []              
+            }
+          ]
+        }
+      ]
     },
     "meta": {
       "componentsPath": [
+        "src",
         "components",
-        "playgroundComponents"
+        "playground-components"
       ]
     }
   },

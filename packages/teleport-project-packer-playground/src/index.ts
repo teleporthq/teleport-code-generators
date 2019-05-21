@@ -3,6 +3,7 @@ import {
   PublisherResponse,
   TemplateDefinition,
   GeneratedFolder,
+  LoadTemplateResponse,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -77,14 +78,20 @@ const projectTemplates = {
 
 const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params: PackerFactoryParams = {}) => {
   const { assets, publisher, technology } = params
-  let { template } = params
+  let { template = {} } = params
 
   const packer = createTeleportPacker(projectUIDL, { assets, template })
 
-  const loadTemplate = async (templateToLoad?: TemplateDefinition): Promise<GeneratedFolder> => {
+  const loadTemplate = async (
+    templateToLoad?: TemplateDefinition
+  ): Promise<LoadTemplateResponse> => {
     template = templateToLoad || template
-    template.templateFolder = await packer.loadTemplate(template)
-    return template.templateFolder
+    const { success, payload } = await packer.loadTemplate(template)
+    if (success) {
+      template.templateFolder = payload as GeneratedFolder
+    }
+
+    return { success, payload }
   }
 
   const pack = async (packParams: PackerFactoryParams = {}): Promise<PublisherResponse<any>> => {

@@ -22,14 +22,6 @@
   },
   "dependencies": {
     "@teleporthq/teleport-generator-shared": "^0.6.0",
-    "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
-    "@teleporthq/teleport-project-generator-react-next": "^0.6.0",
-    "@teleporthq/teleport-project-generator-vue-basic": "^0.6.0",
-    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.6.0",
-    "@teleporthq/teleport-publisher-disk": "^0.6.0",
-    "@teleporthq/teleport-publisher-netlify": "^0.6.0",
-    "@teleporthq/teleport-publisher-now": "^0.6.0",
-    "@teleporthq/teleport-publisher-zip": "^0.6.0",
     "cross-fetch": "^3.0.2"
   }
 }

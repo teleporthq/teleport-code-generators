@@ -47,6 +47,13 @@ describe('project packer playground', () => {
     expect(packer.pack).toBeDefined()
   })
 
+  it('should load template', async () => {
+    const packer = createPlaygroundPacker(projectJson as ProjectUIDL)
+    const { success, payload } = await packer.loadTemplate(reactNextVariation.template)
+    expect(success).toBeTruthy()
+    expect(payload).toBe(reactNextVariation.template.templateFolder)
+  })
+
   it('should pack react basic project', async () => {
     const packer = createPlaygroundPacker(projectJson as ProjectUIDL)
     const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactBasicVariation))
@@ -54,9 +61,9 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactBasicProjectPath }
 
-    await packer.pack(factoryParams)
-    expect(1).toBe(1)
-  }, 30000)
+    const { success } = await packer.pack(factoryParams)
+    expect(success).toBeTruthy()
+  })
 
   it('should pack react next project', async () => {
     const packer = createPlaygroundPacker(projectJson as ProjectUIDL)
@@ -65,9 +72,9 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
 
-    await packer.pack(factoryParams)
-    expect(1).toBe(1)
-  }, 30000)
+    const { success } = await packer.pack(factoryParams)
+    expect(success).toBeTruthy()
+  })
 
   it('should pack vue basic project', async () => {
     const packer = createPlaygroundPacker(projectJson as ProjectUIDL)
@@ -76,9 +83,9 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: vueBasicProjectPath }
 
-    await packer.pack(factoryParams)
-    expect(1).toBe(1)
-  }, 30000)
+    const { success } = await packer.pack(factoryParams)
+    expect(success).toBeTruthy()
+  })
 
   it('should pack vue nuxt project', async () => {
     const packer = createPlaygroundPacker(projectJson as ProjectUIDL)
@@ -87,9 +94,9 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: vueNuxtProjectPath }
 
-    await packer.pack(factoryParams)
-    expect(1).toBe(1)
-  }, 30000)
+    const { success } = await packer.pack(factoryParams)
+    expect(success).toBeTruthy()
+  })
 })
 
 const removeDirectory = (dirPath: string): void => {

@@ -5,12 +5,12 @@ import {
   GeneratedFile,
   RemoteTemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { getGithubProjectAsFolder } from './github'
+import { createGithubProvider } from './template-providers/github'
 
 export const fetchTemplate = async (template: RemoteTemplateDefinition) => {
   if (template.githubRepo) {
-    const { owner, repo } = template.githubRepo
-    return getGithubProjectAsFolder(owner, repo)
+    const templateProvider = createGithubProvider(template.githubRepo)
+    return templateProvider.getTemplateAsFolder()
   }
 }
 

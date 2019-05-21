@@ -4,7 +4,7 @@ import {
   GenerateProjectFunction,
   PublisherResponse,
   TemplateDefinition,
-  GeneratedFolder,
+  LoadTemplateResponse,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { injectAssetsToProject, fetchTemplate } from './utils'
@@ -13,6 +13,7 @@ import {
   NO_TEMPLATE_PROVIDED,
   NO_GENERATOR_FUNCTION_PROVIDED,
   NO_PUBLISHER_PROVIDED,
+  NO_REMOTE_TEMPLATE_PROVIDED,
 } from './errors'
 
 export interface PackerFactoryParams {
@@ -27,7 +28,7 @@ export type PackerFactory = (
   params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
-  loadTemplate: (template?: TemplateDefinition) => Promise<GeneratedFolder>
+  loadTemplate: (template?: TemplateDefinition) => Promise<LoadTemplateResponse>
   setPublisher: (publisher: Publisher<any, any>) => void
   setGeneratorFunction: (generatorFunction: GenerateProjectFunction) => void
   setAssets: (assets: AssetsDefinition) => void
@@ -40,6 +41,7 @@ const createTeleportPacker: PackerFactory = (
   params: PackerFactoryParams = {}
 ) => {
   let { assets, generatorFunction, publisher, template } = params
+  let templateLoaded = false
 
   const setPublisher = (publisherToSet: Publisher<unknown, unknown>): void => {
     publisher = publisherToSet
@@ -61,22 +63,29 @@ const createTeleportPacker: PackerFactory = (
     template = templateToSet
   }
 
-  const loadTemplate = async (templateToLoad?: TemplateDefinition): Promise<GeneratedFolder> => {
-    templateToLoad = templateToLoad || template
-    if (!templateToLoad) {
-      return null
+  const loadTemplate = async (
+    templateToLoad?: TemplateDefinition
+  ): Promise<LoadTemplateResponse> => {
+    template = templateToLoad || template
+    if (!template) {
+      return { success: false, payload: NO_TEMPLATE_PROVIDED }
     }
 
     if (template.templateFolder) {
-      return template.templateFolder
+      return { success: true, payload: template.templateFolder }
     }
 
-    if (!template.remote) {
-      return null
+    if (!template || !template.remote) {
+      return { success: false, payload: NO_REMOTE_TEMPLATE_PROVIDED }
     }
 
-    template.templateFolder = await fetchTemplate(template.remote)
-    return template.templateFolder
+    try {
+      template.templateFolder = await fetchTemplate(template.remote)
+      templateLoaded = true
+      return { success: true, payload: template.templateFolder }
+    } catch (err) {
+      return { success: false, payload: err }
+    }
   }
 
   const pack = async (uidl?: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
@@ -102,8 +111,11 @@ const createTeleportPacker: PackerFactory = (
 
     const packAssets = packParams.assets || assets
 
-    if (template && template.remote) {
-      template.templateFolder = await fetchTemplate(template.remote)
+    if (!templateLoaded) {
+      const loaded = await loadTemplate(packTemplate)
+      if (!loaded.success) {
+        return loaded
+      }
     }
 
     const { assetsPath, outputFolder } = await packGeneratorFunction(projectUIDL, template)
