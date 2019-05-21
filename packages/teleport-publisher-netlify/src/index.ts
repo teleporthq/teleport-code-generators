@@ -55,7 +55,7 @@ const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPubl
       const result = await deployToNetlify(projectToPublish, netlifyAccessToken)
       return { success: true, payload: result }
     } catch (error) {
-      return { success: false, payload: error }
+      return { success: false, payload: error.message }
     }
   }
 

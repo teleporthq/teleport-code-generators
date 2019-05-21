@@ -27,6 +27,10 @@ const createSite = async (accessToken: string, siteName: string): Promise<string
     body: params,
   })
 
+  if (response.status !== 200) {
+    throw new Error(response.statusText)
+  }
+
   const siteData = await response.json()
   return siteData.id
 }
