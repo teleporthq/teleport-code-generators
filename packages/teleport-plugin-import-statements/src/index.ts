@@ -87,10 +87,6 @@ const addImportChunk = (
     makeGenericImportStatement(key, dependencies[key])
   )
 
-  if (importASTs.length <= 0) {
-    return
-  }
-
   chunks.push({
     type: 'js',
     name: newChunkName,

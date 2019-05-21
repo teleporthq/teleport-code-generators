@@ -26,7 +26,8 @@ describe('plugin-import-statements', () => {
     expect(chunks[2].name).toBe('test-local')
   })
 
-  it('skips any package type not found', async () => {
+  // We need this functionality for the linkAfter field to work
+  it('pushes chunks for imports even when no statement is needed', async () => {
     const structure = {
       chunks: [],
       uidl: null,
@@ -36,7 +37,6 @@ describe('plugin-import-statements', () => {
     }
 
     const { chunks } = await plugin(structure)
-    expect(chunks.length).toBe(1)
-    expect(chunks[0].name).toBe('test-local')
+    expect(chunks.length).toBe(3)
   })
 })
