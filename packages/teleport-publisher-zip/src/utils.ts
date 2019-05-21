@@ -3,7 +3,6 @@ import {
   GeneratedFolder,
   GeneratedFile,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { createWriteStream } from 'fs'
 
 export const isNodeProcess = (): boolean => {
   return (
@@ -13,8 +12,17 @@ export const isNodeProcess = (): boolean => {
   )
 }
 
-export const writeZipToDisk = (zipPath: string, content: Buffer): void => {
-  const writeStream = createWriteStream(zipPath)
+export const writeZipToDisk = (zipFolderPath: string, content: Buffer, zipName: string): void => {
+  const fs = require('fs')
+  const path = require('path')
+
+  if (!fs.existsSync(zipFolderPath)) {
+    fs.mkdirSync(zipFolderPath, { recursive: true })
+  }
+
+  const zipPath = path.join(zipFolderPath, `${zipName}.zip`)
+
+  const writeStream = fs.createWriteStream(zipPath)
   writeStream.write(content)
   writeStream.end()
 }

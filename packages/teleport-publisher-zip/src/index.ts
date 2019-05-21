@@ -45,10 +45,7 @@ const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
       const zipContent = await generateProjectZip(projectToPublish)
 
       if (projectOutputPath && isNodeProcess()) {
-        // Require the path module only if the package is used on a NodeJs process
-        const path = require('path')
-        const zipPath = path.join(projectOutputPath, projectName || project.name)
-        writeZipToDisk(zipPath, zipContent)
+        await writeZipToDisk(projectOutputPath, zipContent, projectName || project.name)
       }
       return { success: true, payload: zipContent }
     } catch (error) {
