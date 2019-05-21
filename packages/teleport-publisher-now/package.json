@@ -21,6 +21,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.6.0"
+    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "cross-fetch": "^3.0.2"
   }
 }

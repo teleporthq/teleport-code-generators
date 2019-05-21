@@ -1,9 +1,9 @@
+import fetch from 'cross-fetch'
 import {
   GeneratedFolder,
   GeneratedFile,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { NEXT_CONFIG, NEXT_CONFIG_FILE, DEPLOY_URL, NOW_LINK_PREFIX } from './constants'
-import { DEPLOY_FAILED } from './errors'
 
 interface ProjectFolderInfo {
   folder: GeneratedFolder
@@ -18,35 +18,24 @@ interface NowFile {
   encoding?: string
 }
 
-export const publishToNow = async (project: GeneratedFolder, token: string): Promise<string> => {
-  const files = generateProjectFiles(project)
-  const data = {
-    ...NEXT_CONFIG,
-    files,
-    name: project.name,
-  }
-
-  const response = await fetch(DEPLOY_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify(data),
-  })
-
-  const result = await response.json()
-  if (result.error) {
-    throw new Error(DEPLOY_FAILED)
-  }
-
-  return `${NOW_LINK_PREFIX}${result.url}`
+interface NowFiles {
+  files: NowFile[]
+  name: string
 }
 
-const generateProjectFiles = (project: GeneratedFolder) => {
+export const generateProjectFiles = (project: GeneratedFolder): NowFiles => {
   const projectFiles = destructureProjectFiles({
     folder: project,
     ignoreFolder: true,
   })
 
-  return [...projectFiles, NEXT_CONFIG_FILE]
+  const files = [...projectFiles, NEXT_CONFIG_FILE]
+
+  return {
+    ...NEXT_CONFIG,
+    files,
+    name: project.name,
+  }
 }
 
 const destructureProjectFiles = (folderInfo: ProjectFolderInfo): NowFile[] => {
@@ -80,4 +69,19 @@ const destructureProjectFiles = (folderInfo: ProjectFolderInfo): NowFile[] => {
   })
 
   return files
+}
+
+export const publishToNow = async (projectFiles: NowFiles, token: string): Promise<string> => {
+  const response = await fetch(DEPLOY_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(projectFiles),
+  })
+
+  const result = await response.json()
+  if (result.error) {
+    throw new Error(result.error.message)
+  }
+
+  return `${NOW_LINK_PREFIX}${result.url}`
 }

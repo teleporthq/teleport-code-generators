@@ -5,7 +5,7 @@ import {
   PublisherFactory,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { NO_PROJECT_UIDL, NO_DEPLOY_TOKEN } from './errors'
-import { publishToNow } from './utils'
+import { publishToNow, generateProjectFiles } from './utils'
 
 export interface NowFactoryParams extends PublisherFactoryParams {
   deployToken: string
@@ -47,10 +47,11 @@ const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
     }
 
     try {
-      const nowUrl = await publishToNow(projectToPublish, nowDeployToken)
+      const projectFiles = generateProjectFiles(projectToPublish)
+      const nowUrl = await publishToNow(projectFiles, nowDeployToken)
       return { success: true, payload: nowUrl }
     } catch (error) {
-      return { success: false, payload: error }
+      return { success: false, payload: error.message }
     }
   }
 
