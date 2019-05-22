@@ -13,7 +13,7 @@ import {
 
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
-  template: TemplateDefinition
+  template: TemplateDefinition = {}
 ): GeneratedFolder => {
   const { componentFiles, distFiles, pageFiles, srcFiles, staticFiles } = files
   template.meta = template.meta || {}

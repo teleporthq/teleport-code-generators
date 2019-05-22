@@ -9,7 +9,6 @@ import {
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { injectAssetsToProject, fetchTemplate } from './utils'
 import {
-  NO_PROJECT_UIDL_PROVIDED,
   NO_TEMPLATE_PROVIDED,
   NO_GENERATOR_FUNCTION_PROVIDED,
   NO_PUBLISHER_PROVIDED,
@@ -75,7 +74,7 @@ const createTeleportPacker: PackerFactory = (
       return { success: true, payload: template.templateFolder }
     }
 
-    if (!template || !template.remote) {
+    if (!template.remote) {
       return { success: false, payload: NO_REMOTE_TEMPLATE_PROVIDED }
     }
 
@@ -90,23 +89,20 @@ const createTeleportPacker: PackerFactory = (
 
   const pack = async (uidl?: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
     const definedProjectUIDL = uidl || projectUIDL
-    if (!definedProjectUIDL) {
-      throw new Error(NO_PROJECT_UIDL_PROVIDED)
-    }
 
     const packTemplate = packParams.template || template
     if (!packTemplate) {
-      throw new Error(NO_TEMPLATE_PROVIDED)
+      return { success: false, payload: NO_TEMPLATE_PROVIDED }
     }
 
     const packGeneratorFunction = packParams.generatorFunction || generatorFunction
     if (!packGeneratorFunction) {
-      throw new Error(NO_GENERATOR_FUNCTION_PROVIDED)
+      return { success: false, payload: NO_GENERATOR_FUNCTION_PROVIDED }
     }
 
     const packPublisher = packParams.publisher || publisher
     if (!packPublisher) {
-      throw new Error(NO_PUBLISHER_PROVIDED)
+      return { success: false, payload: NO_PUBLISHER_PROVIDED }
     }
 
     const packAssets = packParams.assets || assets
@@ -118,7 +114,7 @@ const createTeleportPacker: PackerFactory = (
       }
     }
 
-    const { assetsPath, outputFolder } = await packGeneratorFunction(projectUIDL, template)
+    const { assetsPath, outputFolder } = await packGeneratorFunction(definedProjectUIDL, template)
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 

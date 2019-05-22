@@ -1,0 +1,29 @@
+{
+  "templateFolder": {
+    "name": "react-basic",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "src",
+        "files": [],
+        "subFolders": [
+          {
+            "name": "components",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "pages",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "static",
+            "files": [],
+            "subFolders": []              
+          }
+        ]
+      }
+    ]
+  }
+}

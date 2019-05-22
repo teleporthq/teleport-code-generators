@@ -1,0 +1,23 @@
+{
+  "templateFolder": {
+    "name": "vue-nuxt",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "components",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "pages",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "static",
+        "files": [],
+        "subFolders": []              
+      }
+    ]
+  }
+}
