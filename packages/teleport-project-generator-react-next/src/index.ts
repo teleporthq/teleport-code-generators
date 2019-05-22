@@ -53,7 +53,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
   const generateProject: GenerateProjectFunction = async (input, options = {}) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
+      const validationResult = validator.validateProjectSchema(input)
       if (!validationResult.valid) {
         throw new Error(validationResult.errorMsg)
       }
