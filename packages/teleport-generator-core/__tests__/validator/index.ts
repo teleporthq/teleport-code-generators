@@ -140,8 +140,6 @@ Index variable is used but the "useIndex" meta information is false.,
       const validator = new Validator()
       const validationResult = validator.validateProjectContent(invalidProjectUidlSample)
 
-      console.log('validation', validationResult)
-
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(false)
       expect(validationResult.errorMsg).toEqual(

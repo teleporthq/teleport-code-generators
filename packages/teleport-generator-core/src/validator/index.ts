@@ -4,7 +4,6 @@ import projectSchema from '../uidl-schemas/project.json'
 
 import { traverseNodes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import { ComponentUIDL, ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { randomBytes } from 'crypto'
 
 interface ValidationResult {
   valid: boolean
@@ -94,15 +93,13 @@ const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
   const props = Object.keys(input.propDefinitions || {})
   const states = Object.keys(input.stateDefinitions || {})
 
-  const duplicates = props.filter((x) => states.includes(x))
-
-  if (duplicates.length > 0) {
-    duplicates.map((duplicate) =>
+  props
+    .filter((x) => states.includes(x))
+    .map((duplicate) =>
       console.warn(
         `\n"${duplicate}" is defined both as a prop and as a state. If you are using VUE Code Generators this can cause bad behavior.`
       )
     )
-  }
 }
 
 const checkForLocalVariables = (input: ComponentUIDL) => {
@@ -157,12 +154,10 @@ const checkDynamicDefinitions = (input: any) => {
     }
   })
 
-  const diffs = definedKeys.filter((x) => !usedKeys.includes(x))
-  if (diffs.length > 0) {
-    diffs.map((diff) => {
-      console.warn(`"${diff}" is defined but it is not used in the UIDL.`)
-    })
-  }
+  definedKeys
+    .filter((x) => !usedKeys.includes(x))
+    .map((diff) => console.warn(`"${diff}" is defined but it is not used in the UIDL.`))
+
   return { errors }
 }
 
@@ -182,7 +177,6 @@ const checkComponentExistence = (input: ProjectUIDL) => {
   const dependencies = Object.keys(input.components)
 
   traverseNodes(input.root.node, (node) => {
-    console.log('node', node)
     if (node.content.children) {
       node.content.children.map((child) => {
         if (
@@ -205,12 +199,12 @@ const checkComponentNaming = (input: ProjectUIDL) => {
   const errors = []
   const namesUsed = Object.keys(input.components)
 
-  const inconsistencies = namesUsed.filter((name) => input.components[name].name !== name)
-
-  if (inconsistencies.length > 0) {
-    const errorMsg = `\nThe following dependencies have different name than their key: ${inconsistencies}`
-    errors.push(errorMsg)
-  }
+  namesUsed
+    .filter((name) => input.components[name].name !== name)
+    .map((diff) => {
+      const errorMsg = `\nThe following dependencies have different name than their key: ${diff}`
+      errors.push(errorMsg)
+    })
 
   return { errors }
 }
@@ -229,14 +223,14 @@ const checkRootComponent = (input: ProjectUIDL) => {
     routeNaming.push(child.content.value)
   })
 
-  const diffs = input.root.stateDefinitions.route.values
+  input.root.stateDefinitions.route.values
     .filter((route) => !routeNaming.includes(route.value))
-    .map((route) => route.meta.path)
-
-  if (diffs.length > 0) {
-    const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${diffs}.`
-    errors.push(errorMsg)
-  }
+    .map((route) => {
+      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${
+        route.meta.path
+      }.`
+      errors.push(errorMsg)
+    })
 
   return { errors }
 }
