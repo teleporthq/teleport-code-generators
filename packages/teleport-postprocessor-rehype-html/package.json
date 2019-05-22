@@ -1,0 +1,35 @@
+{
+  "name": "@teleporthq/teleport-postprocessor-rehype-html",
+  "version": "0.6.0",
+  "description": "A lighweight postprocessor for html",
+  "author": "teleportHQ",
+  "homepage": "https://teleporthq.io/packages/teleport-postprocessor-rehype-html",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teleporthq/teleport-code-generators.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "rehype": "^7.0.0",
+    "rehype-format": "^2.3.1",
+    "@teleporthq/teleport-generator-shared": "^0.6.0"
+  }
+}
