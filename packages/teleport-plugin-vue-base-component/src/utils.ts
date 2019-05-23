@@ -145,19 +145,30 @@ export const generateConditionalNode = (
 ) => {
   const { reference, value } = node.content
   const conditionalKey = reference.content.id
+  let conditionalStatement: string = createConditionalStatement(
+    conditionalKey,
+    generateConditionalExpression(value, node.content.condition)
+  )
 
-  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-  // a 'span' which is the less intrusive of all
+  Object.values(node).forEach((child) => {
+    if (typeof child === 'object') {
+      const childNode = child.node
+      if (childNode.type === 'conditional') {
+        const content = childNode.content
+        const key = content.reference.content.id
+        const subConditionValue = content.value
+
+        conditionalStatement = `${conditionalStatement} && ${createConditionalStatement(
+          key,
+          generateConditionalExpression(subConditionValue, content.condition)
+        )}`
+      }
+    }
+  })
 
   let conditionalTag = generateNodeSyntax(node.content.node, accumulators)
-
-  const condition: UIDLConditionalExpression =
-    value !== null && value !== undefined
-      ? { conditions: [{ operand: value, operation: '===' }] }
-      : node.content.condition
-
-  const conditionalStatement = createConditionalStatement(conditionalKey, condition)
-
+  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
+  // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
     const wrappingSpan = htmlUtils.createHTMLNode('span')
     htmlUtils.addTextNode(wrappingSpan, conditionalTag)
@@ -166,6 +177,17 @@ export const generateConditionalNode = (
 
   htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
   return conditionalTag
+}
+
+const generateConditionalExpression = (
+  value: string | number | boolean,
+  condition: UIDLConditionalExpression
+) => {
+  const conditionalExpression: UIDLConditionalExpression =
+    value !== null && value !== undefined
+      ? { conditions: [{ operand: value, operation: '===' }] }
+      : condition
+  return conditionalExpression
 }
 
 export const generateSlotNode = (node: UIDLSlotNode, accumulators: VueComponentAccumulators) => {
