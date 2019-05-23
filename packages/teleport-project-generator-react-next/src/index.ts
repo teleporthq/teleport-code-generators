@@ -51,15 +51,18 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
   }
 
   const generateProject: GenerateProjectFunction = async (input, options = {}) => {
-    // Step 0: Validate project input
+    // Step 0: Validate project input, create UIDL and validate the content of UIDL
     if (!options.skipValidation) {
-      const validationResult = validator.validateProjectSchema(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       addCustomMapping(options.customMapping)
@@ -71,7 +74,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     // Step 2: The root html file is customized in next via the _document.js page
     const documentComponentFile = createDocumentComponentFile(uidl)
 
-    // Step 2: The first level conditional nodes are taken as project pages
+    // Step 3: The first level conditional nodes are taken as project pages
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()

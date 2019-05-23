@@ -54,13 +54,16 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
   const generateProject: GenerateProjectFunction = async (input, options = {}) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProjectSchema(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       addCustomMapping(options.customMapping)
@@ -69,7 +72,7 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     const { components = {}, root } = uidl
     const routes = extractRoutes(root)
 
-    // Step 1: The first level stateBranches (the pages) transformation in react components is started
+    // Step 2: The first level stateBranches (the pages) transformation in react components is started
     const pagePromises = routes.map((routeNode) => {
       const { value: pageName, node } = routeNode.content
 
