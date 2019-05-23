@@ -38,6 +38,11 @@ export default class Resolver {
     }
 
     const node = cloneObject(uidl.node)
+
+    if (options.projectRouteDefinition) {
+      utils.resolveNavlinks(node, options.projectRouteDefinition)
+    }
+
     utils.resolveNode(node, newOptions)
 
     const nodesLookup = {}

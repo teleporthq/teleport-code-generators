@@ -83,9 +83,10 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
       const pageParams: ComponentFactoryParams = {
         componentGenerator: reactGenerator,
         componentUIDL,
-        componentOptions: {
-          localDependenciesPrefix,
+        generatorOptions: {
           assetsPrefix: ASSETS_PREFIX,
+          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
       }
       return createPageOutputs(pageParams)
@@ -97,7 +98,10 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
       const componentParams: ComponentFactoryParams = {
         componentGenerator: reactGenerator,
         componentUIDL,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
       return createComponentOutputs(componentParams)
     })

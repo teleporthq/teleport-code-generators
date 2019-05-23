@@ -14,6 +14,7 @@ import {
   UIDLRepeatContent,
   UIDLAttributeValue,
   Mapping,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import { GeneratorOptions } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
@@ -31,6 +32,36 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
     elements: { ...oldMapping.elements, ...newMapping.elements },
     events: { ...oldMapping.events, ...newMapping.events },
   }
+}
+
+// Finds all the navlink elements and converts the content of the transitionTo attribute
+// to the actual route value that is defined in the project UIDL, in the routing definition
+export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateDefinition) => {
+  traverseElements(uidlNode, (element) => {
+    if (element.elementType === 'navlink') {
+      const transitionAttribute = element.attrs.transitionTo
+      if (transitionAttribute.type !== 'static') {
+        throw new Error(
+          `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
+            transitionAttribute,
+            null,
+            2
+          )}`
+        )
+      }
+
+      const transitionState = transitionAttribute.content.toString()
+      const transitionRoute = routesDefinition.values.find(
+        (route) => route.value === transitionState
+      )
+
+      if (transitionRoute && transitionRoute.meta && transitionRoute.meta.path) {
+        transitionAttribute.content = transitionRoute.meta.path
+      } else {
+        console.warn(`No path was defined for router state: '${transitionState}'.`)
+      }
+    }
+  })
 }
 
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {

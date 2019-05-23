@@ -5,6 +5,7 @@ import {
   UIDLElement,
   UIDLNode,
   UIDLAttributeValue,
+  UIDLStateDefinition,
 } from './uidl'
 
 export type ChunkContent = string | any | any[]
@@ -63,6 +64,7 @@ export interface GeneratorOptions {
   assetsPrefix?: string
   mapping?: Mapping
   skipValidation?: boolean
+  projectRouteDefinition?: UIDLStateDefinition
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -114,11 +116,7 @@ export interface GeneratedFile {
 export interface ComponentFactoryParams {
   componentGenerator: ComponentGenerator
   componentUIDL: ComponentUIDL
-  componentOptions: {
-    assetsPrefix: string
-    localDependenciesPrefix?: string
-    skipValidation?: boolean
-  }
+  generatorOptions: GeneratorOptions
   metadataOptions?: {
     usePathAsFileName?: boolean
     convertDefaultToIndex?: boolean

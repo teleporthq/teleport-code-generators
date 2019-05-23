@@ -199,7 +199,7 @@
               "content": {
                 "elementType": "navlink",
                 "attrs": {
-                  "transitionTo": "/"
+                  "transitionTo": "index"
                 },
                 "children": [
                   {
@@ -214,7 +214,7 @@
               "content": {
                 "elementType": "navlink",
                 "attrs": {
-                  "transitionTo": "/about"
+                  "transitionTo": "about"
                 },
                 "children": [
                   {
@@ -229,7 +229,7 @@
               "content": {
                 "elementType": "navlink",
                 "attrs": {
-                  "transitionTo": "/here-we-are"
+                  "transitionTo": "contact-us"
                 },
                 "children": [
                   {

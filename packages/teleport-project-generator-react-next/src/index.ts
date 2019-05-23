@@ -82,9 +82,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       const pageParams: ComponentFactoryParams = {
         componentGenerator: reactGenerator,
         componentUIDL,
-        componentOptions: {
-          localDependenciesPrefix,
+        generatorOptions: {
           assetsPrefix: ASSETS_PREFIX,
+          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {
           usePathAsFileName: true,
@@ -100,7 +101,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: reactGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
       return createComponentOutputs(componentParams)
     })
