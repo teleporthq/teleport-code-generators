@@ -83,8 +83,8 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
         componentGenerator: reactGenerator,
         componentUIDL,
         generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
           projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {

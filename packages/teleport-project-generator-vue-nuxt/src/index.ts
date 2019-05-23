@@ -79,8 +79,8 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
         componentGenerator: vueGenerator,
         componentUIDL,
         generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
           projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {
