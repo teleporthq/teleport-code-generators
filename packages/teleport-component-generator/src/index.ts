@@ -66,9 +66,9 @@ export const createGenerator = (
       codeChunks[fileId] = chunksLinker.link(chunks[fileId])
     })
 
-    processors.forEach((processor) => {
-      codeChunks = processor(codeChunks)
-    })
+    for (const processor of processors) {
+      codeChunks = await processor(codeChunks)
+    }
 
     const fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
     const files = fileBundler(fileName, codeChunks)
@@ -84,16 +84,16 @@ export const createGenerator = (
    * @param chunks All the raw chunks (ASTs, HASTs or JSS/strings)
    * @param fileName The name of the output file
    */
-  const linkCodeChunks = (chunks: Record<string, ChunkDefinition[]>, fileName: string) => {
+  const linkCodeChunks = async (chunks: Record<string, ChunkDefinition[]>, fileName: string) => {
     let codeChunks: Record<string, string> = {}
 
     Object.keys(chunks).forEach((fileId) => {
       codeChunks[fileId] = chunksLinker.link(chunks[fileId])
     })
 
-    processors.forEach((processor) => {
-      codeChunks = processor(codeChunks)
-    })
+    for (const processor of processors) {
+      codeChunks = await processor(codeChunks)
+    }
 
     return fileBundler(fileName, codeChunks)
   }

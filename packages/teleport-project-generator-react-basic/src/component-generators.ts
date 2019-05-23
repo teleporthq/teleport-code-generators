@@ -38,7 +38,7 @@ export const createRouterIndexFile = async (root: ComponentUIDL) => {
   return { routerFile, dependencies }
 }
 
-export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
@@ -62,7 +62,7 @@ export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
 
   // html file is generated as index.html
   const htmlFilename = 'index'
-  const [htmlFile] = htmlFileGenerator.linkCodeChunks(chunks, htmlFilename)
+  const [htmlFile] = await htmlFileGenerator.linkCodeChunks(chunks, htmlFilename)
   return htmlFile
 }
 

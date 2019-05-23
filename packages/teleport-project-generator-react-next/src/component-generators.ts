@@ -25,7 +25,7 @@ export const createReactGenerator = (options: ProjectGeneratorOptions): Componen
   return reactGenerator
 }
 
-export const createDocumentFile = (projectUIDL: ProjectUIDL) => {
+export const createDocumentFile = async (projectUIDL: ProjectUIDL) => {
   const generator = createGenerator()
   generator.addPostProcessor(prettierJS)
 
@@ -43,6 +43,6 @@ export const createDocumentFile = (projectUIDL: ProjectUIDL) => {
 
   // html file is generated as index.html
   const documentFilename = '_document'
-  const [docFile] = generator.linkCodeChunks(chunks, documentFilename)
+  const [docFile] = await generator.linkCodeChunks(chunks, documentFilename)
   return docFile
 }

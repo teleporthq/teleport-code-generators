@@ -122,7 +122,7 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       publicFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = await createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
     publicFiles.push(htmlIndexFile)
 
     // Step 7: Create the routing component (router.js)

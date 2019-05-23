@@ -48,11 +48,13 @@ export interface CompiledComponent {
   dependencies: Record<string, string>
 }
 
-export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
+export type PostProcessingFunction = (
+  codeChunks: Record<string, string>
+) => Promise<Record<string, string>>
 
 export interface ComponentGenerator {
   generateComponent: GenerateComponentFunction
-  linkCodeChunks: (chunks: Record<string, ChunkDefinition[]>, fileName: string) => GeneratedFile[]
+  linkCodeChunks: LinkChunksFunction
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
@@ -257,3 +259,7 @@ export interface LoadTemplateResponse {
   success: boolean
   payload: GeneratedFolder | string | Error
 }
+export type LinkChunksFunction = (
+  chunks: Record<string, ChunkDefinition[]>,
+  fileName: string
+) => Promise<GeneratedFile[]>

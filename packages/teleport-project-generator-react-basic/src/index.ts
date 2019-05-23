@@ -129,7 +129,7 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
 
     // Step 7: Create the routing component (index.js) and the html entry file (index.html)
     const { routerFile, dependencies: routerDependencies } = await createRouterIndexFile(root)
-    const htmlIndexFile = createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
+    const htmlIndexFile = await createHtmlEntryFile(uidl, { assetsPrefix: ASSETS_PREFIX })
 
     const srcFiles: GeneratedFile[] = [htmlIndexFile, routerFile]
 

@@ -15,7 +15,7 @@ import {
 
 import nuxtMapping from './nuxt-mapping.json'
 
-export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
@@ -39,7 +39,7 @@ export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
 
   // html file is generated as app.html
   const htmlFilename = 'app'
-  const [htmlFile] = htmlFileGenerator.linkCodeChunks(chunks, htmlFilename)
+  const [htmlFile] = await htmlFileGenerator.linkCodeChunks(chunks, htmlFilename)
   return htmlFile
 }
 
