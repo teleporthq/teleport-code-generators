@@ -192,7 +192,7 @@
   },
   "components": {
     "Navbar": {
-      "name": "Navbar",
+      "name": "Navbars",
       "node": {
         "type": "element",
         "content": {

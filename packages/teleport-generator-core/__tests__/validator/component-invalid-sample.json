@@ -155,7 +155,7 @@
               "type": "dynamic",
               "content": {
                 "referenceType": "state",
-                "id": "isVisible"
+                "id": "isVisibles"
               }
             },
             "value": true,

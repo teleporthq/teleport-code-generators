@@ -45,11 +45,11 @@ export default class Validator {
   }
 
   public validateComponentContent(input: ComponentUIDL): ValidationResult {
-    const verifyDefinitions = utils.checkDynamicDefinitions(input)
-    const verifyLocalVariables = utils.checkForLocalVariables(input)
+    const errorsInDefinitions = utils.checkDynamicDefinitions(input)
+    const errorsWithLocalVariables = utils.checkForLocalVariables(input)
 
     utils.checkForDuplicateDefinitions(input)
-    const errors = verifyDefinitions.errors.concat(verifyLocalVariables.errors)
+    const errors = [...errorsInDefinitions, ...errorsWithLocalVariables]
 
     if (errors.length > 0) {
       return {
@@ -62,26 +62,27 @@ export default class Validator {
   }
 
   public validateProjectContent(input: ProjectUIDL): ValidationResult {
-    const verifyRoutes = utils.checkRouteDefinition(input)
-    let errors = verifyRoutes.errors
+    const errorsOnRouteNode = utils.checkRouteDefinition(input) || []
+    let allErrors = errorsOnRouteNode
 
-    if (verifyRoutes.errors.length === 0) {
-      const verifyRootComponent = utils.checkRootComponent(input)
+    if (errorsOnRouteNode.length === 0) {
+      const errorsInRootComponent = utils.checkRootComponent(input)
 
-      const verifyComponentNaming = utils.checkComponentNaming(input)
-      const verifyComponentExistence = utils.checkComponentExistence(input)
+      const errorsWithComponentNaming = utils.checkComponentNaming(input)
+      const errorsWtihComponentExistence = utils.checkComponentExistence(input)
 
-      errors = verifyRoutes.errors.concat(
-        verifyComponentExistence.errors,
-        verifyComponentNaming.errors,
-        verifyRootComponent.errors
-      )
+      allErrors = [
+        ...errorsOnRouteNode,
+        ...errorsWtihComponentExistence,
+        ...errorsWithComponentNaming,
+        ...errorsInRootComponent,
+      ]
     }
 
-    if (errors.length > 0) {
+    if (allErrors.length > 0) {
       return {
         valid: false,
-        errorMsg: `\nUIDL Project Content Validation Error. Please check the following: ${errors}`,
+        errorMsg: `\nUIDL Project Content Validation Error. Please check the following: ${allErrors}`,
       }
     }
 

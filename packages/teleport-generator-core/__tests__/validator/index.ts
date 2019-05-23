@@ -65,7 +65,7 @@ describe('Validate UIDL', () => {
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
     })
-    it('throws error if prop is used but not defined in propDefinitions', () => {
+    it('throws error if prop and state is used but not defined in propDefinitions', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponentContent(invalidComponentUidlSample)
       expect(typeof validationResult).toBe('object')
@@ -73,11 +73,13 @@ describe('Validate UIDL', () => {
       expect(validationResult.errorMsg).not.toEqual('')
       expect(validationResult.errorMsg).toBe(
         `\nUIDL Component Content Validation Error. Please check the following: 
-"titles" is used but not defined. Please add it in definitions,
+"titles" is used but not defined. Please add it in propDefinitions,
+"isVisibles" is used but not defined. Please add it in stateDefinitions,
 Index variable is used but the "useIndex" meta information is false.,
 "item" is used in the "repeat" structure but the iterator name has this value: "item-test"`
       )
     })
+
     it('does not throw error if props and states have same keys', () => {
       const validator = new Validator()
       const warn = jest.spyOn(global.console, 'warn')
@@ -145,7 +147,7 @@ Index variable is used but the "useIndex" meta information is false.,
       expect(validationResult.errorMsg).toEqual(
         `\nUIDL Project Content Validation Error. Please check the following: 
 The component "Navbars" is not defined in the UIDL's component section.,
-The following dependencies have different name than their key: OneComponent,
+The following components have different name than their key: Navbar,OneComponent,
 Root Node contains elements of type "static". It should contain only elements of type "conditional",
 Root Node contains routes that don't have corresponding components. Check the "value" for the following routes: /about.`
       )
