@@ -80,6 +80,16 @@ const projectTemplates = {
   VueNuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
 }
 
+const defaultTechnology = {
+  type: 'ReactNext',
+  meta: {},
+}
+
+const defaultPublisher = {
+  type: 'Zip',
+  meta: {},
+}
+
 const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
   const { assets, publisher, technology, template } = params
 
@@ -91,13 +101,13 @@ const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
   ): Promise<PublisherResponse<any>> => {
     const projectAssets = packParams.assets || assets
 
-    const packTechnology = packParams.technology || technology
-    const packPublisher = packParams.publisher || publisher
+    const packTechnology = packParams.technology || technology || defaultTechnology
+    const packPublisher = packParams.publisher || publisher || defaultPublisher
 
-    const generatorFactory = projectGenerators[packTechnology.type] || createReactNextGenerator
+    const generatorFactory = projectGenerators[packTechnology.type]
     const projectGenerator = generatorFactory({ ...packTechnology.meta })
 
-    const publisherFactory = projectPublishers[packPublisher.type] || createZipPublisher
+    const publisherFactory = projectPublishers[packPublisher.type]
     const projectPublisher = publisherFactory({ ...packPublisher.meta })
 
     const templateByTechnology =

@@ -45,7 +45,7 @@ const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
       const zipContent = await generateProjectZip(projectToPublish)
 
       if (projectOutputPath && isNodeProcess()) {
-        await writeZipToDisk(projectOutputPath, zipContent, projectName || project.name)
+        await writeZipToDisk(projectOutputPath, zipContent, projectName || projectToPublish.name)
       }
       return { success: true, payload: zipContent }
     } catch (error) {
