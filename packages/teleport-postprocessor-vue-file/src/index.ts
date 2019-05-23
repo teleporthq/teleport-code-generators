@@ -5,7 +5,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
 import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
 
-const processor: PostProcessingFunction = (codeChunks) => {
+const processor: PostProcessingFunction = async (codeChunks) => {
   let jsCode
   let cssCode
   let htmlCode

@@ -1,7 +1,7 @@
 import processor from '../src'
 
 describe('vue file concat', () => {
-  it('returns a single vue code chunk', () => {
+  it('returns a single vue code chunk', async () => {
     const inputChunks = {
       html: `<div><span>Format me!</span></div>
 `,
@@ -11,7 +11,7 @@ describe('vue file concat', () => {
 `,
     }
 
-    const result = processor(inputChunks)
+    const result = await processor(inputChunks)
 
     expect(result.html).toBeUndefined()
     expect(result.js).toBeUndefined()
@@ -30,7 +30,7 @@ export default {}
 `)
   })
 
-  it('skips the style section if it doesn`t exist', () => {
+  it('skips the style section if it doesn`t exist', async () => {
     const inputChunks = {
       html: `<div><span>Format me!</span></div>
 `,
@@ -38,7 +38,7 @@ export default {}
 `,
     }
 
-    const result = processor(inputChunks)
+    const result = await processor(inputChunks)
 
     expect(result.html).toBeUndefined()
     expect(result.js).toBeUndefined()
@@ -53,13 +53,13 @@ export default {}
 `)
   })
 
-  it('throws an error if no HTML chunk is provided', () => {
+  it('throws an error if no HTML chunk is provided', async () => {
     const inputChunks = {
       js: `export default {}
 `,
     }
 
-    expect(() => processor(inputChunks)).toThrowError('HTML')
+    expect(processor(inputChunks)).rejects.toThrowError('HTML')
   })
 
   it('throws an error if no HTML chunk is provided', () => {
@@ -68,6 +68,6 @@ export default {}
 `,
     }
 
-    expect(() => processor(inputChunks)).toThrowError('JS')
+    expect(processor(inputChunks)).rejects.toThrowError('JS')
   })
 })
