@@ -2,12 +2,10 @@ import {
   AssetsDefinition,
   PublisherResponse,
   TemplateDefinition,
-  GeneratedFolder,
-  LoadTemplateResponse,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-import createTeleportPacker from '@teleporthq/teleport-project-packer'
+import createProjectPacker from '@teleporthq/teleport-project-packer'
 
 import createReactGenerator from '@teleporthq/teleport-project-generator-react-basic'
 import createReactNextGenerator from '@teleporthq/teleport-project-generator-react-next'
@@ -58,7 +56,13 @@ const projectGenerators = {
   VueNuxt: createVueNuxtGenerator,
 }
 
-const projectPublishers = {
+type SupportedPublishers =
+  | typeof createDiskPublisher
+  | typeof createZipPublisher
+  | typeof createNowPublisher
+  | typeof createNetlifyPublisher
+
+const projectPublishers: Record<string, SupportedPublishers> = {
   Disk: createDiskPublisher,
   Zip: createZipPublisher,
   Now: createNowPublisher,
@@ -76,25 +80,15 @@ const projectTemplates = {
   VueNuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
 }
 
-const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params: PackerFactoryParams = {}) => {
-  const { assets, publisher, technology } = params
-  let { template = {} } = params
+const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
+  const { assets, publisher, technology, template } = params
 
-  const packer = createTeleportPacker(projectUIDL, { assets, template })
+  const packer = createProjectPacker({ assets, template })
 
-  const loadTemplate = async (
-    templateToLoad?: TemplateDefinition
-  ): Promise<LoadTemplateResponse> => {
-    template = templateToLoad || template
-    const { success, payload } = await packer.loadTemplate(template)
-    if (success) {
-      template.templateFolder = payload as GeneratedFolder
-    }
-
-    return { success, payload }
-  }
-
-  const pack = async (packParams: PackerFactoryParams = {}): Promise<PublisherResponse<any>> => {
+  const pack = async (
+    projectUIDL: ProjectUIDL,
+    packParams: PackerFactoryParams = {}
+  ): Promise<PublisherResponse<any>> => {
     const projectAssets = packParams.assets || assets
 
     const packTechnology = packParams.technology || technology
@@ -116,12 +110,12 @@ const createPlaygroundPacker = (projectUIDL: ProjectUIDL, params: PackerFactoryP
     packer.setPublisher(projectPublisher)
     packer.setTemplate(projectTemplate)
 
-    return packer.pack()
+    return packer.pack(projectUIDL)
   }
 
   return {
-    loadTemplate,
     pack,
+    loadTemplate: packer.loadTemplate.bind(this),
   }
 }
 

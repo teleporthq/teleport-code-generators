@@ -58,9 +58,7 @@ const injectFileInGeneratedFolder = (
   let currentFolder = generatedFolder
 
   path.forEach((folderName, index) => {
-    let subFolder = currentFolder.subFolders.find((folder) => {
-      return folder.name === folderName
-    })
+    let subFolder = currentFolder.subFolders.find((folder) => folder.name === folderName)
 
     if (!subFolder) {
       subFolder = {

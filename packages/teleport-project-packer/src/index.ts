@@ -23,26 +23,21 @@ export interface PackerFactoryParams {
 }
 
 export type PackerFactory = (
-  projectUIDL: ProjectUIDL,
   params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
   loadTemplate: (template?: TemplateDefinition) => Promise<LoadTemplateResponse>
-  setPublisher: (publisher: Publisher<any, any>) => void
+  setPublisher: <T, U>(publisher: Publisher<T, U>) => void
   setGeneratorFunction: (generatorFunction: GenerateProjectFunction) => void
   setAssets: (assets: AssetsDefinition) => void
-  setProjectUIDL: (uidl: ProjectUIDL) => void
   setTemplate: (template: TemplateDefinition) => void
 }
 
-const createTeleportPacker: PackerFactory = (
-  projectUIDL: ProjectUIDL,
-  params: PackerFactoryParams = {}
-) => {
+const createTeleportPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
   let { assets, generatorFunction, publisher, template } = params
   let templateLoaded = false
 
-  const setPublisher = (publisherToSet: Publisher<unknown, unknown>): void => {
+  const setPublisher = <T, U>(publisherToSet: Publisher<T, U>): void => {
     publisher = publisherToSet
   }
 
@@ -52,10 +47,6 @@ const createTeleportPacker: PackerFactory = (
 
   const setAssets = (assetsToSet: AssetsDefinition): void => {
     assets = assetsToSet
-  }
-
-  const setProjectUIDL = (uidlToSet: ProjectUIDL): void => {
-    projectUIDL = uidlToSet
   }
 
   const setTemplate = (templateToSet: TemplateDefinition): void => {
@@ -87,8 +78,8 @@ const createTeleportPacker: PackerFactory = (
     }
   }
 
-  const pack = async (uidl?: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
-    const definedProjectUIDL = uidl || projectUIDL
+  const pack = async (uidl: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
+    const definedProjectUIDL = uidl
 
     const packTemplate = packParams.template || template
     if (!packTemplate) {
@@ -107,7 +98,7 @@ const createTeleportPacker: PackerFactory = (
 
     const packAssets = packParams.assets || assets
 
-    if (!templateLoaded) {
+    if (!templateLoaded || packParams.template) {
       const loaded = await loadTemplate(packTemplate)
       if (!loaded.success) {
         return loaded
@@ -118,15 +109,13 @@ const createTeleportPacker: PackerFactory = (
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 
-    packPublisher.setProject(project)
-    return packPublisher.publish()
+    return packPublisher.publish({ project })
   }
 
   return {
     setPublisher,
     setGeneratorFunction,
     setAssets,
-    setProjectUIDL,
     setTemplate,
     loadTemplate,
     pack,

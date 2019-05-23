@@ -246,13 +246,15 @@ export interface RemoteTemplateDefinition {
 export interface GithubProjectMeta {
   owner: string
   repo: string
-  auth?: {
-    basic?: {
-      username: string
-      accessToken: string
-    }
-    oauthToken?: string
+  auth?: GithubAuthMeta
+}
+
+export interface GithubAuthMeta {
+  basic?: {
+    username: string
+    accessToken: string
   }
+  oauthToken?: string
 }
 
 export type TemplateProvider<T> = (
