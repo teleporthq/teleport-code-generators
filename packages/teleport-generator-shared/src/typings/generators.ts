@@ -228,15 +228,7 @@ export interface AssetInfo {
 export interface TemplateDefinition {
   templateFolder?: GeneratedFolder
   remote?: RemoteTemplateDefinition
-  meta?: {
-    componentsPath?: string[]
-    pagesPath?: string[]
-    assetsPath?: string[]
-    srcFilesPath?: string[]
-    distFilesPath?: string[]
-    staticFilesPath?: string[]
-    publicFilesPath?: string[]
-  }
+  meta?: Record<string, string[]>
 }
 
 export interface RemoteTemplateDefinition {
