@@ -3,9 +3,19 @@ import {
   repeatNode,
   elementNode,
   dynamicNode,
+  definition,
 } from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
-import { generateUniqueKeys, createNodesLookup, resolveChildren } from '../../src/resolver/utils'
-import { UIDLElement, UIDLNode } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import {
+  generateUniqueKeys,
+  createNodesLookup,
+  resolveChildren,
+  resolveNavlinks,
+} from '../../src/resolver/utils'
+import {
+  UIDLElement,
+  UIDLNode,
+  UIDLStateDefinition,
+} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
@@ -179,5 +189,54 @@ describe('resolveChildren', () => {
     expect(innerChildren[2].content).toBe('remains here')
     expect(innerChildren[3].content).toBe('original-text')
     expect(innerChildren[4].content).toBe('other-original-text')
+  })
+})
+
+describe('resolveNavlinks', () => {
+  const routeDef: UIDLStateDefinition = {
+    type: 'string',
+    defaultValue: 'home-link',
+    values: [
+      {
+        value: 'home-link',
+        meta: {
+          path: '/home',
+        },
+      },
+    ],
+  }
+
+  it('replaces the transitionTo attribute content', () => {
+    const navlink = elementNode('navlink', {
+      transitionTo: staticNode('home-link'),
+    })
+
+    const uidlNode = elementNode('container', {}, [elementNode('div', {}, [navlink])])
+
+    resolveNavlinks(uidlNode, routeDef)
+    expect(navlink.content.attrs.transitionTo.content).toBe('/home')
+  })
+
+  it('throws an error for dynamic attributes', () => {
+    const navlink = elementNode('navlink', {
+      transitionTo: dynamicNode('prop', 'path'),
+    })
+
+    expect(() => resolveNavlinks(navlink, routeDef)).toThrow(
+      "Navlink does not support dynamic 'transitionTo' attributes"
+    )
+  })
+
+  it('does not change the attribute if no route is present', () => {
+    const navlink = elementNode('navlink', {
+      transitionTo: staticNode('non-existing-state'),
+    })
+
+    const warn = jest.spyOn(global.console, 'warn')
+
+    resolveNavlinks(navlink, routeDef)
+
+    expect(warn).toHaveBeenCalledWith("No path was defined for router state: 'non-existing-state'.")
+    expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
   })
 })

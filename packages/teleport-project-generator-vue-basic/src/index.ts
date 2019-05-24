@@ -5,13 +5,14 @@ import {
   joinGeneratorOutputs,
   createManifestJSONFile,
   createPackageJSONFile,
+  generateLocalDependenciesPrefix,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
   ASSETS_PREFIX,
-  LOCAL_DEPENDENCIES_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import { buildFolderStructure } from './utils'
@@ -23,6 +24,7 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -34,16 +36,23 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       vueGenerator.addMapping(options.customMapping)
@@ -52,7 +61,12 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const { components = {}, root } = uidl
     const routes = extractRoutes(root)
 
-    // Step 1: The first level conditional nodes are taken as project pages
+    // Step 2: The first level conditional nodes are taken as project pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -66,9 +80,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const pageParams: ComponentFactoryParams = {
         componentGenerator: vueGenerator,
         componentUIDL,
-        componentOptions: {
+        generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
       }
       return createPageOutputs(pageParams)
@@ -80,7 +95,10 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: vueGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
 
       return createComponentOutputs(componentParams)
@@ -130,13 +148,13 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     // Step 9: Build the folder structure
     const folderStructure = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        public: publicFiles,
-        src: srcFiles,
-        dist: distFiles,
+        componentFiles,
+        distFiles,
+        pageFiles,
+        publicFiles,
+        srcFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
 
     return {

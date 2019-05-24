@@ -100,10 +100,12 @@ export const traverseNodes = (
 
     case 'repeat':
       traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.dataSource, fn, node)
       break
 
     case 'conditional':
       traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.reference, fn, node)
       break
 
     case 'slot':
