@@ -1,6 +1,10 @@
 export const ASSETS_PREFIX = '/assets'
-export const LOCAL_DEPENDENCIES_PREFIX = '../components/'
-export const DEFAULT_OUTPUT_FOLDER = 'dist'
+
+export const DEFAULT_SRC_FILES_PATH = ['src']
+export const DEFAULT_COMPONENT_FILES_PATH = ['src', 'components']
+export const DEFAULT_PAGE_FILES_PATH = ['src', 'views']
+export const DEFAULT_PUBLIC_FILES_PATH = ['public']
+
 export const DEFAULT_PACKAGE_JSON = {
   name: 'teleportHQ Project',
   version: '1.0.0',
