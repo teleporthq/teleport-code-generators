@@ -171,17 +171,6 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
 
     const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
 
-    // console.log(componentsFilePathRecord, pagesFilePathRecord)
-    // const folderStructure = buildFolderStructure(
-    //   {
-    //     componentFiles,
-    //     pageFiles,
-    //     distFiles,
-    //     staticFiles,
-    //   },
-    //   template
-    // )
-
     return {
       outputFolder,
       assetsPath: ASSETS_PREFIX.slice(1), // remove the leading `/`
