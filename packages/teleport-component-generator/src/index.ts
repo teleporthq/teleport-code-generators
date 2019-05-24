@@ -44,13 +44,18 @@ export const createGenerator = (
     options = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
-      const validationResult = validator.validateComponent(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateComponentSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
 
     const uidl = Parser.parseComponentJSON(input)
+
+    const contentValidationResult = validator.validateComponentContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
 
     const resolvedUIDL = resolver.resolveUIDL(uidl, options)
     const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)

@@ -46,16 +46,19 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
     template: TemplateDefinition,
     options: ProjectGeneratorOptions = {}
   ) => {
-    // Step 0: Validate project input and transform to UIDL
+    // Step 0: Validate project input and transform to UIDL and validate content of UIDL
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
 
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       reactGenerator.addMapping(options.customMapping)

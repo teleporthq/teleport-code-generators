@@ -45,13 +45,16 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       reactGenerator.addMapping(options.customMapping)
@@ -63,7 +66,7 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     // Step 2: The root html file is customized in next via the _document.js page
     const documentComponentFile = createDocumentFile(uidl)
 
-    // Step 2: The first level conditional nodes are taken as project pages
+    // Step 3: The first level conditional nodes are taken as project pages
     const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
       defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
       defaultPagesPath: DEFAULT_PAGE_FILES_PATH,

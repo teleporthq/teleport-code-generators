@@ -4,75 +4,10 @@
   "globals": {
     "settings": {
       "language": "en",
-      "title": "teleportHQ"
+      "title": "UIDL v0.6 Project"
     },
-    "meta" : [
-      { "name": "description", "content": "Free Web tutorials" },
-      { "name": "keywords", "content": "prea bun, prea ca la tara" },
-      { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
-      { "property": "og:title", "content": "Free Web tutorials" },
-      { "property": "og:url", "content": "/playground_assets/asdasd.png" }
-    ],
-    "manifest": {
-      "icons": [
-        {
-          "src": "/playground_assets/icons-192.png",
-          "type": "image/png",
-          "sizes": "192x192"
-        },
-        {
-          "src": "/playground_assets/icons-512.png",
-          "type": "image/png",
-          "sizes": "512x512"
-        }
-      ],
-      "theme_color": "#822CEC",
-      "background_color": "#822CEC"
-    },
-    "assets": [
-      {
-        "type": "style",
-        "path": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css",
-        "meta": {
-          "target": "body"
-        }
-      }, 
-      {
-        "type": "script",
-        "path": "https://www.googletagmanager.com/gtm.js",
-        "meta": {
-          "defer": true
-        }
-      },
-      {
-        "type": "script",
-        "content": "console.log(\"inline script\")",
-        "meta": {
-          "target": "body"
-        }
-      },
-      {
-        "type": "font",
-        "path": "https://fonts.googleapis.com/css?family=Roboto"
-      },
-      {
-        "type": "style",
-        "content": "body{font-family: 'Roboto', sans-serif;}"
-      },
-      {
-        "type": "icon",
-        "path": "/playground_assets/favicon-32x32.png",
-        "meta": {
-          "type": "image/png",
-          "sizes": "32x32"
-        }
-      }
-    ],
-    "variables": {
-      "primaryColor": "#822CEC",
-      "secondaryColor": "#414141",
-      "spacing": "10px"
-    }
+    "assets": [],
+    "meta": []
   },
   "root": {
     "name": "App",
@@ -117,7 +52,23 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": "1px solid green",
+                    "padding": {
+                      "type": "static",
+                      "content": "10px"
+                    }
+                  },
                   "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
                     {
                       "type": "static",
                       "content": "Page 1"
@@ -142,7 +93,26 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    },
+                    "padding": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    }
+                  },
                   "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
                     {
                       "type": "static",
                       "content": "Page 2"
@@ -166,10 +136,38 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "style": {
+                    "border": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    },
+                    "padding": {
+                      "type": "static",
+                      "content": "1px solid black"
+                    }
+                  },
                   "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "Navbar",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
+                    },
                     {
                       "type": "static",
                       "content": "Page 3"
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "OneComponent",
+                        "dependency": {
+                          "type": "local"
+                        }
+                      }
                     }
                   ]
                 }
@@ -189,6 +187,62 @@
     }
   },
   "components": {
+    "Navbar": {
+      "name": "Navbar",
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "group",
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Home"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/about"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "About"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": "/here-we-are"
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Contact"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
     "OneComponent": {
       "name": "OneComponent",
       "propDefinitions": {
@@ -293,11 +347,11 @@
                 "reference": {
                   "type": "dynamic",
                   "content": {
-                    "referenceType": "state",
-                    "id": "isVisible"
+                    "referenceType": "prop",
+                    "id": "title"
                   }
                 },
-                "value": true,
+                "value": "matching",
                 "node": {
                   "type": "element",
                   "content": {
@@ -308,6 +362,56 @@
                     }]
                   }
                 }
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "video",
+                "attrs": {
+                  "autoPlay": {
+                    "type": "static",
+                    "content": true
+                  }
+                },
+                "children": [{
+                  "type": "element",
+                  "content": {
+                    "elementType": "source",
+                    "attrs": {
+                      "type": {
+                        "type": "static",
+                        "content": "video/mp4"
+                      },
+                      "url": {
+                        "type": "static",
+                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                      }
+                    }
+                  }
+                }]
+              }
+            },
+            {
+              "type": "slot",
+              "content": {}
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "navlink",
+                "attrs": {
+                  "transitionTo": {
+                    "type": "static",
+                    "content": "about"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "About Page"
+                  }
+                ]
               }
             }
           ]
@@ -336,6 +440,16 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "style": {
+            "border": {
+              "type": "static",
+              "content": "1px solid green"
+            },
+            "margin": {
+              "type": "static",
+              "content": "10px"
+            }
+          },
           "children": [
             {
               "type": "element",

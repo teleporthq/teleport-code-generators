@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/project.json",
+  "name": "myVueProject",
   "globals": {
     "settings": {
-      "language": 2,
-      "key": "test",
+      "language": "en",
       "title": "UIDL v0.6 Project"
     },
     "assets": [],
@@ -12,7 +12,7 @@
   "root": {
     "name": "App",
     "stateDefinitions": {
-      "route": {
+      "routes": {
         "type": "string",
         "defaultValue": "index",
         "values": [
@@ -45,10 +45,6 @@
       "content": {
         "elementType": "Router",
         "children": [
-          {
-            "type": "static",
-            "content": "Hello World!"
-          },
           {
             "type": "conditional",
             "content": {
@@ -111,7 +107,7 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbars",
+                        "elementType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -192,7 +188,7 @@
   },
   "components": {
     "Navbar": {
-      "name": "Navbars",
+      "name": "Navbar",
       "node": {
         "type": "element",
         "content": {

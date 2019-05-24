@@ -1,5 +1,3 @@
-import { GenerateComponentFunction } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-
 import { createGenerator } from '../src/index'
 import { element } from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
 
