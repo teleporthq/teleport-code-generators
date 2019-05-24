@@ -1,5 +1,4 @@
 import { createVueGenerator, createHtmlEntryFile } from './component-generators'
-import { buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
@@ -7,6 +6,7 @@ import {
   APP_ROOT_OVERRIDE,
   DEFAULT_COMPONENT_FILES_PATH,
   DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_STATIC_FILES_PATH,
 } from './constants'
 
 import {
@@ -16,6 +16,7 @@ import {
   createPackageJSONFile,
   joinGeneratorOutputs,
   generateLocalDependenciesPrefix,
+  injectFilesInFolderStructure,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
@@ -147,18 +148,42 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     const distFiles = [htmlIndexFile, packageFile]
 
     // Step 9: Build the folder structure
-    const folderStructure = buildFolderStructure(
+    template.meta = template.meta || {}
+
+    const filesWithPath = [
       {
-        componentFiles,
-        pageFiles,
-        distFiles,
-        staticFiles,
+        path: [],
+        files: distFiles,
       },
-      template
-    )
+      {
+        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        files: componentFiles,
+      },
+      {
+        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        files: pageFiles,
+      },
+      {
+        path: template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
+        files: staticFiles,
+      },
+    ]
+
+    const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
+
+    // console.log(componentsFilePathRecord, pagesFilePathRecord)
+    // const folderStructure = buildFolderStructure(
+    //   {
+    //     componentFiles,
+    //     pageFiles,
+    //     distFiles,
+    //     staticFiles,
+    //   },
+    //   template
+    // )
 
     return {
-      outputFolder: folderStructure,
+      outputFolder,
       assetsPath: ASSETS_PREFIX.slice(1), // remove the leading `/`
     }
   }
