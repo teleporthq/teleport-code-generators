@@ -38,15 +38,22 @@ export default class Resolver {
     }
 
     const node = cloneObject(uidl.node)
+
+    if (options.projectRouteDefinition) {
+      utils.resolveNavlinks(node, options.projectRouteDefinition)
+    }
+
     utils.resolveNode(node, newOptions)
 
     const nodesLookup = {}
     utils.createNodesLookup(node, nodesLookup)
     utils.generateUniqueKeys(node, nodesLookup)
 
+    const name = sanitizeVariableName(uidl.name)
+
     return {
       ...uidl,
-      name: sanitizeVariableName(uidl.name),
+      name,
       node,
     }
   }

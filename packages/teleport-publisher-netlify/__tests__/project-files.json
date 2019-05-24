@@ -1,0 +1,39 @@
+{
+  "name": "project-name",
+  "files": [
+    {
+      "name": "package",
+      "fileType": "json",
+      "content": "package.json content"
+    }
+  ],
+  "subFolders": [
+    {
+      "name": "pages",
+      "files": [
+        {
+          "name": "index",
+          "fileType": "js",
+          "content": "index file content"
+        }
+      ],
+      "subFolders": []
+    },
+    {
+      "name": "components",
+      "files": [
+        {
+          "name": "Navbar",
+          "fileType": "js",
+          "content": "navbar content"
+        }
+      ],
+      "subFolders": []
+    },
+    {
+      "name": "static",
+      "files": [],
+      "subFolders": []
+    }
+  ]
+}

@@ -24,6 +24,8 @@
   "dependencies": {
     "@teleporthq/teleport-generator-shared": "^0.6.0",
     "@teleporthq/teleport-generator-core": "^0.6.0",
-    "@teleporthq/teleport-component-generator-vue": "^0.6.0"
+    "@teleporthq/teleport-component-generator-vue": "^0.6.0",
+    "@teleporthq/teleport-component-generator": "^0.6.0",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.6.0"
   }
 }

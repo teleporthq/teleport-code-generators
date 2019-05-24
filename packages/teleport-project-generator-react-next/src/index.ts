@@ -1,57 +1,49 @@
+import { createReactGenerator, createDocumentFile } from './component-generators'
 import {
   createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
+  generateLocalDependenciesPrefix,
   createManifestJSONFile,
   createPackageJSONFile,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-import { createDocumentComponentFile, buildFolderStructure } from './utils'
+import { buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
-  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
-import nextMapping from './next-mapping.json'
-
 import {
   ProjectGeneratorOptions,
-  ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const reactGenerator = createReactComponentGenerator('StyledJSX')
-
-  reactGenerator.addMapping(nextMapping as Mapping)
-  if (options.customMapping) {
-    reactGenerator.addMapping(options.customMapping)
-  }
-
-  return reactGenerator
-}
-
 const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const reactGenerator = initGenerator(generatorOptions)
+  const reactGenerator = createReactGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
-    // Step 0: Validate project input, create UIDL and validate the content of UIDL
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
+    // Step 0: Validate project input
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateProjectSchema(input)
       if (!schemaValidationResult.valid) {
@@ -65,16 +57,21 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      reactGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
 
     // Step 2: The root html file is customized in next via the _document.js page
-    const documentComponentFile = createDocumentComponentFile(uidl)
+    const documentComponentFile = createDocumentFile(uidl)
 
     // Step 3: The first level conditional nodes are taken as project pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -88,9 +85,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       const pageParams: ComponentFactoryParams = {
         componentGenerator: reactGenerator,
         componentUIDL,
-        componentOptions: {
+        generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {
           usePathAsFileName: true,
@@ -106,7 +104,10 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: reactGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
       return createComponentOutputs(componentParams)
     })
@@ -144,12 +145,12 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     // Step 9: Build the folder structure
     const distFolder = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        dist: distFiles,
-        static: staticFiles,
+        componentFiles,
+        distFiles,
+        pageFiles,
+        staticFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
 
     return {

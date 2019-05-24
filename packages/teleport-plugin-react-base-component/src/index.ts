@@ -38,15 +38,17 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
-
-    const jsxTagStructure = generateNodeSyntax(uidl.node, {
+    const accumulators = {
       propDefinitions: uidl.propDefinitions || {},
       stateIdentifiers,
       nodesLookup,
       dependencies,
-    }) as types.JSXElement
+    }
+    let pureComponent: types.VariableDeclaration
 
-    const pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure)
+    const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators)
+
+    pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure, uidl.node.type)
 
     structure.chunks.push({
       type: 'js',

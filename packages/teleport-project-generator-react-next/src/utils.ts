@@ -1,4 +1,3 @@
-import { generator } from '@teleporthq/teleport-generator-shared/lib/generators/js-ast-to-code'
 import {
   generateASTDefinitionForJSXTag,
   addAttributeToJSXTag,
@@ -6,21 +5,23 @@ import {
   addChildJSXText,
 } from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
 import * as types from '@babel/types'
-import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import {
-  createFile,
-  createFolder,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+  ASSETS_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_STATIC_FILES_PATH,
+} from './constants'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { injectFilesToPath } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
-  GeneratedFile,
   GeneratedFolder,
+  GeneratedFile,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-export const createDocumentComponent = (uidl: ProjectUIDL) => {
+export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = generateASTDefinitionForJSXTag('html')
@@ -127,13 +128,10 @@ export const createDocumentComponent = (uidl: ProjectUIDL) => {
 
   // Create AST representation of the class CustomDocument extends Document
   // https://github.com/zeit/next.js#custom-document
-  const documentAST = createDocumentASTDefinition(htmlNode)
-
-  // Convert AST to string
-  return generator(documentAST)
+  return createDocumentWrapperAST(htmlNode)
 }
 
-const createDocumentASTDefinition = (htmlNode, t = types) => {
+const createDocumentWrapperAST = (htmlNode, t = types) => {
   return t.program([
     t.importDeclaration(
       [
@@ -160,22 +158,24 @@ const createDocumentASTDefinition = (htmlNode, t = types) => {
   ])
 }
 
-export const createDocumentComponentFile = (uidl: ProjectUIDL): GeneratedFile => {
-  const documentComponent = createDocumentComponent(uidl)
-  if (!documentComponent) {
-    return null
-  }
-
-  return createFile('_document', FILE_TYPE.JS, documentComponent)
-}
-
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
-  distFolderName: string
+  template: TemplateDefinition
 ): GeneratedFolder => {
-  const pagesFolder = createFolder('pages', files.pages)
-  const componentsFolder = createFolder('components', files.components)
-  const staticFolder = createFolder('static', files.static)
+  const { componentFiles, distFiles, pageFiles, staticFiles } = files
+  template.meta = template.meta || {}
 
-  return createFolder(distFolderName, files.dist, [pagesFolder, componentsFolder, staticFolder])
+  let { templateFolder } = template
+  templateFolder = injectFilesToPath(templateFolder, null, distFiles)
+
+  const componentFilesPath = template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, componentFilesPath, componentFiles)
+
+  const pageFilesPath = template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, pageFilesPath, pageFiles)
+
+  const staticFilesPath = template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, staticFilesPath, staticFiles)
+
+  return templateFolder
 }

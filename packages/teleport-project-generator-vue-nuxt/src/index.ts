@@ -1,22 +1,21 @@
-import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
+import { createVueGenerator, createHtmlEntryFile } from './component-generators'
 import { buildFolderStructure } from './utils'
-import nuxtMapping from './nuxt-mapping.json'
 
 import {
   ASSETS_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
   APP_ROOT_OVERRIDE,
-  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
 } from './constants'
 
 import {
   createPageOutputs,
   createComponentOutputs,
   createManifestJSONFile,
-  createHtmlIndexFile,
   createPackageJSONFile,
   joinGeneratorOutputs,
+  generateLocalDependenciesPrefix,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
@@ -24,34 +23,26 @@ import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
 import {
   ProjectGeneratorOptions,
-  ComponentGenerator,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const initGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: nuxtMapping as Mapping,
-  })
-
-  if (options.customMapping) {
-    vueGenerator.addMapping(options.customMapping)
-  }
-
-  return vueGenerator
-}
-
 const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
-  const vueGenerator = initGenerator(generatorOptions)
+  const vueGenerator = createVueGenerator(generatorOptions)
 
   const addCustomMapping = (mapping: Mapping) => {
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateProjectSchema(input)
@@ -66,13 +57,18 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
-      addCustomMapping(options.customMapping)
+      vueGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
     const routes = extractRoutes(root)
 
     // Step 2: The first level stateBranches (the pages) transformation in react components is started
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routes.map((routeNode) => {
       const { value: pageName, node } = routeNode.content
 
@@ -85,9 +81,10 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       const pageParams: ComponentFactoryParams = {
         componentGenerator: vueGenerator,
         componentUIDL,
-        componentOptions: {
+        generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {
           usePathAsFileName: true,
@@ -104,7 +101,10 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       const componentParams: ComponentFactoryParams = {
         componentUIDL,
         componentGenerator: vueGenerator,
-        componentOptions: { assetsPrefix: ASSETS_PREFIX },
+        generatorOptions: {
+          assetsPrefix: ASSETS_PREFIX,
+          projectRouteDefinition: root.stateDefinitions.route,
+        },
       }
       return createComponentOutputs(componentParams)
     })
@@ -127,9 +127,8 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
       staticFiles.push(manifestFile)
     }
 
-    const htmlIndexFile = createHtmlIndexFile(uidl, {
+    const htmlIndexFile = createHtmlEntryFile(uidl, {
       assetsPrefix: ASSETS_PREFIX,
-      fileName: 'app',
       appRootOverride: APP_ROOT_OVERRIDE,
     })
 
@@ -150,12 +149,12 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
     // Step 9: Build the folder structure
     const folderStructure = buildFolderStructure(
       {
-        pages: pageFiles,
-        components: componentFiles,
-        static: staticFiles,
-        dist: distFiles,
+        componentFiles,
+        pageFiles,
+        distFiles,
+        staticFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
+      template
     )
 
     return {

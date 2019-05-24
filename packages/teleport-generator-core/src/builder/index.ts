@@ -1,5 +1,5 @@
-import { generator as babelCodeGenerator } from '@teleporthq/teleport-generator-shared/lib/generators/js-ast-to-code'
-import { generator as htmlGenerator } from '@teleporthq/teleport-generator-shared/lib/generators/html-to-string'
+import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
+import { generator as htmlGenerator } from './generators/html-to-string'
 import {
   ChunkDefinition,
   CodeGeneratorFunction,

@@ -1,34 +1,37 @@
-import { createReactRouterGenerator } from './component-generators/router-component'
-
-import { createFolder } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-
 import {
   GeneratedFile,
   GeneratedFolder,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { injectFilesToPath } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+import {
+  DEFAULT_SRC_FILES_PATH,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_STATIC_FILES_PATH,
+} from './constants'
 
 export const buildFolderStructure = (
   files: Record<string, GeneratedFile[]>,
-  distFolderName: string
+  template: TemplateDefinition = {}
 ): GeneratedFolder => {
-  const pagesFolder = createFolder('pages', files.pages)
-  const componentsFolder = createFolder('components', files.components)
-  const staticFolder = createFolder('static', files.static)
-  const srcFolder = createFolder('src', files.src, [componentsFolder, pagesFolder, staticFolder])
+  const { componentFiles, distFiles, pageFiles, srcFiles, staticFiles } = files
+  template.meta = template.meta || {}
 
-  return createFolder(distFolderName, files.dist, [srcFolder])
-}
+  let { templateFolder } = template
+  templateFolder = injectFilesToPath(templateFolder, null, distFiles)
 
-export const createRouterIndexFile = async (root: ComponentUIDL) => {
-  const routingComponentGenerator = createReactRouterGenerator()
+  const srcFilesPath = template.meta.srcFilesPath || DEFAULT_SRC_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, srcFilesPath, srcFiles)
 
-  // React router is generated in index.js
-  root.meta = root.meta || {}
-  root.meta.fileName = 'index'
+  const componentFilesPath = template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, componentFilesPath, componentFiles)
 
-  const { files, dependencies } = await routingComponentGenerator.generateComponent(root)
-  const routerFile = files[0]
+  const pageFilesPath = template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, pageFilesPath, pageFiles)
 
-  return { routerFile, dependencies }
+  const staticFilesPath = template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH
+  templateFolder = injectFilesToPath(templateFolder, staticFilesPath, staticFiles)
+
+  return templateFolder
 }

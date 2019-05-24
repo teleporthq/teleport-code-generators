@@ -1,4 +1,3 @@
-import { generator } from '../generators/html-to-string'
 import {
   createHTMLNode,
   addAttributeToNode,
@@ -17,21 +16,19 @@ import {
   ComponentFactoryParams,
   ComponentGeneratorOutput,
   GeneratedFolder,
+  TemplateDefinition,
+  HastNode,
 } from '../typings/generators'
 
 import { ProjectUIDL, WebManifest, ComponentUIDL } from '../typings/uidl'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
-  fileName?: string
   appRootOverride?: string
 }
 
-export const createHtmlIndexFile = (
-  uidl: ProjectUIDL,
-  options: HtmlIndexFileOptions
-): GeneratedFile => {
-  const { assetsPrefix = '', fileName = 'index', appRootOverride } = options
+export const createHtmlIndexFile = (uidl: ProjectUIDL, options: HtmlIndexFileOptions): HastNode => {
+  const { assetsPrefix = '', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -134,12 +131,7 @@ export const createHtmlIndexFile = (
     }
   })
 
-  const htmlInnerString = generator(htmlNode)
-  const content = `
-    <!DOCTYPE html>
-    ${htmlInnerString}`
-
-  return createFile(fileName, FILE_TYPE.HTML, content)
+  return htmlNode
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values
@@ -214,14 +206,14 @@ export const createPageOutputs = async (
 export const createComponentOutputs = async (
   params: ComponentFactoryParams
 ): Promise<ComponentGeneratorOutput> => {
-  const { componentGenerator, componentUIDL, componentOptions } = params
+  const { componentGenerator, componentUIDL, generatorOptions } = params
 
   let files: GeneratedFile[] = []
   let dependencies: Record<string, string> = {}
 
   try {
     const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
-      ...componentOptions,
+      ...generatorOptions,
       skipValidation: true,
     })
 
@@ -257,14 +249,159 @@ export const createFile = (name: string, fileType: string, content: string): Gen
   return { name, fileType, content }
 }
 
-export const createFolder = (
-  name: string,
-  files: GeneratedFile[] = [],
-  subFolders: GeneratedFolder[] = []
-): GeneratedFolder => {
-  return {
-    name,
-    files,
-    subFolders,
+interface LocalDependenciesMeta {
+  defaultComponentsPath: string | string[]
+  defaultPagesPath: string | string[]
+}
+
+export const generateLocalDependenciesPrefix = (
+  template: TemplateDefinition,
+  meta: LocalDependenciesMeta
+): string => {
+  const initialComponentsPath =
+    template.meta && template.meta.componentsPath
+      ? template.meta.componentsPath
+      : [].concat(meta.defaultComponentsPath)
+
+  const initialPagesPath =
+    template.meta && template.meta.pagesPath
+      ? template.meta.pagesPath
+      : [].concat(meta.defaultPagesPath)
+
+  let dependencyPrefix = ''
+
+  /*
+    Remove common path elements from the beginning of the
+    components and pages full path (if any)
+  
+    For example, having:
+    - initialComponentsPath = ['src', 'components']
+    - initialPagesPath = ['src', 'pages']
+  
+    If we want to have an import statement that goes from the pages folder to the
+    components folder, we only need to go back one step, so we are removing
+    the forst element from both the paths ('src') and build the dependencyPrefix accordingly
+  */
+  const [componentsPath, pagesPath] = removeCommonStartingPointsFromPaths([
+    initialComponentsPath,
+    initialPagesPath,
+  ])
+
+  // We have to go back as many folders as there are defined in the pages path
+  dependencyPrefix += '../'.repeat(pagesPath.length)
+
+  dependencyPrefix += componentsPath
+    .map((component) => {
+      return `${component}/`
+    })
+    .join('')
+
+  return dependencyPrefix
+}
+
+const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
+  const pathsClone = JSON.parse(JSON.stringify(paths))
+
+  const shortestPathLength = Math.min(
+    ...pathsClone.map((path) => {
+      return path.length
+    })
+  )
+
+  let elementIndex = 0
+  let elementsFromIndexAreEqual = true
+
+  while (elementIndex < shortestPathLength && elementsFromIndexAreEqual) {
+    const firstPathElementsFromIndex = pathsClone.map((path: string[]) => {
+      return path[0]
+    })
+
+    if (elementsFromArrayAreEqual(firstPathElementsFromIndex)) {
+      // If the first elements from every path are equal, remove it
+      pathsClone.forEach((path) => {
+        path.shift()
+      })
+    } else {
+      elementsFromIndexAreEqual = false
+    }
+    elementIndex += 1
   }
+
+  return pathsClone
+}
+
+const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
+  return arrayOfElements.every((element: string) => {
+    return element === arrayOfElements[0]
+  })
+}
+
+export const injectFilesToPath = (
+  rootFolder: GeneratedFolder,
+  path: string[],
+  files: GeneratedFile[]
+): GeneratedFolder => {
+  let folder = findFolderByPath(rootFolder, path)
+
+  if (!folder) {
+    const { updatedRootFolder, createdFolder } = createFolderByPath(rootFolder, path)
+    rootFolder = updatedRootFolder
+    folder = createdFolder
+  }
+
+  folder.files = folder.files.concat(files)
+  return rootFolder
+}
+
+interface NewGeneratedFolderResponse {
+  updatedRootFolder: GeneratedFolder
+  createdFolder: GeneratedFolder
+}
+
+const createFolderByPath = (
+  rootFolder: GeneratedFolder,
+  folderPath: string | string[]
+): NewGeneratedFolderResponse => {
+  folderPath = [].concat(folderPath)
+  const rootFolderClone = JSON.parse(JSON.stringify(rootFolder))
+
+  let createdFolder = null
+  let currentFolder = rootFolderClone
+
+  folderPath.forEach((path, index) => {
+    let intermediateFolder = findSubFolderByName(currentFolder, path)
+
+    if (!intermediateFolder) {
+      intermediateFolder = { name: path, files: [], subFolders: [] }
+      currentFolder.subFolders.push(intermediateFolder)
+    }
+    currentFolder = intermediateFolder
+
+    if (index === folderPath.length - 1) {
+      createdFolder = currentFolder
+    }
+  })
+
+  return {
+    createdFolder,
+    updatedRootFolder: rootFolderClone,
+  }
+}
+
+const findFolderByPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
+  if (!folderPath || !folderPath.length) {
+    return rootFolder
+  }
+
+  const folderPathClone = JSON.parse(JSON.stringify(folderPath))
+  const path = folderPathClone.shift()
+
+  const subFolder = findSubFolderByName(rootFolder, path)
+  return subFolder ? findFolderByPath(subFolder, folderPathClone) : null
+}
+
+const findSubFolderByName = (rootFolder: GeneratedFolder, folderName: string): GeneratedFolder => {
+  return rootFolder.subFolders.find((folder) => {
+    return folder.name === folderName
+  })
 }
