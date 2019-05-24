@@ -20,6 +20,7 @@ import {
   UIDLRepeatNode,
   UIDLConditionalNode,
   UIDLSlotNode,
+  UIDLNode,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   NodeSyntaxGenerator,
@@ -150,21 +151,7 @@ export const generateConditionalNode = (
     generateConditionalExpression(value, node.content.condition)
   )
 
-  Object.values(node).forEach((child) => {
-    if (typeof child === 'object') {
-      const childNode = child.node
-      if (childNode.type === 'conditional') {
-        const content = childNode.content
-        const key = content.reference.content.id
-        const subConditionValue = content.value
-
-        conditionalStatement = `${conditionalStatement} && ${createConditionalStatement(
-          key,
-          generateConditionalExpression(subConditionValue, content.condition)
-        )}`
-      }
-    }
-  })
+  conditionalStatement = generateConditionalStatement(node, conditionalStatement)
 
   let conditionalTag = generateNodeSyntax(node.content.node, accumulators)
   // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
@@ -177,6 +164,27 @@ export const generateConditionalNode = (
 
   htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
   return conditionalTag
+}
+
+const generateConditionalStatement = (node: UIDLNode, statement: string) => {
+  Object.values(node).forEach((child: any) => {
+    if (typeof child === 'object') {
+      const childNode = child.node
+      if (childNode.type === 'conditional') {
+        const content = childNode.content
+        const key = content.reference.content.id
+        const subConditionValue = content.value
+        statement = `${generateConditionalStatement(
+          childNode,
+          statement
+        )} && ${createConditionalStatement(
+          key,
+          generateConditionalExpression(subConditionValue, content.condition)
+        )}`
+      }
+    }
+  })
+  return statement
 }
 
 const generateConditionalExpression = (
