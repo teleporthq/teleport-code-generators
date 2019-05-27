@@ -257,3 +257,8 @@ export interface LoadTemplateResponse {
   success: boolean
   payload: GeneratedFolder | string | Error
 }
+
+export interface FilesPathRecord {
+  path: string[]
+  files: GeneratedFile[]
+}

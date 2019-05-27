@@ -6,6 +6,7 @@ import {
   createManifestJSONFile,
   createPackageJSONFile,
   generateLocalDependenciesPrefix,
+  injectFilesInFolderStructure,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
@@ -13,9 +14,10 @@ import {
   DEFAULT_PACKAGE_JSON,
   DEFAULT_COMPONENT_FILES_PATH,
   DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_SRC_FILES_PATH,
+  DEFAULT_PUBLIC_FILES_PATH,
 } from './constants'
 
-import { buildFolderStructure } from './utils'
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
@@ -146,19 +148,35 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const distFiles = [packageJSONFile]
 
     // Step 9: Build the folder structure
-    const folderStructure = buildFolderStructure(
+    template.meta = template.meta || {}
+
+    const filesWithPath = [
       {
-        componentFiles,
-        distFiles,
-        pageFiles,
-        publicFiles,
-        srcFiles,
+        path: [],
+        files: distFiles,
       },
-      template
-    )
+      {
+        path: template.meta.srcFilesPath || DEFAULT_SRC_FILES_PATH,
+        files: srcFiles,
+      },
+      {
+        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        files: componentFiles,
+      },
+      {
+        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        files: pageFiles,
+      },
+      {
+        path: template.meta.publicFiles || DEFAULT_PUBLIC_FILES_PATH,
+        files: publicFiles,
+      },
+    ]
+
+    const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
 
     return {
-      outputFolder: folderStructure,
+      outputFolder,
       assetsPath: 'src' + ASSETS_PREFIX,
     }
   }

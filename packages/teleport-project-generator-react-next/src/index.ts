@@ -6,17 +6,17 @@ import {
   generateLocalDependenciesPrefix,
   createManifestJSONFile,
   createPackageJSONFile,
+  injectFilesInFolderStructure,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-
-import { buildFolderStructure } from './utils'
 
 import {
   ASSETS_PREFIX,
   DEFAULT_PACKAGE_JSON,
   DEFAULT_COMPONENT_FILES_PATH,
   DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_STATIC_FILES_PATH,
 } from './constants'
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
@@ -143,18 +143,31 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const distFiles: GeneratedFile[] = [packageFile]
 
     // Step 9: Build the folder structure
-    const distFolder = buildFolderStructure(
+    template.meta = template.meta || {}
+
+    const filesWithPath = [
       {
-        componentFiles,
-        distFiles,
-        pageFiles,
-        staticFiles,
+        path: [],
+        files: distFiles,
       },
-      template
-    )
+      {
+        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        files: componentFiles,
+      },
+      {
+        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        files: pageFiles,
+      },
+      {
+        path: template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
+        files: staticFiles,
+      },
+    ]
+
+    const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
 
     return {
-      outputFolder: distFolder,
+      outputFolder,
       assetsPath: ASSETS_PREFIX.slice(1),
     }
   }

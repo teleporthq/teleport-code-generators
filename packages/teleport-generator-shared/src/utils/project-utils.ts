@@ -18,6 +18,7 @@ import {
   GeneratedFolder,
   TemplateDefinition,
   HastNode,
+  FilesPathRecord,
 } from '../typings/generators'
 
 import { ProjectUIDL, WebManifest, ComponentUIDL } from '../typings/uidl'
@@ -336,7 +337,23 @@ const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
   })
 }
 
-export const injectFilesToPath = (
+export const injectFilesInFolderStructure = (
+  filePathRecords: FilesPathRecord[],
+  template: TemplateDefinition
+): GeneratedFolder => {
+  template.meta = template.meta || {}
+
+  let { templateFolder } = template
+
+  for (const filePathRecord of filePathRecords) {
+    const { path, files } = filePathRecord
+    templateFolder = injectFilesToPath(templateFolder, path, files)
+  }
+
+  return templateFolder
+}
+
+const injectFilesToPath = (
   rootFolder: GeneratedFolder,
   path: string[],
   files: GeneratedFile[]
