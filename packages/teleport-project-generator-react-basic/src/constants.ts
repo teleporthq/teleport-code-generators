@@ -1,6 +1,11 @@
 export const ASSETS_PREFIX = '/static'
-export const LOCAL_DEPENDENCIES_PREFIX = '../components/'
-export const DEFAULT_OUTPUT_FOLDER = 'dist'
+
+export const DEFAULT_SRC_FILES_PATH = ['src']
+export const DEFAULT_ASSET_FILES_PATH = ['src', 'static']
+export const DEFAULT_COMPONENT_FILES_PATH = ['src', 'components']
+export const DEFAULT_PAGE_FILES_PATH = ['src', 'pages']
+export const DEFAULT_STATIC_FILES_PATH = ['src', 'static']
+
 export const DEFAULT_PACKAGE_JSON = {
   name: 'basic-react-app',
   version: '1.0.0',

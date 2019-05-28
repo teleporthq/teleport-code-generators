@@ -3,19 +3,20 @@ import {
   createPageOutputs,
   createComponentOutputs,
   joinGeneratorOutputs,
+  generateLocalDependenciesPrefix,
   createManifestJSONFile,
   createPackageJSONFile,
+  injectFilesInFolderStructure,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 
-import { buildFolderStructure } from './utils'
-
 import {
   ASSETS_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
-  LOCAL_DEPENDENCIES_PREFIX,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_STATIC_FILES_PATH,
 } from './constants'
 
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
@@ -25,6 +26,7 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -36,16 +38,23 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     reactGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       reactGenerator.addMapping(options.customMapping)
@@ -57,7 +66,12 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     // Step 2: The root html file is customized in next via the _document.js page
     const documentComponentFile = createDocumentFile(uidl)
 
-    // Step 2: The first level conditional nodes are taken as project pages
+    // Step 3: The first level conditional nodes are taken as project pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -72,8 +86,8 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
         componentGenerator: reactGenerator,
         componentUIDL,
         generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
           projectRouteDefinition: root.stateDefinitions.route,
         },
         metadataOptions: {
@@ -129,18 +143,31 @@ const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}
     const distFiles: GeneratedFile[] = [packageFile]
 
     // Step 9: Build the folder structure
-    const distFolder = buildFolderStructure(
+    template.meta = template.meta || {}
+
+    const filesWithPath = [
       {
-        pages: pageFiles,
-        components: componentFiles,
-        dist: distFiles,
-        static: staticFiles,
+        path: [],
+        files: distFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
-    )
+      {
+        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        files: componentFiles,
+      },
+      {
+        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        files: pageFiles,
+      },
+      {
+        path: template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
+        files: staticFiles,
+      },
+    ]
+
+    const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
 
     return {
-      outputFolder: distFolder,
+      outputFolder,
       assetsPath: ASSETS_PREFIX.slice(1),
     }
   }

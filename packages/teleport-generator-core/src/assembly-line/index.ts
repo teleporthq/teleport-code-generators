@@ -39,6 +39,10 @@ export default class AssemblyLine {
     }
   }
 
+  public getPlugins() {
+    return this.plugins
+  }
+
   public addPlugin(plugin: ComponentPlugin) {
     this.plugins.push(plugin)
   }

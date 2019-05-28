@@ -7,12 +7,7 @@ import {
 import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { createFolder } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
-import {
-  GeneratedFile,
-  GeneratedFolder,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
 export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
@@ -150,15 +145,4 @@ const createDocumentWrapperAST = (htmlNode, t = types) => {
     ),
     t.exportDefaultDeclaration(t.identifier('CustomDocument')),
   ])
-}
-
-export const buildFolderStructure = (
-  files: Record<string, GeneratedFile[]>,
-  distFolderName: string
-): GeneratedFolder => {
-  const pagesFolder = createFolder('pages', files.pages)
-  const componentsFolder = createFolder('components', files.components)
-  const staticFolder = createFolder('static', files.static)
-
-  return createFolder(distFolderName, files.dist, [pagesFolder, componentsFolder, staticFolder])
 }

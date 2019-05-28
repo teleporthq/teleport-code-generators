@@ -5,16 +5,19 @@ import {
   joinGeneratorOutputs,
   createManifestJSONFile,
   createPackageJSONFile,
+  generateLocalDependenciesPrefix,
+  injectFilesInFolderStructure,
 } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
 
 import {
   ASSETS_PREFIX,
-  LOCAL_DEPENDENCIES_PREFIX,
-  DEFAULT_OUTPUT_FOLDER,
   DEFAULT_PACKAGE_JSON,
+  DEFAULT_COMPONENT_FILES_PATH,
+  DEFAULT_PAGE_FILES_PATH,
+  DEFAULT_SRC_FILES_PATH,
+  DEFAULT_PUBLIC_FILES_PATH,
 } from './constants'
 
-import { buildFolderStructure } from './utils'
 import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
 import { Validator, Parser } from '@teleporthq/teleport-generator-core'
 
@@ -23,6 +26,7 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
+  TemplateDefinition,
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
@@ -34,16 +38,23 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     vueGenerator.addMapping(mapping)
   }
 
-  const generateProject: GenerateProjectFunction = async (input, options = {}) => {
+  const generateProject: GenerateProjectFunction = async (
+    input: Record<string, unknown>,
+    template: TemplateDefinition,
+    options: ProjectGeneratorOptions = {}
+  ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
-      const validationResult = validator.validateProject(input)
-      if (!validationResult.valid) {
-        throw new Error(validationResult.errorMsg)
+      const schemaValidationResult = validator.validateProjectSchema(input)
+      if (!schemaValidationResult.valid) {
+        throw new Error(schemaValidationResult.errorMsg)
       }
     }
     const uidl = Parser.parseProjectJSON(input)
-
+    const contentValidationResult = validator.validateProjectContent(uidl)
+    if (!contentValidationResult.valid) {
+      throw new Error(contentValidationResult.errorMsg)
+    }
     // Step 1: Add any custom mappings found in the options
     if (options.customMapping) {
       vueGenerator.addMapping(options.customMapping)
@@ -52,7 +63,12 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const { components = {}, root } = uidl
     const routes = extractRoutes(root)
 
-    // Step 1: The first level conditional nodes are taken as project pages
+    // Step 2: The first level conditional nodes are taken as project pages
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
+      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
+    })
+
     const pagePromises = routes.map((routeNode) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
@@ -67,8 +83,8 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
         componentGenerator: vueGenerator,
         componentUIDL,
         generatorOptions: {
+          localDependenciesPrefix,
           assetsPrefix: ASSETS_PREFIX,
-          localDependenciesPrefix: LOCAL_DEPENDENCIES_PREFIX,
           projectRouteDefinition: root.stateDefinitions.route,
         },
       }
@@ -132,19 +148,35 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
     const distFiles = [packageJSONFile]
 
     // Step 9: Build the folder structure
-    const folderStructure = buildFolderStructure(
+    template.meta = template.meta || {}
+
+    const filesWithPath = [
       {
-        pages: pageFiles,
-        components: componentFiles,
-        public: publicFiles,
-        src: srcFiles,
-        dist: distFiles,
+        path: [],
+        files: distFiles,
       },
-      options.distPath || DEFAULT_OUTPUT_FOLDER
-    )
+      {
+        path: template.meta.srcFilesPath || DEFAULT_SRC_FILES_PATH,
+        files: srcFiles,
+      },
+      {
+        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        files: componentFiles,
+      },
+      {
+        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        files: pageFiles,
+      },
+      {
+        path: template.meta.publicFiles || DEFAULT_PUBLIC_FILES_PATH,
+        files: publicFiles,
+      },
+    ]
+
+    const outputFolder = injectFilesInFolderStructure(filesWithPath, template)
 
     return {
-      outputFolder: folderStructure,
+      outputFolder,
       assetsPath: 'src' + ASSETS_PREFIX,
     }
   }

@@ -24,6 +24,7 @@ module.exports = {
   "collectCoverage": false,
   "testEnvironment": "node",
   "collectCoverageFrom": [
-    "packages/**/src/**/*"
+    "packages/**/src/**/*",
+    "!packages/teleport-project-packer-test/**/*"
   ]
 }

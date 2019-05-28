@@ -16,6 +16,7 @@
   "node": {
     "type": "element",
     "content": {
+      "children": ["hello!"],
       "elementType": "container",
       "attrs": {
         "data-test": "$props.test",

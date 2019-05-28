@@ -2,6 +2,9 @@ import Ajv from 'ajv'
 import componentSchema from '../uidl-schemas/component.json'
 import projectSchema from '../uidl-schemas/project.json'
 
+import { ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import * as utils from './utils'
+
 interface ValidationResult {
   valid: boolean
   errorMsg: string
@@ -20,35 +23,69 @@ export default class Validator {
     this.projectValidator = ajv.compile(projectSchema)
   }
 
-  public validateComponent(input: any): ValidationResult {
+  public validateComponentSchema(input: any): ValidationResult {
     const valid = this.componentValidator(input)
+
     if (!valid && this.componentValidator.errors) {
-      return { valid: false, errorMsg: formatErrors(this.componentValidator.errors) }
+      const errors = utils.formatErrors(this.componentValidator.errors)
+      return { valid: false, errorMsg: errors }
     }
 
     return { valid: true, errorMsg: '' }
   }
 
-  public validateProject(input: Record<string, unknown>): ValidationResult {
+  public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
     const valid = this.projectValidator(input)
 
     if (!valid && this.projectValidator.errors) {
-      return { valid: false, errorMsg: formatErrors(this.projectValidator.errors) }
+      return { valid: false, errorMsg: utils.formatErrors(this.projectValidator.errors) }
     }
 
     return { valid: true, errorMsg: '' }
   }
-}
 
-const formatErrors = (errors: any) => {
-  const listOfErrors = []
-  errors.forEach((error) => {
-    const message =
-      error.keyword === 'type'
-        ? `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
-        : `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
-    listOfErrors.push(message)
-  })
+  public validateComponentContent(input: ComponentUIDL): ValidationResult {
+    const errorsInDefinitions = utils.checkDynamicDefinitions(input)
+    const errorsWithLocalVariables = utils.checkForLocalVariables(input)
 
-  return `UIDL Validation error. Please check the following: ${listOfErrors}`
+    utils.checkForDuplicateDefinitions(input)
+    const errors = [...errorsInDefinitions, ...errorsWithLocalVariables]
+
+    if (errors.length > 0) {
+      return {
+        valid: false,
+        errorMsg: `\nUIDL Component Content Validation Error. Please check the following: \n${errors}`,
+      }
+    }
+
+    return { valid: true, errorMsg: '' }
+  }
+
+  public validateProjectContent(input: ProjectUIDL): ValidationResult {
+    const errorsOnRouteNode = utils.checkRouteDefinition(input) || []
+    let allErrors = errorsOnRouteNode
+
+    if (errorsOnRouteNode.length === 0) {
+      const errorsInRootComponent = utils.checkRootComponent(input)
+
+      const errorsWithComponentNaming = utils.checkComponentNaming(input)
+      const errorsWtihComponentExistence = utils.checkComponentExistence(input)
+
+      allErrors = [
+        ...errorsOnRouteNode,
+        ...errorsWtihComponentExistence,
+        ...errorsWithComponentNaming,
+        ...errorsInRootComponent,
+      ]
+    }
+
+    if (allErrors.length > 0) {
+      return {
+        valid: false,
+        errorMsg: `\nUIDL Project Content Validation Error. Please check the following: ${allErrors}`,
+      }
+    }
+
+    return { valid: true, errorMsg: '' }
+  }
 }

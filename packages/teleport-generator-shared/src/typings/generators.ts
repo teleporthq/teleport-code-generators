@@ -1,6 +1,5 @@
 import {
   ComponentUIDL,
-  ProjectUIDL,
   ComponentDependency,
   Mapping,
   UIDLElement,
@@ -109,8 +108,9 @@ export interface GeneratedFolder {
 
 export interface GeneratedFile {
   name: string
-  fileType: string
   content: string
+  fileType?: string
+  contentEncoding?: string
 }
 
 export interface ComponentFactoryParams {
@@ -134,14 +134,6 @@ export interface ProjectGeneratorOptions {
   customMapping?: Mapping
   skipValidation?: boolean
 }
-
-export type ProjectGeneratorFunction = (
-  uidl: ProjectUIDL,
-  options?: ProjectGeneratorOptions
-) => Promise<{
-  outputFolder: GeneratedFolder
-  assetsPath?: string
-}>
 
 export interface PackageJSON {
   name: string
@@ -185,7 +177,8 @@ export interface ProjectGeneratorOutput {
 
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
-  options: ProjectGeneratorOptions
+  template: TemplateDefinition,
+  options?: ProjectGeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
 export type GenerateComponentFunction = (
@@ -193,3 +186,79 @@ export type GenerateComponentFunction = (
   input: Record<string, unknown>,
   options?: GeneratorOptions
 ) => Promise<CompiledComponent>
+
+/**
+ * Interfaces used in the publishers
+ */
+export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFactoryParams>) => U
+
+export interface Publisher<T, U> {
+  publish: (options?: T) => Promise<PublisherResponse<U>>
+  getProject: () => GeneratedFolder | void
+  setProject: (project: GeneratedFolder) => void
+}
+
+export interface PublisherFactoryParams {
+  project?: GeneratedFolder
+  projectName?: string
+}
+export interface PublisherResponse<T> {
+  success: boolean
+  payload?: T
+}
+
+/**
+ * Interfaces used in the packers
+ */
+export interface AssetsDefinition {
+  assets: AssetInfo[]
+  meta?: {
+    prefix: string | string[]
+  }
+}
+
+export interface AssetInfo {
+  data: string
+  name: string
+  type: string
+}
+
+export interface TemplateDefinition {
+  templateFolder?: GeneratedFolder
+  remote?: RemoteTemplateDefinition
+  meta?: Record<string, string[]>
+}
+
+export interface RemoteTemplateDefinition {
+  githubRepo?: GithubProjectMeta
+}
+
+export interface GithubProjectMeta {
+  owner: string
+  repo: string
+  auth?: GithubAuthMeta
+}
+
+export interface GithubAuthMeta {
+  basic?: {
+    username: string
+    accessToken: string
+  }
+  oauthToken?: string
+}
+
+export type TemplateProvider<T> = (
+  config?: T
+) => {
+  getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
+}
+
+export interface LoadTemplateResponse {
+  success: boolean
+  payload: GeneratedFolder | string | Error
+}
+
+export interface FilesPathRecord {
+  path: string[]
+  files: GeneratedFile[]
+}

@@ -63,15 +63,17 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       }
     })
 
-    chunks.push({
-      type: 'string',
-      name: chunkName,
-      meta: {
-        fileId: styleFileId,
-      },
-      content: jssStylesArray.join('\n'),
-      linkAfter: [],
-    })
+    if (jssStylesArray.length > 0) {
+      chunks.push({
+        type: 'string',
+        name: chunkName,
+        meta: {
+          fileId: styleFileId,
+        },
+        content: jssStylesArray.join('\n'),
+        linkAfter: [],
+      })
+    }
 
     return structure
   }
