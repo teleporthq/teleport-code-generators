@@ -20,7 +20,6 @@ import {
   UIDLRepeatNode,
   UIDLConditionalNode,
   UIDLSlotNode,
-  UIDLNode,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   NodeSyntaxGenerator,
