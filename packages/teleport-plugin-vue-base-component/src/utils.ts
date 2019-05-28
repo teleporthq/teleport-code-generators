@@ -144,15 +144,6 @@ export const generateConditionalNode = (
   node: UIDLConditionalNode,
   accumulators: VueComponentAccumulators
 ) => {
-  const { reference, value } = node.content
-  const conditionalKey = reference.content.id
-  let conditionalStatement: string = createConditionalStatement(
-    conditionalKey,
-    generateConditionalExpression(value, node.content.condition)
-  )
-
-  conditionalStatement = generateConditionalStatement(node, conditionalStatement)
-
   let conditionalTag = generateNodeSyntax(node.content.node, accumulators)
   // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
@@ -162,32 +153,25 @@ export const generateConditionalNode = (
     conditionalTag = wrappingSpan
   }
 
+  const conditionalStatement = generateConditionalStatement(node)
   htmlUtils.addAttributeToNode(conditionalTag, 'v-if', conditionalStatement)
   return conditionalTag
 }
 
-const generateConditionalStatement = (node: UIDLNode, statement: string) => {
-  Object.values(node).forEach((child: any) => {
-    if (typeof child === 'object') {
-      const childNode = child.node
-      if (childNode.type === 'conditional') {
-        const content = childNode.content
-        const key = content.reference.content.id
-        const subConditionValue = content.value
-        statement = `${generateConditionalStatement(
-          childNode,
-          statement
-        )} && ${createConditionalStatement(
-          key,
-          generateConditionalExpression(subConditionValue, content.condition)
-        )}`
-      }
-    }
-  })
+const generateConditionalStatement = (node: UIDLConditionalNode) => {
+  const { node: childNode, reference, value, condition } = node.content
+
+  const expression = standardizeUIDLConditionalExpression(value, condition)
+  const statement = createConditionalStatement(reference.content.id, expression)
+
+  if (childNode.type === 'conditional') {
+    return `${statement} && ${generateConditionalStatement(childNode)}`
+  }
+
   return statement
 }
 
-const generateConditionalExpression = (
+const standardizeUIDLConditionalExpression = (
   value: string | number | boolean,
   condition: UIDLConditionalExpression
 ) => {
