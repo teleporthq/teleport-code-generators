@@ -20,6 +20,7 @@ import {
   UIDLRepeatNode,
   UIDLConditionalNode,
   UIDLSlotNode,
+  UIDLElement,
 } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
   NodeSyntaxGenerator,
@@ -117,7 +118,9 @@ export const generateRepeatNode = (
   const { dataSource, node: repeatContent, meta = {} } = node.content
   const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
 
-  let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
+  const { key } = node.content.node.content as UIDLElement
+
+  let dataObjectIdentifier = meta.dataSourceIdentifier || `${key}items`
   if (dataSource.type === 'dynamic') {
     dataObjectIdentifier = dataSource.content.id
   } else {
