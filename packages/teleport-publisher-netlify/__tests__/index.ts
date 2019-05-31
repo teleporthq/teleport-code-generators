@@ -1,4 +1,4 @@
-import createNetlifyPublisher from '../src'
+import { createNetlifyPublisher } from '../src'
 
 import project from './project-files.json'
 import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from '../src/errors'
