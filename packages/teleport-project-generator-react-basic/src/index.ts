@@ -34,7 +34,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
   const reactGenerator = createComponentGenerator(generatorOptions)
 
@@ -189,4 +189,4 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
   }
 }
 
-export default createReactBasicGenerator
+export default createReactBasicGenerator()

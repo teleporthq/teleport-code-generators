@@ -34,4 +34,4 @@ export const createVueComponentGenerator = (
   return generator
 }
 
-export default createVueComponentGenerator
+export default createVueComponentGenerator()

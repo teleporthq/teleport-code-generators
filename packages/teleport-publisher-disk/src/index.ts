@@ -21,7 +21,7 @@ const defaultPublisherParams = {
   outputPath: null,
 }
 
-const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublisher> = (
+export const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublisher> = (
   params: DiskFactoryParams = defaultPublisherParams
 ): DiskPublisher => {
   let { project, outputPath } = params
@@ -68,4 +68,4 @@ const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublisher> = 
   }
 }
 
-export default createDiskPublisher
+export default createDiskPublisher()

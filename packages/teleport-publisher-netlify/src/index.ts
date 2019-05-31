@@ -25,7 +25,7 @@ const defaultPublisherParams = {
   publishDirectory: PUBLISH_DIRECTORY,
 }
 
-const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPublisher> = (
+export const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPublisher> = (
   params: NetlifyFactoryParams = defaultPublisherParams
 ): NetlifyPublisher => {
   let { project, accessToken } = params
@@ -68,4 +68,4 @@ const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPubl
   }
 }
 
-export default createNetlifyPublisher
+export default createNetlifyPublisher()

@@ -33,7 +33,7 @@ export type PackerFactory = (
   setTemplate: (template: TemplateDefinition) => void
 }
 
-const createTeleportPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
+export const createProjectPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
   let { assets, generatorFunction, publisher, template } = params
   let templateLoaded = false
 
@@ -122,4 +122,4 @@ const createTeleportPacker: PackerFactory = (params: PackerFactoryParams = {}) =
   }
 }
 
-export default createTeleportPacker
+export default createProjectPacker()

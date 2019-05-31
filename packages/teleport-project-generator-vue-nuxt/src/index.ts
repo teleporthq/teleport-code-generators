@@ -31,7 +31,7 @@ import {
 } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
 import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 
-const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
   const vueGenerator = createVueGenerator(generatorOptions)
 
@@ -183,4 +183,4 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
   }
 }
 
-export default createVueNuxtGenerator
+export default createVueNuxtGenerator()

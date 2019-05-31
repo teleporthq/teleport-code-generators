@@ -47,4 +47,4 @@ export const createReactComponentGenerator = (
   return generator
 }
 
-export default createReactComponentGenerator
+export default createReactComponentGenerator()

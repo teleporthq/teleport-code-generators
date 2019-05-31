@@ -20,7 +20,7 @@ const defaultPublisherParams = {
   deployToken: null,
 }
 
-const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
+export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
   params: NowFactoryParams = defaultPublisherParams
 ): NowPublisher => {
   let { project, deployToken } = params
@@ -64,4 +64,4 @@ const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
   }
 }
 
-export default createNowPublisher
+export default createNowPublisher()
