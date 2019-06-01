@@ -19,7 +19,7 @@ import {
   DEFAULT_STATIC_FILES_PATH,
 } from './constants'
 
-import { Validator, Parser } from '@teleporthq/teleport-generator-core'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ProjectGeneratorOptions,

@@ -20,7 +20,7 @@ import {
 } from '@teleporthq/teleport-shared/lib/utils/project-utils'
 
 import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { Validator, Parser } from '@teleporthq/teleport-generator-core'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ProjectGeneratorOptions,
