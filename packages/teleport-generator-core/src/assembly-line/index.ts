@@ -1,9 +1,5 @@
 import { extractExternalDependencies, groupChunksByFileId } from './utils'
-import {
-  ComponentStructure,
-  ComponentPlugin,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ComponentStructure, ComponentPlugin, ComponentUIDL } from '@teleporthq/teleport-types'
 
 export default class AssemblyLine {
   private plugins: ComponentPlugin[]

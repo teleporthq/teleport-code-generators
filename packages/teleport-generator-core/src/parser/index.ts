@@ -3,7 +3,7 @@ import {
   transformAttributesAssignmentsToJson,
   transformStringAssignmentToJson,
   cloneObject,
-} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import {
   UIDLDynamicReference,
@@ -13,7 +13,7 @@ import {
   UIDLConditionalNode,
   UIDLRepeatNode,
   UIDLSlotNode,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+} from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
   noClone?: boolean

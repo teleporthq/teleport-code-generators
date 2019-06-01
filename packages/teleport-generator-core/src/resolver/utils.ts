@@ -3,8 +3,8 @@ import {
   traverseElements,
   traverseNodes,
   cloneObject,
-} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-generator-shared/lib/constants'
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/lib/constants'
 import {
   EventDefinitions,
   UIDLElement,
@@ -15,9 +15,9 @@ import {
   UIDLAttributeValue,
   Mapping,
   UIDLStateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { GeneratorOptions } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+  GeneratorOptions,
+} from '@teleporthq/teleport-types'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 

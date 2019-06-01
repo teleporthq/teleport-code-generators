@@ -2,7 +2,7 @@
 import ComponentWithOldFormatAttributesJSON from './component-with-old-format-attributes.json'
 
 import { createVueComponentGenerator } from '../../src'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFile } from '@teleporthq/teleport-types'
 import {
   component,
   definition,
@@ -10,7 +10,7 @@ import {
   dynamicNode,
   elementNode,
   staticNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const VUE_FILE = 'vue'
 const findFileByType = (files: GeneratedFile[], type: string = VUE_FILE) =>

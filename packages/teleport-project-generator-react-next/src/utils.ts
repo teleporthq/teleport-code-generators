@@ -3,12 +3,12 @@ import {
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
-} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import * as types from '@babel/types'
 import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
   const { settings, meta, assets, manifest } = uidl.globals

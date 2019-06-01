@@ -1,5 +1,5 @@
 {
-  "name": "@teleporthq/teleport-generator-shared",
+  "name": "@teleporthq/teleport-shared",
   "version": "0.6.0",
   "description": "A utility belt for the entire teleportHQ ecosystem",
   "author": "teleportHQ",
@@ -22,6 +22,7 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
+    "@teleporthq/teleport-types": "^0.6.0",
     "@babel/types": "^7.3.3",
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0"

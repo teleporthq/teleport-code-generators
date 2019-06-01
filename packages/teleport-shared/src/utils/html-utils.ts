@@ -1,4 +1,4 @@
-import { HastNode, HastText } from '../typings/generators'
+import { HastNode, HastText } from '@teleporthq/teleport-types'
 
 export const createHTMLNode = (tagName: string, children = []): HastNode => {
   return {

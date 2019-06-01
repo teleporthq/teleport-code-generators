@@ -2,7 +2,7 @@ import Ajv from 'ajv'
 import componentSchema from '../uidl-schemas/component.json'
 import projectSchema from '../uidl-schemas/project.json'
 
-import { ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-types'
 import * as utils from './utils'
 
 interface ValidationResult {

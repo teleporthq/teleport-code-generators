@@ -1,7 +1,7 @@
 import { Resolver } from '../../src/'
 // @ts-ignore
 import mappingJSON from './mapping.json'
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { Mapping } from '@teleporthq/teleport-types'
 
 import {
   element,
@@ -11,7 +11,7 @@ import {
   dynamicNode,
   elementNode,
   conditionalNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const mapping = mappingJSON as Mapping
 

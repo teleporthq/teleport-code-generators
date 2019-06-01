@@ -4,7 +4,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 import { createVueComponentGenerator } from '../../src'
 

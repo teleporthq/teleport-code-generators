@@ -2,8 +2,9 @@ import {
   AssetsDefinition,
   PublisherResponse,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ProjectUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ProjectUIDL,
+  Mapping,
+} from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 

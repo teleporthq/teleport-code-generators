@@ -13,10 +13,7 @@ import { createGenerator } from '@teleporthq/teleport-component-generator'
 
 import reactMapping from './react-mapping.json'
 
-import {
-  ComponentGenerator,
-  GeneratorOptions,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentGenerator, GeneratorOptions } from '@teleporthq/teleport-types'
 
 const stylePlugins = {
   InlineStyles: reactInlineStylesPlugin,

@@ -1,7 +1,6 @@
 import * as types from '@babel/types'
 import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
-import { UIDLConditionalExpression } from '../typings/uidl'
-import { ConditionalIdentifier } from '../typings/generators'
+import { UIDLConditionalExpression, ConditionalIdentifier } from '@teleporthq/teleport-types'
 
 type BinaryOperator =
   | '==='

@@ -6,7 +6,7 @@ import {
 
 // @ts-ignore
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
-import { HastNode, HastText } from '../../src/typings/generators'
+import { HastNode, HastText } from '@teleporthq/teleport-types'
 
 describe('createHtmlIndexFile', () => {
   it('returns index file with prefixed assets and app file', () => {

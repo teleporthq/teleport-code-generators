@@ -6,17 +6,15 @@ import projectJson from '../../../examples/uidl-samples/project.json'
 // @ts-ignore
 import templateDefinition from './template-definition.json'
 
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/src/typings/uidl'
 import {
+  ProjectUIDL,
   AssetsDefinition,
   TemplateDefinition,
   Publisher,
   ProjectGeneratorOutput,
-} from '@teleporthq/teleport-generator-shared/src/typings/generators'
-import {
   GeneratedFolder,
   GeneratedFile,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
 import {

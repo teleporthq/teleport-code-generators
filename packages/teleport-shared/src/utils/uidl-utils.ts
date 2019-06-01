@@ -9,7 +9,7 @@ import {
   UIDLStaticValue,
   UIDLAttributeValue,
   UIDLDynamicReference,
-} from '../typings/uidl'
+} from '@teleporthq/teleport-types'
 
 /**
  * A couple of different cases which need to be handled

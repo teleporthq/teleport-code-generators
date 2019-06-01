@@ -19,9 +19,10 @@ import {
   TemplateDefinition,
   HastNode,
   FilesPathRecord,
-} from '../typings/generators'
-
-import { ProjectUIDL, WebManifest, ComponentUIDL } from '../typings/uidl'
+  ProjectUIDL,
+  WebManifest,
+  ComponentUIDL,
+} from '@teleporthq/teleport-types'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string

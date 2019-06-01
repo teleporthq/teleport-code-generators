@@ -1,8 +1,5 @@
 import { createPlugin } from '../src/index'
-import {
-  component,
-  elementNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 describe('plugin-react-base-component', () => {
   const plugin = createPlugin({

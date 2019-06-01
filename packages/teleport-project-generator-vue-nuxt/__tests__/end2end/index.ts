@@ -4,7 +4,7 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 
 import { createVueNuxtGenerator } from '../../src'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import template from './template-definition.json'
 

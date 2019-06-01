@@ -22,8 +22,9 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
+    "@teleporthq/teleport-types": "^0.6.0",
+    "@teleporthq/teleport-shared": "^0.6.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
-    "@teleporthq/teleport-generator-shared": "^0.6.0",
     "@teleporthq/teleport-component-generator": "^0.6.0",
     "@teleporthq/teleport-plugin-vue-app-routing": "^0.6.0",
     "@teleporthq/teleport-plugin-vue-base-component": "^0.6.0",

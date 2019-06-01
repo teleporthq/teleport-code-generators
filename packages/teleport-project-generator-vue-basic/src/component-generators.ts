@@ -7,19 +7,17 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 import {
   ComponentUIDL,
   ProjectUIDL,
   Mapping,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import {
   ChunkDefinition,
   ProjectGeneratorOptions,
   ComponentGenerator,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import vueProjectMapping from './vue-project-mapping.json'
 

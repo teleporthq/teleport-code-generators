@@ -5,10 +5,9 @@ import {
   staticNode,
   dynamicNode,
   repeatNode,
+  conditionalNode,
 } from '../../src/builders/uidl-builders'
-import { UIDLStaticValue, UIDLElement } from '../../src/typings/uidl'
-import { conditionalNode } from '../../lib/builders/uidl-builders'
-import { UIDLDynamicReference } from '../../lib/typings/uidl'
+import { UIDLStaticValue, UIDLElement, UIDLDynamicReference } from '@teleporthq/teleport-types'
 
 describe('UIDL Builders', () => {
   describe('component', () => {

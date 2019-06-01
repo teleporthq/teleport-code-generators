@@ -1,6 +1,5 @@
-import { ComponentDependency } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { ChunkDefinition } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { ComponentDependency, ChunkDefinition } from '@teleporthq/teleport-types'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 export const extractExternalDependencies = (
   dependencies: Record<string, ComponentDependency>

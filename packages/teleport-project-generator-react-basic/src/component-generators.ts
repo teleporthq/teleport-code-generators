@@ -7,18 +7,16 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import {
   ComponentUIDL,
   ProjectUIDL,
   Mapping,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import {
   ChunkDefinition,
   ComponentGenerator,
   ProjectGeneratorOptions,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import reactProjectMapping from './react-project-mapping.json'
 

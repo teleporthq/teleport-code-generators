@@ -5,8 +5,8 @@ import {
   PublisherResponse,
   TemplateDefinition,
   LoadTemplateResponse,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ProjectUIDL,
+} from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
 import {
   NO_TEMPLATE_PROVIDED,

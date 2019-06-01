@@ -3,7 +3,7 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
   Publisher,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { NO_PROJECT_UIDL } from './errors'
 import { isNodeProcess, writeZipToDisk, generateProjectZip } from './utils'
 

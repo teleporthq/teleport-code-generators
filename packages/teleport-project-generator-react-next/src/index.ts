@@ -7,9 +7,9 @@ import {
   createManifestJSONFile,
   createPackageJSONFile,
   injectFilesInFolderStructure,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+} from '@teleporthq/teleport-shared/lib/utils/project-utils'
 
-import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import {
   ASSETS_PREFIX,
@@ -27,8 +27,9 @@ import {
   GeneratedFile,
   GenerateProjectFunction,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ComponentUIDL,
+  Mapping,
+} from '@teleporthq/teleport-types'
 
 export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()

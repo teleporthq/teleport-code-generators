@@ -3,7 +3,7 @@ import {
   Publisher,
   PublisherFactoryParams,
   PublisherFactory,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import { writeFolder } from './utils'
 import { NO_PROJECT_UIDL, NO_OUTPUT_PATH } from './errors'

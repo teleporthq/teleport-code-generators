@@ -3,7 +3,7 @@ import {
   Publisher,
   PublisherFactoryParams,
   PublisherFactory,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { BUILD_COMMAND, PUBLISH_DIRECTORY } from './constants'
 import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from './errors'
 import { deployToNetlify } from './netlifyClient'

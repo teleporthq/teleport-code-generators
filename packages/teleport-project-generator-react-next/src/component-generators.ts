@@ -7,9 +7,10 @@ import {
   ProjectGeneratorOptions,
   ComponentGenerator,
   ChunkDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { Mapping, ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+  Mapping,
+  ProjectUIDL,
+} from '@teleporthq/teleport-types'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 import { createDocumentComponentAST } from './utils'
 import nextMapping from './next-mapping.json'

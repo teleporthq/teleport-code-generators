@@ -1,6 +1,6 @@
 import preset from 'jss-preset-default'
 import jss from 'jss'
-import { UIDLStyleDefinitions, UIDLStyleValue } from '../typings/uidl'
+import { UIDLStyleDefinitions, UIDLStyleValue } from '@teleporthq/teleport-types'
 
 jss.setup(preset())
 

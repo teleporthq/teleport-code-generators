@@ -1,10 +1,7 @@
 import * as types from '@babel/types'
-import { makeDefaultExport } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
+import { makeDefaultExport } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface JSXConfig {
   componentChunkName: string

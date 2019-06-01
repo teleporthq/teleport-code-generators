@@ -1,25 +1,22 @@
 import * as t from '@babel/types'
-import { ParsedASTNode } from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
+import { ParsedASTNode } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import {
   camelCaseToDashCase,
   dashCaseToCamelCase,
-} from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   addJSXTagStyles,
   addDynamicAttributeOnTag,
-} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import {
   traverseElements,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
-} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-generator-shared/lib/utils/jss-utils'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string

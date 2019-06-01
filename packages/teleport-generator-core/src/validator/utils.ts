@@ -1,13 +1,6 @@
-import {
-  traverseNodes,
-  traverseElements,
-} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+import { traverseNodes, traverseElements } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
-import {
-  ProjectUIDL,
-  UIDLElement,
-  ComponentUIDL,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {

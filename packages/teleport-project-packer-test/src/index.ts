@@ -6,7 +6,7 @@ import vueGenerator from '@teleporthq/teleport-project-generator-vue-basic'
 import vueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
 

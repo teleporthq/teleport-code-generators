@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch'
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
-import { GeneratedFolder } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFolder } from '@teleporthq/teleport-types'
 import { CANNOT_ZIP_PROJECT } from './errors'
 import { NETLIFY_BASE_URL } from './constants'
 

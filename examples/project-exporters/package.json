@@ -17,7 +17,7 @@
     "typescript": "^3.4.5"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-shared": "^0.6.0",
     "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
     "@teleporthq/teleport-project-generator-react-next": "^0.6.0",
     "@teleporthq/teleport-project-generator-vue-basic": "^0.6.0",

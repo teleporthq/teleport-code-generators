@@ -4,18 +4,14 @@ import {
   elementNode,
   dynamicNode,
   definition,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 import {
   generateUniqueKeys,
   createNodesLookup,
   resolveChildren,
   resolveNavlinks,
 } from '../../src/resolver/utils'
-import {
-  UIDLElement,
-  UIDLNode,
-  UIDLStateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { UIDLElement, UIDLNode, UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {

@@ -4,7 +4,7 @@ import {
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
 } from '../../src/utils/uidl-utils'
-import { UIDLStyleDefinitions } from '../../src/typings/uidl'
+import { UIDLStyleDefinitions } from '@teleporthq/teleport-types'
 
 // @ts-ignore
 import uidlStyleJSON from './uidl-utils-style.json'

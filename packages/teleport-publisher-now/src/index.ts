@@ -3,7 +3,7 @@ import {
   Publisher,
   PublisherFactoryParams,
   PublisherFactory,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { NO_PROJECT_UIDL, NO_DEPLOY_TOKEN } from './errors'
 import { publishToNow, generateProjectFiles } from './utils'
 

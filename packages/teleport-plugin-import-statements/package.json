@@ -22,6 +22,7 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.6.0"
+    "@teleporthq/teleport-types": "^0.6.0",
+    "@teleporthq/teleport-shared": "^0.6.0"
   }
 }

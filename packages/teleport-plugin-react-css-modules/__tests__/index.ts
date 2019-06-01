@@ -2,11 +2,8 @@ import {
   component,
   elementNode,
   staticNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
-import {
-  ComponentStructure,
-  ChunkDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 
 describe('plugin-react-css-modules', () => {

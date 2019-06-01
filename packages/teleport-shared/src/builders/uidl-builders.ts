@@ -13,7 +13,7 @@ import {
   UIDLStateDefinition,
   UIDLConditionalNode,
   UIDLDynamicReference,
-} from '../typings/uidl'
+} from '@teleporthq/teleport-types'
 
 export const component = (
   name: string,

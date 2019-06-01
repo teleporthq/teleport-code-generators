@@ -5,8 +5,8 @@ import { removeDir, copyDirRec, readJSON, writeFolder } from '../utils/path-util
 import projectJson from '../../uidl-samples/project.json'
 
 import createVueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { ProjectGeneratorFunction } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ProjectUIDL } from '@teleporthq/teleport-shared/lib/typings/uidl'
+import { ProjectGeneratorFunction } from '@teleporthq/teleport-shared/lib/typings/generators'
 
 const writeToDisk = async (
   projectUIDL: ProjectUIDL,

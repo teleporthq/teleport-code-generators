@@ -1,12 +1,7 @@
 import * as utils from './utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
-import { cloneObject } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { GeneratorOptions } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import {
-  ComponentUIDL,
-  UIDLElement,
-  Mapping,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { sanitizeVariableName } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { cloneObject } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
