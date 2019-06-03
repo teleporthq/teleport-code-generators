@@ -79,7 +79,7 @@ All component generators are built on top of the generic `teleport-component-gen
 * teleport-component-generator-angular (coming soon)
 * teleport-component-generator-webcomponent (coming soon)
 
-#### Advanced capabilities
+#### Capabilities
 Here's a list of functionalities that the UIDL and the component generators are supporting at the moment, besides the obvious presentational layer:
 *  Dynamic values (props, state) inside html nodes or at attribute level
 *  Type definitions for component props (PropTypes in React, props in Vue)
@@ -102,7 +102,7 @@ Project generators rely on the component generators and on the structure of the 
 * teleport-project-generator-gatsby (coming soon)
 * teleport-project-generator-static (coming soon)
 
-#### Advanced Capabilities
+#### Capabilities
 Besides the regular files and folders generated at the end of the process, project generators are also taking care of:
 * Extracting all external dependencies and adding them to the `package.json`
 * Creating the entry point for each application (it can be an `index.html` or something that is framework specific)
@@ -123,7 +123,6 @@ A few useful links to get you up to speed with the entire **teleport** ecosystem
 * [Full Documentation](https://docs.teleporthq.io/)
 * [Component](https://docs.teleporthq.io/uidl-schema/v1/component.json) and [Project](https://docs.teleporthq.io/uidl-schema/v1/project.json) JSON Schemas
 * [Online REPL](https://repl.teleporthq.io/)
-* [Playground link](link coming soon)
 
 <h2 id="development">💻 Development</h2>
 
