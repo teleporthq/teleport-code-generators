@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-packer",
   "version": "0.6.0",
-  "description": "Teleport packer",
+  "description": "Bare-bone project packer that accepts any project generator and publisher",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

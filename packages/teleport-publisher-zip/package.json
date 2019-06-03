@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-publisher-zip",
   "version": "0.6.0",
-  "description": "Project zip publisher",
+  "description": "Creates an in-memory zip file from the generated project",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

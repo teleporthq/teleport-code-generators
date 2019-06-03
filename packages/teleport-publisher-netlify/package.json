@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-publisher-netlify",
   "version": "0.6.0",
-  "description": "Project netlify publisher",
+  "description": "Publishes a static site to netlify",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

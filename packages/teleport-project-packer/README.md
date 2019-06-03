@@ -1,14 +1,14 @@
-# teleport-types
+# teleport-project-packer
 
-The collection of reusable types across the entire teleport ecosystem.
+Bare-bone project packer that accepts any project generator and publisher.
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-types
+npm install @teleporthq/teleport-project-packer
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-types
+yarn add @teleporthq/teleport-project-packer
 ```

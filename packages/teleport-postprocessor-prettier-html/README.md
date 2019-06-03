@@ -1,11 +1,14 @@
-# `teleport-postprocessor-prettier-html`
+# teleport-postprocessor-prettier-html
 
-> TODO: description
+A post-processing function that formats html code chunks using prettier and the prettier-html plugin.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-postprocessor-prettier-html
 ```
-const teleportPostprocessorPrettierHtml = require('teleport-postprocessor-prettier-html');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-postprocessor-prettier-html
 ```

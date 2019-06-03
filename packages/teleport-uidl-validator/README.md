@@ -1,11 +1,14 @@
-# `teleport-generator-core`
+# teleport-uidl-validator
 
-> TODO: description
+A module that offers validation and parsing for non-standard UIDL structures.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-uidl-validator
 ```
-const teleportGeneratorCore = require('teleport-generator-core');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-uidl-validator
 ```

@@ -1,11 +1,14 @@
-# `teleport-postprocessor-prettier-js`
+# teleport-postprocessor-prettier-js
 
-> TODO: description
+A post-processing function that formats js code chunks using prettier and the prettier-js plugin.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-postprocessor-prettier-js
 ```
-const teleportPostprocessorPrettierJs = require('teleport-postprocessor-prettier-js');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-postprocessor-prettier-js
 ```
