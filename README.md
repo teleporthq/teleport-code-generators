@@ -72,7 +72,7 @@ We have **official** component generators for `React` and `Vue`, but we also pla
 All component generators are built on top of the generic `teleport-component-generator` package that offers the underlying structure. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
 
 #### Flavors
-* `teleport-component-generator-react` - with different styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
+* `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
 * `teleport-component-generator-vue` - generating standard `.vue` files
 * teleport-component-generator-angular (coming soon)
 * teleport-component-generator-webcomponent (coming soon)
@@ -91,10 +91,10 @@ Here's a list of functionalities that the UIDL and the component generators are 
 Project generators rely on the component generators and on the structure of the `ProjectUIDL` to figure out how many files to create and where to create them. The project generators will output an abstract structure with folders and files, without writing anything to disk. The project packer is tasked with taking the output of a project generator and publishing it somewhere.
 
 #### Flavors
-* `teleport-project-generator-react-basic`
-* `teleport-project-generator-react-next`
-* `teleport-project-generator-vue-basic`
-* `teleport-project-generator-vue-nuxt`
+* `teleport-project-generator-react-basic` - `react` + `react-router` and `css-modules` setup
+* `teleport-project-generator-react-next` - based on [Next.js](https://nextjs.org/)
+* `teleport-project-generator-vue-basic` - with a structure starting from the `vue-cli`
+* `teleport-project-generator-vue-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
 * teleport-project-generator-react-native (coming soon)
 * teleport-project-generator-angular (coming soon)
 * teleport-project-generator-gatsby (coming soon)
@@ -102,12 +102,13 @@ Project generators rely on the component generators and on the structure of the 
 
 #### Capabilities
 Besides the regular files and folders generated at the end of the process, project generators are also taking care of:
+* Support for global settings, meta tags, style, scripts, etc.
 * Extracting all external dependencies and adding them to the `package.json`
 * Creating the entry point for each application (it can be an `index.html` or something that is framework specific)
 * Generating a web manifest for PWA support
 
 ### Project Packers
-Once a project generator has generated the code for the components and pages, the project packer will take that output, put it on top of an existing project template, add any local assets required and then will pass the entire result to a publisher. The publishers are specialized in deploying the entire folder structure to a 3rd party like `now` or `github`, or in creating an in-memory `zip` file or simply writing the folder to `disk`.
+Once a generator created the code for the components and pages, the **project packer** will take that output, put it on top of an existing **project template**, add any local **assets** required and then will pass the entire result to a **publisher**. The publishers are specialized in deploying the entire folder structure to a 3rd party like `now` or `github`, or in creating an in-memory `zip` file or simply writing the folder to `disk`.
 
 #### Publishers
 * `teleport-publisher-now`
@@ -128,7 +129,6 @@ This project uses:
 * [TypeScript](https://www.typescriptlang.org/) for type safety and easy refactoring
 * [lerna](https://github.com/lerna/lerna) for managing the monorepo with multiple npm packages
 * [jest](https://jestjs.io/) for all types of tests and for calculating the code coverage
-*  for testing out the published packages in a local environment
 
 In order to give it a spin locally, we recommend using `yarn`, as it integrates better with `lerna` and all the contributors are using it:
 
