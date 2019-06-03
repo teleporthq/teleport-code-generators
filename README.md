@@ -53,8 +53,6 @@ Read more about the [UIDL Standard](https://docs.teleporthq.io/uidl/).
 The easiest way to jump into the teleport ecosystem is to try out one of the preconfigured component generators:
 * `teleport-component-generator-react`
 * `teleport-component-generator-vue`
-* teleport-component-generator-angular (coming soon)
-* teleport-component-generator-webcomponent (coming soon)
 
 TODO: fill up the quick setup guide
 
