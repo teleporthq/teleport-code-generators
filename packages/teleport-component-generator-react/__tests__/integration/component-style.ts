@@ -14,8 +14,7 @@ import ComponentWithNestedSinglePropRef from './component-with-nested-single-pro
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
 

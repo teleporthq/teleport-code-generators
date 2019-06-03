@@ -3,8 +3,8 @@ import { format } from 'prettier/standalone'
 import parserBabylon from 'prettier/parser-babylon'
 import parserPostCSS from 'prettier/parser-postcss'
 
-import { PRETTIER_CONFIG, FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
-import { PostProcessingFunction } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { PRETTIER_CONFIG, FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { PostProcessingFunction } from '@teleporthq/teleport-types'
 
 const processor: PostProcessingFunction = (codeChunks) => {
   if (codeChunks[FILE_TYPE.JS]) {

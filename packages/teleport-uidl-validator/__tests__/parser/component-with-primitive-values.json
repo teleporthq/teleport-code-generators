@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/component.json",
+  "name": "ComponentWithPrimitiveProps",
+  "propDefinitions": {
+    "test": {
+      "type": "string",
+      "defaultValue": "123"
+    },
+    "content": {
+      "type": "object",
+      "defaultValue": {
+        "heading": "Hello World"
+      }
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+
+      "style": {
+        "flexDirection": "$props.test",
+        "alignSelf": "center"
+      },
+
+      "attrs": {
+        "data-test": "$props.test",
+        "data-static": "I am just a static string",
+        "data-inner-value": "$props.content.heading"
+      },
+      
+      "children": [
+        "hello I am a test",
+        "$props.content.heading",
+        "$props.children",
+        {
+          "type": "element",
+          "content": {
+            "elementType": "container",
+            
+            "style": {
+              "flexDirection": "$props.test",
+              "alignSelf": "center"
+            },
+      
+            "attrs": {
+              "data-test": "$props.test",
+              "data-static": "I am just a static string",
+              "data-inner-value": "$props.content.heading"
+            },
+
+            "children": [
+              "hello I am a test",
+              "$props.content.heading",
+              "$props.children"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -2,20 +2,21 @@ import {
   AssetsDefinition,
   PublisherResponse,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ProjectUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ProjectUIDL,
+  Mapping,
+} from '@teleporthq/teleport-types'
 
-import createProjectPacker from '@teleporthq/teleport-project-packer'
+import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 
-import createReactGenerator from '@teleporthq/teleport-project-generator-react-basic'
-import createReactNextGenerator from '@teleporthq/teleport-project-generator-react-next'
-import createVueGenerator from '@teleporthq/teleport-project-generator-vue-basic'
-import createVueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
+import { createReactBasicGenerator } from '@teleporthq/teleport-project-generator-react-basic'
+import { createReactNextGenerator } from '@teleporthq/teleport-project-generator-react-next'
+import { createVueBasicGenerator } from '@teleporthq/teleport-project-generator-vue-basic'
+import { createVueNuxtGenerator } from '@teleporthq/teleport-project-generator-vue-nuxt'
 
-import createZipPublisher from '@teleporthq/teleport-publisher-zip'
-import createDiskPublisher from '@teleporthq/teleport-publisher-disk'
-import createNowPublisher from '@teleporthq/teleport-publisher-now'
-import createNetlifyPublisher from '@teleporthq/teleport-publisher-netlify'
+import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
+import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
+import { createNowPublisher } from '@teleporthq/teleport-publisher-now'
+import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 
 import {
   GITHUB_TEMPLATE_OWNER,
@@ -50,9 +51,9 @@ export interface PublisherDefinition {
 }
 
 const projectGenerators = {
-  ReactBasic: createReactGenerator,
+  ReactBasic: createReactBasicGenerator,
   ReactNext: createReactNextGenerator,
-  VueBasic: createVueGenerator,
+  VueBasic: createVueBasicGenerator,
   VueNuxt: createVueNuxtGenerator,
 }
 
@@ -90,7 +91,7 @@ const defaultPublisher = {
   meta: {},
 }
 
-const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
+export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
   const { assets, publisher, technology, template } = params
 
   const packer = createProjectPacker({ assets, template })
@@ -129,4 +130,4 @@ const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
   }
 }
 
-export default createPlaygroundPacker
+export default createPlaygroundPacker()

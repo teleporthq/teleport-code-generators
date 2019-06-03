@@ -4,7 +4,7 @@ import {
   GeneratedFolder,
   GeneratedFile,
   RemoteTemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { createGithubProvider } from './template-providers/github'
 
 export const fetchTemplate = async (template: RemoteTemplateDefinition) => {

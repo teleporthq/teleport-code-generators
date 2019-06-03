@@ -2,9 +2,9 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 
 import projectJson from '../../../examples/uidl-samples/project.json'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
-import createPlaygroundPacker, { PackerFactoryParams } from '../src/index'
+import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'
 
 import reactBasicVariation from './react-basic-variation.json'
 import reactNextVariation from './react-next-variation.json'
@@ -72,7 +72,7 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
 
-    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 

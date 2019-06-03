@@ -7,7 +7,7 @@ import {
   createPackageJSONFile,
   generateLocalDependenciesPrefix,
   injectFilesInFolderStructure,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+} from '@teleporthq/teleport-shared/lib/utils/project-utils'
 
 import {
   ASSETS_PREFIX,
@@ -18,8 +18,8 @@ import {
   DEFAULT_PUBLIC_FILES_PATH,
 } from './constants'
 
-import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { Validator, Parser } from '@teleporthq/teleport-generator-core'
+import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ProjectGeneratorOptions,
@@ -27,10 +27,11 @@ import {
   GeneratedFile,
   GenerateProjectFunction,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { Mapping, ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  Mapping,
+  ComponentUIDL,
+} from '@teleporthq/teleport-types'
 
-const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
   const vueGenerator = createVueGenerator(generatorOptions)
 
@@ -187,4 +188,4 @@ const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {})
   }
 }
 
-export default createVueBasicGenerator
+export default createVueBasicGenerator()

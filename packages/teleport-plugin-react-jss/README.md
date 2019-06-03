@@ -1,11 +1,14 @@
-# `teleport-plugin-react-jss`
+# teleport-plugin-react-jss
 
-> TODO: description
+A plugin for injecting the styles with JSS inside React components.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-react-jss
 ```
-const teleportPluginReactJss = require('teleport-plugin-react-jss');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-react-jss
 ```

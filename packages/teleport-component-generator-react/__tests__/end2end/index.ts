@@ -4,8 +4,7 @@ import uidlSampleJSON from '../../../../examples/test-samples/component-sample.j
 import invalidUidlSampleJSON from '../../../../examples/test-samples/component-invalid-sample.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL

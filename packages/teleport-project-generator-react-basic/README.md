@@ -1,11 +1,14 @@
-# `teleport-project-generator-react-basic`
+# teleport-project-generator-react-basic
 
-> TODO: description
+Project generator using React and React-Router, on top of a standard webpack config.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-react-basic
 ```
-const teleportProjectGeneratorReactBasic = require('teleport-project-generator-react-basic');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-react-basic
 ```

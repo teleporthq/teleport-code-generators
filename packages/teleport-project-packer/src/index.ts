@@ -5,8 +5,8 @@ import {
   PublisherResponse,
   TemplateDefinition,
   LoadTemplateResponse,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ProjectUIDL,
+} from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
 import {
   NO_TEMPLATE_PROVIDED,
@@ -33,7 +33,7 @@ export type PackerFactory = (
   setTemplate: (template: TemplateDefinition) => void
 }
 
-const createTeleportPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
+export const createProjectPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
   let { assets, generatorFunction, publisher, template } = params
   let templateLoaded = false
 
@@ -122,4 +122,4 @@ const createTeleportPacker: PackerFactory = (params: PackerFactoryParams = {}) =
   }
 }
 
-export default createTeleportPacker
+export default createProjectPacker()

@@ -1,9 +1,9 @@
-import { PostProcessingFunction } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { PostProcessingFunction } from '@teleporthq/teleport-types'
 import {
   removeLastEmptyLine,
   addSpacesToEachLine,
-} from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+} from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 const processor: PostProcessingFunction = (codeChunks) => {
   let jsCode

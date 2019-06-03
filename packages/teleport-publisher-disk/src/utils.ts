@@ -1,10 +1,7 @@
 import { existsSync, mkdir, writeFile } from 'fs'
 import { join } from 'path'
 
-import {
-  GeneratedFolder,
-  GeneratedFile,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 
 export const writeFolder = async (folder: GeneratedFolder, currentPath: string): Promise<void> => {
   const { name, files, subFolders } = folder

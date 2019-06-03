@@ -6,19 +6,17 @@ import projectJson from '../../../examples/uidl-samples/project.json'
 // @ts-ignore
 import templateDefinition from './template-definition.json'
 
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/src/typings/uidl'
 import {
+  ProjectUIDL,
   AssetsDefinition,
   TemplateDefinition,
   Publisher,
   ProjectGeneratorOutput,
-} from '@teleporthq/teleport-generator-shared/src/typings/generators'
-import {
   GeneratedFolder,
   GeneratedFile,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
-import createTeleportPacker from '../src'
+import { createProjectPacker } from '../src'
 import {
   NO_TEMPLATE_PROVIDED,
   NO_REMOTE_TEMPLATE_PROVIDED,
@@ -41,7 +39,7 @@ const assetsData = {
 
 describe('teleport generic project packer', () => {
   it('creates a new instance of generic packer', () => {
-    const packer = createTeleportPacker()
+    const packer = createProjectPacker()
     expect(packer.loadTemplate).toBeDefined()
     expect(packer.pack).toBeDefined()
     expect(packer.setAssets).toBeDefined()
@@ -51,7 +49,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('can set properties from generic packer', () => {
-    const packer = createTeleportPacker()
+    const packer = createProjectPacker()
 
     const assets: AssetsDefinition = { assets: [] }
     const template: TemplateDefinition = {}
@@ -63,7 +61,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should fail to load template if no template definition is provided', async () => {
-    const packer = createTeleportPacker()
+    const packer = createProjectPacker()
 
     const { success, payload } = await packer.loadTemplate()
     expect(success).toBeFalsy()
@@ -71,7 +69,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should load template if template folder is described in the definition', async () => {
-    const packer = createTeleportPacker({
+    const packer = createProjectPacker({
       template: templateDefinition,
     })
 
@@ -81,7 +79,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should fail to load template if no folder or remote meta is described in the definition', async () => {
-    const packer = createTeleportPacker({
+    const packer = createProjectPacker({
       template: {},
     })
 
@@ -91,7 +89,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should fail to pack if no template is provided', async () => {
-    const packer = createTeleportPacker()
+    const packer = createProjectPacker()
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
     expect(success).toBeFalsy()
@@ -99,7 +97,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should fail to pack if no generator function is provided', async () => {
-    const packer = createTeleportPacker()
+    const packer = createProjectPacker()
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
       template: templateDefinition,
@@ -109,7 +107,7 @@ describe('teleport generic project packer', () => {
   })
 
   it('should fail to pack if no publisher is provider', async () => {
-    const packer = createTeleportPacker({
+    const packer = createProjectPacker({
       generatorFunction: dummyGeneratorFunction,
       template: templateDefinition,
     })
@@ -121,7 +119,7 @@ describe('teleport generic project packer', () => {
 
   it('should pack if all required data is provided', async () => {
     const publisher = createDummyPublisher()
-    const packer = createTeleportPacker({
+    const packer = createProjectPacker({
       publisher,
       generatorFunction: dummyGeneratorFunction,
       template: templateDefinition,

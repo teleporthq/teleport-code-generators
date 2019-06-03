@@ -11,7 +11,7 @@ import {
   constants,
 } from 'fs'
 
-import createDiskPublisher from '../src'
+import { createDiskPublisher } from '../src'
 
 import project from './project-files.json'
 import { NO_PROJECT_UIDL, NO_OUTPUT_PATH } from '../src/errors'

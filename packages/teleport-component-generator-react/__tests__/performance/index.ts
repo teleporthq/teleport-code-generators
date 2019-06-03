@@ -6,7 +6,7 @@ import bigUIDL from './big-sample.json'
 import { createReactComponentGenerator } from '../../src'
 
 import { performance } from 'perf_hooks'
-import { ComponentUIDL, UIDLElement } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ComponentUIDL, UIDLElement } from '@teleporthq/teleport-types'
 
 const componentUIDL = componentUIDLJSON as ComponentUIDL
 

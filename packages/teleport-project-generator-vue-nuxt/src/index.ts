@@ -17,10 +17,10 @@ import {
   joinGeneratorOutputs,
   generateLocalDependenciesPrefix,
   injectFilesInFolderStructure,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
+} from '@teleporthq/teleport-shared/lib/utils/project-utils'
 
-import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { Validator, Parser } from '@teleporthq/teleport-generator-core'
+import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ProjectGeneratorOptions,
@@ -28,10 +28,11 @@ import {
   GeneratedFile,
   GenerateProjectFunction,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ComponentUIDL,
+  Mapping,
+} from '@teleporthq/teleport-types'
 
-const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
   const vueGenerator = createVueGenerator(generatorOptions)
 
@@ -183,4 +184,4 @@ const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) 
   }
 }
 
-export default createVueNuxtGenerator
+export default createVueNuxtGenerator()

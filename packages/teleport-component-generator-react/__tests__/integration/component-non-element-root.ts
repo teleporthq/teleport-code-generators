@@ -4,14 +4,12 @@ import ComponentWithConditionalRootStringNode from '../integration/component-wit
 import ComponentWithConditionalRootArrayNode from '../integration/component-with-conditional-root-array-child-node.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFile } from '@teleporthq/teleport-types'
 import {
   component,
   staticNode,
   dynamicNode,
-  elementNode,
-  conditionalNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>

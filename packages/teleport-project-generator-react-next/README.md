@@ -1,11 +1,14 @@
-# `teleport-project-generator-react-next`
+# teleport-project-generator-react-next
 
-> TODO: description
+Project generator for a standard Next.js project.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-react-next
 ```
-const teleportProjectGeneratorReactNext = require('teleport-project-generator-react-next');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-react-next
 ```

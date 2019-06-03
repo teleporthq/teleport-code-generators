@@ -1,11 +1,14 @@
-# `teleport-vue-app-routing`
+# teleport-plugin-vue-app-routing
 
-> TODO: description
+A plugin for generating the routing file for a Vue project.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-vue-app-routing
 ```
-const teleportVueAppRouting = require('teleport-vue-app-routing');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-vue-app-routing
 ```

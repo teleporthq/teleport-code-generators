@@ -1,10 +1,6 @@
 import { createGenerator } from '../src/index'
-import {
-  elementNode,
-  element,
-  component,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
-import { ChunkDefinition } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { elementNode, element, component } from '../../teleport-shared/lib/builders/uidl-builders'
+import { ChunkDefinition } from '@teleporthq/teleport-types'
 
 describe('component generator', () => {
   it('creates a new instance of the generator', () => {

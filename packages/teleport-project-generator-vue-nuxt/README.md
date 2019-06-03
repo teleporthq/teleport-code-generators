@@ -1,11 +1,14 @@
-# `teleport-project-generator-vue-nuxt`
+# teleport-project-generator-vue-nuxt
 
-> TODO: description
+Project generator for a standard Nuxt.js project.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-vue-nuxt
 ```
-const teleportProjectGeneratorVueNuxt = require('teleport-project-generator-vue-nuxt');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-vue-nuxt
 ```

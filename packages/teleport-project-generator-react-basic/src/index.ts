@@ -12,8 +12,8 @@ import {
   createManifestJSONFile,
   generateLocalDependenciesPrefix,
   injectFilesInFolderStructure,
-} from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { extractRoutes } from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import {
   ASSETS_PREFIX,
   DEFAULT_PACKAGE_JSON,
@@ -23,7 +23,7 @@ import {
   DEFAULT_SRC_FILES_PATH,
 } from './constants'
 
-import { Validator, Parser } from '@teleporthq/teleport-generator-core'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ComponentFactoryParams,
@@ -31,10 +31,11 @@ import {
   GeneratedFile,
   GenerateProjectFunction,
   TemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { ComponentUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  ComponentUIDL,
+  Mapping,
+} from '@teleporthq/teleport-types'
 
-const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
   const validator = new Validator()
   const reactGenerator = createComponentGenerator(generatorOptions)
 
@@ -189,4 +190,4 @@ const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {
   }
 }
 
-export default createReactBasicGenerator
+export default createReactBasicGenerator()

@@ -1,11 +1,14 @@
-# `teleport-react-inline-styles`
+# teleport-plugin-react-inline-style
 
-> TODO: description
+A plugin for injecting the styles as inline styles inside React components.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-react-inline-style
 ```
-const teleportReactInlineStyles = require('teleport-react-inline-styles');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-react-inline-style
 ```

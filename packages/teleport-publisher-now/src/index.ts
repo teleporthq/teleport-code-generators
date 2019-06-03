@@ -3,7 +3,7 @@ import {
   Publisher,
   PublisherFactoryParams,
   PublisherFactory,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { NO_PROJECT_UIDL, NO_DEPLOY_TOKEN } from './errors'
 import { publishToNow, generateProjectFiles } from './utils'
 
@@ -20,7 +20,7 @@ const defaultPublisherParams = {
   deployToken: null,
 }
 
-const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
+export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
   params: NowFactoryParams = defaultPublisherParams
 ): NowPublisher => {
   let { project, deployToken } = params
@@ -64,4 +64,4 @@ const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
   }
 }
 
-export default createNowPublisher
+export default createNowPublisher()

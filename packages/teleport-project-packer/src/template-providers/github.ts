@@ -4,7 +4,7 @@ import {
   GeneratedFile,
   GithubProjectMeta,
   TemplateProvider,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { GITHUB_API_BASE_URL } from '../constants'
 import { NO_GITHUB_REPO, NO_GITHUB_OWNER } from '../errors'
 

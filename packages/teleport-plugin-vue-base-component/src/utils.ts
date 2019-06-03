@@ -1,14 +1,14 @@
 import * as types from '@babel/types'
 
-import * as htmlUtils from '@teleporthq/teleport-generator-shared/lib/utils/html-utils'
+import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
 import {
   objectToObjectExpression,
   convertValueToLiteral,
-} from '@teleporthq/teleport-generator-shared/lib/utils/ast-js-utils'
+} from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import {
   capitalize,
   dashCaseToUpperCamelCase,
-} from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
@@ -20,12 +20,10 @@ import {
   UIDLRepeatNode,
   UIDLConditionalNode,
   UIDLSlotNode,
-} from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import {
   NodeSyntaxGenerator,
   HastNode,
   AttributeAssignCodeMod,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import { ERROR_LOG_NAME } from '.'
 

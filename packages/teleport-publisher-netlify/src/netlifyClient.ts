@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch'
-import ZipPublisher from '@teleporthq/teleport-publisher-zip'
-import { GeneratedFolder } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
+import { GeneratedFolder } from '@teleporthq/teleport-types'
 import { CANNOT_ZIP_PROJECT } from './errors'
 import { NETLIFY_BASE_URL } from './constants'
 
@@ -8,7 +8,7 @@ export const deployToNetlify = async (
   project: GeneratedFolder,
   accessToken: string
 ): Promise<string> => {
-  const zipContent = await ZipPublisher({ project }).publish()
+  const zipContent = await createZipPublisher({ project }).publish()
   if (!zipContent.success) {
     throw new Error(CANNOT_ZIP_PROJECT)
   }
