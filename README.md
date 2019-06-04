@@ -127,7 +127,7 @@ export default {
 You can play with the UIDL structure and also observe the generated code in [the online REPL](https://repl.teleporthq.io/).
 
 ### Building your custom component generator
-All the preconfigured component generators are exposing an instance of the `teleport-component-generator` package. Naturally, you can install the package and build your own generator with [plugins](/component-generators/plugins.html), [mappings](/component-generators/mappings.html) and [postprocessors](/component-generators/post-processors.html).
+All the preconfigured component generators are exposing an instance of the `teleport-component-generator` package. Naturally, you can install the package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
 
 Let's configure a `React` component generator that uses `styled-jsx` and formats all code with `prettier`:
 
@@ -156,7 +156,7 @@ const generator = createGenerator()
 
 Next, we have to consider any specific **mapping** for React. By default, the `teleport-component-generator` performs a mapping from the abstract UIDL elements to HTML elements.
 
-Jump to the [mappings section](/component-generators/mappings.html#file-structure) to better understand the structure of a mapping file. A React mapping could look like this:
+Jump to the [mappings section](https://docs.teleporthq.io/component-generators/mappings.html#file-structure) to better understand the structure of a mapping file. A React mapping could look like this:
 
 ```json
 {
