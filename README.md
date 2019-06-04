@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.7 - Alpha!</h2>
+<h2 align="center">Code Generators v0.7 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
