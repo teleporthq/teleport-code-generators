@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.6 - Alpha!</h2>
+<h2 align="center">Code Generators v0.7 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -10,6 +10,8 @@
   <a href="#quick-setup">Quick Setup</a>
   <span> · </span>
   <a href="#features">Features</a>
+  <span> · </span>
+  <a href="https://docs.teleporthq.io">Documentation</a>
   <span> · </span>
   <a href="#development">Development</a>
   <span> · </span>
@@ -24,210 +26,304 @@
   <a target="_blank" href="https://codecov.io/gh/teleporthq/teleport-code-generators"><img src="https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg" /></a>
   <a target="_blank" href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" /></a>
   <img src="https://img.shields.io/npm/l/@teleporthq/teleport-code-generators.svg" />
-  <a target="_blank" href="https://bundlephobia.com/result?p=@teleporthq/teleport-code-generators"><img src="https://img.shields.io/bundlephobia/minzip/@teleporthq/teleport-code-generators.svg" /></a>
   <a target="_blank" href="https://twitter.com/teleporthqio"><img src="https://img.shields.io/twitter/follow/teleporthqio.svg" /></a>
 </p>
 
-This is a **WIP prototype** containing all of our project and component generators, as well as the **UIDL** schemas and validators. While we have some working examples, it shouldn't be considered production ready by any means! Don't hesitate to give us feedback and feel free to contribute in any way!
+We are not far from the **first official version** of the code generators, but meanwhile, keep in mind that this is not yet production ready!
 
 <h2 id="what">🤔 What is this?</h2>
 
 The **code generators** are a part of the **teleportHQ** ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
 
-The code generators are used by our online **visual editor** (coming soon), a platform that lets you build applications via a familiar design tool interface. The glue between our platform and the code generators is the [**UIDL Standard**](link coming soon). The UIDL allows us to define **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself, which then allows us to convert that abstraction into different flavors of coding (e.g. React, Vue, etc.).
+The code generators are used by the online **visual editor** (coming soon), a platform that lets you build applications via a familiar design tool interface. The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
 
-Our philosophy behind the code generators is:
-* User interfaces are decomposed into **components**, hence our focus on component generation
+The philosophy behind the code generators is:
+* User interfaces are decomposed into **components**, hence the focus on component generation
 * What can be built with `React`, can also be built with `Vue` or on top of the `Web Components` standard - we support multiple targets
 * A project built with the visual editor should have a **high standard of quality** (performance, security, accessibility included)
 * Generated **code quality** should be as high as possible, so that any developer could pick up the work from there on and enhance the project
 * The code generation architecture is open and extendable, we invite everyone to contribute!
 
-You can also read more on our [decision to open source our code generators](link coming soon).
-
-Read more about the [UIDL Standard](link coming soon).
+Read more about the [UIDL Standard](https://docs.teleporthq.io/uidl/).
 
 <h2 id="quick-setup">🚀 Quick Setup</h2>
 
-While this will probably remain a [monorepo](https://danluu.com/monorepo/), we'll publish different **npm** packages for various parts of our code generation ecosystem. For now, there's a single package published under `@teleporthq/teleport-code-generators`. So, let's integrate that into your project:
+### Using a preconfigured component generator
 
+The easiest way to jump into the teleport ecosystem is to try out one of the pre-configured **component generators**:
 ```bash
-npm install @teleporthq/teleport-code-generators
+npm install @teleporthq/teleport-component-generator-react
+npm install @teleporthq/teleport-component-generator-vue
+```
+or using yarn:
+```bash
+yarn add @teleporthq/teleport-component-generator-react
+yarn add @teleporthq/teleport-component-generator-vue
 ```
 
-```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-code-generators'
+For generating a simple component, you have to start from a **component UIDL**:
 
-// instantiate a react generator
-const reactGenerator = createReactComponentGenerator()
-
-// define a UIDL representation
-const componentUIDL = {
-  "name": "MyComponent",
-  "node": {
-    "type": "element",
-    "content": {
-      "elementType": "text", // equivalent of the span
-      "children": [{
-        "type": "static", // equivalent of the text node inside
-        "content": "Teleport World!"
-      }]
-    }
-  }
-}
-
-// get the code
-reactGenerator
-  .generateComponent(componentUIDL)
-  .then(result => {
-    console.log(result.files[0].content)
-  })
-  .catch(err => {
-    console.log(err)
-  })
-```
-
-The code output from this snippet would be
-```jsx
-import React from "react"
-
-const MyComponent = props => {
-  return <span>Teleport World!</span>
-}
-
-export default MyComponent
-```
-
-You can find more advanced UIDL samples to play with [here](https://github.com/teleporthq/teleport-code-generators/tree/master/examples/uidl-samples).
-
-<h2 id="features">💼 Features</h2>
-
-This repo contains multiple **modules** that will soon be available as individual `npm` **packages**. There are two types of generators available: component and project generators. Component generators take a simple **ComponentUIDL** input and return the **code** according to the specific generator flavors (e.g. React + StyledJSX, Vue, etc.). Project generators operate on **ProjectUIDL**s and will return a complete structure of `folders` and `files` which then can be written to disk or sent to servers for deployment. The aim of the project generators is to output a **working application**.
-
-### Component Generators
-
-We have **official** component generators for `React` and `Vue`, but we also plan on supporting other frameworks and standards as soon as possible. Also, `React Native` is definitely on our minds, since we've designed the UIDL in such a way that it's agnostic of the web platform.
-
-There are two **factory functions** exported from our main module, for the React and Vue generators.
-
-#### React
-
-```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-code-generators'
-
-// define a UIDL representation
-const componentUIDL = {
-  "name": "MyComponent",
+```json
+{
+  "name": "My First Component",
   "node": {
     "type": "element",
     "content": {
       "elementType": "text",
-      "children": [{
-        "type": "static",
-        "content": "Teleport World!"
-      }]
+      "children": [
+        {
+          "type": "static",
+          "content": "Hello World!"
+        }
+      ]
     }
   }
 }
-
-/* instantiate a generator, selecting the styled-jsx plugin for handling styles
-(other options: CSSModules, JSS, InlineStyles, StyledComponents) */
-const reactGenerator = createReactComponentGenerator({ variation: 'StyledJSX' })
-
-// get the code
-reactGenerator
-  .generateComponent(componentUIDL)
-  .then(result => {
-    console.log(result.files[0].content)
-  })
-  .catch(err => {
-    console.log(err)
-  })
 ```
 
-Read more about [the API of the component generator](link coming soon).
-
-Read more about [mappings and resolvers](link coming soon).
-
-#### Vue
+Using the pre-configured component generators is as easy as calling an *async* function:
 
 ```javascript
-import { createVueComponentGenerator } from '@teleporthq/teleport-code-generators'
+import ReactGenerator from '@teleporthq/teleport-component-generator-react'
 
-// define a UIDL representation 
-const componentUIDL = {
-  "name": "MyComponent",
+const uidl = { ... } // your sample here
+
+const { files } = await ReactGenerator.generateComponent(uidl)
+console.log(files[0].content)
+```
+The console output will be something like:
+```javascript
+import React from 'react'
+
+const MyFirstComponent = (props) => {
+  return <span>Hello World!</span>
+}
+
+export default MyFirstComponent
+```
+
+For the `Vue` generator, just switch the package:
+```javascript
+import VueGenerator from '@teleporthq/teleport-component-generator-vue'
+
+const uidl = { ... } // your sample here
+
+const { files } = await VueGenerator.generateComponent(uidl)
+console.log(files[0].content)
+```
+The console output will be something like:
+```vue
+<template>
+  <span>Hello World!</span>
+</template>
+
+<script>
+export default {
+  name: 'MyFirstComponent',
+}
+</script>
+```
+
+You can play with the UIDL structure and also observe the generated code in [the online REPL](https://repl.teleporthq.io/).
+
+### Building your custom component generator
+All the preconfigured component generators are exposing an instance of the `teleport-component-generator` package. Naturally, you can install the package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
+
+Let's configure a `React` component generator that uses `styled-jsx` and formats all code with `prettier`:
+
+First install the dependencies:
+```
+npm install @teleporthq/teleport-component-generator
+npm install @teleporthq/teleport-plugin-react-base-component
+npm install @teleporthq/teleport-plugin-react-styled-jsx
+npm install @teleporthq/teleport-plugin-react-proptypes
+npm install @teleporthq/teleport-plugin-import-statements
+npm install @teleporthq/teleport-postprocessor-prettier-js
+```
+
+Then, we import all dependencies and we create the component generator, using the factory, a named export from the module:
+
+```javascript
+import { createGenerator } from '@teleporthq/teleport-component-generator'
+import reactPlugin from '@teleporthq/teleport-plugin-react-base-component'
+import styledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
+import propTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+
+const generator = createGenerator()
+```
+
+Next, we have to consider any specific **mapping** for React. By default, the `teleport-component-generator` performs a mapping from the abstract UIDL elements to HTML elements.
+
+Jump to the [mappings section](https://docs.teleporthq.io/component-generators/mappings.html#file-structure) to better understand the structure of a mapping file. A React mapping could look like this:
+
+```json
+{
+  "elements": {
+    "group": {
+      "elementType": "Fragment",
+      "dependency": {
+        "type": "library",
+        "path": "react",
+        "meta": {
+          "namedImport": true
+        }
+      }
+    }
+  }
+}
+```
+
+The **official `React` mapping** is maintained inside [`teleport-component-generator-react`](https://github.com/teleporthq/teleport-code-generators/blob/master/packages/teleport-component-generator-react/src/react-mapping.json)
+
+Add the mapping:
+```javascript
+import reactMapping from './react-mapping.json'
+
+generator.addMapping(reactMapping)
+```
+
+> You can add as many mappings as you wish on one generator, they will override the elements and events that were previously mapped with the same key.
+
+Next, we can add all our **plugins** to the existing generator. Note that the **order** of the plugins is important as they will be run in **sequence** on the input UIDL:
+
+```javascript
+generator.addPlugin(reactPlugin)
+generator.addPlugin(styledJSXPlugin)
+generator.addPlugin(propTypesPlugin)
+generator.addPlugin(importStatementsPlugin)
+```
+
+Finally, we can add the post-processors:
+
+```javascript
+generator.addPostProcessor(prettierJS)
+```
+
+Now, we can test the generator. Considering the following UIDL:
+
+```json
+{
+  "name": "React Component",
   "node": {
     "type": "element",
     "content": {
-      "elementType": "text", // equivalent of the span
-      "children": [{
-        "type": "static", // equivalent of the text node inside
-        "content": "Teleport World!"
-      }]
+      "elementType": "container",
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "style": {
+              "color": {
+                "type": "static",
+                "content": "red"
+              }
+            },
+            "children": [
+              {
+                "type": "static",
+                "content": "World!"
+              }
+            ]
+          }
+        }
+      ]
     }
   }
 }
-
-// instantiate a vue generator
-const vueGenerator = createVueComponentGenerator()
-
-// get the code
-vueGenerator
-  .generateComponent(componentUIDL)
-  .then(result => {
-    console.log(result.files[0].content)
-  })
-  .catch(err => {
-    console.log(err)
-  })
 ```
 
-#### Advanced capabilities
+calling the generator:
+
+```javascript
+await generator.generateComponent(uidl)
+```
+
+should yield:
+
+```javascript
+import React from 'react'
+
+const ReactComponent = (props) => {
+  return (
+    <div>
+      <span className="text">World!</span>
+      <style jsx>
+        {`
+          .text {
+            color: red;
+          }
+        `}
+      </style>
+    </div>
+  )
+}
+
+export default ReactComponent
+```
+
+<h2 id="features">💼 Features</h2>
+
+The teleport ecosystem consists of **three** main categories of packages: *component generators*, *project generators* and *project packers*.
+
+### Component Generators
+We have **official** component generators for `React` and `Vue`, but we also plan on supporting other frameworks and standards as soon as possible. Also, `React Native` is definitely on our minds, since we've designed the UIDL in such a way that it's agnostic of the web platform.
+
+All component generators are built on top of the generic `teleport-component-generator` package that offers the underlying structure. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
+
+#### Flavors
+* `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
+* `teleport-component-generator-vue` - generating standard `.vue` files
+* teleport-component-generator-angular (coming soon)
+* teleport-component-generator-webcomponent (coming soon)
+
+#### Capabilities
 Here's a list of functionalities that the UIDL and the component generators are supporting at the moment, besides the obvious presentational layer:
 *  Dynamic values (props, state) inside html nodes or at attribute level
 *  Type definitions for component props (PropTypes in React, props in Vue)
 *  External dependencies definition
-*  Simple component state (Hooks in React)
+*  Simple component state (using hooks in React, component instance in Vue)
 *  Event Handlers (related to state changes)
 *  Repeat structures (.map in React, v-for in Vue)
+*  Support for slots
 
 ### Project Generators
+Project generators rely on the component generators and on the structure of the `ProjectUIDL` to figure out how many files to create and where to create them. The project generators will output an abstract structure with folders and files, without writing anything to disk. The project packer is tasked with taking the output of a project generator and publishing it somewhere.
 
-We have **official** project generators for the two different frameworks we're supporting so far. For `React`, we can generate a project based on a `React` and `React-Router` template, or we can generate a project on top of `Next.js`. For `Vue`, we have a standard `Vue` app, build with the `vue-cli` and a generator for `Nuxt`.
+#### Flavors
+* `teleport-project-generator-react-basic` - `react` + `react-router` and `css-modules` setup
+* `teleport-project-generator-react-next` - based on [Next.js](https://nextjs.org/)
+* `teleport-project-generator-vue-basic` - with a structure starting from the `vue-cli`
+* `teleport-project-generator-vue-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
+* teleport-project-generator-react-native (coming soon)
+* teleport-project-generator-angular (coming soon)
+* teleport-project-generator-gatsby (coming soon)
+* teleport-project-generator-static (coming soon)
 
-Project generators rely on the component generators and on the structure of the `ProjectUIDL` to figure out how many files to create and where to create them. Each project generator has its own strategy, based on the particularities of that specific framework/tool.
-
-#### React + React-Router
-
-Coming soon
-
-#### Next
-
-Coming soon
-
-#### Vue
-
-Coming soon
-
-#### Nuxt
-
-Coming soon
-
-#### Advanced Capabilities
+#### Capabilities
 Besides the regular files and folders generated at the end of the process, project generators are also taking care of:
+* Support for global settings, meta tags, style, scripts, etc.
 * Extracting all external dependencies and adding them to the `package.json`
 * Creating the entry point for each application (it can be an `index.html` or something that is framework specific)
 * Generating a web manifest for PWA support
 
-Full documentation coming soon.
+### Project Packers
+Once a generator created the code for the components and pages, the **project packer** will take that output, put it on top of an existing **project template**, add any local **assets** required and then will pass the entire result to a **publisher**. The publishers are specialized in deploying the entire folder structure to a 3rd party like `now` or `github`, or in creating an in-memory `zip` file or simply writing the folder to `disk`.
+
+#### Publishers
+* `teleport-publisher-now`
+* `teleport-publisher-netlify`
+* `teleport-publisher-github`
+* `teleport-publisher-zip`
+* `teleport-publisher-disk`
 
 ### Further Reading
 A few useful links to get you up to speed with the entire **teleport** ecosystem:
-* [Component](link coming soon) and [Project](link coming soon) JSON Schemas
-* [Full Documentation](link coming soon)
-* [Introducing the new Generators](link coming soon)
-* [Playground link](link coming soon)
+* [Full Documentation](https://docs.teleporthq.io/)
+* [Component](https://docs.teleporthq.io/uidl-schema/v1/component.json) and [Project](https://docs.teleporthq.io/uidl-schema/v1/project.json) JSON Schemas
+* [Online REPL](https://repl.teleporthq.io/)
 
 <h2 id="development">💻 Development</h2>
 
@@ -235,10 +331,8 @@ This project uses:
 * [TypeScript](https://www.typescriptlang.org/) for type safety and easy refactoring
 * [lerna](https://github.com/lerna/lerna) for managing the monorepo with multiple npm packages
 * [jest](https://jestjs.io/) for all types of tests and for calculating the code coverage
-* [verdaccio](https://verdaccio.org/) for testing out the published packages in a local environment
 
-
-In order to give it a spin locally, we recommend using `yarn`, as it integrates better with `lerna` and all the contributors are using:
+In order to give it a spin locally, we recommend using `yarn`, as it integrates better with `lerna` and all the contributors are using it:
 
 ```
 yarn
@@ -258,58 +352,23 @@ yarn test
 yarn test:coverage
 ```
 
-Additionally, we have a separate project inside the solution that is testing the project generator packages. You will find this in the `/examples/project-exporters` folder. This solution however, requires the packages to be published on a registry. For testing the immediate changes on a project generator, we rely on `verdaccio` as a private local npm server.
-
-To use verdaccio you have to install it globally and then run it (starts the server on port 4873 by default):
+Furthermore, there's a `private` package inside the lerna folder called `teleport-project-packer-test`. That packages can be used to **test** the code/file generation process with any flavor of project/component generator. In order to give it a spin:
 ```
-yarn global add verdaccio
-verdaccio
+cd packages/teleport-project-packer-test
+npm start
 ```
-
-You need to setup a user on your local server (follow the instructions):
-```
-npm adduser --registry http://localhost:4873
-```
-
-Finally, you can publish all the packages with lerna on the local verdaccio server:
-```
-yarn local:publish
-```
-
-If you navigate to `https://localhost:4873` you should see your published packages.
-
-Now it's time to move to the project exporter:
-```
-cd examples/project-exporters
-yarn
-```
-
-After the dependencies are installed (including the teleporthq packages from verdaccio), you can generate the projects locally, with one of the four tasks:
-
-```
-npm run create-react-basic
-npm run create-react-next
-npm run create-vue-basic
-npm run create-vue-nuxt
-```
-
-Files and folders for each template are generated after you run the corresponding npm task in `/examples/projects-exporters/<project-template>/dist`.
+This version of the packer uses the UIDLs from the `examples/uidl-sample`. If the process runs successfully, you will see the responoses from the project packer in the format: `{ success: true, payload: 'dist' }`. The task uses the `teleport-publisher-disk` package and generates four different project files in the `dist` folder.
 
 Please [open an issue](https://github.com/teleporthq/teleport-code-generators/issues) for any irregularity, potential bug that you find while running this, or if you simply have any questions or curiosities about this project.
 
 <h2 id="planning">🤖 Planning</h2>
 
-It's not just our code that's open source, we're also planning the development of the code generators on GitHub. We already have [a number of issues](https://github.com/teleporthq/teleport-code-generators/issues) opened and we expect further contributions on this.
+It's not just our code that's open source, we're also planning the development of the code generators on GitHub. We have [a number of issues](https://github.com/teleporthq/teleport-code-generators/issues) opened and we expect further contributions on this.
 
-We're especially interested in opening discussions around the issues tagged with the [`proposal`](https://github.com/teleporthq/teleport-code-generators/issues?q=is%3Aissue+is%3Aopen+label%3Aproposal) label.
-
-We also have a couple of milestone down the line:
-
-### Beta Release 0.7
-We plan on releasing this around mid May 2019. Most of the issues tackled during this milestone [can be found here](https://github.com/teleporthq/teleport-code-generators/milestone/4).
+We're especially interested in opening discussions around the issues tagged with the [`discussion`](https://github.com/teleporthq/teleport-code-generators/issues?q=is%3Aissue+is%3Aopen+label%3Adiscussion) label.
 
 ### Official Release
-Our official release will be a switch to version `1.0`. ETA for this is around mid June/July 2019. Hopefully, by then, we'll have more people contributing to the code generators.
+The official release will be a switch to version `1.0`. ETA for this is around mid July 2019.
 
 <h2 id="contributions">💕 Contributions</h2>
 

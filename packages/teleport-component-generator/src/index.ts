@@ -1,13 +1,10 @@
-import {
-  AssemblyLine,
-  Builder,
-  Resolver,
-  Validator,
-  Parser,
-} from '@teleporthq/teleport-generator-core'
+import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+import AssemblyLine from './assembly-line'
+import Builder from './builder'
+import Resolver from './resolver'
 
-import { createFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 import {
   ChunkDefinition,
@@ -16,9 +13,8 @@ import {
   GenerateComponentFunction,
   ComponentPlugin,
   PostProcessingFunction,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-
-import { Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+  Mapping,
+} from '@teleporthq/teleport-types'
 
 import htmlMapping from './html-mapping.json'
 

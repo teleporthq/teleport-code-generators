@@ -3,15 +3,16 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-generator-shared/lib/utils/project-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
-import { ProjectUIDL, Mapping } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
 import {
+  ProjectUIDL,
+  Mapping,
   ChunkDefinition,
   ProjectGeneratorOptions,
   ComponentGenerator,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 import nuxtMapping from './nuxt-mapping.json'
 

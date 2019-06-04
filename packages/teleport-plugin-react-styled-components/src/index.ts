@@ -1,17 +1,14 @@
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledComponent, countPropReferences } from './utils'
 import {
   traverseElements,
   transformDynamicStyles,
-} from '@teleporthq/teleport-generator-shared/lib/utils/uidl-utils'
-import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-generator-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   createJSXSpreadAttribute,
   addDynamicAttributeOnTag,
-} from '@teleporthq/teleport-generator-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string

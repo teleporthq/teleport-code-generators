@@ -1,8 +1,4 @@
-import {
-  GeneratedFolder,
-  PublisherFactory,
-  GithubAuthMeta,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFolder, PublisherFactory, GithubAuthMeta } from '@teleporthq/teleport-types'
 
 import { publishToGithub, generateProjectFiles } from './utils'
 import { GithubFactoryParams, GithubPublisher, GithubPublishMeta } from './types'

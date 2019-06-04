@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/teleporthq/teleport-code-generators/master/packages/teleport-generator-core/src/uidl-schemas/component.json",
+    "$schema": "https://docs.teleporthq.io/uidl-schema/v1/component.json",
     "name": "ComponentWithSingleProp",
     "propDefinitions": {
       "direction": {

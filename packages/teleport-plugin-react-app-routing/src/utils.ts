@@ -1,5 +1,5 @@
 import * as t from '@babel/types'
-import { ComponentDependency } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { ComponentDependency } from '@teleporthq/teleport-types'
 
 export const registerRouterDeps = (dependencies: Record<string, ComponentDependency>): void => {
   dependencies.React = {

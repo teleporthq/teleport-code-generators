@@ -1,11 +1,12 @@
 import { createGithubGateway } from '@teleporthq/teleport-github-gateway'
+
 import {
   AssetsDefinition,
   AssetInfo,
   GeneratedFolder,
   GeneratedFile,
   RemoteTemplateDefinition,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 
 export const fetchTemplate = async (template: RemoteTemplateDefinition) => {
   if (template.githubRepo) {

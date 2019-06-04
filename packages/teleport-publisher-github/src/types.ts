@@ -3,7 +3,7 @@ import {
   PublisherFactoryParams,
   Publisher,
   GeneratedFolder,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { GithubFile } from '../../teleport-github-gateway/lib/types'
 
 export interface GithubFactoryParams extends PublisherFactoryParams {

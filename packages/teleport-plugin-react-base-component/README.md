@@ -1,11 +1,14 @@
-# `teleport-react-base-component`
+# teleport-plugin-react-base-component
 
-> TODO: description
+A plugin for handling the skeleton/baseline of a React component.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-react-base-component
 ```
-const teleportReactBaseComponent = require('teleport-react-base-component');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-react-base-component
 ```

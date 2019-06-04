@@ -1,10 +1,5 @@
 import fetch from 'cross-fetch'
-import {
-  GeneratedFolder,
-  GeneratedFile,
-  GithubAuthMeta,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-
+import { GeneratedFolder, GeneratedFile, GithubAuthMeta } from '@teleporthq/teleport-types'
 import { GithubFile, FilesFetcherMeta, GithubCreateResponse } from './types'
 
 import { DEFAULT_REF, GITHUB_API_BASE_URL } from './constants'

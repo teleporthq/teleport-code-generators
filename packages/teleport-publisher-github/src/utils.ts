@@ -1,7 +1,4 @@
-import {
-  GeneratedFolder,
-  GeneratedFile,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 import {
   GithubFile,
   RepositoryIdentity,

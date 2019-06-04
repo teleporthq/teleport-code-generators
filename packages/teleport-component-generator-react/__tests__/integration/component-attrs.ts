@@ -2,7 +2,7 @@
 import ComponentWithOldFormatAttributesJSON from './component-with-old-format-attributes.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFile } from '@teleporthq/teleport-types'
 
 import {
   component,
@@ -10,7 +10,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const uidl = component(
   'ComponentWithAttrProp',

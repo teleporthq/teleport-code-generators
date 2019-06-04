@@ -1,5 +1,4 @@
 import { createGithubGateway } from '../src'
-import { RepositoryIdentity } from '../src/types'
 import GithubInstance from '../src/github-instance'
 
 describe('teleport github gateway', () => {

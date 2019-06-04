@@ -1,8 +1,5 @@
 import fetch from 'cross-fetch'
-import {
-  GeneratedFolder,
-  GeneratedFile,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 import { NEXT_CONFIG, NEXT_CONFIG_FILE, DEPLOY_URL, NOW_LINK_PREFIX } from './constants'
 
 interface ProjectFolderInfo {

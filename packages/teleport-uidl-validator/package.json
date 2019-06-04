@@ -1,0 +1,29 @@
+{
+  "name": "@teleporthq/teleport-uidl-validator",
+  "version": "0.6.0",
+  "description": "A module that offers validation and parsing for non-standard UIDL structures",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-types": "^0.6.0",
+    "@teleporthq/teleport-shared": "^0.6.0",
+    "ajv": "^6.10.0"
+  }
+}

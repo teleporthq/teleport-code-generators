@@ -1,12 +1,12 @@
 import { createReactComponentGenerator } from '../../src'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GeneratedFile } from '@teleporthq/teleport-types'
 
 import {
   component,
   definition,
   elementNode,
   componentDependency,
-} from '@teleporthq/teleport-generator-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const generator = createReactComponentGenerator()
 

@@ -1,9 +1,6 @@
 import { generateVueComponentJS, generateNodeSyntax, extractStateObject } from './utils'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
-import { FILE_TYPE } from '@teleporthq/teleport-generator-shared/lib/constants'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string

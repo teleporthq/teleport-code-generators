@@ -1,11 +1,14 @@
-# `teleport-plugin-styled-components`
+# teleport-plugin-react-styled-components
 
-> TODO: description
+A plugin for injecting the styles through styled-components inside React components.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-react-styled-components
 ```
-const teleportPluginStyledComponents = require('teleport-plugin-styled-components');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-react-styled-components
 ```

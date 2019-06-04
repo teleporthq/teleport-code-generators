@@ -4,8 +4,7 @@ import ComponentWithValidJSON from './component-with-valid-style.json'
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
 
 import { createVueComponentGenerator } from '../../src'
-import { ComponentUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
-import { GeneratedFile } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
 

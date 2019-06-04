@@ -1,7 +1,4 @@
-import {
-  GithubAuthMeta,
-  GeneratedFolder,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GithubAuthMeta, GeneratedFolder } from '@teleporthq/teleport-types'
 import GithubInstance from './github-instance'
 
 export type GithubGatewayFactory = (auth?: GithubAuthMeta) => GithubGateway

@@ -22,7 +22,7 @@
     "start": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/index.ts"
   },
   "dependencies": {
-    "@teleporthq/teleport-generator-shared": "^0.6.0",
+    "@teleporthq/teleport-types": "^0.6.0",
     "@teleporthq/teleport-project-packer": "^0.6.0",
     "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
     "@teleporthq/teleport-project-generator-react-next": "^0.6.0",

@@ -1,6 +1,6 @@
 import Github from 'github-api'
 
-import { GithubAuthMeta } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GithubAuthMeta } from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_REF,

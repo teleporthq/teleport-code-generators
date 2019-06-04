@@ -1,4 +1,4 @@
-import { GithubAuthMeta } from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+import { GithubAuthMeta } from '@teleporthq/teleport-types'
 
 import GithubInstance from './github-instance'
 import { createEmptyFolder, fetchFilesContent } from './utils'

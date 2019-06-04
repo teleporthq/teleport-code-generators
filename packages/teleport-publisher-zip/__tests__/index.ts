@@ -2,7 +2,7 @@ import { join } from 'path'
 import { existsSync, readdirSync, unlinkSync, rmdirSync, statSync } from 'fs'
 import JSZip from 'jszip'
 
-import createZipPublisher from '../src'
+import { createZipPublisher } from '../src'
 
 import project from './project-files.json'
 import { NO_PROJECT_UIDL } from '../src/errors'

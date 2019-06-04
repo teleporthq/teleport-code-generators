@@ -5,6 +5,12 @@
   "version": "0.6.0",
   "useWorkspaces": true,
   "npmClient": "yarn",
+  "command": {
+    "version": {
+      "allowBranch": "master",
+      "message": "chore(release): 'publish %s'"
+    }
+  },
   "changelog": {
     "repo": "teleporthq/teleport-code-generators",
     "cacheDir": ".changelog",

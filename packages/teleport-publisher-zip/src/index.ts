@@ -3,7 +3,7 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
   Publisher,
-} from '@teleporthq/teleport-generator-shared/lib/typings/generators'
+} from '@teleporthq/teleport-types'
 import { NO_PROJECT_UIDL } from './errors'
 import { isNodeProcess, writeZipToDisk, generateProjectZip } from './utils'
 
@@ -18,7 +18,7 @@ export interface ZipPublisher extends Publisher<ZipFactoryParams, ZipPublisherRe
   setOutputPath: (path: string) => void
 }
 
-const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
+export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
   params: ZipFactoryParams = {}
 ): ZipPublisher => {
   const { projectName } = params
@@ -62,4 +62,4 @@ const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
   }
 }
 
-export default createZipPublisher
+export default createZipPublisher()

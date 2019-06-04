@@ -1,11 +1,14 @@
-# `teleport-vue-base-component`
+# teleport-plugin-vue-base-component
 
-> TODO: description
+A plugin for handling the skeleton/baseline for a Vue component.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-plugin-vue-base-component
 ```
-const teleportVueBaseComponent = require('teleport-vue-base-component');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-plugin-vue-base-component
 ```

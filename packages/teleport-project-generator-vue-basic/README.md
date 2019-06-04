@@ -1,11 +1,14 @@
-# `teleport-project-generator-vue-basic`
+# teleport-project-generator-vue-basic
 
-> TODO: description
+Project generator using Vue and Vue-Router.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-vue-basic
 ```
-const teleportProjectGeneratorVueBasic = require('teleport-project-generator-vue-basic');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-vue-basic
 ```

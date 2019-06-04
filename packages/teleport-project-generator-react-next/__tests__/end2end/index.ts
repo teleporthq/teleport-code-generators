@@ -3,8 +3,8 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 // @ts-ignore
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 
-import createReactNextGenerator from '../../src'
-import { ProjectUIDL } from '@teleporthq/teleport-generator-shared/lib/typings/uidl'
+import { createReactNextGenerator } from '../../src'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import template from './template-definition.json'
 

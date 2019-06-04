@@ -15,7 +15,9 @@
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
     "add-contributor": "all-contributors add",
-    "publish": "lerna run publish",
+    "changelog": "lerna-changelog",
+    "version": "lerna version",
+    "publish": "lerna publish from-git",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
