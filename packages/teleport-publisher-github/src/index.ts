@@ -76,7 +76,7 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
         repositoryOwner: repoOwner,
       }
 
-      const projectFiles = generateProjectFiles({ folder: project, ignoreFolder: true })
+      const projectFiles = generateProjectFiles({ folder: projectToPublish, ignoreFolder: true })
 
       const result = await publishToGithub(projectFiles, githubPublishMeta)
       return { success: true, payload: result }
@@ -110,71 +110,3 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
 }
 
 export default createGithubPublisher()
-
-// const projData = {
-//   name: 'project-name',
-//   files: [
-//     {
-//       name: 'package',
-//       fileType: 'json',
-//       content: 'package.json content',
-//     },
-//   ],
-//   subFolders: [
-//     {
-//       name: 'pages',
-//       files: [
-//         {
-//           name: 'index',
-//           fileType: 'js',
-//           content: 'index file content',
-//         },
-//       ],
-//       subFolders: [],
-//     },
-//     {
-//       name: 'components',
-//       files: [
-//         {
-//           name: 'Navbar',
-//           fileType: 'js',
-//           content: 'navbar content',
-//         },
-//       ],
-//       subFolders: [],
-//     },
-//     {
-//       name: 'static',
-//       files: [],
-//       subFolders: [],
-//     },
-//   ],
-// }
-
-// const publisher = createGithubPublisher({
-//   project: projData,
-//   commitBranch: 'hehe',
-//   repository: 'muchalucha',
-//   repositoryOwner: 'ionutpasca',
-//   commitMessage: 'my commit message',
-//   authMeta: { token: '5f2e598d7e6b85454531f55ba29ca869e589e07b' },
-// })
-
-// publisher
-//   .publish()
-//   .then((res) => {
-//     console.log(res)
-//   })
-//   .catch((error) => {
-//     console.log(error)
-//   })
-
-// publisher
-//   .createRepo()
-//   .then((result) => {
-//     const x = result
-//     console.log('x', x)
-//   })
-//   .catch((err) => {
-//     console.log('error', err)
-//   })
