@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-packer",
+  "name": "@teleporthq/teleport-github-gateway",
   "version": "0.6.0",
-  "description": "Bare-bone project packer that accepts any project generator and publisher",
+  "description": "Teleport github gateway - use this package if you require a github integration",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -22,8 +22,8 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-github-gateway": "^0.6.0",
     "@teleporthq/teleport-types": "^0.6.0",
+    "github-api": "^3.2.0",
     "cross-fetch": "^3.0.2"
   }
 }

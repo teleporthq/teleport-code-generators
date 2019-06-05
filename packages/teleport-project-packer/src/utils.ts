@@ -1,3 +1,5 @@
+import { createGithubGateway } from '@teleporthq/teleport-github-gateway'
+
 import {
   AssetsDefinition,
   AssetInfo,
@@ -5,12 +7,12 @@ import {
   GeneratedFile,
   RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
-import { createGithubProvider } from './template-providers/github'
 
 export const fetchTemplate = async (template: RemoteTemplateDefinition) => {
   if (template.githubRepo) {
-    const templateProvider = createGithubProvider(template.githubRepo)
-    return templateProvider.getTemplateAsFolder()
+    const authData = template.githubRepo.auth || {}
+    const githubGateway = createGithubGateway(authData)
+    return githubGateway.getRepository(template.githubRepo)
   }
 }
 

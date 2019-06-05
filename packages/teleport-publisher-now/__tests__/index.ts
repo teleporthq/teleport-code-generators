@@ -1,7 +1,9 @@
 import { createNowPublisher } from '../src'
 
-import project from './project-files.json'
 import { NO_PROJECT_UIDL, NO_DEPLOY_TOKEN } from '../lib/errors'
+
+// @ts-ignore
+import project from './project-files.json'
 
 const token = 'deploy-token'
 

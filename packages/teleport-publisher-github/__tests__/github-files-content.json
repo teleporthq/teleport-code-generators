@@ -1,0 +1,15 @@
+[
+  {
+    "name": "package.json",
+    "content": "package.json content"
+  },
+  {
+    "name": "pages/index.js",
+    "content": "index file content",
+    "encoding": "base64"
+  },
+  {
+    "name": "components/Navbar.js",
+    "content": "navbar content"
+  }
+]

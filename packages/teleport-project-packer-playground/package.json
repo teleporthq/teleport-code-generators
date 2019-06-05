@@ -32,6 +32,7 @@
     "@teleporthq/teleport-publisher-netlify": "^0.6.0",
     "@teleporthq/teleport-publisher-now": "^0.6.0",
     "@teleporthq/teleport-publisher-zip": "^0.6.0",
+    "@teleporthq/teleport-publisher-github": "^0.6.0",
     "@teleporthq/teleport-project-packer": "^0.6.0"
   }
 }
