@@ -1,11 +1,8 @@
 ## v0.7.0 (2019-06-05)
 
 #### :rocket: New Feature
-  * [#232](https://github.com/teleporthq/teleport-code-generators/pull/232) (feat-#197) Project Packers and publishers, supporting publish for netlify, now, local dist and zip. ([@ionutpasca](https://github.com/ionutpasca))
   * [#227](https://github.com/teleporthq/teleport-code-generators/pull/227) feat(navlinks): transitionTo can now refer to the state key, not the url ([@alexnm](https://github.com/alexnm))
-  * [#218](https://github.com/teleporthq/teleport-code-generators/pull/218) feat(component-gen): A Generic component generatorby splitting post processing. ([@alexnm](https://github.com/alexnm))
   * [#194](https://github.com/teleporthq/teleport-code-generators/pull/194) (feat): Mongorepo structure by the adopting Lerna ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
-  * [#195](https://github.com/teleporthq/teleport-code-generators/pull/195) (feat): Plugin support for Styled Components ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
 #### :electric_plug: React Generators
 * `teleport-component-generator-react`, `teleport-generator-shared`, `teleport-plugin-react-base-component`
@@ -24,6 +21,10 @@
 * Other
   * [#195](https://github.com/teleporthq/teleport-code-generators/pull/195) (feat): Plugin support for Styled Components ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
   * [#201](https://github.com/teleporthq/teleport-code-generators/pull/201) fix(style-flavours): Fixed style flavours w.r.t to their behaviour ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :package: Project Packer
+  * [#249](https://github.com/teleporthq/teleport-code-generators/pull/249) Feature/234 GitHub gateway ([@ionutpasca](https://github.com/ionutpasca))
+  * [#232](https://github.com/teleporthq/teleport-code-generators/pull/232) (feat-#197) Project Packers and publishers, supporting publish for netlify, now, local dist and zip. ([@ionutpasca](https://github.com/ionutpasca))
 
 #### :earth_asia: Core
   * [#225](https://github.com/teleporthq/teleport-code-generators/pull/225) feat(proj-gen): reusing linker functionality + formatting from generic component generators ([@alexnm](https://github.com/alexnm))
