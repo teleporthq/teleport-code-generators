@@ -9,11 +9,11 @@ import {
 } from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
 import {
-  NO_TEMPLATE_PROVIDED,
   NO_GENERATOR_FUNCTION_PROVIDED,
   NO_PUBLISHER_PROVIDED,
   NO_REMOTE_TEMPLATE_PROVIDED,
 } from './errors'
+import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
   publisher?: Publisher<any, any>
@@ -56,10 +56,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
   const loadTemplate = async (
     templateToLoad?: TemplateDefinition
   ): Promise<LoadTemplateResponse> => {
-    template = templateToLoad || template
-    if (!template) {
-      return { success: false, payload: NO_TEMPLATE_PROVIDED }
-    }
+    template = templateToLoad || template || DEFAULT_TEMPLATE
 
     if (template.templateFolder) {
       return { success: true, payload: template.templateFolder }
@@ -82,9 +79,6 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     const definedProjectUIDL = uidl
 
     const packTemplate = packParams.template || template
-    if (!packTemplate) {
-      return { success: false, payload: NO_TEMPLATE_PROVIDED }
-    }
 
     const packGeneratorFunction = packParams.generatorFunction || generatorFunction
     if (!packGeneratorFunction) {

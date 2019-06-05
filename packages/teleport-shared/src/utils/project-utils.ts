@@ -261,12 +261,12 @@ export const generateLocalDependenciesPrefix = (
   meta: LocalDependenciesMeta
 ): string => {
   const initialComponentsPath =
-    template.meta && template.meta.componentsPath
+    template && template.meta && template.meta.componentsPath
       ? template.meta.componentsPath
       : [].concat(meta.defaultComponentsPath)
 
   const initialPagesPath =
-    template.meta && template.meta.pagesPath
+    template && template.meta && template.meta.pagesPath
       ? template.meta.pagesPath
       : [].concat(meta.defaultPagesPath)
 
