@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-packer",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Bare-bone project packer that accepts any project generator and publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,8 +22,8 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-github-gateway": "^0.6.0",
-    "@teleporthq/teleport-types": "^0.6.0",
+    "@teleporthq/teleport-github-gateway": "^0.7.0",
+    "@teleporthq/teleport-types": "^0.7.0",
     "cross-fetch": "^3.0.2"
   }
 }

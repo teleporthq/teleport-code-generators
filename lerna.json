@@ -2,7 +2,7 @@
   "packages": [
     "packages/*"
   ],
-  "version": "0.6.0",
+  "version": "0.7.0",
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
@@ -14,7 +14,9 @@
   "changelog": {
     "repo": "teleporthq/teleport-code-generators",
     "cacheDir": ".changelog",
-    "ignoreCommitters": ["allcontributors"],
+    "ignoreCommitters": [
+      "allcontributors"
+    ],
     "labels": {
       "enhancement": ":rocket: New Feature",
       "react generators": ":electric_plug: React Generators",

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-now",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Publishes a generated folder structure to now",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.6.0",
+    "@teleporthq/teleport-types": "^0.7.0",
     "cross-fetch": "^3.0.2"
   }
 }

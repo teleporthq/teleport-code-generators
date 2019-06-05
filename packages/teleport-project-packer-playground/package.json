@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-packer-playground",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Teleport playground packer - use this package is you want to use all the project generators and all the publishers only from one package",
   "author": "teleportHQ",
   "license": "MIT",
@@ -23,16 +23,16 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.6.0",
-    "@teleporthq/teleport-project-generator-react-basic": "^0.6.0",
-    "@teleporthq/teleport-project-generator-react-next": "^0.6.0",
-    "@teleporthq/teleport-project-generator-vue-basic": "^0.6.0",
-    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.6.0",
-    "@teleporthq/teleport-publisher-disk": "^0.6.0",
-    "@teleporthq/teleport-publisher-netlify": "^0.6.0",
-    "@teleporthq/teleport-publisher-now": "^0.6.0",
-    "@teleporthq/teleport-publisher-zip": "^0.6.0",
-    "@teleporthq/teleport-publisher-github": "^0.6.0",
-    "@teleporthq/teleport-project-packer": "^0.6.0"
+    "@teleporthq/teleport-project-generator-react-basic": "^0.7.0",
+    "@teleporthq/teleport-project-generator-react-next": "^0.7.0",
+    "@teleporthq/teleport-project-generator-vue-basic": "^0.7.0",
+    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.7.0",
+    "@teleporthq/teleport-project-packer": "^0.7.0",
+    "@teleporthq/teleport-publisher-disk": "^0.7.0",
+    "@teleporthq/teleport-publisher-github": "^0.7.0",
+    "@teleporthq/teleport-publisher-netlify": "^0.7.0",
+    "@teleporthq/teleport-publisher-now": "^0.7.0",
+    "@teleporthq/teleport-publisher-zip": "^0.7.0",
+    "@teleporthq/teleport-types": "^0.7.0"
   }
 }

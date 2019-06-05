@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-jss",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A plugin for injecting the styles with JSS inside React components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,8 +22,8 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.6.0",
-    "@teleporthq/teleport-types": "^0.6.0",
-    "@babel/types": "^7.3.3"
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-shared": "^0.7.0",
+    "@teleporthq/teleport-types": "^0.7.0"
   }
 }

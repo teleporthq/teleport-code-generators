@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-js",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A post-processing function that formats js code chunks using prettier and the prettier-js plugin",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,8 +22,8 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.6.0",
-    "@teleporthq/teleport-shared": "^0.6.0",
+    "@teleporthq/teleport-shared": "^0.7.0",
+    "@teleporthq/teleport-types": "^0.7.0",
     "prettier": "^1.17.0"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-vue-basic",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Project generator using Vue and Vue-Router",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,14 +22,14 @@
     "build:watch": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.6.0",
-    "@teleporthq/teleport-shared": "^0.6.0",
-    "@teleporthq/teleport-uidl-validator": "^0.6.0",
-    "@teleporthq/teleport-component-generator-vue": "^0.6.0",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.6.0",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.6.0",
-    "@teleporthq/teleport-plugin-import-statements": "^0.6.0",
-    "@teleporthq/teleport-plugin-vue-app-routing": "^0.6.0",
-    "@teleporthq/teleport-component-generator": "^0.6.0"
+    "@teleporthq/teleport-component-generator": "^0.7.0",
+    "@teleporthq/teleport-component-generator-vue": "^0.7.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.7.0",
+    "@teleporthq/teleport-plugin-vue-app-routing": "^0.7.0",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.7.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.7.0",
+    "@teleporthq/teleport-shared": "^0.7.0",
+    "@teleporthq/teleport-types": "^0.7.0",
+    "@teleporthq/teleport-uidl-validator": "^0.7.0"
   }
 }
