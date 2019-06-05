@@ -41,7 +41,7 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
-    template: TemplateDefinition,
+    template: TemplateDefinition = {},
     options: ProjectGeneratorOptions = {}
   ) => {
     // Step 0: Validate project input

@@ -177,7 +177,7 @@ export interface ProjectGeneratorOutput {
 
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
-  template: TemplateDefinition,
+  template?: TemplateDefinition,
   options?: ProjectGeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 

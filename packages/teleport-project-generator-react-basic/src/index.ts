@@ -45,7 +45,7 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
-    template: TemplateDefinition,
+    template: TemplateDefinition = {},
     options: ProjectGeneratorOptions = {}
   ) => {
     // Step 0: Validate project input and transform to UIDL and validate content of UIDL

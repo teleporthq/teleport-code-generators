@@ -18,11 +18,11 @@ import {
 
 import { createProjectPacker } from '../src'
 import {
-  NO_TEMPLATE_PROVIDED,
   NO_REMOTE_TEMPLATE_PROVIDED,
   NO_GENERATOR_FUNCTION_PROVIDED,
   NO_PUBLISHER_PROVIDED,
 } from '../src/errors'
+import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -60,12 +60,12 @@ describe('teleport generic project packer', () => {
     expect(() => packer.setPublisher(publisher)).not.toThrow()
   })
 
-  it('should fail to load template if no template definition is provided', async () => {
+  it('should load default template if no template definition is provided', async () => {
     const packer = createProjectPacker()
 
     const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_TEMPLATE_PROVIDED)
+    expect(success).toBeTruthy()
+    expect(JSON.stringify(payload)).toBe(JSON.stringify(DEFAULT_TEMPLATE.templateFolder))
   })
 
   it('should load template if template folder is described in the definition', async () => {
@@ -86,14 +86,6 @@ describe('teleport generic project packer', () => {
     const { success, payload } = await packer.loadTemplate()
     expect(success).toBeFalsy()
     expect(payload).toBe(NO_REMOTE_TEMPLATE_PROVIDED)
-  })
-
-  it('should fail to pack if no template is provided', async () => {
-    const packer = createProjectPacker()
-
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_TEMPLATE_PROVIDED)
   })
 
   it('should fail to pack if no generator function is provided', async () => {

@@ -17,19 +17,12 @@ const generators = {
   'vue-nuxt': vueNuxtGenerator,
 }
 
-const publisher = createDiskPublisher({ outputPath: 'dist' })
+const publisher = createDiskPublisher({
+  outputPath: 'dist',
+})
 
 const packProject = async (projectType: string) => {
-  const template = {
-    templateFolder: {
-      name: projectType,
-      files: [],
-      subFolders: [],
-    },
-  }
-
   projectPacker.setPublisher(publisher)
-  projectPacker.setTemplate(template)
   projectPacker.setGeneratorFunction(generators[projectType].generateProject)
 
   const result = await projectPacker.pack(projectUIDL as ProjectUIDL)
