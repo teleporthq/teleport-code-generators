@@ -189,7 +189,7 @@ generator.addMapping(reactMapping)
 Next, we can add all our **plugins** to the existing generator. Note that the **order** of the plugins is important as they will be run in **sequence** on the input UIDL:
 
 ```javascript
-generator.addPlugin(reactPlugin)
+generator.addPlugin(reactPlugin) // the base plugin needs to be the first one!
 generator.addPlugin(styledJSXPlugin)
 generator.addPlugin(propTypesPlugin)
 generator.addPlugin(importStatementsPlugin)
