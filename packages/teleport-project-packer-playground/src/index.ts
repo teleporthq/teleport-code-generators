@@ -117,9 +117,9 @@ const defaultPublisher = {
 }
 
 export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
-  const { assets, publisher, technology, template, remoteTemplateDefinition } = params
+  const { assets, publisher, technology, template } = params
 
-  const packer = createProjectPacker({ assets, template, remoteTemplateDefinition })
+  const packer = createProjectPacker({ assets, template })
 
   const pack = async (
     projectUIDL: ProjectUIDL,
@@ -150,12 +150,20 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     packer.setGeneratorFunction(projectGenerator.generateProject)
     packer.setPublisher(projectPublisher)
 
-    const remoteGithubTemplate = projectTemplates[packTechnology.type]
-    const projectTemplate = packParams.template || template
-    if (projectTemplate) {
-      packer.setTemplate(projectTemplate)
+    const remoteGithubTemplate =
+      projectTemplates[packTechnology.type] || projectTemplates[TEMPLATES.REACT_NEXT]
+
+    if (packParams.template) {
+      // First priority for the template passed as a param for pack()
+      packer.setTemplate(packParams.template)
+    } else if (packParams.remoteTemplateDefinition) {
+      // Second priority for the remote template definition passed as param for pack()
+      await packer.loadTemplate(packParams.remoteTemplateDefinition)
+    } else if (template) {
+      // Third priority for the template passed to the factory function
+      packer.setTemplate(template)
     } else {
-      // load template from github
+      // Fourth priority for the remote definition associated with the technology (default to next.js)
       await packer.loadTemplate(remoteGithubTemplate)
     }
 

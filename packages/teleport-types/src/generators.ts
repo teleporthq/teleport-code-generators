@@ -130,7 +130,6 @@ export interface ComponentGeneratorOutput {
 
 export interface ProjectGeneratorOptions {
   sourcePackageJson?: PackageJSON
-  distPath?: string
   customMapping?: Mapping
   skipValidation?: boolean
 }
