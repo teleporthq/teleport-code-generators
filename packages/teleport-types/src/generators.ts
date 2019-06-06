@@ -227,27 +227,18 @@ export interface AssetInfo {
 export type ProjectStructure = Record<string, string[]>
 
 export interface RemoteTemplateDefinition {
-  githubRepo?: GithubProjectMeta
-}
-
-export interface GithubProjectMeta {
+  provider: 'github'
   username: string
   repo: string
-  auth?: GithubAuthMeta
+  auth?: ServiceAuth
 }
 
-export interface GithubAuthMeta {
+export interface ServiceAuth {
   basic?: {
     username: string
     password: string
   }
   token?: string
-}
-
-export type TemplateProvider<T> = (
-  config?: T
-) => {
-  getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
 }
 
 export interface FilesPathRecord {

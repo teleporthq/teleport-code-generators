@@ -25,8 +25,8 @@ const generators = {
   'vue-nuxt': vueNuxtGenerator,
 }
 
-const getGithubRemoteDefinition = (username: string, repo: string) => {
-  return { githubRepo: { username, repo } }
+const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
+  return { username, repo, provider: 'github' }
 }
 
 const templates = {
@@ -44,8 +44,8 @@ const packProject = async (projectType: string) => {
   const remoteTemplate = templates[projectType] as RemoteTemplateDefinition
 
   // fill in with your github token - https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line
-  remoteTemplate.githubRepo.auth = {
-    token: '<your token here>',
+  remoteTemplate.auth = {
+    token: '<your-token-here>',
   }
 
   projectPacker.setPublisher(publisher)

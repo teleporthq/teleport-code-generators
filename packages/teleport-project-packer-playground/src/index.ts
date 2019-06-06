@@ -3,7 +3,7 @@ import {
   PublisherResponse,
   ProjectUIDL,
   Mapping,
-  GithubAuthMeta,
+  ServiceAuth,
   GeneratedFolder,
   RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
@@ -57,7 +57,7 @@ export interface PublisherDefinition {
     projectName?: string
   }
   github?: {
-    authMeta?: GithubAuthMeta
+    authMeta?: ServiceAuth
     repositoryOwner?: string
     repository?: string
     masterBranch?: string
@@ -88,8 +88,8 @@ const projectPublishers: Record<string, SupportedPublishers> = {
   [PUBLISHERS.GITHUB]: createGithubPublisher,
 }
 
-const getGithubRemoteDefinition = (username: string, repo: string) => {
-  return { githubRepo: { username, repo } }
+const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
+  return { username, repo, provider: 'github' }
 }
 
 const projectTemplates = {

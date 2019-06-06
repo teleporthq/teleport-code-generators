@@ -1,4 +1,4 @@
-import { GithubAuthMeta } from '@teleporthq/teleport-types'
+import { ServiceAuth } from '@teleporthq/teleport-types'
 
 import GithubInstance from './github-instance'
 import { createEmptyFolder, fetchFilesContent } from './utils'
@@ -11,10 +11,10 @@ import {
   GithubCommitMeta,
 } from './types'
 
-export const createGithubGateway: GithubGatewayFactory = (auth: GithubAuthMeta = {}) => {
+export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
   const githubInstance = new GithubInstance(auth)
 
-  const getRepository = async (repoIdentity: RepositoryIdentity, authData?: GithubAuthMeta) => {
+  const getRepository = async (repoIdentity: RepositoryIdentity, authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
 
     const { data } = await githubInstance.getRepoContent(repoIdentity)
@@ -26,22 +26,22 @@ export const createGithubGateway: GithubGatewayFactory = (auth: GithubAuthMeta =
     return fetchFilesContent(data as GithubFile[], emptyFolder, filesFetcherMeta)
   }
 
-  const getUserRepositories = async (username: string, authData?: GithubAuthMeta) => {
+  const getUserRepositories = async (username: string, authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.getUserRepositories(username)
   }
 
-  const createRepository = async (repository: NewRepository, authData?: GithubAuthMeta) => {
+  const createRepository = async (repository: NewRepository, authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.createRepository(repository)
   }
 
-  const commitFilesToRepo = async (commitMeta: GithubCommitMeta, authData: GithubAuthMeta) => {
+  const commitFilesToRepo = async (commitMeta: GithubCommitMeta, authData: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.commitFilesToRepo(commitMeta)
   }
 
-  const authorizeGithubInstance = (authData?: GithubAuthMeta): void => {
+  const authorizeGithubInstance = (authData?: ServiceAuth): void => {
     if (!authData) {
       return
     }
