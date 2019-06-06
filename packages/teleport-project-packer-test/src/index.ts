@@ -45,7 +45,7 @@ const packProject = async (projectType: string) => {
 
   // fill in with your github token - https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line
   remoteTemplate.auth = {
-    token: '3dc37538d879fe37807bcc98eecc5c643df4c665',
+    token: '<your-token-here>',
   }
 
   projectPacker.setPublisher(publisher)
