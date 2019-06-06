@@ -6,33 +6,31 @@
     "type": "Disk"
   },
   "template": {
-    "templateFolder": {
-      "name": "vue-nuxt",
-      "files": [],
-      "subFolders": [
-        {
-          "name": "components",
-          "files": [],
-          "subFolders": []              
-        },
-        {
-          "name": "pages",
-          "files": [],
-          "subFolders": []              
-        },
-        {
-          "name": "static",
-          "files": [],
-          "subFolders": []              
-        }
-      ]
-    },
-    "meta": {
-      "componentsPath": [
-        "components",
-        "playground-components"
-      ]
-    }
+    "name": "vue-nuxt",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "components",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "pages",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "static",
+        "files": [],
+        "subFolders": []              
+      }
+    ]
+  },
+  "structure": {
+    "componentsPath": [
+      "components",
+      "playground-components"
+    ]
   },
   "assets": {}
 }

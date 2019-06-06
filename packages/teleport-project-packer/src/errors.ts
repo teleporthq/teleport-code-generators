@@ -1,4 +1,3 @@
-export const NO_REMOTE_TEMPLATE_PROVIDED = 'No remote definition of template provided'
 export const NO_GENERATOR_FUNCTION_PROVIDED = 'No generator function provided'
 export const NO_PUBLISHER_PROVIDED = 'No publisher provided'
 

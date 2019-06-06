@@ -1,10 +1,11 @@
 import {
   AssetsDefinition,
   PublisherResponse,
-  TemplateDefinition,
   ProjectUIDL,
   Mapping,
   GithubAuthMeta,
+  GeneratedFolder,
+  RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
@@ -35,7 +36,8 @@ import { GENERATOR_NOT_FOUND, PUBLISHER_NOT_FOUND } from './errors'
 export interface PackerFactoryParams {
   technology?: TechnologyDefinition
   publisher?: PublisherDefinition
-  template?: TemplateDefinition
+  template?: GeneratedFolder
+  remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
 }
 
@@ -87,7 +89,7 @@ const projectPublishers: Record<string, SupportedPublishers> = {
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string) => {
-  return { remote: { githubRepo: { username, repo } } }
+  return { githubRepo: { username, repo } }
 }
 
 const projectTemplates = {
@@ -115,9 +117,9 @@ const defaultPublisher = {
 }
 
 export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
-  const { assets, publisher, technology, template } = params
+  const { assets, publisher, technology, template, remoteTemplateDefinition } = params
 
-  const packer = createProjectPacker({ assets, template })
+  const packer = createProjectPacker({ assets, template, remoteTemplateDefinition })
 
   const pack = async (
     projectUIDL: ProjectUIDL,
@@ -138,11 +140,6 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
       return { success: false, payload: PUBLISHER_NOT_FOUND }
     }
 
-    const templateByTechnology =
-      technology && technology.type ? projectTemplates[technology.type] : projectTemplates.ReactNext
-
-    const projectTemplate = packParams.template || template || templateByTechnology
-
     const projectGenerator = generatorFactory({ ...packTechnology.meta })
 
     const meta =
@@ -152,7 +149,15 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     packer.setAssets(projectAssets)
     packer.setGeneratorFunction(projectGenerator.generateProject)
     packer.setPublisher(projectPublisher)
-    packer.setTemplate(projectTemplate)
+
+    const remoteGithubTemplate = projectTemplates[packTechnology.type]
+    const projectTemplate = packParams.template || template
+    if (projectTemplate) {
+      packer.setTemplate(projectTemplate)
+    } else {
+      // load template from github
+      await packer.loadTemplate(remoteGithubTemplate)
+    }
 
     return packer.pack(projectUIDL)
   }

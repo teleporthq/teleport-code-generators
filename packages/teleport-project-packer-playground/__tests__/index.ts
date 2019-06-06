@@ -47,13 +47,6 @@ describe('project packer playground', () => {
     expect(packer.pack).toBeDefined()
   })
 
-  it('should load template', async () => {
-    const packer = createPlaygroundPacker()
-    const { success, payload } = await packer.loadTemplate(reactNextVariation.template)
-    expect(success).toBeTruthy()
-    expect(payload).toBe(reactNextVariation.template.templateFolder)
-  })
-
   it('should pack react basic project', async () => {
     const packer = createPlaygroundPacker()
     const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactBasicVariation))

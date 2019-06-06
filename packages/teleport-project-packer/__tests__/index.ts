@@ -9,7 +9,6 @@ import templateDefinition from './template-definition.json'
 import {
   ProjectUIDL,
   AssetsDefinition,
-  TemplateDefinition,
   Publisher,
   ProjectGeneratorOutput,
   GeneratedFolder,
@@ -17,11 +16,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
-import {
-  NO_REMOTE_TEMPLATE_PROVIDED,
-  NO_GENERATOR_FUNCTION_PROVIDED,
-  NO_PUBLISHER_PROVIDED,
-} from '../src/errors'
+import { NO_GENERATOR_FUNCTION_PROVIDED, NO_PUBLISHER_PROVIDED } from '../src/errors'
 import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -52,40 +47,12 @@ describe('teleport generic project packer', () => {
     const packer = createProjectPacker()
 
     const assets: AssetsDefinition = { assets: [] }
-    const template: TemplateDefinition = {}
+    const template: GeneratedFolder = DEFAULT_TEMPLATE
     const publisher = createDummyPublisher()
 
     expect(() => packer.setAssets(assets)).not.toThrow()
     expect(() => packer.setTemplate(template)).not.toThrow()
     expect(() => packer.setPublisher(publisher)).not.toThrow()
-  })
-
-  it('should load default template if no template definition is provided', async () => {
-    const packer = createProjectPacker()
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeTruthy()
-    expect(JSON.stringify(payload)).toBe(JSON.stringify(DEFAULT_TEMPLATE.templateFolder))
-  })
-
-  it('should load template if template folder is described in the definition', async () => {
-    const packer = createProjectPacker({
-      template: templateDefinition,
-    })
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeTruthy()
-    expect(JSON.stringify(payload)).toBe(JSON.stringify(templateDefinition.templateFolder))
-  })
-
-  it('should fail to load template if no folder or remote meta is described in the definition', async () => {
-    const packer = createProjectPacker({
-      template: {},
-    })
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_REMOTE_TEMPLATE_PROVIDED)
   })
 
   it('should fail to pack if no generator function is provided', async () => {
@@ -155,7 +122,7 @@ const createDummyPublisher = (): Publisher<ProjectUIDL, string> => {
 
 const dummyGeneratorFunction = async (
   uidl: ProjectUIDL,
-  template: TemplateDefinition
+  template: GeneratedFolder
 ): Promise<ProjectGeneratorOutput> => {
   const uidlFile: GeneratedFile = {
     name: 'uidl',
@@ -169,8 +136,8 @@ const dummyGeneratorFunction = async (
     content: JSON.stringify(template),
   }
 
-  template.templateFolder.files.push(uidlFile)
-  template.templateFolder.files.push(templateFile)
+  template.files.push(uidlFile)
+  template.files.push(templateFile)
 
-  return { assetsPath: 'static', outputFolder: template.templateFolder }
+  return { assetsPath: 'static', outputFolder: template }
 }

@@ -26,9 +26,10 @@ import {
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
-  TemplateDefinition,
   Mapping,
   ComponentUIDL,
+  GeneratedFolder,
+  ProjectStructure,
 } from '@teleporthq/teleport-types'
 
 export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
@@ -41,7 +42,15 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
-    template: TemplateDefinition = {},
+    template: GeneratedFolder = {
+      name: 'teleport-project',
+      files: [],
+      subFolders: [],
+    },
+    structure: ProjectStructure = {
+      componentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      pagesPath: DEFAULT_PAGE_FILES_PATH,
+    },
     options: ProjectGeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
@@ -65,10 +74,7 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
     const routes = extractRoutes(root)
 
     // Step 2: The first level conditional nodes are taken as project pages
-    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
-      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
-      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
-    })
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(structure)
 
     const pagePromises = routes.map((routeNode) => {
       const { value, node } = routeNode.content
@@ -149,27 +155,25 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
     const distFiles = [packageJSONFile]
 
     // Step 9: Build the folder structure
-    template.meta = template.meta || {}
-
     const filesWithPath = [
       {
         path: [],
         files: distFiles,
       },
       {
-        path: template.meta.srcFilesPath || DEFAULT_SRC_FILES_PATH,
+        path: structure.srcFilesPath || DEFAULT_SRC_FILES_PATH,
         files: srcFiles,
       },
       {
-        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        path: structure.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
         files: componentFiles,
       },
       {
-        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        path: structure.pagesPath || DEFAULT_PAGE_FILES_PATH,
         files: pageFiles,
       },
       {
-        path: template.meta.publicFiles || DEFAULT_PUBLIC_FILES_PATH,
+        path: structure.publicFiles || DEFAULT_PUBLIC_FILES_PATH,
         files: publicFiles,
       },
     ]

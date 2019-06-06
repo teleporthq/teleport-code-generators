@@ -177,7 +177,8 @@ export interface ProjectGeneratorOutput {
 
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
-  template?: TemplateDefinition,
+  template?: GeneratedFolder,
+  structure?: ProjectStructure,
   options?: ProjectGeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
@@ -223,11 +224,7 @@ export interface AssetInfo {
   type: string
 }
 
-export interface TemplateDefinition {
-  templateFolder?: GeneratedFolder
-  remote?: RemoteTemplateDefinition
-  meta?: Record<string, string[]>
-}
+export type ProjectStructure = Record<string, string[]>
 
 export interface RemoteTemplateDefinition {
   githubRepo?: GithubProjectMeta
@@ -251,11 +248,6 @@ export type TemplateProvider<T> = (
   config?: T
 ) => {
   getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
-}
-
-export interface LoadTemplateResponse {
-  success: boolean
-  payload: GeneratedFolder | string | Error
 }
 
 export interface FilesPathRecord {

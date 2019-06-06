@@ -26,8 +26,9 @@ import {
   ProjectGeneratorOptions,
   ComponentFactoryParams,
   GeneratedFile,
+  GeneratedFolder,
   GenerateProjectFunction,
-  TemplateDefinition,
+  ProjectStructure,
   ComponentUIDL,
   Mapping,
 } from '@teleporthq/teleport-types'
@@ -42,7 +43,15 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
-    template: TemplateDefinition = {},
+    template: GeneratedFolder = {
+      name: 'teleport-project',
+      files: [],
+      subFolders: [],
+    },
+    structure: ProjectStructure = {
+      componentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      pagesPath: DEFAULT_PAGE_FILES_PATH,
+    },
     options: ProjectGeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
@@ -66,10 +75,7 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
     const routes = extractRoutes(root)
 
     // Step 2: The first level stateBranches (the pages) transformation in react components is started
-    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
-      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
-      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
-    })
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(structure)
 
     const pagePromises = routes.map((routeNode) => {
       const { value: pageName, node } = routeNode.content
@@ -149,23 +155,21 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
     const distFiles = [htmlIndexFile, packageFile]
 
     // Step 9: Build the folder structure
-    template.meta = template.meta || {}
-
     const filesWithPath = [
       {
         path: [],
         files: distFiles,
       },
       {
-        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        path: structure.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
         files: componentFiles,
       },
       {
-        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        path: structure.pagesPath || DEFAULT_PAGE_FILES_PATH,
         files: pageFiles,
       },
       {
-        path: template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
+        path: structure.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
         files: staticFiles,
       },
     ]
