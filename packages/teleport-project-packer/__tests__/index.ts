@@ -60,6 +60,7 @@ describe('teleport generic project packer', () => {
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
       template: templateDefinition,
+      remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
     })
     expect(success).toBeFalsy()
     expect(payload).toBe(NO_GENERATOR_FUNCTION_PROVIDED)
@@ -86,6 +87,33 @@ describe('teleport generic project packer', () => {
     })
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
+    expect(success).toBeTruthy()
+
+    const { project } = payload
+    const assetsFolder = project.subFolders.find((subFolder) => {
+      return subFolder.name === 'static'
+    })
+
+    expect(assetsFolder.files[0]).toBeDefined()
+
+    expect(project.files[0].name).toBe('uidl')
+    expect(project.files[0].content).toBeDefined()
+
+    expect(project.files[1].name).toBe('template')
+    expect(project.files[1].content).toBeDefined()
+  })
+
+  it('takes the templateFolder with priority over the remote template definitions', async () => {
+    const publisher = createDummyPublisher()
+    const packer = createProjectPacker({
+      publisher,
+      generatorFunction: dummyGeneratorFunction,
+      assets: assetsData,
+    })
+
+    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
+      template: templateDefinition,
+    })
     expect(success).toBeTruthy()
 
     const { project } = payload

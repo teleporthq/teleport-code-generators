@@ -52,10 +52,10 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
   }
 
   const loadTemplate = async (
-    remoteTemplateDefinition: RemoteTemplateDefinition
+    remoteDefinition: RemoteTemplateDefinition
   ): Promise<GeneratedFolder> => {
     try {
-      template = await fetchTemplate(remoteTemplateDefinition)
+      template = await fetchTemplate(remoteDefinition)
       return template // TODO: is this useful?
     } catch (err) {
       throw err // TODO: error handling here?
@@ -64,8 +64,6 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
   const pack = async (uidl: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
     const definedProjectUIDL = uidl
-
-    let templateFolder = packParams.template || template
 
     const packGeneratorFunction = packParams.generatorFunction || generatorFunction
     if (!packGeneratorFunction) {
@@ -79,7 +77,8 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
     const packAssets = packParams.assets || assets
 
-    if (packParams.remoteTemplateDefinition) {
+    let templateFolder = packParams.template || template
+    if (!packParams.template && packParams.remoteTemplateDefinition) {
       templateFolder = await loadTemplate(packParams.remoteTemplateDefinition)
     }
 
