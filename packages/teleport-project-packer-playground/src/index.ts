@@ -45,7 +45,7 @@ export interface TechnologyDefinition {
   type: string
   meta?: {
     variation?: string
-    customMapping?: Mapping
+    mapping?: Mapping
   }
 }
 
