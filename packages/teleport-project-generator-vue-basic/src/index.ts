@@ -22,23 +22,18 @@ import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
-  Mapping,
   ComponentUIDL,
   GeneratedFolder,
   ProjectStructure,
 } from '@teleporthq/teleport-types'
 
-export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createVueBasicGenerator = (generatorOptions: GeneratorOptions = {}) => {
   const validator = new Validator()
   const vueGenerator = createVueGenerator(generatorOptions)
-
-  const addCustomMapping = (mapping: Mapping) => {
-    vueGenerator.addMapping(mapping)
-  }
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
@@ -51,7 +46,7 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
       componentsPath: DEFAULT_COMPONENT_FILES_PATH,
       pagesPath: DEFAULT_PAGE_FILES_PATH,
     },
-    options: ProjectGeneratorOptions = {}
+    options: GeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
@@ -64,10 +59,6 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
     const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
-    }
-    // Step 1: Add any custom mappings found in the options
-    if (options.customMapping) {
-      vueGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -145,13 +136,10 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
     }
 
     // Step 8: External dependencies are added to the package.json file from the template project
-    const packageJSONFile = createPackageJSONFile(
-      options.sourcePackageJson || DEFAULT_PACKAGE_JSON,
-      {
-        dependencies: collectedDependencies,
-        projectName: uidl.name,
-      }
-    )
+    const packageJSONFile = createPackageJSONFile(DEFAULT_PACKAGE_JSON, {
+      dependencies: collectedDependencies,
+      projectName: uidl.name,
+    })
     const distFiles = [packageJSONFile]
 
     // Step 9: Build the folder structure
@@ -187,7 +175,6 @@ export const createVueBasicGenerator = (generatorOptions: ProjectGeneratorOption
   }
 
   return {
-    addCustomMapping,
     generateProject,
   }
 }

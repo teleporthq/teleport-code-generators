@@ -22,23 +22,18 @@ import {
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   ComponentFactoryParams,
   GeneratedFile,
   GenerateProjectFunction,
   ProjectStructure,
   ComponentUIDL,
-  Mapping,
   GeneratedFolder,
 } from '@teleporthq/teleport-types'
 
-export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createReactNextGenerator = (generatorOptions: GeneratorOptions = {}) => {
   const validator = new Validator()
   const reactGenerator = createReactGenerator(generatorOptions)
-
-  const addCustomMapping = (mapping: Mapping) => {
-    reactGenerator.addMapping(mapping)
-  }
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
@@ -51,7 +46,7 @@ export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptio
       componentsPath: DEFAULT_COMPONENT_FILES_PATH,
       pagesPath: DEFAULT_PAGE_FILES_PATH,
     },
-    options: ProjectGeneratorOptions = {}
+    options: GeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
@@ -64,10 +59,6 @@ export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptio
     const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
-    }
-    // Step 1: Add any custom mappings found in the options
-    if (options.customMapping) {
-      reactGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -143,7 +134,7 @@ export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptio
     }
 
     // Step 8: External dependencies are added to the package.json file from the template project
-    const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    const packageFile = createPackageJSONFile(DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
     })
@@ -178,7 +169,6 @@ export const createReactNextGenerator = (generatorOptions: ProjectGeneratorOptio
   }
 
   return {
-    addCustomMapping,
     generateProject,
   }
 }

@@ -15,7 +15,7 @@ import {
   Mapping,
   ChunkDefinition,
   ComponentGenerator,
-  ProjectGeneratorOptions,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
 import reactProjectMapping from './react-project-mapping.json'
@@ -64,12 +64,12 @@ export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
   return htmlFile
 }
 
-export const createComponentGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
+export const createComponentGenerator = (options: GeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactComponentGenerator('CSSModules')
 
   reactGenerator.addMapping(reactProjectMapping as Mapping)
-  if (options.customMapping) {
-    reactGenerator.addMapping(options.customMapping)
+  if (options.mapping) {
+    reactGenerator.addMapping(options.mapping)
   }
 
   return reactGenerator

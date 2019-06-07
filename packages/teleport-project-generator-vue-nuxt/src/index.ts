@@ -23,23 +23,18 @@ import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   ComponentFactoryParams,
   GeneratedFile,
   GeneratedFolder,
   GenerateProjectFunction,
   ProjectStructure,
   ComponentUIDL,
-  Mapping,
 } from '@teleporthq/teleport-types'
 
-export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createVueNuxtGenerator = (generatorOptions: GeneratorOptions = {}) => {
   const validator = new Validator()
   const vueGenerator = createVueGenerator(generatorOptions)
-
-  const addCustomMapping = (mapping: Mapping) => {
-    vueGenerator.addMapping(mapping)
-  }
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
@@ -52,7 +47,7 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
       componentsPath: DEFAULT_COMPONENT_FILES_PATH,
       pagesPath: DEFAULT_PAGE_FILES_PATH,
     },
-    options: ProjectGeneratorOptions = {}
+    options: GeneratorOptions = {}
   ) => {
     // Step 0: Validate project input
     if (!options.skipValidation) {
@@ -65,10 +60,6 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
     const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
-    }
-    // Step 1: Add any custom mappings found in the options
-    if (options.customMapping) {
-      vueGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -147,7 +138,7 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
     }
 
     // Step 8: External dependencies are added to the package.json file from the template project
-    const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    const packageFile = createPackageJSONFile(DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
     })
@@ -183,7 +174,6 @@ export const createVueNuxtGenerator = (generatorOptions: ProjectGeneratorOptions
   }
 
   return {
-    addCustomMapping,
     generateProject,
   }
 }

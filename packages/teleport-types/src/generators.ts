@@ -128,12 +128,6 @@ export interface ComponentGeneratorOutput {
   dependencies: Record<string, string>
 }
 
-export interface ProjectGeneratorOptions {
-  sourcePackageJson?: PackageJSON
-  customMapping?: Mapping
-  skipValidation?: boolean
-}
-
 export interface PackageJSON {
   name: string
   description: string
@@ -178,7 +172,7 @@ export type GenerateProjectFunction = (
   input: Record<string, unknown>,
   template?: GeneratedFolder,
   structure?: ProjectStructure,
-  options?: ProjectGeneratorOptions
+  options?: GeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
 export type GenerateComponentFunction = (

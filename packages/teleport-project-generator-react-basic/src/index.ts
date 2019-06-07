@@ -27,22 +27,17 @@ import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ComponentFactoryParams,
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   GeneratedFile,
   GenerateProjectFunction,
   GeneratedFolder,
   ComponentUIDL,
-  Mapping,
   ProjectStructure,
 } from '@teleporthq/teleport-types'
 
-export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {}) => {
   const validator = new Validator()
   const reactGenerator = createComponentGenerator(generatorOptions)
-
-  const addCustomMapping = (mapping: Mapping) => {
-    reactGenerator.addMapping(mapping)
-  }
 
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
@@ -55,7 +50,7 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
       componentsPath: DEFAULT_COMPONENT_FILES_PATH,
       pagesPath: DEFAULT_PAGE_FILES_PATH,
     },
-    options: ProjectGeneratorOptions = {}
+    options: GeneratorOptions = {}
   ) => {
     // Step 0: Validate project input and transform to UIDL and validate content of UIDL
     if (!options.skipValidation) {
@@ -69,10 +64,6 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
     const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
-    }
-    // Step 1: Add any custom mappings found in the options
-    if (options.customMapping) {
-      reactGenerator.addMapping(options.customMapping)
     }
 
     const { components = {}, root } = uidl
@@ -149,7 +140,7 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
     }
 
     // Step 9: Create the package.json file
-    const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    const packageFile = createPackageJSONFile(DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
     })
@@ -189,7 +180,6 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
   }
 
   return {
-    addCustomMapping,
     generateProject,
   }
 }
