@@ -3,22 +3,19 @@ import {
   Publisher,
   GenerateProjectFunction,
   PublisherResponse,
-  TemplateDefinition,
-  LoadTemplateResponse,
   ProjectUIDL,
+  GeneratedFolder,
+  RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
-import {
-  NO_GENERATOR_FUNCTION_PROVIDED,
-  NO_PUBLISHER_PROVIDED,
-  NO_REMOTE_TEMPLATE_PROVIDED,
-} from './errors'
+import { NO_GENERATOR_FUNCTION_PROVIDED, NO_PUBLISHER_PROVIDED } from './errors'
 import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
   publisher?: Publisher<any, any>
   generatorFunction?: GenerateProjectFunction
-  template?: TemplateDefinition
+  template?: GeneratedFolder
+  remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
 }
 
@@ -26,16 +23,17 @@ export type PackerFactory = (
   params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
-  loadTemplate: (template?: TemplateDefinition) => Promise<LoadTemplateResponse>
+  loadTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<GeneratedFolder>
   setPublisher: <T, U>(publisher: Publisher<T, U>) => void
   setGeneratorFunction: (generatorFunction: GenerateProjectFunction) => void
   setAssets: (assets: AssetsDefinition) => void
-  setTemplate: (template: TemplateDefinition) => void
+  setTemplate: (templateFolder: GeneratedFolder) => void
 }
 
 export const createProjectPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
   let { assets, generatorFunction, publisher, template } = params
-  let templateLoaded = false
+
+  template = template || DEFAULT_TEMPLATE
 
   const setPublisher = <T, U>(publisherToSet: Publisher<T, U>): void => {
     publisher = publisherToSet
@@ -49,36 +47,23 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     assets = assetsToSet
   }
 
-  const setTemplate = (templateToSet: TemplateDefinition): void => {
-    template = templateToSet
+  const setTemplate = (templateFolder: GeneratedFolder): void => {
+    template = templateFolder
   }
 
   const loadTemplate = async (
-    templateToLoad?: TemplateDefinition
-  ): Promise<LoadTemplateResponse> => {
-    template = templateToLoad || template || DEFAULT_TEMPLATE
-
-    if (template.templateFolder) {
-      return { success: true, payload: template.templateFolder }
-    }
-
-    if (!template.remote) {
-      return { success: false, payload: NO_REMOTE_TEMPLATE_PROVIDED }
-    }
-
+    remoteDefinition: RemoteTemplateDefinition
+  ): Promise<GeneratedFolder> => {
     try {
-      template.templateFolder = await fetchTemplate(template.remote)
-      templateLoaded = true
-      return { success: true, payload: template.templateFolder }
+      template = await fetchTemplate(remoteDefinition)
+      return template // TODO: is this useful?
     } catch (err) {
-      return { success: false, payload: err }
+      throw err // TODO: error handling here?
     }
   }
 
   const pack = async (uidl: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
     const definedProjectUIDL = uidl
-
-    const packTemplate = packParams.template || template
 
     const packGeneratorFunction = packParams.generatorFunction || generatorFunction
     if (!packGeneratorFunction) {
@@ -92,14 +77,15 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
     const packAssets = packParams.assets || assets
 
-    if (!templateLoaded || packParams.template) {
-      const loaded = await loadTemplate(packTemplate)
-      if (!loaded.success) {
-        return loaded
-      }
+    let templateFolder = packParams.template || template
+    if (!packParams.template && packParams.remoteTemplateDefinition) {
+      templateFolder = await loadTemplate(packParams.remoteTemplateDefinition)
     }
 
-    const { assetsPath, outputFolder } = await packGeneratorFunction(definedProjectUIDL, template)
+    const { assetsPath, outputFolder } = await packGeneratorFunction(
+      definedProjectUIDL,
+      templateFolder
+    )
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 

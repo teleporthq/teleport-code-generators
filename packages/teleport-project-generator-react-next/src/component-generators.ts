@@ -4,7 +4,7 @@ import { createGenerator } from '@teleporthq/teleport-component-generator'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import {
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   ComponentGenerator,
   ChunkDefinition,
   Mapping,
@@ -15,12 +15,12 @@ import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { createDocumentComponentAST } from './utils'
 import nextMapping from './next-mapping.json'
 
-export const createReactGenerator = (options: ProjectGeneratorOptions): ComponentGenerator => {
+export const createReactGenerator = (options: GeneratorOptions): ComponentGenerator => {
   const reactGenerator = createReactComponentGenerator('StyledJSX')
 
   reactGenerator.addMapping(nextMapping as Mapping)
-  if (options.customMapping) {
-    reactGenerator.addMapping(options.customMapping)
+  if (options.mapping) {
+    reactGenerator.addMapping(options.mapping)
   }
 
   return reactGenerator

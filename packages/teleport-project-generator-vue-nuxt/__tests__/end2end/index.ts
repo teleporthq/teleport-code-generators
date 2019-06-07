@@ -17,7 +17,7 @@ describe('Vue Nuxt Project Generator', () => {
     const result = await generator.generateProject(projectUIDL, template)
 
     expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.templateFolder.name)
+    expect(result.outputFolder.name).toBe(template.name)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {
@@ -28,8 +28,8 @@ describe('Vue Nuxt Project Generator', () => {
 
   it('works when validation step is skiped', async () => {
     const options = { skipValidation: true }
-    const result = await generator.generateProject(invalidUidlSample, template, options)
+    const result = await generator.generateProject(invalidUidlSample, template, undefined, options)
     expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.templateFolder.name)
+    expect(result.outputFolder.name).toBe(template.name)
   })
 })

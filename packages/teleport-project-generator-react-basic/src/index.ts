@@ -27,26 +27,30 @@ import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ComponentFactoryParams,
-  ProjectGeneratorOptions,
+  GeneratorOptions,
   GeneratedFile,
   GenerateProjectFunction,
-  TemplateDefinition,
+  GeneratedFolder,
   ComponentUIDL,
-  Mapping,
+  ProjectStructure,
 } from '@teleporthq/teleport-types'
 
-export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOptions = {}) => {
+export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {}) => {
   const validator = new Validator()
   const reactGenerator = createComponentGenerator(generatorOptions)
 
-  const addCustomMapping = (mapping: Mapping) => {
-    reactGenerator.addMapping(mapping)
-  }
-
   const generateProject: GenerateProjectFunction = async (
     input: Record<string, unknown>,
-    template: TemplateDefinition = {},
-    options: ProjectGeneratorOptions = {}
+    template: GeneratedFolder = {
+      name: 'teleport-project',
+      files: [],
+      subFolders: [],
+    },
+    structure: ProjectStructure = {
+      componentsPath: DEFAULT_COMPONENT_FILES_PATH,
+      pagesPath: DEFAULT_PAGE_FILES_PATH,
+    },
+    options: GeneratorOptions = {}
   ) => {
     // Step 0: Validate project input and transform to UIDL and validate content of UIDL
     if (!options.skipValidation) {
@@ -61,19 +65,12 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
-    // Step 1: Add any custom mappings found in the options
-    if (options.customMapping) {
-      reactGenerator.addMapping(options.customMapping)
-    }
 
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
 
     // Step 2: The first level conditionals become the pages
-    const localDependenciesPrefix = generateLocalDependenciesPrefix(template, {
-      defaultComponentsPath: DEFAULT_COMPONENT_FILES_PATH,
-      defaultPagesPath: DEFAULT_PAGE_FILES_PATH,
-    })
+    const localDependenciesPrefix = generateLocalDependenciesPrefix(structure)
 
     const pagePromises = routeNodes.map((routeNode) => {
       const { value, node } = routeNode.content
@@ -143,7 +140,7 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
     }
 
     // Step 9: Create the package.json file
-    const packageFile = createPackageJSONFile(options.sourcePackageJson || DEFAULT_PACKAGE_JSON, {
+    const packageFile = createPackageJSONFile(DEFAULT_PACKAGE_JSON, {
       dependencies: collectedDependencies,
       projectName: uidl.name,
     })
@@ -151,27 +148,25 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
     const distFiles: GeneratedFile[] = [packageFile]
 
     // Step 10: Build the folder structure
-    template.meta = template.meta || {}
-
     const filesWithPath = [
       {
         path: [],
         files: distFiles,
       },
       {
-        path: template.meta.srcFilesPath || DEFAULT_SRC_FILES_PATH,
+        path: structure.srcFilesPath || DEFAULT_SRC_FILES_PATH,
         files: srcFiles,
       },
       {
-        path: template.meta.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
+        path: structure.componentsPath || DEFAULT_COMPONENT_FILES_PATH,
         files: componentFiles,
       },
       {
-        path: template.meta.pagesPath || DEFAULT_PAGE_FILES_PATH,
+        path: structure.pagesPath || DEFAULT_PAGE_FILES_PATH,
         files: pageFiles,
       },
       {
-        path: template.meta.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
+        path: structure.staticFilesPath || DEFAULT_STATIC_FILES_PATH,
         files: staticFiles,
       },
     ]
@@ -185,7 +180,6 @@ export const createReactBasicGenerator = (generatorOptions: ProjectGeneratorOpti
   }
 
   return {
-    addCustomMapping,
     generateProject,
   }
 }

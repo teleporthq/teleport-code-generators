@@ -1,5 +1,5 @@
 import fetch from 'cross-fetch'
-import { GeneratedFolder, GeneratedFile, GithubAuthMeta } from '@teleporthq/teleport-types'
+import { GeneratedFolder, GeneratedFile, ServiceAuth } from '@teleporthq/teleport-types'
 import { GithubFile, FilesFetcherMeta, GithubCreateResponse } from './types'
 
 import { DEFAULT_REF, GITHUB_API_BASE_URL } from './constants'
@@ -89,7 +89,7 @@ const getFileContent = async (
 export const createBase64GithubFileBlob = async (
   file: GeneratedFile,
   repository: string,
-  auth?: GithubAuthMeta
+  auth?: ServiceAuth
 ): Promise<GithubCreateResponse> => {
   const url = `${GITHUB_API_BASE_URL}/repos/${repository}/git/blobs`
 
@@ -102,7 +102,7 @@ export const createBase64GithubFileBlob = async (
   return { data }
 }
 
-const createAuthHeader = (auth?: GithubAuthMeta): string => {
+const createAuthHeader = (auth?: ServiceAuth): string => {
   if (!auth) {
     return null
   }

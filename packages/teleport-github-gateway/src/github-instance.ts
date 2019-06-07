@@ -1,6 +1,6 @@
 import Github from 'github-api'
 
-import { GithubAuthMeta } from '@teleporthq/teleport-types'
+import { ServiceAuth } from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_REF,
@@ -23,13 +23,13 @@ import { createBase64GithubFileBlob } from './utils'
 
 export default class GithubInstance {
   private githubApi = null
-  private auth: GithubAuthMeta = null
+  private auth: ServiceAuth = null
 
-  constructor(auth: GithubAuthMeta = {}) {
+  constructor(auth: ServiceAuth = {}) {
     this.authorize(auth)
   }
 
-  public authorize(auth: GithubAuthMeta = {}) {
+  public authorize(auth: ServiceAuth = {}) {
     this.auth = auth
 
     if (auth.basic) {

@@ -128,13 +128,6 @@ export interface ComponentGeneratorOutput {
   dependencies: Record<string, string>
 }
 
-export interface ProjectGeneratorOptions {
-  sourcePackageJson?: PackageJSON
-  distPath?: string
-  customMapping?: Mapping
-  skipValidation?: boolean
-}
-
 export interface PackageJSON {
   name: string
   description: string
@@ -177,8 +170,9 @@ export interface ProjectGeneratorOutput {
 
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
-  template?: TemplateDefinition,
-  options?: ProjectGeneratorOptions
+  template?: GeneratedFolder,
+  structure?: ProjectStructure,
+  options?: GeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
 export type GenerateComponentFunction = (
@@ -223,39 +217,21 @@ export interface AssetInfo {
   type: string
 }
 
-export interface TemplateDefinition {
-  templateFolder?: GeneratedFolder
-  remote?: RemoteTemplateDefinition
-  meta?: Record<string, string[]>
-}
+export type ProjectStructure = Record<string, string[]>
 
 export interface RemoteTemplateDefinition {
-  githubRepo?: GithubProjectMeta
-}
-
-export interface GithubProjectMeta {
+  provider: 'github'
   username: string
   repo: string
-  auth?: GithubAuthMeta
+  auth?: ServiceAuth
 }
 
-export interface GithubAuthMeta {
+export interface ServiceAuth {
   basic?: {
     username: string
     password: string
   }
   token?: string
-}
-
-export type TemplateProvider<T> = (
-  config?: T
-) => {
-  getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
-}
-
-export interface LoadTemplateResponse {
-  success: boolean
-  payload: GeneratedFolder | string | Error
 }
 
 export interface FilesPathRecord {

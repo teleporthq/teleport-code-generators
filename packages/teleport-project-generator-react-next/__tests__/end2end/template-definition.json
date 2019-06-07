@@ -1,23 +1,21 @@
 {
-  "templateFolder": {
-    "name": "react-next",
-    "files": [],
-    "subFolders": [
-      {
-        "name": "components",
-        "files": [],
-        "subFolders": []              
-      },
-      {
-        "name": "pages",
-        "files": [],
-        "subFolders": []              
-      },
-      {
-        "name": "static",
-        "files": [],
-        "subFolders": []              
-      }
-    ]
-  }
+  "name": "react-next",
+  "files": [],
+  "subFolders": [
+    {
+      "name": "components",
+      "files": [],
+      "subFolders": []              
+    },
+    {
+      "name": "pages",
+      "files": [],
+      "subFolders": []              
+    },
+    {
+      "name": "static",
+      "files": [],
+      "subFolders": []              
+    }
+  ]
 }

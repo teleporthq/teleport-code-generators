@@ -1,4 +1,4 @@
-import { GeneratedFolder, PublisherFactory, GithubAuthMeta } from '@teleporthq/teleport-types'
+import { GeneratedFolder, PublisherFactory, ServiceAuth } from '@teleporthq/teleport-types'
 
 import { publishToGithub, generateProjectFiles } from './utils'
 import { GithubFactoryParams, GithubPublisher, GithubPublishMeta } from './types'
@@ -86,7 +86,7 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     }
   }
 
-  const findRepositoryOwner = (auth: GithubAuthMeta, options: GithubFactoryParams): string => {
+  const findRepositoryOwner = (auth: ServiceAuth, options: GithubFactoryParams): string => {
     if (auth && auth.basic && auth.basic.username) {
       return auth.basic.username
     }

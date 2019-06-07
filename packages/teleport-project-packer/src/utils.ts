@@ -9,11 +9,9 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const fetchTemplate = async (template: RemoteTemplateDefinition) => {
-  if (template.githubRepo) {
-    const authData = template.githubRepo.auth || {}
-    const githubGateway = createGithubGateway(authData)
-    return githubGateway.getRepository(template.githubRepo)
-  }
+  const authData = template.auth || {}
+  const githubGateway = createGithubGateway(authData)
+  return githubGateway.getRepository(template)
 }
 
 export const injectAssetsToProject = async (

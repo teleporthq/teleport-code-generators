@@ -16,7 +16,7 @@ import {
   ComponentFactoryParams,
   ComponentGeneratorOutput,
   GeneratedFolder,
-  TemplateDefinition,
+  ProjectStructure,
   HastNode,
   FilesPathRecord,
   ProjectUIDL,
@@ -251,24 +251,9 @@ export const createFile = (name: string, fileType: string, content: string): Gen
   return { name, fileType, content }
 }
 
-interface LocalDependenciesMeta {
-  defaultComponentsPath: string | string[]
-  defaultPagesPath: string | string[]
-}
-
-export const generateLocalDependenciesPrefix = (
-  template: TemplateDefinition,
-  meta: LocalDependenciesMeta
-): string => {
-  const initialComponentsPath =
-    template && template.meta && template.meta.componentsPath
-      ? template.meta.componentsPath
-      : [].concat(meta.defaultComponentsPath)
-
-  const initialPagesPath =
-    template && template.meta && template.meta.pagesPath
-      ? template.meta.pagesPath
-      : [].concat(meta.defaultPagesPath)
+export const generateLocalDependenciesPrefix = (structure: ProjectStructure): string => {
+  const initialComponentsPath = structure.componentsPath
+  const initialPagesPath = structure.pagesPath
 
   let dependencyPrefix = ''
 
@@ -340,18 +325,14 @@ const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
 
 export const injectFilesInFolderStructure = (
   filePathRecords: FilesPathRecord[],
-  template: TemplateDefinition
+  template: GeneratedFolder
 ): GeneratedFolder => {
-  template.meta = template.meta || {}
-
-  let { templateFolder } = template
-
   for (const filePathRecord of filePathRecords) {
     const { path, files } = filePathRecord
-    templateFolder = injectFilesToPath(templateFolder, path, files)
+    template = injectFilesToPath(template, path, files)
   }
 
-  return templateFolder
+  return template
 }
 
 const injectFilesToPath = (
