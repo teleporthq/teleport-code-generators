@@ -181,6 +181,7 @@ export const handlePackageJSON = (
     packageJSONContent.name = slugify(uidl.name)
     packageJSONContent.dependencies = dependencies
 
+    // TODO: test this flow
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
   } else {
     const content: PackageJSON = {
