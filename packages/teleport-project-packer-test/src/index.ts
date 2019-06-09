@@ -45,7 +45,7 @@ const packProject = async (projectType: string) => {
 
   // fill in with your github token - https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line
   remoteTemplate.auth = {
-    token: '<your-token-here>',
+    token: '9220028fad8a7f8a30994b1e8e2e09d4081754ba',
   }
 
   projectPacker.setPublisher(publisher)
@@ -60,9 +60,9 @@ const packProject = async (projectType: string) => {
 const run = async () => {
   try {
     await packProject('react-basic')
-    await packProject('react-next')
-    await packProject('vue-basic')
-    await packProject('vue-nuxt')
+    // await packProject('react-next')
+    // await packProject('vue-basic')
+    // await packProject('vue-nuxt')
   } catch (e) {
     console.info(e)
   }

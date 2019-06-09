@@ -20,7 +20,7 @@ import {
 
 import reactProjectMapping from './react-project-mapping.json'
 
-export const createRouterIndexFile = async (root: ComponentUIDL) => {
+export const createRouterIndexFile = async (root: ComponentUIDL, options: GeneratorOptions) => {
   const routingComponentGenerator = createGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
@@ -30,13 +30,13 @@ export const createRouterIndexFile = async (root: ComponentUIDL) => {
   root.meta = root.meta || {}
   root.meta.fileName = 'index'
 
-  const { files, dependencies } = await routingComponentGenerator.generateComponent(root)
+  const { files } = await routingComponentGenerator.generateComponent(root, options)
   const routerFile = files[0]
 
-  return { routerFile, dependencies }
+  return routerFile
 }
 
-export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 

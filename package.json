@@ -9,6 +9,7 @@
     "lint": "tslint -p ./",
     "build": "lerna run build",
     "dev": "lerna run --parallel build:watch",
+    "mini-dev": "lerna run --parallel build:watch-only",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:coverage": "npm run test -- --coverage --no-cache",
