@@ -8,6 +8,8 @@ import vueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { ProjectUIDL, RemoteTemplateDefinition } from '@teleporthq/teleport-types'
 
+import config from './config.json'
+
 import {
   GITHUB_TEMPLATE_OWNER,
   REACT_BASIC_GITHUB_PROJECT,
@@ -43,9 +45,8 @@ const publisher = createDiskPublisher({
 const packProject = async (projectType: string) => {
   const remoteTemplate = templates[projectType] as RemoteTemplateDefinition
 
-  // fill in with your github token - https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line
   remoteTemplate.auth = {
-    token: '<your-token-here>',
+    token: config.token,
   }
 
   projectPacker.setPublisher(publisher)

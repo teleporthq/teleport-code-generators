@@ -352,9 +352,18 @@ yarn test
 yarn test:coverage
 ```
 
-Furthermore, there's a `private` package inside the lerna folder called `teleport-project-packer-test`. That packages can be used to **test** the code/file generation process with any flavor of project/component generator. In order to give it a spin:
+Furthermore, there's a `private` package inside the lerna folder called `teleport-project-packer-test`. That packages can be used to **test** the code/file generation process with any flavor of project/component generator. In order to give it a spin you will have to run:
+
 ```
 cd packages/teleport-project-packer-test
+cp config.example.json config.json
+
+```
+
+You will have to replace the placeholder with [your own github token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line).
+Then you can run it with:
+
+```
 npm start
 ```
 This version of the packer uses the UIDLs from the `examples/uidl-sample`. If the process runs successfully, you will see the responoses from the project packer in the format: `{ success: true, payload: 'dist' }`. The task uses the `teleport-publisher-disk` package and generates four different project files in the `dist` folder.
