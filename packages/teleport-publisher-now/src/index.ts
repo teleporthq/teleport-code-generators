@@ -4,35 +4,35 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
 } from '@teleporthq/teleport-types'
-import { NO_PROJECT_UIDL, NO_DEPLOY_TOKEN } from './errors'
+import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from './errors'
 import { publishToNow, generateProjectFiles } from './utils'
 
 export interface NowFactoryParams extends PublisherFactoryParams {
-  deployToken: string
+  accessToken: string
 }
 
 export interface NowPublisher extends Publisher<NowFactoryParams, string> {
-  getDeployToken: () => string
-  setDeployToken: (token: string) => void
+  getAccessToken: () => string
+  setAccessToken: (token: string) => void
 }
 
 const defaultPublisherParams = {
-  deployToken: null,
+  accessToken: null,
 }
 
 export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
   params: NowFactoryParams = defaultPublisherParams
 ): NowPublisher => {
-  let { project, deployToken } = params
+  let { project, accessToken } = params
 
   const getProject = (): GeneratedFolder => project
   const setProject = (projectToSet: GeneratedFolder): void => {
     project = projectToSet
   }
 
-  const getDeployToken = (): string => deployToken
-  const setDeployToken = (token: string) => {
-    deployToken = token
+  const getAccessToken = (): string => accessToken
+  const setAccessToken = (token: string) => {
+    accessToken = token
   }
 
   const publish = async (options: NowFactoryParams = defaultPublisherParams) => {
@@ -41,14 +41,14 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
       return { success: false, payload: NO_PROJECT_UIDL }
     }
 
-    const nowDeployToken = options.deployToken || deployToken
-    if (!nowDeployToken) {
-      return { success: false, payload: NO_DEPLOY_TOKEN }
+    const nowAccessToken = options.accessToken || accessToken
+    if (!nowAccessToken) {
+      return { success: false, payload: NO_ACCESS_TOKEN }
     }
 
     try {
       const projectFiles = generateProjectFiles(projectToPublish)
-      const nowUrl = await publishToNow(projectFiles, nowDeployToken)
+      const nowUrl = await publishToNow(projectFiles, nowAccessToken)
       return { success: true, payload: nowUrl }
     } catch (error) {
       return { success: false, payload: error.message }
@@ -59,8 +59,8 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     publish,
     getProject,
     setProject,
-    getDeployToken,
-    setDeployToken,
+    getAccessToken,
+    setAccessToken,
   }
 }
 
