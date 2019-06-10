@@ -4,8 +4,10 @@ import JSZip from 'jszip'
 
 import { createZipPublisher } from '../src'
 
-import project from './project-files.json'
 import { NO_PROJECT_UIDL } from '../src/errors'
+
+// @ts-ignore
+import project from './project-files.json'
 
 const projectPath = join(__dirname, 'disk-project')
 
@@ -40,6 +42,15 @@ describe('teleport publisher zip', () => {
     expect(publisherPath).toBe(path)
   })
 
+  it('should set output zip file name', () => {
+    const publisher = createZipPublisher()
+    const zipName = 'zip-name'
+    publisher.setOutputZipName(zipName)
+
+    const publisherZipName = publisher.getOutputZipName()
+    expect(publisherZipName).toBe(zipName)
+  })
+
   it('should fail if no project is provided', async () => {
     const publisher = createZipPublisher()
 
@@ -57,11 +68,12 @@ describe('teleport publisher zip', () => {
 
   it('should generate project and write the zip to disk if output is provided', async () => {
     const publisher = createZipPublisher({ project, outputPath: projectPath })
+    const zipName = 'zip-name'
 
-    const { success, payload } = await publisher.publish()
+    const { success, payload } = await publisher.publish({ outputZipName: zipName })
     expect(success).toBeTruthy()
 
-    const zipPath = join(projectPath, `${project.name}.zip`)
+    const zipPath = join(projectPath, `${zipName}.zip`)
     const zipFileExists = existsSync(zipPath)
     expect(zipFileExists).toBeTruthy()
 
@@ -84,6 +96,17 @@ describe('teleport publisher zip', () => {
     const componentsFolder = zipContent.files['components/']
     expect(componentsFolder.dir).toBeTruthy()
   })
+})
+
+it('should generate project and write the zip to disk having the project name as follback for zip name', async () => {
+  const publisher = createZipPublisher({ project, outputPath: projectPath })
+
+  const { success } = await publisher.publish()
+  expect(success).toBeTruthy()
+
+  const zipPath = join(projectPath, `${project.name}.zip`)
+  const zipFileExists = existsSync(zipPath)
+  expect(zipFileExists).toBeTruthy()
 })
 
 const removeDirectory = (dirPath: string): void => {

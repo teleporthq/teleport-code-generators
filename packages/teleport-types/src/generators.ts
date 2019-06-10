@@ -184,7 +184,7 @@ export type GenerateComponentFunction = (
 /**
  * Interfaces used in the publishers
  */
-export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFactoryParams>) => U
+export type PublisherFactory<T, U> = (configuration?: Partial<T>) => U
 
 export interface Publisher<T, U> {
   publish: (options?: T) => Promise<PublisherResponse<U>>
@@ -194,7 +194,6 @@ export interface Publisher<T, U> {
 
 export interface PublisherFactoryParams {
   project?: GeneratedFolder
-  projectName?: string
 }
 export interface PublisherResponse<T> {
   success: boolean
