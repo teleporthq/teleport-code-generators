@@ -22,6 +22,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     const uidlSample = component('SimpleComponent', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [],
       dependencies: {},
     }
@@ -47,6 +48,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }
@@ -78,6 +80,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }
@@ -110,6 +113,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [reactChunk, exportChunk],
       dependencies: {},
     }

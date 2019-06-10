@@ -12,6 +12,7 @@ describe('plugin-import-statements', () => {
     const structure = {
       chunks: [],
       uidl: null,
+      options: {},
       dependencies: {
         package: componentDependency('package', 'npm-package', '1.0.0'),
         library: componentDependency('library', 'project-lib', '2.0.0'),
@@ -30,6 +31,7 @@ describe('plugin-import-statements', () => {
   it('pushes chunks for imports even when no statement is needed', async () => {
     const structure = {
       chunks: [],
+      options: {},
       uidl: null,
       dependencies: {
         local: componentDependency('local', '../../components/local'),

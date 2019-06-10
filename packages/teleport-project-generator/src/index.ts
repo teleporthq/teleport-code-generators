@@ -51,8 +51,8 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
 
     // pages have local dependencies in components
     const pagesLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-      strategy.components.path,
-      strategy.pages.path
+      strategy.pages.path,
+      strategy.components.path
     )
 
     const pagePromises = routeNodes.map((routeNode) => {
@@ -111,8 +111,8 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
 
     // Step 7: Create the routing component (index.js) and the html entry file (index.html)
     const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-      strategy.pages.path,
-      strategy.routes.path
+      strategy.routes.path,
+      strategy.pages.path
     )
     strategy.routes.file = await strategy.routes.generator(root, {
       localDependenciesPrefix: routerLocalDependenciesPrefix,

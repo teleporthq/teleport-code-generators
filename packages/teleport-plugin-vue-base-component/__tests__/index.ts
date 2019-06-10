@@ -10,6 +10,7 @@ describe('vue-base-component-plugin', () => {
   it('outputs two AST chunks with the corresponding chunk names', async () => {
     const structure = {
       chunks: [],
+      options: {},
       uidl: component('Test', elementNode('container')),
       dependencies: {},
     }

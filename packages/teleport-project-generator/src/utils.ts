@@ -179,9 +179,11 @@ export const handlePackageJSON = (
     const packageJSONContent = JSON.parse(inputPackageJSONFile.content) as PackageJSON
 
     packageJSONContent.name = slugify(uidl.name)
-    packageJSONContent.dependencies = dependencies
+    packageJSONContent.dependencies = {
+      ...packageJSONContent.dependencies,
+      ...dependencies,
+    }
 
-    // TODO: test this flow
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
   } else {
     const content: PackageJSON = {
@@ -265,8 +267,6 @@ export const createFile = (name: string, fileType: string, content: string): Gen
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
-  let dependencyPrefix = ''
-
   /*
     Remove common path elements from the beginning of the
     components and pages full path (if any)
@@ -282,7 +282,12 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
   const [firstPath, secondPath] = removeCommonStartingPointsFromPaths([fromPath, toPath])
 
   // We have to go back as many folders as there are defined in the pages path
-  dependencyPrefix += '../'.repeat(firstPath.length)
+  let dependencyPrefix = '' + '../'.repeat(firstPath.length)
+
+  // if 'fromPath' is parent for 'toPath', the path starts from './'
+  if (firstPath.length === 0) {
+    secondPath.unshift('.')
+  }
 
   dependencyPrefix += secondPath
     .map((folder) => {

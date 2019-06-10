@@ -1,6 +1,7 @@
 import { generateLocalDependenciesPrefix, handlePackageJSON } from '../src/utils'
-import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
+import { GeneratedFolder, ProjectUIDL, PackageJSON } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 describe('generateLocalDependenciesPrefix', () => {
   it('works when there is a common parent', () => {
@@ -58,6 +59,46 @@ describe('handlePackageJSON', () => {
       subFolders: [],
     }
 
-    const result = handlePackageJSON(template, uidl, dependencies)
+    handlePackageJSON(template, uidl, dependencies)
+
+    expect(template.files[0].fileType === FILE_TYPE.JSON)
+    expect(template.files[0].name === 'package')
+
+    const jsonContent = JSON.parse(template.files[0].content) as PackageJSON
+    expect(Object.keys(jsonContent.dependencies).length).toBe(2)
+    expect(jsonContent.name).toBe('test-project')
+  })
+
+  it('appends data to the original one', () => {
+    const templatePackageJSON: PackageJSON = {
+      name: 'template-name',
+      version: '1.2.3',
+      description: 'package description',
+      dependencies: {
+        'template-dependency': '2.0.0',
+      },
+    }
+
+    const template: GeneratedFolder = {
+      name: 'template',
+      files: [
+        {
+          name: 'package',
+          fileType: FILE_TYPE.JSON,
+          content: JSON.stringify(templatePackageJSON),
+        },
+      ],
+      subFolders: [],
+    }
+
+    handlePackageJSON(template, uidl, dependencies)
+
+    expect(template.files[0].fileType === FILE_TYPE.JSON)
+    expect(template.files[0].name === 'package')
+
+    const jsonContent = JSON.parse(template.files[0].content) as PackageJSON
+    expect(Object.keys(jsonContent.dependencies).length).toBe(3)
+    expect(jsonContent.name).toBe('test-project')
+    expect(jsonContent.version).toBe('1.2.3')
   })
 })

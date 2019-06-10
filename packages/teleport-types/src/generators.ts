@@ -30,6 +30,7 @@ export interface ChunkDefinition {
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
   uidl: ComponentUIDL
+  options: GeneratorOptions
   dependencies: Record<string, ComponentDependency>
 }
 
@@ -132,9 +133,9 @@ export interface PackageJSON {
   name: string
   description: string
   version: string
-  main: string
-  author: string
-  license: string
+  main?: string
+  author?: string
+  license?: string
   scripts?: Record<string, string>
   dependencies?: Record<string, string>
   [key: string]: any
