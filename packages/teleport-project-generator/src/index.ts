@@ -4,28 +4,34 @@ import {
   joinGeneratorOutputs,
   createManifestJSONFile,
   generateLocalDependenciesPrefix,
-  injectFilesInFolderStructure,
   handlePackageJSON,
+  injectFilesToPath,
 } from './utils'
 
 import { ProjectStrategy } from './types'
 
 import { DEFAULT_TEMPLATE } from './constants'
 
-import { extractRoutes } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { extractRoutes, cloneObject } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
 import {
   ComponentFactoryParams,
   GeneratorOptions,
-  GeneratedFile,
   GeneratedFolder,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
 
 export const createProjectGenerator = (strategy: ProjectStrategy) => {
   const validator = new Validator()
+
+  const assetsPath = strategy.static.path.join('/')
+  const assetsPrefix = strategy.static.prefix || assetsPath
+
+  const getAssetsPath = () => {
+    return assetsPath
+  }
 
   const generateProject = async (
     input: Record<string, unknown>,
@@ -47,7 +53,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
 
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
-    const assetsPrefix = strategy.assets.prefix
+    const rootFolder = cloneObject(template)
 
     // pages have local dependencies in components
     const pagesLocalDependenciesPrefix = generateLocalDependenciesPrefix(
@@ -97,48 +103,50 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
 
     // Step 5: The generated page and component files are joined
     const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
-    strategy.pages.files = joinedPageFiles.files
+    injectFilesToPath(rootFolder, strategy.pages.path, joinedPageFiles.files)
 
     const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
-    strategy.components.files = joinedComponentFiles.files
+    injectFilesToPath(rootFolder, strategy.components.path, joinedComponentFiles.files)
 
     // Step 6: Global settings are transformed into the root html file and the manifest file for PWA support
-    const staticFiles: GeneratedFile[] = []
     if (uidl.globals.manifest) {
       const manifestFile = createManifestJSONFile(uidl, assetsPrefix)
-      staticFiles.push(manifestFile)
+      injectFilesToPath(rootFolder, strategy.static.path, [manifestFile])
     }
 
     // Step 7: Create the routing component (index.js) and the html entry file (index.html)
-    const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-      strategy.routes.path,
-      strategy.pages.path
-    )
-    strategy.routes.file = await strategy.routes.generator(root, {
-      localDependenciesPrefix: routerLocalDependenciesPrefix,
-    })
-    strategy.entry.file = await strategy.entry.generator(uidl, { assetsPrefix })
+    if (strategy.router) {
+      const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+        strategy.router.path,
+        strategy.pages.path
+      )
+      const routerFile = await strategy.router.generator(root, {
+        localDependenciesPrefix: routerLocalDependenciesPrefix,
+      })
+      injectFilesToPath(rootFolder, strategy.router.path, [routerFile])
+    }
+
+    const entryFile = await strategy.entry.generator(uidl, { assetsPrefix })
+    injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
 
     // Step 8: Join all the external dependencies
     const collectedDependencies = {
-      // ...routerDependencies, TODO: ?
       ...joinedPageFiles.dependencies,
       ...joinedComponentFiles.dependencies,
     }
 
     // Step 9: Handle the package.json file
-    handlePackageJSON(template, uidl, collectedDependencies)
-
-    const outputFolder = injectFilesInFolderStructure(strategy, template)
+    handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
     return {
-      outputFolder,
-      assetsPath: 'src' + assetsPrefix,
+      outputFolder: rootFolder,
+      assetsPath,
     }
   }
 
   return {
     generateProject,
+    getAssetsPath,
   }
 }
 

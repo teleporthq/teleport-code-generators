@@ -22,7 +22,7 @@ export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {
       path: ['src', 'views'],
       options: generatorOptions,
     },
-    routes: {
+    router: {
       generator: createRouterIndexFile,
       path: ['src'],
     },
@@ -30,7 +30,7 @@ export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {
       generator: createHtmlEntryFile,
       path: ['src'],
     },
-    assets: {
+    static: {
       prefix: '/static',
       path: ['src', 'static'],
     },

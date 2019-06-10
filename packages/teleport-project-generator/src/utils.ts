@@ -27,7 +27,6 @@ import {
 
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { DEFAULT_PACKAGE_JSON } from './constants'
-import { ProjectStrategy } from './types'
 
 interface HtmlIndexFileOptions {
   assetsPrefix?: string
@@ -335,49 +334,23 @@ const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
   })
 }
 
-export const injectFilesInFolderStructure = (
-  strategy: ProjectStrategy,
-  template: GeneratedFolder
-): GeneratedFolder => {
-  template = injectFilesToPath(template, strategy.components.path, strategy.components.files)
-  template = injectFilesToPath(template, strategy.pages.path, strategy.pages.files)
-  template = injectFilesToPath(template, strategy.routes.path, [strategy.routes.file])
-  template = injectFilesToPath(template, strategy.entry.path, [strategy.entry.file])
-
-  return template
-}
-
-const injectFilesToPath = (
+export const injectFilesToPath = (
   rootFolder: GeneratedFolder,
   path: string[],
   files: GeneratedFile[]
-): GeneratedFolder => {
+): void => {
   let folder = findFolderByPath(rootFolder, path)
 
   if (!folder) {
-    const { updatedRootFolder, createdFolder } = createFolderByPath(rootFolder, path)
-    rootFolder = updatedRootFolder
-    folder = createdFolder
+    folder = createFolderInPath(rootFolder, path)
   }
 
   folder.files = folder.files.concat(files)
-  return rootFolder
 }
 
-interface NewGeneratedFolderResponse {
-  updatedRootFolder: GeneratedFolder
-  createdFolder: GeneratedFolder
-}
-
-const createFolderByPath = (
-  rootFolder: GeneratedFolder,
-  folderPath: string | string[]
-): NewGeneratedFolderResponse => {
-  folderPath = [].concat(folderPath)
-  const rootFolderClone = JSON.parse(JSON.stringify(rootFolder))
-
-  let createdFolder = null
-  let currentFolder = rootFolderClone
+const createFolderInPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
+  let currentFolder = rootFolder
+  let createdFolder: GeneratedFolder
 
   folderPath.forEach((path, index) => {
     let intermediateFolder = findSubFolderByName(currentFolder, path)
@@ -393,10 +366,7 @@ const createFolderByPath = (
     }
   })
 
-  return {
-    createdFolder,
-    updatedRootFolder: rootFolderClone,
-  }
+  return createdFolder
 }
 
 const findFolderByPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
