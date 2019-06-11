@@ -2,8 +2,8 @@ import * as types from '@babel/types'
 
 import {
   UIDLPropDefinition,
-  StateIdentifier,
   ComponentDependency,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 
 export interface JSXConfig {
@@ -14,7 +14,7 @@ export interface JSXConfig {
 
 export interface ReactComponentAccumulators {
   propDefinitions: Record<string, UIDLPropDefinition>
-  stateIdentifiers: Record<string, StateIdentifier>
+  stateDefinitions: Record<string, UIDLStateDefinition>
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, ComponentDependency>
 }
