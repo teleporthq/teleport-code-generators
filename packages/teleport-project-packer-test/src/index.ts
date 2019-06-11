@@ -63,7 +63,7 @@ const run = async () => {
     await packProject('react-basic')
     await packProject('react-next')
     await packProject('vue-basic')
-    // await packProject('vue-nuxt')
+    await packProject('vue-nuxt')
   } catch (e) {
     console.info(e)
   }
