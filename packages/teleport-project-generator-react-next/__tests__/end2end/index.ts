@@ -6,13 +6,11 @@ import invalidUidlSample from '../../../../examples/test-samples/project-invalid
 import template from './template-definition.json'
 import { createReactNextGenerator } from '../../src'
 
-const projectUIDL = uidlSample
-
 describe('React Next Project Generator', () => {
   const generator = createReactNextGenerator()
 
   it('runs without crashing', async () => {
-    const { assetsPath, outputFolder } = await generator.generateProject(projectUIDL, template)
+    const { assetsPath, outputFolder } = await generator.generateProject(uidlSample, template)
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)

@@ -31,9 +31,7 @@ export const createRouterIndexFile = async (root: ComponentUIDL, options: Genera
   root.meta.fileName = 'index'
 
   const { files } = await routingComponentGenerator.generateComponent(root, options)
-  const routerFile = files[0]
-
-  return routerFile
+  return files[0]
 }
 
 export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => {

@@ -2,19 +2,15 @@
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 // @ts-ignore
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
-
-import { createVueBasicGenerator } from '../../src'
-import { ProjectUIDL } from '@teleporthq/teleport-types'
-
+// @ts-ignore
 import template from './template-definition.json'
-
-const projectUIDL = uidlSample as ProjectUIDL
+import { createVueBasicGenerator } from '../../src'
 
 describe('Vue Basic Project Generator', () => {
   const generator = createVueBasicGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(projectUIDL, template)
+    const result = await generator.generateProject(uidlSample, template)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe(template.name)
@@ -27,7 +23,7 @@ describe('Vue Basic Project Generator', () => {
 
   it('works when validation step is skiped', async () => {
     const options = { skipValidation: true }
-    const result = await generator.generateProject(invalidUidlSample, template, undefined, options)
+    const result = await generator.generateProject(invalidUidlSample, template, options)
 
     expect(result.assetsPath).toBeDefined()
     expect(result.outputFolder.name).toBe(template.name)
