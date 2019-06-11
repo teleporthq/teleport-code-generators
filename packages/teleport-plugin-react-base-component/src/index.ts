@@ -1,31 +1,28 @@
 import * as types from '@babel/types'
 import { makeDefaultExport } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
-import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
+import { makePureComponent, createStateIdentifiers } from './utils'
+import { generateNodeSyntax } from './node-handlers'
+
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-
-interface JSXConfig {
-  componentChunkName: string
-  exportChunkName: string
-  importChunkName: string
-}
-
-export const ERROR_LOG_NAME = `react-base-component`
+import { JSXConfig } from './types'
+import {
+  DEFAULT_COMPONENT_CHUNK_NAME,
+  DEFAULT_EXPORT_CHUNK_NAME,
+  DEFAULT_IMPORT_CHUNK_NAME,
+  REACT_LIBRARY_DEPENDENCY,
+} from './constants'
 
 export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const {
-    componentChunkName = 'react-component',
-    exportChunkName = 'export',
-    importChunkName = 'import-local',
+    componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
+    exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
+    importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
 
-    dependencies.React = {
-      type: 'library',
-      path: 'react',
-      version: '16.8.3',
-    }
+    dependencies.React = REACT_LIBRARY_DEPENDENCY
 
     const stateIdentifiers = uidl.stateDefinitions
       ? createStateIdentifiers(uidl.stateDefinitions, dependencies)
