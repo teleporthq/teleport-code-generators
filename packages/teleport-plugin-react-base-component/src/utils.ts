@@ -364,9 +364,9 @@ const createStateChangeStatement = (
   }
 
   const stateKey = eventHandlerStatement.modifies
-  const stateIdentifier = stateDefinitions[stateKey]
+  const stateDefinition = stateDefinitions[stateKey]
 
-  if (!stateIdentifier) {
+  if (!stateDefinition) {
     console.warn(`No state hook was found for "${stateKey}"`)
     return null
   }
@@ -374,7 +374,7 @@ const createStateChangeStatement = (
   const stateSetterArgument =
     eventHandlerStatement.newState === '$toggle'
       ? t.unaryExpression('!', t.identifier(stateKey))
-      : convertValueToLiteral(eventHandlerStatement.newState, stateIdentifier.type)
+      : convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
 
   return t.expressionStatement(
     t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [stateSetterArgument])
