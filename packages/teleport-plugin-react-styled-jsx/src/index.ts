@@ -7,6 +7,7 @@ import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/strin
 import {
   transformDynamicStyles,
   traverseElements,
+  traverseUIDLForRootElmNode,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { createCSSClassFromStringMap } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
 import { ComponentPluginFactory, ComponentPlugin, UIDLElement } from '@teleporthq/teleport-types'
@@ -20,7 +21,6 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
   const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-
     const { node } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
@@ -62,10 +62,14 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
+    let rootJSXNode
     const rootNodeKey = (node.content as UIDLElement).key
-    const rootJSXNode = rootNodeKey
-      ? jsxNodesLookup[rootNodeKey]
-      : jsxNodesLookup[Object.keys(jsxNodesLookup)[0]]
+    if (rootNodeKey) {
+      rootJSXNode = jsxNodesLookup[rootNodeKey]
+    } else {
+      const elmRootNode = traverseUIDLForRootElmNode(uidl.node)
+      rootJSXNode = jsxNodesLookup[elmRootNode.content.key]
+    }
 
     rootJSXNode.children.push(jsxASTNodeReference)
     return structure

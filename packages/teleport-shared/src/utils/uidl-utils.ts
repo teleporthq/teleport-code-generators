@@ -424,3 +424,16 @@ export const transformAttributesAssignmentsToJson = (
 
   return newStyleObject
 }
+
+export const traverseUIDLForRootElmNode = (node) => {
+  if (node && node.type) {
+    if (node.type === 'element') {
+      return node
+    } else {
+      const childNode = node.content
+      return traverseUIDLForRootElmNode(childNode.node)
+    }
+  } else {
+    console.warn(`The passed is not a Element node`)
+  }
+}
