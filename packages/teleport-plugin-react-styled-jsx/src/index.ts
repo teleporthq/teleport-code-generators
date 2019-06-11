@@ -59,13 +59,15 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     }
 
     const jsxASTNodeReference = generateStyledJSXTag(styleJSXString.join('\n'))
-    const rootJSXNode = jsxNodesLookup[(node.content as UIDLElement).key] // TODO: Check for other types
-
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
-    rootJSXNode.children.push(jsxASTNodeReference)
+    const rootNodeKey = (node.content as UIDLElement).key
+    const rootJSXNode = rootNodeKey
+      ? jsxNodesLookup[rootNodeKey]
+      : jsxNodesLookup[Object.keys(jsxNodesLookup)[0]]
 
+    rootJSXNode.children.push(jsxASTNodeReference)
     return structure
   }
 

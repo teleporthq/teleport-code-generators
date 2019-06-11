@@ -2,6 +2,9 @@ import {
   component,
   elementNode,
   staticNode,
+  conditionalNode,
+  dynamicNode,
+  definition,
 } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
@@ -72,6 +75,43 @@ describe('plugin-react-styled-jsx', () => {
 
     expect(chunks.length).toBe(1)
     const nodeReference = componentChunk.meta.nodesLookup.group
+    expect(nodeReference.children.length).toBe(1)
+
+    const styledTag = nodeReference.children[0]
+
+    expect(styledTag.openingElement.name.name).toBe('style')
+    expect(styledTag.children[0].expression.quasis[0].value.raw).toContain('height: 100px')
+  })
+
+  it('add <style> tag to first element node if the root is non-element', async () => {
+    const style = {
+      height: staticNode('100px'),
+    }
+    const element = elementNode(
+      'div',
+      {},
+      [dynamicNode('prop', 'title'), staticNode('I am Title')],
+      null,
+      style
+    )
+    element.content.key = 'container'
+    const uidlSample = component(
+      'Component',
+      conditionalNode(dynamicNode('prop', 'title'), element, false),
+      { title: definition('string', 'Hello') },
+      {}
+    )
+
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      chunks: [componentChunk],
+      dependencies: {},
+    }
+
+    const { chunks } = await plugin(structure)
+
+    expect(chunks.length).toBe(1)
+    const nodeReference = componentChunk.meta.nodesLookup.container
     expect(nodeReference.children.length).toBe(1)
 
     const styledTag = nodeReference.children[0]
