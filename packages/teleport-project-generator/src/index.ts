@@ -72,13 +72,14 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       }
 
       const pageParams: ComponentFactoryParams = {
-        componentGenerator: strategy.components.generator,
+        componentGenerator: strategy.pages.generator,
         componentUIDL,
         generatorOptions: {
           localDependenciesPrefix: pagesLocalDependenciesPrefix,
           assetsPrefix,
           projectRouteDefinition: root.stateDefinitions.route,
         },
+        metadataOptions: strategy.pages.metaOptions,
       }
       return createPageOutputs(pageParams)
     })
@@ -93,6 +94,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
           assetsPrefix,
           projectRouteDefinition: root.stateDefinitions.route,
         },
+        metadataOptions: strategy.components.metaOptions,
       }
       return createComponentOutputs(componentParams)
     })

@@ -27,13 +27,9 @@ import {
 
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { DEFAULT_PACKAGE_JSON } from './constants'
+import { EntryFileOptions } from './types'
 
-interface HtmlIndexFileOptions {
-  assetsPrefix?: string
-  appRootOverride?: string
-}
-
-export const createHtmlIndexFile = (uidl: ProjectUIDL, options: HtmlIndexFileOptions): HastNode => {
+export const createHtmlIndexFile = (uidl: ProjectUIDL, options: EntryFileOptions): HastNode => {
   const { assetsPrefix = '', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 

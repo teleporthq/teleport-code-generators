@@ -15,12 +15,10 @@ export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {
     components: {
       generator: reactComponentGenerator,
       path: ['src', 'components'],
-      options: generatorOptions,
     },
     pages: {
       generator: reactComponentGenerator,
       path: ['src', 'views'],
-      options: generatorOptions,
     },
     router: {
       generator: createRouterIndexFile,

@@ -9,12 +9,14 @@ import {
 export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
-    options: GeneratorOptions
+    generatorOptions?: GeneratorOptions
+    metaOptions?: Record<string, any>
     path: string[]
   }
   pages: {
     generator: ComponentGenerator
-    options: GeneratorOptions
+    generatorOptions?: GeneratorOptions
+    metaOptions?: Record<string, any>
     path: string[]
   }
   router?: {
@@ -22,11 +24,16 @@ export interface ProjectStrategy {
     path: string[]
   }
   entry: {
-    generator: (project: ProjectUIDL, options) => Promise<GeneratedFile>
+    generator: (project: ProjectUIDL, options: EntryFileOptions) => Promise<GeneratedFile>
     path: string[]
   }
   static: {
     prefix?: string
     path: string[]
   }
+}
+
+export interface EntryFileOptions {
+  assetsPrefix?: string
+  appRootOverride?: string
 }
