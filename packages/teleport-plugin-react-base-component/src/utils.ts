@@ -320,9 +320,9 @@ const createReturnExpressionSyntax = (
 ) => {
   const returnStatement = t.returnStatement(jsxTagTree)
 
-  const stateHooks = Object.keys(stateDefinitions).map((stateKey) => {
-    return createStateHookAST(stateKey, stateDefinitions[stateKey])
-  })
+  const stateHooks = Object.keys(stateDefinitions).map((stateKey) =>
+    createStateHookAST(stateKey, stateDefinitions[stateKey])
+  )
 
   return t.blockStatement([...stateHooks, returnStatement] || [])
 }
