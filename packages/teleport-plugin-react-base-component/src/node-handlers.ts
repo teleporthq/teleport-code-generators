@@ -14,9 +14,9 @@ import { ReactComponentAccumulators, GenerateNodeSyntaxReturnValue } from './typ
 import {
   addAttributeToNode,
   addEventHandlerToTag,
-  makeRepeatStructureWithMap,
+  createRepeatStructureWithMap,
   createConditionIdentifier,
-  makeDynamicValueExpression,
+  createDynamicValueExpression,
   createConditionalJSXExpression,
 } from './utils'
 
@@ -37,7 +37,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
       return node.content.toString()
 
     case 'dynamic':
-      return makeDynamicValueExpression(node)
+      return createDynamicValueExpression(node)
 
     case 'element':
       return generateElementNode(node, accumulators)
@@ -123,7 +123,7 @@ const generateRepeatNode = (node: UIDLRepeatNode, accumulators: ReactComponentAc
     )
   }
 
-  const repeatAST = makeRepeatStructureWithMap(dataSource, contentAST as types.JSXElement, meta)
+  const repeatAST = createRepeatStructureWithMap(dataSource, contentAST as types.JSXElement, meta)
   return repeatAST
 }
 
@@ -158,7 +158,7 @@ const generateSlotNode = (
     },
   }
 
-  const childrenExpression = makeDynamicValueExpression(childrenProp)
+  const childrenExpression = createDynamicValueExpression(childrenProp)
 
   if (node.content.fallback) {
     const fallbackContent = generateNodeSyntax(node.content.fallback, accumulators)

@@ -57,7 +57,7 @@ export const createStateIdentifiers = (
   )
 }
 
-export const makePureComponent = (
+export const createPureComponent = (
   name: string,
   stateIdentifiers: Record<string, StateIdentifier>,
   jsxTagTree: GenerateNodeSyntaxReturnValue,
@@ -74,10 +74,10 @@ export const makePureComponent = (
       arrowFunctionBody =
         Object.keys(stateIdentifiers).length === 0
           ? jsxTagTree
-          : generateReturnExpressionSyntax(stateIdentifiers, jsxTagTree as types.JSXElement)
+          : createReturnExpressionSyntax(stateIdentifiers, jsxTagTree as types.JSXElement)
       break
     default:
-      arrowFunctionBody = generateReturnExpressionSyntax(
+      arrowFunctionBody = createReturnExpressionSyntax(
         stateIdentifiers,
         jsxTagTree as types.JSXElement
       )
@@ -137,7 +137,7 @@ export const addEventHandlerToTag = (
   )
 }
 
-export const makeRepeatStructureWithMap = (
+export const createRepeatStructureWithMap = (
   dataSource: UIDLAttributeValue,
   content: types.JSXElement,
   meta: Record<string, any> = {},
@@ -169,7 +169,7 @@ export const makeRepeatStructureWithMap = (
   )
 }
 
-export const makeDynamicValueExpression = (identifier: UIDLDynamicReference, t = types) => {
+export const createDynamicValueExpression = (identifier: UIDLDynamicReference, t = types) => {
   const prefix = getReactVarNameForDynamicReference(identifier)
   return prefix === ''
     ? t.identifier(identifier.content.id)
@@ -343,14 +343,14 @@ const convertToUnaryOperator = (operation: string): UnaryOperation => {
   }
 }
 
-const generateReturnExpressionSyntax = (
+const createReturnExpressionSyntax = (
   stateIdentifiers: Record<string, StateIdentifier>,
   jsxTagTree: types.JSXElement,
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxTagTree)
   const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
-    makeStateHookAST(stateIdentifiers[stateKey])
+    createStateHookAST(stateIdentifiers[stateKey])
   )
 
   return t.blockStatement([...stateHooks, returnStatement] || [])
@@ -413,7 +413,7 @@ const createStateChangeStatement = (
 /**
  * Creates an AST line for defining a single state hook
  */
-const makeStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
+const createStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
   const defaultValueArgument = convertValueToLiteral(stateIdentifier.default, stateIdentifier.type)
   return t.variableDeclaration('const', [
     t.variableDeclarator(
@@ -430,7 +430,7 @@ const getSourceIdentifier = (dataSource: UIDLAttributeValue, t = types) => {
         (dataSource.content as any[]).map((element) => convertValueToLiteral(element))
       )
     case 'dynamic': {
-      return makeDynamicValueExpression(dataSource)
+      return createDynamicValueExpression(dataSource)
     }
     default:
       throw new Error(`Invalid type for dataSource: ${dataSource}`)

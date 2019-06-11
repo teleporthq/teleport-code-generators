@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 import { makeDefaultExport } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
-import { makePureComponent, createStateIdentifiers } from './utils'
+import { createPureComponent, createStateIdentifiers } from './utils'
 import { generateNodeSyntax } from './node-handlers'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -42,7 +42,12 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
 
     const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators)
 
-    pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure, uidl.node.type)
+    pureComponent = createPureComponent(
+      uidl.name,
+      stateIdentifiers,
+      jsxTagStructure,
+      uidl.node.type
+    )
 
     structure.chunks.push({
       type: 'js',
