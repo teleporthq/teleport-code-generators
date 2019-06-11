@@ -7,7 +7,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { createHtmlIndexFile } from '@teleporthq/teleport-project-generator/lib/utils'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import {
   ComponentUIDL,
@@ -30,7 +30,10 @@ export const createRouterIndexFile = async (root: ComponentUIDL, options: Genera
   root.meta = root.meta || {}
   root.meta.fileName = 'index'
 
-  const { files } = await routingComponentGenerator.generateComponent(root, options)
+  const { files } = await routingComponentGenerator.generateComponent(
+    (root as unknown) as Record<string, unknown>,
+    options
+  )
   return files[0]
 }
 

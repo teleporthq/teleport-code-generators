@@ -3,7 +3,7 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
-import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { createHtmlIndexFile } from '@teleporthq/teleport-project-generator/lib/utils'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
 import {

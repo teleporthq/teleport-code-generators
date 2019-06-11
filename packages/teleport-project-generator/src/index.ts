@@ -1,6 +1,4 @@
 import {
-  createPageOutputs,
-  createComponentOutputs,
   joinGeneratorOutputs,
   createManifestJSONFile,
   generateLocalDependenciesPrefix,
@@ -12,16 +10,15 @@ import { ProjectStrategy } from './types'
 
 import { DEFAULT_TEMPLATE } from './constants'
 
-import { extractRoutes, cloneObject } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import {
+  extractRoutes,
+  extractPageMetadata,
+  cloneObject,
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
-import {
-  ComponentFactoryParams,
-  GeneratorOptions,
-  GeneratedFolder,
-  ComponentUIDL,
-} from '@teleporthq/teleport-types'
+import { GeneratorOptions, GeneratedFolder } from '@teleporthq/teleport-types'
 
 export const createProjectGenerator = (strategy: ProjectStrategy) => {
   const validator = new Validator()
@@ -51,8 +48,10 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    // Handling pages
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
+    const routeDefinitions = root.stateDefinitions.route
     const rootFolder = cloneObject(template)
 
     // pages have local dependencies in components
@@ -65,38 +64,40 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       const { value, node } = routeNode.content
       const pageName = value.toString()
 
-      const componentUIDL: ComponentUIDL = {
-        name: pageName,
+      const { componentName, fileName } = extractPageMetadata(
+        routeDefinitions,
+        pageName,
+        strategy.pages.metaOptions
+      )
+
+      const pageUIDL = {
+        name: componentName,
         node,
-        stateDefinitions: root.stateDefinitions,
+        meta: {
+          fileName,
+        },
       }
 
-      const pageParams: ComponentFactoryParams = {
-        componentGenerator: strategy.pages.generator,
-        componentUIDL,
-        generatorOptions: {
-          localDependenciesPrefix: pagesLocalDependenciesPrefix,
-          assetsPrefix,
-          projectRouteDefinition: root.stateDefinitions.route,
-        },
-        metadataOptions: strategy.pages.metaOptions,
+      const generatorOptions: GeneratorOptions = {
+        localDependenciesPrefix: pagesLocalDependenciesPrefix,
+        assetsPrefix,
+        projectRouteDefinition: routeDefinitions,
+        skipValidation: true,
       }
-      return createPageOutputs(pageParams)
+
+      return strategy.pages.generator.generateComponent(pageUIDL, generatorOptions)
     })
 
-    // Step 3: The components generation process is started
+    // Handle the components
     const componentPromises = Object.keys(components).map((componentName) => {
       const componentUIDL = components[componentName]
-      const componentParams: ComponentFactoryParams = {
-        componentGenerator: strategy.components.generator,
-        componentUIDL,
-        generatorOptions: {
-          assetsPrefix,
-          projectRouteDefinition: root.stateDefinitions.route,
-        },
-        metadataOptions: strategy.components.metaOptions,
+      const generatorOptions: GeneratorOptions = {
+        assetsPrefix,
+        projectRouteDefinition: routeDefinitions,
+        skipValidation: true,
       }
-      return createComponentOutputs(componentParams)
+
+      return strategy.components.generator.generateComponent(componentUIDL, generatorOptions)
     })
 
     // Step 4: The process of creating the pages and the components is awaited

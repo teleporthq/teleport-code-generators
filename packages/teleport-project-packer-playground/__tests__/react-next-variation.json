@@ -29,11 +29,5 @@
       }
     ]
   },
-  "structure": {
-    "componentsPath": [
-      "components",
-      "playground-components"
-    ]
-  },
   "assets": {}
 }

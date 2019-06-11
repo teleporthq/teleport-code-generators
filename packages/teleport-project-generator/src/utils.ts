@@ -6,28 +6,21 @@ import {
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/lib/utils/html-utils'
 
-import {
-  prefixPlaygroundAssetsURL,
-  extractPageMetadata,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 import {
   GeneratedFile,
-  ComponentFactoryParams,
-  ComponentGeneratorOutput,
   GeneratedFolder,
   HastNode,
   ProjectUIDL,
   WebManifest,
-  ComponentUIDL,
-  PackageJSON,
 } from '@teleporthq/teleport-types'
 
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { DEFAULT_PACKAGE_JSON } from './constants'
-import { EntryFileOptions } from './types'
+import { EntryFileOptions, PackageJSON, ComponentGeneratorOutput } from './types'
 
 export const createHtmlIndexFile = (uidl: ProjectUIDL, options: EntryFileOptions): HastNode => {
   const { assetsPrefix = '', appRootOverride } = options
@@ -158,7 +151,11 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
     ...{ icons },
   }
 
-  return createFile('manifest', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
+  return {
+    name: 'manifest',
+    fileType: FILE_TYPE.JSON,
+    content: JSON.stringify(content, null, 2),
+  }
 }
 
 export const handlePackageJSON = (
@@ -187,55 +184,12 @@ export const handlePackageJSON = (
       dependencies,
     }
 
-    const packageFile = createFile('package', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
-    template.files.push(packageFile)
-  }
-}
-
-export const createPageOutputs = async (
-  params: ComponentFactoryParams
-): Promise<ComponentGeneratorOutput> => {
-  const { componentUIDL, metadataOptions } = params
-
-  const { name: pageName, node } = componentUIDL
-  const { route: routeDefinitions } = componentUIDL.stateDefinitions
-
-  const { componentName, fileName } = extractPageMetadata(routeDefinitions, pageName, {
-    ...metadataOptions,
-  })
-
-  const pageUIDL: ComponentUIDL = {
-    name: componentName,
-    node,
-    meta: {
-      fileName,
-    },
-  }
-
-  return createComponentOutputs({ ...params, componentUIDL: pageUIDL })
-}
-
-export const createComponentOutputs = async (
-  params: ComponentFactoryParams
-): Promise<ComponentGeneratorOutput> => {
-  const { componentGenerator, componentUIDL, generatorOptions } = params
-
-  let files: GeneratedFile[] = []
-  let dependencies: Record<string, string> = {}
-
-  try {
-    const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
-      ...generatorOptions,
-      skipValidation: true,
+    template.files.push({
+      name: 'package',
+      fileType: FILE_TYPE.JSON,
+      content: JSON.stringify(content, null, 2),
     })
-
-    files = compiledComponent.files
-    dependencies = compiledComponent.dependencies
-  } catch (error) {
-    console.warn(`Error on generating "${componentUIDL.name}" component\n`, error.stack)
   }
-
-  return { files, dependencies }
 }
 
 export const joinGeneratorOutputs = (
@@ -255,10 +209,6 @@ export const joinGeneratorOutputs = (
     },
     { dependencies: {}, files: [] }
   )
-}
-
-export const createFile = (name: string, fileType: string, content: string): GeneratedFile => {
-  return { name, fileType, content }
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {

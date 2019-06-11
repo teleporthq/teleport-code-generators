@@ -7,7 +7,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { createHtmlIndexFile } from '@teleporthq/teleport-project-generator/lib/utils'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
 import {
@@ -33,7 +33,10 @@ export const createRouterFile = async (root: ComponentUIDL, options: GeneratorOp
   root.meta = root.meta || {}
   root.meta.fileName = 'router'
 
-  const { files } = await vueRouterGenerator.generateComponent(root, options)
+  const { files } = await vueRouterGenerator.generateComponent(
+    (root as unknown) as Record<string, unknown>,
+    options
+  )
   return files[0]
 }
 

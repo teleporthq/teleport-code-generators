@@ -1,7 +1,53 @@
-import { generateLocalDependenciesPrefix, handlePackageJSON } from '../src/utils'
-import { GeneratedFolder, ProjectUIDL, PackageJSON } from '@teleporthq/teleport-types'
+import {
+  generateLocalDependenciesPrefix,
+  handlePackageJSON,
+  createHtmlIndexFile,
+  createManifestJSONFile,
+} from '../src/utils'
+import { PackageJSON } from '../src/types'
+import { GeneratedFolder, ProjectUIDL, HastNode, HastText } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+
+// @ts-ignore
+import uidlSample from '../../../examples/test-samples/project-sample.json'
+
+describe('createHtmlIndexFile', () => {
+  it('returns index file with prefixed assets and app file', () => {
+    const HtmlIndexFileOptions = {
+      assetsPrefix: 'playground',
+      fileName: 'app',
+      appRootOverride: '-root-placeholder-',
+    }
+    const result = createHtmlIndexFile(uidlSample, HtmlIndexFileOptions)
+
+    expect(result.tagName).toBe('html')
+    expect(result.children.length).toBe(2)
+
+    const body = result.children[1] as HastNode
+    expect(body.children[0].type).toBe('text')
+    expect((body.children[0] as HastText).value).toBe(HtmlIndexFileOptions.appRootOverride)
+  })
+})
+
+describe('createManifestJSONFile', () => {
+  it('returns manifest file with prefixed assets', () => {
+    const assetsPrefix = 'playground'
+    const result = createManifestJSONFile(uidlSample, assetsPrefix)
+
+    expect(result.name).toBe('manifest')
+    expect(result.fileType).toBe('json')
+    expect(result.content).toContain('"src": "playground/playground_assets/')
+  })
+
+  it('returns manifest file with no prefixed assets', () => {
+    const result = createManifestJSONFile(uidlSample)
+
+    expect(result.name).toBe('manifest')
+    expect(result.fileType).toBe('json')
+    expect(result.content).toContain('"src": "/playground_assets/')
+  })
+})
 
 describe('generateLocalDependenciesPrefix', () => {
   it('works when there is a common parent', () => {

@@ -44,6 +44,29 @@ export type ComponentPluginFactory<T> = (
   configuration?: Partial<T & ComponentDefaultPluginParams>
 ) => ComponentPlugin
 
+/**
+ * Function used to alter the generic generatedEntity by adding a attribute
+ * named attributeKey with attributeValue data. This type of function is meant
+ * to be used in generators that support attribute values on their presentation
+ * nodes.
+ *
+ * For example, a <div/> in HAST could get a new attribute tab-index with value 0
+ * with a function like this.
+ */
+export type AttributeAssignCodeMod<T> = (
+  generatedEntity: T,
+  attributeKey: string,
+  attributeValue: UIDLAttributeValue
+) => void
+
+/**
+ * Function used to generate a presentation structure.
+ */
+export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
+  node: UIDLNode,
+  accumulators: Accumulators
+) => ReturnValues
+
 export interface CompiledComponent {
   files: GeneratedFile[]
   dependencies: Record<string, string>
@@ -114,56 +137,6 @@ export interface GeneratedFile {
   contentEncoding?: string
 }
 
-export interface ComponentFactoryParams {
-  componentGenerator: ComponentGenerator
-  componentUIDL: ComponentUIDL
-  generatorOptions: GeneratorOptions
-  metadataOptions?: {
-    usePathAsFileName?: boolean
-    convertDefaultToIndex?: boolean
-  }
-}
-
-export interface ComponentGeneratorOutput {
-  files: GeneratedFile[]
-  dependencies: Record<string, string>
-}
-
-export interface PackageJSON {
-  name: string
-  description: string
-  version: string
-  main?: string
-  author?: string
-  license?: string
-  scripts?: Record<string, string>
-  dependencies?: Record<string, string>
-  [key: string]: any
-}
-
-/**
- * Function used to alter the generic generatedEntity by adding a attribute
- * named attributeKey with attributeValue data. This type of function is meant
- * to be used in generators that support attribute values on their presentation
- * nodes.
- *
- * For example, a <div/> in HAST could get a new attribute tab-index with value 0
- * with a function like this.
- */
-export type AttributeAssignCodeMod<T> = (
-  generatedEntity: T,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
-) => void
-
-/**
- * Function used to generate a presentation structure.
- */
-export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
-  node: UIDLNode,
-  accumulators: Accumulators
-) => ReturnValues
-
 export interface ProjectGeneratorOutput {
   outputFolder: GeneratedFolder
   assetsPath: string
@@ -172,12 +145,10 @@ export interface ProjectGeneratorOutput {
 export type GenerateProjectFunction = (
   input: Record<string, unknown>,
   template?: GeneratedFolder,
-  structure?: ProjectStructure,
   options?: GeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
 export type GenerateComponentFunction = (
-  // TODO rename to ComponentGeneratorOptions
   input: Record<string, unknown>,
   options?: GeneratorOptions
 ) => Promise<CompiledComponent>
@@ -216,8 +187,6 @@ export interface AssetInfo {
   name: string
   type: string
 }
-
-export type ProjectStructure = Record<string, string[]>
 
 export interface RemoteTemplateDefinition {
   provider: 'github'
