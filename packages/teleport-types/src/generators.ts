@@ -175,6 +175,10 @@ export type GenerateProjectFunction = (
   options?: GeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
+export interface ProjectGenerator {
+  generateProject?: GenerateProjectFunction
+}
+
 export type GenerateComponentFunction = (
   // TODO rename to ComponentGeneratorOptions
   input: Record<string, unknown>,
