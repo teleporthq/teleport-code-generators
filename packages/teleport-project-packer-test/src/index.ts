@@ -8,7 +8,7 @@ import vueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { ProjectUIDL, RemoteTemplateDefinition } from '@teleporthq/teleport-types'
 
-import config from './config.json'
+import config from '../config.json'
 
 import {
   GITHUB_TEMPLATE_OWNER,
