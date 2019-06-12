@@ -425,15 +425,17 @@ export const transformAttributesAssignmentsToJson = (
   return newStyleObject
 }
 
-export const traverseUIDLForRootElmNode = (node) => {
-  if (node && node.type) {
-    if (node.type === 'element') {
+export const findFirstElementNode = (node: UIDLNode) => {
+  switch (node.type) {
+    case 'element':
       return node
-    } else {
-      const childNode = node.content
-      return traverseUIDLForRootElmNode(childNode.node)
-    }
-  } else {
-    console.warn(`The passed is not a Element node`)
+    case 'static':
+    case 'dynamic':
+    case 'slot':
+      throw new Error('UIDL does not have any element node')
+    case 'conditional':
+    case 'repeat':
+      const childNode = node.content.node
+      return findFirstElementNode(childNode)
   }
 }
