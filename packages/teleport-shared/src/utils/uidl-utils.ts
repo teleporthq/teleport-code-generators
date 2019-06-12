@@ -424,3 +424,18 @@ export const transformAttributesAssignmentsToJson = (
 
   return newStyleObject
 }
+
+export const findFirstElementNode = (node: UIDLNode) => {
+  switch (node.type) {
+    case 'element':
+      return node
+    case 'static':
+    case 'dynamic':
+    case 'slot':
+      throw new Error('UIDL does not have any element node')
+    case 'conditional':
+    case 'repeat':
+      const childNode = node.content.node
+      return findFirstElementNode(childNode)
+  }
+}

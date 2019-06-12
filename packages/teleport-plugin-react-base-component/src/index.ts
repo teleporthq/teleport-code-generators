@@ -1,51 +1,54 @@
-import * as types from '@babel/types'
 import { createDefaultExport } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
-import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
+
+import { createPureComponent } from './utils'
+import { generateNodeSyntax } from './node-handlers'
+
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { JSXConfig } from './types'
 
-interface JSXConfig {
-  componentChunkName: string
-  exportChunkName: string
-  importChunkName: string
-}
-
-export const ERROR_LOG_NAME = `react-base-component`
+import {
+  DEFAULT_COMPONENT_CHUNK_NAME,
+  DEFAULT_EXPORT_CHUNK_NAME,
+  DEFAULT_IMPORT_CHUNK_NAME,
+  REACT_LIBRARY_DEPENDENCY,
+  USE_STATE_DEPENDENCY,
+} from './constants'
 
 export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
   const {
-    componentChunkName = 'react-component',
-    exportChunkName = 'export',
-    importChunkName = 'import-local',
+    componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
+    exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
+    importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
+    const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
-    dependencies.React = {
-      type: 'library',
-      path: 'react',
-      version: '16.8.3',
+    dependencies.React = REACT_LIBRARY_DEPENDENCY
+
+    if (Object.keys(stateDefinitions).length) {
+      dependencies.useState = USE_STATE_DEPENDENCY
     }
-
-    const stateIdentifiers = uidl.stateDefinitions
-      ? createStateIdentifiers(uidl.stateDefinitions, dependencies)
-      : {}
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
     const accumulators = {
-      propDefinitions: uidl.propDefinitions || {},
-      stateIdentifiers,
+      propDefinitions,
+      stateDefinitions,
       nodesLookup,
       dependencies,
     }
-    let pureComponent: types.VariableDeclaration
 
     const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators)
-
-    pureComponent = makePureComponent(uidl.name, stateIdentifiers, jsxTagStructure, uidl.node.type)
+    const pureComponent = createPureComponent(
+      uidl.name,
+      stateDefinitions,
+      jsxTagStructure,
+      uidl.node.type
+    )
 
     structure.chunks.push({
       type: 'js',

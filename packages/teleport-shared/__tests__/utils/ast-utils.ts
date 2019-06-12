@@ -1,7 +1,7 @@
 import {
+  ParsedASTNode,
   convertValueToLiteral,
   objectToObjectExpression,
-  ParsedASTNode,
 } from '../../src/utils/ast-js-utils'
 import _default from '../../../teleport-plugin-react-css-modules/lib'
 

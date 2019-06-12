@@ -35,4 +35,4 @@ node_modules/
 
 .changelog
 
-examples/project-exporters/yarn.lock
+packages/teleport-project-packer-test/config.json

@@ -3,8 +3,17 @@ import {
   transformStringAssignmentToJson,
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
+  findFirstElementNode,
 } from '../../src/utils/uidl-utils'
-import { UIDLStyleDefinitions } from '@teleporthq/teleport-types'
+import {
+  UIDLStyleDefinitions,
+  UIDLElementNode,
+  UIDLConditionalNode,
+  UIDLRepeatNode,
+  UIDLStaticValue,
+  UIDLDynamicReference,
+  UIDLSlotNode,
+} from '@teleporthq/teleport-types'
 
 // @ts-ignore
 import uidlStyleJSON from './uidl-utils-style.json'
@@ -200,5 +209,126 @@ describe('transformAttributesAssignmentsToJson', () => {
     }
 
     expect(transformAttributesAssignmentsToJson(inputStyle)).toEqual(expectedStyle)
+  })
+})
+
+describe('traverses the UIDL and returns the first element node that is found', () => {
+  const inputElementNode: UIDLElementNode = {
+    type: 'element',
+    content: {
+      elementType: 'container',
+    },
+  }
+
+  it('returns the same node, when the passed node is element node', () => {
+    const firstElmNode = findFirstElementNode(inputElementNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the root is a conditional element', () => {
+    const conditionalNode: UIDLConditionalNode = {
+      type: 'conditional',
+      content: {
+        node: inputElementNode,
+        reference: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            id: 'isVisible',
+          },
+        },
+      },
+    }
+    const firstElmNode = findFirstElementNode(conditionalNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the root is a repeat element', () => {
+    const repeatNode: UIDLRepeatNode = {
+      type: 'repeat',
+      content: {
+        node: inputElementNode,
+        dataSource: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            id: 'items',
+          },
+        },
+      },
+    }
+
+    const firstElmNode = findFirstElementNode(repeatNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the UIDL has multiple element nodes', () => {
+    const nestedNode: UIDLElementNode = {
+      ...inputElementNode,
+      content: {
+        ...inputElementNode.content,
+        children: [inputElementNode, inputElementNode],
+      },
+    }
+    const nestedinputConditonalNode: UIDLConditionalNode = {
+      type: 'conditional',
+      content: {
+        node: nestedNode,
+        reference: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'state',
+            id: 'isOpen',
+          },
+        },
+      },
+    }
+
+    const firstElmNode = findFirstElementNode(nestedinputConditonalNode)
+    expect(firstElmNode).toBe(nestedNode)
+  })
+
+  it('throws error if a static is passed', () => {
+    const staticNode: UIDLStaticValue = {
+      type: 'static',
+      content: 'This is a static value',
+    }
+
+    try {
+      findFirstElementNode(staticNode)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
+  })
+
+  it('throws error if a dynamic is passed', () => {
+    const dynamicNode: UIDLDynamicReference = {
+      type: 'dynamic',
+      content: {
+        referenceType: 'prop',
+        id: 'isOpen',
+      },
+    }
+
+    try {
+      findFirstElementNode(dynamicNode)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
+  })
+
+  it('throws error if a static is passed', () => {
+    const slotNode: UIDLSlotNode = {
+      type: 'slot',
+      content: {
+        name: 'slotNode',
+      },
+    }
+
+    try {
+      findFirstElementNode(slotNode)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
   })
 })

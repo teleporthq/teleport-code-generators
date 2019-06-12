@@ -69,17 +69,6 @@ export interface GeneratorOptions {
 
 export type CodeGeneratorFunction<T> = (content: T) => string
 
-/**
- * This structure is used for keeping information about a single state key while creating a component
- */
-export interface StateIdentifier {
-  key: string
-  type: string
-  setter: string
-  default: any
-}
-
-// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
 export interface ConditionalIdentifier {
   key: string
   type: string
@@ -175,6 +164,10 @@ export type GenerateProjectFunction = (
   options?: GeneratorOptions
 ) => Promise<ProjectGeneratorOutput>
 
+export interface ProjectGenerator {
+  generateProject?: GenerateProjectFunction
+}
+
 export type GenerateComponentFunction = (
   // TODO rename to ComponentGeneratorOptions
   input: Record<string, unknown>,
@@ -184,7 +177,7 @@ export type GenerateComponentFunction = (
 /**
  * Interfaces used in the publishers
  */
-export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFactoryParams>) => U
+export type PublisherFactory<T, U> = (configuration?: Partial<T>) => U
 
 export interface Publisher<T, U> {
   publish: (options?: T) => Promise<PublisherResponse<U>>
@@ -194,7 +187,6 @@ export interface Publisher<T, U> {
 
 export interface PublisherFactoryParams {
   project?: GeneratedFolder
-  projectName?: string
 }
 export interface PublisherResponse<T> {
   success: boolean
