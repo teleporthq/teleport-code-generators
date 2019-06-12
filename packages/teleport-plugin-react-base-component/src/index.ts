@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { makeDefaultExport } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { createDefaultExport } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import { makePureComponent, generateNodeSyntax, createStateIdentifiers } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
@@ -60,7 +60,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     structure.chunks.push({
       type: 'js',
       name: exportChunkName,
-      content: makeDefaultExport(uidl.name),
+      content: createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],
     })
 

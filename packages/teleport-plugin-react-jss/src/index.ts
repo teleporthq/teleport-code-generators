@@ -3,9 +3,10 @@ import * as t from '@babel/types'
 import { addDynamicAttributeOnTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
-  makeConstAssign,
   objectToObjectExpression,
 } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+
+import { createConstAssignment } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import { makeJSSDefaultExport } from './utils'
 
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
@@ -83,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       type: 'js',
       name: styleChunkName,
       linkAfter: [importChunkName],
-      content: makeConstAssign(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
+      content: createConstAssignment(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
     })
 
     const exportChunk = chunks.find((chunk) => chunk.name === exportChunkName)

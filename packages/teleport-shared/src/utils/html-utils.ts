@@ -1,20 +1,5 @@
-import { HastNode, HastText } from '@teleporthq/teleport-types'
-
-export const createHTMLNode = (tagName: string, children = []): HastNode => {
-  return {
-    type: 'element',
-    tagName,
-    properties: {},
-    children,
-  }
-}
-
-export const createTextNode = (content: string): HastText => {
-  return {
-    type: 'text',
-    value: content,
-  }
-}
+import { HastNode } from '@teleporthq/teleport-types'
+import { createTextNode } from '../builders/html-builders'
 
 export const addBooleanAttributeToNode = (node: HastNode, key: string) => {
   node.properties[key] = ''

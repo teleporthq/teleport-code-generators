@@ -8,7 +8,7 @@ import {
   transformDynamicStyles,
   traverseElements,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClassFromStringMap } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/jss-builders'
 import { ComponentPluginFactory, ComponentPlugin, UIDLElement } from '@teleporthq/teleport-types'
 
 interface StyledJSXConfig {
@@ -48,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
             }`
           )
         })
-        styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
+        styleJSXString.push(createCSSClass(className, styleRules))
 
         addClassStringOnJSXTag(root, className)
       }

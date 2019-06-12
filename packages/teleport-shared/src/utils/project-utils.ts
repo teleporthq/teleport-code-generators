@@ -1,11 +1,11 @@
 import {
-  createHTMLNode,
   addAttributeToNode,
   addChildNode,
   addTextNode,
   addBooleanAttributeToNode,
 } from './html-utils'
 
+import { createHTMLNode } from '../builders/html-builders'
 import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
 import { slugify } from './string-utils'
 import { FILE_TYPE } from '../constants'
