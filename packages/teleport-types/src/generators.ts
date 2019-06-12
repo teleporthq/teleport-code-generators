@@ -1,5 +1,6 @@
 import {
   ComponentUIDL,
+  ProjectUIDL,
   ComponentDependency,
   Mapping,
   UIDLElement,
@@ -142,18 +143,18 @@ export interface ProjectGeneratorOutput {
   assetsPath: string
 }
 
-export type GenerateProjectFunction = (
-  input: Record<string, unknown>,
-  template?: GeneratedFolder,
-  options?: GeneratorOptions
-) => Promise<ProjectGeneratorOutput>
-
 export interface ProjectGenerator {
-  generateProject?: GenerateProjectFunction
+  generateProject: (
+    input: ProjectUIDL | Record<string, unknown>,
+    template?: GeneratedFolder,
+    mapping?: Mapping
+  ) => Promise<ProjectGeneratorOutput>
+  addMapping: (mapping: Mapping) => void
+  getAssetsPath: () => string
 }
 
 export type GenerateComponentFunction = (
-  input: Record<string, unknown>,
+  input: ComponentUIDL | Record<string, unknown>,
   options?: GeneratorOptions
 ) => Promise<CompiledComponent>
 

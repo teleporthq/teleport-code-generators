@@ -28,19 +28,4 @@ describe('React Next Project Generator', () => {
 
     await expect(result).rejects.toThrow(Error)
   })
-  it('works when validation step is skiped', async () => {
-    const options = { skipValidation: true }
-    const result = await generator.generateProject(invalidUidlSample, template, options)
-
-    expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.name)
-    expect(result.outputFolder.files[0].name).toBe('package')
-
-    const components = result.outputFolder.subFolders[0]
-    const pages = result.outputFolder.subFolders[1]
-
-    expect(components.files[0].name).toBe('one-component')
-    expect(pages.files[0].name).toBe('index')
-    expect(pages.files[1].name).toBe('about')
-  })
 })

@@ -6,10 +6,8 @@ import {
 
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 
-import { GeneratorOptions } from '@teleporthq/teleport-types'
-
-export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {}) => {
-  const reactComponentGenerator = createComponentGenerator(generatorOptions)
+export const createReactBasicGenerator = () => {
+  const reactComponentGenerator = createComponentGenerator()
 
   const generator = createProjectGenerator({
     components: {
@@ -21,11 +19,11 @@ export const createReactBasicGenerator = (generatorOptions: GeneratorOptions = {
       path: ['src', 'views'],
     },
     router: {
-      generator: createRouterIndexFile,
+      generatorFunction: createRouterIndexFile,
       path: ['src'],
     },
     entry: {
-      generator: createHtmlEntryFile,
+      generatorFunction: createHtmlEntryFile,
       path: ['src'],
     },
     static: {

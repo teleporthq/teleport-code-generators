@@ -1,9 +1,8 @@
 import { createVueGenerator, createHtmlEntryFile } from './component-generators'
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { GeneratorOptions } from '@teleporthq/teleport-types'
 
-export const createVueNuxtGenerator = (generatorOptions: GeneratorOptions = {}) => {
-  const vueComponentGenerator = createVueGenerator(generatorOptions)
+export const createVueNuxtGenerator = () => {
+  const vueComponentGenerator = createVueGenerator()
 
   const generator = createProjectGenerator({
     components: {
@@ -13,13 +12,13 @@ export const createVueNuxtGenerator = (generatorOptions: GeneratorOptions = {}) 
     pages: {
       generator: vueComponentGenerator,
       path: ['pages'],
-      metaOptions: {
+      metaDataOptions: {
         usePathAsFileName: true,
         convertDefaultToIndex: true,
       },
     },
     entry: {
-      generator: createHtmlEntryFile,
+      generatorFunction: createHtmlEntryFile,
       path: [],
     },
     static: {

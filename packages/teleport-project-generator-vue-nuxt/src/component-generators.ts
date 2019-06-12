@@ -10,7 +10,6 @@ import {
   ProjectUIDL,
   Mapping,
   ChunkDefinition,
-  GeneratorOptions,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
 
@@ -49,14 +48,7 @@ export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options: Ent
   return htmlFile
 }
 
-export const createVueGenerator = (options: GeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: nuxtMapping as Mapping,
-  })
-
-  if (options.mapping) {
-    vueGenerator.addMapping(options.mapping)
-  }
-
+export const createVueGenerator = (): ComponentGenerator => {
+  const vueGenerator = createVueComponentGenerator(nuxtMapping as Mapping)
   return vueGenerator
 }

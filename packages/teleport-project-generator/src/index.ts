@@ -18,13 +18,18 @@ import {
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
-import { GeneratorOptions, GeneratedFolder } from '@teleporthq/teleport-types'
+import {
+  GeneratorOptions,
+  GeneratedFolder,
+  Mapping,
+  ProjectGenerator,
+} from '@teleporthq/teleport-types'
 
-export const createProjectGenerator = (strategy: ProjectStrategy) => {
+export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenerator => {
   const validator = new Validator()
 
   const assetsPath = strategy.static.path.join('/')
-  const assetsPrefix = strategy.static.prefix || assetsPath
+  const assetsPrefix = strategy.static.prefix || '/' + assetsPath
 
   const getAssetsPath = () => {
     return assetsPath
@@ -33,14 +38,12 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
   const generateProject = async (
     input: Record<string, unknown>,
     template: GeneratedFolder = DEFAULT_TEMPLATE,
-    options: GeneratorOptions = {}
+    mapping: Mapping = {}
   ) => {
     // Validating and parsing the UIDL
-    if (!options.skipValidation) {
-      const schemaValidationResult = validator.validateProjectSchema(input)
-      if (!schemaValidationResult.valid) {
-        throw new Error(schemaValidationResult.errorMsg)
-      }
+    const schemaValidationResult = validator.validateProjectSchema(input)
+    if (!schemaValidationResult.valid) {
+      throw new Error(schemaValidationResult.errorMsg)
     }
 
     const uidl = Parser.parseProjectJSON(input)
@@ -53,7 +56,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
     const routeDefinitions = root.stateDefinitions.route
-    const rootFolder = cloneObject(template)
+    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
 
     // Pages have local dependencies in components
     const pagesLocalDependenciesPrefix = generateLocalDependenciesPrefix(
@@ -68,7 +71,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       const { componentName, fileName } = extractPageMetadata(
         routeDefinitions,
         pageName,
-        strategy.pages.metaOptions
+        strategy.pages.metaDataOptions
       )
 
       const pageUIDL = {
@@ -84,6 +87,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
         assetsPrefix,
         projectRouteDefinition: routeDefinitions,
         skipValidation: true,
+        mapping,
       }
 
       return strategy.pages.generator.generateComponent(pageUIDL, generatorOptions)
@@ -96,6 +100,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
         assetsPrefix,
         projectRouteDefinition: routeDefinitions,
         skipValidation: true,
+        mapping,
       }
 
       return strategy.components.generator.generateComponent(componentUIDL, generatorOptions)
@@ -125,14 +130,14 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
         strategy.router.path,
         strategy.pages.path
       )
-      const routerFile = await strategy.router.generator(root, {
+      const routerFile = await strategy.router.generatorFunction(root, {
         localDependenciesPrefix: routerLocalDependenciesPrefix,
       })
       injectFilesToPath(rootFolder, strategy.router.path, [routerFile])
     }
 
     // Create the entry file of the project (index.html in most of the cases)
-    const entryFile = await strategy.entry.generator(uidl, { assetsPrefix })
+    const entryFile = await strategy.entry.generatorFunction(uidl, { assetsPrefix })
     injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
 
     // Handle the package.json file
@@ -149,7 +154,20 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
     }
   }
 
+  const addMapping = (mapping: Mapping) => {
+    strategy.components.generator.addMapping(mapping)
+
+    if (strategy.components.generator !== strategy.pages.generator) {
+      strategy.pages.generator.addMapping(mapping)
+    }
+
+    if (strategy.router) {
+      // TODO: Add mapping later if we decide to reference a generator object instead of a generator function for routing
+    }
+  }
+
   return {
+    addMapping,
     generateProject,
     getAssetsPath,
   }

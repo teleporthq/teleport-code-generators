@@ -13,8 +13,6 @@ import {
   ProjectGeneratorOutput,
   GeneratedFolder,
   GeneratedFile,
-  ProjectGenerator,
-  GenerateProjectFunction,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
@@ -173,5 +171,7 @@ const dummyGeneratorFunction = async (
 }
 
 const dummyGenerator = {
+  addMapping: jest.fn(),
+  getAssetsPath: jest.fn(),
   generateProject: dummyGeneratorFunction,
 }

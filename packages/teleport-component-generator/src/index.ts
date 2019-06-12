@@ -45,7 +45,7 @@ export const createGenerator = (
       }
     }
 
-    const uidl = Parser.parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(input as Record<string, unknown>)
 
     const contentValidationResult = validator.validateComponentContent(uidl)
     if (!contentValidationResult.valid) {

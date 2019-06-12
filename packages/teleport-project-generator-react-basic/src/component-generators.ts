@@ -19,6 +19,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 import reactProjectMapping from './react-project-mapping.json'
+import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
 
 export const createRouterIndexFile = async (root: ComponentUIDL, options: GeneratorOptions) => {
   const routingComponentGenerator = createGenerator()
@@ -30,14 +31,11 @@ export const createRouterIndexFile = async (root: ComponentUIDL, options: Genera
   root.meta = root.meta || {}
   root.meta.fileName = 'index'
 
-  const { files } = await routingComponentGenerator.generateComponent(
-    (root as unknown) as Record<string, unknown>,
-    options
-  )
+  const { files } = await routingComponentGenerator.generateComponent(root, options)
   return files[0]
 }
 
-export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options: EntryFileOptions) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
@@ -65,13 +63,8 @@ export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options) => 
   return htmlFile
 }
 
-export const createComponentGenerator = (options: GeneratorOptions): ComponentGenerator => {
+export const createComponentGenerator = (): ComponentGenerator => {
   const reactGenerator = createReactComponentGenerator('CSSModules')
-
   reactGenerator.addMapping(reactProjectMapping as Mapping)
-  if (options.mapping) {
-    reactGenerator.addMapping(options.mapping)
-  }
-
   return reactGenerator
 }

@@ -9,22 +9,22 @@ import {
 export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
-    generatorOptions?: GeneratorOptions
-    metaOptions?: Record<string, any>
     path: string[]
   }
   pages: {
     generator: ComponentGenerator
-    generatorOptions?: GeneratorOptions
-    metaOptions?: Record<string, any>
     path: string[]
+    metaDataOptions?: {
+      usePathAsFileName?: boolean
+      convertDefaultToIndex?: boolean
+    }
   }
   router?: {
-    generator: (root: ComponentUIDL, options: GeneratorOptions) => Promise<GeneratedFile>
+    generatorFunction: (root: ComponentUIDL, options: GeneratorOptions) => Promise<GeneratedFile>
     path: string[]
   }
   entry: {
-    generator: (project: ProjectUIDL, options: EntryFileOptions) => Promise<GeneratedFile>
+    generatorFunction: (project: ProjectUIDL, options: EntryFileOptions) => Promise<GeneratedFile>
     path: string[]
   }
   static: {

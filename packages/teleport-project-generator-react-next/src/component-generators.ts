@@ -5,7 +5,6 @@ import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/typ
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import {
-  GeneratorOptions,
   ComponentGenerator,
   ChunkDefinition,
   Mapping,
@@ -16,14 +15,9 @@ import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { createDocumentComponentAST } from './utils'
 import nextMapping from './next-mapping.json'
 
-export const createReactGenerator = (options: GeneratorOptions): ComponentGenerator => {
+export const createReactGenerator = (): ComponentGenerator => {
   const reactGenerator = createReactComponentGenerator('StyledJSX')
-
   reactGenerator.addMapping(nextMapping as Mapping)
-  if (options.mapping) {
-    reactGenerator.addMapping(options.mapping)
-  }
-
   return reactGenerator
 }
 

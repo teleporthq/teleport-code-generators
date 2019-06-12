@@ -1,9 +1,8 @@
 import { createHtmlEntryFile, createRouterFile, createVueGenerator } from './component-generators'
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { GeneratorOptions } from '@teleporthq/teleport-types'
 
-export const createVueBasicGenerator = (generatorOptions: GeneratorOptions = {}) => {
-  const vueGenerator = createVueGenerator(generatorOptions)
+export const createVueBasicGenerator = () => {
+  const vueGenerator = createVueGenerator()
 
   const generator = createProjectGenerator({
     components: {
@@ -15,11 +14,11 @@ export const createVueBasicGenerator = (generatorOptions: GeneratorOptions = {})
       path: ['src', 'views'],
     },
     router: {
-      generator: createRouterFile,
+      generatorFunction: createRouterFile,
       path: ['src'],
     },
     entry: {
-      generator: createHtmlEntryFile,
+      generatorFunction: createHtmlEntryFile,
       path: ['public'],
     },
     static: {

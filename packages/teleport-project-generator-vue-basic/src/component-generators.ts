@@ -68,14 +68,7 @@ export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options: Ent
   return htmlFile
 }
 
-export const createVueGenerator = (options: GeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: vueProjectMapping as Mapping,
-  })
-
-  if (options.mapping) {
-    vueGenerator.addMapping(options.mapping)
-  }
-
+export const createVueGenerator = (): ComponentGenerator => {
+  const vueGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
   return vueGenerator
 }

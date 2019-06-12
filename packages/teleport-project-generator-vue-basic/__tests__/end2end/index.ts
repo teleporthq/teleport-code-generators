@@ -20,12 +20,4 @@ describe('Vue Basic Project Generator', () => {
 
     await expect(result).rejects.toThrow(Error)
   })
-
-  it('works when validation step is skiped', async () => {
-    const options = { skipValidation: true }
-    const result = await generator.generateProject(invalidUidlSample, template, options)
-
-    expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.name)
-  })
 })
