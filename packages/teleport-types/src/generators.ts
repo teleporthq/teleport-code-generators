@@ -69,17 +69,6 @@ export interface GeneratorOptions {
 
 export type CodeGeneratorFunction<T> = (content: T) => string
 
-/**
- * This structure is used for keeping information about a single state key while creating a component
- */
-export interface StateIdentifier {
-  key: string
-  type: string
-  setter: string
-  default: any
-}
-
-// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
 export interface ConditionalIdentifier {
   key: string
   type: string

@@ -63,7 +63,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
 }
 
 const generateElementNode = (node: UIDLElementNode, accumulators: ReactComponentAccumulators) => {
-  const { dependencies, stateIdentifiers, propDefinitions, nodesLookup } = accumulators
+  const { dependencies, stateDefinitions, propDefinitions, nodesLookup } = accumulators
   const { elementType, children, key, attrs, dependency, events } = node.content
   const elementTag = generateASTDefinitionForJSXTag(elementType)
 
@@ -84,7 +84,7 @@ const generateElementNode = (node: UIDLElementNode, accumulators: ReactComponent
         elementTag,
         eventKey,
         events[eventKey],
-        stateIdentifiers,
+        stateDefinitions,
         propDefinitions
       )
     })
