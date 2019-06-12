@@ -50,7 +50,7 @@ const packProject = async (projectType: string) => {
   }
 
   projectPacker.setPublisher(publisher)
-  projectPacker.setGeneratorFunction(generators[projectType].generateProject)
+  projectPacker.setGenerator(generators[projectType])
   await projectPacker.loadTemplate(remoteTemplate)
 
   const result = await projectPacker.pack(projectUIDL as ProjectUIDL)

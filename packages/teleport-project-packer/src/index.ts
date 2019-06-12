@@ -1,19 +1,19 @@
 import {
   AssetsDefinition,
   Publisher,
-  GenerateProjectFunction,
+  ProjectGenerator,
   PublisherResponse,
   ProjectUIDL,
   GeneratedFolder,
   RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
-import { NO_GENERATOR_FUNCTION_PROVIDED, NO_PUBLISHER_PROVIDED } from './errors'
+import { NO_GENERATOR_PROVIDED, NO_PUBLISHER_PROVIDED } from './errors'
 import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
   publisher?: Publisher<any, any>
-  generatorFunction?: GenerateProjectFunction
+  generator?: ProjectGenerator
   template?: GeneratedFolder
   remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
@@ -25,13 +25,13 @@ export type PackerFactory = (
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
   loadTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<GeneratedFolder>
   setPublisher: <T, U>(publisher: Publisher<T, U>) => void
-  setGeneratorFunction: (generatorFunction: GenerateProjectFunction) => void
+  setGenerator: (generator: ProjectGenerator) => void
   setAssets: (assets: AssetsDefinition) => void
   setTemplate: (templateFolder: GeneratedFolder) => void
 }
 
 export const createProjectPacker: PackerFactory = (params: PackerFactoryParams = {}) => {
-  let { assets, generatorFunction, publisher, template } = params
+  let { assets, generator, publisher, template } = params
 
   template = template || DEFAULT_TEMPLATE
 
@@ -39,8 +39,8 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     publisher = publisherToSet
   }
 
-  const setGeneratorFunction = (functionToSet: GenerateProjectFunction): void => {
-    generatorFunction = functionToSet
+  const setGenerator = (generatorToSet: ProjectGenerator): void => {
+    generator = generatorToSet
   }
 
   const setAssets = (assetsToSet: AssetsDefinition): void => {
@@ -65,9 +65,9 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
   const pack = async (uidl: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
     const definedProjectUIDL = uidl
 
-    const packGeneratorFunction = packParams.generatorFunction || generatorFunction
-    if (!packGeneratorFunction) {
-      return { success: false, payload: NO_GENERATOR_FUNCTION_PROVIDED }
+    const packGenerator = packParams.generator || generator
+    if (!packGenerator) {
+      return { success: false, payload: NO_GENERATOR_PROVIDED }
     }
 
     const packPublisher = packParams.publisher || publisher
@@ -82,7 +82,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
       templateFolder = await loadTemplate(packParams.remoteTemplateDefinition)
     }
 
-    const { assetsPath, outputFolder } = await packGeneratorFunction(
+    const { assetsPath, outputFolder } = await packGenerator.generateProject(
       definedProjectUIDL,
       templateFolder
     )
@@ -94,7 +94,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
   return {
     setPublisher,
-    setGeneratorFunction,
+    setGenerator,
     setAssets,
     setTemplate,
     loadTemplate,
