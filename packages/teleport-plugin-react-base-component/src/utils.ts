@@ -366,11 +366,6 @@ const createStateChangeStatement = (
   const stateKey = eventHandlerStatement.modifies
   const stateDefinition = stateDefinitions[stateKey]
 
-  if (!stateDefinition) {
-    console.warn(`No state hook was found for "${stateKey}"`)
-    return null
-  }
-
   const stateSetterArgument =
     eventHandlerStatement.newState === '$toggle'
       ? t.unaryExpression('!', t.identifier(stateKey))
