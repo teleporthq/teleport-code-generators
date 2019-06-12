@@ -13,10 +13,12 @@ import {
   ProjectGeneratorOutput,
   GeneratedFolder,
   GeneratedFile,
+  ProjectGenerator,
+  GenerateProjectFunction,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
-import { NO_GENERATOR_FUNCTION_PROVIDED, NO_PUBLISHER_PROVIDED } from '../src/errors'
+import { NO_GENERATOR_PROVIDED, NO_PUBLISHER_PROVIDED } from '../src/errors'
 import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -38,7 +40,7 @@ describe('teleport generic project packer', () => {
     expect(packer.loadTemplate).toBeDefined()
     expect(packer.pack).toBeDefined()
     expect(packer.setAssets).toBeDefined()
-    expect(packer.setGeneratorFunction).toBeDefined()
+    expect(packer.setGenerator).toBeDefined()
     expect(packer.setPublisher).toBeDefined()
     expect(packer.setTemplate).toBeDefined()
   })
@@ -63,12 +65,12 @@ describe('teleport generic project packer', () => {
       remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
     })
     expect(success).toBeFalsy()
-    expect(payload).toBe(NO_GENERATOR_FUNCTION_PROVIDED)
+    expect(payload).toBe(NO_GENERATOR_PROVIDED)
   })
 
   it('should fail to pack if no publisher is provider', async () => {
     const packer = createProjectPacker({
-      generatorFunction: dummyGeneratorFunction,
+      generator: dummyGenerator,
       template: templateDefinition,
     })
 
@@ -81,7 +83,7 @@ describe('teleport generic project packer', () => {
     const publisher = createDummyPublisher()
     const packer = createProjectPacker({
       publisher,
-      generatorFunction: dummyGeneratorFunction,
+      generator: dummyGenerator,
       template: templateDefinition,
       assets: assetsData,
     })
@@ -107,7 +109,7 @@ describe('teleport generic project packer', () => {
     const publisher = createDummyPublisher()
     const packer = createProjectPacker({
       publisher,
-      generatorFunction: dummyGeneratorFunction,
+      generator: dummyGenerator,
       assets: assetsData,
     })
 
@@ -149,7 +151,7 @@ const createDummyPublisher = (): Publisher<ProjectUIDL, string> => {
 }
 
 const dummyGeneratorFunction = async (
-  uidl: ProjectUIDL,
+  uidl: Record<string, unknown>,
   template: GeneratedFolder
 ): Promise<ProjectGeneratorOutput> => {
   const uidlFile: GeneratedFile = {
@@ -168,4 +170,8 @@ const dummyGeneratorFunction = async (
   template.files.push(templateFile)
 
   return { assetsPath: 'static', outputFolder: template }
+}
+
+const dummyGenerator = {
+  generateProject: dummyGeneratorFunction,
 }

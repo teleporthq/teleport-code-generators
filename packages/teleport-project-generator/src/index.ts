@@ -35,6 +35,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     options: GeneratorOptions = {}
   ) => {
+    // Validating and parsing the UIDL
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateProjectSchema(input)
       if (!schemaValidationResult.valid) {
@@ -48,13 +49,13 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    // Handling pages
+    // Handling pages, based on the conditionals in the root node
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
     const routeDefinitions = root.stateDefinitions.route
     const rootFolder = cloneObject(template)
 
-    // pages have local dependencies in components
+    // Pages have local dependencies in components
     const pagesLocalDependenciesPrefix = generateLocalDependenciesPrefix(
       strategy.pages.path,
       strategy.components.path
@@ -88,7 +89,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       return strategy.pages.generator.generateComponent(pageUIDL, generatorOptions)
     })
 
-    // Handle the components
+    // Handle the components from the UIDL
     const componentPromises = Object.keys(components).map((componentName) => {
       const componentUIDL = components[componentName]
       const generatorOptions: GeneratorOptions = {
@@ -100,24 +101,25 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       return strategy.components.generator.generateComponent(componentUIDL, generatorOptions)
     })
 
-    // Step 4: The process of creating the pages and the components is awaited
+    // The components and pages are generated in parallel
     const createdPageFiles = await Promise.all(pagePromises)
     const createdComponentFiles = await Promise.all(componentPromises)
 
-    // Step 5: The generated page and component files are joined
+    // The generated page and component files are joined into a single structure
+    // and the files are injected in the corresponding folders
     const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
     injectFilesToPath(rootFolder, strategy.pages.path, joinedPageFiles.files)
 
     const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
     injectFilesToPath(rootFolder, strategy.components.path, joinedComponentFiles.files)
 
-    // Step 6: Global settings are transformed into the root html file and the manifest file for PWA support
+    // Global settings are transformed into the root html file and the manifest file for PWA support
     if (uidl.globals.manifest) {
       const manifestFile = createManifestJSONFile(uidl, assetsPrefix)
       injectFilesToPath(rootFolder, strategy.static.path, [manifestFile])
     }
 
-    // Step 7: Create the routing component (index.js) and the html entry file (index.html)
+    // Create the routing component in case the project generator has a strategy for that
     if (strategy.router) {
       const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
         strategy.router.path,
@@ -129,16 +131,16 @@ export const createProjectGenerator = (strategy: ProjectStrategy) => {
       injectFilesToPath(rootFolder, strategy.router.path, [routerFile])
     }
 
+    // Create the entry file of the project (index.html in most of the cases)
     const entryFile = await strategy.entry.generator(uidl, { assetsPrefix })
     injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
 
-    // Step 8: Join all the external dependencies
+    // Handle the package.json file
     const collectedDependencies = {
       ...joinedPageFiles.dependencies,
       ...joinedComponentFiles.dependencies,
     }
 
-    // Step 9: Handle the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
     return {

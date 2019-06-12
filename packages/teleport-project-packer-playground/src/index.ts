@@ -147,7 +147,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     const projectPublisher = publisherFactory({ ...meta })
 
     packer.setAssets(projectAssets)
-    packer.setGeneratorFunction(projectGenerator.generateProject)
+    packer.setGenerator(projectGenerator)
     packer.setPublisher(projectPublisher)
 
     const remoteGithubTemplate =
