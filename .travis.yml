@@ -6,11 +6,12 @@ script:
   - npm run lint
   - npm run test:coverage
   - npm run upload:coverage
-# deploy:
-#   provider: npm
-#   email: "$NPM_EMAIL"
-#   api_key: "$NPM_TOKEN"
-#   skip_cleanup: true
-#   on:
-#     branch: master
-#     tags: true
+deploy:
+  provider: script
+  script:
+    - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+    - npx lerna publish -y from-package
+  skip_cleanup: true
+  on:
+    branch: master
+    tags: true
