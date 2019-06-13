@@ -11,10 +11,8 @@ import {
   UIDLPropDefinition,
   UIDLAttributeValue,
   UIDLDynamicReference,
-  ComponentDependency,
   UIDLStateDefinition,
   EventHandlerStatement,
-  StateIdentifier,
   AttributeAssignCodeMod,
   ConditionalIdentifier,
   UIDLConditionalExpression,
@@ -29,41 +27,13 @@ import {
   ContentType,
 } from './types'
 
-export const createStateIdentifiers = (
-  stateDefinitions: Record<string, UIDLStateDefinition>,
-  dependencies: Record<string, ComponentDependency>
-) => {
-  dependencies.useState = {
-    type: 'library',
-    path: 'react',
-    version: '16.8.3',
-    meta: {
-      namedImport: true,
-    },
-  }
-
-  return Object.keys(stateDefinitions).reduce(
-    (acc: Record<string, StateIdentifier>, stateKey: string) => {
-      acc[stateKey] = {
-        key: stateKey,
-        type: stateDefinitions[stateKey].type,
-        default: stateDefinitions[stateKey].defaultValue,
-        setter: 'set' + capitalize(stateKey),
-      }
-
-      return acc
-    },
-    {}
-  )
-}
-
 export const createPureComponent = (
   name: string,
-  stateIdentifiers: Record<string, StateIdentifier>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: GenerateNodeSyntaxReturnValue,
   nodeType: string,
   t = types
-) => {
+): types.VariableDeclaration => {
   let arrowFunctionBody: any
   switch (nodeType) {
     case 'static':
@@ -72,13 +42,13 @@ export const createPureComponent = (
     case 'dynamic':
     case 'conditional':
       arrowFunctionBody =
-        Object.keys(stateIdentifiers).length === 0
+        Object.keys(stateDefinitions).length === 0
           ? jsxTagTree
-          : createReturnExpressionSyntax(stateIdentifiers, jsxTagTree as types.JSXElement)
+          : createReturnExpressionSyntax(stateDefinitions, jsxTagTree as types.JSXElement)
       break
     default:
       arrowFunctionBody = createReturnExpressionSyntax(
-        stateIdentifiers,
+        stateDefinitions,
         jsxTagTree as types.JSXElement
       )
       break
@@ -98,7 +68,7 @@ export const addEventHandlerToTag = (
   tag: types.JSXElement,
   eventKey: string,
   eventHandlerStatements: EventHandlerStatement[],
-  stateIdentifiers: Record<string, StateIdentifier>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   propDefinitions: Record<string, UIDLPropDefinition> = {},
   t = types
 ) => {
@@ -106,7 +76,7 @@ export const addEventHandlerToTag = (
 
   eventHandlerStatements.forEach((eventHandlerAction) => {
     if (eventHandlerAction.type === 'stateChange') {
-      const handler = createStateChangeStatement(eventHandlerAction, stateIdentifiers)
+      const handler = createStateChangeStatement(eventHandlerAction, stateDefinitions)
       if (handler) {
         eventHandlerASTStatements.push(handler)
       }
@@ -194,7 +164,7 @@ export const createConditionIdentifier = (
     case 'state':
       return {
         key: id,
-        type: accumulators.stateIdentifiers[id].type,
+        type: accumulators.stateDefinitions[id].type,
       }
     default:
       throw new Error(
@@ -344,13 +314,14 @@ const convertToUnaryOperator = (operation: string): UnaryOperation => {
 }
 
 const createReturnExpressionSyntax = (
-  stateIdentifiers: Record<string, StateIdentifier>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxTagTree)
-  const stateHooks = Object.keys(stateIdentifiers).map((stateKey) =>
-    createStateHookAST(stateIdentifiers[stateKey])
+
+  const stateHooks = Object.keys(stateDefinitions).map((stateKey) =>
+    createStateHookAST(stateKey, stateDefinitions[stateKey])
   )
 
   return t.blockStatement([...stateHooks, returnStatement] || [])
@@ -384,7 +355,7 @@ const createPropCallStatement = (
 
 const createStateChangeStatement = (
   eventHandlerStatement: EventHandlerStatement,
-  stateIdentifiers: Record<string, StateIdentifier>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
   t = types
 ) => {
   if (!eventHandlerStatement.modifies) {
@@ -393,31 +364,30 @@ const createStateChangeStatement = (
   }
 
   const stateKey = eventHandlerStatement.modifies
-  const stateIdentifier = stateIdentifiers[stateKey]
-
-  if (!stateIdentifier) {
-    console.warn(`No state hook was found for "${stateKey}"`)
-    return null
-  }
+  const stateDefinition = stateDefinitions[stateKey]
 
   const stateSetterArgument =
     eventHandlerStatement.newState === '$toggle'
-      ? t.unaryExpression('!', t.identifier(stateIdentifier.key))
-      : convertValueToLiteral(eventHandlerStatement.newState, stateIdentifier.type)
+      ? t.unaryExpression('!', t.identifier(stateKey))
+      : convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
 
   return t.expressionStatement(
-    t.callExpression(t.identifier(stateIdentifier.setter), [stateSetterArgument])
+    t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [stateSetterArgument])
   )
 }
 
 /**
  * Creates an AST line for defining a single state hook
  */
-const createStateHookAST = (stateIdentifier: StateIdentifier, t = types) => {
-  const defaultValueArgument = convertValueToLiteral(stateIdentifier.default, stateIdentifier.type)
+const createStateHookAST = (stateKey: string, stateDefinition: UIDLStateDefinition, t = types) => {
+  const defaultValueArgument = convertValueToLiteral(
+    stateDefinition.defaultValue,
+    stateDefinition.type
+  )
+
   return t.variableDeclaration('const', [
     t.variableDeclarator(
-      t.arrayPattern([t.identifier(stateIdentifier.key), t.identifier(stateIdentifier.setter)]),
+      t.arrayPattern([t.identifier(stateKey), t.identifier(`set${capitalize(stateKey)}`)]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
   ])
