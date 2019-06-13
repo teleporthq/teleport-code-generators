@@ -19,7 +19,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc -w"
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w"
   },
   "dependencies": {
     "@babel/generator": "^7.4.0",

@@ -33,10 +33,7 @@ export const createRouterFile = async (root: ComponentUIDL, options: GeneratorOp
   root.meta = root.meta || {}
   root.meta.fileName = 'router'
 
-  const { files } = await vueRouterGenerator.generateComponent(
-    (root as unknown) as Record<string, unknown>,
-    options
-  )
+  const { files } = await vueRouterGenerator.generateComponent(root, options)
   return files[0]
 }
 

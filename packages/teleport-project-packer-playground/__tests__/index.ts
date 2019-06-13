@@ -70,7 +70,7 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 

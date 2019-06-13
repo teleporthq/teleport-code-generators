@@ -20,6 +20,6 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc -w",
-    "build:watch-only": "tsc -w"
+    "build:watch:core": "tsc -w"
   }
 }

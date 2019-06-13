@@ -227,7 +227,7 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
   const [firstPath, secondPath] = removeCommonStartingPointsFromPaths([fromPath, toPath])
 
   // We have to go back as many folders as there are defined in the pages path
-  let dependencyPrefix = '' + '../'.repeat(firstPath.length)
+  let dependencyPrefix = '../'.repeat(firstPath.length)
 
   // if 'fromPath' is parent for 'toPath', the path starts from './'
   if (firstPath.length === 0) {

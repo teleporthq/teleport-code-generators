@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc -w",
-    "build:watch-only": "tsc -w"
+    "build:watch:project": "tsc -w"
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.7.0",

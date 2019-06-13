@@ -89,6 +89,7 @@ describe('teleport generic project packer', () => {
     expect(success).toBeTruthy()
 
     const { project } = payload
+
     const assetsFolder = project.subFolders.find((subFolder) => {
       return subFolder.name === 'static'
     })
@@ -171,6 +172,6 @@ const dummyGeneratorFunction = async (
 
 const dummyGenerator = {
   addMapping: jest.fn(),
-  getAssetsPath: jest.fn(),
+  getAssetsPath: jest.fn(() => 'static'),
   generateProject: dummyGeneratorFunction,
 }
