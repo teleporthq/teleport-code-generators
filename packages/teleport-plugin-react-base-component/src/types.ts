@@ -60,3 +60,9 @@ export type BinaryOperator =
   | '<='
 
 export type UnaryOperation = '+' | '-' | 'void' | 'throw' | 'delete' | '!' | '~' | 'typeof'
+
+export interface ConditionalIdentifier {
+  key: string
+  type: string
+  prefix?: string
+}

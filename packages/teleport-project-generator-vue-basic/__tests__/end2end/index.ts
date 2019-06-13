@@ -10,10 +10,11 @@ describe('Vue Basic Project Generator', () => {
   const generator = createVueBasicGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(uidlSample, template)
+    const outputFolder = await generator.generateProject(uidlSample, template)
+    const assetsPath = generator.getAssetsPath()
 
-    expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.name)
+    expect(assetsPath).toBeDefined()
+    expect(outputFolder.name).toBe(template.name)
   })
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)

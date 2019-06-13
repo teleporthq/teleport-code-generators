@@ -82,10 +82,8 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
       templateFolder = await loadTemplate(packParams.remoteTemplateDefinition)
     }
 
-    const { assetsPath, outputFolder } = await packGenerator.generateProject(
-      definedProjectUIDL,
-      templateFolder
-    )
+    const outputFolder = await packGenerator.generateProject(definedProjectUIDL, templateFolder)
+    const assetsPath = packGenerator.getAssetsPath()
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 

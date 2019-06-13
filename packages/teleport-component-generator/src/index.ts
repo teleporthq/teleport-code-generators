@@ -9,10 +9,10 @@ import {
   ChunkDefinition,
   ComponentGenerator,
   CompiledComponent,
-  GenerateComponentFunction,
   ComponentPlugin,
   PostProcessingFunction,
   Mapping,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
 import htmlMapping from './html-mapping.json'
@@ -34,9 +34,9 @@ export const createGenerator = (
   const chunksLinker = new Builder()
   const processors: PostProcessingFunction[] = postprocessors
 
-  const generateComponent: GenerateComponentFunction = async (
-    input,
-    options = {}
+  const generateComponent = async (
+    input: Record<string, unknown>,
+    options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateComponentSchema(input)

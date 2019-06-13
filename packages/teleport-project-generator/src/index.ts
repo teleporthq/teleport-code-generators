@@ -148,10 +148,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
     handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
-    return {
-      outputFolder: rootFolder,
-      assetsPath,
-    }
+    return rootFolder
   }
 
   const addMapping = (mapping: Mapping) => {

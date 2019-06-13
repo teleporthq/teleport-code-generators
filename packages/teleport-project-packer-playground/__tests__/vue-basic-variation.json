@@ -1,7 +1,5 @@
 {
-  "technology": {
-    "type": "VueBasic"
-  },
+  "technology": "VueBasic",
   "publisher": {
     "type": "Disk"
   },

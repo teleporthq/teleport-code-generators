@@ -13,13 +13,14 @@ describe('React Basic Project Generator', () => {
   const generator = createReactBasicGenerator()
 
   it('runs without crashing', async () => {
-    const result = await generator.generateProject(projectUIDL, template)
+    const outputFolder = await generator.generateProject(projectUIDL, template)
+    const assetsPath = generator.getAssetsPath()
 
-    expect(result.assetsPath).toBeDefined()
-    expect(result.outputFolder.name).toBe(template.name)
-    expect(result.outputFolder.files[0].name).toBe('package')
+    expect(assetsPath).toBeDefined()
+    expect(outputFolder.name).toBe(template.name)
+    expect(outputFolder.files[0].name).toBe('package')
 
-    const srcFolder = result.outputFolder.subFolders[0]
+    const srcFolder = outputFolder.subFolders[0]
 
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('js')

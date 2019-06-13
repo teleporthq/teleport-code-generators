@@ -76,7 +76,10 @@ export interface CompiledComponent {
 export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
 
 export interface ComponentGenerator {
-  generateComponent: GenerateComponentFunction
+  generateComponent: (
+    input: ComponentUIDL | Record<string, unknown>,
+    options?: GeneratorOptions
+  ) => Promise<CompiledComponent>
   linkCodeChunks: (chunks: Record<string, ChunkDefinition[]>, fileName: string) => GeneratedFile[]
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
@@ -94,12 +97,6 @@ export interface GeneratorOptions {
 
 export type CodeGeneratorFunction<T> = (content: T) => string
 
-export interface ConditionalIdentifier {
-  key: string
-  type: string
-  prefix?: string
-}
-
 export interface HastNode {
   type: string
   tagName: string
@@ -114,6 +111,16 @@ export interface HastText {
 
 /* Project Types */
 
+export interface ProjectGenerator {
+  generateProject: (
+    input: ProjectUIDL | Record<string, unknown>,
+    template?: GeneratedFolder,
+    mapping?: Mapping
+  ) => Promise<GeneratedFolder>
+  addMapping: (mapping: Mapping) => void
+  getAssetsPath: () => string
+}
+
 export interface GeneratedFolder {
   name: string
   files: GeneratedFile[]
@@ -126,26 +133,6 @@ export interface GeneratedFile {
   fileType?: string
   contentEncoding?: string
 }
-
-export interface ProjectGeneratorOutput {
-  outputFolder: GeneratedFolder
-  assetsPath: string
-}
-
-export interface ProjectGenerator {
-  generateProject: (
-    input: ProjectUIDL | Record<string, unknown>,
-    template?: GeneratedFolder,
-    mapping?: Mapping
-  ) => Promise<ProjectGeneratorOutput>
-  addMapping: (mapping: Mapping) => void
-  getAssetsPath: () => string
-}
-
-export type GenerateComponentFunction = (
-  input: ComponentUIDL | Record<string, unknown>,
-  options?: GeneratorOptions
-) => Promise<CompiledComponent>
 
 /**
  * Interfaces used in the publishers
@@ -195,9 +182,4 @@ export interface ServiceAuth {
     password: string
   }
   token?: string
-}
-
-export interface FilesPathRecord {
-  path: string[]
-  files: GeneratedFile[]
 }

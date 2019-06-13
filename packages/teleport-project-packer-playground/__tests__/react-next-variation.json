@@ -1,10 +1,5 @@
 {
-  "technology": {
-    "type": "ReactNext",
-    "meta": {
-      "variation": "InlineStyles"
-    }
-  },
+  "technology": "ReactNext",
   "publisher": {
     "type": "Disk"
   },

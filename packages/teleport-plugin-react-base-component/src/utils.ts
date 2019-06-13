@@ -14,7 +14,6 @@ import {
   UIDLStateDefinition,
   EventHandlerStatement,
   AttributeAssignCodeMod,
-  ConditionalIdentifier,
   UIDLConditionalExpression,
 } from '@teleporthq/teleport-types'
 
@@ -25,6 +24,7 @@ import {
   BinaryOperator,
   UnaryOperation,
   ContentType,
+  ConditionalIdentifier,
 } from './types'
 
 export const createPureComponent = (

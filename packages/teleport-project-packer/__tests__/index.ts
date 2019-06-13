@@ -10,7 +10,6 @@ import {
   ProjectUIDL,
   AssetsDefinition,
   Publisher,
-  ProjectGeneratorOutput,
   GeneratedFolder,
   GeneratedFile,
 } from '@teleporthq/teleport-types'
@@ -151,7 +150,7 @@ const createDummyPublisher = (): Publisher<ProjectUIDL, string> => {
 const dummyGeneratorFunction = async (
   uidl: Record<string, unknown>,
   template: GeneratedFolder
-): Promise<ProjectGeneratorOutput> => {
+): Promise<GeneratedFolder> => {
   const uidlFile: GeneratedFile = {
     name: 'uidl',
     fileType: 'txt',
@@ -167,7 +166,7 @@ const dummyGeneratorFunction = async (
   template.files.push(uidlFile)
   template.files.push(templateFile)
 
-  return { assetsPath: 'static', outputFolder: template }
+  return template
 }
 
 const dummyGenerator = {

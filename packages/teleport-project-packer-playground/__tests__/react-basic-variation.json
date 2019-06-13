@@ -1,7 +1,5 @@
 {
-  "technology": {
-    "type": "ReactBasic"
-  },
+  "technology": "ReactBasic",
   "publisher": {
     "type": "Disk"
   },
