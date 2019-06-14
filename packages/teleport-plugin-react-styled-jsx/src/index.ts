@@ -43,9 +43,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
             return `\$\{props.${styleValue.content.id}\}`
           }
           throw new Error(
-            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${
-              styleValue.content.referenceType
-            }`
+            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
         styleJSXString.push(createCSSClassFromStringMap(className, styleRules))

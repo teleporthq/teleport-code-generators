@@ -44,6 +44,7 @@ describe('plugin-react-styled-jsx', () => {
     const uidlSample = component('StyledJSX', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -67,6 +68,7 @@ describe('plugin-react-styled-jsx', () => {
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }

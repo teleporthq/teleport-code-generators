@@ -18,7 +18,7 @@
       "allcontributors"
     ],
     "labels": {
-      "enhancement": ":rocket: New Feature",
+      "enhancement": ":rocket: New Features",
       "react generators": ":electric_plug: React Generators",
       "vue generators": ":electric_plug: Vue Generator",
       "style flavours": ":nail_care: Style Flavours",
@@ -26,7 +26,8 @@
       "core": ":earth_asia: Core",
       "bug": ":bug: Bug Fix",
       "uidl": ":crystal_ball: UIDL",
-      "dev experience": ":house: Dev Experience"
+      "dev experience": ":house: Dev Experience",
+      "refactoring": ":fire: Refactoring"
     }
   }
 }

@@ -5,12 +5,12 @@ import {
   addChildJSXText,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import * as types from '@babel/types'
-import { ASSETS_PREFIX } from './constants'
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
-export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
+export const createDocumentComponentAST = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = generateASTDefinitionForJSXTag('html')
@@ -45,14 +45,14 @@ export const createDocumentComponentAST = (uidl: ProjectUIDL) => {
   meta.forEach((metaItem) => {
     const metaTag = generateASTDefinitionForJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
-      const metaValue = prefixPlaygroundAssetsURL(ASSETS_PREFIX, metaItem[key])
+      const metaValue = prefixPlaygroundAssetsURL(options.assetsPrefix, metaItem[key])
       addAttributeToJSXTag(metaTag, { name: key, value: metaValue })
     })
     addChildJSXTag(headNode, metaTag)
   })
 
   assets.forEach((asset) => {
-    const assetPath = prefixPlaygroundAssetsURL(ASSETS_PREFIX, asset.path)
+    const assetPath = prefixPlaygroundAssetsURL(options.assetsPrefix, asset.path)
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {

@@ -10,6 +10,7 @@ describe('plugin-react-base-component', () => {
   it('outputs two AST chunks with the corresponding chunk names', async () => {
     const structure = {
       chunks: [],
+      options: {},
       uidl: component('Test', elementNode('container')),
       dependencies: {},
     }
@@ -35,6 +36,7 @@ describe('plugin-react-base-component', () => {
   it('adds state hooks when state definitions exist', async () => {
     const structure = {
       chunks: [],
+      options: {},
       uidl: component(
         'Test',
         elementNode('container'),

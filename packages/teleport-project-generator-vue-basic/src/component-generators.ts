@@ -7,9 +7,9 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { createHtmlIndexFile } from '@teleporthq/teleport-project-generator/lib/utils'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
-
+import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
 import {
   ComponentUIDL,
   ProjectUIDL,
@@ -21,7 +21,7 @@ import {
 
 import vueProjectMapping from './vue-project-mapping.json'
 
-export const createRouterFile = async (root: ComponentUIDL) => {
+export const createRouterFile = async (root: ComponentUIDL, options: GeneratorOptions) => {
   const vueRouterGenerator = createGenerator()
 
   vueRouterGenerator.addPlugin(vueRoutingPlugin)
@@ -33,13 +33,11 @@ export const createRouterFile = async (root: ComponentUIDL) => {
   root.meta = root.meta || {}
   root.meta.fileName = 'router'
 
-  const { files, dependencies } = await vueRouterGenerator.generateComponent(root)
-  const routerFile = files[0]
-
-  return { routerFile, dependencies }
+  const { files } = await vueRouterGenerator.generateComponent(root, options)
+  return files[0]
 }
 
-export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options: EntryFileOptions) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
@@ -67,14 +65,7 @@ export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
   return htmlFile
 }
 
-export const createVueGenerator = (options: GeneratorOptions): ComponentGenerator => {
-  const vueGenerator = createVueComponentGenerator({
-    mapping: vueProjectMapping as Mapping,
-  })
-
-  if (options.mapping) {
-    vueGenerator.addMapping(options.mapping)
-  }
-
+export const createVueGenerator = (): ComponentGenerator => {
+  const vueGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
   return vueGenerator
 }

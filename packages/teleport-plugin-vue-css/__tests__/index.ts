@@ -28,6 +28,7 @@ describe('plugin-vue-style', () => {
     const uidlSample = component('VueStyles', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -47,6 +48,7 @@ describe('plugin-vue-style', () => {
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }

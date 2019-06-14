@@ -31,6 +31,7 @@ describe('plugin-react-css-modules', () => {
     const uidlSample = component('CSSModules', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -50,6 +51,7 @@ describe('plugin-react-css-modules', () => {
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }

@@ -1,5 +1,10 @@
 import { extractExternalDependencies, groupChunksByFileId } from './utils'
-import { ComponentStructure, ComponentPlugin, ComponentUIDL } from '@teleporthq/teleport-types'
+import {
+  ComponentStructure,
+  ComponentPlugin,
+  ComponentUIDL,
+  GeneratorOptions,
+} from '@teleporthq/teleport-types'
 
 export default class AssemblyLine {
   private plugins: ComponentPlugin[]
@@ -10,8 +15,10 @@ export default class AssemblyLine {
 
   public async run(
     uidl: ComponentUIDL,
+    options: GeneratorOptions,
     initialStructure: ComponentStructure = {
       uidl,
+      options,
       chunks: [],
       dependencies: {},
     }

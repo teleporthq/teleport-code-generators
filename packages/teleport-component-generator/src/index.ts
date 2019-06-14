@@ -3,17 +3,16 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 import {
   ChunkDefinition,
   ComponentGenerator,
   CompiledComponent,
-  GenerateComponentFunction,
   ComponentPlugin,
   PostProcessingFunction,
   Mapping,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
 import htmlMapping from './html-mapping.json'
@@ -35,9 +34,9 @@ export const createGenerator = (
   const chunksLinker = new Builder()
   const processors: PostProcessingFunction[] = postprocessors
 
-  const generateComponent: GenerateComponentFunction = async (
-    input,
-    options = {}
+  const generateComponent = async (
+    input: Record<string, unknown>,
+    options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateComponentSchema(input)
@@ -59,7 +58,7 @@ export const createGenerator = (
       throw new Error('No plugins found. Component generation cannot work without any plugins!')
     }
 
-    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL, options)
 
     let codeChunks: Record<string, string> = {}
 
@@ -119,6 +118,10 @@ const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
   const cleanFileName = camelCaseToDashCase(fileName)
 
   return Object.keys(codeChunks).map((fileId) => {
-    return createFile(cleanFileName, fileId, codeChunks[fileId])
+    return {
+      name: cleanFileName,
+      fileType: fileId,
+      content: codeChunks[fileId],
+    }
   })
 }

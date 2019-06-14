@@ -2,7 +2,6 @@ import {
   AssetsDefinition,
   PublisherResponse,
   ProjectUIDL,
-  Mapping,
   ServiceAuth,
   GeneratedFolder,
   RemoteTemplateDefinition,
@@ -34,19 +33,11 @@ import {
 import { GENERATOR_NOT_FOUND, PUBLISHER_NOT_FOUND } from './errors'
 
 export interface PackerFactoryParams {
-  technology?: TechnologyDefinition
+  technology?: string
   publisher?: PublisherDefinition
   template?: GeneratedFolder
   remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
-}
-
-export interface TechnologyDefinition {
-  type: string
-  meta?: {
-    variation?: string
-    mapping?: Mapping
-  }
 }
 
 export interface PublisherDefinition {
@@ -105,10 +96,7 @@ const projectTemplates = {
   [TEMPLATES.VUE_NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
 }
 
-const defaultTechnology = {
-  type: GENERATORS.REACT_NEXT,
-  meta: {},
-}
+const defaultTechnology = GENERATORS.REACT_NEXT
 
 const defaultPublisher = {
   type: PUBLISHERS.ZIP,
@@ -130,7 +118,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     const packTechnology = packParams.technology || technology || defaultTechnology
     const packPublisher = packParams.publisher || publisher || defaultPublisher
 
-    const generatorFactory = projectGenerators[packTechnology.type]
+    const generatorFactory = projectGenerators[packTechnology]
     if (!generatorFactory) {
       return { success: false, payload: GENERATOR_NOT_FOUND }
     }
@@ -140,7 +128,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
       return { success: false, payload: PUBLISHER_NOT_FOUND }
     }
 
-    const projectGenerator = generatorFactory({ ...packTechnology.meta })
+    const projectGenerator = generatorFactory()
 
     const meta =
       packPublisher.type === PUBLISHERS.GITHUB ? packPublisher.github : packPublisher.meta
@@ -151,7 +139,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     packer.setPublisher(projectPublisher)
 
     const remoteGithubTemplate =
-      projectTemplates[packTechnology.type] || projectTemplates[TEMPLATES.REACT_NEXT]
+      projectTemplates[packTechnology] || projectTemplates[TEMPLATES.REACT_NEXT]
 
     if (packParams.template) {
       // First priority for the template passed as a param for pack()

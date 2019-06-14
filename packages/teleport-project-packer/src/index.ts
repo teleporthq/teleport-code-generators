@@ -23,7 +23,7 @@ export type PackerFactory = (
   params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
-  loadTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<GeneratedFolder>
+  loadTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<void>
   setPublisher: <T, U>(publisher: Publisher<T, U>) => void
   setGenerator: (generator: ProjectGenerator) => void
   setAssets: (assets: AssetsDefinition) => void
@@ -51,15 +51,8 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     template = templateFolder
   }
 
-  const loadTemplate = async (
-    remoteDefinition: RemoteTemplateDefinition
-  ): Promise<GeneratedFolder> => {
-    try {
-      template = await fetchTemplate(remoteDefinition)
-      return template // TODO: is this useful?
-    } catch (err) {
-      throw err // TODO: error handling here?
-    }
+  const loadTemplate = async (remoteDefinition: RemoteTemplateDefinition): Promise<void> => {
+    template = await fetchTemplate(remoteDefinition)
   }
 
   const pack = async (uidl: ProjectUIDL, packParams: PackerFactoryParams = {}) => {
@@ -76,16 +69,16 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     }
 
     const packAssets = packParams.assets || assets
-
     let templateFolder = packParams.template || template
+
+    // If a remote template is supplied at pack time, it will be fetched,
+    // but not saved inside the packer for a secondary use
     if (!packParams.template && packParams.remoteTemplateDefinition) {
-      templateFolder = await loadTemplate(packParams.remoteTemplateDefinition)
+      templateFolder = await fetchTemplate(packParams.remoteTemplateDefinition)
     }
 
-    const { assetsPath, outputFolder } = await packGenerator.generateProject(
-      definedProjectUIDL,
-      templateFolder
-    )
+    const outputFolder = await packGenerator.generateProject(definedProjectUIDL, templateFolder)
+    const assetsPath = packGenerator.getAssetsPath()
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 

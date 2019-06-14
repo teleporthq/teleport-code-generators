@@ -7,7 +7,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
-import { createHtmlIndexFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
+import { createHtmlIndexFile } from '@teleporthq/teleport-project-generator/lib/utils'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import {
   ComponentUIDL,
@@ -19,8 +19,9 @@ import {
 } from '@teleporthq/teleport-types'
 
 import reactProjectMapping from './react-project-mapping.json'
+import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
 
-export const createRouterIndexFile = async (root: ComponentUIDL) => {
+export const createRouterIndexFile = async (root: ComponentUIDL, options: GeneratorOptions) => {
   const routingComponentGenerator = createGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
@@ -30,13 +31,11 @@ export const createRouterIndexFile = async (root: ComponentUIDL) => {
   root.meta = root.meta || {}
   root.meta.fileName = 'index'
 
-  const { files, dependencies } = await routingComponentGenerator.generateComponent(root)
-  const routerFile = files[0]
-
-  return { routerFile, dependencies }
+  const { files } = await routingComponentGenerator.generateComponent(root, options)
+  return files[0]
 }
 
-export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
+export const createHtmlEntryFile = async (projectUIDL: ProjectUIDL, options: EntryFileOptions) => {
   const htmlFileGenerator = createGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
@@ -64,13 +63,8 @@ export const createHtmlEntryFile = (projectUIDL: ProjectUIDL, options) => {
   return htmlFile
 }
 
-export const createComponentGenerator = (options: GeneratorOptions): ComponentGenerator => {
+export const createComponentGenerator = (): ComponentGenerator => {
   const reactGenerator = createReactComponentGenerator('CSSModules')
-
   reactGenerator.addMapping(reactProjectMapping as Mapping)
-  if (options.mapping) {
-    reactGenerator.addMapping(options.mapping)
-  }
-
   return reactGenerator
 }
