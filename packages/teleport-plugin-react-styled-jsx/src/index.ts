@@ -6,7 +6,7 @@ import {
   traverseElements,
   findFirstElementNode,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/jss-builders'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface StyledJSXConfig {

@@ -4,7 +4,7 @@ import {
   cleanupNestedStyles,
   traverseElements,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/jss-builders'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import { getContentOfStyleObject } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
 import {
   addClassToNode,
