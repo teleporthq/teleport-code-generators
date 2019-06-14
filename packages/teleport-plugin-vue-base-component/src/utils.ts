@@ -336,10 +336,10 @@ const createVuePropsDefinition = (
     let defaultPropValue = null
 
     if (defaultValue !== 'undefined') {
-      defaultPropValue =
-        type === 'array' || type === 'object'
-          ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))
-          : defaultValue
+      const defaultValueAsFunc = new ParsedASTNode(
+        t.arrowFunctionExpression([], convertValueToLiteral(defaultValue))
+      )
+      defaultPropValue = type === 'array' || type === 'object' ? defaultValueAsFunc : defaultValue
     }
 
     acc[name] = defaultPropValue ? { type: mappedType, default: defaultPropValue } : mappedType
