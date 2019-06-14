@@ -1,5 +1,5 @@
 import { createPlugin } from '../src/index'
-import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+import { structure } from './mocks'
 
 describe('vue-base-component-plugin', () => {
   const plugin = createPlugin({
@@ -8,12 +8,6 @@ describe('vue-base-component-plugin', () => {
   })
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
-    const structure = {
-      chunks: [],
-      options: {},
-      uidl: component('Test', elementNode('container')),
-      dependencies: {},
-    }
     const result = await plugin(structure)
 
     // no change to the input UIDL

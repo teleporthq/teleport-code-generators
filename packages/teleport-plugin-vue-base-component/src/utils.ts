@@ -27,7 +27,8 @@ import {
   AttributeAssignCodeMod,
 } from '@teleporthq/teleport-types'
 
-import { ERROR_LOG_NAME } from '.'
+import { ERROR_LOG_NAME } from './constants'
+import { ParsedASTNode } from '@teleporthq/teleport-shared/src/utils/ast-js-utils'
 
 interface VueComponentAccumulators {
   templateLookup: Record<string, any>
@@ -299,7 +300,10 @@ export const generateVueComponentJS = (
   )
 }
 
-const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDefinition>) => {
+const createVuePropsDefinition = (
+  uidlPropDefinitions: Record<string, UIDLPropDefinition>,
+  t = types
+) => {
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
     const { type, defaultValue, isRequired } = uidlPropDefinitions[name]
@@ -331,8 +335,16 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
         )
     }
 
-    acc[name] =
-      typeof defaultValue !== 'undefined' ? { type: mappedType, default: defaultValue } : mappedType
+    let defaultPropValue = null
+
+    if (defaultValue !== 'undefined') {
+      defaultPropValue =
+        type === 'array' || type === 'object'
+          ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))
+          : defaultValue
+    }
+
+    acc[name] = defaultPropValue ? { type: mappedType, default: defaultPropValue } : mappedType
     acc[name] = isRequired ? { required: isRequired, ...acc[name] } : acc[name]
 
     return acc
