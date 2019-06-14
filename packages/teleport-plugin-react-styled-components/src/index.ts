@@ -5,10 +5,8 @@ import {
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import {
-  createJSXSpreadAttribute,
-  addDynamicAttributeOnTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { addDynamicAttributeOnTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { createJSXSpreadAttribute } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -48,9 +46,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           }
 
           throw new Error(
-            `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${
-              styleValue.content.referenceType
-            }`
+            `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
 

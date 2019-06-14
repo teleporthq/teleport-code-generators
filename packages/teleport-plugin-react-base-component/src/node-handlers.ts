@@ -21,10 +21,11 @@ import {
 } from './utils'
 
 import {
-  generateASTDefinitionForJSXTag,
   addChildJSXText,
   addChildJSXTag,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+
+import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 
 import { ERROR_LOG_NAME } from './constants'
 

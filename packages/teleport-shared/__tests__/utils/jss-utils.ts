@@ -1,58 +1,60 @@
-import { createCSSClass } from '../../src/utils/jss-utils'
+import { getContentOfStyleObject } from '../../src/utils/jss-utils'
+import { UIDLStyleDefinitions } from '@teleporthq/teleport-types'
 
-describe('JSS Class Generation', () => {
-  it('with empty styles', () => {
-    expect(createCSSClass('name', {})).toEqual('')
-  })
-
-  it('with static styles', () => {
-    expect(
-      createCSSClass('name', {
-        someKey: {
+describe('JSS Utils ', () => {
+  describe('getContentOfStyleObject', () => {
+    it('with static', () => {
+      const styleValue: UIDLStyleDefinitions = {
+        color: {
           type: 'static',
-          content: 'value',
+          content: 'red',
         },
-      })
-    ).toEqual(`.name {
-  some-key: value;
-}`)
-  })
-
-  it('with nested styles', () => {
-    const stringContent = createCSSClass('name', {
-      '@media (max-width: 835px)': {
-        type: 'nested-style',
-        content: {
-          someKey: {
-            type: 'static',
-            content: 'value',
-          },
-        },
-      },
+      }
+      const result = getContentOfStyleObject(styleValue)
+      expect(result).toEqual({ color: 'red' })
     })
-    expect(stringContent).toContain('@media (max-width: 835px)')
-    expect(stringContent).toContain('some-key')
-  })
-
-  it('with multi nested styles', () => {
-    const stringContent = createCSSClass('name', {
-      '@media (max-width: 835px)': {
-        type: 'nested-style',
-        content: {
-          '@media (max-width: 111px)': {
-            type: 'nested-style',
-            content: {
-              someKey: {
-                type: 'static',
-                content: 'value',
+    it('with nested-style', () => {
+      const styleValue: UIDLStyleDefinitions = {
+        test: {
+          type: 'nested-style',
+          content: {
+            testAgain: {
+              type: 'nested-style',
+              content: {
+                someKey: {
+                  type: 'static',
+                  content: 'value',
+                },
               },
             },
           },
         },
-      },
+      }
+
+      const result = getContentOfStyleObject(styleValue)
+      expect(result).toEqual({ test: { testAgain: { someKey: 'value' } } })
     })
-    expect(stringContent).toContain('@media (max-width: 835px)')
-    expect(stringContent).toContain('@media (max-width: 111px)')
-    expect(stringContent).toContain('some-key')
+  })
+  it('fails with other type than static or nested-style', () => {
+    const styleValue: UIDLStyleDefinitions = {
+      content: {
+        type: 'dynamic',
+        content: {
+          referenceType: 'prop',
+          id: 'test',
+        },
+      },
+    }
+    try {
+      const result = getContentOfStyleObject(styleValue)
+    } catch (e) {
+      expect(e.message).toBe(
+        `getContentOfStyleKey received unsupported ${JSON.stringify(
+          styleValue.content,
+          null,
+          2
+        )} UIDLNodeStyleValue value`
+      )
+    }
   })
 })

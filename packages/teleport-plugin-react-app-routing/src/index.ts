@@ -1,6 +1,6 @@
 import * as t from '@babel/types'
 
-import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import {
   extractPageMetadata,
   extractRoutes,
