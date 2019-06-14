@@ -271,8 +271,8 @@ const isPowerOfTen = (value: number) => {
 }
 
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
-  const staticRepeatsWithNoStaticSource = countStaticRepeatsWithNoDataSource(node)
-  if (!staticRepeatsWithNoStaticSource) {
+  const staticRepeatsWithNoSource = countStaticRepeatsWithNoDataSource(node)
+  if (!staticRepeatsWithNoSource) {
     return
   }
 
@@ -280,8 +280,7 @@ export const ensureDataSourceUniqueness = (node: UIDLNode) => {
 
   traverseRepeats(node, (repeat) => {
     if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
-      repeat.meta.dataSourceIdentifier =
-        staticRepeatsWithNoStaticSource === 1 ? 'items' : `items${index}`
+      repeat.meta.dataSourceIdentifier = staticRepeatsWithNoSource === 1 ? 'items' : `items${index}`
       index += 1
     }
   })
