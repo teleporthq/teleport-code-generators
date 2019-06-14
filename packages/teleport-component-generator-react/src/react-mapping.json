@@ -13,5 +13,9 @@
   },
   "events": {
     "click": "onClick"
-  }
+  },
+  "attributes": {
+    "htmlFor":"htmlFor",
+    "autoPlay":"autoPlay"
+  } 
 }

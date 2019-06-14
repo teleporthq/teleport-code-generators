@@ -55,6 +55,7 @@ export default class Resolver {
 
   public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
+
     const newOptions = {
       ...options,
       mapping,

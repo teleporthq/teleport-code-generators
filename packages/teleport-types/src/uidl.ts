@@ -128,6 +128,7 @@ export interface UIDLElement {
   attrs?: Record<string, UIDLAttributeValue>
   events?: EventDefinitions
   children?: UIDLNode[]
+  attributes?: Record<string, UIDLStaticValue>
 }
 
 export type UIDLNode =
@@ -179,4 +180,5 @@ export interface WebManifest {
 export interface Mapping {
   elements?: Record<string, UIDLElement>
   events?: Record<string, string>
+  attributes?: Record<string, string>
 }

@@ -31,6 +31,7 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
   return {
     elements: { ...oldMapping.elements, ...newMapping.elements },
     events: { ...oldMapping.events, ...newMapping.events },
+    attributes: { ...oldMapping.attributes, ...newMapping.attributes },
   }
 }
 
@@ -78,10 +79,25 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
   const { mapping, localDependenciesPrefix, assetsPrefix } = options
-  const { events: eventsMapping, elements: elementsMapping } = mapping
+  const {
+    events: eventsMapping,
+    elements: elementsMapping,
+    attributes: attributesMapping,
+  } = mapping
   const originalElement = element
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
+  }
+
+  let mappedAttributes = {}
+  if (originalElement.attributes) {
+    const attributeKeys = Object.keys(originalElement.attributes)
+    attributeKeys.map((key) => {
+      mappedAttributes = {
+        ...mappedAttributes,
+        [attributesMapping[key]]: originalElement.attributes[key],
+      }
+    })
   }
 
   // Setting up the name of the node based on the type, if it is not supplied
@@ -125,6 +141,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
+  }
+
+  if (mappedAttributes) {
+    originalElement.attrs = resolveAttributes(mappedAttributes, originalElement.attrs)
   }
 
   if (mappedElement.children) {
