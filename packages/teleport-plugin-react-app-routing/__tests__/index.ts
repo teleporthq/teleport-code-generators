@@ -16,6 +16,7 @@ describe('plugin-react-app-routing', () => {
   it('outputs two AST chunks with the corresponding chunk names', async () => {
     const structure = {
       chunks: [],
+      options: {},
       uidl: component(
         'Test',
         elementNode('Router', {}, [

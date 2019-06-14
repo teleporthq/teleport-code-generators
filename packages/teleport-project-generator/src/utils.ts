@@ -4,32 +4,25 @@ import {
   addChildNode,
   addTextNode,
   addBooleanAttributeToNode,
-} from './html-utils'
+} from '@teleporthq/teleport-shared/lib/utils/html-utils'
 
-import { prefixPlaygroundAssetsURL, extractPageMetadata } from './uidl-utils'
-import { slugify } from './string-utils'
-import { FILE_TYPE } from '../constants'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+
+import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 import {
   GeneratedFile,
-  PackageJSON,
-  ComponentFactoryParams,
-  ComponentGeneratorOutput,
   GeneratedFolder,
-  ProjectStructure,
   HastNode,
-  FilesPathRecord,
   ProjectUIDL,
   WebManifest,
-  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 
-interface HtmlIndexFileOptions {
-  assetsPrefix?: string
-  appRootOverride?: string
-}
+import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { DEFAULT_PACKAGE_JSON } from './constants'
+import { EntryFileOptions, PackageJSON, ComponentGeneratorOutput } from './types'
 
-export const createHtmlIndexFile = (uidl: ProjectUIDL, options: HtmlIndexFileOptions): HastNode => {
+export const createHtmlIndexFile = (uidl: ProjectUIDL, options: EntryFileOptions): HastNode => {
   const { assetsPrefix = '', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
@@ -158,74 +151,45 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
     ...{ icons },
   }
 
-  return createFile('manifest', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
+  return {
+    name: 'manifest',
+    fileType: FILE_TYPE.JSON,
+    content: JSON.stringify(content, null, 2),
+  }
 }
 
-export const createPackageJSONFile = (
-  packageJSONTemplate: PackageJSON,
-  overwrites: {
-    dependencies: Record<string, string>
-    projectName: string
-  }
-): GeneratedFile => {
-  const { projectName, dependencies } = overwrites
+export const handlePackageJSON = (
+  template: GeneratedFolder,
+  uidl: ProjectUIDL,
+  dependencies: Record<string, string>
+) => {
+  const inputPackageJSONFile = template.files.find(
+    (file) => file.name === 'package' && file.fileType === FILE_TYPE.JSON
+  )
 
-  const content: PackageJSON = {
-    ...packageJSONTemplate,
-    name: slugify(projectName),
-    dependencies: {
-      ...packageJSONTemplate.dependencies,
+  if (inputPackageJSONFile) {
+    const packageJSONContent = JSON.parse(inputPackageJSONFile.content) as PackageJSON
+
+    packageJSONContent.name = slugify(uidl.name)
+    packageJSONContent.dependencies = {
+      ...packageJSONContent.dependencies,
       ...dependencies,
-    },
-  }
+    }
 
-  return createFile('package', FILE_TYPE.JSON, JSON.stringify(content, null, 2))
-}
+    inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
+  } else {
+    const content: PackageJSON = {
+      ...DEFAULT_PACKAGE_JSON,
+      name: slugify(uidl.name),
+      dependencies,
+    }
 
-export const createPageOutputs = async (
-  params: ComponentFactoryParams
-): Promise<ComponentGeneratorOutput> => {
-  const { componentUIDL, metadataOptions } = params
-
-  const { name: pageName, node } = componentUIDL
-  const { route: routeDefinitions } = componentUIDL.stateDefinitions
-
-  const { componentName, fileName } = extractPageMetadata(routeDefinitions, pageName, {
-    ...metadataOptions,
-  })
-
-  const pageUIDL: ComponentUIDL = {
-    name: componentName,
-    node,
-    meta: {
-      fileName,
-    },
-  }
-
-  return createComponentOutputs({ ...params, componentUIDL: pageUIDL })
-}
-
-export const createComponentOutputs = async (
-  params: ComponentFactoryParams
-): Promise<ComponentGeneratorOutput> => {
-  const { componentGenerator, componentUIDL, generatorOptions } = params
-
-  let files: GeneratedFile[] = []
-  let dependencies: Record<string, string> = {}
-
-  try {
-    const compiledComponent = await componentGenerator.generateComponent(componentUIDL, {
-      ...generatorOptions,
-      skipValidation: true,
+    template.files.push({
+      name: 'package',
+      fileType: FILE_TYPE.JSON,
+      content: JSON.stringify(content, null, 2),
     })
-
-    files = compiledComponent.files
-    dependencies = compiledComponent.dependencies
-  } catch (error) {
-    console.warn(`Error on generating "${componentUIDL.name}" component\n`, error.stack)
   }
-
-  return { files, dependencies }
 }
 
 export const joinGeneratorOutputs = (
@@ -247,39 +211,32 @@ export const joinGeneratorOutputs = (
   )
 }
 
-export const createFile = (name: string, fileType: string, content: string): GeneratedFile => {
-  return { name, fileType, content }
-}
-
-export const generateLocalDependenciesPrefix = (structure: ProjectStructure): string => {
-  const initialComponentsPath = structure.componentsPath
-  const initialPagesPath = structure.pagesPath
-
-  let dependencyPrefix = ''
-
+export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
   /*
     Remove common path elements from the beginning of the
     components and pages full path (if any)
   
     For example, having:
-    - initialComponentsPath = ['src', 'components']
-    - initialPagesPath = ['src', 'pages']
+    - fromPath = ['src', 'components']
+    - toPath = ['src', 'pages']
   
     If we want to have an import statement that goes from the pages folder to the
     components folder, we only need to go back one step, so we are removing
-    the forst element from both the paths ('src') and build the dependencyPrefix accordingly
+    the first element from both the paths ('src') and build the dependencyPrefix accordingly
   */
-  const [componentsPath, pagesPath] = removeCommonStartingPointsFromPaths([
-    initialComponentsPath,
-    initialPagesPath,
-  ])
+  const [firstPath, secondPath] = removeCommonStartingPointsFromPaths([fromPath, toPath])
 
   // We have to go back as many folders as there are defined in the pages path
-  dependencyPrefix += '../'.repeat(pagesPath.length)
+  let dependencyPrefix = '../'.repeat(firstPath.length)
 
-  dependencyPrefix += componentsPath
-    .map((component) => {
-      return `${component}/`
+  // if 'fromPath' is parent for 'toPath', the path starts from './'
+  if (firstPath.length === 0) {
+    secondPath.unshift('.')
+  }
+
+  dependencyPrefix += secondPath
+    .map((folder) => {
+      return `${folder}/`
     })
     .join('')
 
@@ -323,49 +280,23 @@ const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
   })
 }
 
-export const injectFilesInFolderStructure = (
-  filePathRecords: FilesPathRecord[],
-  template: GeneratedFolder
-): GeneratedFolder => {
-  for (const filePathRecord of filePathRecords) {
-    const { path, files } = filePathRecord
-    template = injectFilesToPath(template, path, files)
-  }
-
-  return template
-}
-
-const injectFilesToPath = (
+export const injectFilesToPath = (
   rootFolder: GeneratedFolder,
   path: string[],
   files: GeneratedFile[]
-): GeneratedFolder => {
+): void => {
   let folder = findFolderByPath(rootFolder, path)
 
   if (!folder) {
-    const { updatedRootFolder, createdFolder } = createFolderByPath(rootFolder, path)
-    rootFolder = updatedRootFolder
-    folder = createdFolder
+    folder = createFolderInPath(rootFolder, path)
   }
 
   folder.files = folder.files.concat(files)
-  return rootFolder
 }
 
-interface NewGeneratedFolderResponse {
-  updatedRootFolder: GeneratedFolder
-  createdFolder: GeneratedFolder
-}
-
-const createFolderByPath = (
-  rootFolder: GeneratedFolder,
-  folderPath: string | string[]
-): NewGeneratedFolderResponse => {
-  folderPath = [].concat(folderPath)
-  const rootFolderClone = JSON.parse(JSON.stringify(rootFolder))
-
-  let createdFolder = null
-  let currentFolder = rootFolderClone
+const createFolderInPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
+  let currentFolder = rootFolder
+  let createdFolder: GeneratedFolder
 
   folderPath.forEach((path, index) => {
     let intermediateFolder = findSubFolderByName(currentFolder, path)
@@ -381,10 +312,7 @@ const createFolderByPath = (
     }
   })
 
-  return {
-    createdFolder,
-    updatedRootFolder: rootFolderClone,
-  }
+  return createdFolder
 }
 
 const findFolderByPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {

@@ -10,11 +10,8 @@ import {
   ProjectUIDL,
   AssetsDefinition,
   Publisher,
-  ProjectGeneratorOutput,
   GeneratedFolder,
   GeneratedFile,
-  ProjectGenerator,
-  GenerateProjectFunction,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
@@ -92,6 +89,7 @@ describe('teleport generic project packer', () => {
     expect(success).toBeTruthy()
 
     const { project } = payload
+
     const assetsFolder = project.subFolders.find((subFolder) => {
       return subFolder.name === 'static'
     })
@@ -153,7 +151,7 @@ const createDummyPublisher = (): Publisher<ProjectUIDL, string> => {
 const dummyGeneratorFunction = async (
   uidl: Record<string, unknown>,
   template: GeneratedFolder
-): Promise<ProjectGeneratorOutput> => {
+): Promise<GeneratedFolder> => {
   const uidlFile: GeneratedFile = {
     name: 'uidl',
     fileType: 'txt',
@@ -169,9 +167,11 @@ const dummyGeneratorFunction = async (
   template.files.push(uidlFile)
   template.files.push(templateFile)
 
-  return { assetsPath: 'static', outputFolder: template }
+  return template
 }
 
 const dummyGenerator = {
+  addMapping: jest.fn(),
+  getAssetsPath: jest.fn(() => 'static'),
   generateProject: dummyGeneratorFunction,
 }

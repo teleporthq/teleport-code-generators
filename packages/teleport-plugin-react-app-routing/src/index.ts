@@ -22,13 +22,14 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
   } = config || {}
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, dependencies } = structure
+    const { uidl, dependencies, options } = structure
 
     registerRouterDeps(dependencies)
 
     const { stateDefinitions = {} } = uidl
 
     const routes = extractRoutes(uidl)
+    const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
@@ -41,7 +42,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
       dependencies[componentName] = {
         type: 'local',
-        path: `./pages/${fileName}`,
+        path: `${pageDependencyPrefix}${fileName}`,
       }
 
       route.openingElement.attributes.push(

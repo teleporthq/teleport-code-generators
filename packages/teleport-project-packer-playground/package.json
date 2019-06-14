@@ -20,7 +20,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc -w"
+    "build:watch": "tsc -w",
+    "build:watch:packer": "tsc -w"
   },
   "dependencies": {
     "@teleporthq/teleport-project-generator-react-basic": "^0.7.0",

@@ -1,7 +1,5 @@
 {
-  "technology": {
-    "type": "VueBasic"
-  },
+  "technology": "VueBasic",
   "publisher": {
     "type": "Disk"
   },
@@ -30,13 +28,6 @@
           }
         ]
       }
-    ]
-  },
-  "structure": {
-    "componentsPath": [
-      "src",
-      "components",
-      "playground-components"
     ]
   },
   "assets": {}

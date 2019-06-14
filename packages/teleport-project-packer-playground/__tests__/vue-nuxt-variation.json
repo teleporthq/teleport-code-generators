@@ -1,7 +1,5 @@
 {
-  "technology": {
-    "type": "VueNuxt"
-  },
+  "technology": "VueNuxt",
   "publisher": {
     "type": "Disk"
   },
@@ -24,12 +22,6 @@
         "files": [],
         "subFolders": []              
       }
-    ]
-  },
-  "structure": {
-    "componentsPath": [
-      "components",
-      "playground-components"
     ]
   },
   "assets": {}

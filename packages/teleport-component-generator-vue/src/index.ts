@@ -10,11 +10,9 @@ import vueFile from '@teleporthq/teleport-postprocessor-vue-file'
 
 import vueMapping from './vue-mapping.json'
 
-import { GeneratorOptions, ComponentGenerator } from '@teleporthq/teleport-types'
+import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
-export const createVueComponentGenerator = (
-  { mapping }: GeneratorOptions = { mapping }
-): ComponentGenerator => {
+export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createGenerator()
 
   generator.addMapping(vueMapping)

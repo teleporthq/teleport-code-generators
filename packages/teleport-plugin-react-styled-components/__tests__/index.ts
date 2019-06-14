@@ -30,6 +30,7 @@ describe('Testing the functionality for StyledComponents', () => {
     const uidlSample = component('StyledComponents', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -54,6 +55,7 @@ describe('Testing the functionality for StyledComponents', () => {
     const uidlSample = component('StyledComponents', elementWithKey)
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -79,6 +81,7 @@ describe('Testing the functionality for StyledComponents', () => {
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [],
       dependencies: {},
     }

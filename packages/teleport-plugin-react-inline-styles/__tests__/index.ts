@@ -31,6 +31,7 @@ describe('plugin-react-inline-styles', () => {
     const uidlSample = component('InlineStyles', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -52,6 +53,7 @@ describe('plugin-react-inline-styles', () => {
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }

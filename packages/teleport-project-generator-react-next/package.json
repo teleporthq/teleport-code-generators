@@ -19,15 +19,16 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc -w"
+    "build:watch": "tsc -w",
+    "build:watch:project": "tsc -w"
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-project-generator": "^0.7.0",
     "@teleporthq/teleport-component-generator": "^0.7.0",
     "@teleporthq/teleport-component-generator-react": "^0.7.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.7.0",
     "@teleporthq/teleport-shared": "^0.7.0",
-    "@teleporthq/teleport-types": "^0.7.0",
-    "@teleporthq/teleport-uidl-validator": "^0.7.0"
+    "@teleporthq/teleport-types": "^0.7.0"
   }
 }
