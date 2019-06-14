@@ -25,7 +25,7 @@ import {
   AttributeAssignCodeMod,
 } from '@teleporthq/teleport-types'
 
-import { ERROR_LOG_NAME } from '.'
+import { ERROR_LOG_NAME } from './constants'
 import { ParsedASTNode } from '@teleporthq/teleport-shared/src/utils/ast-js-utils'
 
 interface VueComponentAccumulators {
