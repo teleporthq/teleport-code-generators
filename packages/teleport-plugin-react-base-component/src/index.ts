@@ -1,4 +1,5 @@
-import { makeDefaultExport } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { createDefaultExport } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+
 import { createPureComponent } from './utils'
 import { generateNodeSyntax } from './node-handlers'
 
@@ -62,7 +63,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     structure.chunks.push({
       type: 'js',
       name: exportChunkName,
-      content: makeDefaultExport(uidl.name),
+      content: createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],
     })
 

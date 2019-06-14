@@ -68,21 +68,6 @@ export const addDynamicAttributeOnTag = (
   )
 }
 
-// TODO: Use generateASTDefinitionForJSXTag instead?
-export const generateStyledJSXTag = (
-  templateLiteral: string | types.TemplateLiteral,
-  t = types
-) => {
-  if (typeof templateLiteral === 'string') {
-    templateLiteral = stringAsTemplateLiteral(templateLiteral, t)
-  }
-
-  const jsxTagChild = t.jsxExpressionContainer(templateLiteral)
-  const jsxTag = generateBasicJSXTag('style', [jsxTagChild, t.jsxText('\n')], t)
-  addAttributeToJSXTag(jsxTag, { name: 'jsx' }, t)
-  return jsxTag
-}
-
 export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
@@ -99,16 +84,6 @@ ${str}
     ],
     []
   )
-}
-
-const generateBasicJSXTag = (tagName: string, children: any[] = [], t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
-
-  const tag = t.jsxElement(openingDiv, closingDiv, children, false)
-
-  return tag
 }
 
 export const addAttributeToJSXTag = (
@@ -145,31 +120,6 @@ const getProperAttributeValueAssignment = (value: any, t = types) => {
   return t.jsxExpressionContainer(convertValueToLiteral(value))
 }
 
-/**
- * Generates the AST definiton (without start/end position) for a JSX tag
- * with an opening and closing tag.
- *
- * t is the babel-types api which generates the JSON structure representing the AST.
- * This is set as a parameter to allow us to remove babel-types at some point if we
- * decide to, and to allow easier unit testing of the utils.
- *
- * Requires the tagName, which is a string that will be used to generate the
- * tag.
- *
- * Example:
- * generateASTDefinitionForJSXTag("div") will generate the AST
- * equivalent of <div></div>
- */
-export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
-
-  const tag = t.jsxElement(openingDiv, closingDiv, [], false)
-
-  return tag
-}
-
 export const addChildJSXTag = (
   tag: types.JSXElement,
   childNode: types.JSXElement | types.JSXExpressionContainer,
@@ -189,8 +139,4 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 
   const styleJSXAttr = t.jsxAttribute(t.jsxIdentifier('style'), styleObjectExpressionContainer)
   tag.openingElement.attributes.push(styleJSXAttr)
-}
-
-export const createJSXSpreadAttribute = (name: string, t = types) => {
-  return t.jsxSpreadAttribute(t.identifier(name))
 }

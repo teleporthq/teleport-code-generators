@@ -1,15 +1,12 @@
-import {
-  addClassStringOnJSXTag,
-  generateStyledJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-
+import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { generateStyledJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   transformDynamicStyles,
   traverseElements,
   findFirstElementNode,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClassFromStringMap } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface StyledJSXConfig {
@@ -46,8 +43,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
             `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
-
+        styleJSXString.push(createCSSClass(className, styleRules))
         addClassStringOnJSXTag(root, className)
       }
     })

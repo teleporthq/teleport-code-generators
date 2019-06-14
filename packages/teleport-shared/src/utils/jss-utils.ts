@@ -1,8 +1,4 @@
-import preset from 'jss-preset-default'
-import jss from 'jss'
 import { UIDLStyleDefinitions, UIDLStyleValue } from '@teleporthq/teleport-types'
-
-jss.setup(preset())
 
 const getContentOfStyleKey = (styleValue: UIDLStyleValue) => {
   switch (styleValue.type) {
@@ -21,38 +17,9 @@ const getContentOfStyleKey = (styleValue: UIDLStyleValue) => {
   }
 }
 
-const getContentOfStyleObject = (styleObject: UIDLStyleDefinitions) => {
+export const getContentOfStyleObject = (styleObject: UIDLStyleDefinitions) => {
   return Object.keys(styleObject).reduce((acc: Record<string, unknown>, key) => {
     acc[key] = getContentOfStyleKey(styleObject[key])
     return acc
   }, {})
-}
-
-export const createCSSClass = (className: string, styleObject: UIDLStyleDefinitions) => {
-  return jss
-    .createStyleSheet(
-      {
-        [`.${className}`]: getContentOfStyleObject(styleObject),
-      },
-      {
-        generateClassName: () => className,
-      }
-    )
-    .toString()
-}
-
-export const createCSSClassFromStringMap = (
-  className: string,
-  styleObject: Record<string, string | number>
-) => {
-  return jss
-    .createStyleSheet(
-      {
-        [`.${className}`]: styleObject,
-      },
-      {
-        generateClassName: () => className,
-      }
-    )
-    .toString()
 }

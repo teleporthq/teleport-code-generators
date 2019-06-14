@@ -1,4 +1,4 @@
-import { makeGenericImportStatement } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { createGenericImportStatement } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -84,7 +84,7 @@ const addImportChunk = (
   fileId: string | null
 ) => {
   const importASTs = Object.keys(dependencies).map((key) =>
-    makeGenericImportStatement(key, dependencies[key])
+    createGenericImportStatement(key, dependencies[key])
   )
 
   chunks.push({

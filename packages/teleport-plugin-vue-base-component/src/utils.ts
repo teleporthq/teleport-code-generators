@@ -1,6 +1,8 @@
 import * as types from '@babel/types'
 
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
+
 import {
   objectToObjectExpression,
   convertValueToLiteral,
@@ -40,7 +42,7 @@ export const generateElementNode = (
 ) => {
   const { dependencies, dataObject, methodsObject, templateLookup } = accumulators
   const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = htmlUtils.createHTMLNode(elementType)
+  const htmlNode = createHTMLNode(elementType)
 
   if (dependency) {
     dependencies[elementType] = { ...dependency }
@@ -145,7 +147,7 @@ export const generateConditionalNode = (
   // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
-    const wrappingSpan = htmlUtils.createHTMLNode('span')
+    const wrappingSpan = createHTMLNode('span')
     htmlUtils.addTextNode(wrappingSpan, conditionalTag)
     conditionalTag = wrappingSpan
   }
@@ -180,7 +182,7 @@ const standardizeUIDLConditionalExpression = (
 }
 
 export const generateSlotNode = (node: UIDLSlotNode, accumulators: VueComponentAccumulators) => {
-  const slotNode = htmlUtils.createHTMLNode('slot')
+  const slotNode = createHTMLNode('slot')
 
   if (node.content.name) {
     htmlUtils.addAttributeToNode(slotNode, 'name', node.content.name)

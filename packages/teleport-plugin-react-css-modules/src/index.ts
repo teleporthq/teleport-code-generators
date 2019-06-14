@@ -14,7 +14,9 @@ import {
   cleanupNestedStyles,
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+import { getContentOfStyleObject } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
@@ -83,7 +85,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
           addJSXTagStyles(root, inlineStyles)
         }
 
-        cssClasses.push(createCSSClass(className, staticStyles))
+        cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
 
         const classReferenceIdentifier = camelCaseClassNames
           ? `styles.${classNameInJS}`
