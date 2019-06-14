@@ -164,18 +164,6 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
   }
 }
 
-export const countStaticRepeatsWithNoDataSource = (node: UIDLNode) => {
-  let count = 0
-
-  traverseRepeats(node, (repeat) => {
-    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
-      count += 1
-    }
-  })
-
-  return count
-}
-
 export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
   switch (node.type) {
     case 'element':

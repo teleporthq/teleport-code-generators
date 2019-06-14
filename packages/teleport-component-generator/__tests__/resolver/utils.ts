@@ -118,7 +118,7 @@ describe('ensureDataSourceUniqueness', () => {
     const firstRepeat = element.content.children[0] as UIDLRepeatNode
     const secondRepeat = element.content.children[1] as UIDLRepeatNode
 
-    expect(firstRepeat.content.meta.dataSourceIdentifier).toBe('items0')
+    expect(firstRepeat.content.meta.dataSourceIdentifier).toBe('items')
     expect(secondRepeat.content.meta.dataSourceIdentifier).toBe('items1')
   })
 })

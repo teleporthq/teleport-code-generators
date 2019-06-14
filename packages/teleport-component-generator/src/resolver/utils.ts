@@ -3,7 +3,6 @@ import {
   traverseElements,
   traverseNodes,
   traverseRepeats,
-  countStaticRepeatsWithNoDataSource,
   cloneObject,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/lib/constants'
@@ -271,16 +270,11 @@ const isPowerOfTen = (value: number) => {
 }
 
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
-  const staticRepeatsWithNoSource = countStaticRepeatsWithNoDataSource(node)
-  if (!staticRepeatsWithNoSource) {
-    return
-  }
-
   let index = 0
 
   traverseRepeats(node, (repeat) => {
     if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
-      repeat.meta.dataSourceIdentifier = staticRepeatsWithNoSource === 1 ? 'items' : `items${index}`
+      repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
       index += 1
     }
   })
