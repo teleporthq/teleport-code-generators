@@ -44,6 +44,8 @@ export default class Resolver {
     utils.createNodesLookup(node, nodesLookup)
     utils.generateUniqueKeys(node, nodesLookup)
 
+    utils.ensureDataSourceUniqueness(node)
+
     const name = sanitizeVariableName(uidl.name)
 
     return {

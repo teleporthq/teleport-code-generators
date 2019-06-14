@@ -9,6 +9,7 @@ import {
   UIDLStaticValue,
   UIDLAttributeValue,
   UIDLDynamicReference,
+  UIDLRepeatContent,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -136,7 +137,6 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
           traverseElements(child, fn)
         })
       }
-
       break
 
     case 'repeat':
@@ -150,6 +150,56 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
     case 'slot':
       if (node.content.fallback) {
         traverseElements(node.content.fallback, fn)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+      break
+
+    default:
+      throw new Error(
+        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
+  }
+}
+
+export const countStaticRepeatsWithNoDataSource = (node: UIDLNode) => {
+  let count = 0
+
+  traverseRepeats(node, (repeat) => {
+    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
+      count += 1
+    }
+  })
+
+  return count
+}
+
+export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseRepeats(child, fn)
+        })
+      }
+
+      break
+
+    case 'repeat':
+      fn(node.content)
+
+      traverseRepeats(node.content.node, fn)
+      break
+
+    case 'conditional':
+      traverseRepeats(node.content.node, fn)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseRepeats(node.content.fallback, fn)
       }
       break
 

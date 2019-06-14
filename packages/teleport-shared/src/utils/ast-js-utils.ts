@@ -18,7 +18,7 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
     const value = objectMap[key]
     let computedLiteralValue: any = null
 
-    if (value instanceof ParsedASTNode) {
+    if (value instanceof ParsedASTNode || value.constructor.name === 'ParsedASTNode') {
       computedLiteralValue = value.ast
     } else if (typeof value === 'boolean') {
       computedLiteralValue = t.booleanLiteral(value)
