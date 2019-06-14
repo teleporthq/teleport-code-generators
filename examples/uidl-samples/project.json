@@ -192,6 +192,9 @@
   "components": {
     "Navbar": {
       "name": "Navbar",
+      "meta": {
+        "path": ["common"]
+      },
       "node": {
         "type": "element",
         "content": {
@@ -556,6 +559,9 @@
     },
     "Modal": {
       "name": "Modal",
+      "meta": {
+        "path": ["inner"]
+      },
       "stateDefinitions": {
         "isOpen": {
           "type": "boolean",

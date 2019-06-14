@@ -1,4 +1,5 @@
 import { ASSETS_IDENTIFIER } from '../constants'
+import { camelCaseToDashCase } from './string-utils'
 import {
   ComponentUIDL,
   UIDLStateDefinition,
@@ -64,6 +65,14 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
     (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
   ) as UIDLConditionalNode[]
 }
+
+export const getFileName = (component: ComponentUIDL) => {
+  const name = component.meta && component.meta.fileName ? component.meta.fileName : component.name
+  return camelCaseToDashCase(name)
+}
+
+export const getComponentPath = (component: ComponentUIDL) =>
+  component.meta ? component.meta.path : []
 
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
