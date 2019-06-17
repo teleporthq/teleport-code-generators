@@ -110,8 +110,8 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
           [attributesMapping[key]]: originalElement.attrs[key],
         }
         delete originalElement.attrs[key]
+        mappedElement.attrs = mappedAttributes
       })
-    mappedElement.attrs = mappedAttributes
   }
 
   // Setting up the name of the node based on the type, if it is not supplied
