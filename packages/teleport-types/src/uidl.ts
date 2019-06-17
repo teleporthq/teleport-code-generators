@@ -128,7 +128,6 @@ export interface UIDLElement {
   attrs?: Record<string, UIDLAttributeValue>
   events?: EventDefinitions
   children?: UIDLNode[]
-  attributes?: Record<string, UIDLStaticValue>
 }
 
 export type UIDLNode =

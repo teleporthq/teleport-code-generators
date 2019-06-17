@@ -68,13 +68,22 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
   traverseNodes(uidlNode, (node, parentNode) => {
     if (node.type === 'element') {
-      resolveElement(node.content, options)
+      const content = mergeAttributes(node.content)
+      resolveElement(content, options)
     }
 
     if (node.type === 'repeat') {
       resolveRepeat(node.content, parentNode)
     }
   })
+}
+
+const mergeAttributes = (content) => {
+  if (content.attributes) {
+    content.attrs = { ...content.attrs, ...content.attributes }
+    delete content.attributes
+  }
+  return content
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -89,15 +98,20 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     elementType: originalElement.elementType, // identity mapping
   }
 
-  let mappedAttributes = {}
-  if (originalElement.attributes) {
-    const attributeKeys = Object.keys(originalElement.attributes)
-    attributeKeys.map((key) => {
-      mappedAttributes = {
-        ...mappedAttributes,
-        [attributesMapping[key]]: originalElement.attributes[key],
-      }
-    })
+  if (originalElement.attrs) {
+    let mappedAttributes = {}
+    const attributeKeys = Object.keys(originalElement.attrs)
+
+    attributeKeys
+      .filter((key) => attributesMapping[key])
+      .map((key) => {
+        mappedAttributes = {
+          ...mappedAttributes,
+          [attributesMapping[key]]: originalElement.attrs[key],
+        }
+        delete originalElement.attrs[key]
+      })
+    mappedElement.attrs = mappedAttributes
   }
 
   // Setting up the name of the node based on the type, if it is not supplied
@@ -141,10 +155,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
-  }
-
-  if (mappedAttributes) {
-    originalElement.attrs = resolveAttributes(mappedAttributes, originalElement.attrs)
   }
 
   if (mappedElement.children) {
@@ -350,7 +360,6 @@ const resolveAttributes = (
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
   const mappedAttributes: string[] = []
-
   // First we iterate through the mapping attributes and we add them to the result
   Object.keys(mappedAttrs).forEach((key) => {
     const attrValue = mappedAttrs[key]
