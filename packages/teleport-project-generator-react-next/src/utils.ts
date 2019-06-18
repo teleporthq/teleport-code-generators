@@ -1,9 +1,10 @@
 import {
-  generateASTDefinitionForJSXTag,
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+
 import * as types from '@babel/types'
 
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'

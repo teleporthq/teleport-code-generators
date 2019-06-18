@@ -2,6 +2,7 @@ import {
   prefixPlaygroundAssetsURL,
   traverseElements,
   traverseNodes,
+  traverseRepeats,
   cloneObject,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/lib/constants'
@@ -266,6 +267,17 @@ const isPowerOfTen = (value: number) => {
   }
 
   return value === 1
+}
+
+export const ensureDataSourceUniqueness = (node: UIDLNode) => {
+  let index = 0
+
+  traverseRepeats(node, (repeat) => {
+    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
+      repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
+      index += 1
+    }
+  })
 }
 
 /**

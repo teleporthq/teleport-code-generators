@@ -1,5 +1,4 @@
 import {
-  createHTMLNode,
   addAttributeToNode,
   addChildNode,
   addTextNode,
@@ -15,6 +14,7 @@ import {
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
 
 import {
   GeneratedFile,

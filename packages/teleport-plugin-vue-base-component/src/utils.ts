@@ -1,6 +1,8 @@
 import * as types from '@babel/types'
 
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
+
 import {
   objectToObjectExpression,
   convertValueToLiteral,
@@ -25,7 +27,8 @@ import {
   AttributeAssignCodeMod,
 } from '@teleporthq/teleport-types'
 
-import { ERROR_LOG_NAME } from '.'
+import { ERROR_LOG_NAME } from './constants'
+import { ParsedASTNode } from '@teleporthq/teleport-shared/src/utils/ast-js-utils'
 
 interface VueComponentAccumulators {
   templateLookup: Record<string, any>
@@ -40,7 +43,7 @@ export const generateElementNode = (
 ) => {
   const { dependencies, dataObject, methodsObject, templateLookup } = accumulators
   const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = htmlUtils.createHTMLNode(elementType)
+  const htmlNode = createHTMLNode(elementType)
 
   if (dependency) {
     dependencies[elementType] = { ...dependency }
@@ -145,7 +148,7 @@ export const generateConditionalNode = (
   // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
-    const wrappingSpan = htmlUtils.createHTMLNode('span')
+    const wrappingSpan = createHTMLNode('span')
     htmlUtils.addTextNode(wrappingSpan, conditionalTag)
     conditionalTag = wrappingSpan
   }
@@ -180,7 +183,7 @@ const standardizeUIDLConditionalExpression = (
 }
 
 export const generateSlotNode = (node: UIDLSlotNode, accumulators: VueComponentAccumulators) => {
-  const slotNode = htmlUtils.createHTMLNode('slot')
+  const slotNode = createHTMLNode('slot')
 
   if (node.content.name) {
     htmlUtils.addAttributeToNode(slotNode, 'name', node.content.name)
@@ -297,7 +300,10 @@ export const generateVueComponentJS = (
   )
 }
 
-const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDefinition>) => {
+const createVuePropsDefinition = (
+  uidlPropDefinitions: Record<string, UIDLPropDefinition>,
+  t = types
+) => {
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
     const { type, defaultValue, isRequired } = uidlPropDefinitions[name]
@@ -329,8 +335,16 @@ const createVuePropsDefinition = (uidlPropDefinitions: Record<string, UIDLPropDe
         )
     }
 
-    acc[name] =
-      typeof defaultValue !== 'undefined' ? { type: mappedType, default: defaultValue } : mappedType
+    let defaultPropValue = null
+
+    if (defaultValue !== 'undefined') {
+      defaultPropValue =
+        type === 'array' || type === 'object'
+          ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))
+          : defaultValue
+    }
+
+    acc[name] = defaultPropValue ? { type: mappedType, default: defaultPropValue } : mappedType
     acc[name] = isRequired ? { required: isRequired, ...acc[name] } : acc[name]
 
     return acc
