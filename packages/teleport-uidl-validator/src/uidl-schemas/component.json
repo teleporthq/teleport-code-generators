@@ -284,18 +284,6 @@
           }
         }, 
         "events":{"$ref": "#/definitions/eventDefinitions"},
-        "attributes":  {
-          "type": "object",
-           "patternProperties": {
-            ".*": { "oneOf": [
-              { "$ref": "#/definitions/attributeValue" },
-              { "type": "string" },
-              { "type": "number" },
-              { "type": "boolean" },
-              { "type": "array"}
-            ] }
-          }
-        },
         "children": { "type": "array", "items": {"$ref": "#/definitions/node"}}
       }
     },

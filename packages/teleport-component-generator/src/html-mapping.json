@@ -211,8 +211,5 @@
   "events": {
     "click": "onclick"
   },
-  "attributes": {
-    "htmlFor": "for",
-    "autoPlay": "autoplay"
-  }
+  "attributes": {}
 }

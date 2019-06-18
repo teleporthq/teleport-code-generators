@@ -68,22 +68,13 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
   traverseNodes(uidlNode, (node, parentNode) => {
     if (node.type === 'element') {
-      const content = mergeAttributes(node.content)
-      resolveElement(content, options)
+      resolveElement(node.content, options)
     }
 
     if (node.type === 'repeat') {
       resolveRepeat(node.content, parentNode)
     }
   })
-}
-
-const mergeAttributes = (content) => {
-  if (content.attributes) {
-    content.attrs = { ...content.attrs, ...content.attributes }
-    delete content.attributes
-  }
-  return content
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -96,22 +87,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   const originalElement = element
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
-  }
-
-  if (originalElement.attrs) {
-    let mappedAttributes = {}
-    const attributeKeys = Object.keys(originalElement.attrs)
-
-    attributeKeys
-      .filter((key) => attributesMapping[key])
-      .map((key) => {
-        mappedAttributes = {
-          ...mappedAttributes,
-          [attributesMapping[key]]: originalElement.attrs[key],
-        }
-        delete originalElement.attrs[key]
-        mappedElement.attrs = mappedAttributes
-      })
   }
 
   // Setting up the name of the node based on the type, if it is not supplied
@@ -155,6 +130,20 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
+  }
+
+  if (originalElement.attrs && attributesMapping) {
+    const attrsKeys = Object.keys(originalElement.attrs)
+
+    attrsKeys
+      .filter((key) => attributesMapping[key])
+      .forEach((key) => {
+        originalElement.attrs = {
+          ...originalElement.attrs,
+          [attributesMapping[key]]: originalElement.attrs[key],
+        }
+        delete originalElement.attrs[key]
+      })
   }
 
   if (mappedElement.children) {
