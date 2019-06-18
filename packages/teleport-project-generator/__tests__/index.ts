@@ -1,8 +1,10 @@
 import { createProjectGenerator } from '../src'
+import { resolveLocalDependencies } from '../src/utils'
 import { mockMapping, firstStrategy, secondStrategy } from './mocks'
 
 // @ts-ignore
 import projectUIDL from '../../../examples/uidl-samples/project.json'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 describe('Generic Project Generator', () => {
   describe('with the same component generator for pages and components', () => {
@@ -29,20 +31,24 @@ describe('Generic Project Generator', () => {
 
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
+
+      // This adds the local dependencies on the UIDL, so we can proper assert below
+      const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, firstStrategy)
+
       expect(componentsGenerator.generateComponent).toBeCalledTimes(8)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
-        projectUIDL.components.ExpandableArea,
+        resolvedUIDL.components.ExpandableArea,
         {
           assetsPrefix: '/test/static',
-          projectRouteDefinition: projectUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
       )
       expect(entryGenerator).toBeCalledTimes(1)
-      expect(entryGenerator).toBeCalledWith(projectUIDL, { assetsPrefix: '/test/static' })
+      expect(entryGenerator).toBeCalledWith(resolvedUIDL, { assetsPrefix: '/test/static' })
       expect(routerGenerator).toBeCalledTimes(1)
-      expect(routerGenerator).toBeCalledWith(projectUIDL.root, {
+      expect(routerGenerator).toBeCalledWith(resolvedUIDL.root, {
         localDependenciesPrefix: './pages/',
       })
     })
@@ -75,12 +81,16 @@ describe('Generic Project Generator', () => {
 
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
+
+      // This adds the local dependencies on the UIDL, so we can proper assert below
+      const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, secondStrategy)
+
       expect(componentsGenerator.generateComponent).toBeCalledTimes(5)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
-        projectUIDL.components.ExpandableArea,
+        resolvedUIDL.components.ExpandableArea,
         {
           assetsPrefix: '/static',
-          projectRouteDefinition: projectUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
@@ -91,17 +101,16 @@ describe('Generic Project Generator', () => {
           name: 'Home',
         }),
         {
-          localDependenciesPrefix: '../components/',
           assetsPrefix: '/static',
-          projectRouteDefinition: projectUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
       )
       expect(entryGenerator).toBeCalledTimes(1)
-      expect(entryGenerator).toBeCalledWith(projectUIDL, { assetsPrefix: '/static' })
+      expect(entryGenerator).toBeCalledWith(resolvedUIDL, { assetsPrefix: '/static' })
       expect(routerGenerator).toBeCalledTimes(1)
-      expect(routerGenerator).toBeCalledWith(projectUIDL.root, {
+      expect(routerGenerator).toBeCalledWith(resolvedUIDL.root, {
         localDependenciesPrefix: './pages/',
       })
     })

@@ -3,7 +3,7 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { getFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import {
   ChunkDefinition,
@@ -70,7 +70,7 @@ export const createGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = getFileName(uidl)
+    const fileName = getComponentFileName(uidl)
     const files = fileBundler(fileName, codeChunks)
 
     return {

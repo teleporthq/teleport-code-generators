@@ -10,7 +10,7 @@ import {
   prefixPlaygroundAssetsURL,
   cloneObject,
   traverseElements,
-  getFileName,
+  getComponentFileName,
   getComponentPath,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
@@ -241,7 +241,7 @@ const setLocalDependencyPath = (
 
   const toPath = toBasePath.concat(componentPath)
 
-  const importFileName = getFileName(component)
+  const importFileName = getComponentFileName(component)
   const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
   elementNode.dependency.path = `${importPath}${importFileName}`
 }

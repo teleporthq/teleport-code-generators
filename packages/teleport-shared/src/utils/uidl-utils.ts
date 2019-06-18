@@ -66,7 +66,7 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
   ) as UIDLConditionalNode[]
 }
 
-export const getFileName = (component: ComponentUIDL) => {
+export const getComponentFileName = (component: ComponentUIDL) => {
   const name = component.meta && component.meta.fileName ? component.meta.fileName : component.name
   return camelCaseToDashCase(name)
 }
