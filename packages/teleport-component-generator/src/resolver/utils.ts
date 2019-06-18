@@ -138,10 +138,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     attrsKeys
       .filter((key) => attributesMapping[key])
       .forEach((key) => {
-        originalElement.attrs = {
-          ...originalElement.attrs,
-          [attributesMapping[key]]: originalElement.attrs[key],
-        }
+        originalElement.attrs[attributesMapping[key]] = originalElement.attrs[key]
         delete originalElement.attrs[key]
       })
   }
