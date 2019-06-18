@@ -6,5 +6,6 @@
   },
   "events": {
     "click": "click"
-  }
+  },
+  "attributes": {} 
 }

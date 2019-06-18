@@ -32,6 +32,7 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
   return {
     elements: { ...oldMapping.elements, ...newMapping.elements },
     events: { ...oldMapping.events, ...newMapping.events },
+    attributes: { ...oldMapping.attributes, ...newMapping.attributes },
   }
 }
 
@@ -79,7 +80,11 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
   const { mapping, localDependenciesPrefix, assetsPrefix } = options
-  const { events: eventsMapping, elements: elementsMapping } = mapping
+  const {
+    events: eventsMapping,
+    elements: elementsMapping,
+    attributes: attributesMapping,
+  } = mapping
   const originalElement = element
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
@@ -126,6 +131,17 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
+  }
+
+  if (originalElement.attrs && attributesMapping) {
+    const attrsKeys = Object.keys(originalElement.attrs)
+
+    attrsKeys
+      .filter((key) => attributesMapping[key])
+      .forEach((key) => {
+        originalElement.attrs[attributesMapping[key]] = originalElement.attrs[key]
+        delete originalElement.attrs[key]
+      })
   }
 
   if (mappedElement.children) {
@@ -342,7 +358,6 @@ const resolveAttributes = (
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
   const mappedAttributes: string[] = []
-
   // First we iterate through the mapping attributes and we add them to the result
   Object.keys(mappedAttrs).forEach((key) => {
     const attrValue = mappedAttrs[key]

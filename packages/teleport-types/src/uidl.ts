@@ -179,4 +179,5 @@ export interface WebManifest {
 export interface Mapping {
   elements?: Record<string, UIDLElement>
   events?: Record<string, string>
+  attributes?: Record<string, string>
 }

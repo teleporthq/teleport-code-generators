@@ -10,6 +10,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
+  staticNode,
 } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const uidl = component(
@@ -21,6 +22,8 @@ const uidl = component(
           'div',
           {
             test: dynamicNode('local', 'index'),
+            for: staticNode('mappedTest'),
+            autoplay: staticNode('true'),
             'data-test': dynamicNode('prop', 'test'),
             'data-inner-value': dynamicNode('prop', 'content.heading'),
           },
@@ -44,11 +47,24 @@ const uidl = component(
 const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
   files.find((file) => file.fileType === type)
+const generator = createReactComponentGenerator()
+
+describe('React Attribute Mapping', () => {
+  it('should return code with attributes mapped to React attributes', async () => {
+    const result = await generator.generateComponent(uidl)
+    const jsFile = findFileByType(result.files, JS_FILE)
+
+    expect(jsFile).toBeDefined()
+    expect(jsFile.content).toContain('htmlFor')
+    expect(jsFile.content).toContain('autoPlay')
+
+    expect(jsFile.content).not.toContain('for')
+    expect(jsFile.content).not.toContain('autoplay')
+  })
+})
 
 describe('React Props in Component', () => {
   describe('supports props json declaration in attributes', () => {
-    const generator = createReactComponentGenerator()
-
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(uidl)
       const jsFile = findFileByType(result.files, JS_FILE)

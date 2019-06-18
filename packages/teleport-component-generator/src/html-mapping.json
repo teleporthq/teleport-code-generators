@@ -210,5 +210,6 @@
   },
   "events": {
     "click": "onclick"
-  }
+  },
+  "attributes": {}
 }

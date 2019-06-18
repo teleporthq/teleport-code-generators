@@ -37,31 +37,33 @@ describe('resolveElement', () => {
 })
 
 describe('resolveUIDL', () => {
-  const uidl = component(
-    'Conditional Component',
-    elementNode('container', {}, [
-      conditionalNode(
-        dynamicNode('state', 'isVisible'),
-        elementNode('div', {}, [staticNode('Now you see me!')]),
-        true
-      ),
-    ]),
-    {},
-    { isVisible: definition('boolean', true), isShareable: definition('boolean', false) }
-  )
+  it('should return resolved UIDL', () => {
+    const uidl = component(
+      'Conditional Component',
+      elementNode('container', {}, [
+        conditionalNode(
+          dynamicNode('state', 'isVisible'),
+          elementNode('div', {}, [staticNode('Now you see me!')]),
+          true
+        ),
+      ]),
+      {},
+      { isVisible: definition('boolean', true), isShareable: definition('boolean', false) }
+    )
 
-  const extraMapping = {
-    elements: {
-      container: {
-        elementType: 'div',
+    const extraMapping = {
+      elements: {
+        container: {
+          elementType: 'div',
+        },
       },
-    },
-  }
+    }
 
-  const resolver = new Resolver()
-  resolver.addMapping(mapping)
-  const resolvedUIDL = resolver.resolveUIDL(uidl, { mapping: extraMapping })
-  expect(resolvedUIDL.name).toBe('ConditionalComponent')
-  expect(resolvedUIDL.node.type).toBe('element')
-  expect(resolvedUIDL.stateDefinitions.isVisible.type).toBe('boolean')
+    const resolver = new Resolver()
+    resolver.addMapping(mapping)
+    const resolvedUIDL = resolver.resolveUIDL(uidl, { mapping: extraMapping })
+    expect(resolvedUIDL.name).toBe('ConditionalComponent')
+    expect(resolvedUIDL.node.type).toBe('element')
+    expect(resolvedUIDL.stateDefinitions.isVisible.type).toBe('boolean')
+  })
 })
