@@ -4,7 +4,10 @@ import {
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
   findFirstElementNode,
+  getComponentPath,
+  getComponentFileName,
 } from '../../src/utils/uidl-utils'
+import { component, staticNode } from '../../src/builders/uidl-builders'
 import {
   UIDLStyleDefinitions,
   UIDLElementNode,
@@ -289,13 +292,10 @@ describe('traverses the UIDL and returns the first element node that is found', 
   })
 
   it('throws error if a static is passed', () => {
-    const staticNode: UIDLStaticValue = {
-      type: 'static',
-      content: 'This is a static value',
-    }
+    const node = staticNode('This is a static value')
 
     try {
-      findFirstElementNode(staticNode)
+      findFirstElementNode(node)
     } catch (e) {
       expect(e.message).toContain('UIDL does not have any element node')
     }
@@ -330,5 +330,39 @@ describe('traverses the UIDL and returns the first element node that is found', 
     } catch (e) {
       expect(e.message).toContain('UIDL does not have any element node')
     }
+  })
+})
+
+describe('getComponentFileName', () => {
+  const testComponent = component('MyComponent', staticNode('random'))
+
+  it('returns the dashcase filename', () => {
+    expect(getComponentFileName(testComponent)).toBe('my-component')
+  })
+
+  it('meta fileName overrides', () => {
+    testComponent.meta = {
+      fileName: 'my-custom-name',
+    }
+    expect(getComponentFileName(testComponent)).toBe('my-custom-name')
+  })
+})
+
+describe('getComponentPath', () => {
+  const testComponent = component('MyComponent', staticNode('random'))
+
+  it('returns an empty array if no meta path is provided', () => {
+    expect(getComponentPath(testComponent)).toHaveLength(0)
+  })
+
+  it('returns the input meta path', () => {
+    testComponent.meta = {
+      path: ['one', 'two'],
+    }
+
+    const path = getComponentPath(testComponent)
+    expect(path).toContain('one')
+    expect(path).toContain('two')
+    expect(path.length).toBe(2)
   })
 })

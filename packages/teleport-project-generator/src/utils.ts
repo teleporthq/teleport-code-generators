@@ -5,7 +5,13 @@ import {
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/lib/utils/html-utils'
 
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import {
+  prefixPlaygroundAssetsURL,
+  cloneObject,
+  traverseElements,
+  getComponentFileName,
+  getComponentPath,
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
@@ -15,12 +21,14 @@ import {
   GeneratedFolder,
   HastNode,
   ProjectUIDL,
+  UIDLElement,
+  ComponentUIDL,
   WebManifest,
 } from '@teleporthq/teleport-types'
 
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import { DEFAULT_PACKAGE_JSON } from './constants'
-import { EntryFileOptions, PackageJSON, ComponentGeneratorOutput } from './types'
+import { EntryFileOptions, PackageJSON, ProjectStrategy } from './types'
 
 export const createHtmlIndexFile = (uidl: ProjectUIDL, options: EntryFileOptions): HastNode => {
   const { assetsPrefix = '', appRootOverride } = options
@@ -192,23 +200,50 @@ export const handlePackageJSON = (
   }
 }
 
-export const joinGeneratorOutputs = (
-  generatorOutputs: ComponentGeneratorOutput[]
-): ComponentGeneratorOutput => {
-  return generatorOutputs.reduce(
-    (result, generatorOutput) => {
-      const { dependencies, files } = result
+export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectStrategy) => {
+  const result = cloneObject(input)
 
-      return {
-        files: files.concat(generatorOutput.files),
-        dependencies: {
-          ...dependencies,
-          ...generatorOutput.dependencies,
-        },
+  const { components, root } = result
+
+  traverseElements(root.node, (elementNode) => {
+    if (emptyLocalDependency(elementNode)) {
+      setLocalDependencyPath(elementNode, components, strategy.pages.path, strategy.components.path)
+    }
+  })
+
+  Object.keys(components).forEach((componentKey) => {
+    const component = components[componentKey]
+    const componentPath = getComponentPath(component)
+    const fromPath = strategy.components.path.concat(componentPath)
+
+    traverseElements(component.node, (elementNode) => {
+      if (emptyLocalDependency(elementNode)) {
+        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
       }
-    },
-    { dependencies: {}, files: [] }
-  )
+    })
+  })
+
+  return result
+}
+
+const emptyLocalDependency = (elementNode: UIDLElement) =>
+  elementNode.dependency && elementNode.dependency.type === 'local' && !elementNode.dependency.path
+
+const setLocalDependencyPath = (
+  elementNode: UIDLElement,
+  components: Record<string, ComponentUIDL>,
+  fromPath: string[],
+  toBasePath: string[]
+) => {
+  const componentKey = elementNode.elementType
+  const component = components[componentKey]
+  const componentPath = getComponentPath(component)
+
+  const toPath = toBasePath.concat(componentPath)
+
+  const importFileName = getComponentFileName(component)
+  const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
+  elementNode.dependency.path = `${importPath}${importFileName}`
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {

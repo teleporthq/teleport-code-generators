@@ -38,11 +38,6 @@ export interface EntryFileOptions {
   appRootOverride?: string
 }
 
-export interface ComponentGeneratorOutput {
-  files: GeneratedFile[]
-  dependencies: Record<string, string>
-}
-
 export interface PackageJSON {
   name: string
   description: string

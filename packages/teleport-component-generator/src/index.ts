@@ -3,7 +3,7 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import {
   ChunkDefinition,
@@ -70,7 +70,7 @@ export const createGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    const fileName = getComponentFileName(uidl)
     const files = fileBundler(fileName, codeChunks)
 
     return {
@@ -115,11 +115,9 @@ export const createGenerator = (
 export default createGenerator()
 
 const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
-  const cleanFileName = camelCaseToDashCase(fileName)
-
   return Object.keys(codeChunks).map((fileId) => {
     return {
-      name: cleanFileName,
+      name: fileName,
       fileType: fileId,
       content: codeChunks[fileId],
     }

@@ -1,9 +1,9 @@
 import {
-  joinGeneratorOutputs,
   createManifestJSONFile,
   generateLocalDependenciesPrefix,
   handlePackageJSON,
   injectFilesToPath,
+  resolveLocalDependencies,
 } from './utils'
 
 import { ProjectStrategy } from './types'
@@ -14,6 +14,7 @@ import {
   extractRoutes,
   extractPageMetadata,
   cloneObject,
+  getComponentPath,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
@@ -46,25 +47,22 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       throw new Error(schemaValidationResult.errorMsg)
     }
 
-    const uidl = Parser.parseProjectJSON(input)
-    const contentValidationResult = validator.validateProjectContent(uidl)
+    const parsedInput = Parser.parseProjectJSON(input)
+    const contentValidationResult = validator.validateProjectContent(parsedInput)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
+
+    const uidl = resolveLocalDependencies(parsedInput, strategy)
 
     // Handling pages, based on the conditionals in the root node
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
     const routeDefinitions = root.stateDefinitions.route
     const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
+    let collectedDependencies: Record<string, string> = {}
 
-    // Pages have local dependencies in components
-    const pagesLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-      strategy.pages.path,
-      strategy.components.path
-    )
-
-    const pagePromises = routeNodes.map((routeNode) => {
+    for (const routeNode of routeNodes) {
       const { value, node } = routeNode.content
       const pageName = value.toString()
 
@@ -83,19 +81,27 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       }
 
       const generatorOptions: GeneratorOptions = {
-        localDependenciesPrefix: pagesLocalDependenciesPrefix,
         assetsPrefix,
         projectRouteDefinition: routeDefinitions,
         skipValidation: true,
         mapping,
       }
 
-      return strategy.pages.generator.generateComponent(pageUIDL, generatorOptions)
-    })
+      const compiledPage = await strategy.pages.generator.generateComponent(
+        pageUIDL,
+        generatorOptions
+      )
+
+      const path = strategy.pages.path
+
+      injectFilesToPath(rootFolder, path, compiledPage.files)
+      collectedDependencies = { ...collectedDependencies, ...compiledPage.dependencies }
+    }
 
     // Handle the components from the UIDL
-    const componentPromises = Object.keys(components).map((componentName) => {
+    for (const componentName of Object.keys(components)) {
       const componentUIDL = components[componentName]
+
       const generatorOptions: GeneratorOptions = {
         assetsPrefix,
         projectRouteDefinition: routeDefinitions,
@@ -103,20 +109,17 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
         mapping,
       }
 
-      return strategy.components.generator.generateComponent(componentUIDL, generatorOptions)
-    })
+      const compiledComponent = await strategy.components.generator.generateComponent(
+        componentUIDL,
+        generatorOptions
+      )
 
-    // The components and pages are generated in parallel
-    const createdPageFiles = await Promise.all(pagePromises)
-    const createdComponentFiles = await Promise.all(componentPromises)
+      const relativePath = getComponentPath(componentUIDL)
+      const path = strategy.components.path.concat(relativePath)
 
-    // The generated page and component files are joined into a single structure
-    // and the files are injected in the corresponding folders
-    const joinedPageFiles = joinGeneratorOutputs(createdPageFiles)
-    injectFilesToPath(rootFolder, strategy.pages.path, joinedPageFiles.files)
-
-    const joinedComponentFiles = joinGeneratorOutputs(createdComponentFiles)
-    injectFilesToPath(rootFolder, strategy.components.path, joinedComponentFiles.files)
+      injectFilesToPath(rootFolder, path, compiledComponent.files)
+      collectedDependencies = { ...collectedDependencies, ...compiledComponent.dependencies }
+    }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support
     if (uidl.globals.manifest) {
@@ -139,12 +142,6 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     // Create the entry file of the project (index.html in most of the cases)
     const entryFile = await strategy.entry.generatorFunction(uidl, { assetsPrefix })
     injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
-
-    // Handle the package.json file
-    const collectedDependencies = {
-      ...joinedPageFiles.dependencies,
-      ...joinedComponentFiles.dependencies,
-    }
 
     handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
