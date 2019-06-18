@@ -2,7 +2,7 @@ import fetch from 'cross-fetch'
 import { GeneratedFolder, GeneratedFile, ServiceAuth } from '@teleporthq/teleport-types'
 import { GithubFile, FilesFetcherMeta, GithubCreateResponse } from './types'
 
-import { DEFAULT_REF, GITHUB_API_BASE_URL } from './constants'
+import { DEFAULT_REF, GITHUB_API_BASE_URL, FILE_EXTENTIONS_TO_DECODE } from './constants'
 
 export const createEmptyFolder = (name: string): GeneratedFolder => {
   return { files: [], subFolders: [], name }
@@ -75,13 +75,32 @@ const getFileContent = async (
 
   const githubFileMetadata = { ...userRepositoryIdentity, ref, path }
   const { data } = await githubInstance.getRepoContent(githubFileMetadata)
-  const { content, encoding } = data as GithubFile
+
+  let { content, encoding = 'base64' } = data as GithubFile
+
+  const splittedName = name.split('.')
+  const fileType = splittedName.pop()
+  const fileName = splittedName.join('.')
+
+  if (fileMustBeDecoded(fileType, encoding)) {
+    content = decodeBase64Content(content)
+    encoding = 'utf8'
+  }
 
   return {
     content,
-    name,
-    contentEncoding: encoding || 'base64',
+    fileType,
+    name: fileName,
+    contentEncoding: encoding,
   }
+}
+
+const fileMustBeDecoded = (fileType: string, encoding: string): boolean => {
+  return encoding === 'base64' && FILE_EXTENTIONS_TO_DECODE.indexOf(fileType) !== -1
+}
+
+const decodeBase64Content = (base64Content: string): string => {
+  return new Buffer(base64Content, 'base64').toString()
 }
 
 // We need with method in order to commit base64 encoded files (assets) to github
