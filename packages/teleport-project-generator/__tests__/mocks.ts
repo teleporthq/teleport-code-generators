@@ -1,4 +1,5 @@
 import { Mapping, CompiledComponent } from '@teleporthq/teleport-types'
+import { ProjectStrategy } from '../src/types'
 
 export const mockMapping: Mapping = {
   elements: {
@@ -19,16 +20,42 @@ const mockedCompiledComponent: CompiledComponent = {
   dependencies: {},
 }
 
-const commonGenerator = {
+const mockComponentGenerator = () => ({
   addMapping: jest.fn(),
   addPlugin: jest.fn(),
   addPostProcessor: jest.fn(),
   generateComponent: jest.fn().mockImplementation(() => mockedCompiledComponent),
   linkCodeChunks: jest.fn(),
   resolveElement: jest.fn(),
-}
+})
 
-export const firstStrategy = {
+const mockRouterGenerator = () => ({
+  addMapping: jest.fn(),
+  addPlugin: jest.fn(),
+  addPostProcessor: jest.fn(),
+  generateComponent: jest.fn().mockImplementation(() => mockedCompiledComponent),
+  linkCodeChunks: jest.fn(),
+  resolveElement: jest.fn(),
+})
+
+const mockEntryFileGenerator = () => ({
+  addMapping: jest.fn(),
+  addPlugin: jest.fn(),
+  addPostProcessor: jest.fn(),
+  generateComponent: jest.fn(),
+  linkCodeChunks: jest.fn().mockImplementation(() => [
+    {
+      name: 'mock',
+      fileType: 'html',
+      content: '<html><body>{{root-placeholder}}</body></html>',
+    },
+  ]),
+  resolveElement: jest.fn(),
+})
+
+const commonGenerator = mockComponentGenerator()
+
+export const firstStrategy: ProjectStrategy = {
   components: {
     generator: commonGenerator,
     path: ['test', 'components'],
@@ -38,11 +65,11 @@ export const firstStrategy = {
     path: ['test', 'pages'],
   },
   entry: {
-    generatorFunction: jest.fn(),
+    generator: mockEntryFileGenerator(),
     path: ['test'],
   },
   router: {
-    generatorFunction: jest.fn(),
+    generator: mockRouterGenerator(),
     path: ['test'],
   },
   static: {
@@ -50,36 +77,24 @@ export const firstStrategy = {
   },
 }
 
-export const secondStrategy = {
+export const secondStrategy: ProjectStrategy = {
   components: {
-    generator: {
-      addMapping: jest.fn(),
-      addPlugin: jest.fn(),
-      addPostProcessor: jest.fn(),
-      generateComponent: jest.fn().mockImplementation(() => mockedCompiledComponent),
-      linkCodeChunks: jest.fn(),
-      resolveElement: jest.fn(),
-    },
+    generator: mockComponentGenerator(),
     path: ['test', 'components'],
   },
   pages: {
-    generator: {
-      addMapping: jest.fn(),
-      addPlugin: jest.fn(),
-      addPostProcessor: jest.fn(),
-      generateComponent: jest.fn().mockImplementation(() => mockedCompiledComponent),
-      linkCodeChunks: jest.fn(),
-      resolveElement: jest.fn(),
-    },
+    generator: mockComponentGenerator(),
     path: ['test', 'pages'],
   },
   entry: {
-    generatorFunction: jest.fn(),
+    generator: mockEntryFileGenerator(),
     path: ['test'],
+    fileName: 'mock-filename',
   },
   router: {
-    generatorFunction: jest.fn(),
+    generator: mockRouterGenerator(),
     path: ['test'],
+    fileName: 'mock-filename',
   },
   static: {
     prefix: '/static',

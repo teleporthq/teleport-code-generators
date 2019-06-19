@@ -1,6 +1,6 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
@@ -11,7 +11,7 @@ import nuxtMapping from './nuxt-mapping.json'
 export const createVueNuxtGenerator = () => {
   const vueComponentGenerator = createVueComponentGenerator(nuxtMapping as Mapping)
 
-  const htmlFileGenerator = createGenerator()
+  const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({

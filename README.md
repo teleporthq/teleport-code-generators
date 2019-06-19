@@ -144,14 +144,14 @@ npm install @teleporthq/teleport-postprocessor-prettier-js
 Then, we import all dependencies and we create the component generator, using the factory, a named export from the module:
 
 ```javascript
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import reactPlugin from '@teleporthq/teleport-plugin-react-base-component'
 import styledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
 import propTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-const generator = createGenerator()
+const generator = createComponentGenerator()
 ```
 
 Next, we have to consider any specific **mapping** for React. By default, the `teleport-component-generator` performs a mapping from the abstract UIDL elements to HTML elements.

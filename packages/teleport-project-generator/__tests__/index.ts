@@ -10,8 +10,8 @@ describe('Generic Project Generator', () => {
   describe('with the same component generator for pages and components', () => {
     const generator = createProjectGenerator(firstStrategy)
     const { generator: componentsGenerator } = firstStrategy.components
-    const { generatorFunction: routerGenerator } = firstStrategy.router
-    const { generatorFunction: entryGenerator } = firstStrategy.entry
+    const { generator: routerGenerator } = firstStrategy.router
+    const { generator: entryGenerator } = firstStrategy.entry
 
     it('creates an instance of a project generator', () => {
       expect(generator.generateProject).toBeDefined()
@@ -45,10 +45,17 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(entryGenerator).toBeCalledTimes(1)
-      expect(entryGenerator).toBeCalledWith(resolvedUIDL, { assetsPrefix: '/test/static' })
-      expect(routerGenerator).toBeCalledTimes(1)
-      expect(routerGenerator).toBeCalledWith(resolvedUIDL.root, {
+      expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
+      expect(routerGenerator.generateComponent).toBeCalledTimes(1)
+
+      const routerUIDL = {
+        ...resolvedUIDL.root,
+        meta: {
+          fileName: 'index',
+        },
+      }
+
+      expect(routerGenerator.generateComponent).toBeCalledWith(routerUIDL, {
         localDependenciesPrefix: './pages/',
       })
     })
@@ -58,8 +65,8 @@ describe('Generic Project Generator', () => {
     const generator = createProjectGenerator(secondStrategy)
     const { generator: componentsGenerator } = secondStrategy.components
     const { generator: pagesGenerator } = secondStrategy.pages
-    const { generatorFunction: routerGenerator } = secondStrategy.router
-    const { generatorFunction: entryGenerator } = secondStrategy.entry
+    const { generator: routerGenerator } = secondStrategy.router
+    const { generator: entryGenerator } = secondStrategy.entry
 
     it('creates an instance of a project generator', () => {
       expect(generator.generateProject).toBeDefined()
@@ -107,10 +114,17 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(entryGenerator).toBeCalledTimes(1)
-      expect(entryGenerator).toBeCalledWith(resolvedUIDL, { assetsPrefix: '/static' })
-      expect(routerGenerator).toBeCalledTimes(1)
-      expect(routerGenerator).toBeCalledWith(resolvedUIDL.root, {
+      expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
+
+      const routerUIDL = {
+        ...resolvedUIDL.root,
+        meta: {
+          fileName: secondStrategy.router.fileName,
+        },
+      }
+
+      expect(routerGenerator.generateComponent).toBeCalledTimes(1)
+      expect(routerGenerator.generateComponent).toBeCalledWith(routerUIDL, {
         localDependenciesPrefix: './pages/',
       })
     })

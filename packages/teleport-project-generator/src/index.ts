@@ -1,22 +1,20 @@
-import {
-  generateLocalDependenciesPrefix,
-  injectFilesToPath,
-  resolveLocalDependencies,
-} from './utils'
+import { injectFilesToPath, resolveLocalDependencies } from './utils'
 
 import {
   createManifestJSONFile,
   handlePackageJSON,
-  createHTMLEntryFileChunks,
+  createComponent,
+  createPage,
+  createRouterFile,
+  createEntryFile,
 } from './file-handlers'
 
 import { ProjectStrategy } from './types'
 
-import { DEFAULT_TEMPLATE, DEFAULT_ROUTER_FILE_NAME } from './constants'
+import { DEFAULT_TEMPLATE } from './constants'
 
 import {
   extractRoutes,
-  extractPageMetadata,
   cloneObject,
   getComponentPath,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
@@ -57,72 +55,42 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    // Local dependency paths are set inside the UIDL
     const uidl = resolveLocalDependencies(parsedInput, strategy)
 
-    // Handling pages, based on the conditionals in the root node
+    // Initialize output folder and other reusable structures
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
-    const routeDefinitions = root.stateDefinitions.route
+    const options: GeneratorOptions = {
+      assetsPrefix,
+      projectRouteDefinition: root.stateDefinitions.route,
+      mapping,
+      skipValidation: true,
+    }
+
     const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
     let collectedDependencies: Record<string, string> = {}
 
+    // Handling pages, based on the conditionals in the root node
     for (const routeNode of routeNodes) {
-      const { value, node } = routeNode.content
-      const pageName = value.toString()
+      const { files, dependencies } = await createPage(routeNode, strategy, options)
 
-      const { componentName, fileName } = extractPageMetadata(
-        routeDefinitions,
-        pageName,
-        strategy.pages.metaDataOptions
-      )
-
-      const pageUIDL = {
-        name: componentName,
-        node,
-        meta: {
-          fileName,
-        },
-      }
-
-      const generatorOptions: GeneratorOptions = {
-        assetsPrefix,
-        projectRouteDefinition: routeDefinitions,
-        skipValidation: true,
-        mapping,
-      }
-
-      const compiledPage = await strategy.pages.generator.generateComponent(
-        pageUIDL,
-        generatorOptions
-      )
-
-      const path = strategy.pages.path
-
-      injectFilesToPath(rootFolder, path, compiledPage.files)
-      collectedDependencies = { ...collectedDependencies, ...compiledPage.dependencies }
+      injectFilesToPath(rootFolder, strategy.pages.path, files)
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Handle the components from the UIDL
     for (const componentName of Object.keys(components)) {
       const componentUIDL = components[componentName]
 
-      const generatorOptions: GeneratorOptions = {
-        assetsPrefix,
-        projectRouteDefinition: routeDefinitions,
-        skipValidation: true,
-        mapping,
-      }
-
-      const compiledComponent = await strategy.components.generator.generateComponent(
-        componentUIDL,
-        generatorOptions
-      )
-
+      // Components might be generated inside subfolders in the main components folder
       const relativePath = getComponentPath(componentUIDL)
       const path = strategy.components.path.concat(relativePath)
 
-      injectFilesToPath(rootFolder, path, compiledComponent.files)
-      collectedDependencies = { ...collectedDependencies, ...compiledComponent.dependencies }
+      const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
+
+      injectFilesToPath(rootFolder, path, files)
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support
@@ -133,30 +101,12 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
     // Create the routing component in case the project generator has a strategy for that
     if (strategy.router) {
-      const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
-      const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-        routerFilePath,
-        strategy.pages.path
-      )
-      const options = {
-        localDependenciesPrefix: routerLocalDependenciesPrefix,
-      }
-
-      root.meta = root.meta || {}
-      root.meta.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
-
-      const { files } = await routerGenerator.generateComponent(root, options)
-      injectFilesToPath(rootFolder, routerFilePath, files)
+      const routerFile = await createRouterFile(root, strategy)
+      injectFilesToPath(rootFolder, strategy.router.path, [routerFile])
     }
 
     // Create the entry file of the project (ex: index.html, _document.js)
-    const chunkGenerationFunction =
-      strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
-    const appRootOverride = strategy.entry.appRootOverride || null
-    const entryFileName = strategy.entry.fileName || 'index'
-    const chunks = chunkGenerationFunction(uidl, { assetsPrefix, appRootOverride })
-
-    const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
+    const entryFile = await createEntryFile(uidl, strategy, { assetsPrefix })
     injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
 
     // Inject all the collected dependencies in the package.json file

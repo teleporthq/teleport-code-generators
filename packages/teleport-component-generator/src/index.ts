@@ -23,7 +23,7 @@ export interface GeneratorFactoryParams {
   postprocessors?: PostProcessingFunction[]
 }
 
-export const createGenerator = (
+export const createComponentGenerator = (
   params: GeneratorFactoryParams = { mappings: [], plugins: [], postprocessors: [] }
 ): ComponentGenerator => {
   const { mappings, plugins, postprocessors } = params
@@ -112,7 +112,7 @@ export const createGenerator = (
   }
 }
 
-export default createGenerator()
+export default createComponentGenerator()
 
 const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
   return Object.keys(codeChunks).map((fileId) => {

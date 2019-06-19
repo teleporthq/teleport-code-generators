@@ -1,5 +1,5 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -13,7 +13,7 @@ export const createReactNextGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator('StyledJSX')
   reactComponentGenerator.addMapping(nextMapping as Mapping)
 
-  const documentFileGenerator = createGenerator()
+  const documentFileGenerator = createComponentGenerator()
   documentFileGenerator.addPostProcessor(prettierJS)
 
   const generator = createProjectGenerator({

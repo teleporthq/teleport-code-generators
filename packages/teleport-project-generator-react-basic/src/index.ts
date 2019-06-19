@@ -1,6 +1,6 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -15,12 +15,12 @@ export const createReactBasicGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator('CSSModules')
   reactComponentGenerator.addMapping(reactProjectMapping as Mapping)
 
-  const routingComponentGenerator = createGenerator()
+  const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
   routingComponentGenerator.addPostProcessor(prettierJS)
 
-  const htmlFileGenerator = createGenerator()
+  const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({

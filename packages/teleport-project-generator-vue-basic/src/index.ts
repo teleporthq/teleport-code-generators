@@ -1,6 +1,6 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -14,12 +14,12 @@ import vueProjectMapping from './vue-project-mapping.json'
 export const createVueBasicGenerator = () => {
   const vueComponentGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
 
-  const vueRouterGenerator = createGenerator()
+  const vueRouterGenerator = createComponentGenerator()
   vueRouterGenerator.addPlugin(vueRoutingPlugin)
   vueRouterGenerator.addPlugin(importStatementsPlugin)
   vueRouterGenerator.addPostProcessor(prettierJS)
 
-  const htmlFileGenerator = createGenerator()
+  const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({

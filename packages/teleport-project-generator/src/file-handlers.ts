@@ -4,7 +4,10 @@ import {
   addTextNode,
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/lib/utils/html-utils'
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import {
+  prefixPlaygroundAssetsURL,
+  extractPageMetadata,
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
@@ -15,12 +18,83 @@ import {
   ProjectUIDL,
   WebManifest,
   ChunkDefinition,
+  ComponentUIDL,
+  GeneratorOptions,
+  UIDLConditionalNode,
 } from '@teleporthq/teleport-types'
 
-import { DEFAULT_PACKAGE_JSON } from './constants'
-import { EntryFileOptions, PackageJSON } from './types'
+import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
+import { EntryFileOptions, PackageJSON, ProjectStrategy } from './types'
+import { generateLocalDependenciesPrefix } from './utils'
 
-export const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
+export const createPage = async (
+  routeNode: UIDLConditionalNode,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
+  const { value, node } = routeNode.content
+  const pageName = value.toString()
+
+  const { componentName, fileName } = extractPageMetadata(
+    options.projectRouteDefinition,
+    pageName,
+    strategy.pages.metaDataOptions
+  )
+
+  const pageUIDL = {
+    name: componentName,
+    node,
+    meta: {
+      fileName,
+    },
+  }
+
+  return strategy.pages.generator.generateComponent(pageUIDL, options)
+}
+
+export const createComponent = async (
+  componentUIDL: ComponentUIDL,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
+  return strategy.components.generator.generateComponent(componentUIDL, options)
+}
+
+export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
+  const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
+  const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+    routerFilePath,
+    strategy.pages.path
+  )
+  const options = {
+    localDependenciesPrefix: routerLocalDependenciesPrefix,
+  }
+
+  root.meta = root.meta || {}
+  root.meta.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
+
+  const { files } = await routerGenerator.generateComponent(root, options)
+  return files[0]
+}
+
+export const createEntryFile = async (
+  uidl: ProjectUIDL,
+  strategy: ProjectStrategy,
+  { assetsPrefix }: GeneratorOptions
+) => {
+  // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
+  const chunkGenerationFunction =
+    strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
+  const appRootOverride = strategy.entry.appRootOverride || null
+  const entryFileName = strategy.entry.fileName || 'index'
+  const chunks = chunkGenerationFunction(uidl, { assetsPrefix, appRootOverride })
+
+  const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
+  return entryFile
+}
+
+// Default function used to generate the html file based on the global settings in the ProjectUIDL
+const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { assetsPrefix = '', appRootOverride } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
