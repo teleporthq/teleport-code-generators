@@ -1,14 +1,18 @@
 import {
-  createManifestJSONFile,
   generateLocalDependenciesPrefix,
-  handlePackageJSON,
   injectFilesToPath,
   resolveLocalDependencies,
 } from './utils'
 
+import {
+  createManifestJSONFile,
+  handlePackageJSON,
+  createHTMLEntryFileChunks,
+} from './file-handlers'
+
 import { ProjectStrategy } from './types'
 
-import { DEFAULT_TEMPLATE } from './constants'
+import { DEFAULT_TEMPLATE, DEFAULT_ROUTER_FILE_NAME } from './constants'
 
 import {
   extractRoutes,
@@ -129,20 +133,33 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
     // Create the routing component in case the project generator has a strategy for that
     if (strategy.router) {
+      const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
       const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
-        strategy.router.path,
+        routerFilePath,
         strategy.pages.path
       )
-      const routerFile = await strategy.router.generatorFunction(root, {
+      const options = {
         localDependenciesPrefix: routerLocalDependenciesPrefix,
-      })
-      injectFilesToPath(rootFolder, strategy.router.path, [routerFile])
+      }
+
+      root.meta = root.meta || {}
+      root.meta.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
+
+      const { files } = await routerGenerator.generateComponent(root, options)
+      injectFilesToPath(rootFolder, routerFilePath, files)
     }
 
-    // Create the entry file of the project (index.html in most of the cases)
-    const entryFile = await strategy.entry.generatorFunction(uidl, { assetsPrefix })
+    // Create the entry file of the project (ex: index.html, _document.js)
+    const chunkGenerationFunction =
+      strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
+    const appRootOverride = strategy.entry.appRootOverride || null
+    const entryFileName = strategy.entry.fileName || 'index'
+    const chunks = chunkGenerationFunction(uidl, { assetsPrefix, appRootOverride })
+
+    const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
     injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
 
+    // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
     return rootFolder

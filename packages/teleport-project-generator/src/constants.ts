@@ -9,3 +9,5 @@ export const DEFAULT_PACKAGE_JSON = {
   version: '1.0.0',
   description: 'Project generated based on a UIDL document',
 }
+
+export const DEFAULT_ROUTER_FILE_NAME = 'index'
