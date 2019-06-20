@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 
 // @ts-ignore
-import projectJson from '../../../examples/uidl-samples/project.json'
+import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'

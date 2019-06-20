@@ -3,7 +3,7 @@ import { resolveLocalDependencies } from '../src/utils'
 import { mockMapping, firstStrategy, secondStrategy } from './mocks'
 
 // @ts-ignore
-import projectUIDL from '../../../examples/uidl-samples/project.json'
+import projectUIDL from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 describe('Generic Project Generator', () => {
@@ -35,7 +35,7 @@ describe('Generic Project Generator', () => {
       // This adds the local dependencies on the UIDL, so we can proper assert below
       const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, firstStrategy)
 
-      expect(componentsGenerator.generateComponent).toBeCalledTimes(8)
+      expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
         resolvedUIDL.components.ExpandableArea,
         {
@@ -92,7 +92,7 @@ describe('Generic Project Generator', () => {
       // This adds the local dependencies on the UIDL, so we can proper assert below
       const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, secondStrategy)
 
-      expect(componentsGenerator.generateComponent).toBeCalledTimes(5)
+      expect(componentsGenerator.generateComponent).toBeCalledTimes(4)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
         resolvedUIDL.components.ExpandableArea,
         {

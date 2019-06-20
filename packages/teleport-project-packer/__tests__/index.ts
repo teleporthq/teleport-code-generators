@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 // @ts-ignore
-import projectJson from '../../../examples/uidl-samples/project.json'
+import projectJson from '../../../examples/test-samples/project-sample.json'
 // @ts-ignore
 import templateDefinition from './template-definition.json'
 
