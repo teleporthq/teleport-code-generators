@@ -19,14 +19,19 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
 type ElementsLookup = Record<string, { count: number; nextKey: string }>
 
-export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
+export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping, deepMerge = false) => {
   if (!newMapping) {
     return oldMapping
+  }
+
+  if (deepMerge === true) {
+    return deepmerge(oldMapping, newMapping)
   }
 
   return {

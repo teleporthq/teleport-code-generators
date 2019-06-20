@@ -10,6 +10,7 @@ import {
   resolveChildren,
   resolveNavlinks,
   ensureDataSourceUniqueness,
+  mergeMappings,
 } from '../../src/resolver/utils'
 import {
   UIDLElement,
@@ -275,5 +276,88 @@ describe('resolveNavlinks', () => {
 
     expect(warn).toHaveBeenCalledWith("No path was defined for router state: 'non-existing-state'.")
     expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
+  })
+})
+
+describe('mergeMappings', () => {
+  const oldMapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [{ type: 'dynamic', content: { referenceType: 'children', id: 'children' } }],
+      },
+    },
+    events: {},
+    attributes: {},
+  }
+
+  const newMapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [
+          { type: 'static', content: 'This browser does not support the image formats given' },
+        ],
+      },
+    },
+    events: {},
+    attributes: {},
+  }
+
+  it('returns the old mapping if there is no new mapping present', () => {
+    const expectedMapping = mergeMappings(oldMapping)
+
+    expect(expectedMapping).toEqual(oldMapping)
+  })
+
+  it('merges the mappings using deepmerge if deepMerge parameter is present', () => {
+    const mergedMapping = mergeMappings(oldMapping, newMapping, true)
+
+    const expectedMapping = {
+      elements: {
+        text: {
+          elementType: 'span',
+        },
+        picture: {
+          elementType: 'picture',
+          children: [
+            { type: 'dynamic', content: { referenceType: 'children', id: 'children' } },
+            { type: 'static', content: 'This browser does not support the image formats given' },
+          ],
+        },
+      },
+      events: {},
+      attributes: {},
+    }
+
+    expect(mergedMapping).toEqual(expectedMapping)
+  })
+
+  it('merges the mapping using the spread operator ', () => {
+    const mergedMapping = mergeMappings(oldMapping, newMapping)
+
+    const expectedMapping = {
+      elements: {
+        text: {
+          elementType: 'span',
+        },
+        picture: {
+          elementType: 'picture',
+          children: [
+            { type: 'static', content: 'This browser does not support the image formats given' },
+          ],
+        },
+      },
+      events: {},
+      attributes: {},
+    }
+
+    expect(mergedMapping).toEqual(expectedMapping)
   })
 })
