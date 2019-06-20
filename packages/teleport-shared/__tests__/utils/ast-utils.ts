@@ -3,7 +3,6 @@ import {
   convertValueToLiteral,
   objectToObjectExpression,
 } from '../../src/utils/ast-js-utils'
-import _default from '../../../teleport-plugin-react-css-modules/lib'
 
 describe('AST Utils ', () => {
   describe('ParsedASTNode', () => {
@@ -69,7 +68,7 @@ describe('AST Utils ', () => {
       expect(result.elements.length).toEqual(testArray.length)
     })
     it('should convert identifier value to literal', () => {
-      const result = convertValueToLiteral(_default)
+      const result = convertValueToLiteral(String)
 
       expect(typeof result).toBe('object')
       expect(result).toHaveProperty('type')
@@ -85,7 +84,7 @@ describe('AST Utils ', () => {
         numberKey: 2,
         arrayKey: ['test', 'testAgain'],
         objectKey: {
-          identifierKey: _default,
+          identifierKey: String,
         },
       }
       const result = objectToObjectExpression(objTest)

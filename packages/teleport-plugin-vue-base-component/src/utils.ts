@@ -6,6 +6,7 @@ import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-bu
 import {
   objectToObjectExpression,
   convertValueToLiteral,
+  ParsedASTNode,
 } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import {
   capitalize,
@@ -28,7 +29,6 @@ import {
 } from '@teleporthq/teleport-types'
 
 import { ERROR_LOG_NAME } from './constants'
-import { ParsedASTNode } from '@teleporthq/teleport-shared/src/utils/ast-js-utils'
 
 interface VueComponentAccumulators {
   templateLookup: Record<string, any>
