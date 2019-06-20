@@ -18,7 +18,6 @@ import {
   UIDLStateDefinition,
   UIDLRepeatNode,
 } from '@teleporthq/teleport-types'
-import deepmerge = require('deepmerge')
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
