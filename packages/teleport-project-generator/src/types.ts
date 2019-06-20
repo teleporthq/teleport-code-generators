@@ -1,10 +1,4 @@
-import {
-  GeneratorOptions,
-  GeneratedFile,
-  ComponentUIDL,
-  ProjectUIDL,
-  ComponentGenerator,
-} from '@teleporthq/teleport-types'
+import { ProjectUIDL, ComponentGenerator, ChunkDefinition } from '@teleporthq/teleport-types'
 
 export interface ProjectStrategy {
   components: {
@@ -20,12 +14,19 @@ export interface ProjectStrategy {
     }
   }
   router?: {
-    generatorFunction: (root: ComponentUIDL, options: GeneratorOptions) => Promise<GeneratedFile>
+    generator: ComponentGenerator
     path: string[]
+    fileName?: string
   }
   entry: {
-    generatorFunction: (project: ProjectUIDL, options: EntryFileOptions) => Promise<GeneratedFile>
+    generator: ComponentGenerator
     path: string[]
+    fileName?: string
+    chunkGenerationFunction?: (
+      uidl: ProjectUIDL,
+      options: EntryFileOptions
+    ) => Record<string, ChunkDefinition[]>
+    appRootOverride?: string
   }
   static: {
     prefix?: string

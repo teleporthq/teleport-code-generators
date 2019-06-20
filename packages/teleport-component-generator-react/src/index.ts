@@ -9,7 +9,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import reactMapping from './react-mapping.json'
 
@@ -29,7 +29,7 @@ export const createReactComponentGenerator = (
 ): ComponentGenerator => {
   const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
 
-  const generator = createGenerator()
+  const generator = createComponentGenerator()
 
   generator.addMapping(reactMapping)
   generator.addMapping(mapping)
