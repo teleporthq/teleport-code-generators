@@ -7,7 +7,7 @@
   "npmClient": "yarn",
   "command": {
     "version": {
-      "allowBranch": "master",
+      "allowBranch": ["master", "hotfix/*"],
       "message": "chore(release): 'publish %s'"
     }
   },
