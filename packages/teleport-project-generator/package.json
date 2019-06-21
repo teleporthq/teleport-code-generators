@@ -1,0 +1,30 @@
+{
+  "name": "@teleporthq/teleport-project-generator",
+  "version": "0.7.0",
+  "description": "Generic project generator that requires a specific strategy to run on custom configurations",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:project": "tsc -w"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-types": "^0.7.0",
+    "@teleporthq/teleport-shared": "^0.7.0",
+    "@teleporthq/teleport-uidl-validator": "^0.7.0"
+  }
+}

@@ -2,6 +2,12 @@ import { generateVueComponentJS, generateNodeSyntax, extractStateObject } from '
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
+import {
+  DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
+  DEFAULT_VUE_JS_CHUNK_NAME,
+  DEFAULT_JS_FILE_AFTER,
+} from './constants'
+
 interface VueComponentConfig {
   vueTemplateChunkName: string
   vueJSChunkName: string
@@ -10,15 +16,13 @@ interface VueComponentConfig {
   jsFileId: string
 }
 
-export const ERROR_LOG_NAME = `vue-base-component`
-
 export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
   const {
-    vueTemplateChunkName = 'vue-template-chunk',
-    vueJSChunkName = 'vue-js-chunk',
+    vueTemplateChunkName = DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
+    vueJSChunkName = DEFAULT_VUE_JS_CHUNK_NAME,
     htmlFileId = FILE_TYPE.HTML,
     jsFileId = FILE_TYPE.JS,
-    jsFileAfter = ['import-lib', 'import-pack', 'import-local'],
+    jsFileAfter = DEFAULT_JS_FILE_AFTER,
   } = config || {}
 
   const vueBasicComponentChunks: ComponentPlugin = async (structure) => {

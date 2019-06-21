@@ -1,4 +1,5 @@
 import { ASSETS_IDENTIFIER } from '../constants'
+import { camelCaseToDashCase } from './string-utils'
 import {
   ComponentUIDL,
   UIDLStateDefinition,
@@ -9,6 +10,7 @@ import {
   UIDLStaticValue,
   UIDLAttributeValue,
   UIDLDynamicReference,
+  UIDLRepeatContent,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -64,6 +66,14 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
     (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
   ) as UIDLConditionalNode[]
 }
+
+export const getComponentFileName = (component: ComponentUIDL) => {
+  const name = component.meta && component.meta.fileName ? component.meta.fileName : component.name
+  return camelCaseToDashCase(name)
+}
+
+export const getComponentPath = (component: ComponentUIDL) =>
+  component.meta ? component.meta.path : []
 
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
@@ -136,7 +146,6 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
           traverseElements(child, fn)
         })
       }
-
       break
 
     case 'repeat':
@@ -150,6 +159,44 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
     case 'slot':
       if (node.content.fallback) {
         traverseElements(node.content.fallback, fn)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+      break
+
+    default:
+      throw new Error(
+        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
+  }
+}
+
+export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent) => void) => {
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          traverseRepeats(child, fn)
+        })
+      }
+
+      break
+
+    case 'repeat':
+      fn(node.content)
+
+      traverseRepeats(node.content.node, fn)
+      break
+
+    case 'conditional':
+      traverseRepeats(node.content.node, fn)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseRepeats(node.content.fallback, fn)
       }
       break
 
@@ -423,4 +470,19 @@ export const transformAttributesAssignmentsToJson = (
   }, newStyleObject)
 
   return newStyleObject
+}
+
+export const findFirstElementNode = (node: UIDLNode) => {
+  switch (node.type) {
+    case 'element':
+      return node
+    case 'static':
+    case 'dynamic':
+    case 'slot':
+      throw new Error('UIDL does not have any element node')
+    case 'conditional':
+    case 'repeat':
+      const childNode = node.content.node
+      return findFirstElementNode(childNode)
+  }
 }

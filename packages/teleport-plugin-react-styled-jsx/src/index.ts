@@ -1,15 +1,13 @@
-import {
-  addClassStringOnJSXTag,
-  generateStyledJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-
+import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { generateStyledJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   transformDynamicStyles,
   traverseElements,
+  findFirstElementNode,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClassFromStringMap } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
-import { ComponentPluginFactory, ComponentPlugin, UIDLElement } from '@teleporthq/teleport-types'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface StyledJSXConfig {
   componentChunkName: string
@@ -20,7 +18,6 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
   const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-
     const { node } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
@@ -43,13 +40,10 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
             return `\$\{props.${styleValue.content.id}\}`
           }
           throw new Error(
-            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${
-              styleValue.content.referenceType
-            }`
+            `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        styleJSXString.push(createCSSClassFromStringMap(className, styleRules))
-
+        styleJSXString.push(createCSSClass(className, styleRules))
         addClassStringOnJSXTag(root, className)
       }
     })
@@ -59,13 +53,12 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     }
 
     const jsxASTNodeReference = generateStyledJSXTag(styleJSXString.join('\n'))
-    const rootJSXNode = jsxNodesLookup[(node.content as UIDLElement).key] // TODO: Check for other types
-
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
+    const elmRootNode = findFirstElementNode(uidl.node)
+    const rootJSXNode = jsxNodesLookup[elmRootNode.content.key]
     rootJSXNode.children.push(jsxASTNodeReference)
-
     return structure
   }
 

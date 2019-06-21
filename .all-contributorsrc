@@ -114,6 +114,24 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "andreiTnu",
+      "name": "andreiTnu",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/51601382?v=4",
+      "profile": "https://github.com/andreiTnu",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "xavxyz",
+      "name": "Xavier Cazalot",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/13962779?v=4",
+      "profile": "https://codepen.io/xavxyz",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7

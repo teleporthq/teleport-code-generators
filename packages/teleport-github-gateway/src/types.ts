@@ -1,16 +1,13 @@
-import { GithubAuthMeta, GeneratedFolder } from '@teleporthq/teleport-types'
+import { ServiceAuth, GeneratedFolder } from '@teleporthq/teleport-types'
 import GithubInstance from './github-instance'
 
-export type GithubGatewayFactory = (auth?: GithubAuthMeta) => GithubGateway
+export type GithubGatewayFactory = (auth?: ServiceAuth) => GithubGateway
 
 export interface GithubGateway {
-  getRepository: (repo: RepositoryIdentity, auth?: GithubAuthMeta) => Promise<GeneratedFolder>
-  getUserRepositories: (username: string, auth?: GithubAuthMeta) => Promise<GithubRepositoryData[]>
-  commitFilesToRepo: (commitMeta: GithubCommitMeta, auth?: GithubAuthMeta) => Promise<string>
-  createRepository: (
-    repository: NewRepository,
-    auth?: GithubAuthMeta
-  ) => Promise<GithubRepositoryData>
+  getRepository: (repo: RepositoryIdentity, auth?: ServiceAuth) => Promise<GeneratedFolder>
+  getUserRepositories: (username: string, auth?: ServiceAuth) => Promise<GithubRepositoryData[]>
+  commitFilesToRepo: (commitMeta: GithubCommitMeta, auth?: ServiceAuth) => Promise<string>
+  createRepository: (repository: NewRepository, auth?: ServiceAuth) => Promise<GithubRepositoryData>
 }
 
 export interface RepositoryIdentity {

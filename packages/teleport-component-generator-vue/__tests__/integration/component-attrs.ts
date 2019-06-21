@@ -25,6 +25,7 @@ const uidl = component(
           'div',
           {
             test: dynamicNode('local', 'index'),
+            for: staticNode('mappedTest'),
             'data-test': dynamicNode('prop', 'test'),
             'data-static': staticNode('test'),
             'data-inner-value': dynamicNode('prop', 'content.heading'),
@@ -45,6 +46,19 @@ const uidl = component(
   },
   {}
 )
+
+describe('Vue Attribute Mapping', () => {
+  const generator = createVueComponentGenerator()
+
+  it('should return code with attributes mapped', async () => {
+    const result = await generator.generateComponent(uidl)
+    const vueFile = findFileByType(result.files, VUE_FILE)
+
+    expect(vueFile).toBeDefined()
+    expect(vueFile.content).not.toContain('htmlFor')
+    expect(vueFile.content).toContain('for')
+  })
+})
 
 describe('Vue Props in Component Generator', () => {
   describe('supports props json declaration in attributes', () => {

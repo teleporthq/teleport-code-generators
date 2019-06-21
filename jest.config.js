@@ -17,6 +17,7 @@ module.exports = {
     "jsx",
     "node"
   ],
+  "testPathIgnorePatterns": ['mocks.ts'],
   "moduleNameMapper": {
     '^html-whitespace-sensitive-tag-names$':
     '<rootDir>/packages/teleport-component-generator-vue/setup/html-whitespace-sensitive-tag-names.json'
@@ -25,6 +26,7 @@ module.exports = {
   "testEnvironment": "node",
   "collectCoverageFrom": [
     "packages/**/src/**/*",
-    "!packages/teleport-project-packer-test/**/*"
+    "!packages/teleport-project-packer-test/**/*",
+    "!packages/teleport-types/**/*"
   ]
 }

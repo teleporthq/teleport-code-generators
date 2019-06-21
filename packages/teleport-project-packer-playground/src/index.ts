@@ -1,10 +1,10 @@
 import {
   AssetsDefinition,
   PublisherResponse,
-  TemplateDefinition,
   ProjectUIDL,
-  Mapping,
-  GithubAuthMeta,
+  ServiceAuth,
+  GeneratedFolder,
+  RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
@@ -33,18 +33,11 @@ import {
 import { GENERATOR_NOT_FOUND, PUBLISHER_NOT_FOUND } from './errors'
 
 export interface PackerFactoryParams {
-  technology?: TechnologyDefinition
+  technology?: string
   publisher?: PublisherDefinition
-  template?: TemplateDefinition
+  template?: GeneratedFolder
+  remoteTemplateDefinition?: RemoteTemplateDefinition
   assets?: AssetsDefinition
-}
-
-export interface TechnologyDefinition {
-  type: string
-  meta?: {
-    variation?: string
-    customMapping?: Mapping
-  }
 }
 
 export interface PublisherDefinition {
@@ -55,7 +48,7 @@ export interface PublisherDefinition {
     projectName?: string
   }
   github?: {
-    authMeta?: GithubAuthMeta
+    authMeta?: ServiceAuth
     repositoryOwner?: string
     repository?: string
     masterBranch?: string
@@ -86,8 +79,8 @@ const projectPublishers: Record<string, SupportedPublishers> = {
   [PUBLISHERS.GITHUB]: createGithubPublisher,
 }
 
-const getGithubRemoteDefinition = (username: string, repo: string) => {
-  return { remote: { githubRepo: { username, repo } } }
+const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
+  return { username, repo, provider: 'github' }
 }
 
 const projectTemplates = {
@@ -103,10 +96,7 @@ const projectTemplates = {
   [TEMPLATES.VUE_NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
 }
 
-const defaultTechnology = {
-  type: GENERATORS.REACT_NEXT,
-  meta: {},
-}
+const defaultTechnology = GENERATORS.REACT_NEXT
 
 const defaultPublisher = {
   type: PUBLISHERS.ZIP,
@@ -128,7 +118,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     const packTechnology = packParams.technology || technology || defaultTechnology
     const packPublisher = packParams.publisher || publisher || defaultPublisher
 
-    const generatorFactory = projectGenerators[packTechnology.type]
+    const generatorFactory = projectGenerators[packTechnology]
     if (!generatorFactory) {
       return { success: false, payload: GENERATOR_NOT_FOUND }
     }
@@ -138,21 +128,32 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
       return { success: false, payload: PUBLISHER_NOT_FOUND }
     }
 
-    const templateByTechnology =
-      technology && technology.type ? projectTemplates[technology.type] : projectTemplates.ReactNext
-
-    const projectTemplate = packParams.template || template || templateByTechnology
-
-    const projectGenerator = generatorFactory({ ...packTechnology.meta })
+    const projectGenerator = generatorFactory()
 
     const meta =
       packPublisher.type === PUBLISHERS.GITHUB ? packPublisher.github : packPublisher.meta
     const projectPublisher = publisherFactory({ ...meta })
 
     packer.setAssets(projectAssets)
-    packer.setGeneratorFunction(projectGenerator.generateProject)
+    packer.setGenerator(projectGenerator)
     packer.setPublisher(projectPublisher)
-    packer.setTemplate(projectTemplate)
+
+    const remoteGithubTemplate =
+      projectTemplates[packTechnology] || projectTemplates[TEMPLATES.REACT_NEXT]
+
+    if (packParams.template) {
+      // First priority for the template passed as a param for pack()
+      packer.setTemplate(packParams.template)
+    } else if (packParams.remoteTemplateDefinition) {
+      // Second priority for the remote template definition passed as param for pack()
+      await packer.loadTemplate(packParams.remoteTemplateDefinition)
+    } else if (template) {
+      // Third priority for the template passed to the factory function
+      packer.setTemplate(template)
+    } else {
+      // Fourth priority for the remote definition associated with the technology (default to next.js)
+      await packer.loadTemplate(remoteGithubTemplate)
+    }
 
     return packer.pack(projectUIDL)
   }

@@ -1,32 +1,5 @@
 import * as types from '@babel/types'
 import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
-import { UIDLConditionalExpression, ConditionalIdentifier } from '@teleporthq/teleport-types'
-
-type BinaryOperator =
-  | '==='
-  | '+'
-  | '-'
-  | '/'
-  | '%'
-  | '*'
-  | '**'
-  | '&'
-  | '|'
-  | '>>'
-  | '>>>'
-  | '<<'
-  | '^'
-  | '=='
-  | '!='
-  | '!=='
-  | 'in'
-  | 'instanceof'
-  | '>'
-  | '<'
-  | '>='
-  | '<='
-
-type UnaryOperation = '+' | '-' | 'void' | 'throw' | 'delete' | '!' | '~' | 'typeof'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -95,21 +68,6 @@ export const addDynamicAttributeOnTag = (
   )
 }
 
-// TODO: Use generateASTDefinitionForJSXTag instead?
-export const generateStyledJSXTag = (
-  templateLiteral: string | types.TemplateLiteral,
-  t = types
-) => {
-  if (typeof templateLiteral === 'string') {
-    templateLiteral = stringAsTemplateLiteral(templateLiteral, t)
-  }
-
-  const jsxTagChild = t.jsxExpressionContainer(templateLiteral)
-  const jsxTag = generateBasicJSXTag('style', [jsxTagChild, t.jsxText('\n')], t)
-  addAttributeToJSXTag(jsxTag, { name: 'jsx' }, t)
-  return jsxTag
-}
-
 export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}
@@ -126,16 +84,6 @@ ${str}
     ],
     []
   )
-}
-
-const generateBasicJSXTag = (tagName: string, children: any[] = [], t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
-
-  const tag = t.jsxElement(openingDiv, closingDiv, children, false)
-
-  return tag
 }
 
 export const addAttributeToJSXTag = (
@@ -172,31 +120,6 @@ const getProperAttributeValueAssignment = (value: any, t = types) => {
   return t.jsxExpressionContainer(convertValueToLiteral(value))
 }
 
-/**
- * Generates the AST definiton (without start/end position) for a JSX tag
- * with an opening and closing tag.
- *
- * t is the babel-types api which generates the JSON structure representing the AST.
- * This is set as a parameter to allow us to remove babel-types at some point if we
- * decide to, and to allow easier unit testing of the utils.
- *
- * Requires the tagName, which is a string that will be used to generate the
- * tag.
- *
- * Example:
- * generateASTDefinitionForJSXTag("div") will generate the AST
- * equivalent of <div></div>
- */
-export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
-
-  const tag = t.jsxElement(openingDiv, closingDiv, [], false)
-
-  return tag
-}
-
 export const addChildJSXTag = (
   tag: types.JSXElement,
   childNode: types.JSXElement | types.JSXExpressionContainer,
@@ -216,132 +139,4 @@ export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types)
 
   const styleJSXAttr = t.jsxAttribute(t.jsxIdentifier('style'), styleObjectExpressionContainer)
   tag.openingElement.attributes.push(styleJSXAttr)
-}
-
-type ContentType =
-  | types.JSXElement
-  | types.JSXExpressionContainer
-  | types.LogicalExpression
-  | string
-  | types.Identifier
-  | types.MemberExpression
-
-export const createConditionalJSXExpression = (
-  content: ContentType,
-  conditionalExpression: UIDLConditionalExpression,
-  conditionalIdentifier: ConditionalIdentifier,
-  t = types
-) => {
-  let contentNode: types.Expression
-
-  if (typeof content === 'string') {
-    contentNode = t.stringLiteral(content)
-  } else if (content.type === 'JSXExpressionContainer') {
-    contentNode = content.expression as types.Expression
-  } else {
-    contentNode = content
-  }
-
-  let binaryExpression:
-    | types.LogicalExpression
-    | types.BinaryExpression
-    | types.UnaryExpression
-    | types.Identifier
-    | types.MemberExpression
-
-  // When the stateValue is an object we will compute a logical/binary expression on the left side
-  const { conditions, matchingCriteria } = conditionalExpression
-  const binaryExpressions = conditions.map((condition) =>
-    createBinaryExpression(condition, conditionalIdentifier)
-  )
-
-  if (binaryExpressions.length === 1) {
-    binaryExpression = binaryExpressions[0]
-  } else {
-    // the first two binary expressions are put together as a logical expression
-    const [firstExp, secondExp] = binaryExpressions
-    const operation = matchingCriteria === 'all' ? '&&' : '||'
-    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
-
-    // accumulate the rest of the expressions to the logical expression
-    for (let index = 2; index < binaryExpressions.length; index++) {
-      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
-    }
-
-    binaryExpression = expression
-  }
-
-  return t.logicalExpression('&&', binaryExpression, contentNode)
-}
-
-export const createBinaryExpression = (
-  condition: {
-    operation: string
-    operand?: string | number | boolean
-  },
-  conditionalIdentifier: ConditionalIdentifier,
-  t = types
-) => {
-  const { operand, operation } = condition
-  const identifier = conditionalIdentifier.prefix
-    ? t.memberExpression(
-        t.identifier(conditionalIdentifier.prefix),
-        t.identifier(conditionalIdentifier.key)
-      )
-    : t.identifier(conditionalIdentifier.key)
-
-  if (operation === '===') {
-    if (operand === true) {
-      return identifier
-    }
-
-    if (operand === false) {
-      return t.unaryExpression('!', identifier)
-    }
-  }
-
-  if (operand !== undefined) {
-    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
-
-    return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
-  } else {
-    return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
-  }
-}
-
-/**
- * Because of the restrictions of the AST Types we need to have a clear subset of binary operators we can use
- * @param operation - the operation defined in the UIDL for the current state branch
- */
-const convertToBinaryOperator = (operation: string): BinaryOperator => {
-  const allowedOperations = ['===', '!==', '>=', '<=', '>', '<']
-  if (allowedOperations.includes(operation)) {
-    return operation as BinaryOperator
-  } else {
-    return '==='
-  }
-}
-
-const convertToUnaryOperator = (operation: string): UnaryOperation => {
-  const allowedOperations = ['!']
-  if (allowedOperations.includes(operation)) {
-    return operation as UnaryOperation
-  } else {
-    return '!'
-  }
-}
-
-export const createTernaryOperation = (
-  stateKey: string,
-  leftNode: types.JSXElement | types.StringLiteral,
-  rightNode: types.JSXElement | types.StringLiteral,
-  t = types
-) => {
-  return t.jsxExpressionContainer(
-    t.conditionalExpression(t.identifier(stateKey), leftNode, rightNode)
-  )
-}
-
-export const createJSXSpreadAttribute = (name: string, t = types) => {
-  return t.jsxSpreadAttribute(t.identifier(name))
 }

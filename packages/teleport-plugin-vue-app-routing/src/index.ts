@@ -14,7 +14,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
   const { codeChunkName = 'vue-router', importChunkName = 'import-local' } = config || {}
 
   const vueRouterComponentPlugin: ComponentPlugin = async (structure) => {
-    const { chunks, uidl, dependencies } = structure
+    const { chunks, uidl, dependencies, options } = structure
 
     dependencies.Vue = {
       type: 'library',
@@ -31,12 +31,13 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
 
     const routes = extractRoutes(uidl)
     const routeDefinitions = uidl.stateDefinitions.route
+    const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
       const { fileName, componentName, path } = extractPageMetadata(routeDefinitions, pageKey)
 
-      dependencies[componentName] = { type: 'local', path: `./views/${fileName}` }
+      dependencies[componentName] = { type: 'local', path: `${pageDependencyPrefix}${fileName}` }
 
       return t.objectExpression([
         t.objectProperty(t.identifier('name'), t.stringLiteral(pageKey)),

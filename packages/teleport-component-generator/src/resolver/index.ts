@@ -44,6 +44,8 @@ export default class Resolver {
     utils.createNodesLookup(node, nodesLookup)
     utils.generateUniqueKeys(node, nodesLookup)
 
+    utils.ensureDataSourceUniqueness(node)
+
     const name = sanitizeVariableName(uidl.name)
 
     return {
@@ -55,6 +57,7 @@ export default class Resolver {
 
   public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
+
     const newOptions = {
       ...options,
       mapping,

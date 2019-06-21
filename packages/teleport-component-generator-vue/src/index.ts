@@ -1,4 +1,4 @@
-import { createGenerator } from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
 import vueStylePlugin from '@teleporthq/teleport-plugin-vue-css'
@@ -10,12 +10,10 @@ import vueFile from '@teleporthq/teleport-postprocessor-vue-file'
 
 import vueMapping from './vue-mapping.json'
 
-import { GeneratorOptions, ComponentGenerator } from '@teleporthq/teleport-types'
+import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
-export const createVueComponentGenerator = (
-  { mapping }: GeneratorOptions = { mapping }
-): ComponentGenerator => {
-  const generator = createGenerator()
+export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
+  const generator = createComponentGenerator()
 
   generator.addMapping(vueMapping)
   generator.addMapping(mapping)

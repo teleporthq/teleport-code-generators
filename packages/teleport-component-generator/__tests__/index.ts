@@ -1,10 +1,10 @@
-import { createGenerator } from '../src/index'
+import { createComponentGenerator } from '../src/index'
 import { elementNode, element, component } from '../../teleport-shared/lib/builders/uidl-builders'
 import { ChunkDefinition } from '@teleporthq/teleport-types'
 
 describe('component generator', () => {
   it('creates a new instance of the generator', () => {
-    const generator = createGenerator()
+    const generator = createComponentGenerator()
     expect(generator.generateComponent).toBeDefined()
     expect(generator.addMapping).toBeDefined()
     expect(generator.addPlugin).toBeDefined()
@@ -14,7 +14,7 @@ describe('component generator', () => {
 
   describe('resolveNode', () => {
     it('resolves a node', () => {
-      const generator = createGenerator()
+      const generator = createComponentGenerator()
 
       generator.addMapping({
         elements: {
@@ -33,7 +33,7 @@ describe('component generator', () => {
 
   describe('generateComponent', () => {
     it('does not crash when no plugin is set', async () => {
-      const generator = createGenerator()
+      const generator = createComponentGenerator()
 
       const uidl = component('test', elementNode('container'))
 
@@ -42,7 +42,7 @@ describe('component generator', () => {
     })
 
     it('calls all the plugins', async () => {
-      const generator = createGenerator()
+      const generator = createComponentGenerator()
       const uidl = component('test', elementNode('container'))
 
       let pluginCalls = 0
@@ -68,7 +68,7 @@ describe('component generator', () => {
 
   describe('linkCodeChunks', () => {
     it('works with no postprocessor', () => {
-      const generator = createGenerator()
+      const generator = createComponentGenerator()
       const codeChunks: Record<string, ChunkDefinition[]> = {
         js: [
           {

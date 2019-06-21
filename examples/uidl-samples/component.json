@@ -1,155 +1,145 @@
 {
-  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/component.json",
-  "name": "New UIDL",
+  "name": "PersonSpotlight",
   "propDefinitions": {
-    "title": {
+    "name": {
       "type": "string",
-      "defaultValue": "Hello"
+      "defaultValue": "John Doe"
     },
-    "items": {
-      "type": "array",
-      "defaultValue": []
-    }
-  },
-  "stateDefinitions": {
-    "isVisible": {
-      "type": "boolean",
-      "defaultValue": true
+    "url": {
+      "type": "string",
+      "defaultValue": "http://lorempixel.com/150/150/"
+    },
+    "flag": {
+      "type": "string",
+      "defaultValue": "🇷🇴"
+    },
+    "link": {
+      "type": "string",
+      "defaultValue": "https://twitter.com/teleportHQio"
+    },
+    "displayLink": {
+      "type": "string",
+      "defaultValue": "@teleportHQ"
+    },
+    "bio": {
+      "type": "string",
+      "defaultValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
     }
   },
   "node": {
     "type": "element",
     "content": {
       "elementType": "container",
-      "attrs": {
-        "data-static-attr": {
-          "type": "static",
-          "content": "test"
-        },
-        "data-dynamic-attr": {
-          "type": "dynamic",
-          "content": {
-            "referenceType": "prop",
-            "id": "title"
-          }
-        }
+      "style": {
+        "width": "300px",
+        "border": "1px solid #ccc",
+        "padding": "10px",
+        "margin": "5px"
       },
       "children": [
         {
           "type": "element",
           "content": {
-            "elementType": "text",
+            "elementType": "image",
+            "attrs": {
+              "url": "$props.url"
+            },
+            "style": {
+              "display": "block",
+              "margin": "auto",
+              "border-radius": "100%"
+            }
+          }
+        },
+        {
+          "type": "element",
+          "content": {
+            "elementType": "textblock",
+            "style": {
+              "font-size": "22px",
+              "font-weight": "900",
+              "margin": "0",
+              "text-align": "center"
+            },
             "children": [
               {
-                "type": "static",
-                "content": "Hello World!"
+                "type": "element",
+                "content": {
+                  "elementType": "text",
+                  "style": {
+                    "margin-right": "7px",
+                    "font-size": "28px",
+                    "vertical-align": "middle"
+                  },
+                  "children": [
+                    {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "prop",
+                        "id": "flag"
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "type": "dynamic",
                 "content": {
                   "referenceType": "prop",
-                  "id": "title"
+                  "id": "name"
                 }
               }
             ]
           }
         },
         {
-          "type": "repeat",
+          "type": "element",
           "content": {
-            "node": {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "local",
-                      "id": "item"
-                    }
+            "elementType": "textblock",
+            "style": {
+              "fontSize": "16px",
+              "margin": "0",
+              "text-align": "center"
+            },
+            "children": [
+              {
+                "type": "element",
+                "content": {
+                  "elementType": "link",
+                  "style": {
+                    "text-decoration": "none",
+                    "color": "#822cec"
                   },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "list",
-                      "attrs": {
-                        "items": {
-                          "type": "static",
-                          "content": ["angular", "react", "vue"]
-                        }
+                  "attrs": {
+                    "url": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "prop",
+                        "id": "link"
                       }
                     }
-                  }
-                ]
+                  },
+                  "children": [
+                    "$props.displayLink"
+                  ]
+                }
               }
-            },
-            "dataSource": {
-              "type": "dynamic",
-              "content": {
-                "referenceType": "prop",
-                "id": "items"
-              }
-            },
-            "meta": {
-              "useIndex": true,
-              "iteratorName": "item"
-            }
+            ]
           }
-        },
-        {
-          "type": "conditional",
-          "content": {
-            "reference": {
-              "type": "dynamic",
-              "content": {
-                "referenceType": "state",
-                "id": "isVisible"
-              }
-            },
-            "value": true,
-            "node": {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "children": [{
-                  "type": "static",
-                  "content": "Now you see me!"
-                }]
-              }
-            }
-          }
-        },
-        {
-          "type": "slot",
-          "content": {}
         },
         {
           "type": "element",
           "content": {
-            "elementType": "video",
-            "attrs": {
-              "autoPlay": {
-                "type": "static",
-                "content": true
-              }
-            },
-            "children": [{
-              "type": "element",
-              "content": {
-                "elementType": "source",
-                "attrs": {
-                  "type": {
-                    "type": "static",
-                    "content": "video/mp4"
-                  },
-                  "url": {
-                    "type": "static",
-                    "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
-                  }
+            "elementType": "textblock",
+            "children": [
+              {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "bio"
                 }
               }
-            }]
+            ]
           }
         }
       ]

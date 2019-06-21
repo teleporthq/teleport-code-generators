@@ -3,17 +3,16 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { createFile } from '@teleporthq/teleport-shared/lib/utils/project-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import {
   ChunkDefinition,
   ComponentGenerator,
   CompiledComponent,
-  GenerateComponentFunction,
   ComponentPlugin,
   PostProcessingFunction,
   Mapping,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
 import htmlMapping from './html-mapping.json'
@@ -24,7 +23,7 @@ export interface GeneratorFactoryParams {
   postprocessors?: PostProcessingFunction[]
 }
 
-export const createGenerator = (
+export const createComponentGenerator = (
   params: GeneratorFactoryParams = { mappings: [], plugins: [], postprocessors: [] }
 ): ComponentGenerator => {
   const { mappings, plugins, postprocessors } = params
@@ -35,9 +34,9 @@ export const createGenerator = (
   const chunksLinker = new Builder()
   const processors: PostProcessingFunction[] = postprocessors
 
-  const generateComponent: GenerateComponentFunction = async (
-    input,
-    options = {}
+  const generateComponent = async (
+    input: Record<string, unknown>,
+    options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateComponentSchema(input)
@@ -59,7 +58,7 @@ export const createGenerator = (
       throw new Error('No plugins found. Component generation cannot work without any plugins!')
     }
 
-    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL)
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL, options)
 
     let codeChunks: Record<string, string> = {}
 
@@ -71,7 +70,7 @@ export const createGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = uidl.meta && uidl.meta.fileName ? uidl.meta.fileName : uidl.name
+    const fileName = getComponentFileName(uidl)
     const files = fileBundler(fileName, codeChunks)
 
     return {
@@ -113,12 +112,14 @@ export const createGenerator = (
   }
 }
 
-export default createGenerator()
+export default createComponentGenerator()
 
 const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
-  const cleanFileName = camelCaseToDashCase(fileName)
-
   return Object.keys(codeChunks).map((fileId) => {
-    return createFile(cleanFileName, fileId, codeChunks[fileId])
+    return {
+      name: fileName,
+      fileType: fileId,
+      content: codeChunks[fileId],
+    }
   })
 }

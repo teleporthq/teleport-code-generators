@@ -3,8 +3,20 @@ import {
   transformStringAssignmentToJson,
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
+  findFirstElementNode,
+  getComponentPath,
+  getComponentFileName,
 } from '../../src/utils/uidl-utils'
-import { UIDLStyleDefinitions } from '@teleporthq/teleport-types'
+import { component, staticNode } from '../../src/builders/uidl-builders'
+import {
+  UIDLStyleDefinitions,
+  UIDLElementNode,
+  UIDLConditionalNode,
+  UIDLRepeatNode,
+  UIDLStaticValue,
+  UIDLDynamicReference,
+  UIDLSlotNode,
+} from '@teleporthq/teleport-types'
 
 // @ts-ignore
 import uidlStyleJSON from './uidl-utils-style.json'
@@ -200,5 +212,157 @@ describe('transformAttributesAssignmentsToJson', () => {
     }
 
     expect(transformAttributesAssignmentsToJson(inputStyle)).toEqual(expectedStyle)
+  })
+})
+
+describe('traverses the UIDL and returns the first element node that is found', () => {
+  const inputElementNode: UIDLElementNode = {
+    type: 'element',
+    content: {
+      elementType: 'container',
+    },
+  }
+
+  it('returns the same node, when the passed node is element node', () => {
+    const firstElmNode = findFirstElementNode(inputElementNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the root is a conditional element', () => {
+    const conditionalNode: UIDLConditionalNode = {
+      type: 'conditional',
+      content: {
+        node: inputElementNode,
+        reference: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            id: 'isVisible',
+          },
+        },
+      },
+    }
+    const firstElmNode = findFirstElementNode(conditionalNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the root is a repeat element', () => {
+    const repeatNode: UIDLRepeatNode = {
+      type: 'repeat',
+      content: {
+        node: inputElementNode,
+        dataSource: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'prop',
+            id: 'items',
+          },
+        },
+      },
+    }
+
+    const firstElmNode = findFirstElementNode(repeatNode)
+    expect(firstElmNode).toBe(inputElementNode)
+  })
+
+  it('returns the inputElementNode when the UIDL has multiple element nodes', () => {
+    const nestedNode: UIDLElementNode = {
+      ...inputElementNode,
+      content: {
+        ...inputElementNode.content,
+        children: [inputElementNode, inputElementNode],
+      },
+    }
+    const nestedinputConditonalNode: UIDLConditionalNode = {
+      type: 'conditional',
+      content: {
+        node: nestedNode,
+        reference: {
+          type: 'dynamic',
+          content: {
+            referenceType: 'state',
+            id: 'isOpen',
+          },
+        },
+      },
+    }
+
+    const firstElmNode = findFirstElementNode(nestedinputConditonalNode)
+    expect(firstElmNode).toBe(nestedNode)
+  })
+
+  it('throws error if a static is passed', () => {
+    const node = staticNode('This is a static value')
+
+    try {
+      findFirstElementNode(node)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
+  })
+
+  it('throws error if a dynamic is passed', () => {
+    const dynamicNode: UIDLDynamicReference = {
+      type: 'dynamic',
+      content: {
+        referenceType: 'prop',
+        id: 'isOpen',
+      },
+    }
+
+    try {
+      findFirstElementNode(dynamicNode)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
+  })
+
+  it('throws error if a static is passed', () => {
+    const slotNode: UIDLSlotNode = {
+      type: 'slot',
+      content: {
+        name: 'slotNode',
+      },
+    }
+
+    try {
+      findFirstElementNode(slotNode)
+    } catch (e) {
+      expect(e.message).toContain('UIDL does not have any element node')
+    }
+  })
+})
+
+describe('getComponentFileName', () => {
+  const testComponent = component('MyComponent', staticNode('random'))
+
+  it('returns the dashcase filename', () => {
+    expect(getComponentFileName(testComponent)).toBe('my-component')
+  })
+
+  it('meta fileName overrides', () => {
+    testComponent.meta = {
+      fileName: 'my-custom-name',
+    }
+    expect(getComponentFileName(testComponent)).toBe('my-custom-name')
+  })
+})
+
+describe('getComponentPath', () => {
+  const testComponent = component('MyComponent', staticNode('random'))
+
+  it('returns an empty array if no meta path is provided', () => {
+    expect(getComponentPath(testComponent)).toHaveLength(0)
+  })
+
+  it('returns the input meta path', () => {
+    testComponent.meta = {
+      path: ['one', 'two'],
+    }
+
+    const path = getComponentPath(testComponent)
+    expect(path).toContain('one')
+    expect(path).toContain('two')
+    expect(path.length).toBe(2)
   })
 })

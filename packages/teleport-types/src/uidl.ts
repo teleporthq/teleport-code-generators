@@ -26,7 +26,10 @@ export interface ComponentUIDL {
   $schema?: string
   name: string
   node: UIDLNode
-  meta?: Record<string, any>
+  meta?: {
+    fileName?: string
+    path?: string[]
+  }
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
@@ -179,4 +182,5 @@ export interface WebManifest {
 export interface Mapping {
   elements?: Record<string, UIDLElement>
   events?: Record<string, string>
+  attributes?: Record<string, string>
 }

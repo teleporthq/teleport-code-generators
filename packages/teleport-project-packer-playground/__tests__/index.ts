@@ -1,14 +1,19 @@
 import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync } from 'fs'
 import { join } from 'path'
 
-import projectJson from '../../../examples/uidl-samples/project.json'
+// @ts-ignore
+import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'
 
+// @ts-ignore
 import reactBasicVariation from './react-basic-variation.json'
+// @ts-ignore
 import reactNextVariation from './react-next-variation.json'
+// @ts-ignore
 import vueBasicVariation from './vue-basic-variation.json'
+// @ts-ignore
 import vueNuxtVariation from './vue-nuxt-variation.json'
 
 const reactBasicProjectPath = join(__dirname, 'react-basic')
@@ -47,13 +52,6 @@ describe('project packer playground', () => {
     expect(packer.pack).toBeDefined()
   })
 
-  it('should load template', async () => {
-    const packer = createPlaygroundPacker()
-    const { success, payload } = await packer.loadTemplate(reactNextVariation.template)
-    expect(success).toBeTruthy()
-    expect(payload).toBe(reactNextVariation.template.templateFolder)
-  })
-
   it('should pack react basic project', async () => {
     const packer = createPlaygroundPacker()
     const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactBasicVariation))
@@ -72,7 +70,7 @@ describe('project packer playground', () => {
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 

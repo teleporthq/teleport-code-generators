@@ -2,27 +2,21 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 // @ts-ignore
-import projectJson from '../../../examples/uidl-samples/project.json'
+import projectJson from '../../../examples/test-samples/project-sample.json'
 // @ts-ignore
 import templateDefinition from './template-definition.json'
 
 import {
   ProjectUIDL,
   AssetsDefinition,
-  TemplateDefinition,
   Publisher,
-  ProjectGeneratorOutput,
   GeneratedFolder,
   GeneratedFile,
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
-import {
-  NO_TEMPLATE_PROVIDED,
-  NO_REMOTE_TEMPLATE_PROVIDED,
-  NO_GENERATOR_FUNCTION_PROVIDED,
-  NO_PUBLISHER_PROVIDED,
-} from '../src/errors'
+import { NO_GENERATOR_PROVIDED, NO_PUBLISHER_PROVIDED } from '../src/errors'
+import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -43,7 +37,7 @@ describe('teleport generic project packer', () => {
     expect(packer.loadTemplate).toBeDefined()
     expect(packer.pack).toBeDefined()
     expect(packer.setAssets).toBeDefined()
-    expect(packer.setGeneratorFunction).toBeDefined()
+    expect(packer.setGenerator).toBeDefined()
     expect(packer.setPublisher).toBeDefined()
     expect(packer.setTemplate).toBeDefined()
   })
@@ -52,7 +46,7 @@ describe('teleport generic project packer', () => {
     const packer = createProjectPacker()
 
     const assets: AssetsDefinition = { assets: [] }
-    const template: TemplateDefinition = {}
+    const template: GeneratedFolder = DEFAULT_TEMPLATE
     const publisher = createDummyPublisher()
 
     expect(() => packer.setAssets(assets)).not.toThrow()
@@ -60,55 +54,20 @@ describe('teleport generic project packer', () => {
     expect(() => packer.setPublisher(publisher)).not.toThrow()
   })
 
-  it('should fail to load template if no template definition is provided', async () => {
-    const packer = createProjectPacker()
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_TEMPLATE_PROVIDED)
-  })
-
-  it('should load template if template folder is described in the definition', async () => {
-    const packer = createProjectPacker({
-      template: templateDefinition,
-    })
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeTruthy()
-    expect(JSON.stringify(payload)).toBe(JSON.stringify(templateDefinition.templateFolder))
-  })
-
-  it('should fail to load template if no folder or remote meta is described in the definition', async () => {
-    const packer = createProjectPacker({
-      template: {},
-    })
-
-    const { success, payload } = await packer.loadTemplate()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_REMOTE_TEMPLATE_PROVIDED)
-  })
-
-  it('should fail to pack if no template is provided', async () => {
-    const packer = createProjectPacker()
-
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_TEMPLATE_PROVIDED)
-  })
-
   it('should fail to pack if no generator function is provided', async () => {
     const packer = createProjectPacker()
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
       template: templateDefinition,
+      remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
     })
     expect(success).toBeFalsy()
-    expect(payload).toBe(NO_GENERATOR_FUNCTION_PROVIDED)
+    expect(payload).toBe(NO_GENERATOR_PROVIDED)
   })
 
   it('should fail to pack if no publisher is provider', async () => {
     const packer = createProjectPacker({
-      generatorFunction: dummyGeneratorFunction,
+      generator: dummyGenerator,
       template: templateDefinition,
     })
 
@@ -121,12 +80,40 @@ describe('teleport generic project packer', () => {
     const publisher = createDummyPublisher()
     const packer = createProjectPacker({
       publisher,
-      generatorFunction: dummyGeneratorFunction,
+      generator: dummyGenerator,
       template: templateDefinition,
       assets: assetsData,
     })
 
     const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
+    expect(success).toBeTruthy()
+
+    const { project } = payload
+
+    const assetsFolder = project.subFolders.find((subFolder) => {
+      return subFolder.name === 'static'
+    })
+
+    expect(assetsFolder.files[0]).toBeDefined()
+
+    expect(project.files[0].name).toBe('uidl')
+    expect(project.files[0].content).toBeDefined()
+
+    expect(project.files[1].name).toBe('template')
+    expect(project.files[1].content).toBeDefined()
+  })
+
+  it('takes the templateFolder with priority over the remote template definitions', async () => {
+    const publisher = createDummyPublisher()
+    const packer = createProjectPacker({
+      publisher,
+      generator: dummyGenerator,
+      assets: assetsData,
+    })
+
+    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
+      template: templateDefinition,
+    })
     expect(success).toBeTruthy()
 
     const { project } = payload
@@ -162,9 +149,9 @@ const createDummyPublisher = (): Publisher<ProjectUIDL, string> => {
 }
 
 const dummyGeneratorFunction = async (
-  uidl: ProjectUIDL,
-  template: TemplateDefinition
-): Promise<ProjectGeneratorOutput> => {
+  uidl: Record<string, unknown>,
+  template: GeneratedFolder
+): Promise<GeneratedFolder> => {
   const uidlFile: GeneratedFile = {
     name: 'uidl',
     fileType: 'txt',
@@ -177,8 +164,14 @@ const dummyGeneratorFunction = async (
     content: JSON.stringify(template),
   }
 
-  template.templateFolder.files.push(uidlFile)
-  template.templateFolder.files.push(templateFile)
+  template.files.push(uidlFile)
+  template.files.push(templateFile)
 
-  return { assetsPath: 'static', outputFolder: template.templateFolder }
+  return template
+}
+
+const dummyGenerator = {
+  addMapping: jest.fn(),
+  getAssetsPath: jest.fn(() => 'static'),
+  generateProject: dummyGeneratorFunction,
 }

@@ -1,5 +1,6 @@
 import {
   ComponentUIDL,
+  ProjectUIDL,
   ComponentDependency,
   Mapping,
   UIDLElement,
@@ -30,6 +31,7 @@ export interface ChunkDefinition {
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
   uidl: ComponentUIDL
+  options: GeneratorOptions
   dependencies: Record<string, ComponentDependency>
 }
 
@@ -42,110 +44,6 @@ export interface ComponentDefaultPluginParams {
 export type ComponentPluginFactory<T> = (
   configuration?: Partial<T & ComponentDefaultPluginParams>
 ) => ComponentPlugin
-
-export interface CompiledComponent {
-  files: GeneratedFile[]
-  dependencies: Record<string, string>
-}
-
-export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
-
-export interface ComponentGenerator {
-  generateComponent: GenerateComponentFunction
-  linkCodeChunks: (chunks: Record<string, ChunkDefinition[]>, fileName: string) => GeneratedFile[]
-  resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
-  addPlugin: (plugin: ComponentPlugin) => void
-  addMapping: (mapping: Mapping) => void
-  addPostProcessor: (fn: PostProcessingFunction) => void
-}
-
-export interface GeneratorOptions {
-  localDependenciesPrefix?: string
-  assetsPrefix?: string
-  mapping?: Mapping
-  skipValidation?: boolean
-  projectRouteDefinition?: UIDLStateDefinition
-}
-
-export type CodeGeneratorFunction<T> = (content: T) => string
-
-/**
- * This structure is used for keeping information about a single state key while creating a component
- */
-export interface StateIdentifier {
-  key: string
-  type: string
-  setter: string
-  default: any
-}
-
-// TODO: Use this instead of StateIdentifier (hook setter can be added on a meta object)
-export interface ConditionalIdentifier {
-  key: string
-  type: string
-  prefix?: string
-}
-
-export interface HastNode {
-  type: string
-  tagName: string
-  properties: Record<string, string | boolean>
-  children: Array<HastNode | HastText>
-}
-
-export interface HastText {
-  type: string
-  value: string
-}
-
-/* Project Types */
-
-export interface GeneratedFolder {
-  name: string
-  files: GeneratedFile[]
-  subFolders: GeneratedFolder[]
-}
-
-export interface GeneratedFile {
-  name: string
-  content: string
-  fileType?: string
-  contentEncoding?: string
-}
-
-export interface ComponentFactoryParams {
-  componentGenerator: ComponentGenerator
-  componentUIDL: ComponentUIDL
-  generatorOptions: GeneratorOptions
-  metadataOptions?: {
-    usePathAsFileName?: boolean
-    convertDefaultToIndex?: boolean
-  }
-}
-
-export interface ComponentGeneratorOutput {
-  files: GeneratedFile[]
-  dependencies: Record<string, string>
-}
-
-export interface ProjectGeneratorOptions {
-  sourcePackageJson?: PackageJSON
-  distPath?: string
-  customMapping?: Mapping
-  skipValidation?: boolean
-}
-
-export interface PackageJSON {
-  name: string
-  description: string
-  version: string
-  main: string
-  author: string
-  license: string
-  scripts?: Record<string, string>
-  dependencies?: Record<string, string>
-  [key: string]: any
-}
 
 /**
  * Function used to alter the generic generatedEntity by adding a attribute
@@ -170,27 +68,76 @@ export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
   accumulators: Accumulators
 ) => ReturnValues
 
-export interface ProjectGeneratorOutput {
-  outputFolder: GeneratedFolder
-  assetsPath: string
+export interface CompiledComponent {
+  files: GeneratedFile[]
+  dependencies: Record<string, string>
 }
 
-export type GenerateProjectFunction = (
-  input: Record<string, unknown>,
-  template: TemplateDefinition,
-  options?: ProjectGeneratorOptions
-) => Promise<ProjectGeneratorOutput>
+export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
 
-export type GenerateComponentFunction = (
-  // TODO rename to ComponentGeneratorOptions
-  input: Record<string, unknown>,
-  options?: GeneratorOptions
-) => Promise<CompiledComponent>
+export interface ComponentGenerator {
+  generateComponent: (
+    input: ComponentUIDL | Record<string, unknown>,
+    options?: GeneratorOptions
+  ) => Promise<CompiledComponent>
+  linkCodeChunks: (chunks: Record<string, ChunkDefinition[]>, fileName: string) => GeneratedFile[]
+  resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
+  addPlugin: (plugin: ComponentPlugin) => void
+  addMapping: (mapping: Mapping) => void
+  addPostProcessor: (fn: PostProcessingFunction) => void
+}
+
+export interface GeneratorOptions {
+  localDependenciesPrefix?: string
+  assetsPrefix?: string
+  mapping?: Mapping
+  skipValidation?: boolean
+  projectRouteDefinition?: UIDLStateDefinition
+}
+
+export type CodeGeneratorFunction<T> = (content: T) => string
+
+export interface HastNode {
+  type: string
+  tagName: string
+  properties: Record<string, string | boolean>
+  children: Array<HastNode | HastText>
+}
+
+export interface HastText {
+  type: string
+  value: string
+}
+
+/* Project Types */
+
+export interface ProjectGenerator {
+  generateProject: (
+    input: ProjectUIDL | Record<string, unknown>,
+    template?: GeneratedFolder,
+    mapping?: Mapping
+  ) => Promise<GeneratedFolder>
+  addMapping: (mapping: Mapping) => void
+  getAssetsPath: () => string
+}
+
+export interface GeneratedFolder {
+  name: string
+  files: GeneratedFile[]
+  subFolders: GeneratedFolder[]
+}
+
+export interface GeneratedFile {
+  name: string
+  content: string
+  fileType?: string
+  contentEncoding?: string
+}
 
 /**
  * Interfaces used in the publishers
  */
-export type PublisherFactory<T, U> = (configuration?: Partial<T & PublisherFactoryParams>) => U
+export type PublisherFactory<T, U> = (configuration?: Partial<T>) => U
 
 export interface Publisher<T, U> {
   publish: (options?: T) => Promise<PublisherResponse<U>>
@@ -200,7 +147,6 @@ export interface Publisher<T, U> {
 
 export interface PublisherFactoryParams {
   project?: GeneratedFolder
-  projectName?: string
 }
 export interface PublisherResponse<T> {
   success: boolean
@@ -223,42 +169,17 @@ export interface AssetInfo {
   type: string
 }
 
-export interface TemplateDefinition {
-  templateFolder?: GeneratedFolder
-  remote?: RemoteTemplateDefinition
-  meta?: Record<string, string[]>
-}
-
 export interface RemoteTemplateDefinition {
-  githubRepo?: GithubProjectMeta
-}
-
-export interface GithubProjectMeta {
+  provider: 'github'
   username: string
   repo: string
-  auth?: GithubAuthMeta
+  auth?: ServiceAuth
 }
 
-export interface GithubAuthMeta {
+export interface ServiceAuth {
   basic?: {
     username: string
     password: string
   }
   token?: string
-}
-
-export type TemplateProvider<T> = (
-  config?: T
-) => {
-  getTemplateAsFolder: (meta?: T) => Promise<GeneratedFolder>
-}
-
-export interface LoadTemplateResponse {
-  success: boolean
-  payload: GeneratedFolder | string | Error
-}
-
-export interface FilesPathRecord {
-  path: string[]
-  files: GeneratedFile[]
 }

@@ -1,45 +1,34 @@
 {
-  "technology": {
-    "type": "VueBasic"
-  },
+  "technology": "VueBasic",
   "publisher": {
     "type": "Disk"
   },
   "template": {
-    "templateFolder": {
-      "name": "vue-basic",
-      "files": [],
-      "subFolders": [
-        {
-          "name": "src",
-          "files": [],
-          "subFolders": [
-            {
-              "name": "components",
-              "files": [],
-              "subFolders": []              
-            },
-            {
-              "name": "views",
-              "files": [],
-              "subFolders": []              
-            },
-            {
-              "name": "public",
-              "files": [],
-              "subFolders": []              
-            }
-          ]
-        }
-      ]
-    },
-    "meta": {
-      "componentsPath": [
-        "src",
-        "components",
-        "playground-components"
-      ]
-    }
+    "name": "vue-basic",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "src",
+        "files": [],
+        "subFolders": [
+          {
+            "name": "components",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "views",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "public",
+            "files": [],
+            "subFolders": []              
+          }
+        ]
+      }
+    ]
   },
   "assets": {}
 }

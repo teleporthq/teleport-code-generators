@@ -2,6 +2,7 @@ import {
   prefixPlaygroundAssetsURL,
   traverseElements,
   traverseNodes,
+  traverseRepeats,
   cloneObject,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/lib/constants'
@@ -18,19 +19,25 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
 type ElementsLookup = Record<string, { count: number; nextKey: string }>
 
-export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping) => {
+export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping, deepMerge = false) => {
   if (!newMapping) {
     return oldMapping
+  }
+
+  if (deepMerge === true) {
+    return deepmerge(oldMapping, newMapping)
   }
 
   return {
     elements: { ...oldMapping.elements, ...newMapping.elements },
     events: { ...oldMapping.events, ...newMapping.events },
+    attributes: { ...oldMapping.attributes, ...newMapping.attributes },
   }
 }
 
@@ -78,7 +85,11 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
   const { mapping, localDependenciesPrefix, assetsPrefix } = options
-  const { events: eventsMapping, elements: elementsMapping } = mapping
+  const {
+    events: eventsMapping,
+    elements: elementsMapping,
+    attributes: attributesMapping,
+  } = mapping
   const originalElement = element
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
@@ -125,6 +136,17 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Merge UIDL attributes to the attributes coming from the mapping object
   if (mappedElement.attrs) {
     originalElement.attrs = resolveAttributes(mappedElement.attrs, originalElement.attrs)
+  }
+
+  if (originalElement.attrs && attributesMapping) {
+    const attrsKeys = Object.keys(originalElement.attrs)
+
+    attrsKeys
+      .filter((key) => attributesMapping[key])
+      .forEach((key) => {
+        originalElement.attrs[attributesMapping[key]] = originalElement.attrs[key]
+        delete originalElement.attrs[key]
+      })
   }
 
   if (mappedElement.children) {
@@ -268,6 +290,17 @@ const isPowerOfTen = (value: number) => {
   return value === 1
 }
 
+export const ensureDataSourceUniqueness = (node: UIDLNode) => {
+  let index = 0
+
+  traverseRepeats(node, (repeat) => {
+    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
+      repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
+      index += 1
+    }
+  })
+}
+
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
  * @param style the style object on the current node
@@ -330,7 +363,6 @@ const resolveAttributes = (
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
   const mappedAttributes: string[] = []
-
   // First we iterate through the mapping attributes and we add them to the result
   Object.keys(mappedAttrs).forEach((key) => {
     const attrValue = mappedAttrs[key]

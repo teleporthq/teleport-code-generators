@@ -63,7 +63,6 @@ export const parseProjectJSON = (
 }
 
 const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
-  // console.log(node.type, node.content)
   switch ((node as UIDLNode).type) {
     case 'element':
       const elementContent = node.content as Record<string, unknown>
@@ -109,7 +108,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       return conditionalNode
 
     case 'repeat':
-      const repeatNode = node as UIDLRepeatNode
+      const repeatNode = (node as unknown) as UIDLRepeatNode
       const { dataSource } = repeatNode.content
 
       repeatNode.content.node = parseComponentNode(repeatNode.content.node)

@@ -1,44 +1,34 @@
 {
-  "technology": {
-    "type": "ReactBasic"
-  },
+  "technology": "ReactBasic",
   "publisher": {
     "type": "Disk"
   },
   "template": {
-    "templateFolder": {
-      "name": "react-basic",
-      "files": [],
-      "subFolders": [
-        {
-          "name": "src",
-          "files": [],
-          "subFolders": [
-            {
-              "name": "components",
-              "files": [],
-              "subFolders": []              
-            },
-            {
-              "name": "pages",
-              "files": [],
-              "subFolders": []              
-            },
-            {
-              "name": "static",
-              "files": [],
-              "subFolders": []              
-            }
-          ]
-        }
-      ]
-    },
-    "meta": {
-      "componentsPath": [
-        "components",
-        "playground-components"
-      ]
-    }
+    "name": "react-basic",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "src",
+        "files": [],
+        "subFolders": [
+          {
+            "name": "components",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "pages",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "static",
+            "files": [],
+            "subFolders": []              
+          }
+        ]
+      }
+    ]
   },
   "assets": {}
 }

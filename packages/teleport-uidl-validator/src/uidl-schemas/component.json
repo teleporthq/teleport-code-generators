@@ -142,6 +142,20 @@
                 "$ref": "#/definitions/slotNodeContent"
               }]
             }
+          },
+          "if": {
+            "properties": {
+              "type": {
+                "const": "static"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "content": {
+                "$ref": "#/definitions/staticValueContent" 
+              }
+            }
           }
         }
       ]

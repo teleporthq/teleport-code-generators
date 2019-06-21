@@ -11,18 +11,20 @@ declare type ZipPublisherResponse = string | Buffer | Blob
 
 export interface ZipFactoryParams extends PublisherFactoryParams {
   outputPath?: string
+  outputZipName?: string
 }
 
 export interface ZipPublisher extends Publisher<ZipFactoryParams, ZipPublisherResponse> {
   getOutputPath: () => string
   setOutputPath: (path: string) => void
+  getOutputZipName: () => string
+  setOutputZipName: (name: string) => void
 }
 
 export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher> = (
   params: ZipFactoryParams = {}
 ): ZipPublisher => {
-  const { projectName } = params
-  let { project, outputPath } = params
+  let { project, outputPath, outputZipName } = params
 
   const getProject = () => project
   const setProject = (projectToSet: GeneratedFolder) => {
@@ -34,18 +36,26 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
     outputPath = path
   }
 
+  const getOutputZipName = () => outputZipName
+  const setOutputZipName = (name: string) => {
+    outputZipName = name
+  }
+
   const publish = async (options: ZipFactoryParams = {}) => {
-    const projectOutputPath = options.outputPath || outputPath
     const projectToPublish = options.project || project
     if (!projectToPublish) {
       return { success: false, payload: NO_PROJECT_UIDL }
     }
 
+    const projectOutputPath = options.outputPath || outputPath
+    const projectOutputZipName = options.outputZipName || outputZipName
+
     try {
       const zipContent = await generateProjectZip(projectToPublish)
 
       if (projectOutputPath && isNodeProcess()) {
-        await writeZipToDisk(projectOutputPath, zipContent, projectName || projectToPublish.name)
+        const zipName = projectOutputZipName || projectToPublish.name
+        await writeZipToDisk(projectOutputPath, zipContent, zipName)
       }
       return { success: true, payload: zipContent }
     } catch (error) {
@@ -59,6 +69,8 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
     setProject,
     getOutputPath,
     setOutputPath,
+    getOutputZipName,
+    setOutputZipName,
   }
 }
 

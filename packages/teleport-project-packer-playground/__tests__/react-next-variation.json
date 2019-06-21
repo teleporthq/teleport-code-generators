@@ -1,41 +1,28 @@
 {
-  "technology": {
-    "type": "ReactNext",
-    "meta": {
-      "variation": "InlineStyles"
-    }
-  },
+  "technology": "ReactNext",
   "publisher": {
     "type": "Disk"
   },
   "template": {
-    "templateFolder": {
-      "name": "react-next",
-      "files": [],
-      "subFolders": [
-        {
-          "name": "components",
-          "files": [],
-          "subFolders": []              
-        },
-        {
-          "name": "pages",
-          "files": [],
-          "subFolders": []              
-        },
-        {
-          "name": "static",
-          "files": [],
-          "subFolders": []              
-        }
-      ]
-    },
-    "meta": {
-      "componentsPath": [
-        "components",
-        "playground-components"
-      ]
-    }
+    "name": "react-next",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "components",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "pages",
+        "files": [],
+        "subFolders": []              
+      },
+      {
+        "name": "static",
+        "files": [],
+        "subFolders": []              
+      }
+    ]
   },
   "assets": {}
 }

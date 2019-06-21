@@ -31,6 +31,7 @@ describe('plugin-react-jss', () => {
     const uidlSample = component('JSS', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }
@@ -49,6 +50,7 @@ describe('plugin-react-jss', () => {
     const uidlSample = component('JSS', element)
     const structure: ComponentStructure = {
       uidl: uidlSample,
+      options: {},
       chunks: [componentChunk],
       dependencies: {},
     }

@@ -3,15 +3,21 @@ import {
   repeatNode,
   elementNode,
   dynamicNode,
-  definition,
 } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 import {
   generateUniqueKeys,
   createNodesLookup,
   resolveChildren,
   resolveNavlinks,
+  ensureDataSourceUniqueness,
+  mergeMappings,
 } from '../../src/resolver/utils'
-import { UIDLElement, UIDLNode, UIDLStateDefinition } from '@teleporthq/teleport-types'
+import {
+  UIDLElement,
+  UIDLNode,
+  UIDLStateDefinition,
+  UIDLRepeatNode,
+} from '@teleporthq/teleport-types'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
@@ -79,6 +85,42 @@ describe('createNodesLookup', () => {
 
     expect(lookup.container.count).toBe(10)
     expect(lookup.container.nextKey).toBe('00')
+  })
+})
+
+describe('ensureDataSourceUniqueness', () => {
+  it('set dataSourceIdentifier as "items" if only one repeat is in the node', () => {
+    const repeatNodeSample = repeatNode(
+      elementNode('div', {}, [dynamicNode('local', 'item')]),
+      { type: 'static', content: [] },
+      {
+        useIndex: true,
+      }
+    )
+
+    ensureDataSourceUniqueness(repeatNodeSample)
+
+    expect(repeatNodeSample.content.meta.dataSourceIdentifier).toBe('items')
+  })
+
+  it('set incremental dataSourceIdenfiers if multiple repeat structures are in the node', () => {
+    const repeatNodeSample = repeatNode(
+      elementNode('div', {}, [dynamicNode('local', 'item')]),
+      { type: 'static', content: [] },
+      {
+        useIndex: true,
+      }
+    )
+
+    const repeatNodeSample1 = JSON.parse(JSON.stringify(repeatNodeSample))
+    const element = elementNode('container', {}, [repeatNodeSample, repeatNodeSample1])
+
+    ensureDataSourceUniqueness(element)
+    const firstRepeat = element.content.children[0] as UIDLRepeatNode
+    const secondRepeat = element.content.children[1] as UIDLRepeatNode
+
+    expect(firstRepeat.content.meta.dataSourceIdentifier).toBe('items')
+    expect(secondRepeat.content.meta.dataSourceIdentifier).toBe('items1')
   })
 })
 
@@ -234,5 +276,88 @@ describe('resolveNavlinks', () => {
 
     expect(warn).toHaveBeenCalledWith("No path was defined for router state: 'non-existing-state'.")
     expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
+  })
+})
+
+describe('mergeMappings', () => {
+  const oldMapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [{ type: 'dynamic', content: { referenceType: 'children', id: 'children' } }],
+      },
+    },
+    events: {},
+    attributes: {},
+  }
+
+  const newMapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [
+          { type: 'static', content: 'This browser does not support the image formats given' },
+        ],
+      },
+    },
+    events: {},
+    attributes: {},
+  }
+
+  it('returns the old mapping if there is no new mapping present', () => {
+    const expectedMapping = mergeMappings(oldMapping)
+
+    expect(expectedMapping).toEqual(oldMapping)
+  })
+
+  it('merges the mappings using deepmerge if deepMerge parameter is present', () => {
+    const mergedMapping = mergeMappings(oldMapping, newMapping, true)
+
+    const expectedMapping = {
+      elements: {
+        text: {
+          elementType: 'span',
+        },
+        picture: {
+          elementType: 'picture',
+          children: [
+            { type: 'dynamic', content: { referenceType: 'children', id: 'children' } },
+            { type: 'static', content: 'This browser does not support the image formats given' },
+          ],
+        },
+      },
+      events: {},
+      attributes: {},
+    }
+
+    expect(mergedMapping).toEqual(expectedMapping)
+  })
+
+  it('merges the mapping using the spread operator ', () => {
+    const mergedMapping = mergeMappings(oldMapping, newMapping)
+
+    const expectedMapping = {
+      elements: {
+        text: {
+          elementType: 'span',
+        },
+        picture: {
+          elementType: 'picture',
+          children: [
+            { type: 'static', content: 'This browser does not support the image formats given' },
+          ],
+        },
+      },
+      events: {},
+      attributes: {},
+    }
+
+    expect(mergedMapping).toEqual(expectedMapping)
   })
 })

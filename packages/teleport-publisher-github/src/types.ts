@@ -1,5 +1,5 @@
 import {
-  GithubAuthMeta,
+  ServiceAuth,
   PublisherFactoryParams,
   Publisher,
   GeneratedFolder,
@@ -7,7 +7,7 @@ import {
 import { GithubFile } from '../../teleport-github-gateway/lib/types'
 
 export interface GithubFactoryParams extends PublisherFactoryParams {
-  authMeta?: GithubAuthMeta
+  authMeta?: ServiceAuth
   repositoryOwner?: string
   repository?: string
   masterBranch?: string
@@ -29,7 +29,7 @@ export interface GithubPublisher extends Publisher<GithubFactoryParams, string> 
 }
 
 export interface GithubPublishMeta {
-  authMeta: GithubAuthMeta
+  authMeta: ServiceAuth
   repository: string
   repositoryOwner: string
   masterBranch?: string

@@ -4,7 +4,8 @@ import {
   cleanupNestedStyles,
   traverseElements,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+import { getContentOfStyleObject } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
 import {
   addClassToNode,
   addAttributeToNode,
@@ -47,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
         const root = templateLookup[key]
         const className = camelCaseToDashCase(key)
-        jssStylesArray.push(createCSSClass(className, staticStyles))
+        jssStylesArray.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
 
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
