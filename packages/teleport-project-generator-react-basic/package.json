@@ -31,5 +31,6 @@
     "@teleporthq/teleport-shared": "^0.7.0",
     "@teleporthq/teleport-types": "^0.7.0",
     "@teleporthq/teleport-uidl-validator": "^0.7.0"
-  }
+  },
+  "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }
