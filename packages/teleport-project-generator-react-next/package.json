@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-react-next",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,9 +26,10 @@
     "@babel/types": "^7.3.3",
     "@teleporthq/teleport-project-generator": "^0.7.0",
     "@teleporthq/teleport-component-generator": "^0.7.0",
-    "@teleporthq/teleport-component-generator-react": "^0.7.0",
+    "@teleporthq/teleport-component-generator-react": "^0.7.1",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.7.0",
     "@teleporthq/teleport-shared": "^0.7.0",
     "@teleporthq/teleport-types": "^0.7.0"
-  }
+  },
+  "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }

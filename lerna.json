@@ -2,12 +2,15 @@
   "packages": [
     "packages/*"
   ],
-  "version": "0.7.0",
+  "version": "0.7.1",
   "useWorkspaces": true,
   "npmClient": "yarn",
   "command": {
     "version": {
-      "allowBranch": "master",
+      "allowBranch": [
+        "master",
+        "hotfix/*"
+      ],
       "message": "chore(release): 'publish %s'"
     }
   },

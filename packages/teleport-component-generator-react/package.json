@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-react",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Component generator customization, capable of creating React components with a number of different style flavors",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "@teleporthq/teleport-component-generator": "^0.7.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.7.0",
     "@teleporthq/teleport-plugin-react-app-routing": "^0.7.0",
-    "@teleporthq/teleport-plugin-react-base-component": "^0.7.0",
+    "@teleporthq/teleport-plugin-react-base-component": "^0.7.1",
     "@teleporthq/teleport-plugin-react-css-modules": "^0.7.0",
     "@teleporthq/teleport-plugin-react-inline-styles": "^0.7.0",
     "@teleporthq/teleport-plugin-react-jss": "^0.7.0",
@@ -36,5 +36,6 @@
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.7.0",
     "@teleporthq/teleport-shared": "^0.7.0",
     "@teleporthq/teleport-types": "^0.7.0"
-  }
+  },
+  "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }
