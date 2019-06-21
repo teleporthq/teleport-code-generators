@@ -75,7 +75,7 @@ export const generateElementNode = (
 
       if (typeof childTag === 'string') {
         addChildJSXText(elementTag, childTag)
-      } else if (childTag.type === 'JSXExpressionContainer') {
+      } else if (childTag.type === 'JSXExpressionContainer' || childTag.type === 'JSXElement') {
         addChildJSXTag(elementTag, childTag)
       } else {
         addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
