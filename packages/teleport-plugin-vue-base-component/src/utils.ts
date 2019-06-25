@@ -2,7 +2,7 @@ import * as types from '@babel/types'
 
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
-
+import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import {
   objectToObjectExpression,
   convertValueToLiteral,
@@ -117,6 +117,11 @@ export const generateRepeatNode = (
 ) => {
   const { dataSource, node: repeatContent, meta = {} } = node.content
   const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
+  if (typeof repeatContentTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
+    )
+  }
 
   let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
   if (dataSource.type === 'dynamic') {
@@ -125,18 +130,11 @@ export const generateRepeatNode = (
     accumulators.dataObject[dataObjectIdentifier] = dataSource.content
   }
 
-  const iteratorName = meta.iteratorName || 'item'
+  const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
   const iterator = meta.useIndex ? `(${iteratorName}, index)` : iteratorName
-  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
-
-  if (typeof repeatContentTag === 'string') {
-    throw new Error(
-      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
-    )
-  }
 
   htmlUtils.addAttributeToNode(repeatContentTag, 'v-for', `${iterator} in ${dataObjectIdentifier}`)
-  htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${keyIdentifier}`)
+  htmlUtils.addAttributeToNode(repeatContentTag, ':key', `${iteratorKey}`)
   return repeatContentTag
 }
 

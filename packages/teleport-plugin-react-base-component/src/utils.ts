@@ -6,7 +6,7 @@ import {
   addDynamicAttributeOnTag,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import { capitalize } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-
+import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,
@@ -15,6 +15,7 @@ import {
   EventHandlerStatement,
   AttributeAssignCodeMod,
   UIDLConditionalExpression,
+  UIDLRepeatMeta,
 } from '@teleporthq/teleport-types'
 
 import { ERROR_LOG_NAME } from './constants'
@@ -110,11 +111,10 @@ export const addEventHandlerToTag = (
 export const createRepeatStructureWithMap = (
   dataSource: UIDLAttributeValue,
   content: types.JSXElement,
-  meta: Record<string, any> = {},
+  meta: UIDLRepeatMeta = {},
   t = types
 ) => {
-  const iteratorName = meta.iteratorName || 'item'
-  const keyIdentifier = meta.useIndex ? 'index' : iteratorName
+  const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
 
   const source = getSourceIdentifier(dataSource)
 
@@ -122,7 +122,7 @@ export const createRepeatStructureWithMap = (
     type: 'dynamic',
     content: {
       referenceType: 'local',
-      id: keyIdentifier,
+      id: iteratorKey,
     },
   }
   addAttributeToNode(content, 'key', dynamicLocalReference)

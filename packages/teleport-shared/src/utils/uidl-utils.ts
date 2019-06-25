@@ -11,6 +11,7 @@ import {
   UIDLAttributeValue,
   UIDLDynamicReference,
   UIDLRepeatContent,
+  UIDLRepeatMeta,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -74,6 +75,15 @@ export const getComponentFileName = (component: ComponentUIDL) => {
 
 export const getComponentPath = (component: ComponentUIDL) =>
   component.meta ? component.meta.path : []
+
+export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
+  const iteratorName = meta.iteratorName || 'item'
+  const iteratorKey = meta.iteratorKey || (meta.useIndex ? 'index' : iteratorName)
+  return {
+    iteratorKey,
+    iteratorName,
+  }
+}
 
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {

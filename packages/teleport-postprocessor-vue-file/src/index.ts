@@ -49,7 +49,7 @@ ${jsCode}
 
   if (cssCode) {
     code += `
-<style>
+<style scoped>
 ${cssCode}
 </style>
 `

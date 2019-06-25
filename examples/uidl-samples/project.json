@@ -6,7 +6,24 @@
       "language": "en",
       "title": "Show-off for a few capabilities"
     },
-    "assets": [],
+    "assets": [
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css?family=Roboto"
+      },
+      {
+        "type": "style",
+        "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;}"
+      },
+      {
+        "type": "icon",
+        "path": "/playground_assets/favicon-32x32.png",
+        "meta": {
+          "type": "image/png",
+          "sizes": "32x32"
+        }
+      }
+    ],
     "meta": []
   },
   "root": {
@@ -60,6 +77,153 @@
                         "dependency": {
                           "type": "local"
                         }
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "main",
+                        "style": {
+                          "width": "960px",
+                          "text-align": "center"
+                        },
+                        "children": [{
+                          "type": "element",
+                          "content": {
+                            "elementType": "image",
+                            "attrs": {
+                              "url": "http://lorempixel.com/960/200/",
+                              "alt": "Main banner on the home page"
+                            }
+                          }
+                        },{
+                          "type": "element",
+                          "content": {
+                            "style": {
+                              "margin": "30px auto"
+                            },
+                            "elementType": "heading1",
+                            "children": ["Welcome to the teleportHQ sample website!"]
+                          }
+                        }, {
+                          "type": "element",
+                          "content": {
+                            "elementType": "textblock",
+                            "style": {
+                              "color": "#6a8bad",
+                              "fontSize": "26px",
+                              "maxWidth": "560px",
+                              "margin": "30px auto",
+                              "text-align": "center"
+                            },
+                            "children": ["Building the infrastructure for the next generation of web and mobile interfaces"]
+                          }
+                        }, {
+                          "type": "element",
+                          "content": {
+                            "elementType": "textblock",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "link",
+                                  "style": {
+                                    "color": "white",
+                                    "backgroundColor": "#822cec",
+                                    "padding": "12px 24px",
+                                    "borderRadius": "4px",
+                                    "margin": "auto",
+                                    "text-decoration": "none"
+                                  },
+                                  "attrs": {
+                                    "url": "https://docs.teleporthq.io/guides/getting-started.html"
+                                  },
+                                  "children": ["Get Started →"]
+                                }
+                              }
+                            ]
+                          }
+                        },{
+                          "type": "element",
+                          "content": {
+                            "elementType": "container",
+                            "name": "columns",
+                            "style": {
+                              "display": "flex",
+                              "justify-content": "space-between",
+                              "margin-top": "50px",
+                              "border-top": "1px solid #ccc"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "container",
+                                  "style": {
+                                    "max-width": "30%"
+                                  },
+                                  "children": [{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "heading2",
+                                      "children": ["Platform Independent"]
+                                    }
+                                  },{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "textblock",
+                                      "children": ["Using the same UI representation, you can build modern Web & Mobile applications."]
+                                    }
+                                  }]
+                                }
+                              },
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "container",
+                                  "style": {
+                                    "max-width": "30%"
+                                  },
+                                  "children": [{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "heading2",
+                                      "children": ["Plugable Architecture"]
+                                    }
+                                  },{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "textblock",
+                                      "children": ["Our plugin system allows you to customize your exported code to the last detail."]
+                                    }
+                                  }]
+                                }
+                              },
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "container",
+                                  "style": {
+                                    "max-width": "30%"
+                                  },
+                                  "children": [{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "heading2",
+                                      "children": ["An Open Community"]
+                                    }
+                                  },{
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "textblock",
+                                      "children": ["We open-sourced our entire ecosystem and we invite everyone to contribute to it!"]
+                                    }
+                                  }]
+                                }
+                              }
+                            ]
+                          }
+                        }]
                       }
                     }
                   ]
@@ -200,6 +364,10 @@
                             "border-bottom": "3px solid red",
                             "padding-bottom": "7px"
                           }
+                        },
+                        "& a": {
+                          "color": "inherit",
+                          "text-decoration": "none"
                         }
                       },
                       "children": [{
@@ -230,6 +398,10 @@
                             "border-bottom": "3px solid red",
                             "padding-bottom": "7px"
                           }
+                        },
+                        "& a": {
+                          "color": "inherit",
+                          "text-decoration": "none"
                         }
                       },
                       "children": [{
@@ -260,6 +432,10 @@
                             "border-bottom": "3px solid red",
                             "padding-bottom": "7px"
                           }
+                        },
+                        "& a": {
+                          "color": "inherit",
+                          "text-decoration": "none"
                         }
                       },
                       "children": [{
@@ -435,6 +611,7 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "name": "wrapper",
           "style": {
             "display": "flex",
             "flex-wrap": "wrap",
@@ -499,6 +676,7 @@
             "url": "/"
           },
           "style": {
+            "margin": "20px",
             "font-size": "18px"
           },
           "children": [
@@ -659,6 +837,172 @@
           ]
         }
       }
-    }  
+    },
+    "ExpandableArea": {
+      "name": "ExpandableArea",
+      "propDefinitions": {
+        "title": {
+          "type": "string",
+          "defaultValue": "This whole area is clickable!"
+        },
+        "expandableHeight": {
+          "type": "string",
+          "defaultValue": "100px"
+        }
+      },
+      "stateDefinitions": {
+        "isExpanded": {
+          "type": "boolean",
+          "defaultValue": false
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "style": {
+            "border-bottom": "1px solid #ccc"
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "name": "clickable-area",
+                "style": {
+                  "cursor": "pointer",
+                  "padding": "10px 0"
+                },
+                "events": {
+                  "click": [
+                    {
+                      "type": "stateChange",
+                      "modifies": "isExpanded",
+                      "newState": "$toggle"
+                    }
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "style": {
+                        "font-size": "20px",
+                        "font-weight": "600",
+                        "line-height": "1.5"
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "title"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "style": {
+                        "float": "right",
+                        "margin-top": "4px",
+                        "line-height": "1.5"
+                      },
+                      "name": "button",
+                      "children": [
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "svg",
+                            "attrs": {
+                              "width": "15",
+                              "height": "15",
+                              "viewBox": "0 0 15 15",
+                              "fill": "none"
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "line",
+                                  "attrs": {
+                                    "x1": "15",
+                                    "y1": "7.5",
+                                    "x2": "0",
+                                    "y2": "7.5",
+                                    "stroke": "#000"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "conditional",
+                                "content": {
+                                  "node": {
+                                    "type": "element",
+                                    "content": {
+                                      "elementType": "line",
+                                      "attrs": {
+                                        "x1": "7.5",
+                                        "y1": "0",
+                                        "x2": "7.5",
+                                        "y2": "15",
+                                        "stroke": "#000"
+                                      }
+                                    }
+                                  },
+                                  "reference": {
+                                    "type": "dynamic",
+                                    "content": {
+                                      "referenceType": "state",
+                                      "id": "isExpanded"
+                                    }
+                                  },
+                                  "value": false
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "name": "collapsible-area",
+                "attrs": {
+                  "data-is-expanded": "$state.isExpanded"
+                },
+                "style": {
+                  "height": "0",
+                  "overflow": "hidden",
+                  "transition": "height .2s ease-out",
+                  "&[data-is-expanded='true']": {
+                    "type": "nested-style",
+                    "content": {
+                      "height": "$props.expandableHeight"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "slot",
+                    "content": {}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
   }
 }

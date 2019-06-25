@@ -294,11 +294,16 @@ export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
   traverseRepeats(node, (repeat) => {
-    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
+    if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
+      repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
       index += 1
     }
   })
+}
+
+const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
+  return !!(repeat.meta && repeat.meta.dataSourceIdentifier)
 }
 
 /**
