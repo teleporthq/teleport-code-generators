@@ -111,8 +111,19 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
-      if (node.content.children) {
-        node.content.children.forEach((child) => {
+      const { attrs, children, style } = node.content
+      if (attrs) {
+        Object.keys(attrs).forEach((attrKey) => {
+          traverseNodes(attrs[attrKey], fn, node)
+        })
+      }
+
+      if (style) {
+        traverseStyleObject(style, fn, node)
+      }
+
+      if (children) {
+        children.forEach((child) => {
           traverseNodes(child, fn, node)
         })
       }
@@ -143,6 +154,21 @@ export const traverseNodes = (
         `traverseNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
+}
+
+const traverseStyleObject = (
+  style: UIDLStyleDefinitions,
+  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
+  parent: UIDLNode
+) => {
+  Object.keys(style).forEach((styleKey) => {
+    const styleValue = style[styleKey]
+    if (styleValue.type === 'nested-style') {
+      traverseStyleObject(styleValue.content, fn, parent)
+    } else {
+      fn(styleValue, parent)
+    }
+  })
 }
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
@@ -216,7 +242,7 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseRepeats was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
 }

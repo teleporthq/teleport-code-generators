@@ -1,4 +1,8 @@
-import { traverseNodes, traverseElements } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import {
+  traverseNodes,
+  traverseRepeats,
+  traverseElements,
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
 
@@ -22,29 +26,23 @@ export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
 export const checkForLocalVariables = (input: ComponentUIDL) => {
   const errors = []
 
-  traverseNodes(input.node, (node) => {
-    if (node.type === 'repeat') {
-      traverseNodes(node, (childNode) => {
-        if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
-          if (
-            childNode.content.id &&
-            node.content.meta.iteratorName &&
-            childNode.content.id !== node.content.meta.iteratorName
-          ) {
-            const errorMsg = `\n"${
-              childNode.content.id
-            }" is used in the "repeat" structure but the iterator name has this value: "${
-              node.content.meta.iteratorName
-            }"`
-            errors.push(errorMsg)
-          }
-          if (childNode.content.id && !node.content.meta.useIndex) {
-            const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
-            errors.push(errorMsg)
-          }
+  traverseRepeats(input.node, (repeatContent) => {
+    traverseNodes(repeatContent.node, (childNode) => {
+      if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
+        if (
+          childNode.content.id &&
+          repeatContent.meta.iteratorName &&
+          childNode.content.id !== repeatContent.meta.iteratorName
+        ) {
+          const errorMsg = `\n"${childNode.content.id}" is used in the "repeat" structure but the iterator name has this value: "${repeatContent.meta.iteratorName}"`
+          errors.push(errorMsg)
         }
-      })
-    }
+        if (childNode.content.id && !repeatContent.meta.useIndex) {
+          const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
+          errors.push(errorMsg)
+        }
+      }
+    })
   })
   return errors
 }
@@ -63,9 +61,7 @@ export const checkDynamicDefinitions = (input: any) => {
   traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!propKeys.includes(node.content.id)) {
-        const errorMsg = `"${
-          node.content.id
-        }" is used but not defined. Please add it in propDefinitions`
+        const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
         errors.push(errorMsg)
       }
       usedPropKeys.push(node.content.id)
@@ -73,9 +69,7 @@ export const checkDynamicDefinitions = (input: any) => {
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
       if (!stateKeys.includes(node.content.id)) {
-        const errorMsg = `\n"${
-          node.content.id
-        }" is used but not defined. Please add it in stateDefinitions`
+        const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
         errors.push(errorMsg)
       }
       usedstateKeys.push(node.content.id)
@@ -121,9 +115,7 @@ export const checkComponentExistence = (input: ProjectUIDL) => {
       element.dependency.type === 'local' &&
       !components.includes(element.elementType)
     ) {
-      const errorMsg = `\nThe component "${
-        element.elementType
-      }" is not defined in the UIDL's component section.`
+      const errorMsg = `\nThe component "${element.elementType}" is not defined in the UIDL's component section.`
       errors.push(errorMsg)
     }
   })
@@ -159,9 +151,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
   const rootNode = input.root.node.content as UIDLElement
   rootNode.children.forEach((child) => {
     if (child.type !== 'conditional') {
-      const errorMsg = `\nRoot Node contains elements of type "${
-        child.type
-      }". It should contain only elements of type "conditional"`
+      const errorMsg = `\nRoot Node contains elements of type "${child.type}". It should contain only elements of type "conditional"`
       errors.push(errorMsg)
     } else {
       routeNaming.push(child.content.value)
@@ -171,9 +161,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
   input.root.stateDefinitions.route.values
     .filter((route) => !routeNaming.includes(route.value))
     .forEach((route) => {
-      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${
-        route.meta.path
-      }.`
+      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${route.meta.path}.`
       errors.push(errorMsg)
     })
 
