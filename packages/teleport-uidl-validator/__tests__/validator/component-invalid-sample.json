@@ -78,6 +78,13 @@
                     }
                   },
                   {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "local",
+                      "id": "index"
+                    }
+                  },
+                  {
                     "type": "element",
                     "content": {
                       "elementType": "list",

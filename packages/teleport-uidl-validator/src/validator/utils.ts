@@ -29,22 +29,35 @@ export const checkForLocalVariables = (input: ComponentUIDL) => {
   traverseRepeats(input.node, (repeatContent) => {
     traverseNodes(repeatContent.node, (childNode) => {
       if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
-        if (
-          childNode.content.id &&
-          repeatContent.meta.iteratorName &&
-          childNode.content.id !== repeatContent.meta.iteratorName
-        ) {
-          const errorMsg = `\n"${childNode.content.id}" is used in the "repeat" structure but the iterator name has this value: "${repeatContent.meta.iteratorName}"`
-          errors.push(errorMsg)
+        if (childNode.content.id === 'index') {
+          if (!repeatContent.meta.useIndex) {
+            const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
+            errors.push(errorMsg)
+          }
+
+          // we are dealing with local index here
+          return
         }
-        if (childNode.content.id && !repeatContent.meta.useIndex) {
-          const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
+
+        if (!validLocalVariableUsage(childNode.content.id, repeatContent.meta.iteratorName)) {
+          const errorMsg = `\n"${childNode.content.id}" is used in the "repeat" structure but the iterator name has this value: "${repeatContent.meta.iteratorName}"`
           errors.push(errorMsg)
         }
       }
     })
   })
   return errors
+}
+
+const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) => {
+  const iteratorName = repeatIteratorName || 'item'
+
+  if (!dynamicId.includes('.')) {
+    return dynamicId === iteratorName
+  }
+
+  const dynamicIdRoot = dynamicId.split('.')[0]
+  return dynamicIdRoot === iteratorName
 }
 
 // All referenced props and states should be previously defined in the
