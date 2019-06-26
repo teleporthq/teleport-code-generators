@@ -1,4 +1,4 @@
-import { Mapping, CompiledComponent } from '@teleporthq/teleport-types'
+import { Mapping, CompiledComponent, GeneratedFolder } from '@teleporthq/teleport-types'
 import { ProjectStrategy } from '../src/types'
 
 export const mockMapping: Mapping = {
@@ -100,4 +100,31 @@ export const secondStrategy: ProjectStrategy = {
     prefix: '/static',
     path: ['test', 'static'],
   },
+}
+
+export const emptyFolder = (name: string = 'test'): GeneratedFolder => {
+  return {
+    name,
+    files: [],
+    subFolders: [],
+  }
+}
+
+export const folderWithFiles = (name: string = 'test'): GeneratedFolder => {
+  return {
+    name,
+    files: [
+      {
+        name: 'index',
+        fileType: 'js',
+        content: 'var x = 0;',
+      },
+      {
+        name: 'index',
+        fileType: 'css',
+        content: 'h1 { margin: 10px; }',
+      },
+    ],
+    subFolders: [],
+  }
 }
