@@ -60,7 +60,7 @@ export const checkDynamicDefinitions = (input: any) => {
 
   traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
-      if (!propKeys.includes(node.content.id)) {
+      if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
         errors.push(errorMsg)
       }
@@ -68,7 +68,7 @@ export const checkDynamicDefinitions = (input: any) => {
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
-      if (!stateKeys.includes(node.content.id)) {
+      if (!dynamicPathExistsInDefinitions(node.content.id, stateKeys)) {
         const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
         errors.push(errorMsg)
       }
@@ -89,6 +89,18 @@ export const checkDynamicDefinitions = (input: any) => {
     )
 
   return errors
+}
+
+const dynamicPathExistsInDefinitions = (path: string, defKeys: string[]) => {
+  if (!path.includes('.')) {
+    // prop/state is a scalar value, not a dot notation
+    return defKeys.includes(path)
+  }
+
+  // TODO: Expand validation logic to check if the path exists on the prop/state definition
+  // ex: if prop reference is `user.name`, we should check that prop type is object and has a valid field name
+  const rootIdentifier = path.split('.')[0]
+  return defKeys.includes(rootIdentifier)
 }
 
 // A projectUIDL must contain "route" key
