@@ -70,7 +70,7 @@ export const createComponentGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = getComponentFileName(uidl)
+    const fileName = getComponentFileName(resolvedUIDL)
     const files = fileBundler(fileName, codeChunks)
 
     return {
