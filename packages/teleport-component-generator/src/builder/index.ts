@@ -86,6 +86,6 @@ export default class Builder {
   // remove invalid chunks (which did not end up being created) from the linkAfter fields
   // one use-case is when you want to remove the import plugin
   private cleanupInvalidChunks(linkAfter: string[], chunks: ChunkDefinition[]) {
-    return linkAfter.filter((chunkName) => !!chunks.find((chunk) => chunk.name === chunkName))
+    return linkAfter.filter((chunkName) => chunks.some((chunk) => chunk.name === chunkName))
   }
 }
