@@ -217,9 +217,9 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
     const nodeDataSourceAttr = dataSource.content.id
     const parentElement = parentNode.type === 'element' ? parentNode.content : null
 
-    if (parentElement) {
+    if (parentElement && parentElement.attrs) {
       repeatContent.dataSource = parentElement.attrs[nodeDataSourceAttr]
-      // remove original attribute so it doesn't get added as a static/dynamic value on the node
+      // remove original attribute so it is not added as a static/dynamic value on the node
       delete parentElement.attrs[nodeDataSourceAttr]
     }
   }
@@ -294,11 +294,16 @@ export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
   traverseRepeats(node, (repeat) => {
-    if (repeat.dataSource.type === 'static' && !repeat.meta.dataSourceIdentifier) {
+    if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
+      repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
       index += 1
     }
   })
+}
+
+const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
+  return !!(repeat.meta && repeat.meta.dataSourceIdentifier)
 }
 
 /**

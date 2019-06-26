@@ -11,6 +11,7 @@ import {
   UIDLAttributeValue,
   UIDLDynamicReference,
   UIDLRepeatContent,
+  UIDLRepeatMeta,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -75,6 +76,15 @@ export const getComponentFileName = (component: ComponentUIDL) => {
 export const getComponentPath = (component: ComponentUIDL) =>
   component.meta ? component.meta.path : []
 
+export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
+  const iteratorName = meta.iteratorName || 'item'
+  const iteratorKey = meta.iteratorKey || (meta.useIndex ? 'index' : iteratorName)
+  return {
+    iteratorKey,
+    iteratorName,
+  }
+}
+
 export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
   if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
     return originalString
@@ -101,8 +111,19 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
-      if (node.content.children) {
-        node.content.children.forEach((child) => {
+      const { attrs, children, style } = node.content
+      if (attrs) {
+        Object.keys(attrs).forEach((attrKey) => {
+          traverseNodes(attrs[attrKey], fn, node)
+        })
+      }
+
+      if (style) {
+        traverseStyleObject(style, fn, node)
+      }
+
+      if (children) {
+        children.forEach((child) => {
           traverseNodes(child, fn, node)
         })
       }
@@ -133,6 +154,21 @@ export const traverseNodes = (
         `traverseNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
+}
+
+const traverseStyleObject = (
+  style: UIDLStyleDefinitions,
+  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
+  parent: UIDLNode
+) => {
+  Object.keys(style).forEach((styleKey) => {
+    const styleValue = style[styleKey]
+    if (styleValue.type === 'nested-style') {
+      traverseStyleObject(styleValue.content, fn, parent)
+    } else {
+      fn(styleValue, parent)
+    }
+  })
 }
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
@@ -206,7 +242,7 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseRepeats was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
 }

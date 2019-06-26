@@ -1,4 +1,8 @@
-import { traverseNodes, traverseElements } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import {
+  traverseNodes,
+  traverseRepeats,
+  traverseElements,
+} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 
 import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
 
@@ -22,31 +26,38 @@ export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
 export const checkForLocalVariables = (input: ComponentUIDL) => {
   const errors = []
 
-  traverseNodes(input.node, (node) => {
-    if (node.type === 'repeat') {
-      traverseNodes(node, (childNode) => {
-        if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
-          if (
-            childNode.content.id &&
-            node.content.meta.iteratorName &&
-            childNode.content.id !== node.content.meta.iteratorName
-          ) {
-            const errorMsg = `\n"${
-              childNode.content.id
-            }" is used in the "repeat" structure but the iterator name has this value: "${
-              node.content.meta.iteratorName
-            }"`
-            errors.push(errorMsg)
-          }
-          if (childNode.content.id && !node.content.meta.useIndex) {
+  traverseRepeats(input.node, (repeatContent) => {
+    traverseNodes(repeatContent.node, (childNode) => {
+      if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
+        if (childNode.content.id === 'index') {
+          if (!repeatContent.meta.useIndex) {
             const errorMsg = `\nIndex variable is used but the "useIndex" meta information is false.`
             errors.push(errorMsg)
           }
+
+          // we are dealing with local index here
+          return
         }
-      })
-    }
+
+        if (!validLocalVariableUsage(childNode.content.id, repeatContent.meta.iteratorName)) {
+          const errorMsg = `\n"${childNode.content.id}" is used in the "repeat" structure but the iterator name has this value: "${repeatContent.meta.iteratorName}"`
+          errors.push(errorMsg)
+        }
+      }
+    })
   })
   return errors
+}
+
+const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) => {
+  const iteratorName = repeatIteratorName || 'item'
+
+  if (!dynamicId.includes('.')) {
+    return dynamicId === iteratorName
+  }
+
+  const dynamicIdRoot = dynamicId.split('.')[0]
+  return dynamicIdRoot === iteratorName
 }
 
 // All referenced props and states should be previously defined in the
@@ -62,20 +73,16 @@ export const checkDynamicDefinitions = (input: any) => {
 
   traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
-      if (!propKeys.includes(node.content.id)) {
-        const errorMsg = `"${
-          node.content.id
-        }" is used but not defined. Please add it in propDefinitions`
+      if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
+        const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
         errors.push(errorMsg)
       }
       usedPropKeys.push(node.content.id)
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
-      if (!stateKeys.includes(node.content.id)) {
-        const errorMsg = `\n"${
-          node.content.id
-        }" is used but not defined. Please add it in stateDefinitions`
+      if (!dynamicPathExistsInDefinitions(node.content.id, stateKeys)) {
+        const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
         errors.push(errorMsg)
       }
       usedstateKeys.push(node.content.id)
@@ -95,6 +102,18 @@ export const checkDynamicDefinitions = (input: any) => {
     )
 
   return errors
+}
+
+const dynamicPathExistsInDefinitions = (path: string, defKeys: string[]) => {
+  if (!path.includes('.')) {
+    // prop/state is a scalar value, not a dot notation
+    return defKeys.includes(path)
+  }
+
+  // TODO: Expand validation logic to check if the path exists on the prop/state definition
+  // ex: if prop reference is `user.name`, we should check that prop type is object and has a valid field name
+  const rootIdentifier = path.split('.')[0]
+  return defKeys.includes(rootIdentifier)
 }
 
 // A projectUIDL must contain "route" key
@@ -121,9 +140,7 @@ export const checkComponentExistence = (input: ProjectUIDL) => {
       element.dependency.type === 'local' &&
       !components.includes(element.elementType)
     ) {
-      const errorMsg = `\nThe component "${
-        element.elementType
-      }" is not defined in the UIDL's component section.`
+      const errorMsg = `\nThe component "${element.elementType}" is not defined in the UIDL's component section.`
       errors.push(errorMsg)
     }
   })
@@ -159,9 +176,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
   const rootNode = input.root.node.content as UIDLElement
   rootNode.children.forEach((child) => {
     if (child.type !== 'conditional') {
-      const errorMsg = `\nRoot Node contains elements of type "${
-        child.type
-      }". It should contain only elements of type "conditional"`
+      const errorMsg = `\nRoot Node contains elements of type "${child.type}". It should contain only elements of type "conditional"`
       errors.push(errorMsg)
     } else {
       routeNaming.push(child.content.value)
@@ -171,9 +186,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
   input.root.stateDefinitions.route.values
     .filter((route) => !routeNaming.includes(route.value))
     .forEach((route) => {
-      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${
-        route.meta.path
-      }.`
+      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${route.meta.path}.`
       errors.push(errorMsg)
     })
 

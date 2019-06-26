@@ -55,12 +55,10 @@ export const buildTypesOfPropsAst = (
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     (acc: any, key) => {
       const { type, isRequired } = propDefinitions[key]
+      const astProp = t.memberExpression(t.identifier(propTypesNames), t.identifier(type))
       const astValue = isRequired
-        ? t.memberExpression(
-            t.memberExpression(t.identifier(propTypesNames), t.identifier('type')),
-            t.identifier('isRequired')
-          )
-        : t.memberExpression(t.identifier(propTypesNames), t.identifier(type))
+        ? t.memberExpression(astProp, t.identifier('isRequired'))
+        : astProp
       acc.values[key] = new ParsedASTNode(astValue)
       acc.count++
       return acc

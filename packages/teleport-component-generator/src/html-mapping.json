@@ -204,7 +204,7 @@
     "svg": {
       "elementType": "svg"
     },
-    "line": {
+    "separator": {
       "elementType": "hr"
     }
   },

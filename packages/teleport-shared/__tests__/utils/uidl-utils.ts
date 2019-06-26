@@ -6,6 +6,7 @@ import {
   findFirstElementNode,
   getComponentPath,
   getComponentFileName,
+  getRepeatIteratorNameAndKey,
 } from '../../src/utils/uidl-utils'
 import { component, staticNode } from '../../src/builders/uidl-builders'
 import {
@@ -364,5 +365,56 @@ describe('getComponentPath', () => {
     expect(path).toContain('one')
     expect(path).toContain('two')
     expect(path.length).toBe(2)
+  })
+})
+
+describe('getRepeatIteratorNameAndKey', () => {
+  it('returns the fallback as name and key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey()
+    expect(iteratorName).toBe('item')
+    expect(iteratorKey).toBe('item')
+  })
+
+  it('returns the fallback as name and index as key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey({
+      useIndex: true,
+    })
+    expect(iteratorName).toBe('item')
+    expect(iteratorKey).toBe('index')
+  })
+
+  it('returns the iteratorName as name and as key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey({
+      iteratorName: 'listItem',
+    })
+    expect(iteratorName).toBe('listItem')
+    expect(iteratorKey).toBe('listItem')
+  })
+
+  it('returns the iteratorName as name and index as key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey({
+      iteratorName: 'listItem',
+      useIndex: true,
+    })
+    expect(iteratorName).toBe('listItem')
+    expect(iteratorKey).toBe('index')
+  })
+
+  it('returns the iteratorName as name and iteratorKey as key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey({
+      iteratorName: 'listItem',
+      iteratorKey: 'listItem.id',
+      useIndex: true,
+    })
+    expect(iteratorName).toBe('listItem')
+    expect(iteratorKey).toBe('listItem.id')
+  })
+
+  it('returns the fallback iterator name as name and iteratorKey as key', () => {
+    const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey({
+      iteratorKey: 'item.id',
+    })
+    expect(iteratorName).toBe('item')
+    expect(iteratorKey).toBe('item.id')
   })
 })

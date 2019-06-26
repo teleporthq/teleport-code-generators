@@ -92,11 +92,14 @@ export interface UIDLRepeatNode {
 export interface UIDLRepeatContent {
   node: UIDLNode
   dataSource: UIDLAttributeValue
-  meta?: {
-    useIndex?: boolean
-    iteratorName?: string
-    dataSourceIdentifier?: string
-  }
+  meta?: UIDLRepeatMeta
+}
+
+export interface UIDLRepeatMeta {
+  useIndex?: boolean
+  iteratorName?: string
+  dataSourceIdentifier?: string
+  iteratorKey?: string
 }
 
 export interface UIDLConditionalNode {

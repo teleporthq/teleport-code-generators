@@ -30,7 +30,7 @@ export default class Builder {
         name: chunk.name,
         type: chunk.type,
         content: chunk.content,
-        linkAfter: [...chunk.linkAfter],
+        linkAfter: this.cleanupInvalidChunks(chunk.linkAfter, chunks),
       }
     })
 
@@ -81,5 +81,11 @@ export default class Builder {
     }
 
     return this.generators[type](content)
+  }
+
+  // remove invalid chunks (which did not end up being created) from the linkAfter fields
+  // one use-case is when you want to remove the import plugin
+  private cleanupInvalidChunks(linkAfter: string[], chunks: ChunkDefinition[]) {
+    return linkAfter.filter((chunkName) => chunks.some((chunk) => chunk.name === chunkName))
   }
 }
