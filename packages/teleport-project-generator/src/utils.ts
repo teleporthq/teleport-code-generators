@@ -141,7 +141,15 @@ export const injectFilesToPath = (
     folder = createFolderInPath(rootFolder, path)
   }
 
-  folder.files = folder.files.concat(files)
+  files.forEach((fileToInject) => {
+    const existingFile = findFileInFolder(fileToInject, folder)
+    if (existingFile) {
+      existingFile.content = fileToInject.content
+      existingFile.contentEncoding = fileToInject.contentEncoding
+    } else {
+      folder.files.push(fileToInject)
+    }
+  })
 }
 
 const createFolderInPath = (rootFolder: GeneratedFolder, folderPath: string[]): GeneratedFolder => {
@@ -181,4 +189,8 @@ const findSubFolderByName = (rootFolder: GeneratedFolder, folderName: string): G
   return rootFolder.subFolders.find((folder) => {
     return folder.name === folderName
   })
+}
+
+const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
+  return folder.files.find((f) => f.name === file.name && f.fileType === file.fileType)
 }
