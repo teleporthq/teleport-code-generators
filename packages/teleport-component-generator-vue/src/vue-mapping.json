@@ -1,7 +1,7 @@
 {
   "elements": {
     "group": {
-      "elementType": "template"
+      "elementType": "div"
     }
   },
   "events": {
