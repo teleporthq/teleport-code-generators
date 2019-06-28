@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Generic project generator that requires a specific strategy to run on custom configurations",
   "author": "teleportHQ",
   "license": "MIT",
@@ -23,8 +23,8 @@
     "build:watch:project": "tsc -w"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.7.0",
-    "@teleporthq/teleport-shared": "^0.7.0",
-    "@teleporthq/teleport-uidl-validator": "^0.7.0"
+    "@teleporthq/teleport-shared": "^0.8.0",
+    "@teleporthq/teleport-types": "^0.8.0",
+    "@teleporthq/teleport-uidl-validator": "^0.8.0"
   }
 }

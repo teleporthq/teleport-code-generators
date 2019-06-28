@@ -1,7 +1,7 @@
 {
   "name": "teleport-project-packer-test",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "A private repo used for testing the project generators locally",
   "author": "teleportHQ",
   "license": "MIT",
@@ -22,13 +22,13 @@
     "start": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/index.ts"
   },
   "dependencies": {
-    "@teleporthq/teleport-project-generator-react-basic": "^0.7.1",
-    "@teleporthq/teleport-project-generator-react-next": "^0.7.1",
-    "@teleporthq/teleport-project-generator-vue-basic": "^0.7.0",
-    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.7.0",
-    "@teleporthq/teleport-project-packer": "^0.7.0",
-    "@teleporthq/teleport-publisher-disk": "^0.7.0",
-    "@teleporthq/teleport-types": "^0.7.0"
+    "@teleporthq/teleport-project-generator-react-basic": "^0.8.0",
+    "@teleporthq/teleport-project-generator-react-next": "^0.8.0",
+    "@teleporthq/teleport-project-generator-vue-basic": "^0.8.0",
+    "@teleporthq/teleport-project-generator-vue-nuxt": "^0.8.0",
+    "@teleporthq/teleport-project-packer": "^0.8.0",
+    "@teleporthq/teleport-publisher-disk": "^0.8.0",
+    "@teleporthq/teleport-types": "^0.8.0"
   },
   "devDependencies": {
     "ts-node": "^8.1.0",

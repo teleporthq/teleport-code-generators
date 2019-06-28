@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-base-component",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "A plugin for handling the skeleton/baseline of a React component",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-shared": "^0.7.0",
-    "@teleporthq/teleport-types": "^0.7.0"
+    "@teleporthq/teleport-shared": "^0.8.0",
+    "@teleporthq/teleport-types": "^0.8.0"
   },
   "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }
