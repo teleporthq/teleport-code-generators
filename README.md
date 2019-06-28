@@ -122,20 +122,20 @@ export default {
 </script>
 ```
 
-You can play with the UIDL structure and also observe the generated code in [the online REPL](https://repl.teleporthq.io/).
+You can play with the UIDL structure and also observe the generated code in [the online REPL](https://repl.teleporthq.io/). While there, can also check different examples of components written in the UIDL format.
 
-All the preconfigured component generators are exposing an instance of the `teleport-component-generator` package. You can install the package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
 
-You can find a complete guide on how to [build your custom component generator](https://docs.teleporthq.io/guides/custom-component-generator.html) in the official docs.
 
 <h2 id="ecosystem">🌍 Ecosystem</h2>
 
 The teleport ecosystem consists of **three** main categories of packages: *component generators*, *project generators* and *project packers*.
 
 ### Component Generators
-We have **official** component generators for `React` and `Vue`, but we also plan on supporting other frameworks and standards as soon as possible. Also, `React Native` is definitely on our minds, since we've designed the UIDL in such a way that it's agnostic of the web platform.
+We have **official** component generators for `React` and `Vue`, but we also plan on supporting other frameworks and standards as soon as possible. Also, `React Native` is definitely on our minds, since we've designed the UIDL in such a way that it's agnostic of the web platform. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
 
-All component generators are built on top of the generic `teleport-component-generator` package that offers the underlying structure. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
+All the component generators are exposing an instance of the `teleport-component-generator` package. You can also install this package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
+
+In the docs, you'll find a complete guide on how to [build your custom component generator](https://docs.teleporthq.io/guides/custom-component-generator.html).
 
 #### Flavors
 * `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
