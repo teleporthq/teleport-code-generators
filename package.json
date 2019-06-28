@@ -21,7 +21,7 @@
     "add-contributor": "all-contributors add",
     "changelog": "lerna-changelog",
     "version": "lerna version",
-    "publish": "lerna publish from-git",
+    "publish": "lerna publish",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
