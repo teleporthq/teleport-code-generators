@@ -7,6 +7,7 @@
   "description": "Code generators and UIDL definition library",
   "scripts": {
     "lint": "tslint -p ./",
+    "clean": "lerna run clean",
     "build": "lerna run build",
     "dev": "lerna run --parallel build:watch",
     "dev:core": "lerna run --parallel build:watch:core",
@@ -21,7 +22,7 @@
     "add-contributor": "all-contributors add",
     "changelog": "lerna-changelog",
     "version": "lerna version",
-    "publish": "lerna publish",
+    "publish": "lerna publish from-package",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
@@ -50,13 +51,13 @@
     "lerna": "^3.15.0",
     "lerna-changelog": "^0.8.2",
     "pretty-quick": "^1.10.0",
+    "rimraf": "^2.6.3",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.4.3"
   },
-  "dependencies": {},
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
