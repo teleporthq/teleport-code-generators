@@ -58,7 +58,6 @@ describe('Vue Component Generator support for non elements as root', () => {
     expect(VUE_FILE).toBeDefined()
     expect(result.files).toBeDefined()
     expect(content).toContain('<span v-if="test">test</span>')
-    expect(content).toContain('default: false')
   })
 
   it('should support conditional array as root node', async () => {
