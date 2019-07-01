@@ -1,6 +1,8 @@
 import { generateVueComponentJS, generateNodeSyntax, extractStateObject } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
 
 import {
   DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
@@ -32,12 +34,18 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const dataObject: Record<string, any> = {}
     const methodsObject: Record<string, any> = {}
 
-    const templateContent = generateNodeSyntax(uidl.node, {
+    let templateContent = generateNodeSyntax(uidl.node, {
       templateLookup,
       dependencies,
       dataObject,
       methodsObject,
     })
+
+    if (typeof templateContent === 'string') {
+      const htmlNode = createHTMLNode('span')
+      htmlUtils.addTextNode(htmlNode, templateContent)
+      templateContent = htmlNode
+    }
 
     chunks.push({
       type: 'html',
