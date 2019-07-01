@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-css-modules",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A plugin for handling the styles as a separate css-module file for React components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-shared": "^0.8.0",
-    "@teleporthq/teleport-types": "^0.8.0"
+    "@teleporthq/teleport-shared": "^0.8.1",
+    "@teleporthq/teleport-types": "^0.8.1"
   }
 }
