@@ -1,14 +1,12 @@
-// @ts-ignore
-import ComponentWithConditionalRootStringNode from '../integration/component-with-conditional-root-string-child-node.json'
-// @ts-ignore
-import ComponentWithConditionalRootArrayNode from '../integration/component-with-conditional-root-array-child-node.json'
-
 import { createVueComponentGenerator } from '../../src'
 import { GeneratedFile } from '@teleporthq/teleport-types'
 import {
   component,
   staticNode,
   dynamicNode,
+  conditionalNode,
+  elementNode,
+  definition,
 } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
 
 const VUE_FILE = 'vue'
@@ -49,19 +47,37 @@ describe('Vue Component Generator support for non elements as root', () => {
     expect(result.files.length).toBeTruthy()
   })
 
-  it('should support conditional as root node', async () => {
-    const result = await generator.generateComponent(ComponentWithConditionalRootStringNode)
+  it('should support conditional and string as root node', async () => {
+    const uidl = component(
+      'ComponentWithConditionalRootStringNode',
+      conditionalNode(dynamicNode('state', 'isVisible'), staticNode('Now you can see me!'), true),
+      {},
+      { isVisible: definition('boolean', true) }
+    )
+
+    const result = await generator.generateComponent(uidl)
     const file = findFileByType(result.files, VUE_FILE)
     const { content } = file
 
     expect(result.files.length).toBeTruthy()
     expect(VUE_FILE).toBeDefined()
     expect(result.files).toBeDefined()
-    expect(content).toContain('<span v-if="test">test</span>')
+    expect(content).toContain('<span v-if="isVisible">Now you can see me!</span>')
   })
 
   it('should support conditional array as root node', async () => {
-    const result = await generator.generateComponent(ComponentWithConditionalRootArrayNode)
+    const uidl = component(
+      'ComponentWithConditionalRootArrayNode',
+      conditionalNode(
+        dynamicNode('state', 'isVisible'),
+        elementNode('text', {}, [staticNode('Now you see me!')]),
+        true
+      ),
+      {},
+      { isVisible: definition('boolean', true) }
+    )
+
+    const result = await generator.generateComponent(uidl)
     const file = findFileByType(result.files, VUE_FILE)
     const { content } = file
 
