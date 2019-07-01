@@ -1,0 +1,44 @@
+{
+  "name": "@teleporthq/teleport-repl-component",
+  "version": "0.8.1",
+  "description": "Repl editor component",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-repl-component.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-repl-component/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "es2015": "dist/esm/index.mjs",
+  "es2017": "dist/esm/index.mjs",
+  "types": "dist/types/index.d.ts",
+  "collection": "dist/collection/collection-manifest.json",
+  "collection:main": "dist/collection/index.js",
+  "unpkg": "dist/repl-component/repl-component.js",
+  "files": [
+    "dist/",
+    "loader/"
+  ],
+  "scripts": {
+    "build": "stencil build --docs",
+    "start": "stencil build --dev --watch --serve"
+  },
+  "devDependencies": {
+    "@stencil/core": "^1.0.7",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.4.0"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-component-generator-react": "^0.7.1",
+    "@teleporthq/teleport-component-generator-vue": "^0.7.0",
+    "codeflask": "^1.4.1"
+  }
+}
