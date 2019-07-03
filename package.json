@@ -6,7 +6,7 @@
   "private": true,
   "description": "Code generators and UIDL definition library",
   "scripts": {
-    "lint": "tslint -p ./",
+    "lint": "tslint -c tslint.json 'packages/teleport-*/src/**/*.ts{,x}'",
     "clean": "lerna run clean",
     "build": "lerna run build",
     "dev": "lerna run --parallel build:watch",
