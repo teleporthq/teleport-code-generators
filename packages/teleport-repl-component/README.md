@@ -6,11 +6,11 @@ A webcomponent written in stencil that provides a REPL environment for the UIDL,
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-component-repl
+npm install @teleporthq/teleport-repl-component
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-shared
+yarn add @teleporthq/teleport-repl-component
 ```
 
 ## Usage
