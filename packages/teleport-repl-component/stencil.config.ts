@@ -1,4 +1,3 @@
-/* tslint:disable */
 import { Config } from '@stencil/core'
 import builtins from 'rollup-plugin-node-builtins'
 import globals from 'rollup-plugin-node-globals'
