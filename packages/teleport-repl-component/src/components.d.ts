@@ -7,31 +7,31 @@
 import { HTMLStencilElement, JSXBase } from '@stencil/core/internal'
 
 export namespace Components {
-  interface EditorComponent {
+  interface TeleportUidlRepl {
     dark: boolean
     uidl: string
   }
 }
 
 declare global {
-  interface HTMLEditorComponentElement extends Components.EditorComponent, HTMLStencilElement {}
-  var HTMLEditorComponentElement: {
-    prototype: HTMLEditorComponentElement
-    new (): HTMLEditorComponentElement
+  interface HTMLTeleportUidlReplElement extends Components.TeleportUidlRepl, HTMLStencilElement {}
+  var HTMLTeleportUidlReplElement: {
+    prototype: HTMLTeleportUidlReplElement
+    new (): HTMLTeleportUidlReplElement
   }
   interface HTMLElementTagNameMap {
-    'editor-component': HTMLEditorComponentElement
+    'teleport-uidl-repl': HTMLTeleportUidlReplElement
   }
 }
 
 declare namespace LocalJSX {
-  interface EditorComponent extends JSXBase.HTMLAttributes<HTMLEditorComponentElement> {
+  interface TeleportUidlRepl extends JSXBase.HTMLAttributes<HTMLTeleportUidlReplElement> {
     dark?: boolean
     uidl?: string
   }
 
   interface IntrinsicElements {
-    'editor-component': EditorComponent
+    'teleport-uidl-repl': TeleportUidlRepl
   }
 }
 

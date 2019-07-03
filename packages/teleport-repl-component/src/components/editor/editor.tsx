@@ -1,4 +1,4 @@
-import { Component, Prop, h, State } from '@stencil/core'
+import { Component, h, Prop, State } from '@stencil/core'
 import CodeFlask from 'codeflask'
 
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
@@ -7,7 +7,7 @@ import Prism from 'prismjs'
 import 'prismjs/components/prism-jsx'
 
 @Component({
-  tag: 'editor-component',
+  tag: 'teleport-uidl-repl',
   styleUrl: 'editor.css',
   shadow: false,
 })

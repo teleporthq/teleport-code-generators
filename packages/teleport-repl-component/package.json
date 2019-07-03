@@ -32,13 +32,14 @@
     "start": "stencil build --dev --watch --serve"
   },
   "devDependencies": {
-    "@stencil/core": "^1.0.7",
     "rollup-plugin-node-builtins": "^2.1.2",
     "rollup-plugin-node-globals": "^1.4.0"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator-react": "^0.7.1",
-    "@teleporthq/teleport-component-generator-vue": "^0.7.0",
-    "codeflask": "^1.4.1"
+    "@stencil/core": "^1.1.3",
+    "@teleporthq/teleport-component-generator-react": "^0.8.1",
+    "@teleporthq/teleport-component-generator-vue": "^0.8.1",
+    "codeflask": "^1.4.1",
+    "prismjs": "^1.16.0"
   }
 }

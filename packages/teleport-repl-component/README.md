@@ -1,31 +1,25 @@
-## Getting Started
+# teleport-component-repl
 
-To start the dev server:
+A webcomponent written in stencil that provides a REPL environment for the UIDL, converting the JSON format to React/Vue code.
 
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
+
+## Install
 ```bash
-npm start
+npm install @teleporthq/teleport-component-repl
+```
+or
+```bash
+yarn add @teleporthq/teleport-shared
 ```
 
-To build the component for production, run:
+## Usage
 
-```bash
-npm run build
+For integration in various frontend frameworks, check out the [stencil official documentation](https://stenciljs.com/docs/overview).
+
+Once the web component is loaded, it can be used as a regular HTML tag
+
+```html
+<teleport-uidl-repl dark="false" uidl='...' />
 ```
 
-## Using this component
-
-### Script tag
-
-- [Publish to NPM](https://docs.npmjs.com/getting-started/publishing-npm-packages)
-- Put a script tag similar to this `<script src='https://unpkg.com/my-component@0.0.1/dist/mycomponent.js'></script>` in the head of your index.html
-- Then you can use the element anywhere in your template, JSX, html etc
-
-### Node Modules
-- Run `npm install my-component --save`
-- Put a script tag similar to this `<script src='node_modules/my-component/dist/mycomponent.js'></script>` in the head of your index.html
-- Then you can use the element anywhere in your template, JSX, html etc
-
-### In a js framework
-- Run `npm install my-component --save`
-- Add an import to the npm packages `import my-component;`
-- Then you can use the element anywhere in your template, JSX, html etc
