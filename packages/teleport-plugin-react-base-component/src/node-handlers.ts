@@ -25,7 +25,7 @@ import {
   addChildJSXTag,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 
-import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import { createJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 
 import { ERROR_LOG_NAME } from './constants'
 
@@ -66,7 +66,7 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
 const generateElementNode = (node: UIDLElementNode, accumulators: ReactComponentAccumulators) => {
   const { dependencies, stateDefinitions, propDefinitions, nodesLookup } = accumulators
   const { elementType, children, key, attrs, dependency, events } = node.content
-  const elementTag = generateASTDefinitionForJSXTag(elementType)
+  const elementTag = createJSXTag(elementType)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {

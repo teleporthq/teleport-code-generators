@@ -5,8 +5,11 @@ import {
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { addDynamicAttributeOnTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { createJSXSpreadAttribute } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import {
+  addDynamicAttributeToJSXTag,
+  addSpreadAttributeToJSXTag,
+  renameJSXTag,
+} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -38,7 +41,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           if (styleValue.content.referenceType === 'prop') {
             switch (timesReferred) {
               case 1:
-                addDynamicAttributeOnTag(root, attribute, styleValue.content.id, 'props')
+                addDynamicAttributeToJSXTag(root, attribute, styleValue.content.id, 'props')
                 return `\$\{props => props.${attribute}\}`
               default:
                 return `\$\{props => props.${styleValue.content.id}\}`
@@ -51,10 +54,10 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
         })
 
         if (timesReferred > 1) {
-          root.openingElement.attributes.push(createJSXSpreadAttribute('props'))
+          addSpreadAttributeToJSXTag(root, 'props')
         }
 
-        root.openingElement.name.name = className
+        renameJSXTag(root, className)
 
         const code = {
           type: 'js',

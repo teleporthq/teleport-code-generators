@@ -1,4 +1,3 @@
-import * as t from '@babel/types'
 import { ComponentDependency } from '@teleporthq/teleport-types'
 
 export const registerRouterDeps = (dependencies: Record<string, ComponentDependency>): void => {
@@ -32,18 +31,4 @@ export const registerRouterDeps = (dependencies: Record<string, ComponentDepende
       namedImport: true,
     },
   }
-}
-
-export const makePureComponent = (params: { name: string; jsxTagTree: t.JSXElement }) => {
-  const { name, jsxTagTree } = params
-  const returnStatement = t.returnStatement(jsxTagTree)
-  const arrowFunction = t.arrowFunctionExpression(
-    [t.identifier('props')],
-    t.blockStatement([returnStatement] || [])
-  )
-
-  const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
-  const component = t.variableDeclaration('const', [declarator])
-
-  return component
 }

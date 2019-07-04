@@ -3,7 +3,7 @@ import {
   addChildJSXTag,
   addChildJSXText,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import { createJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 
 import * as types from '@babel/types'
 
@@ -15,12 +15,12 @@ import { ProjectUIDL, ChunkDefinition } from '@teleporthq/teleport-types'
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest } = uidl.globals
 
-  const htmlNode = generateASTDefinitionForJSXTag('html')
-  const headNode = generateASTDefinitionForJSXTag('Head')
-  const bodyNode = generateASTDefinitionForJSXTag('body')
+  const htmlNode = createJSXTag('html')
+  const headNode = createJSXTag('Head')
+  const bodyNode = createJSXTag('body')
 
-  const mainNode = generateASTDefinitionForJSXTag('Main')
-  const nextScriptNode = generateASTDefinitionForJSXTag('NextScript')
+  const mainNode = createJSXTag('Main')
+  const nextScriptNode = createJSXTag('NextScript')
   addChildJSXTag(bodyNode, mainNode)
   addChildJSXTag(bodyNode, nextScriptNode)
 
@@ -28,27 +28,27 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   addChildJSXTag(htmlNode, bodyNode)
 
   if (settings.language) {
-    addAttributeToJSXTag(htmlNode, { name: 'lang', value: settings.language })
+    addAttributeToJSXTag(htmlNode, 'lang', settings.language)
   }
 
   if (settings.title) {
-    const titleTag = generateASTDefinitionForJSXTag('title')
+    const titleTag = createJSXTag('title')
     addChildJSXText(titleTag, settings.title)
     addChildJSXTag(headNode, titleTag)
   }
 
   if (manifest) {
-    const linkTag = generateASTDefinitionForJSXTag('link')
-    addAttributeToJSXTag(linkTag, { name: 'rel', value: 'manifest' })
-    addAttributeToJSXTag(linkTag, { name: 'href', value: '/static/manifest.json' })
+    const linkTag = createJSXTag('link')
+    addAttributeToJSXTag(linkTag, 'rel', 'manifest')
+    addAttributeToJSXTag(linkTag, 'href', '/static/manifest.json')
     addChildJSXTag(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
-    const metaTag = generateASTDefinitionForJSXTag('meta')
+    const metaTag = createJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
       const metaValue = prefixPlaygroundAssetsURL(options.assetsPrefix, metaItem[key])
-      addAttributeToJSXTag(metaTag, { name: key, value: metaValue })
+      addAttributeToJSXTag(metaTag, key, metaValue)
     })
     addChildJSXTag(headNode, metaTag)
   })
@@ -58,39 +58,33 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = generateASTDefinitionForJSXTag('link')
-      addAttributeToJSXTag(linkTag, { name: 'rel', value: 'stylesheet' })
-      addAttributeToJSXTag(linkTag, { name: 'href', value: assetPath })
+      const linkTag = createJSXTag('link')
+      addAttributeToJSXTag(linkTag, 'rel', 'stylesheet')
+      addAttributeToJSXTag(linkTag, 'href', assetPath)
       addChildJSXTag(headNode, linkTag)
     }
 
     // inline style
     if (asset.type === 'style' && asset.content) {
-      const styleTag = generateASTDefinitionForJSXTag('style')
-      addAttributeToJSXTag(styleTag, {
-        name: 'dangerouslySetInnerHTML',
-        value: { __html: asset.content },
-      })
+      const styleTag = createJSXTag('style')
+      addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
       addChildJSXTag(headNode, styleTag)
     }
 
     // script (external or inline)
     if (asset.type === 'script') {
-      const scriptTag = generateASTDefinitionForJSXTag('script')
-      addAttributeToJSXTag(scriptTag, { name: 'type', value: 'text/javascript' })
+      const scriptTag = createJSXTag('script')
+      addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
-        addAttributeToJSXTag(scriptTag, { name: 'src', value: assetPath })
+        addAttributeToJSXTag(scriptTag, 'src', assetPath)
         if (asset.meta && asset.meta.defer) {
-          addAttributeToJSXTag(scriptTag, { name: 'defer', value: true })
+          addAttributeToJSXTag(scriptTag, 'defer', true)
         }
         if (asset.meta && asset.meta.async) {
-          addAttributeToJSXTag(scriptTag, { name: 'async', value: true })
+          addAttributeToJSXTag(scriptTag, 'async', true)
         }
       } else if (asset.content) {
-        addAttributeToJSXTag(scriptTag, {
-          name: 'dangerouslySetInnerHTML',
-          value: { __html: asset.content },
-        })
+        addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', { __html: asset.content })
       }
 
       if (asset.meta && asset.meta.target === 'body') {
@@ -102,14 +96,14 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
 
     // icon
     if (asset.type === 'icon' && assetPath) {
-      const iconTag = generateASTDefinitionForJSXTag('link')
-      addAttributeToJSXTag(iconTag, { name: 'rel', value: 'shortcut icon' })
-      addAttributeToJSXTag(iconTag, { name: 'href', value: assetPath })
+      const iconTag = createJSXTag('link')
+      addAttributeToJSXTag(iconTag, 'rel', 'shortcut icon')
+      addAttributeToJSXTag(iconTag, 'href', assetPath)
 
       if (typeof asset.meta === 'object') {
         const assetMeta = asset.meta
         Object.keys(assetMeta).forEach((metaKey) => {
-          addAttributeToJSXTag(iconTag, { name: metaKey, value: assetMeta[metaKey] })
+          addAttributeToJSXTag(iconTag, metaKey, assetMeta[metaKey])
         })
       }
 

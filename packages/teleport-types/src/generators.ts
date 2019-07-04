@@ -109,6 +109,12 @@ export interface HastText {
   value: string
 }
 
+export interface ImportIdentifier {
+  identifierName: string
+  namedImport: boolean
+  originalName: string
+}
+
 /* Project Types */
 
 export interface ProjectGenerator {

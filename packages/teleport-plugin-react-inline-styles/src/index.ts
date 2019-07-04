@@ -1,7 +1,5 @@
-import * as t from '@babel/types'
-
-import { addJSXTagStyles } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { ParsedASTNode } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { createDynamicStyleExpression } from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import {
   cleanupNestedStyles,
   transformDynamicStyles,
@@ -39,15 +37,11 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
         // Nested styles are ignored
         const rootStyles = cleanupNestedStyles(style)
-        const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
-          const expression =
-            styleValue.content.referenceType === 'state'
-              ? t.identifier(styleValue.content.id)
-              : t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-          return new ParsedASTNode(expression)
-        })
+        const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
+          createDynamicStyleExpression(styleValue)
+        )
 
-        addJSXTagStyles(jsxASTTag, inlineStyles)
+        addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)
       }
     })
 

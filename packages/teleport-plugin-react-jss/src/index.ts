@@ -1,13 +1,14 @@
-import * as t from '@babel/types'
-
-import { addDynamicAttributeOnTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { addDynamicAttributeToJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
   objectToObjectExpression,
 } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 
-import { createConstAssignment } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
-import { makeJSSDefaultExport } from './utils'
+import {
+  createConstAssignment,
+  createReactJSSDefaultExport,
+  createArrowFunctionWithMemberExpression,
+} from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
@@ -53,17 +54,14 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
             return new ParsedASTNode(
-              t.arrowFunctionExpression(
-                [t.identifier('props')],
-                t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-              )
+              createArrowFunctionWithMemberExpression('props', styleValue.content.id)
             )
           }
           throw new Error(
             `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        addDynamicAttributeOnTag(root, 'className', `classes['${className}']`, 'props')
+        addDynamicAttributeToJSXTag(root, 'className', `classes['${className}']`, 'props')
       }
     })
 
@@ -87,7 +85,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
     const exportChunk = chunks.find((chunk) => chunk.name === exportChunkName)
 
-    const exportStatement = makeJSSDefaultExport(uidl.name, jssDeclarationName)
+    const exportStatement = createReactJSSDefaultExport(uidl.name, jssDeclarationName)
 
     if (exportChunk) {
       exportChunk.content = exportStatement
