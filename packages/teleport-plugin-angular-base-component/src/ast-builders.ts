@@ -1,6 +1,58 @@
 import * as ts from 'typescript'
 
-export const createConstructorAST = (statements: ts.Statement[]) => {
+export const createProperyDeclerationAST = (key: string, value: any, type: string) => {
+  return ts.createProperty(
+    undefined,
+    undefined,
+    ts.createIdentifier(key),
+    undefined,
+    undefined,
+    createPropertyInitializerAST(value, type) as ts.Expression
+  )
+}
+
+export const createPropertyInitializerAST = (value: any, type: string) => {
+  switch (type) {
+    case 'string':
+      return ts.createStringLiteral(value)
+
+    case 'number':
+      return ts.createNumericLiteral(String(value))
+
+    case 'boolean':
+      return value
+        ? ts.createToken(ts.SyntaxKind.TrueKeyword)
+        : ts.createToken(ts.SyntaxKind.FalseKeyword)
+
+    case 'object': {
+      const properties = []
+      Object.keys(value).forEach((key: any) => {
+        const property = ts.createPropertyAssignment(key, createPropertyInitializerAST(
+          value[key],
+          typeof value[key]
+        ) as ts.Expression)
+        properties.push(property)
+      })
+
+      return ts.createObjectLiteral(properties)
+    }
+
+    case 'array': {
+      const literals = []
+      value.forEach((literal: any) =>
+        literals.push(createPropertyInitializerAST(literal, typeof literal))
+      )
+      return ts.createArrayLiteral(literals)
+    }
+
+    default:
+      throw new Error(`
+        Initializer type is not identified for the value ${value}
+      `)
+  }
+}
+
+export const createConstructorAST = (statements: any) => {
   return ts.createConstructor(undefined, undefined, undefined, ts.createBlock(statements))
 }
 

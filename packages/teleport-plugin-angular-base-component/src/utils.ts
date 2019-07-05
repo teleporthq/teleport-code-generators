@@ -18,12 +18,13 @@ import {
   capitalize,
   dashCaseToUpperCamelCase,
 } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+
 import {
   createDefaultClassComponent,
   createDecoratorAST,
   createConstructorAST,
+  createProperyDeclerationAST,
 } from './ast-builders'
-
 import { ERROR_LOG_NAME } from './constants'
 
 interface AngularComponentAccumulators {
@@ -168,8 +169,6 @@ export const generateConditionalNode = (
   accumulators: AngularComponentAccumulators
 ) => {
   let conditionalTag = generateNodeSyntax(node.content.node, accumulators)
-  // 'v-if' needs to be added on a tag, so in case of a text node we wrap it with
-  // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
     const wrappingSpan = createHTMLNode('span')
     htmlUtils.addTextNode(wrappingSpan, conditionalTag)
@@ -247,11 +246,26 @@ export const generateAngularComponentTS = (
   methodsObject: Record<string, EventHandlerStatement[]>,
   t = types
 ) => {
-  const constructorStatements: types.Statement[] = []
+  const constructorStatements: any = []
+  const statements: any = []
+  const stateObjects = uidl.stateDefinitions
+
+  if (dataObject) {
+    Object.keys(dataObject).map((key) => {
+      const property: types.PropertyDeclaration = createProperyDeclerationAST(
+        key,
+        dataObject[key],
+        stateObjects[key].type
+      )
+
+      statements.push(property)
+    })
+  }
 
   const constructorAST = createConstructorAST(constructorStatements)
+  statements.push(constructorAST)
 
-  return [createDecoratorAST(), createDefaultClassComponent([constructorAST])]
+  return [createDecoratorAST(), createDefaultClassComponent(statements)]
 }
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
