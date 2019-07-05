@@ -1,0 +1,35 @@
+{
+  "name": "@teleporthq/teleport-plugin-angular-base-component",
+  "version": "0.8.1",
+  "description": "A plugin for handling the skeleton/baseline of a React component",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w",
+    "build:watch:angular": "tsc -w"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-types": "^0.8.1",
+    "@teleporthq/teleport-shared": "^0.8.1",
+    "typescript": "^3.4.3"
+  }
+}

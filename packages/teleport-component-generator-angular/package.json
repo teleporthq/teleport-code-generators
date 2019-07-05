@@ -1,0 +1,34 @@
+{
+  "name": "@teleporthq/teleport-component-generator-angular",
+  "version": "0.8.1",
+  "description": "Component generator customization, capable of creating Angular components",
+  "author": "teleportHQ",
+  "homepage": "https://teleporthq.io/packages/teleport-component-generator-angular",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w",
+    "build:watch:angular": "tsc -w"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-component-generator": "^0.8.1",
+    "@teleporthq/teleport-plugin-angular-base-component": "^0.8.1"
+  }
+}
