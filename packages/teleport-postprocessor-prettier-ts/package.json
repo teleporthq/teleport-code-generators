@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-postprocessor-prettier-ts",
+  "version": "0.8.1",
+  "description": "\"A post-processing function that formats ts code chunks using prettier and the prettier-typescript plugin",
+  "author": "JayaKrishna <namburu1995@gmail.com>",
+  "homepage": "https://teleporthq.io/",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-shared": "^0.8.1",
+    "@teleporthq/teleport-types": "^0.8.1",
+    "prettier": "^1.17.0"
+  }
+}

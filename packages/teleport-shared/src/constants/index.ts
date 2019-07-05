@@ -15,4 +15,5 @@ export const FILE_TYPE = {
   JS: 'js',
   JSON: 'json',
   VUE: 'vue',
+  TS: 'ts',
 }

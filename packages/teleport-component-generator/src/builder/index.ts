@@ -1,5 +1,6 @@
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as htmlGenerator } from './generators/html-to-string'
+import { generator as tsGenerator } from './generators/ts-ast-to-code'
 import { ChunkDefinition, CodeGeneratorFunction, ChunkContent } from '@teleporthq/teleport-types'
 
 export default class Builder {
@@ -8,6 +9,7 @@ export default class Builder {
   private generators: { [key: string]: CodeGeneratorFunction<ChunkContent> } = {
     js: babelCodeGenerator,
     html: htmlGenerator,
+    ts: tsGenerator,
     string: (str: string) => str, // no-op for string chunks
   }
 
