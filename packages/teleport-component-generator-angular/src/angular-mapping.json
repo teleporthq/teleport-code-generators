@@ -1,0 +1,18 @@
+{
+  "elements": {
+    "group": {
+      "elementType": "div",
+      "dependency": {
+        "type": "library",
+        "path": "@angular/core",
+        "meta": {
+          "namedImport": true
+        }
+      }
+    }
+  },
+  "events": {
+    "click": "(click)"
+  },
+  "attributes": {} 
+}

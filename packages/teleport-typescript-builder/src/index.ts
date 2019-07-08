@@ -1,5 +1,25 @@
 import * as ts from 'typescript'
 
+export const createGenericImportStatement = (path: string, imports: any[]) => {
+  const defaultImport = imports.find((imp) => !imp.namedImport)
+  let importClause: ts.ImportClause
+  if (defaultImport) {
+    // on default import
+  } else {
+    const elements: ts.ImportSpecifier[] = imports.map((item) => {
+      return ts.createImportSpecifier(undefined, ts.createIdentifier(item.identifier))
+    })
+    const namedBindings: ts.NamedImports = ts.createNamedImports(elements)
+    importClause = ts.createImportClause(undefined, namedBindings)
+  }
+  return ts.createImportDeclaration(
+    undefined,
+    undefined,
+    importClause,
+    ts.createStringLiteral(path)
+  )
+}
+
 export const createProperyDeclerationAST = (key: string, value: any, type: string) => {
   return ts.createProperty(
     undefined,

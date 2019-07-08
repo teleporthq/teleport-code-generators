@@ -24,7 +24,7 @@ import {
   createDecoratorAST,
   createConstructorAST,
   createProperyDeclerationAST,
-} from './ast-builders'
+} from '@teleporthq/teleport-typescript-builder'
 import { ERROR_LOG_NAME } from './constants'
 
 interface AngularComponentAccumulators {

@@ -2,7 +2,13 @@ import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-ty
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
-import { DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME, DEFAULT_ANGULAR_JS_CHUNK_NAME } from './constants'
+
+import {
+  DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
+  COMPONENT_DEPENDENCY,
+  DEFAULT_ANGULAR_TS_CHUNK_NAME,
+  DEFAULT_TS_FILE_AFTER,
+} from './constants'
 import { generateNodeSyntax, generateAngularComponentTS, extractStateObject } from './utils'
 
 interface AngularComponentConfig {
@@ -10,18 +16,22 @@ interface AngularComponentConfig {
   angularTSChunkName: string
   htmlFileId: string
   tsFileId: string
+  tsFIlesAfter: string[]
 }
 
 export const createPlugin: ComponentPluginFactory<AngularComponentConfig> = (config) => {
   const {
     angularTemplateChunkName = DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
-    angularTSChunkName = DEFAULT_ANGULAR_JS_CHUNK_NAME,
+    angularTSChunkName = DEFAULT_ANGULAR_TS_CHUNK_NAME,
     htmlFileId = FILE_TYPE.HTML,
     tsFileId = FILE_TYPE.TS,
+    tsFIlesAfter = DEFAULT_TS_FILE_AFTER,
   } = config || {}
 
   const angularBasicComponentChunks: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
+
+    dependencies.Component = COMPONENT_DEPENDENCY
 
     const templateLookup: { [key: string]: any } = {}
     const dataObject: Record<string, any> = {}
@@ -68,7 +78,7 @@ export const createPlugin: ComponentPluginFactory<AngularComponentConfig> = (con
         fileId: tsFileId,
       },
       content: jsContent,
-      linkAfter: [],
+      linkAfter: tsFIlesAfter,
     })
 
     return structure
