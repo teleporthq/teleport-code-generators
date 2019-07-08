@@ -21,7 +21,8 @@
     "clean": "rimraf lib",
     "build": "tsc",
     "build:watch": "tsc -w",
-    "build:watch:component": "tsc -w"
+    "build:watch:component": "tsc -w",
+    "build:watch:angular": "tsc -w"
   },
   "dependencies": {
     "@babel/generator": "^7.4.0",

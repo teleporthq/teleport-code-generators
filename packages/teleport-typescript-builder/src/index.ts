@@ -4,7 +4,7 @@ export const createGenericImportStatement = (path: string, imports: any[]) => {
   const defaultImport = imports.find((imp) => !imp.namedImport)
   let importClause: ts.ImportClause
   if (defaultImport) {
-    // on default import
+    importClause = ts.createImportClause(ts.createIdentifier(defaultImport.identifier), undefined)
   } else {
     const elements: ts.ImportSpecifier[] = imports.map((item) => {
       return ts.createImportSpecifier(undefined, ts.createIdentifier(item.identifier))
@@ -88,20 +88,24 @@ export const createDefaultClassComponent = (members: any) => {
   return classComponent
 }
 
-export const createDecoratorAST = () => {
+export const createComponentDecoratorAST = (
+  selectorName: string,
+  templateUrlName: string,
+  stylesUrlName: string
+) => {
   const selector: ts.PropertyAssignment = ts.createPropertyAssignment(
     ts.createIdentifier('selector'),
-    ts.createStringLiteral('app-root')
+    ts.createStringLiteral(selectorName)
   )
 
   const templateUrl: ts.PropertyAssignment = ts.createPropertyAssignment(
     ts.createIdentifier('templateUrl'),
-    ts.createStringLiteral('./app.component.html')
+    ts.createStringLiteral(templateUrlName)
   )
 
   const stylesUrl: ts.PropertyAssignment = ts.createPropertyAssignment(
     ts.createIdentifier('styleUrls'),
-    ts.createArrayLiteral([ts.createStringLiteral('./app.component.css')])
+    ts.createArrayLiteral([ts.createStringLiteral(stylesUrlName)])
   )
 
   const object: ts.ObjectLiteralExpression = ts.createObjectLiteral([

@@ -13,6 +13,7 @@ import {
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
 import {
   capitalize,
@@ -21,7 +22,7 @@ import {
 
 import {
   createDefaultClassComponent,
-  createDecoratorAST,
+  createComponentDecoratorAST,
   createConstructorAST,
   createProperyDeclerationAST,
 } from '@teleporthq/teleport-typescript-builder'
@@ -249,6 +250,7 @@ export const generateAngularComponentTS = (
   const constructorStatements: any = []
   const statements: any = []
   const stateObjects = uidl.stateDefinitions
+  const componentName = getComponentFileName(uidl)
 
   if (dataObject) {
     Object.keys(dataObject).map((key) => {
@@ -265,7 +267,10 @@ export const generateAngularComponentTS = (
   const constructorAST = createConstructorAST(constructorStatements)
   statements.push(constructorAST)
 
-  return [createDecoratorAST(), createDefaultClassComponent(statements)]
+  return [
+    createComponentDecoratorAST('app-root', `./${componentName}.html`, `./${componentName}.css`),
+    createDefaultClassComponent(statements),
+  ]
 }
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
