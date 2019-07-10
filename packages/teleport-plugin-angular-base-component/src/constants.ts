@@ -14,3 +14,12 @@ export const COMPONENT_DEPENDENCY = {
     namedImport: true,
   },
 }
+
+export const INPUT_DEPENDENCY = {
+  type: 'library',
+  path: '@angular/core',
+  version: '8.1.0',
+  meta: {
+    namedImport: true,
+  },
+}

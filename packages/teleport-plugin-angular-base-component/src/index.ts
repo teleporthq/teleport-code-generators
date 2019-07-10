@@ -63,12 +63,12 @@ export const createPlugin: ComponentPluginFactory<AngularComponentConfig> = (con
     const stateObject = uidl.stateDefinitions ? extractStateObject(uidl.stateDefinitions) : {}
     const jsContent = generateAngularComponentTS(
       uidl,
-      Object.keys(dependencies),
       {
         ...stateObject,
         ...dataObject,
       },
-      methodsObject
+      methodsObject,
+      dependencies
     )
 
     chunks.push({

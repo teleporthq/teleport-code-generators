@@ -20,11 +20,25 @@ export const createGenericImportStatement = (path: string, imports: any[]) => {
   )
 }
 
-export const createProperyDeclerationAST = (key: string, value: any, type: string) => {
+export const createInputDecoratorAST = (name: string, value: any, type: string) => {
+  const decorator: ts.Decorator[] = [
+    ts.createDecorator(ts.createCall(ts.createIdentifier('Input'), undefined, undefined)),
+  ]
+  return ts.createProperty(
+    decorator,
+    undefined,
+    ts.createIdentifier(name),
+    undefined,
+    undefined,
+    createPropertyInitializerAST(value, type) as ts.Expression
+  )
+}
+
+export const createProperyDeclerationAST = (name: string, value: any, type: string) => {
   return ts.createProperty(
     undefined,
     undefined,
-    ts.createIdentifier(key),
+    ts.createIdentifier(name),
     undefined,
     undefined,
     createPropertyInitializerAST(value, type) as ts.Expression

@@ -11,6 +11,7 @@ import {
   UIDLConditionalExpression,
   UIDLElementNode,
   UIDLStateDefinition,
+  UIDLRepeatNode,
 } from '@teleporthq/teleport-types'
 import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
 import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
@@ -21,12 +22,13 @@ import {
 } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 
 import {
+  createInputDecoratorAST,
   createDefaultClassComponent,
   createComponentDecoratorAST,
   createConstructorAST,
   createProperyDeclerationAST,
 } from '@teleporthq/teleport-typescript-builder'
-import { ERROR_LOG_NAME } from './constants'
+import { ERROR_LOG_NAME, INPUT_DEPENDENCY } from './constants'
 
 interface AngularComponentAccumulators {
   templateLookup: Record<string, any>
@@ -46,8 +48,14 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
     case 'element':
       return generateElementNode(node, accumulators)
 
+    case 'dynamic':
+      return `{{${node.content.id}}}`
+
     case 'conditional':
       return generateConditionalNode(node, accumulators)
+
+    case 'repeat':
+      return generateRepeatNode(node, accumulators)
 
     default:
       throw new Error(
@@ -58,6 +66,32 @@ export const generateNodeSyntax: NodeSyntaxGenerator<
         )}`
       )
   }
+}
+
+export const generateRepeatNode = (
+  node: UIDLRepeatNode,
+  accumulators: AngularComponentAccumulators
+) => {
+  const { dataSource, node: repeatContent, meta = {} } = node.content
+  const repeatContentTag = generateNodeSyntax(repeatContent, accumulators)
+
+  if (typeof repeatContentTag === 'string') {
+    throw new Error(
+      `${ERROR_LOG_NAME} generateRepeatNode received an invalid content ${repeatContentTag}`
+    )
+  }
+
+  const dataObjectIdentifier = meta.dataSourceIdentifier || `items`
+  accumulators.dataObject[dataObjectIdentifier] = dataSource.content
+
+  const indexTag = meta.useIndex ? `; let i = index` : ''
+
+  htmlUtils.addAttributeToNode(
+    repeatContentTag,
+    '*ngFor',
+    `${meta.iteratorName} of ${dataObjectIdentifier}${indexTag}`
+  )
+  return repeatContentTag
 }
 
 export const generateElementNode = (
@@ -242,23 +276,30 @@ const stringifyConditionalExpression = (
 
 export const generateAngularComponentTS = (
   uidl: ComponentUIDL,
-  componentDependencies: string[],
   dataObject: Record<string, any>,
   methodsObject: Record<string, EventHandlerStatement[]>,
-  t = types
+  dependencies: Record<string, ComponentDependency>
 ) => {
   const constructorStatements: any = []
   const statements: any = []
+  let property: types.PropertyDeclaration
   const stateObjects = uidl.stateDefinitions
+  const propObjects = uidl.propDefinitions
   const componentName = getComponentFileName(uidl)
 
   if (dataObject) {
     Object.keys(dataObject).map((key) => {
-      const property: types.PropertyDeclaration = createProperyDeclerationAST(
-        key,
-        dataObject[key],
-        stateObjects[key].type
-      )
+      if (dataObject[key].referenceType === 'prop') {
+        dependencies.Input = INPUT_DEPENDENCY
+
+        property = createInputDecoratorAST(
+          key,
+          propObjects[key].defaultValue,
+          propObjects[key].type
+        )
+      } else {
+        property = createProperyDeclerationAST(key, dataObject[key], stateObjects[key].type)
+      }
 
       statements.push(property)
     })
