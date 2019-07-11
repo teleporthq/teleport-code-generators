@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
-import { stringAsTemplateLiteral, addAttributeToJSXTag } from '../utils/ast-jsx-utils'
+import { convertValueToLiteral } from '../utils/ast-js-utils'
+import { ImportIdentifier } from '@teleporthq/teleport-types'
 
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
   const declarator = t.variableDeclarator(t.identifier(constName), asignment)
@@ -7,86 +8,130 @@ export const createConstAssignment = (constName: string, asignment: any = null, 
   return constAssignment
 }
 
-export const createDefaultExport = (name: string, t = types) => {
-  return t.exportDefaultDeclaration(t.identifier(name))
+export const createDefaultExport = (exportReference: string, t = types) => {
+  return t.exportDefaultDeclaration(t.identifier(exportReference))
+}
+
+export const createReactJSSDefaultExport = (
+  componentName: string,
+  stylesName: string,
+  t = types
+) => {
+  return t.exportDefaultDeclaration(
+    t.callExpression(t.callExpression(t.identifier('injectSheet'), [t.identifier(stylesName)]), [
+      t.identifier(componentName),
+    ])
+  )
 }
 
 /**
  * You can pass the path of the package which is added at the top of the file and
  * an array of imports that we extract from that package.
  */
-export const createGenericImportStatement = (path: string, imports: any[], t = types) => {
+export const createGenericImportStatement = (
+  path: string,
+  imports: ImportIdentifier[],
+  t = types
+) => {
   // Only one of the imports can be the default one so this is a fail safe for invalid UIDL data
   const defaultImport = imports.find((imp) => !imp.namedImport) // only one import can be default
   let importASTs: any[] = []
   if (defaultImport) {
-    const namedImports = imports.filter((imp) => imp.identifier !== defaultImport.identifier)
+    const namedImports = imports.filter(
+      (imp) => imp.identifierName !== defaultImport.identifierName
+    )
     // Default import needs to be the first in the array
     importASTs = [
-      t.importDefaultSpecifier(t.identifier(defaultImport.identifier)),
+      t.importDefaultSpecifier(t.identifier(defaultImport.identifierName)),
       ...namedImports.map((imp) =>
-        t.importSpecifier(t.identifier(imp.identifier), t.identifier(imp.originalName))
+        t.importSpecifier(t.identifier(imp.identifierName), t.identifier(imp.originalName))
       ),
     ]
   } else {
     // No default import, so array order doesn't matter
     importASTs = imports.map((imp) =>
-      t.importSpecifier(t.identifier(imp.identifier), t.identifier(imp.originalName))
+      t.importSpecifier(t.identifier(imp.identifierName), t.identifier(imp.originalName))
     )
   }
   return t.importDeclaration(importASTs, t.stringLiteral(path))
 }
 
-// TODO: Use generateASTDefinitionForJSXTag instead?
-export const generateStyledJSXTag = (
-  templateLiteral: string | types.TemplateLiteral,
+type JSXChild =
+  | types.JSXText
+  | types.JSXExpressionContainer
+  | types.JSXSpreadChild
+  | types.JSXElement
+  | types.JSXFragment
+
+export const createJSXTag = (
+  tagName: string,
+  children: JSXChild[] = [],
+  selfClosing = false,
   t = types
 ) => {
-  if (typeof templateLiteral === 'string') {
-    templateLiteral = stringAsTemplateLiteral(templateLiteral, t)
+  const jsxIdentifier = t.jsxIdentifier(tagName)
+  const openingTag = t.jsxOpeningElement(jsxIdentifier, [], selfClosing)
+  const closingTag = t.jsxClosingElement(jsxIdentifier)
+
+  const tag = t.jsxElement(openingTag, closingTag, children, selfClosing)
+
+  return tag
+}
+
+export const createSelfClosingJSXTag = (tagName: string) => {
+  return createJSXTag(tagName, [], true)
+}
+
+export const createJSXExpresionContainer = (expression: types.Expression, t = types) => {
+  return t.jsxExpressionContainer(expression)
+}
+
+export const createFunctionCall = (functionName: string, args: any[] = [], t = types) => {
+  const convertedArgs = args.map((value) => {
+    // skip objects which are already in AST format
+    if (objectIsASTType(value)) {
+      return value
+    }
+
+    return convertValueToLiteral(value)
+  })
+  return t.callExpression(t.identifier(functionName), convertedArgs)
+}
+
+const objectIsASTType = (obj: any) => {
+  if (typeof obj !== 'object') {
+    return false
   }
 
-  const jsxTagChild = t.jsxExpressionContainer(templateLiteral)
-  const jsxTag = generateBasicJSXTag('style', [jsxTagChild, t.jsxText('\n')], t)
-  addAttributeToJSXTag(jsxTag, { name: 'jsx' }, t)
-  return jsxTag
+  // TODO: extensive list
+  return obj.type === 'JSXElement' || obj.type === 'CallExpression'
 }
 
-const generateBasicJSXTag = (tagName: string, children: any[] = [], t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
-
-  const tag = t.jsxElement(openingDiv, closingDiv, children, false)
-
-  return tag
+// equivalent to (props) => props.title
+export const createArrowFunctionWithMemberExpression = (
+  argument: string,
+  returnIdentifier: string,
+  t = types
+) => {
+  return t.arrowFunctionExpression(
+    [t.identifier(argument)],
+    t.memberExpression(t.identifier(argument), t.identifier(returnIdentifier))
+  )
 }
 
-/**
- * Generates the AST definiton (without start/end position) for a JSX tag
- * with an opening and closing tag.
- *
- * t is the babel-types api which generates the JSON structure representing the AST.
- * This is set as a parameter to allow us to remove babel-types at some point if we
- * decide to, and to allow easier unit testing of the utils.
- *
- * Requires the tagName, which is a string that will be used to generate the
- * tag.
- *
- * Example:
- * generateASTDefinitionForJSXTag("div") will generate the AST
- * equivalent of <div></div>
- */
-export const generateASTDefinitionForJSXTag = (tagName: string, t = types) => {
-  const jsxIdentifier = t.jsxIdentifier(tagName)
-  const openingDiv = t.jsxOpeningElement(jsxIdentifier, [], false)
-  const closingDiv = t.jsxClosingElement(jsxIdentifier)
+export const createFunctionalComponent = (
+  componentName: string,
+  jsxRoot: types.JSXElement,
+  t = types
+) => {
+  const returnStatement = t.returnStatement(jsxRoot)
+  const arrowFunction = t.arrowFunctionExpression(
+    [t.identifier('props')],
+    t.blockStatement([returnStatement] || [])
+  )
 
-  const tag = t.jsxElement(openingDiv, closingDiv, [], false)
+  const declarator = t.variableDeclarator(t.identifier(componentName), arrowFunction)
+  const component = t.variableDeclaration('const', [declarator])
 
-  return tag
-}
-
-export const createJSXSpreadAttribute = (name: string, t = types) => {
-  return t.jsxSpreadAttribute(t.identifier(name))
+  return component
 }

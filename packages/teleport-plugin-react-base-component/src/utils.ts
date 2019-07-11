@@ -3,7 +3,7 @@ import * as types from '@babel/types'
 import { convertValueToLiteral } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import {
   addAttributeToJSXTag,
-  addDynamicAttributeOnTag,
+  addDynamicAttributeToJSXTag,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import { capitalize } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
@@ -193,11 +193,11 @@ export const addAttributeToNode: AttributeAssignCodeMod<types.JSXElement> = (
         content: { id },
       } = attributeValue
       const prefix = getReactVarNameForDynamicReference(attributeValue)
-      addDynamicAttributeOnTag(tag, attributeKey, id, prefix)
+      addDynamicAttributeToJSXTag(tag, attributeKey, id, prefix)
       return
     case 'static':
       const { content } = attributeValue
-      addAttributeToJSXTag(tag, { name: attributeKey, value: content })
+      addAttributeToJSXTag(tag, attributeKey, content)
       return
     default:
       throw new Error(

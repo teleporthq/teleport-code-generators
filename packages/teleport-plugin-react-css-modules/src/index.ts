@@ -1,12 +1,10 @@
-import * as t from '@babel/types'
-import { ParsedASTNode } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
 import {
   camelCaseToDashCase,
   dashCaseToCamelCase,
 } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
-  addJSXTagStyles,
-  addDynamicAttributeOnTag,
+  addDynamicAttributeToJSXTag,
+  addAttributeToJSXTag,
 } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import {
   traverseElements,
@@ -14,7 +12,10 @@ import {
   cleanupNestedStyles,
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+import {
+  createCSSClass,
+  createDynamicStyleExpression,
+} from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import { getContentOfStyleObject } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -74,15 +75,11 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
-          const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) => {
-            const expression =
-              styleValue.content.referenceType === 'state'
-                ? t.identifier(styleValue.content.id)
-                : t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
-            return new ParsedASTNode(expression)
-          })
+          const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
+            createDynamicStyleExpression(styleValue)
+          )
 
-          addJSXTagStyles(root, inlineStyles)
+          addAttributeToJSXTag(root, 'style', inlineStyles)
         }
 
         cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
@@ -91,7 +88,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
           ? `styles.${classNameInJS}`
           : `styles['${className}']`
 
-        addDynamicAttributeOnTag(root, 'className', classReferenceIdentifier)
+        addDynamicAttributeToJSXTag(root, 'className', classReferenceIdentifier)
       }
     })
 

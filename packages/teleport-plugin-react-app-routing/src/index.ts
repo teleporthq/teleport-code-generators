@@ -1,11 +1,19 @@
-import * as t from '@babel/types'
-
-import { generateASTDefinitionForJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import {
+  createJSXTag,
+  createSelfClosingJSXTag,
+  createFunctionCall,
+  createFunctionalComponent,
+} from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import {
+  addChildJSXTag,
+  addAttributeToJSXTag,
+  addDynamicAttributeToJSXTag,
+} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
 import {
   extractPageMetadata,
   extractRoutes,
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { registerRouterDeps, makePureComponent } from './utils'
+import { registerRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
@@ -38,41 +46,28 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         stateDefinitions.route,
         routeKey.toString()
       )
-      const route = generateASTDefinitionForJSXTag('Route')
 
       dependencies[componentName] = {
         type: 'local',
         path: `${pageDependencyPrefix}${fileName}`,
       }
 
-      route.openingElement.attributes.push(
-        t.jsxAttribute(t.jsxIdentifier('exact')),
-        t.jsxAttribute(t.jsxIdentifier('path'), t.stringLiteral(path)),
-        t.jsxAttribute(
-          t.jsxIdentifier('component'),
-          t.jsxExpressionContainer(t.identifier(componentName))
-        )
-      )
+      const route = createSelfClosingJSXTag('Route')
+      addAttributeToJSXTag(route, 'exact')
+      addAttributeToJSXTag(route, 'path', path)
+      addDynamicAttributeToJSXTag(route, 'component', componentName)
 
       return route
     })
 
-    const rootRouterTag = generateASTDefinitionForJSXTag('Router')
+    const rootRouterTag = createJSXTag('Router')
 
-    const divContainer = generateASTDefinitionForJSXTag('div')
+    const divContainer = createJSXTag('div')
 
-    rootRouterTag.children.push(divContainer)
+    addChildJSXTag(rootRouterTag, divContainer)
+    routeJSXDefinitions.forEach((route) => addChildJSXTag(divContainer, route))
 
-    routeJSXDefinitions.forEach((route) => {
-      if (route) {
-        divContainer.children.push(route)
-      }
-    })
-
-    const pureComponent = makePureComponent({
-      name: uidl.name,
-      jsxTagTree: rootRouterTag,
-    })
+    const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
       type: 'js',
@@ -81,16 +76,10 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    // makes ReactDOM.render(AppName, document.getElementById('root'));
-    const reactDomBind = t.expressionStatement(
-      t.callExpression(t.memberExpression(t.identifier('ReactDOM'), t.identifier('render')), [
-        generateASTDefinitionForJSXTag(uidl.name),
-        t.callExpression(
-          t.memberExpression(t.identifier('document'), t.identifier('getElementById')),
-          [t.stringLiteral('app')]
-        ),
-      ])
-    )
+    const reactDomBind = createFunctionCall('ReactDOM.render', [
+      createSelfClosingJSXTag(uidl.name),
+      createFunctionCall('document.getElementById', ['app']),
+    ])
 
     structure.chunks.push({
       type: 'js',

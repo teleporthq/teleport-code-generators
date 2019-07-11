@@ -1,5 +1,4 @@
 import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { generateStyledJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
 import {
   transformDynamicStyles,
@@ -8,6 +7,7 @@ import {
 } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
 import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { generateStyledJSXTag } from './utils'
 
 interface StyledJSXConfig {
   componentChunkName: string

@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { objectToObjectExpression, convertValueToLiteral } from './ast-js-utils'
+import { convertValueToLiteral } from './ast-js-utils'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -51,7 +51,7 @@ const getClassAttribute = (
  * @param name the name of the prop
  * @param value the value of the prop (will be concatenated with props. before it)
  */
-export const addDynamicAttributeOnTag = (
+export const addDynamicAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
   value: string,
@@ -88,17 +88,18 @@ ${str}
 
 export const addAttributeToJSXTag = (
   jsxNode: types.JSXElement,
-  attribute: { name: string; value?: any },
+  attrName: string,
+  attrValue?: any,
   t = types
 ) => {
-  const nameOfAttribute = t.jsxIdentifier(attribute.name)
+  const nameOfAttribute = t.jsxIdentifier(attrName)
   let attributeDefinition
-  if (typeof attribute.value === 'boolean') {
+  if (typeof attrValue === 'boolean') {
     attributeDefinition = t.jsxAttribute(nameOfAttribute)
   } else {
     attributeDefinition = t.jsxAttribute(
       nameOfAttribute,
-      getProperAttributeValueAssignment(attribute.value)
+      getProperAttributeValueAssignment(attrValue)
     )
   }
   jsxNode.openingElement.attributes.push(attributeDefinition)
@@ -132,11 +133,17 @@ export const addChildJSXText = (tag: types.JSXElement, text: string, t = types) 
   tag.children.push(t.jsxText(text), t.jsxText('\n'))
 }
 
-// TODO: Replace with generic add attribute?
-export const addJSXTagStyles = (tag: types.JSXElement, styleMap: any, t = types) => {
-  const styleObjectExpression = objectToObjectExpression(styleMap, t)
-  const styleObjectExpressionContainer = t.jsxExpressionContainer(styleObjectExpression)
+export const addSpreadAttributeToJSXTag = (
+  jsxTag: types.JSXElement,
+  attrName: string,
+  t = types
+) => {
+  jsxTag.openingElement.attributes.push(t.jsxSpreadAttribute(t.identifier(attrName)))
+}
 
-  const styleJSXAttr = t.jsxAttribute(t.jsxIdentifier('style'), styleObjectExpressionContainer)
-  tag.openingElement.attributes.push(styleJSXAttr)
+export const renameJSXTag = (jsxTag: types.JSXElement, newName: string, t = types) => {
+  jsxTag.openingElement.name = t.jsxIdentifier(newName)
+  if (jsxTag.closingElement) {
+    jsxTag.closingElement.name = t.jsxIdentifier(newName)
+  }
 }

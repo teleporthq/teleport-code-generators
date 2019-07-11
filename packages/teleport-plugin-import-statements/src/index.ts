@@ -4,6 +4,7 @@ import {
   ComponentPlugin,
   ChunkDefinition,
   ComponentDependency,
+  ImportIdentifier,
 } from '@teleporthq/teleport-types'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
 
@@ -38,17 +39,11 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
 
 export default createPlugin()
 
-interface ImportDependency {
-  identifier: string
-  namedImport: boolean
-  originalName: string
-}
-
 const groupDependenciesByPackage = (
   dependencies: Record<string, ComponentDependency>,
   packageType?: string
 ) => {
-  const result: Record<string, ImportDependency[]> = {}
+  const result: Record<string, ImportIdentifier[]> = {}
 
   Object.keys(dependencies)
     .filter((key) => (packageType && dependencies[key].type === packageType) || !packageType)
@@ -68,7 +63,7 @@ const groupDependenciesByPackage = (
       const originalName = dep.meta && dep.meta.originalName ? dep.meta.originalName : key
 
       result[dep.path].push({
-        identifier: key,
+        identifierName: key,
         namedImport,
         originalName,
       })
@@ -79,7 +74,7 @@ const groupDependenciesByPackage = (
 
 const addImportChunk = (
   chunks: ChunkDefinition[],
-  dependencies: Record<string, ImportDependency[]>,
+  dependencies: Record<string, ImportIdentifier[]>,
   newChunkName: string,
   fileId: string | null
 ) => {
