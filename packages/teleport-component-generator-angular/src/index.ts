@@ -2,6 +2,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import angularComponentPlugin from '@teleporthq/teleport-plugin-angular-base-component'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-typescript-import-statements'
+import angularStylePlugin from '@teleporthq/teleport-plugin-angular-css'
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierTS from '@teleporthq/teleport-postprocessor-prettier-ts'
@@ -17,6 +18,7 @@ export const createAngularComponentGenerator = (mapping: Mapping = {}): Componen
 
   generator.addPlugin(angularComponentPlugin)
   generator.addPlugin(importStatementsPlugin)
+  generator.addPlugin(angularStylePlugin)
 
   generator.addPostProcessor(prettierTS)
   generator.addPostProcessor(prettierHTML)

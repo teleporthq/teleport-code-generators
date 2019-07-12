@@ -1,0 +1,36 @@
+{
+  "name": "@teleporthq/teleport-plugin-angular-css",
+  "version": "0.8.1",
+  "description": "A Plugin for creating style for Anuglar Components",
+  "author": "teleportHQ",
+  "homepage": "https://teleporthq.io/",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "pubic"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-shared": "^0.8.1",
+    "@teleporthq/teleport-types": "^0.8.1"
+  }
+}

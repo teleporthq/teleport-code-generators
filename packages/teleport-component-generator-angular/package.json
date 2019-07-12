@@ -31,6 +31,7 @@
     "@teleporthq/teleport-types": "^0.8.1",
     "@teleporthq/teleport-component-generator": "^0.8.1",
     "@teleporthq/teleport-plugin-angular-base-component": "^0.8.1",
+    "@teleporthq/teleport-plugin-angular-css": "^0.8.1",
     "@teleporthq/teleport-plugin-typescript-import-statements": "^0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-ts": "^0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.8.1"

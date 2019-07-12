@@ -54,6 +54,7 @@ export const createPlugin: ComponentPluginFactory<AngularComponentConfig> = (con
       type: 'html',
       name: angularTemplateChunkName,
       meta: {
+        lookup: templateLookup,
         fileId: htmlFileId,
       },
       content: templateContent,
