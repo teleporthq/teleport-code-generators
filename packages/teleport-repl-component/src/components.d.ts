@@ -7,6 +7,9 @@
 import { HTMLStencilElement, JSXBase } from '@stencil/core/internal'
 
 export namespace Components {
+  interface SimpleComponent {
+    title: string
+  }
   interface TeleportUidlRepl {
     dark: boolean
     uidl: string
@@ -14,23 +17,34 @@ export namespace Components {
 }
 
 declare global {
+  interface HTMLSimpleComponentElement extends Components.SimpleComponent, HTMLStencilElement {}
+  var HTMLSimpleComponentElement: {
+    prototype: HTMLSimpleComponentElement
+    new (): HTMLSimpleComponentElement
+  }
+
   interface HTMLTeleportUidlReplElement extends Components.TeleportUidlRepl, HTMLStencilElement {}
   var HTMLTeleportUidlReplElement: {
     prototype: HTMLTeleportUidlReplElement
     new (): HTMLTeleportUidlReplElement
   }
   interface HTMLElementTagNameMap {
+    'simple-component': HTMLSimpleComponentElement
     'teleport-uidl-repl': HTMLTeleportUidlReplElement
   }
 }
 
 declare namespace LocalJSX {
+  interface SimpleComponent extends JSXBase.HTMLAttributes<HTMLSimpleComponentElement> {
+    title?: string
+  }
   interface TeleportUidlRepl extends JSXBase.HTMLAttributes<HTMLTeleportUidlReplElement> {
     dark?: boolean
     uidl?: string
   }
 
   interface IntrinsicElements {
+    'simple-component': SimpleComponent
     'teleport-uidl-repl': TeleportUidlRepl
   }
 }

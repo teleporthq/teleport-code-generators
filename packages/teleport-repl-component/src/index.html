@@ -12,44 +12,6 @@
     <script nomodule src="/build/repl.js"></script>
   </head>
   <body>
-    <teleport-uidl-repl
-      dark="false"
-      uidl='{
-    "name": "Simple Component",
-    "propDefinitions": {
-      "title": {
-        "type": "string",
-        "defaultValue": "Hello"
-      }
-    },
-    "node": {
-      "type": "element",
-      "content": {
-        "elementType": "container",
-        "children": [
-          {
-            "type": "element",
-            "content": {
-              "elementType": "text",
-              "children": [
-                {
-                  "type": "dynamic",
-                  "content": {
-                    "referenceType": "prop",
-                    "id": "title"
-                  }
-                },
-                {
-                  "type": "static",
-                  "content": "World!"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    }
-  }'
-    ></teleport-uidl-repl>
+    <simple-component></simple-component>
   </body>
 </html>

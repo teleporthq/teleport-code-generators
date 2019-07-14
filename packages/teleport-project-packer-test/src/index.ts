@@ -51,7 +51,7 @@ const packProject = async (projectType: string) => {
 
   projectPacker.setPublisher(publisher)
   projectPacker.setGenerator(generators[projectType])
-  await projectPacker.loadTemplate(remoteTemplate)
+  // await projectPacker.loadTemplate(remoteTemplate)
 
   const result = await projectPacker.pack(projectUIDL as ProjectUIDL)
 
@@ -61,9 +61,9 @@ const packProject = async (projectType: string) => {
 const run = async () => {
   try {
     await packProject('react-basic')
-    await packProject('react-next')
-    await packProject('vue-basic')
-    await packProject('vue-nuxt')
+    // await packProject('react-next')
+    // await packProject('vue-basic')
+    // await packProject('vue-nuxt')
   } catch (e) {
     console.info(e)
   }

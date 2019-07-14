@@ -14,6 +14,7 @@
     "dev:component": "lerna run --parallel build:watch:component",
     "dev:project": "lerna run --parallel build:watch:project",
     "dev:packer": "lerna run --parallel build:watch:packer",
+    "dev:stencil": "lerna run --parallel build:watch:stencil",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:coverage": "npm run test -- --coverage --no-cache",

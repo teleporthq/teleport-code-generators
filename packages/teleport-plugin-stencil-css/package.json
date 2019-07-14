@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-plugin-stencil-css",
+  "version": "0.8.1",
+  "description": "A plugin for creating the styles of a Stencil component",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "build:watch:component": "tsc -w",
+    "build:watch:stencil": "tsc -w"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-shared": "^0.8.1",
+    "@teleporthq/teleport-types": "^0.8.1"
+  }
+}
