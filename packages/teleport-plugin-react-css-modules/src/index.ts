@@ -68,9 +68,20 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
       const { style, key } = element
       if (style) {
         const root = astNodesLookup[key]
-        const className = camelCaseToDashCase(key)
-        const classNameInJS = dashCaseToCamelCase(className)
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
+
+        if (Object.keys(staticStyles).length > 0) {
+          const className = camelCaseToDashCase(key)
+          const classNameInJS = dashCaseToCamelCase(className)
+
+          cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
+
+          const classReferenceIdentifier = camelCaseClassNames
+            ? `styles.${classNameInJS}`
+            : `styles['${className}']`
+
+          addDynamicAttributeToJSXTag(root, 'className', classReferenceIdentifier)
+        }
 
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
@@ -81,14 +92,6 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
 
           addAttributeToJSXTag(root, 'style', inlineStyles)
         }
-
-        cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
-
-        const classReferenceIdentifier = camelCaseClassNames
-          ? `styles.${classNameInJS}`
-          : `styles['${className}']`
-
-        addDynamicAttributeToJSXTag(root, 'className', classReferenceIdentifier)
       }
     })
 

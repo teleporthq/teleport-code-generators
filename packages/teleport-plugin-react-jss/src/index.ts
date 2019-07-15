@@ -48,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
     traverseElements(node, (element) => {
       const { style, key } = element
-      if (style) {
+      if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
         const className = camelCaseToDashCase(key)
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {

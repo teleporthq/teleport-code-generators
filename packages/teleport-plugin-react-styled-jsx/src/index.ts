@@ -31,7 +31,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
     traverseElements(node, (element) => {
       const { style, key } = element
-      if (style) {
+      if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
         const className = camelCaseToDashCase(key)
         // Generating the string templates for the dynamic styles

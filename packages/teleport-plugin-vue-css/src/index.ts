@@ -47,8 +47,12 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       if (style) {
         const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
         const root = templateLookup[key]
-        const className = camelCaseToDashCase(key)
-        jssStylesArray.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
+
+        if (Object.keys(staticStyles).length > 0) {
+          const className = camelCaseToDashCase(key)
+          jssStylesArray.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
+          addClassToNode(root, className)
+        }
 
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
@@ -59,8 +63,6 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
 
           addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
         }
-
-        addClassToNode(root, className)
       }
     })
 
