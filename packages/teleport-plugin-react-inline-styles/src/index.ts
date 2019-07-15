@@ -29,7 +29,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
     traverseElements(uidl.node, (element) => {
       const { style, key } = element
 
-      if (style) {
+      if (style && Object.keys(style).length > 0) {
         const jsxASTTag = componentChunk.meta.nodesLookup[key]
         if (!jsxASTTag) {
           return

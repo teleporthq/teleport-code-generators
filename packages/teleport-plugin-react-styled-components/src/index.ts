@@ -32,7 +32,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
     traverseElements(node, (element) => {
       const { style, key, elementType } = element
-      if (style) {
+      if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
         const className = `${dashCaseToUpperCamelCase(key)}`
         const timesReferred = countPropReferences(style, 0)
