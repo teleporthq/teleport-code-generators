@@ -7,6 +7,7 @@
   "homepage": "https://teleporthq.io/",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "module": "esm/index.js",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -18,8 +19,10 @@
     "access": "public"
   },
   "scripts": {
-    "clean": "rimraf lib",
-    "build": "tsc",
+    "clean": "rimraf lib esm",
+    "build": "npm run build:lib & npm run build:esm",
+    "build:lib": "tsc -p tsconfig-lib.json",
+    "build:esm": "tsc -p tsconfig-esm.json",
     "build:watch": "tsc -w",
     "build:watch:component": "tsc -w"
   },
