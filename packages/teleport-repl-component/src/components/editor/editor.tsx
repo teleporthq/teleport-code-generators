@@ -16,8 +16,10 @@ export class Editor {
   @Prop() public dark: boolean = false
   @State() public selectedCSSFlavour: string
   @State() public selectedFramework: 'vue' | 'react' = 'react'
+  @State() public showCssFile: boolean = false
   private jsonEditor: any
   private javascriptEditor: any
+  private cssEditor: any
 
   public componentDidLoad() {
     this.setupEditor()
@@ -66,7 +68,15 @@ export class Editor {
         </div>
         <div class="editor-wrapper">
           <div id="jsonEditor">{this.uidl}</div>
-          <div id="javascriptEditor">{this.generateComponent}</div>
+          <div>
+            <div id="javascriptEditor" class="javascript-editor">
+              {this.generateComponent}
+            </div>
+            <div class={this.showCssFile ? 'show-css-tab' : 'hide-css-tab'} id="css-tab">
+              <div class="css-tab-header" onClick={() => (this.showCssFile = !this.showCssFile)} />
+              <div id="cssEditor" />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -84,6 +94,11 @@ export class Editor {
     this.jsonEditor.onUpdate(() => {
       this.generateComponent()
     })
+    this.cssEditor = new CodeFlask('#cssEditor', {
+      language: 'css',
+      readonly: true,
+    })
+    this.cssEditor.addLanguage('css', Prism.languages.css)
   }
 
   private async generateComponent() {
@@ -91,18 +106,26 @@ export class Editor {
     if (this.selectedFramework === 'vue') {
       generator = createVueComponentGenerator()
     }
-    const uidl = JSON.parse(this.jsonEditor.getCode())
-    const result = await generator.generateComponent(uidl)
-    this.javascriptEditor.updateCode(result.files[0].content.trim())
+    if (JSON.parse(this.jsonEditor.getCode())) {
+      const uidl = JSON.parse(this.jsonEditor.getCode())
+      const result = await generator.generateComponent(uidl)
+      this.javascriptEditor.updateCode(result.files[0].content.trim())
+      if (result.files[1]) {
+        this.showCssFile = true
+        this.cssEditor.updateCode(result.files[1].content.trim())
+      }
+    }
   }
 
   private handleChange(event) {
     this.selectedFramework = event.target.value
     this.generateComponent()
+    this.cssEditor.updateCode('')
   }
 
   private handleSelect(event) {
     this.selectedCSSFlavour = event.target.value
     this.generateComponent()
+    this.cssEditor.updateCode('')
   }
 }
