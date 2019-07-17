@@ -86,7 +86,7 @@
   height: 500px;
 }
 
-.css-wrapper {
+.hide-css-tab {
   position: absolute;
   bottom: 0px;
   height: 20px;
@@ -94,11 +94,15 @@
   z-index: 10;
 }
 
-.css-wrapper > div :nth-child(1) {
+.hide-css-tab > div :nth-child(1) {
   display: none;
 }
 
 .show-css-tab {
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  z-index: 10;
   height: 300px;
   animation: open-tab 0.8s;
 }

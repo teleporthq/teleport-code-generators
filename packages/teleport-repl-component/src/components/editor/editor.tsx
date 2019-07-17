@@ -25,21 +25,6 @@ export class Editor {
     this.setupEditor()
   }
 
-  public handleTabClick() {
-    const el = document.getElementById('css-tab')
-    this.showCssFile = !this.showCssFile
-    if (this.showCssFile) {
-      this.openTab()
-    } else {
-      el.classList.remove('show-css-tab')
-    }
-  }
-
-  public openTab() {
-    const el = document.getElementById('css-tab')
-    el.classList.add('show-css-tab')
-  }
-
   public render() {
     return (
       <div class="repl-wrapper" data-theme={this.dark ? 'dark' : ''}>
@@ -87,8 +72,8 @@ export class Editor {
             <div id="javascriptEditor" class="javascript-editor">
               {this.generateComponent}
             </div>
-            <div class="css-wrapper" id="css-tab">
-              <div class="css-tab-header" onClick={() => this.handleTabClick()} />
+            <div class={this.showCssFile ? 'show-css-tab' : 'hide-css-tab'} id="css-tab">
+              <div class="css-tab-header" onClick={() => (this.showCssFile = !this.showCssFile)} />
               <div id="cssEditor" />
             </div>
           </div>
@@ -126,7 +111,6 @@ export class Editor {
       const result = await generator.generateComponent(uidl)
       this.javascriptEditor.updateCode(result.files[0].content.trim())
       if (result.files[1]) {
-        this.openTab()
         this.showCssFile = true
         this.cssEditor.updateCode(result.files[1].content.trim())
       }
