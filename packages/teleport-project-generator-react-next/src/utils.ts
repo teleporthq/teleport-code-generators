@@ -77,17 +77,17 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
       addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         addAttributeToJSXTag(scriptTag, 'src', assetPath)
-        if (asset.meta && asset.meta.defer) {
+        if (asset.options && asset.options.defer) {
           addAttributeToJSXTag(scriptTag, 'defer', true)
         }
-        if (asset.meta && asset.meta.async) {
+        if (asset.options && asset.options.async) {
           addAttributeToJSXTag(scriptTag, 'async', true)
         }
       } else if (asset.content) {
         addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', { __html: asset.content })
       }
 
-      if (asset.meta && asset.meta.target === 'body') {
+      if (asset.options && asset.options.target === 'body') {
         addChildJSXTag(bodyNode, scriptTag)
       } else {
         addChildJSXTag(headNode, scriptTag)
@@ -100,11 +100,11 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
       addAttributeToJSXTag(iconTag, 'rel', 'shortcut icon')
       addAttributeToJSXTag(iconTag, 'href', assetPath)
 
-      if (typeof asset.meta === 'object') {
-        const assetMeta = asset.meta
-        Object.keys(assetMeta).forEach((metaKey) => {
-          addAttributeToJSXTag(iconTag, metaKey, assetMeta[metaKey])
-        })
+      if (asset.options && asset.options.iconType) {
+        addAttributeToJSXTag(iconTag, 'type', asset.options.iconType)
+      }
+      if (asset.options && asset.options.iconSizes) {
+        addAttributeToJSXTag(iconTag, 'sizes', asset.options.iconSizes)
       }
 
       addChildJSXTag(headNode, iconTag)

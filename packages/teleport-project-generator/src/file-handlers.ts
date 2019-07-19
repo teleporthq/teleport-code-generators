@@ -161,16 +161,16 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // script (external or inline)
     if (asset.type === 'script') {
-      const scriptInBody = (asset.meta && asset.meta.target === 'body') || false
+      const scriptInBody = (asset.options && asset.options.target === 'body') || false
       const scriptTag = createHTMLNode('script')
       // addTextNode(scriptTag, ' ') // To ensure tag is not automatically self-closing, which causes problems in the <head>
       addAttributeToNode(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         addAttributeToNode(scriptTag, 'src', assetPath)
-        if (asset.meta && asset.meta.defer) {
+        if (asset.options && asset.options.defer) {
           addBooleanAttributeToNode(scriptTag, 'defer')
         }
-        if (asset.meta && asset.meta.async) {
+        if (asset.options && asset.options.async) {
           addBooleanAttributeToNode(scriptTag, 'async')
         }
       } else if (asset.content) {
@@ -188,11 +188,12 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       const iconTag = createHTMLNode('link') // , { selfClosing: true })
       addAttributeToNode(iconTag, 'rel', 'shortcut icon')
       addAttributeToNode(iconTag, 'href', assetPath)
-      if (typeof asset.meta === 'object') {
-        const assetMeta = asset.meta
-        Object.keys(assetMeta).forEach((metaKey) => {
-          addAttributeToNode(iconTag, metaKey, assetMeta[metaKey])
-        })
+
+      if (asset.options && asset.options.iconType) {
+        addAttributeToNode(iconTag, 'type', asset.options.iconType)
+      }
+      if (asset.options && asset.options.iconSizes) {
+        addAttributeToNode(iconTag, 'sizes', asset.options.iconSizes)
       }
       addChildNode(headNode, iconTag)
     }

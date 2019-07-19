@@ -29,7 +29,7 @@ export const createVueNuxtGenerator = () => {
     },
     entry: {
       generator: htmlFileGenerator,
-      appRootOverride: '{{APP_ROOT}}',
+      appRootOverride: '{{APP}}',
       fileName: 'app',
       path: [],
     },

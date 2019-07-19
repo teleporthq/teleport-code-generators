@@ -19,7 +19,13 @@ export interface GlobalAsset {
   type: string
   path?: string
   content?: string
-  meta?: Record<string, any>
+  options?: {
+    async?: boolean
+    defer?: boolean
+    target?: string
+    iconType?: string
+    iconSizes?: string
+  }
 }
 
 export interface ComponentUIDL {
@@ -38,7 +44,6 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | any[] | object | (() => void)
   isRequired?: boolean
-  meta?: Record<string, any>
 }
 
 export interface UIDLStateDefinition {
