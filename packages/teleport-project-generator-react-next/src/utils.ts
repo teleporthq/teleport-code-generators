@@ -2,14 +2,14 @@ import {
   addAttributeToJSXTag,
   addChildJSXTag,
   addChildJSXText,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { createJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
 import * as types from '@babel/types'
 
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
-import { EntryFileOptions } from '@teleporthq/teleport-project-generator/lib/types'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { EntryFileOptions } from '@teleporthq/teleport-project-generator/dist/cjs/types'
 import { ProjectUIDL, ChunkDefinition } from '@teleporthq/teleport-types'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {

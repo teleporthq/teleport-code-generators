@@ -8,41 +8,29 @@ const ignorePackages = [
   'teleport-project-packer-test'
 ]
 
-log(chalk.greenBright('Building all packges, please wait for a moment...'))
-
-exec('lerna run build', (err, stdout, stderr) => {
-  if (!err || err === null) {
-    createWatcher()
-  } else {
-    displayError(err, stdout, stderr)
-  }
+const watcher = chokidar.watch('packages/**/src/*.ts', { 
+  persistent: true ,
+  usePolling: true,
+  interval: 500
 })
 
-createWatcher = () => {
-  const watcher = chokidar.watch('packages/**/src/*.ts', { 
-    persistent: true ,
-    usePolling: true,
-    interval: 500
-  })
+log(chalk.yellow.bold('Watching all files... 👀'))
+
+watcher.on('change', filePath => {
+  const path = filePath.split('/')
+  const location = `${path[0]}/${path[1]}/`
   
-  log(chalk.yellow.bold('Watching all files... 👀'))
-  
-  watcher.on('change', filePath => {
-    const path = filePath.split('/')
-    const location = `${path[0]}/${path[1]}/`
-    
-    if (!ignorePackages.includes(path[1])) {
-      log(chalk.redBright.bold(`${filePath} is changed`))
-      exec(`tsc`, { cwd: location}, (err, stdout, stderr) => {
-        if (!err ||  err === null) {
-          log(chalk.greenBright(`Package ${path[1]} is re-built`))
-        } else {
-          displayError(err, stdout, stderr)
-        }
-      })
-    }
-  })
-}
+  if (!ignorePackages.includes(path[1])) {
+    log(chalk.yellow(`Changes detected in ${filePath}`))
+    exec(`yarn build`, { cwd: location}, (err, stdout, stderr) => {
+      if (!err ||  err === null) {
+        log(chalk.greenBright(`Package ${path[1]} was successfully re-built`))
+      } else {
+        displayError(err, stdout, stderr)
+      }
+    })
+  }
+})
 
 displayError = (err, stdout, stderr) => {
   log(chalk.white(err))

@@ -1,17 +1,17 @@
 import * as types from '@babel/types'
 
-import * as htmlUtils from '@teleporthq/teleport-shared/lib/utils/html-utils'
-import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
-import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import * as htmlUtils from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
+import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   objectToObjectExpression,
   convertValueToLiteral,
   ParsedASTNode,
-} from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import {
   capitalize,
   dashCaseToUpperCamelCase,
-} from '@teleporthq/teleport-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,

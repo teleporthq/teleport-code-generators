@@ -1,4 +1,4 @@
-import { createGenericImportStatement } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import { createGenericImportStatement } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -6,7 +6,7 @@ import {
   ComponentDependency,
   ImportIdentifier,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string

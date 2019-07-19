@@ -2,7 +2,7 @@ import * as t from '@babel/types'
 import {
   extractPageMetadata,
   extractRoutes,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface VueRouterConfig {

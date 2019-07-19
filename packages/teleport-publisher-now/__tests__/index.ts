@@ -1,6 +1,6 @@
 import { createNowPublisher } from '../src'
 
-import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from '../lib/errors'
+import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from '../src/errors'
 
 // @ts-ignore
 import project from './project-files.json'

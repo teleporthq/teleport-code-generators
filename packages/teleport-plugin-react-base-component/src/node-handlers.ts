@@ -23,9 +23,9 @@ import {
 import {
   addChildJSXText,
   addChildJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
-import { createJSXTag } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
 import { ERROR_LOG_NAME } from './constants'
 

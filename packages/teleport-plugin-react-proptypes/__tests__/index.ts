@@ -1,5 +1,5 @@
 import { createPlugin } from '../src'
-import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 
 describe('Should add Default Props and PropTypes to the component Generation', () => {

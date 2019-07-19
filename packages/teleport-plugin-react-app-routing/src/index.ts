@@ -3,16 +3,16 @@ import {
   createSelfClosingJSXTag,
   createFunctionCall,
   createFunctionalComponent,
-} from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 import {
   addChildJSXTag,
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   extractPageMetadata,
   extractRoutes,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { registerRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 

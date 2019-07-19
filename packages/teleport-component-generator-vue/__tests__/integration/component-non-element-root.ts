@@ -7,7 +7,7 @@ import {
   conditionalNode,
   elementNode,
   definition,
-} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 const VUE_FILE = 'vue'
 const findFileByType = (files: GeneratedFile[], type: string = VUE_FILE) =>

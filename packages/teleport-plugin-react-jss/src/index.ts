@@ -1,20 +1,20 @@
-import { addDynamicAttributeToJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { addDynamicAttributeToJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   ParsedASTNode,
   objectToObjectExpression,
-} from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 
 import {
   createConstAssignment,
   createReactJSSDefaultExport,
   createArrowFunctionWithMemberExpression,
-} from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   traverseElements,
   transformDynamicStyles,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface JSSConfig {

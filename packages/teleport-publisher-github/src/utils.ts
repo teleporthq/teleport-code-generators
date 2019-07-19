@@ -3,7 +3,7 @@ import {
   GithubFile,
   RepositoryIdentity,
   GithubCommitMeta,
-} from '@teleporthq/teleport-github-gateway/lib/types'
+} from '@teleporthq/teleport-github-gateway/dist/cjs/types'
 import { createGithubGateway } from '@teleporthq/teleport-github-gateway'
 
 import { GithubPublishMeta, ProjectFolderInfo } from './types'

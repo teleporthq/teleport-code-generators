@@ -1,12 +1,12 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '@teleporthq/teleport-shared/lib/utils/ast-js-utils'
+import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import {
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { capitalize } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { capitalize } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { getRepeatIteratorNameAndKey } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,

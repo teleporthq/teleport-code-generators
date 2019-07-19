@@ -17,7 +17,7 @@ import {
   extractRoutes,
   cloneObject,
   getComponentPath,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 

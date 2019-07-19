@@ -1,6 +1,6 @@
 import * as t from '@babel/types'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { stringAsTemplateLiteral } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { stringAsTemplateLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (name: string, type: string, styles: object) => {

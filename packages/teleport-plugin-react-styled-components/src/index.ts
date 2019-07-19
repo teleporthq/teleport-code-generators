@@ -3,13 +3,13 @@ import { generateStyledComponent, countPropReferences } from './utils'
 import {
   traverseElements,
   transformDynamicStyles,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   addDynamicAttributeToJSXTag,
   addSpreadAttributeToJSXTag,
   renameJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
 interface StyledComponentsConfig {
   componentChunkName: string

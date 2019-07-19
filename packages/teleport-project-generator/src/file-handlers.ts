@@ -3,14 +3,14 @@ import {
   addChildNode,
   addTextNode,
   addBooleanAttributeToNode,
-} from '@teleporthq/teleport-shared/lib/utils/html-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
 import {
   prefixPlaygroundAssetsURL,
   extractPageMetadata,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { slugify } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { createHTMLNode } from '@teleporthq/teleport-shared/lib/builders/html-builders'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 import {
   GeneratedFile,

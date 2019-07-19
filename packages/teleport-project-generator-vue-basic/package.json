@@ -5,8 +5,9 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -18,10 +19,10 @@
     "access": "public"
   },
   "scripts": {
-    "clean": "rimraf lib",
-    "build": "tsc",
-    "build:watch": "tsc -w",
-    "build:watch:project": "tsc -w"
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.8.1",

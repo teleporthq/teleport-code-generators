@@ -16,7 +16,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
-} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 const uidl = component(
   'Repeat Component',
