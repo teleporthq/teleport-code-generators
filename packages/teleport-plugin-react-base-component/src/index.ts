@@ -1,10 +1,9 @@
 import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
 import { createPureComponent } from './utils'
-import { generateNodeSyntax } from './node-handlers'
+import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { JSXConfig } from './types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -13,8 +12,15 @@ import {
   REACT_LIBRARY_DEPENDENCY,
   USE_STATE_DEPENDENCY,
 } from './constants'
+import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
-export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
+interface ReactChunkConfig {
+  componentChunkName: string
+  exportChunkName: string
+  importChunkName: string
+}
+
+export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
@@ -27,7 +33,7 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
 
-    if (Object.keys(stateDefinitions).length) {
+    if (Object.keys(stateDefinitions).length > 0) {
       dependencies.useState = USE_STATE_DEPENDENCY
     }
 
@@ -35,14 +41,24 @@ export const createPlugin: ComponentPluginFactory<JSXConfig> = (config) => {
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
-    const accumulators = {
+    const jsxParams = {
       propDefinitions,
       stateDefinitions,
       nodesLookup,
       dependencies,
     }
 
-    const jsxTagStructure = generateNodeSyntax(uidl.node, accumulators)
+    const jsxOptions: JSXGenerationOptions = {
+      dynamicReferencePrefixMap: {
+        prop: 'props',
+        state: '',
+        local: '',
+      },
+      useHooks: true,
+    }
+
+    const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
+
     const pureComponent = createPureComponent(
       uidl.name,
       stateDefinitions,
