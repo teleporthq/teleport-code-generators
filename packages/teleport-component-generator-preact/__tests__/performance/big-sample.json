@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/component.json",
+  "name": "BigSample",
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "children": []
+    }
+  }
+}
