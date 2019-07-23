@@ -1,25 +1,25 @@
 import {
   camelCaseToDashCase,
   dashCaseToCamelCase,
-} from '@teleporthq/teleport-shared/lib/utils/string-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   addDynamicAttributeToJSXTag,
   addAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   traverseElements,
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   createCSSClass,
   createDynamicStyleExpression,
-} from '@teleporthq/teleport-shared/lib/builders/css-builders'
-import { getContentOfStyleObject } from '@teleporthq/teleport-shared/lib/utils/jss-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
+import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/utils/jss-utils'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ReactCSSModulesConfig {
   componentChunkName: string

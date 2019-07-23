@@ -1,6 +1,6 @@
 import * as utils from './utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-shared/lib/utils/string-utils'
-import { cloneObject } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { sanitizeVariableName } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { cloneObject } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 
 /**

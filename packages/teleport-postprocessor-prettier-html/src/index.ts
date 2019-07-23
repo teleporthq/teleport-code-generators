@@ -3,7 +3,7 @@ import { format } from 'prettier/standalone'
 import parserHTML from 'prettier/parser-html'
 import parserPostCSS from 'prettier/parser-postcss'
 
-import { PRETTIER_CONFIG, FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { PRETTIER_CONFIG, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { PostProcessingFunction } from '@teleporthq/teleport-types'
 
 const processor: PostProcessingFunction = (codeChunks) => {

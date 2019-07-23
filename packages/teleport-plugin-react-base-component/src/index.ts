@@ -1,4 +1,4 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
 import { createPureComponent } from './utils'
 import { generateNodeSyntax } from './node-handlers'

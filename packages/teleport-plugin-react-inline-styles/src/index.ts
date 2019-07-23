@@ -1,10 +1,10 @@
-import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { createDynamicStyleExpression } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { createDynamicStyleExpression } from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
 import {
   cleanupNestedStyles,
   transformDynamicStyles,
   traverseElements,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface InlineStyleConfig {

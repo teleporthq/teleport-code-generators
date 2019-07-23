@@ -1,5 +1,5 @@
 import { ComponentDependency, ChunkDefinition } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 export const extractExternalDependencies = (
   dependencies: Record<string, ComponentDependency>

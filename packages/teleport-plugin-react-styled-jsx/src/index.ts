@@ -1,11 +1,11 @@
-import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   transformDynamicStyles,
   traverseElements,
   findFirstElementNode,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/lib/builders/css-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { createCSSClass } from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 

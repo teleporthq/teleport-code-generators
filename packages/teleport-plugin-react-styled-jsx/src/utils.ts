@@ -2,12 +2,12 @@ import {
   stringAsTemplateLiteral,
   addAttributeToJSXTag,
   addChildJSXText,
-} from '@teleporthq/teleport-shared/lib/utils/ast-jsx-utils'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
 import {
   createJSXTag,
   createJSXExpresionContainer,
-} from '@teleporthq/teleport-shared/lib/builders/ast-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
 export const generateStyledJSXTag = (content: string) => {
   const templateLiteral = stringAsTemplateLiteral(content)

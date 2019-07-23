@@ -1,8 +1,8 @@
 import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../src/file-handlers'
 import { PackageJSON } from '../src/types'
 import { GeneratedFolder, ProjectUIDL, HastNode, HastText } from '@teleporthq/teleport-types'
-import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/lib/constants'
+import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 import { firstStrategy } from './mocks'
 

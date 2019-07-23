@@ -1,4 +1,4 @@
-import { component, elementNode } from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 export const structure = {
   chunks: [],

@@ -5,7 +5,7 @@ import {
   conditionalNode,
   dynamicNode,
   definition,
-} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 

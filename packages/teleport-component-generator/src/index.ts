@@ -3,7 +3,7 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { getComponentFileName } from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 import {
   ChunkDefinition,

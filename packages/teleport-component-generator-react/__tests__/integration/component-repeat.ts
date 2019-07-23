@@ -7,7 +7,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
-} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>

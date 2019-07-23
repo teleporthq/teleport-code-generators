@@ -4,8 +4,8 @@ import {
   traverseNodes,
   traverseRepeats,
   cloneObject,
-} from '@teleporthq/teleport-shared/lib/utils/uidl-utils'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/lib/constants'
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
   EventDefinitions,
   UIDLElement,
@@ -18,7 +18,7 @@ import {
   UIDLStateDefinition,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/lib/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']

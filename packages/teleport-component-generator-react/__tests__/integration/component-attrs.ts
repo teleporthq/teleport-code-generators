@@ -11,7 +11,7 @@ import {
   dynamicNode,
   elementNode,
   staticNode,
-} from '@teleporthq/teleport-shared/lib/builders/uidl-builders'
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 const uidl = component(
   'ComponentWithAttrProp',
