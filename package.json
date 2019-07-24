@@ -7,7 +7,7 @@
   "description": "Code generators and UIDL definition library",
   "scripts": {
     "lint": "tslint -c tslint.json 'packages/teleport-*/src/**/*.ts{,x}'",
-    "clean": "lerna run clean",
+    "clean": "lerna run clean --parallel",
     "build": "lerna run build",
     "build:cjs": "lerna run build:cjs",
     "build:esm": "lerna run build:esm",

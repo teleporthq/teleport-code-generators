@@ -8,7 +8,7 @@ const ignorePackages = [
   'teleport-project-packer-test'
 ]
 
-const watcher = chokidar.watch('packages/**/src/*.ts', { 
+const watcher = chokidar.watch('packages/**/src/**/*.ts', { 
   persistent: true ,
   usePolling: true,
   interval: 500
