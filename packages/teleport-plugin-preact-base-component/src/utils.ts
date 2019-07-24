@@ -16,7 +16,7 @@ export const createClassComponent = (
   const classMethodsAndProperties = []
   const renderMethodArguments = []
 
-  if (Object.keys(propDefinitions).length > 0) {
+  if (Object.keys(propDefinitions).length > 0 || Object.keys(stateDefinitions).length > 0) {
     renderMethodArguments.push(t.identifier('props'))
   }
 
