@@ -1,10 +1,9 @@
 import * as types from '@babel/types'
 
 import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import { UIDLStateDefinition } from '@teleporthq/teleport-types'
+import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 import { JSXRootReturnType } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { UIDLPropDefinition } from '@teleporthq/teleport-types/dist/esm'
 
 export const createClassComponent = (
   name: string,

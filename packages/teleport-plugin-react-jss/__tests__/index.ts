@@ -9,7 +9,7 @@ import { createPlugin } from '../src/index'
 describe('plugin-react-jss', () => {
   const plugin = createPlugin({ styleChunkName: 'jss-chunk', exportChunkName: 'export-chunk' })
   const componentChunk: ChunkDefinition = {
-    name: 'react-component',
+    name: 'jsx-component',
     meta: {
       nodesLookup: {
         container: {
@@ -20,6 +20,9 @@ describe('plugin-react-jss', () => {
             attributes: [],
           },
         },
+      },
+      dynamicRefPrefix: {
+        prop: 'props.',
       },
     },
     type: 'js',

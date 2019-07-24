@@ -9,7 +9,7 @@ import { createPlugin } from '../src/index'
 describe('plugin-react-inline-styles', () => {
   const plugin = createPlugin()
   const componentChunk: ChunkDefinition = {
-    name: 'react-component',
+    name: 'jsx-component',
     meta: {
       nodesLookup: {
         container: {
@@ -20,6 +20,9 @@ describe('plugin-react-inline-styles', () => {
             attributes: [],
           },
         },
+      },
+      dynamicRefPrefix: {
+        prop: 'props.',
       },
     },
     type: 'js',

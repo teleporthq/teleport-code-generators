@@ -13,7 +13,7 @@ export const USE_STATE_DEPENDENCY = {
   },
 }
 
-export const DEFAULT_COMPONENT_CHUNK_NAME = 'react-component'
+export const DEFAULT_COMPONENT_CHUNK_NAME = 'jsx-component'
 
 export const DEFAULT_EXPORT_CHUNK_NAME = 'export'
 

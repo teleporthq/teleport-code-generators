@@ -10,7 +10,7 @@ interface ReactJSPropTypesConfig {
 
 export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (config) => {
   const {
-    componentChunkName = 'react-component',
+    componentChunkName = 'jsx-component',
     defaultPropsChunkName = 'react-component-default-props',
     typesOfPropsChunkName = 'react-component-types-of-props',
     exportComponentName = 'export',

@@ -125,10 +125,7 @@ export const createFunctionalComponent = (
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxRoot)
-  const arrowFunction = t.arrowFunctionExpression(
-    [t.identifier('props')],
-    t.blockStatement([returnStatement] || [])
-  )
+  const arrowFunction = t.arrowFunctionExpression([], t.blockStatement([returnStatement] || []))
 
   const declarator = t.variableDeclarator(t.identifier(componentName), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])

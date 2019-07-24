@@ -17,7 +17,7 @@ interface StyledComponentsConfig {
 }
 
 export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (config) => {
-  const { componentChunkName = 'react-component', importChunkName = 'import-local' } = config || {}
+  const { componentChunkName = 'jsx-component', importChunkName = 'import-local' } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
@@ -28,6 +28,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap = {}
 
     traverseElements(node, (element) => {
@@ -41,7 +42,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           if (styleValue.content.referenceType === 'prop') {
             switch (timesReferred) {
               case 1:
-                addDynamicAttributeToJSXTag(root, attribute, styleValue.content.id, 'props')
+                addDynamicAttributeToJSXTag(root, attribute, styleValue.content.id, propsPrefix)
                 return `\$\{props => props.${attribute}\}`
               default:
                 return `\$\{props => props.${styleValue.content.id}\}`
@@ -54,7 +55,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
         })
 
         if (timesReferred > 1) {
-          addSpreadAttributeToJSXTag(root, 'props')
+          addSpreadAttributeToJSXTag(root, propsPrefix)
         }
 
         renameJSXTag(root, className)

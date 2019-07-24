@@ -14,7 +14,7 @@ interface StyledJSXConfig {
 }
 
 export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
-  const { componentChunkName = 'react-component' } = config || {}
+  const { componentChunkName = 'jsx-component' } = config || {}
 
   const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
@@ -26,6 +26,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     const styleJSXString: string[] = []
 
@@ -37,7 +38,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
         // Generating the string templates for the dynamic styles
         const styleRules = transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
-            return `\$\{props.${styleValue.content.id}\}`
+            return `\$\{${propsPrefix}.${styleValue.content.id}\}`
           }
           throw new Error(
             `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`

@@ -2,12 +2,13 @@ import * as types from '@babel/types'
 
 import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import { capitalize } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { UIDLStateDefinition } from '@teleporthq/teleport-types'
+import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 import { JSXRootReturnType } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
 export const createPureComponent = (
   name: string,
+  propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: JSXRootReturnType,
   nodeType: string,
@@ -33,7 +34,10 @@ export const createPureComponent = (
       break
   }
 
-  const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
+  // Only render `props` when they are used
+  const arrowFunctionProps = Object.keys(propDefinitions).length > 0 ? [t.identifier('props')] : []
+
+  const arrowFunction = t.arrowFunctionExpression(arrowFunctionProps, arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])

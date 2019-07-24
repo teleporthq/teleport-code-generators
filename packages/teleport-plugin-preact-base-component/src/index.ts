@@ -67,6 +67,7 @@ export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) =
       name: componentChunkName,
       meta: {
         nodesLookup,
+        dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
       },
       content: preactComponent,
       linkAfter: [importChunkName],

@@ -12,7 +12,7 @@ import { createPlugin } from '../src/index'
 describe('plugin-react-styled-jsx', () => {
   const plugin = createPlugin()
   const componentChunk: ChunkDefinition = {
-    name: 'react-component',
+    name: 'jsx-component',
     meta: {
       nodesLookup: {
         container: {
@@ -33,6 +33,9 @@ describe('plugin-react-styled-jsx', () => {
           },
           children: [],
         },
+      },
+      dynamicRefPrefix: {
+        prop: 'props.',
       },
     },
     type: 'js',
@@ -108,6 +111,7 @@ describe('plugin-react-styled-jsx', () => {
       uidl: uidlSample,
       chunks: [componentChunk],
       dependencies: {},
+      options: {},
     }
 
     const { chunks } = await plugin(structure)

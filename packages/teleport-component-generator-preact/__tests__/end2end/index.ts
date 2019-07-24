@@ -3,7 +3,7 @@ import uidlSampleJSON from '../../../../examples/test-samples/component-sample.j
 // @ts-ignore
 import invalidUidlSampleJSON from '../../../../examples/test-samples/component-invalid-sample.json'
 
-import { createReactComponentGenerator } from '../../src'
+import { createPreactComponentGenerator } from '../../src'
 import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
@@ -12,9 +12,9 @@ const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
   files.find((file) => file.fileType === type)
 
-describe('React Component Generator', () => {
-  describe('with CSS Modules', () => {
-    const generator = createReactComponentGenerator('CSSModules')
+describe('Preact Component Generator', () => {
+  describe('with standard plugins', () => {
+    const generator = createPreactComponentGenerator()
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -23,72 +23,15 @@ describe('React Component Generator', () => {
       expect(jsFile).toBeDefined()
       expect(result.files).toBeDefined()
       expect(Array.isArray(result.files)).toBeTruthy()
-      expect(result.files.length).toBeTruthy()
-      expect(jsFile.content).toContain('import React')
-      expect(result.dependencies).toBeDefined()
-    })
-  })
-
-  describe('with JSS', () => {
-    const generator = createReactComponentGenerator('JSS')
-
-    it('should return the files containing the code as string', async () => {
-      const result = await generator.generateComponent(uidlSample)
-      const jsFile = findFileByType(result.files, JS_FILE)
-
-      expect(jsFile).toBeDefined()
       expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import React')
-      expect(result.dependencies).toBeDefined()
-    })
-  })
-
-  describe('with StyledComponents', () => {
-    const generator = createReactComponentGenerator('StyledComponents')
-
-    it('should return the files containing the code as string', async () => {
-      const result = await generator.generateComponent(uidlSample)
-      const jsFile = findFileByType(result.files, JS_FILE)
-
-      expect(jsFile).toBeDefined()
-      expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import React')
-      expect(result.dependencies).toBeDefined()
-    })
-  })
-
-  describe('with InlineStyles', () => {
-    const generator = createReactComponentGenerator()
-
-    it('should return the files containing the code as string', async () => {
-      const result = await generator.generateComponent(uidlSample)
-      const jsFile = findFileByType(result.files, JS_FILE)
-
-      expect(jsFile).toBeDefined()
-      expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import React')
-      expect(result.dependencies).toBeDefined()
-    })
-  })
-
-  describe('with Custom Mapping', () => {
-    const mapping = { elements: { container: { elementType: 'fakediv' } } }
-    const generator = createReactComponentGenerator('InlineStyles', mapping)
-
-    it('should render <fakediv> tags', async () => {
-      const result = await generator.generateComponent(uidlSample)
-      const jsFile = findFileByType(result.files, JS_FILE)
-
-      expect(jsFile).toBeDefined()
-      expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('<fakediv')
+      expect(jsFile.content).toContain('import { Component }')
       expect(result.dependencies).toBeDefined()
     })
   })
 })
 
-describe('React Component Validator', () => {
-  const generator = createReactComponentGenerator('CSSModules')
+describe('Preact Component Validator', () => {
+  const generator = createPreactComponentGenerator()
 
   it('works with valid UIDL sample', async () => {
     const result = await generator.generateComponent(uidlSample)
@@ -96,7 +39,7 @@ describe('React Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import React')
+    expect(jsFile.content).toContain('import { Component }')
     expect(result.dependencies).toBeDefined()
   })
 
@@ -112,7 +55,7 @@ describe('React Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import React')
+    expect(jsFile.content).toContain('import { Component }')
     expect(result.dependencies).toBeDefined()
   })
 })

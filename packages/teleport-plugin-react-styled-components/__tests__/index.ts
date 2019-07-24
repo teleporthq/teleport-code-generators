@@ -9,7 +9,7 @@ import { createPlugin } from '../src/index'
 describe('Testing the functionality for StyledComponents', () => {
   const plugin = createPlugin()
   const componentChunk: ChunkDefinition = {
-    name: 'react-component',
+    name: 'jsx-component',
     meta: {
       nodesLookup: {
         container: {
@@ -19,6 +19,9 @@ describe('Testing the functionality for StyledComponents', () => {
             },
           },
         },
+      },
+      dynamicRefPrefix: {
+        prop: 'props.',
       },
     },
     type: 'js',

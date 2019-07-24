@@ -1,25 +1,24 @@
-# teleport-component-generator-react
+# teleport-component-generator-preact
 
-Component generator customization, capable of creating React components with a number of different style flavors.
+Component generator customization, capable of creating Preact components with CSS-Modules styling
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-component-generator-react
+npm install @teleporthq/teleport-component-generator-preact
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-component-generator-react
+yarn add @teleporthq/teleport-component-generator-preact
 ```
 
 ## Usage
 ```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 
-// other style options: "InlineStyles" - default, "StyledComponents", "StyledJSX", "JSS"
-const reactGenerator = createReactComponentGenerator('CSSModules')
+const preactGenerator = createPreactComponentGenerator(')
 
-const result = await reactGenerator.generateComponent(uidl)
+const result = await preactGenerator.generateComponent(uidl)
 ```
 
