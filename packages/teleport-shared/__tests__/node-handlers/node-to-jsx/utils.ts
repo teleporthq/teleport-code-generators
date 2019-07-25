@@ -1,4 +1,4 @@
-import { createBinaryExpression } from '../src/utils'
+import { createBinaryExpression } from '../../../src/node-handlers/node-to-jsx/utils'
 
 describe('createBinaryExpression', () => {
   it('varName === true -> varName', () => {

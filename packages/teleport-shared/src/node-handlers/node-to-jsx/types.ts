@@ -6,32 +6,27 @@ import {
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 
-export interface JSXConfig {
-  componentChunkName: string
-  exportChunkName: string
-  importChunkName: string
-}
-
-export interface ReactComponentAccumulators {
+export interface JSXGenerationParams {
   propDefinitions: Record<string, UIDLPropDefinition>
   stateDefinitions: Record<string, UIDLStateDefinition>
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, ComponentDependency>
 }
 
-export type GenerateNodeSyntaxReturnValue =
-  | string
-  | types.JSXExpressionContainer
-  | types.JSXElement
-  | types.LogicalExpression
-  | types.Identifier
-  | types.MemberExpression
+export interface JSXGenerationOptions {
+  dynamicReferencePrefixMap?: {
+    prop: string
+    state: string
+    local: string
+  }
+  useHooks?: boolean
+}
 
-export type ContentType =
-  | types.JSXElement
-  | types.JSXExpressionContainer
-  | types.LogicalExpression
+export type JSXRootReturnType =
   | string
+  | types.JSXExpressionContainer
+  | types.JSXElement
+  | types.LogicalExpression
   | types.Identifier
   | types.MemberExpression
 

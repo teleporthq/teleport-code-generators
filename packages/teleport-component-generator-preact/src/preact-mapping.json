@@ -1,0 +1,11 @@
+{
+  "elements": {
+  },
+  "events": {
+    "click": "onClick"
+  },
+  "attributes": {
+    "for":"htmlFor",
+    "autoplay":"autoPlay"
+  } 
+}

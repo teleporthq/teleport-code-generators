@@ -21,35 +21,38 @@ import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/ut
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-interface ReactCSSModulesConfig {
-  componentChunkName: string
-  styleObjectImportName: string
-  fileId: string
-  styleChunkName: string
-  camelCaseClassNames: boolean
+interface CSSModulesConfig {
+  componentChunkName?: string
+  styleObjectImportName?: string
+  fileId?: string
+  styleChunkName?: string
+  camelCaseClassNames?: boolean
+  classAttributeName?: string
 }
 
 const defaultConfigProps = {
-  componentChunkName: 'react-component',
+  componentChunkName: 'jsx-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
   fileId: FILE_TYPE.CSS,
   camelCaseClassNames: true,
+  classAttributeName: 'className',
 }
 
-export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (config = {}) => {
+export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = {}) => {
   const {
     componentChunkName,
     styleObjectImportName,
     styleChunkName,
     fileId,
     camelCaseClassNames,
+    classAttributeName,
   } = {
     ...defaultConfigProps,
     ...config,
   }
 
-  const reactCSSModulesPlugin: ComponentPlugin = async (structure) => {
+  const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
     const { name, meta } = uidl
 
@@ -57,12 +60,13 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
 
     if (!componentChunk) {
       throw new Error(
-        `React component chunk with name ${componentChunkName} was reuired and not found.`
+        `JSX based component chunk with name ${componentChunkName} was required and not found.`
       )
     }
 
     const cssClasses: string[] = []
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     traverseElements(uidl.node, (element) => {
       const { style, key } = element
@@ -80,17 +84,20 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
             ? `styles.${classNameInJS}`
             : `styles['${className}']`
 
-          addDynamicAttributeToJSXTag(root, 'className', classReferenceIdentifier)
+          addDynamicAttributeToJSXTag(root, classAttributeName, classReferenceIdentifier)
         }
 
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
           const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-            createDynamicStyleExpression(styleValue)
+            createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
-          addAttributeToJSXTag(root, 'style', inlineStyles)
+          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
+          if (Object.keys(inlineStyles).length > 0) {
+            addAttributeToJSXTag(root, 'style', inlineStyles)
+          }
         }
       }
     })
@@ -127,7 +134,7 @@ export const createPlugin: ComponentPluginFactory<ReactCSSModulesConfig> = (conf
     return structure
   }
 
-  return reactCSSModulesPlugin
+  return cssModulesPlugin
 }
 
 export default createPlugin()

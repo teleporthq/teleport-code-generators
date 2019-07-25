@@ -1,6 +1,6 @@
 import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
-import { createPureComponent } from './utils'
+import { createClassComponent, createPureComponent } from './utils'
 import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -9,8 +9,7 @@ import {
   DEFAULT_COMPONENT_CHUNK_NAME,
   DEFAULT_EXPORT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
-  REACT_LIBRARY_DEPENDENCY,
-  USE_STATE_DEPENDENCY,
+  PREACT_COMPONENT_DEPENDENCY,
 } from './constants'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
@@ -31,11 +30,7 @@ export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) =
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
-    dependencies.React = REACT_LIBRARY_DEPENDENCY
-
-    if (Object.keys(stateDefinitions).length > 0) {
-      dependencies.useState = USE_STATE_DEPENDENCY
-    }
+    const usePureComponent = Object.keys(stateDefinitions).length === 0
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
@@ -51,21 +46,21 @@ export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) =
     const jsxOptions: JSXGenerationOptions = {
       dynamicReferencePrefixMap: {
         prop: 'props',
-        state: '',
+        state: 'state',
         local: '',
       },
-      useHooks: true,
+      useHooks: false,
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
 
-    const pureComponent = createPureComponent(
-      uidl.name,
-      propDefinitions,
-      stateDefinitions,
-      jsxTagStructure,
-      uidl.node.type
-    )
+    if (!usePureComponent) {
+      dependencies.Component = PREACT_COMPONENT_DEPENDENCY
+    }
+
+    const preactComponent = usePureComponent
+      ? createPureComponent(uidl.name, propDefinitions, jsxTagStructure)
+      : createClassComponent(uidl.name, propDefinitions, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
       type: 'js',
@@ -74,7 +69,7 @@ export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) =
         nodesLookup,
         dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
       },
-      content: pureComponent,
+      content: preactComponent,
       linkAfter: [importChunkName],
     })
 

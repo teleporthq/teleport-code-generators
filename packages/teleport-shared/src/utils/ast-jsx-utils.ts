@@ -27,15 +27,18 @@ export const addClassStringOnJSXTag = (
  */
 const getClassAttribute = (
   jsxNode: types.JSXElement,
-  params: { createIfNotFound: boolean } = { createIfNotFound: false },
+  { createIfNotFound = false, classAttributeName = 'className' },
   t = types
 ): types.JSXAttribute => {
   const classNameAttribute = jsxNode.openingElement.attributes.find((attribute) => {
-    return attribute.type === 'JSXAttribute' && attribute.name.name === 'className'
+    return attribute.type === 'JSXAttribute' && attribute.name.name === classAttributeName
   })
 
-  if (!classNameAttribute && params.createIfNotFound) {
-    const createdClassAttribute = t.jsxAttribute(t.jsxIdentifier('className'), t.stringLiteral(''))
+  if (!classNameAttribute && createIfNotFound) {
+    const createdClassAttribute = t.jsxAttribute(
+      t.jsxIdentifier(classAttributeName),
+      t.stringLiteral('')
+    )
 
     jsxNode.openingElement.attributes.push(createdClassAttribute)
     return createdClassAttribute
@@ -46,10 +49,6 @@ const getClassAttribute = (
 
 /**
  * Makes `${name}={${prefix}.${value}}` happen in AST
- *
- * @param jsxASTNode the jsx ast element
- * @param name the name of the prop
- * @param value the value of the prop (will be concatenated with props. before it)
  */
 export const addDynamicAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,

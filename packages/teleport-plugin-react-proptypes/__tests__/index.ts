@@ -6,7 +6,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
   const plugin = createPlugin()
   const reactChunk = {
     type: 'js',
-    name: 'react-component',
+    name: 'jsx-component',
     meta: {},
     content: {},
     linkAfter: [],
@@ -15,7 +15,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     type: 'js',
     name: 'export',
     content: {},
-    linkAfter: ['react-component'],
+    linkAfter: ['jsx-component'],
   }
 
   it('Should throw error when the chunk is supplied', async () => {

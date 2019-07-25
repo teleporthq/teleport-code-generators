@@ -23,14 +23,16 @@ interface JSSConfig {
   componentChunkName: string
   exportChunkName: string
   jssDeclarationName?: string
+  classAttributeName?: string
 }
 export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
   const {
-    componentChunkName = 'react-component',
+    componentChunkName = 'jsx-component',
     importChunkName = 'import-local',
     styleChunkName = 'jss-style-definition',
     exportChunkName = 'export',
     jssDeclarationName = 'style',
+    classAttributeName = 'className',
   } = config || {}
 
   const reactJSSComponentStyleChunksPlugin: ComponentPlugin = async (structure) => {
@@ -43,6 +45,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       return structure
     }
 
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap = {}
 
@@ -61,7 +64,12 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
             `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        addDynamicAttributeToJSXTag(root, 'className', `classes['${className}']`, 'props')
+        addDynamicAttributeToJSXTag(
+          root,
+          classAttributeName,
+          `classes['${className}']`,
+          propsPrefix
+        )
       }
     })
 

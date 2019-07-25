@@ -19,14 +19,18 @@ export const createCSSClass = (className: string, styleObject: Record<string, st
     .toString()
 }
 
-export const createDynamicStyleExpression = (styleValue: UIDLDynamicReference, t = types) => {
+export const createDynamicStyleExpression = (
+  styleValue: UIDLDynamicReference,
+  propsPrefix: string = '',
+  t = types
+) => {
   switch (styleValue.content.referenceType) {
     case 'state':
     case 'local':
       return new ParsedASTNode(t.identifier(styleValue.content.id))
     case 'prop':
       return new ParsedASTNode(
-        t.memberExpression(t.identifier('props'), t.identifier(styleValue.content.id))
+        t.memberExpression(t.identifier(propsPrefix), t.identifier(styleValue.content.id))
       )
     default:
       throw new Error(

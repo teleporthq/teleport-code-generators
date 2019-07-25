@@ -11,7 +11,7 @@ interface InlineStyleConfig {
   componentChunkName: string
 }
 export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) => {
-  const { componentChunkName = 'react-component' } = config || {}
+  const { componentChunkName = 'jsx-component' } = config || {}
   /**
    * Generate the inlines stlye definition as a AST block which will represent the
    * defined styles of this component in UIDL
@@ -31,6 +31,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
       if (style && Object.keys(style).length > 0) {
         const jsxASTTag = componentChunk.meta.nodesLookup[key]
+        const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
         if (!jsxASTTag) {
           return
         }
@@ -38,7 +39,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
         // Nested styles are ignored
         const rootStyles = cleanupNestedStyles(style)
         const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-          createDynamicStyleExpression(styleValue)
+          createDynamicStyleExpression(styleValue, propsPrefix)
         )
 
         addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)

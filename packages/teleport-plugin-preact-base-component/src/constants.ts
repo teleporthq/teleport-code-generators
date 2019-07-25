@@ -1,13 +1,7 @@
-export const REACT_LIBRARY_DEPENDENCY = {
+export const PREACT_COMPONENT_DEPENDENCY = {
   type: 'library',
-  path: 'react',
-  version: '16.8.3',
-}
-
-export const USE_STATE_DEPENDENCY = {
-  type: 'library',
-  path: 'react',
-  version: '16.8.3',
+  path: 'preact',
+  version: 'next',
   meta: {
     namedImport: true,
   },

@@ -1,0 +1,298 @@
+import * as types from '@babel/types'
+
+import { convertValueToLiteral } from '../../utils/ast-js-utils'
+import { capitalize } from '../../utils/string-utils'
+import {
+  UIDLPropDefinition,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
+  UIDLStateDefinition,
+  EventHandlerStatement,
+  UIDLConditionalExpression,
+} from '@teleporthq/teleport-types'
+
+import {
+  BinaryOperator,
+  UnaryOperation,
+  JSXRootReturnType,
+  ConditionalIdentifier,
+  JSXGenerationParams,
+  JSXGenerationOptions,
+} from './types'
+
+// Adds all the event handlers and all the instructions for each event handler
+// in case there is more than one specified in the UIDL
+export const addEventHandlerToTag = (
+  tag: types.JSXElement,
+  eventKey: string,
+  eventHandlerStatements: EventHandlerStatement[],
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions,
+  t = types
+) => {
+  const eventHandlerASTStatements: types.ExpressionStatement[] = []
+  const { propDefinitions, stateDefinitions } = params
+
+  eventHandlerStatements.forEach((eventHandlerAction) => {
+    if (eventHandlerAction.type === 'stateChange') {
+      const handler = createStateChangeStatement(eventHandlerAction, stateDefinitions, options)
+      if (handler) {
+        eventHandlerASTStatements.push(handler)
+      }
+    }
+
+    if (eventHandlerAction.type === 'propCall') {
+      const handler = createPropCallStatement(eventHandlerAction, propDefinitions, options)
+      if (handler) {
+        eventHandlerASTStatements.push(handler)
+      }
+    }
+  })
+
+  let expressionContent: types.ArrowFunctionExpression | types.Expression
+  if (eventHandlerASTStatements.length === 1) {
+    const expression = eventHandlerASTStatements[0].expression
+
+    expressionContent =
+      expression.type === 'CallExpression' && expression.arguments.length === 0
+        ? expression.callee
+        : t.arrowFunctionExpression([], expression)
+  } else {
+    expressionContent = t.arrowFunctionExpression([], t.blockStatement(eventHandlerASTStatements))
+  }
+
+  tag.openingElement.attributes.push(
+    t.jsxAttribute(t.jsxIdentifier(eventKey), t.jsxExpressionContainer(expressionContent))
+  )
+}
+
+const createPropCallStatement = (
+  eventHandlerStatement: EventHandlerStatement,
+  propDefinitions: Record<string, UIDLPropDefinition>,
+  options: JSXGenerationOptions,
+  t = types
+) => {
+  const { calls: propFunctionKey, args = [] } = eventHandlerStatement
+
+  if (!propFunctionKey) {
+    console.warn(`No prop definition referenced under the "calls" field`)
+    return null
+  }
+
+  const propDefinition = propDefinitions[propFunctionKey]
+
+  if (!propDefinition || propDefinition.type !== 'func') {
+    console.warn(`No prop definition was found for "${propFunctionKey}"`)
+    return null
+  }
+
+  const prefix = options.dynamicReferencePrefixMap.prop
+    ? options.dynamicReferencePrefixMap.prop + '.'
+    : ''
+  return t.expressionStatement(
+    t.callExpression(t.identifier(prefix + propFunctionKey), [
+      ...args.map((arg) => convertValueToLiteral(arg)),
+    ])
+  )
+}
+
+const createStateChangeStatement = (
+  eventHandlerStatement: EventHandlerStatement,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  options: JSXGenerationOptions,
+  t = types
+) => {
+  if (!eventHandlerStatement.modifies) {
+    console.warn(`No state identifier referenced under the "modifies" field`)
+    return null
+  }
+
+  const stateKey = eventHandlerStatement.modifies
+  const stateDefinition = stateDefinitions[stateKey]
+
+  const prefix = options.dynamicReferencePrefixMap.state
+    ? options.dynamicReferencePrefixMap.state + '.'
+    : ''
+
+  const newStateValue =
+    eventHandlerStatement.newState === '$toggle'
+      ? t.unaryExpression('!', t.identifier(prefix + stateKey))
+      : convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
+
+  if (options.useHooks) {
+    return t.expressionStatement(
+      t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [newStateValue])
+    )
+  }
+
+  return t.expressionStatement(
+    t.callExpression(t.identifier('this.setState'), [
+      t.objectExpression([t.objectProperty(t.identifier(stateKey), newStateValue)]),
+    ])
+  )
+}
+
+export const createDynamicValueExpression = (
+  identifier: UIDLDynamicReference,
+  options: JSXGenerationOptions,
+  t = types
+) => {
+  const refType = identifier.content.referenceType
+  const prefix = options.dynamicReferencePrefixMap[refType] || ''
+  return prefix === ''
+    ? t.identifier(identifier.content.id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
+}
+
+// Prepares an identifier (from props or state) to be used as a conditional rendering identifier
+// Assumes the type from the corresponding props/state definitions
+export const createConditionIdentifier = (
+  dynamicReference: UIDLDynamicReference,
+  params: JSXGenerationParams,
+  options: JSXGenerationOptions
+): ConditionalIdentifier => {
+  const { id, referenceType } = dynamicReference.content
+
+  switch (referenceType) {
+    case 'prop':
+      return {
+        key: id,
+        type: params.propDefinitions[id].type,
+        prefix: options.dynamicReferencePrefixMap.prop,
+      }
+    case 'state':
+      return {
+        key: id,
+        type: params.stateDefinitions[id].type,
+        prefix: options.dynamicReferencePrefixMap.state,
+      }
+    default:
+      throw new Error(
+        `createConditionIdentifier encountered an invalid reference type: ${JSON.stringify(
+          dynamicReference,
+          null,
+          2
+        )}`
+      )
+  }
+}
+
+export const createConditionalJSXExpression = (
+  content: JSXRootReturnType,
+  conditionalExpression: UIDLConditionalExpression,
+  conditionalIdentifier: ConditionalIdentifier,
+  t = types
+) => {
+  let contentNode: types.Expression
+
+  if (typeof content === 'string') {
+    contentNode = t.stringLiteral(content)
+  } else if (content.type === 'JSXExpressionContainer') {
+    contentNode = content.expression as types.Expression
+  } else {
+    contentNode = content
+  }
+
+  let binaryExpression:
+    | types.LogicalExpression
+    | types.BinaryExpression
+    | types.UnaryExpression
+    | types.Identifier
+    | types.MemberExpression
+
+  // When the stateValue is an object we will compute a logical/binary expression on the left side
+  const { conditions, matchingCriteria } = conditionalExpression
+  const binaryExpressions = conditions.map((condition) =>
+    createBinaryExpression(condition, conditionalIdentifier)
+  )
+
+  if (binaryExpressions.length === 1) {
+    binaryExpression = binaryExpressions[0]
+  } else {
+    // the first two binary expressions are put together as a logical expression
+    const [firstExp, secondExp] = binaryExpressions
+    const operation = matchingCriteria === 'all' ? '&&' : '||'
+    let expression: types.LogicalExpression = t.logicalExpression(operation, firstExp, secondExp)
+
+    // accumulate the rest of the expressions to the logical expression
+    for (let index = 2; index < binaryExpressions.length; index++) {
+      expression = t.logicalExpression(operation, expression, binaryExpressions[index])
+    }
+
+    binaryExpression = expression
+  }
+
+  return t.logicalExpression('&&', binaryExpression, contentNode)
+}
+
+export const createBinaryExpression = (
+  condition: {
+    operation: string
+    operand?: string | number | boolean
+  },
+  conditionalIdentifier: ConditionalIdentifier,
+  t = types
+) => {
+  const { operand, operation } = condition
+  const identifier = conditionalIdentifier.prefix
+    ? t.memberExpression(
+        t.identifier(conditionalIdentifier.prefix),
+        t.identifier(conditionalIdentifier.key)
+      )
+    : t.identifier(conditionalIdentifier.key)
+
+  if (operation === '===') {
+    if (operand === true) {
+      return identifier
+    }
+
+    if (operand === false) {
+      return t.unaryExpression('!', identifier)
+    }
+  }
+
+  if (operand !== undefined) {
+    const stateValueIdentifier = convertValueToLiteral(operand, conditionalIdentifier.type)
+
+    return t.binaryExpression(convertToBinaryOperator(operation), identifier, stateValueIdentifier)
+  } else {
+    return operation ? t.unaryExpression(convertToUnaryOperator(operation), identifier) : identifier
+  }
+}
+
+/**
+ * Because of the restrictions of the AST Types we need to have a clear subset of binary operators we can use
+ * @param operation - the operation defined in the UIDL for the current state branch
+ */
+const convertToBinaryOperator = (operation: string): BinaryOperator => {
+  const allowedOperations = ['===', '!==', '>=', '<=', '>', '<']
+  if (allowedOperations.includes(operation)) {
+    return operation as BinaryOperator
+  } else {
+    return '==='
+  }
+}
+
+const convertToUnaryOperator = (operation: string): UnaryOperation => {
+  const allowedOperations = ['!']
+  if (allowedOperations.includes(operation)) {
+    return operation as UnaryOperation
+  } else {
+    return '!'
+  }
+}
+
+export const getRepeatSourceIdentifier = (
+  dataSource: UIDLAttributeValue,
+  options: JSXGenerationOptions
+) => {
+  switch (dataSource.type) {
+    case 'static':
+      return convertValueToLiteral(dataSource.content)
+    case 'dynamic': {
+      return createDynamicValueExpression(dataSource, options)
+    }
+    default:
+      throw new Error(`Invalid type for dataSource: ${dataSource}`)
+  }
+}
