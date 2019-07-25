@@ -26,8 +26,10 @@ import {
   addChildJSXTag,
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
+  renameJSXTag,
 } from '../../utils/ast-jsx-utils'
 import { createJSXTag } from '../../builders/ast-builders'
+import { camelCaseToDashCase } from '../../utils/string-utils'
 
 const generateJSXSyntax = (
   node: UIDLNode,
@@ -39,6 +41,8 @@ const generateJSXSyntax = (
       local: '',
     },
     useHooks: false,
+    dependenciesHandling: 'import',
+    stateHandling: 'hooks',
   }
 ): JSXRootReturnType => {
   switch (node.type) {
@@ -108,8 +112,15 @@ const generateElementNode = (
   }
 
   if (dependency) {
-    // Make a copy to avoid reference leaking
-    dependencies[elementType] = { ...dependency }
+    if (options.dependenciesHandling === 'import') {
+      // Make a copy to avoid reference leaking
+      dependencies[elementType] = { ...dependency }
+    } else {
+      // Convert
+      const rootElementIdentifier = elementTag.openingElement.name as types.JSXIdentifier
+      const webComponentName = camelCaseToDashCase(rootElementIdentifier.name)
+      renameJSXTag(elementTag, webComponentName)
+    }
   }
 
   if (events) {

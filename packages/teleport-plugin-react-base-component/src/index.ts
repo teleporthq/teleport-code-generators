@@ -14,13 +14,13 @@ import {
 } from './constants'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
-interface ReactChunkConfig {
+interface ReactPluginConfig {
   componentChunkName: string
   exportChunkName: string
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) => {
+export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,

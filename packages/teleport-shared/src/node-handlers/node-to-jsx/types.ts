@@ -20,6 +20,8 @@ export interface JSXGenerationOptions {
     local: string
   }
   useHooks?: boolean
+  dependenciesHandling?: 'import' | 'webcomponents'
+  stateHandling?: 'hooks' | 'function' | 'mutation'
 }
 
 export type JSXRootReturnType =
