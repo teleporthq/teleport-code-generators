@@ -6,36 +6,60 @@ import {
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 
-describe('plugin-vue-style', () => {
-  const plugin = createPlugin({ componentChunkName: 'jsx-component' })
+describe('plugin-stencil-css', () => {
+  const plugin = createPlugin({
+    componentChunkName: 'jsx-component',
+    componentDecoratorChunkName: 'decorator',
+  })
   const componentChunk: ChunkDefinition = {
-    name: 'vue-chunk',
+    name: 'jsx-component',
     meta: {
-      lookup: {
+      nodesLookup: {
         container: {
-          type: 'element',
-          tagName: 'div',
-          properties: {},
+          openingElement: {
+            name: {
+              name: '',
+            },
+            attributes: [],
+          },
         },
       },
+      dynamicRefPrefix: {
+        prop: 'props.',
+      },
     },
-    type: 'html',
-    linkAfter: [],
+    type: 'js',
+    linkAfter: ['import-local'],
     content: {},
   }
 
+  const decoratorChunk: ChunkDefinition = {
+    name: 'decorator',
+    type: 'js',
+    linkAfter: ['import-local'],
+    content: {
+      expression: {
+        arguments: [
+          {
+            properties: [],
+          },
+        ],
+      },
+    },
+  }
+
   it('generates no chunk if no styles exist', async () => {
-    const uidlSample = component('VueStyles', elementNode('container'))
+    const uidlSample = component('test', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [componentChunk],
+      chunks: [componentChunk, decoratorChunk],
       dependencies: {},
     }
 
     const { chunks } = await plugin(structure)
 
-    expect(chunks.length).toBe(1)
+    expect(chunks.length).toBe(2)
   })
 
   it('generates a string chunk out of the styles and adds the className', async () => {
@@ -44,22 +68,19 @@ describe('plugin-vue-style', () => {
     }
     const element = elementNode('container', {}, [], null, style)
     element.content.key = 'container'
-    const uidlSample = component('VueStyle', element)
+    const uidlSample = component('test', element)
 
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [componentChunk],
+      chunks: [componentChunk, decoratorChunk],
       dependencies: {},
     }
 
     const { chunks } = await plugin(structure)
 
-    expect(chunks.length).toBe(2)
-    expect(chunks[1].type).toBe('string')
-    expect(chunks[1].content).toContain('height: 100px;')
-
-    const nodeReference = componentChunk.meta.lookup.container
-    expect(nodeReference.properties.class).toBe('container')
+    expect(chunks.length).toBe(3)
+    expect(chunks[2].type).toBe('string')
+    expect(chunks[2].content).toContain('height: 100px;')
   })
 })

@@ -4,7 +4,7 @@ import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/bui
 describe('plugin-preact-base-component', () => {
   const plugin = createPlugin({
     componentChunkName: 'component-chunk',
-    exportChunkName: 'export-chunk',
+    componentDecoratorChunkName: 'decorator-chunk',
   })
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
@@ -23,13 +23,13 @@ describe('plugin-preact-base-component', () => {
     expect(result.chunks.length).toBe(2)
     expect(result.chunks[0].type).toBe('js')
     expect(result.chunks[0].content).toBeDefined()
-    expect(result.chunks[0].name).toBe('component-chunk')
+    expect(result.chunks[0].name).toBe('decorator-chunk')
     expect(result.chunks[1].type).toBe('js')
     expect(result.chunks[1].content).toBeDefined()
-    expect(result.chunks[1].name).toBe('export-chunk')
+    expect(result.chunks[1].name).toBe('component-chunk')
   })
 
-  it('adds state hooks when state definitions exist', async () => {
+  it('works with state definitions', async () => {
     const structure = {
       chunks: [],
       options: {},
@@ -52,9 +52,9 @@ describe('plugin-preact-base-component', () => {
     expect(result.chunks.length).toBe(2)
     expect(result.chunks[0].type).toBe('js')
     expect(result.chunks[0].content).toBeDefined()
-    expect(result.chunks[0].name).toBe('component-chunk')
+    expect(result.chunks[0].name).toBe('decorator-chunk')
     expect(result.chunks[1].type).toBe('js')
     expect(result.chunks[1].content).toBeDefined()
-    expect(result.chunks[1].name).toBe('export-chunk')
+    expect(result.chunks[1].name).toBe('component-chunk')
   })
 })

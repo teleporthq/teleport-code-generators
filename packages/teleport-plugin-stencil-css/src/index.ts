@@ -44,6 +44,7 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
     }
 
     const jsxNodesLookup = stencilComponent.meta.nodesLookup
+    const propsPrefix = stencilComponent.meta.dynamicRefPrefix.prop
 
     const jssStylesArray = []
 
@@ -57,10 +58,13 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
         if (Object.keys(dynamicStyles).length > 0) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
           const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-            createDynamicStyleExpression(styleValue)
+            createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
-          addAttributeToJSXTag(root, 'style', inlineStyles)
+          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
+          if (Object.keys(inlineStyles).length > 0) {
+            addAttributeToJSXTag(root, 'style', inlineStyles)
+          }
         }
 
         if (Object.keys(staticStyles).length > 0) {

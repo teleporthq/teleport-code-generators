@@ -3,7 +3,7 @@ import uidlSampleJSON from '../../../../examples/test-samples/component-sample.j
 // @ts-ignore
 import invalidUidlSampleJSON from '../../../../examples/test-samples/component-invalid-sample.json'
 
-import { createPreactComponentGenerator } from '../../src'
+import { createStencilComponentGenerator } from '../../src'
 import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
@@ -12,9 +12,9 @@ const JS_FILE = 'js'
 const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
   files.find((file) => file.fileType === type)
 
-describe('Preact Component Generator', () => {
+describe('Stencil Component Generator', () => {
   describe('with standard plugins', () => {
-    const generator = createPreactComponentGenerator()
+    const generator = createStencilComponentGenerator()
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -24,14 +24,14 @@ describe('Preact Component Generator', () => {
       expect(result.files).toBeDefined()
       expect(Array.isArray(result.files)).toBeTruthy()
       expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import { Component }')
+      expect(jsFile.content).toContain('import { Component, h, Prop, State }')
       expect(result.dependencies).toBeDefined()
     })
   })
 })
 
-describe('Preact Component Validator', () => {
-  const generator = createPreactComponentGenerator()
+describe('Stencil Component Validator', () => {
+  const generator = createStencilComponentGenerator()
 
   it('works with valid UIDL sample', async () => {
     const result = await generator.generateComponent(uidlSample)
@@ -39,7 +39,7 @@ describe('Preact Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import { Component }')
+    expect(jsFile.content).toContain('import { Component, h, Prop, State }')
     expect(result.dependencies).toBeDefined()
   })
 
@@ -55,7 +55,7 @@ describe('Preact Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import { Component }')
+    expect(jsFile.content).toContain('import { Component, h, Prop, State }')
     expect(result.dependencies).toBeDefined()
   })
 })

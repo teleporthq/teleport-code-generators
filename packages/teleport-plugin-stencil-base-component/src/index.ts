@@ -85,6 +85,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       name: componentChunkName,
       meta: {
         nodesLookup,
+        dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
       },
       content: exportAST,
       linkAfter: [importChunkName],

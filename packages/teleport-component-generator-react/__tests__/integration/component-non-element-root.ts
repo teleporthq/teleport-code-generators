@@ -26,7 +26,7 @@ describe('React Component Generator support for non elements as root', () => {
     expect(result.files).toBeDefined()
     expect(jsFile.content).toContain('import React')
     expect(result.dependencies).toBeDefined()
-    expect(jsFile.content).toContain(`() => 'Teleport Code Generators'`)
+    expect(jsFile.content).toContain(`(props) => 'Teleport Code Generators'`)
     expect(result.files.length).toBeTruthy()
   })
 

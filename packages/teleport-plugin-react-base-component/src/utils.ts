@@ -34,8 +34,7 @@ export const createPureComponent = (
       break
   }
 
-  // Only render `props` when they are used
-  const arrowFunctionProps = Object.keys(propDefinitions).length > 0 ? [t.identifier('props')] : []
+  const arrowFunctionProps = [t.identifier('props')]
 
   const arrowFunction = t.arrowFunctionExpression(arrowFunctionProps, arrowFunctionBody)
 
