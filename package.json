@@ -11,7 +11,7 @@
     "build": "lerna run build",
     "build:cjs": "lerna run build:cjs",
     "build:esm": "lerna run build:esm",
-    "dev": "npm run build:cjs && npm run watch",
+    "dev": "lerna link && npm run build:cjs && npm run watch",
     "watch": "node scripts/watcher.js",
     "test": "jest",
     "test:perf": "jest __tests__/performance",

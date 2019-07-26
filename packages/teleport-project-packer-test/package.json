@@ -26,6 +26,7 @@
     "@teleporthq/teleport-project-generator-react-next": "^0.8.1",
     "@teleporthq/teleport-project-generator-vue-basic": "^0.8.1",
     "@teleporthq/teleport-project-generator-vue-nuxt": "^0.8.1",
+    "@teleporthq/teleport-project-generator-preact-basic": "^0.8.1",
     "@teleporthq/teleport-project-packer": "^0.8.1",
     "@teleporthq/teleport-publisher-disk": "^0.8.1",
     "@teleporthq/teleport-types": "^0.8.1"
