@@ -110,26 +110,32 @@ const createStateChangeStatement = (
   const stateKey = eventHandlerStatement.modifies
   const stateDefinition = stateDefinitions[stateKey]
 
-  const prefix = options.dynamicReferencePrefixMap.state
+  const statePrefix = options.dynamicReferencePrefixMap.state
     ? options.dynamicReferencePrefixMap.state + '.'
     : ''
 
   const newStateValue =
     eventHandlerStatement.newState === '$toggle'
-      ? t.unaryExpression('!', t.identifier(prefix + stateKey))
+      ? t.unaryExpression('!', t.identifier(statePrefix + stateKey))
       : convertValueToLiteral(eventHandlerStatement.newState, stateDefinition.type)
 
-  if (options.useHooks) {
-    return t.expressionStatement(
-      t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [newStateValue])
-    )
+  switch (options.stateHandling) {
+    case 'hooks':
+      return t.expressionStatement(
+        t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [newStateValue])
+      )
+    case 'function':
+      return t.expressionStatement(
+        t.callExpression(t.identifier('this.setState'), [
+          t.objectExpression([t.objectProperty(t.identifier(stateKey), newStateValue)]),
+        ])
+      )
+    case 'mutation':
+    default:
+      return t.expressionStatement(
+        t.assignmentExpression('=', t.identifier(statePrefix + stateKey), newStateValue)
+      )
   }
-
-  return t.expressionStatement(
-    t.callExpression(t.identifier('this.setState'), [
-      t.objectExpression([t.objectProperty(t.identifier(stateKey), newStateValue)]),
-    ])
-  )
 }
 
 export const createDynamicValueExpression = (

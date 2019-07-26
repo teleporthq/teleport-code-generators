@@ -1,6 +1,6 @@
 import { createClassDeclaration, createComponentDecorator } from './utils'
 import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
-
+import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 import {
@@ -49,13 +49,15 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       dependencies,
     }
 
-    const jsxOptions = {
+    const jsxOptions: JSXGenerationOptions = {
       dynamicReferencePrefixMap: {
         prop: 'this',
         state: 'this',
         local: '',
       },
-      useHooks: false,
+      dependencyHandling: 'webcomponents',
+      stateHandling: 'mutation',
+      slotHandling: 'native',
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

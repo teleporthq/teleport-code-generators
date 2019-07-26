@@ -54,7 +54,9 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
         state: '',
         local: '',
       },
-      useHooks: true,
+      dependencyHandling: 'import',
+      stateHandling: 'hooks',
+      slotHandling: 'props',
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

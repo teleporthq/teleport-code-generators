@@ -40,9 +40,9 @@ const generateJSXSyntax = (
       state: '',
       local: '',
     },
-    useHooks: false,
-    dependenciesHandling: 'import',
-    stateHandling: 'hooks',
+    dependencyHandling: 'import',
+    stateHandling: 'mutation',
+    slotHandling: 'native',
   }
 ): JSXRootReturnType => {
   switch (node.type) {
@@ -112,7 +112,7 @@ const generateElementNode = (
   }
 
   if (dependency) {
-    if (options.dependenciesHandling === 'import') {
+    if (options.dependencyHandling === 'import') {
       // Make a copy to avoid reference leaking
       dependencies[elementType] = { ...dependency }
     } else {
@@ -211,32 +211,54 @@ const generateSlotNode = (
   options?: JSXGenerationOptions,
   t = types
 ) => {
-  // TODO: Handle multiple slots with props['slot-name']
-  const childrenProp: UIDLDynamicReference = {
-    type: 'dynamic',
-    content: {
-      referenceType: 'prop',
-      id: 'children',
-    },
-  }
-
-  const childrenExpression = createDynamicValueExpression(childrenProp, options)
-
-  if (node.content.fallback) {
-    const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
-    let expression: types.Expression
-
-    if (typeof fallbackContent === 'string') {
-      expression = t.stringLiteral(fallbackContent)
-    } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
-      expression = (fallbackContent as types.JSXExpressionContainer).expression as types.Expression
-    } else {
-      expression = fallbackContent as types.JSXElement
+  if (options.slotHandling === 'props') {
+    // TODO: Handle multiple slots with props['slot-name']
+    // TODO: Refactor expression handling
+    const childrenProp: UIDLDynamicReference = {
+      type: 'dynamic',
+      content: {
+        referenceType: 'prop',
+        id: 'children',
+      },
     }
 
-    // props.children with fallback
-    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, expression))
-  }
+    const childrenExpression = createDynamicValueExpression(childrenProp, options)
 
-  return t.jsxExpressionContainer(childrenExpression)
+    if (node.content.fallback) {
+      let fallbackNode: types.Expression
+      const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+
+      if (typeof fallbackContent === 'string') {
+        fallbackNode = t.stringLiteral(fallbackContent)
+      } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
+        fallbackNode = (fallbackContent as types.JSXExpressionContainer)
+          .expression as types.Expression
+      } else {
+        fallbackNode = fallbackContent as types.JSXElement
+      }
+
+      // props.children with fallback
+      return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, fallbackNode))
+    }
+
+    return t.jsxExpressionContainer(childrenExpression)
+  } else {
+    const slotNode = createJSXTag('slot')
+
+    if (node.content.name) {
+      addAttributeToJSXTag(slotNode, 'name', node.content.name)
+    }
+
+    if (node.content.fallback) {
+      const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+      if (typeof fallbackContent === 'string') {
+        addChildJSXText(slotNode, fallbackContent)
+      } else {
+        // TODO: Check other types of Syntaxes (eg: conditionals, repeats)
+        addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
+      }
+    }
+
+    return slotNode
+  }
 }
