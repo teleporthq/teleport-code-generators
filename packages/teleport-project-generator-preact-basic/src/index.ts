@@ -47,6 +47,10 @@ export const createPreactBasicGenerator = () => {
       generator: routingComponentGenerator,
       path: ['src', 'components'],
       fileName: 'app',
+      metaDataOptions: {
+        useFolderStructure: true,
+        disableDOMInjection: true,
+      },
     },
     static: {
       prefix: '/assets',

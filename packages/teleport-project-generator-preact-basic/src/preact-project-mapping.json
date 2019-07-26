@@ -5,7 +5,7 @@
       "dependency": {
         "type": "library",
         "path": "preact-router/match",
-        "version": "^2.5.7",
+        "version": "2.5.7",
         "meta": {
           "namedImport": true
         }

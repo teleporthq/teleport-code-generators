@@ -21,6 +21,10 @@ export interface ProjectStrategy {
     generator: ComponentGenerator
     path: string[]
     fileName?: string
+    metaDataOptions?: {
+      useFolderStructure?: boolean
+      disableDOMInjection?: boolean
+    }
   }
   entry: {
     generator: ComponentGenerator

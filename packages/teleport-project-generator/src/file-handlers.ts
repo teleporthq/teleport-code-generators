@@ -68,6 +68,7 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
   )
   const options = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
+    meta: strategy.router.metaDataOptions,
   }
 
   root.meta = root.meta || {}

@@ -13,6 +13,7 @@ import {
   extractPageMetadata,
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { dashCaseToCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { registerRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -32,6 +33,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
+    // @ts-ignore-next-line
+    const { useFolderStructure, disableDOMInjection } = options.meta || {}
 
     registerRouterDeps(dependencies)
 
@@ -50,7 +53,9 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${fileName}`,
+        path: useFolderStructure
+          ? `${pageDependencyPrefix}${dashCaseToCamelCase(fileName)}/${fileName}`
+          : `${pageDependencyPrefix}${fileName}`,
       }
 
       const route = createSelfClosingJSXTag('Route')
@@ -78,18 +83,19 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    const reactDomBind = createFunctionCall('ReactDOM.render', [
-      createSelfClosingJSXTag(uidl.name),
-      createFunctionCall('document.getElementById', ['app']),
-    ])
+    if (!disableDOMInjection) {
+      const reactDomBind = createFunctionCall('ReactDOM.render', [
+        createSelfClosingJSXTag(uidl.name),
+        createFunctionCall('document.getElementById', ['app']),
+      ])
 
-    structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
-      name: domRenderChunkName,
-      content: reactDomBind,
-      linkAfter: [componentChunkName],
-    })
+      structure.chunks.push({
+        type: 'js',
+        name: domRenderChunkName,
+        content: reactDomBind,
+        linkAfter: [componentChunkName],
+      })
+    }
 
     return structure
   }
