@@ -13,13 +13,13 @@ import {
 } from './constants'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
-interface ReactChunkConfig {
+interface PreactPluginConfig {
   componentChunkName: string
   exportChunkName: string
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) => {
+export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
@@ -49,7 +49,9 @@ export const createPlugin: ComponentPluginFactory<ReactChunkConfig> = (config) =
         state: 'state',
         local: '',
       },
-      useHooks: false,
+      dependencyHandling: 'import',
+      stateHandling: 'function',
+      slotHandling: 'props',
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

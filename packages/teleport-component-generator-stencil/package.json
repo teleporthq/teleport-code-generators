@@ -1,0 +1,36 @@
+{
+  "name": "@teleporthq/teleport-component-generator-stencil",
+  "version": "0.8.1",
+  "description": "Component generator customization, capable of creating Stencil components",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-component-generator": "^0.8.1",
+    "@teleporthq/teleport-plugin-import-statements": "^0.8.1",
+    "@teleporthq/teleport-plugin-stencil-base-component": "^0.8.1",
+    "@teleporthq/teleport-plugin-stencil-css": "^0.8.1",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.8.1",
+    "@teleporthq/teleport-types": "^0.8.1"
+  },
+  "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
+}

@@ -61,7 +61,10 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
             return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
           })
 
-          addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
+          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
+          if (Object.keys(vueFriendlyStyleBind).length > 0) {
+            addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
+          }
         }
       }
     })

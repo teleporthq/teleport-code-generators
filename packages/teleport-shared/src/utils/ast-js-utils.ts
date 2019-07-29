@@ -84,3 +84,12 @@ export const convertValueToLiteral = (
       return t.identifier(value.toString())
   }
 }
+
+export const addPropertyToASTObject = (
+  obj: types.ObjectExpression,
+  key: string,
+  value: any,
+  t = types
+) => {
+  obj.properties.push(t.objectProperty(t.identifier(key), convertValueToLiteral(value)))
+}

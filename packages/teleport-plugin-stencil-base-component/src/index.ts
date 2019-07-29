@@ -1,40 +1,41 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
-import { createPureComponent } from './utils'
+import { createClassDeclaration, createComponentDecorator } from './utils'
 import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
-
+import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
-  DEFAULT_EXPORT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
-  REACT_LIBRARY_DEPENDENCY,
-  USE_STATE_DEPENDENCY,
+  DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
+  STENCIL_CORE_DEPENDENCY,
 } from './constants'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 
-interface ReactPluginConfig {
+interface StencilPluginConfig {
   componentChunkName: string
-  exportChunkName: string
+  componentDecoratorChunkName: string
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
+export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
-    exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
+    componentDecoratorChunkName = DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
     importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
-  const reactComponentPlugin: ComponentPlugin = async (structure) => {
+  const stencilComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
-    dependencies.React = REACT_LIBRARY_DEPENDENCY
+    dependencies.Component = STENCIL_CORE_DEPENDENCY
+    dependencies.h = STENCIL_CORE_DEPENDENCY
+
+    if (Object.keys(propDefinitions).length > 0) {
+      dependencies.Prop = STENCIL_CORE_DEPENDENCY
+    }
 
     if (Object.keys(stateDefinitions).length > 0) {
-      dependencies.useState = USE_STATE_DEPENDENCY
+      dependencies.State = STENCIL_CORE_DEPENDENCY
     }
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
@@ -50,24 +51,34 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
 
     const jsxOptions: JSXGenerationOptions = {
       dynamicReferencePrefixMap: {
-        prop: 'props',
-        state: '',
+        prop: 'this',
+        state: 'this',
         local: '',
       },
-      dependencyHandling: 'import',
-      stateHandling: 'hooks',
-      slotHandling: 'props',
+      dependencyHandling: 'webcomponents',
+      stateHandling: 'mutation',
+      slotHandling: 'native',
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
-
-    const pureComponent = createPureComponent(
+    const exportAST = createClassDeclaration(
       uidl.name,
       propDefinitions,
       stateDefinitions,
-      jsxTagStructure,
-      uidl.node.type
+      jsxTagStructure
     )
+
+    const decoratorAST = createComponentDecorator(uidl.name)
+
+    structure.chunks.push({
+      type: 'js',
+      name: componentDecoratorChunkName,
+      meta: {
+        nodesLookup,
+      },
+      content: decoratorAST,
+      linkAfter: [importChunkName],
+    })
 
     structure.chunks.push({
       type: 'js',
@@ -76,21 +87,14 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
         nodesLookup,
         dynamicRefPrefix: jsxOptions.dynamicReferencePrefixMap,
       },
-      content: pureComponent,
+      content: exportAST,
       linkAfter: [importChunkName],
-    })
-
-    structure.chunks.push({
-      type: 'js',
-      name: exportChunkName,
-      content: createDefaultExport(uidl.name),
-      linkAfter: [componentChunkName],
     })
 
     return structure
   }
 
-  return reactComponentPlugin
+  return stencilComponentPlugin
 }
 
 export default createPlugin()
