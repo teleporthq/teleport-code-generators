@@ -18,7 +18,6 @@ import {
   VUE_GITHUB_PROJECT,
   VUE_NUXT_GITHUB_PROJECT,
   PREACT_GITHUB_PROJECT,
-  PREACT_TEMPLATE_OWNER,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -40,7 +39,7 @@ const templates = {
   'react-next': getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_NEXT_GITHUB_PROJECT),
   'vue-basic': getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
   'vue-nuxt': getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
-  'preact-basic': getGithubRemoteDefinition(PREACT_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
+  'preact-basic': getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({

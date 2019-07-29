@@ -22,8 +22,8 @@ export interface ProjectStrategy {
     path: string[]
     fileName?: string
     metaDataOptions?: {
+      flavour?: string
       useFolderStructure?: boolean
-      disableDOMInjection?: boolean
     }
   }
   entry: {

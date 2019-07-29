@@ -38,19 +38,19 @@ export const createPreactBasicGenerator = () => {
         useFolderStructure: true,
       },
     },
-    entry: {
-      generator: htmlFileGenerator,
-      path: ['src'],
-      fileName: 'index',
-    },
     router: {
       generator: routingComponentGenerator,
       path: ['src', 'components'],
       fileName: 'app',
       metaDataOptions: {
+        flavour: 'preact',
         useFolderStructure: true,
-        disableDOMInjection: true,
       },
+    },
+    entry: {
+      generator: htmlFileGenerator,
+      path: ['src'],
+      fileName: 'index',
     },
     static: {
       prefix: '/assets',

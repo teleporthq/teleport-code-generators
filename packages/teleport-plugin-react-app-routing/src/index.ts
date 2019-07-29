@@ -14,7 +14,7 @@ import {
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { dashCaseToCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { registerRouterDeps } from './utils'
+import { registerReactRouterDeps, registerPreactRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -22,6 +22,11 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
+}
+
+const RouteDependencies = {
+  react: registerReactRouterDeps,
+  preact: registerPreactRouterDeps,
 }
 
 export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
@@ -34,9 +39,9 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
     // @ts-ignore-next-line
-    const { useFolderStructure, disableDOMInjection } = options.meta || {}
+    const { useFolderStructure, disableDOMInjection, flavour } = options.meta || {}
 
-    registerRouterDeps(dependencies)
+    RouteDependencies[flavour](dependencies)
 
     const { stateDefinitions = {} } = uidl
 
@@ -58,7 +63,9 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
           : `${pageDependencyPrefix}${fileName}`,
       }
 
-      const route = createSelfClosingJSXTag('Route')
+      const JSXRoutePrefix = flavour === 'preact' ? componentName : 'Route'
+
+      const route = createSelfClosingJSXTag(JSXRoutePrefix)
       addAttributeToJSXTag(route, 'exact')
       addAttributeToJSXTag(route, 'path', path)
       addDynamicAttributeToJSXTag(route, 'component', componentName)
@@ -83,7 +90,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    if (!disableDOMInjection) {
+    if (flavour === 'react') {
       const reactDomBind = createFunctionCall('ReactDOM.render', [
         createSelfClosingJSXTag(uidl.name),
         createFunctionCall('document.getElementById', ['app']),

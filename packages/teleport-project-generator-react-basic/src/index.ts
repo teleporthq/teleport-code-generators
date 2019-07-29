@@ -36,6 +36,9 @@ export const createReactBasicGenerator = () => {
       generator: routingComponentGenerator,
       path: ['src'],
       fileName: 'index',
+      metaDataOptions: {
+        flavour: 'react',
+      },
     },
     entry: {
       generator: htmlFileGenerator,
