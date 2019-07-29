@@ -34,7 +34,9 @@ export const createPage = async (
 ) => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
-
+  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
+    createFolderForEachComponent: false,
+  }
   const { componentName, fileName } = extractPageMetadata(
     options.projectRouteDefinition,
     pageName,
@@ -45,7 +47,7 @@ export const createPage = async (
     name: componentName,
     node,
     meta: {
-      fileName,
+      fileName: createFolderForEachComponent ? 'index' : fileName,
     },
   }
 

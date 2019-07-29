@@ -13,7 +13,6 @@ import {
   extractPageMetadata,
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { dashCaseToCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { registerReactRouterDeps, registerPreactRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -22,11 +21,6 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
-}
-
-const RouteDependencies = {
-  react: registerReactRouterDeps,
-  preact: registerPreactRouterDeps,
 }
 
 export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
@@ -39,9 +33,15 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
     // @ts-ignore-next-line
-    const { useFolderStructure, disableDOMInjection, flavour } = options.meta || {}
+    const { createFolderForEachComponent, flavour } = options.meta || {
+      createFolderForEachComponent: false,
+    }
 
-    RouteDependencies[flavour](dependencies)
+    if (flavour === 'preact') {
+      registerPreactRouterDeps(dependencies)
+    } else {
+      registerReactRouterDeps(dependencies)
+    }
 
     const { stateDefinitions = {} } = uidl
 
@@ -58,9 +58,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
       dependencies[componentName] = {
         type: 'local',
-        path: useFolderStructure
-          ? `${pageDependencyPrefix}${dashCaseToCamelCase(fileName)}/${fileName}`
-          : `${pageDependencyPrefix}${fileName}`,
+        path: `${pageDependencyPrefix}${fileName}`,
       }
 
       const JSXRoutePrefix = flavour === 'preact' ? componentName : 'Route'

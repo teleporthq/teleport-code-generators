@@ -27,15 +27,12 @@ export const createPreactBasicGenerator = () => {
     components: {
       generator: preactComponentGenerator,
       path: ['src', 'components'],
-      metaDataOptions: {
-        useFolderStructure: true,
-      },
     },
     pages: {
       generator: preactComponentGenerator,
       path: ['src', 'routes'],
       metaDataOptions: {
-        useFolderStructure: true,
+        createFolderForEachComponent: true,
       },
     },
     router: {
@@ -44,7 +41,7 @@ export const createPreactBasicGenerator = () => {
       fileName: 'app',
       metaDataOptions: {
         flavour: 'preact',
-        useFolderStructure: true,
+        createFolderForEachComponent: true,
       },
     },
     entry: {

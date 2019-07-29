@@ -4,9 +4,6 @@ export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
     path: string[]
-    metaDataOptions?: {
-      useFolderStructure?: boolean
-    }
   }
   pages: {
     generator: ComponentGenerator
@@ -14,7 +11,7 @@ export interface ProjectStrategy {
     metaDataOptions?: {
       usePathAsFileName?: boolean
       convertDefaultToIndex?: boolean
-      useFolderStructure?: boolean
+      createFolderForEachComponent?: boolean
     }
   }
   router?: {
@@ -23,7 +20,7 @@ export interface ProjectStrategy {
     fileName?: string
     metaDataOptions?: {
       flavour?: string
-      useFolderStructure?: boolean
+      createFolderForEachComponent?: boolean
     }
   }
   entry: {

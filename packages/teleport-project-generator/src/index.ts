@@ -74,11 +74,12 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     // Handling pages, based on the conditionals in the root node
     for (const routeNode of routeNodes) {
       const { files, dependencies } = await createPage(routeNode, strategy, options)
+      const fileName: string = routeNode.content.value as string
       const { metaDataOptions } = strategy.pages
 
       const path =
-        metaDataOptions && metaDataOptions.useFolderStructure
-          ? [...strategy.pages.path, ...[files[0].name]]
+        metaDataOptions && metaDataOptions.createFolderForEachComponent
+          ? [...strategy.pages.path, fileName]
           : strategy.pages.path
 
       injectFilesToPath(rootFolder, path, files)
@@ -91,17 +92,11 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = getComponentPath(componentUIDL)
-      const { metaDataOptions, path } = strategy.components
-      const fileName = path.concat(relativePath)
-
-      const location =
-        metaDataOptions && metaDataOptions.useFolderStructure
-          ? [...fileName, ...[componentName]]
-          : fileName
+      const path = strategy.components.path.concat(relativePath)
 
       const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
 
-      injectFilesToPath(rootFolder, location, files)
+      injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
