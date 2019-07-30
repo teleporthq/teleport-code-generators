@@ -10,7 +10,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 import {
   GeneratedFile,
@@ -203,13 +203,15 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     [FILE_TYPE.HTML]: [
       {
         name: 'doctype',
-        type: 'string',
+        type: CHUNK_TYPE.STRING,
+        fileId: FILE_TYPE.HTML,
         content: '<!DOCTYPE>',
         linkAfter: [],
       },
       {
         name: 'html-node',
-        type: 'html',
+        type: CHUNK_TYPE.HAST,
+        fileId: FILE_TYPE.HTML,
         content: htmlNode,
         linkAfter: ['doctype'],
       },

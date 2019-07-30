@@ -1,7 +1,8 @@
 import { createPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-preact-base-component', () => {
+describe('plugin-stencil-base-component', () => {
   const plugin = createPlugin({
     componentChunkName: 'component-chunk',
     componentDecoratorChunkName: 'decorator-chunk',
@@ -21,10 +22,10 @@ describe('plugin-preact-base-component', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(2)
-    expect(result.chunks[0].type).toBe('js')
+    expect(result.chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].name).toBe('decorator-chunk')
-    expect(result.chunks[1].type).toBe('js')
+    expect(result.chunks[1].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[1].content).toBeDefined()
     expect(result.chunks[1].name).toBe('component-chunk')
   })
@@ -50,10 +51,10 @@ describe('plugin-preact-base-component', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(2)
-    expect(result.chunks[0].type).toBe('js')
+    expect(result.chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].name).toBe('decorator-chunk')
-    expect(result.chunks[1].type).toBe('js')
+    expect(result.chunks[1].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[1].content).toBeDefined()
     expect(result.chunks[1].name).toBe('component-chunk')
   })

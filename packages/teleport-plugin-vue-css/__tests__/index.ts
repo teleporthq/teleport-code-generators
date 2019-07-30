@@ -5,13 +5,14 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-vue-style', () => {
   const plugin = createPlugin({ vueTemplateChunk: 'vue-chunk' })
   const componentChunk: ChunkDefinition = {
     name: 'vue-chunk',
     meta: {
-      lookup: {
+      nodesLookup: {
         container: {
           type: 'element',
           tagName: 'div',
@@ -19,7 +20,8 @@ describe('plugin-vue-style', () => {
         },
       },
     },
-    type: 'html',
+    fileId: FILE_TYPE.HTML,
+    type: CHUNK_TYPE.HAST,
     linkAfter: [],
     content: {},
   }
@@ -59,7 +61,7 @@ describe('plugin-vue-style', () => {
     expect(chunks[1].type).toBe('string')
     expect(chunks[1].content).toContain('height: 100px;')
 
-    const nodeReference = componentChunk.meta.lookup.container
+    const nodeReference = componentChunk.meta.nodesLookup.container
     expect(nodeReference.properties.class).toBe('container')
   })
 })

@@ -10,6 +10,7 @@ import {
   addSpreadAttributeToJSXTag,
   renameJSXTag,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -61,7 +62,8 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
         renameJSXTag(root, className)
 
         const code = {
-          type: 'js',
+          type: CHUNK_TYPE.AST,
+          fileId: FILE_TYPE.JS,
           name: className,
           linkAfter: [importChunkName],
           content: generateStyledComponent(className, elementType, jssStyleMap[className]),

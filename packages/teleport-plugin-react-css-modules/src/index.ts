@@ -19,7 +19,7 @@ import {
 import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/utils/jss-utils'
 
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -123,11 +123,9 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
 
     structure.chunks.push({
       name: styleChunkName,
-      type: 'string',
+      type: CHUNK_TYPE.STRING,
+      fileId,
       content: cssClasses.join('\n'),
-      meta: {
-        fileId,
-      },
       linkAfter: [],
     })
 

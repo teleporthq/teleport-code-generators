@@ -8,7 +8,7 @@ import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-
 import * as types from '@babel/types'
 
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { EntryFileOptions } from '@teleporthq/teleport-project-generator/dist/cjs/types'
 import { ProjectUIDL, ChunkDefinition } from '@teleporthq/teleport-types'
 
@@ -119,7 +119,8 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     [FILE_TYPE.JS]: [
       {
         name: 'document',
-        type: 'js',
+        type: CHUNK_TYPE.AST,
+        fileId: FILE_TYPE.JS,
         content: fileAST,
         linkAfter: [],
       },

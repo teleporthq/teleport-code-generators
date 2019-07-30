@@ -13,6 +13,7 @@ import {
   USE_STATE_DEPENDENCY,
 } from './constants'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ReactPluginConfig {
   componentChunkName: string
@@ -70,7 +71,8 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
     )
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.JS,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -81,7 +83,8 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
     })
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.JS,
       name: exportChunkName,
       content: createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],

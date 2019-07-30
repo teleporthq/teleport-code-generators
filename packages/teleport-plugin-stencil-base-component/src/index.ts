@@ -9,6 +9,7 @@ import {
   DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
   STENCIL_CORE_DEPENDENCY,
 } from './constants'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface StencilPluginConfig {
   componentChunkName: string
@@ -71,7 +72,8 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     const decoratorAST = createComponentDecorator(uidl.name)
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.TSX,
       name: componentDecoratorChunkName,
       meta: {
         nodesLookup,
@@ -81,7 +83,8 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     })
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.TSX,
       name: componentChunkName,
       meta: {
         nodesLookup,

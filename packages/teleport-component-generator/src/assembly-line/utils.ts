@@ -1,5 +1,4 @@
 import { ComponentDependency, ChunkDefinition } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 export const extractExternalDependencies = (
   dependencies: Record<string, ComponentDependency>
@@ -22,7 +21,7 @@ export const groupChunksByFileId = (
   chunks: ChunkDefinition[]
 ): Record<string, ChunkDefinition[]> => {
   return chunks.reduce((chunksByFileId: Record<string, ChunkDefinition[]>, chunk) => {
-    const fileId = (chunk.meta && chunk.meta.fileId) || FILE_TYPE.JS
+    const fileId = chunk.fileId
     if (!chunksByFileId[fileId]) {
       chunksByFileId[fileId] = []
     }

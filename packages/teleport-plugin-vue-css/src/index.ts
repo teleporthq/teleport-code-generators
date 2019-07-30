@@ -15,7 +15,7 @@ import {
   ComponentPlugin,
   UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface VueStyleChunkConfig {
   chunkName: string
@@ -37,7 +37,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
     const { node } = uidl
 
     const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
-    const templateLookup = templateChunk.meta.lookup
+    const templateLookup = templateChunk.meta.nodesLookup
 
     const jssStylesArray = []
 
@@ -71,11 +71,9 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
 
     if (jssStylesArray.length > 0) {
       chunks.push({
-        type: 'string',
+        type: CHUNK_TYPE.STRING,
         name: chunkName,
-        meta: {
-          fileId: styleFileId,
-        },
+        fileId: styleFileId,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })

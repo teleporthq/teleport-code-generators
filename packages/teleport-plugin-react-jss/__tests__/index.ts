@@ -5,6 +5,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-react-jss', () => {
   const plugin = createPlugin({ styleChunkName: 'jss-chunk', exportChunkName: 'export-chunk' })
@@ -25,7 +26,8 @@ describe('plugin-react-jss', () => {
         prop: 'props.',
       },
     },
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.JS,
     linkAfter: ['import-local'],
     content: {},
   }
@@ -66,9 +68,9 @@ describe('plugin-react-jss', () => {
     expect(injectSheet.path).toBe('react-jss')
 
     expect(chunks.length).toBe(3)
-    expect(chunks[1].type).toBe('js')
+    expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
     expect(chunks[1].name).toBe('jss-chunk')
-    expect(chunks[2].type).toBe('js')
+    expect(chunks[2].type).toBe(CHUNK_TYPE.AST)
     expect(chunks[2].name).toBe('export-chunk')
   })
 })

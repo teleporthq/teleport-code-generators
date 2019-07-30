@@ -13,7 +13,7 @@ import {
 import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/utils/jss-utils'
 import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface StencilStyleChunkConfig {
   componentChunkName: string
@@ -84,11 +84,9 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
       addPropertyToASTObject(decoratorParam, 'styleUrl', `${cssFileName}.css`)
 
       chunks.push({
-        type: 'string',
+        type: CHUNK_TYPE.STRING,
         name: styleChunkName,
-        meta: {
-          fileId: styleFileId,
-        },
+        fileId: styleFileId,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })
