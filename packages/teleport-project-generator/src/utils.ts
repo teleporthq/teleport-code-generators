@@ -33,7 +33,11 @@ export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectSt
 
     traverseElements(component.node, (elementNode) => {
       if (emptyLocalDependency(elementNode)) {
-        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
+        const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
+          createFolderForEachComponent: false,
+        }
+        const bastPath = createFolderForEachComponent ? [] : strategy.components.path
+        setLocalDependencyPath(elementNode, components, fromPath, bastPath)
       }
     })
   })
