@@ -20,9 +20,12 @@ export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectSt
 
   const { components, root } = result
 
+  // we don't care about the name of the specific page here, we only want an additional name in the path
+  // so that the import statement is computed correctly (eg: ../../components/ instead of ../components)
+  const pagesPath = computePath(strategy, 'any-page')
   traverseElements(root.node, (elementNode) => {
     if (emptyLocalDependency(elementNode)) {
-      setLocalDependencyPath(elementNode, components, strategy.pages.path, strategy.components.path)
+      setLocalDependencyPath(elementNode, components, pagesPath, strategy.components.path)
     }
   })
 
@@ -33,11 +36,7 @@ export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectSt
 
     traverseElements(component.node, (elementNode) => {
       if (emptyLocalDependency(elementNode)) {
-        const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
-          createFolderForEachComponent: false,
-        }
-        const bastPath = createFolderForEachComponent ? [] : strategy.components.path
-        setLocalDependencyPath(elementNode, components, fromPath, bastPath)
+        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
       }
     })
   })
