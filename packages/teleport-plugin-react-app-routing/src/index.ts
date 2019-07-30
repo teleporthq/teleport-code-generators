@@ -15,6 +15,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { registerRouterDeps } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string
@@ -70,7 +71,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.JS,
       name: componentChunkName,
       content: pureComponent,
       linkAfter: [importChunkName],
@@ -82,7 +84,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     ])
 
     structure.chunks.push({
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.JS,
       name: domRenderChunkName,
       content: reactDomBind,
       linkAfter: [componentChunkName],

@@ -6,6 +6,7 @@ import {
   dynamicNode,
   definition,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-vue-app-routing', () => {
   const plugin = createPlugin({
@@ -37,7 +38,7 @@ describe('plugin-vue-app-routing', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(1)
-    expect(result.chunks[0].type).toBe('js')
+    expect(result.chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].content.length).toBe(2)
     expect(result.chunks[0].name).toBe('code-chunk')

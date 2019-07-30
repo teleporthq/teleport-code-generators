@@ -15,4 +15,12 @@ export const FILE_TYPE = {
   JS: 'js',
   JSON: 'json',
   VUE: 'vue',
+  TS: 'ts',
+  TSX: 'tsx',
+}
+
+export const CHUNK_TYPE = {
+  AST: 'ast',
+  HAST: 'hast',
+  STRING: 'string',
 }

@@ -6,7 +6,7 @@ import {
   ComponentDependency,
   ImportIdentifier,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
@@ -76,18 +76,16 @@ const addImportChunk = (
   chunks: ChunkDefinition[],
   dependencies: Record<string, ImportIdentifier[]>,
   newChunkName: string,
-  fileId: string | null
+  fileId: string
 ) => {
   const importASTs = Object.keys(dependencies).map((key) =>
     createGenericImportStatement(key, dependencies[key])
   )
 
   chunks.push({
-    type: 'js',
+    type: CHUNK_TYPE.AST,
     name: newChunkName,
-    meta: {
-      fileId,
-    },
+    fileId,
     content: importASTs,
     linkAfter: [],
   })

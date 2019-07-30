@@ -8,8 +8,8 @@ import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
-const JS_FILE = 'js'
-const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
+const TSX_FILE = 'tsx'
+const findFileByType = (files: GeneratedFile[], type: string = TSX_FILE) =>
   files.find((file) => file.fileType === type)
 
 describe('Stencil Component Generator', () => {
@@ -18,7 +18,7 @@ describe('Stencil Component Generator', () => {
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
-      const jsFile = findFileByType(result.files, JS_FILE)
+      const jsFile = findFileByType(result.files, TSX_FILE)
 
       expect(jsFile).toBeDefined()
       expect(result.files).toBeDefined()
@@ -35,7 +35,7 @@ describe('Stencil Component Validator', () => {
 
   it('works with valid UIDL sample', async () => {
     const result = await generator.generateComponent(uidlSample)
-    const jsFile = findFileByType(result.files, JS_FILE)
+    const jsFile = findFileByType(result.files, TSX_FILE)
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
@@ -51,7 +51,7 @@ describe('Stencil Component Validator', () => {
   it('works when validation step is skiped', async () => {
     const options = { skipValidation: true }
     const result = await generator.generateComponent(invalidUidlSample, options)
-    const jsFile = findFileByType(result.files, JS_FILE)
+    const jsFile = findFileByType(result.files, TSX_FILE)
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)

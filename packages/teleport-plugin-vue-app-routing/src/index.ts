@@ -4,6 +4,7 @@ import {
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface VueRouterConfig {
   codeChunkName: string
@@ -58,7 +59,8 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
     chunks.push({
       name: codeChunkName,
       linkAfter: [importChunkName],
-      type: 'js',
+      type: CHUNK_TYPE.AST,
+      fileId: FILE_TYPE.JS,
       content: [declaration, exportStatement],
     })
 

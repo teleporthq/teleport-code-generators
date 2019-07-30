@@ -8,6 +8,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-react-styled-jsx', () => {
   const plugin = createPlugin()
@@ -38,7 +39,8 @@ describe('plugin-react-styled-jsx', () => {
         prop: 'props.',
       },
     },
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.JS,
     linkAfter: ['import-local'],
     content: {},
   }

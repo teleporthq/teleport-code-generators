@@ -1,18 +1,20 @@
 import { createPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('Should add Default Props and PropTypes to the component Generation', () => {
+describe('plugin-react-proptypes', () => {
   const plugin = createPlugin()
   const reactChunk = {
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.JS,
     name: 'jsx-component',
-    meta: {},
     content: {},
     linkAfter: [],
   }
   const exportChunk = {
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.JS,
     name: 'export',
     content: {},
     linkAfter: ['jsx-component'],
@@ -62,9 +64,9 @@ describe('Should add Default Props and PropTypes to the component Generation', (
     )
 
     expect(defaultProps.length).toEqual(1)
-    expect(defaultProps[0].type).toBe('js')
+    expect(defaultProps[0].type).toBe(CHUNK_TYPE.AST)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe('js')
+    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
   })
 
   it('Should not generate defaultProps', async () => {
@@ -95,7 +97,7 @@ describe('Should add Default Props and PropTypes to the component Generation', (
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe('js')
+    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
   })
 
   it('Should generate chunks after specifying required to props', async () => {
@@ -129,6 +131,6 @@ describe('Should add Default Props and PropTypes to the component Generation', (
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe('js')
+    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
   })
 })

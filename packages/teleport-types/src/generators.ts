@@ -19,6 +19,7 @@ export type ChunkContent = string | any | any[]
 export interface ChunkDefinition {
   type: string
   name: string
+  fileId: string
   meta?: any
   content: ChunkContent
   linkAfter: string[]

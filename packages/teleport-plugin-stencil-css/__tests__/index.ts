@@ -5,6 +5,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-stencil-css', () => {
   const plugin = createPlugin({
@@ -28,14 +29,16 @@ describe('plugin-stencil-css', () => {
         prop: 'props.',
       },
     },
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.TSX,
     linkAfter: ['import-local'],
     content: {},
   }
 
   const decoratorChunk: ChunkDefinition = {
     name: 'decorator',
-    type: 'js',
+    type: CHUNK_TYPE.AST,
+    fileId: FILE_TYPE.TSX,
     linkAfter: ['import-local'],
     content: {
       expression: {
