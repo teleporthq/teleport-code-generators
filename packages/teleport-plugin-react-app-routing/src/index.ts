@@ -1,19 +1,19 @@
 import {
-  createJSXTag,
   createSelfClosingJSXTag,
   createFunctionCall,
   createFunctionalComponent,
+  createDefaultExport,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  addChildJSXTag,
-  addAttributeToJSXTag,
-  addDynamicAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   extractPageMetadata,
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { registerReactRouterDeps, registerPreactRouterDeps } from './utils'
+import {
+  registerReactRouterDeps,
+  registerPreactRouterDeps,
+  constructRouteJSX,
+  createRouteRouterTag,
+} from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -61,22 +61,10 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         path: `${pageDependencyPrefix}${fileName}`,
       }
 
-      const JSXRoutePrefix = flavour === 'preact' ? componentName : 'Route'
-
-      const route = createSelfClosingJSXTag(JSXRoutePrefix)
-      addAttributeToJSXTag(route, 'exact')
-      addAttributeToJSXTag(route, 'path', path)
-      addDynamicAttributeToJSXTag(route, 'component', componentName)
-
-      return route
+      return constructRouteJSX(flavour, componentName, path)
     })
 
-    const rootRouterTag = createJSXTag('Router')
-
-    const divContainer = createJSXTag('div')
-
-    addChildJSXTag(rootRouterTag, divContainer)
-    routeJSXDefinitions.forEach((route) => addChildJSXTag(divContainer, route))
+    const rootRouterTag = createRouteRouterTag(flavour, routeJSXDefinitions)
 
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
@@ -88,7 +76,16 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    if (flavour === 'react') {
+    if (flavour === 'preact') {
+      const exportJSXApp = createDefaultExport('App')
+
+      structure.chunks.push({
+        type: 'js',
+        name: domRenderChunkName,
+        content: exportJSXApp,
+        linkAfter: [componentChunkName],
+      })
+    } else {
       const reactDomBind = createFunctionCall('ReactDOM.render', [
         createSelfClosingJSXTag(uidl.name),
         createFunctionCall('document.getElementById', ['app']),

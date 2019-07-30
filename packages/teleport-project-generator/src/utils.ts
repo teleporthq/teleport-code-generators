@@ -194,3 +194,12 @@ const findSubFolderByName = (rootFolder: GeneratedFolder, folderName: string): G
 const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
   return folder.files.find((f) => f.name === file.name && f.fileType === file.fileType)
 }
+
+export const computePath = (strategy: ProjectStrategy, fileName: string) => {
+  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
+    createFolderForEachComponent: false,
+  }
+  const { path } = strategy.pages
+
+  return createFolderForEachComponent ? [...path, fileName] : path
+}

@@ -11,7 +11,7 @@
         }
       },
       "attrs": {
-        "to":{ "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
+        "href":{ "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }
