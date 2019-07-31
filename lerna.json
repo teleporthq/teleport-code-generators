@@ -23,7 +23,10 @@
     "labels": {
       "enhancement": ":rocket: New Features",
       "react generators": ":electric_plug: React Generators",
-      "vue generators": ":electric_plug: Vue Generator",
+      "vue generators": ":electric_plug: Vue Generators",
+      "angular generators": ":electric_plug: Angular Generators",
+      "stencil generators": ":electric_plug: Stencil Generators",
+      "preact generators": ":electric_plug: Preact Generators",
       "style flavours": ":nail_care: Style Flavours",
       "packer": ":package: Project Packer",
       "core": ":earth_asia: Core",
