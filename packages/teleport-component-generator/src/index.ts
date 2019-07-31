@@ -10,7 +10,7 @@ import {
   ComponentGenerator,
   CompiledComponent,
   ComponentPlugin,
-  PostProcessingFunction,
+  PostProcessor,
   Mapping,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
@@ -20,7 +20,7 @@ import htmlMapping from './html-mapping.json'
 export interface GeneratorFactoryParams {
   mappings?: Mapping[]
   plugins?: ComponentPlugin[]
-  postprocessors?: PostProcessingFunction[]
+  postprocessors?: PostProcessor[]
 }
 
 export const createComponentGenerator = (
@@ -32,7 +32,7 @@ export const createComponentGenerator = (
   const resolver = new Resolver([htmlMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
-  const processors: PostProcessingFunction[] = postprocessors
+  const processors: PostProcessor[] = postprocessors
 
   const generateComponent = async (
     input: Record<string, unknown>,
@@ -98,7 +98,7 @@ export const createComponentGenerator = (
     return fileBundler(fileName, codeChunks)
   }
 
-  const addPostProcessor = (fn: PostProcessingFunction) => {
+  const addPostProcessor = (fn: PostProcessor) => {
     processors.push(fn)
   }
 

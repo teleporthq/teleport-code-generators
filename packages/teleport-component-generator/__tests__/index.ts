@@ -5,7 +5,7 @@ import {
   component,
 } from '../../teleport-shared/dist/cjs/builders/uidl-builders'
 import { ChunkDefinition } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('component generator', () => {
   it('creates a new instance of the generator', () => {
@@ -78,6 +78,7 @@ describe('component generator', () => {
         js: [
           {
             type: CHUNK_TYPE.STRING,
+            fileId: FILE_TYPE.JS,
             name: 'chunk',
             content: 'import lib from "lib"',
             linkAfter: [],
