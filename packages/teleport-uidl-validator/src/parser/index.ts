@@ -13,6 +13,8 @@ import {
   UIDLConditionalNode,
   UIDLRepeatNode,
   UIDLSlotNode,
+  UIDLElementNode,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -123,7 +125,10 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const slotNode = node as UIDLSlotNode
 
       if (slotNode.content.fallback) {
-        slotNode.content.fallback = parseComponentNode(slotNode.content.fallback)
+        slotNode.content.fallback = parseComponentNode(slotNode.content.fallback) as
+          | UIDLElementNode
+          | UIDLStaticValue
+          | UIDLDynamicReference
       }
 
       return slotNode
