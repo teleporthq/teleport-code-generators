@@ -12,6 +12,10 @@ import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple
 import ComponentWithNestedSinglePropRef from './component-with-nested-single-prop-ref-styles.json'
 // @ts-ignore-next-line
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
+// @ts-ignore-next-line
+import ComponentWithSingleDashCaseStyle from './component-with-single-dash-case-style.json'
+// @ts-ignore-next-line
+import ComponentWithMultipleDashCaseStyle from './component-with-multiple-dash-case-style.json'
 
 import { createReactComponentGenerator } from '../../src'
 import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
@@ -117,6 +121,34 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain('<Container height={props.config.height}')
       // tslint:disable-next-line:no-invalid-template-strings
       expect(jsFile.content).toContain('height: ${(props) => props.height}')
+    })
+
+    it('should send the props in camel-case', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator('StyledComponents')
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithSingleDashCaseStyle
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container backgroundColor={props.backgroundColor}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
+    })
+
+    it('should refer the props in camel-case', async () => {
+      const styledComponentsGenerator = createReactComponentGenerator('StyledComponents')
+      const result = await styledComponentsGenerator.generateComponent(
+        ComponentWithMultipleDashCaseStyle
+      )
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container {...props}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('border-color: ${(props) => props.borderColor}')
     })
 
     it('should support object props in styled-components', async () => {

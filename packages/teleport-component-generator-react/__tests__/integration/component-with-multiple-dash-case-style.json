@@ -1,0 +1,40 @@
+{
+	"$schema": "https://docs.teleporthq.io/uidl-schema/v1/component.json",
+	"name": "ComponentWithMultipleDashCaseStyle",
+	"propDefinitions": {
+		"backgroundColor": {
+			"type": "string",
+			"defaultValue": "blue"
+		},
+		"borderColor": {
+			"type": "string",
+			"defaultValue": "blue"
+		}
+	},
+	"node": {
+		"type": "element",
+		"content": {
+			"elementType": "container",
+			"style": {
+				"alignSelf": {
+					"type": "static",
+					"content": "center"
+				},
+				"background-color": {
+					"type": "dynamic",
+					"content": {
+						"referenceType": "prop",
+						"id": "backgroundColor"
+					}
+				},
+				"border-color": {
+					"type": "dynamic",
+					"content": {
+						"referenceType": "prop",
+						"id": "borderColor"
+					}
+				}
+			}
+		}
+	}
+}
