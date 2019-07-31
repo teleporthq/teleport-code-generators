@@ -111,7 +111,10 @@ export const dynamicNode = (referenceType: ReferenceType, id: string): UIDLDynam
   }
 }
 
-export const slotNode = (fallback?: UIDLNode, name?: string): UIDLSlotNode => {
+export const slotNode = (
+  fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference,
+  name?: string
+): UIDLSlotNode => {
   return {
     type: 'slot',
     content: {

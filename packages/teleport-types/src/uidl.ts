@@ -80,7 +80,7 @@ export interface UIDLSlotNode {
   type: 'slot'
   content: {
     name?: string
-    fallback?: UIDLNode
+    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
   }
 }
 

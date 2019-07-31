@@ -62,7 +62,11 @@ const generateJSXSyntax = (
       return generateConditionalNode(node, params, options)
 
     case 'slot':
-      return generateSlotNode(node, params, options)
+      if (options.slotHandling === 'native') {
+        return generateNativeSlotNode(node, params, options)
+      } else {
+        return generatePropsSlotNode(node, params, options)
+      }
 
     default:
       throw new Error(
@@ -205,60 +209,61 @@ const generateConditionalNode = (
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
-const generateSlotNode = (
+const generatePropsSlotNode = (
   node: UIDLSlotNode,
   params: JSXGenerationParams,
   options?: JSXGenerationOptions,
   t = types
 ) => {
-  if (options.slotHandling === 'props') {
-    // TODO: Handle multiple slots with props['slot-name']
-    // TODO: Refactor expression handling
-    const childrenProp: UIDLDynamicReference = {
-      type: 'dynamic',
-      content: {
-        referenceType: 'prop',
-        id: 'children',
-      },
-    }
-
-    const childrenExpression = createDynamicValueExpression(childrenProp, options)
-
-    if (node.content.fallback) {
-      let fallbackNode: types.Expression
-      const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
-
-      if (typeof fallbackContent === 'string') {
-        fallbackNode = t.stringLiteral(fallbackContent)
-      } else if ((fallbackContent as types.JSXExpressionContainer).expression) {
-        fallbackNode = (fallbackContent as types.JSXExpressionContainer)
-          .expression as types.Expression
-      } else {
-        fallbackNode = fallbackContent as types.JSXElement
-      }
-
-      // props.children with fallback
-      return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, fallbackNode))
-    }
-
-    return t.jsxExpressionContainer(childrenExpression)
-  } else {
-    const slotNode = createJSXTag('slot')
-
-    if (node.content.name) {
-      addAttributeToJSXTag(slotNode, 'name', node.content.name)
-    }
-
-    if (node.content.fallback) {
-      const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
-      if (typeof fallbackContent === 'string') {
-        addChildJSXText(slotNode, fallbackContent)
-      } else {
-        // TODO: Check other types of Syntaxes (eg: conditionals, repeats)
-        addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
-      }
-    }
-
-    return slotNode
+  // React/Preact do not have native slot nodes and implement this differently through the props.children syntax.
+  // Unfortunately, names slots are ignored because React/Preact treat all the inner content of the component as props.children
+  const childrenProp: UIDLDynamicReference = {
+    type: 'dynamic',
+    content: {
+      referenceType: 'prop',
+      id: 'children',
+    },
   }
+
+  const childrenExpression = createDynamicValueExpression(childrenProp, options)
+
+  if (node.content.fallback) {
+    const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+    // only static dynamic or element are allowed here
+    const fallbackNode =
+      typeof fallbackContent === 'string'
+        ? t.stringLiteral(fallbackContent)
+        : (fallbackContent as types.JSXElement | types.MemberExpression)
+
+    // props.children with fallback
+    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, fallbackNode))
+  }
+
+  return t.jsxExpressionContainer(childrenExpression)
+}
+
+const generateNativeSlotNode = (
+  node: UIDLSlotNode,
+  params: JSXGenerationParams,
+  options?: JSXGenerationOptions,
+  t = types
+) => {
+  const slotNode = createJSXTag('slot')
+
+  if (node.content.name) {
+    addAttributeToJSXTag(slotNode, 'name', node.content.name)
+  }
+
+  if (node.content.fallback) {
+    const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+    if (typeof fallbackContent === 'string') {
+      addChildJSXText(slotNode, fallbackContent)
+    } else if (fallbackContent.type === 'MemberExpression') {
+      addChildJSXTag(slotNode, t.jsxExpressionContainer(fallbackContent))
+    } else {
+      addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
+    }
+  }
+
+  return slotNode
 }
