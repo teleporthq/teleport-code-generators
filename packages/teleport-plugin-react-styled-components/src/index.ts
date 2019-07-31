@@ -4,7 +4,10 @@ import {
   traverseElements,
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import {
+  dashCaseToUpperCamelCase,
+  dashCaseToCamelCase,
+} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
   addDynamicAttributeToJSXTag,
   addSpreadAttributeToJSXTag,
@@ -41,10 +44,16 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
           if (styleValue.content.referenceType === 'prop') {
+            const dashCaseAttribute = dashCaseToCamelCase(attribute)
             switch (timesReferred) {
               case 1:
-                addDynamicAttributeToJSXTag(root, attribute, styleValue.content.id, propsPrefix)
-                return `\$\{props => props.${attribute}\}`
+                addDynamicAttributeToJSXTag(
+                  root,
+                  dashCaseAttribute,
+                  styleValue.content.id,
+                  propsPrefix
+                )
+                return `\$\{props => props.${dashCaseAttribute}\}`
               default:
                 return `\$\{props => props.${styleValue.content.id}\}`
             }

@@ -61,10 +61,19 @@ export const element = (
   dependency?: ComponentDependency,
   style?: Record<string, UIDLStyleValue>
 ) => {
+  if (dependency) {
+    return {
+      elementType,
+      name: elementType,
+      dependency,
+      attrs,
+      style,
+      children,
+    }
+  }
   return {
     elementType,
     name: elementType,
-    dependency,
     attrs,
     style,
     children,

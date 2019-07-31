@@ -1,6 +1,4 @@
 // @ts-ignore-next-line
-import ComponentWithValidJSON from './component-with-valid-style.json'
-// @ts-ignore-next-line
 import ComponentWithNestedStyles from './component-with-nested-styles.json'
 // @ts-ignore-next-line
 import ComponentWithInvalidStateStyles from './component-with-invalid-state-styles.json'
@@ -14,9 +12,40 @@ import ComponentWithNestedSinglePropRef from './component-with-nested-single-pro
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
 import { createReactComponentGenerator } from '../../src'
-import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
+import {
+  ComponentUIDL,
+  GeneratedFile,
+  UIDLPropDefinition,
+  UIDLStyleDefinitions,
+} from '@teleporthq/teleport-types'
+import {
+  staticNode,
+  dynamicNode,
+  component,
+  elementNode,
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
-const ComponentWithValidStyle = ComponentWithValidJSON as ComponentUIDL
+const ComponentWithValidStyle: ComponentUIDL = component(
+  'ComponentWithAttrProp',
+  elementNode('container', {}, [], null, {
+    flexDirection: dynamicNode('prop', 'direction'),
+    height: dynamicNode('prop', 'config.height'),
+    alignSelf: staticNode('center'),
+  }),
+  {
+    direction: {
+      type: 'string',
+      defaultValue: 'row',
+    },
+    config: {
+      type: 'object',
+      defaultValue: {
+        height: 32,
+      },
+    },
+  },
+  {}
+)
 
 const JS_FILE = 'js'
 const CSS_FILE = 'css'
@@ -119,6 +148,68 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain('height: ${(props) => props.height}')
     })
 
+    it('should send the props in camel-case', async () => {
+      const propDefnitions: Record<string, UIDLPropDefinition> = {
+        backgroundColor: {
+          type: 'string',
+          defaultValue: 'blue',
+        },
+      }
+      const style: UIDLStyleDefinitions = {
+        'background-color': dynamicNode('prop', 'backgroundColor'),
+      }
+      const uidl = component(
+        'ComponentWithSingleDashCaseStyle',
+        elementNode('container', {}, [staticNode('Hello')], null, style),
+        propDefnitions,
+        {}
+      )
+
+      const styledComponentsGenerator = createReactComponentGenerator('StyledComponents')
+      const result = await styledComponentsGenerator.generateComponent(uidl)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container backgroundColor={props.backgroundColor}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
+    })
+
+    it('should refer the props in camel-case', async () => {
+      const propDefnitions: Record<string, UIDLPropDefinition> = {
+        backgroundColor: {
+          type: 'string',
+          defaultValue: 'blue',
+        },
+        borderColor: {
+          type: 'string',
+          defaultValue: 'red',
+        },
+      }
+      const style: UIDLStyleDefinitions = {
+        'background-color': dynamicNode('prop', 'backgroundColor'),
+        'border-color': dynamicNode('prop', 'borderColor'),
+      }
+      const uidl = component(
+        'ComponentWithSingleDashCaseStyle',
+        elementNode('container', {}, [staticNode('Hello')], null, style),
+        propDefnitions,
+        {}
+      )
+
+      const styledComponentsGenerator = createReactComponentGenerator('StyledComponents')
+      const result = await styledComponentsGenerator.generateComponent(uidl)
+
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain('<Container {...props}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
+      // tslint:disable-next-line:no-invalid-template-strings
+      expect(jsFile.content).toContain('border-color: ${(props) => props.borderColor}')
+    })
+
     it('should support object props in styled-components', async () => {
       const styledComponentsGenerator = createReactComponentGenerator('StyledComponents')
       const result = await styledComponentsGenerator.generateComponent(ComponentWithValidStyle)
@@ -179,7 +270,7 @@ describe('React Styles in Component', () => {
 
     it('should inject props only once for styled components', async () => {
       const styledJSXGenerator = createReactComponentGenerator('StyledComponents')
-      const result = await styledJSXGenerator.generateComponent(ComponentWithValidJSON)
+      const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
       const jsFile = findFileByType(result.files, JS_FILE)
       expect(jsFile.content).toContain('<Container {...props}')
     })
