@@ -1,4 +1,4 @@
-import { injectFilesToPath, resolveLocalDependencies } from './utils'
+import { injectFilesToPath, resolveLocalDependencies, computePath } from './utils'
 
 import {
   createManifestJSONFile,
@@ -74,8 +74,10 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     // Handling pages, based on the conditionals in the root node
     for (const routeNode of routeNodes) {
       const { files, dependencies } = await createPage(routeNode, strategy, options)
+      const fileName: string = routeNode.content.value as string
+      const path = computePath(strategy, fileName)
 
-      injectFilesToPath(rootFolder, strategy.pages.path, files)
+      injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 

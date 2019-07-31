@@ -20,9 +20,12 @@ export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectSt
 
   const { components, root } = result
 
+  // we don't care about the name of the specific page here, we only want an additional name in the path
+  // so that the import statement is computed correctly (eg: ../../components/ instead of ../components)
+  const pagesPath = computePath(strategy, 'any-page')
   traverseElements(root.node, (elementNode) => {
     if (emptyLocalDependency(elementNode)) {
-      setLocalDependencyPath(elementNode, components, strategy.pages.path, strategy.components.path)
+      setLocalDependencyPath(elementNode, components, pagesPath, strategy.components.path)
     }
   })
 
@@ -193,4 +196,13 @@ const findSubFolderByName = (rootFolder: GeneratedFolder, folderName: string): G
 
 const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
   return folder.files.find((f) => f.name === file.name && f.fileType === file.fileType)
+}
+
+export const computePath = (strategy: ProjectStrategy, fileName: string) => {
+  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
+    createFolderForEachComponent: false,
+  }
+  const { path } = strategy.pages
+
+  return createFolderForEachComponent ? [...path, fileName] : path
 }

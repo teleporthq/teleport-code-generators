@@ -1,19 +1,19 @@
 import {
-  createJSXTag,
   createSelfClosingJSXTag,
   createFunctionCall,
   createFunctionalComponent,
+  createDefaultExport,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  addChildJSXTag,
-  addAttributeToJSXTag,
-  addDynamicAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   extractPageMetadata,
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { registerRouterDeps } from './utils'
+import {
+  registerReactRouterDeps,
+  registerPreactRouterDeps,
+  constructRouteJSX,
+  createRouteRouterTag,
+} from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -32,8 +32,16 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
+    // @ts-ignore-next-line
+    const { createFolderForEachComponent, flavour } = options.meta || {
+      createFolderForEachComponent: false,
+    }
 
-    registerRouterDeps(dependencies)
+    if (flavour === 'preact') {
+      registerPreactRouterDeps(dependencies)
+    } else {
+      registerReactRouterDeps(dependencies)
+    }
 
     const { stateDefinitions = {} } = uidl
 
@@ -53,20 +61,10 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         path: `${pageDependencyPrefix}${fileName}`,
       }
 
-      const route = createSelfClosingJSXTag('Route')
-      addAttributeToJSXTag(route, 'exact')
-      addAttributeToJSXTag(route, 'path', path)
-      addDynamicAttributeToJSXTag(route, 'component', componentName)
-
-      return route
+      return constructRouteJSX(flavour, componentName, path)
     })
 
-    const rootRouterTag = createJSXTag('Router')
-
-    const divContainer = createJSXTag('div')
-
-    addChildJSXTag(rootRouterTag, divContainer)
-    routeJSXDefinitions.forEach((route) => addChildJSXTag(divContainer, route))
+    const rootRouterTag = createRouteRouterTag(flavour, routeJSXDefinitions)
 
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
@@ -78,18 +76,30 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    const reactDomBind = createFunctionCall('ReactDOM.render', [
-      createSelfClosingJSXTag(uidl.name),
-      createFunctionCall('document.getElementById', ['app']),
-    ])
+    if (flavour === 'preact') {
+      const exportJSXApp = createDefaultExport('App')
 
-    structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
-      name: domRenderChunkName,
-      content: reactDomBind,
-      linkAfter: [componentChunkName],
-    })
+      structure.chunks.push({
+        type: CHUNK_TYPE.AST,
+        fileId: FILE_TYPE.JS,
+        name: domRenderChunkName,
+        content: exportJSXApp,
+        linkAfter: [componentChunkName],
+      })
+    } else {
+      const reactDomBind = createFunctionCall('ReactDOM.render', [
+        createSelfClosingJSXTag(uidl.name),
+        createFunctionCall('document.getElementById', ['app']),
+      ])
+
+      structure.chunks.push({
+        type: CHUNK_TYPE.AST,
+        fileId: FILE_TYPE.JS,
+        name: domRenderChunkName,
+        content: reactDomBind,
+        linkAfter: [componentChunkName],
+      })
+    }
 
     return structure
   }

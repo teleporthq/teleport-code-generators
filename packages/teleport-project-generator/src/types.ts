@@ -11,12 +11,17 @@ export interface ProjectStrategy {
     metaDataOptions?: {
       usePathAsFileName?: boolean
       convertDefaultToIndex?: boolean
+      createFolderForEachComponent?: boolean
     }
   }
   router?: {
     generator: ComponentGenerator
     path: string[]
     fileName?: string
+    metaDataOptions?: {
+      flavour?: string
+      createFolderForEachComponent?: boolean
+    }
   }
   entry: {
     generator: ComponentGenerator
