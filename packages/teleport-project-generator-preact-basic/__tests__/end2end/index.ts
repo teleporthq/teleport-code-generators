@@ -21,14 +21,16 @@ describe('Preact Basic Project Generator', () => {
     expect(outputFolder.files[0].name).toBe('package')
 
     const srcFolder = outputFolder.subFolders[0]
+    const componentFiles = srcFolder.subFolders[0].files
 
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('html')
-    expect(srcFolder.files[1].name).toBe('index')
-    expect(srcFolder.files[1].fileType).toBe('js')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('routes')
+    expect(componentFiles[componentFiles.length - 1].fileType).toBe('js')
+    expect(componentFiles[componentFiles.length - 1].name).toBe('app')
   })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 
