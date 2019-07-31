@@ -20,7 +20,7 @@ export const createPreactBasicGenerator = () => {
   routingComponentGenerator.addPlugin(importStatementsPlugin)
   routingComponentGenerator.addPostProcessor(prettierJS)
 
-  const htmlFileGenerator = createPreactComponentGenerator()
+  const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({
