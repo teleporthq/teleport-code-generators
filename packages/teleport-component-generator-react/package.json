@@ -35,7 +35,8 @@
     "@teleporthq/teleport-plugin-react-styled-components": "^0.8.1",
     "@teleporthq/teleport-plugin-react-styled-jsx": "^0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.8.1",
-    "@teleporthq/teleport-types": "^0.8.1"
+    "@teleporthq/teleport-types": "^0.8.1",
+    "@teleporthq/teleport-shared": "0.8.1"
   },
   "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }
