@@ -74,7 +74,7 @@ export interface CompiledComponent {
   dependencies: Record<string, string>
 }
 
-export type PostProcessingFunction = (codeChunks: Record<string, string>) => Record<string, string>
+export type PostProcessor = (codeChunks: Record<string, string>) => Record<string, string>
 
 export interface ComponentGenerator {
   generateComponent: (
@@ -85,7 +85,7 @@ export interface ComponentGenerator {
   resolveElement: (node: UIDLElement, options?: GeneratorOptions) => UIDLElement
   addPlugin: (plugin: ComponentPlugin) => void
   addMapping: (mapping: Mapping) => void
-  addPostProcessor: (fn: PostProcessingFunction) => void
+  addPostProcessor: (fn: PostProcessor) => void
 }
 
 export interface GeneratorOptions {
@@ -189,4 +189,19 @@ export interface ServiceAuth {
     password: string
   }
   token?: string
+}
+
+export interface PrettierFormatOptions {
+  printWidth?: number
+  tabWidth?: number
+  useTabs?: boolean
+  semi?: boolean
+  singleQuote?: boolean
+  jsxSingleQuote?: boolean
+  trailingComma?: 'none' | 'es5' | 'all'
+  bracketSpacing?: boolean
+  jsxBracketSameLine?: boolean
+  arrowParens?: 'avoid' | 'always'
+  rangeStart?: number
+  rangeEnd?: number
 }
