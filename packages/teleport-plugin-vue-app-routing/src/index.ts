@@ -60,7 +60,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       name: codeChunkName,
       linkAfter: [importChunkName],
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       content: [declaration, exportStatement],
     })
 

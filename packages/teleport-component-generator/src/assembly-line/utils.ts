@@ -17,15 +17,15 @@ export const extractExternalDependencies = (
     }, {})
 }
 
-export const groupChunksByFileId = (
+export const groupChunksByFileType = (
   chunks: ChunkDefinition[]
 ): Record<string, ChunkDefinition[]> => {
-  return chunks.reduce((chunksByFileId: Record<string, ChunkDefinition[]>, chunk) => {
-    const fileId = chunk.fileId
-    if (!chunksByFileId[fileId]) {
-      chunksByFileId[fileId] = []
+  return chunks.reduce((chunksByFileType: Record<string, ChunkDefinition[]>, chunk) => {
+    const fileType = chunk.fileType
+    if (!chunksByFileType[fileType]) {
+      chunksByFileType[fileType] = []
     }
-    chunksByFileId[fileId].push(chunk)
-    return chunksByFileId
+    chunksByFileType[fileType].push(chunk)
+    return chunksByFileType
   }, {})
 }

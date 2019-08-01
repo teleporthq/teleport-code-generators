@@ -10,7 +10,7 @@ import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
 
 import stencilMapping from './stencil-mapping.json'
 
-const importStatementsPlugin = createImportPlugin({ fileId: FILE_TYPE.TSX })
+const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
 const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
 
 export const createStencilComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {

@@ -120,7 +120,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
       {
         name: 'document',
         type: CHUNK_TYPE.AST,
-        fileId: FILE_TYPE.JS,
+        fileType: FILE_TYPE.JS,
         content: fileAST,
         linkAfter: [],
       },

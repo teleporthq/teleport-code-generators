@@ -62,8 +62,8 @@ export const createComponentGenerator = (
 
     let codeChunks: Record<string, string> = {}
 
-    Object.keys(chunks).forEach((fileId) => {
-      codeChunks[fileId] = chunksLinker.link(chunks[fileId])
+    Object.keys(chunks).forEach((fileType) => {
+      codeChunks[fileType] = chunksLinker.link(chunks[fileType])
     })
 
     processors.forEach((processor) => {
@@ -87,8 +87,8 @@ export const createComponentGenerator = (
   const linkCodeChunks = (chunks: Record<string, ChunkDefinition[]>, fileName: string) => {
     let codeChunks: Record<string, string> = {}
 
-    Object.keys(chunks).forEach((fileId) => {
-      codeChunks[fileId] = chunksLinker.link(chunks[fileId])
+    Object.keys(chunks).forEach((fileType) => {
+      codeChunks[fileType] = chunksLinker.link(chunks[fileType])
     })
 
     processors.forEach((processor) => {
@@ -115,11 +115,11 @@ export const createComponentGenerator = (
 export default createComponentGenerator()
 
 const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
-  return Object.keys(codeChunks).map((fileId) => {
+  return Object.keys(codeChunks).map((fileType) => {
     return {
       name: fileName,
-      fileType: fileId,
-      content: codeChunks[fileId],
+      fileType,
+      content: codeChunks[fileType],
     }
   })
 }

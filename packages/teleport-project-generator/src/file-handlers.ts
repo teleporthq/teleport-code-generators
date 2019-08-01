@@ -207,14 +207,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       {
         name: 'doctype',
         type: CHUNK_TYPE.STRING,
-        fileId: FILE_TYPE.HTML,
+        fileType: FILE_TYPE.HTML,
         content: '<!DOCTYPE>',
         linkAfter: [],
       },
       {
         name: 'html-node',
         type: CHUNK_TYPE.HAST,
-        fileId: FILE_TYPE.HTML,
+        fileType: FILE_TYPE.HTML,
         content: htmlNode,
         linkAfter: ['doctype'],
       },

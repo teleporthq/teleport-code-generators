@@ -27,7 +27,7 @@ describe('plugin-react-css-modules', () => {
       },
     },
     type: CHUNK_TYPE.AST,
-    fileId: FILE_TYPE.JS,
+    fileType: FILE_TYPE.JS,
     linkAfter: ['import-local'],
     content: {},
   }

@@ -70,7 +70,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       name: componentChunkName,
       content: pureComponent,
       linkAfter: [importChunkName],
@@ -81,7 +81,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
       structure.chunks.push({
         type: CHUNK_TYPE.AST,
-        fileId: FILE_TYPE.JS,
+        fileType: FILE_TYPE.JS,
         name: domRenderChunkName,
         content: exportJSXApp,
         linkAfter: [componentChunkName],
@@ -94,7 +94,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
       structure.chunks.push({
         type: CHUNK_TYPE.AST,
-        fileId: FILE_TYPE.JS,
+        fileType: FILE_TYPE.JS,
         name: domRenderChunkName,
         content: reactDomBind,
         linkAfter: [componentChunkName],

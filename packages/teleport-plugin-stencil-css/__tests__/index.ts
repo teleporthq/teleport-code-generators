@@ -30,7 +30,7 @@ describe('plugin-stencil-css', () => {
       },
     },
     type: CHUNK_TYPE.AST,
-    fileId: FILE_TYPE.TSX,
+    fileType: FILE_TYPE.TSX,
     linkAfter: ['import-local'],
     content: {},
   }
@@ -38,7 +38,7 @@ describe('plugin-stencil-css', () => {
   const decoratorChunk: ChunkDefinition = {
     name: 'decorator',
     type: CHUNK_TYPE.AST,
-    fileId: FILE_TYPE.TSX,
+    fileType: FILE_TYPE.TSX,
     linkAfter: ['import-local'],
     content: {
       expression: {

@@ -21,15 +21,10 @@ interface VueStyleChunkConfig {
   chunkName: string
   vueJSChunk: string
   vueTemplateChunk: string
-  styleFileId: string
 }
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
-  const {
-    chunkName = 'vue-style-chunk',
-    vueTemplateChunk = 'vue-template-chunk',
-    styleFileId = FILE_TYPE.CSS,
-  } = config || {}
+  const { chunkName = 'vue-style-chunk', vueTemplateChunk = 'vue-template-chunk' } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
@@ -73,7 +68,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
       chunks.push({
         type: CHUNK_TYPE.STRING,
         name: chunkName,
-        fileId: styleFileId,
+        fileType: FILE_TYPE.CSS,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })

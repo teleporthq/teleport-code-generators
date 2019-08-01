@@ -73,7 +73,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.TSX,
+      fileType: FILE_TYPE.TSX,
       name: componentDecoratorChunkName,
       meta: {
         nodesLookup,
@@ -84,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.TSX,
+      fileType: FILE_TYPE.TSX,
       name: componentChunkName,
       meta: {
         nodesLookup,

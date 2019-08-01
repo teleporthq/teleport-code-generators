@@ -19,7 +19,7 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
     importLocalsChunkName = 'import-local',
-    fileId = FILE_TYPE.JS,
+    fileType = FILE_TYPE.JS,
   } = config || {}
 
   const importPlugin: ComponentPlugin = async (structure) => {
@@ -28,9 +28,9 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
     const libraryDependencies = groupDependenciesByPackage(dependencies, 'library')
     const packageDependencies = groupDependenciesByPackage(dependencies, 'package')
     const localDependencies = groupDependenciesByPackage(dependencies, 'local')
-    addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileId)
-    addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileId)
-    addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileId)
+    addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileType)
+    addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileType)
+    addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileType)
     return structure
   }
 
@@ -76,7 +76,7 @@ const addImportChunk = (
   chunks: ChunkDefinition[],
   dependencies: Record<string, ImportIdentifier[]>,
   newChunkName: string,
-  fileId: string
+  fileType: string
 ) => {
   const importASTs = Object.keys(dependencies).map((key) =>
     createGenericImportStatement(key, dependencies[key])
@@ -85,7 +85,7 @@ const addImportChunk = (
   chunks.push({
     type: CHUNK_TYPE.AST,
     name: newChunkName,
-    fileId,
+    fileType,
     content: importASTs,
     linkAfter: [],
   })

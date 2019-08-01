@@ -4,8 +4,6 @@ import {
   ComponentDependency,
   Mapping,
   UIDLElement,
-  UIDLNode,
-  UIDLAttributeValue,
   UIDLStateDefinition,
 } from './uidl'
 
@@ -19,7 +17,7 @@ export type ChunkContent = string | any | any[]
 export interface ChunkDefinition {
   type: string
   name: string
-  fileId: string
+  fileType: string
   meta?: any
   content: ChunkContent
   linkAfter: string[]
@@ -39,35 +37,12 @@ export interface ComponentStructure {
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
 export interface ComponentDefaultPluginParams {
-  fileId: string
+  fileType: string
 }
 
 export type ComponentPluginFactory<T> = (
   configuration?: Partial<T & ComponentDefaultPluginParams>
 ) => ComponentPlugin
-
-/**
- * Function used to alter the generic generatedEntity by adding a attribute
- * named attributeKey with attributeValue data. This type of function is meant
- * to be used in generators that support attribute values on their presentation
- * nodes.
- *
- * For example, a <div/> in HAST could get a new attribute tab-index with value 0
- * with a function like this.
- */
-export type AttributeAssignCodeMod<T> = (
-  generatedEntity: T,
-  attributeKey: string,
-  attributeValue: UIDLAttributeValue
-) => void
-
-/**
- * Function used to generate a presentation structure.
- */
-export type NodeSyntaxGenerator<Accumulators, ReturnValues> = (
-  node: UIDLNode,
-  accumulators: Accumulators
-) => ReturnValues
 
 export interface CompiledComponent {
   files: GeneratedFile[]

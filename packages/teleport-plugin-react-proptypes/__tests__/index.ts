@@ -7,14 +7,14 @@ describe('plugin-react-proptypes', () => {
   const plugin = createPlugin()
   const reactChunk = {
     type: CHUNK_TYPE.AST,
-    fileId: FILE_TYPE.JS,
+    fileType: FILE_TYPE.JS,
     name: 'jsx-component',
     content: {},
     linkAfter: [],
   }
   const exportChunk = {
     type: CHUNK_TYPE.AST,
-    fileId: FILE_TYPE.JS,
+    fileType: FILE_TYPE.JS,
     name: 'export',
     content: {},
     linkAfter: ['jsx-component'],

@@ -20,7 +20,7 @@ describe('plugin-vue-style', () => {
         },
       },
     },
-    fileId: FILE_TYPE.HTML,
+    fileType: FILE_TYPE.HTML,
     type: CHUNK_TYPE.HAST,
     linkAfter: [],
     content: {},
