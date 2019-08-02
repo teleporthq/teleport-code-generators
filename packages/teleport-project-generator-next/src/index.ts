@@ -24,7 +24,7 @@ export const createNextProjectGenerator = () => {
     pages: {
       generator: reactComponentGenerator,
       path: ['pages'],
-      metaDataOptions: {
+      options: {
         usePathAsFileName: true,
         convertDefaultToIndex: true,
       },

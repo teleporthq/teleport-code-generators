@@ -22,7 +22,7 @@ export const createNuxtProjectGenerator = () => {
     pages: {
       generator: vueComponentGenerator,
       path: ['pages'],
-      metaDataOptions: {
+      options: {
         usePathAsFileName: true,
         convertDefaultToIndex: true,
       },

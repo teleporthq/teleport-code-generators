@@ -34,20 +34,27 @@ export const createPage = async (
 ) => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
-  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
-    createFolderForEachComponent: false,
-  }
+
   const { componentName, fileName } = extractPageMetadata(
     options.projectRouteDefinition,
     pageName,
-    strategy.pages.metaDataOptions
+    strategy.pages.options
   )
+
+  const pagesStrategyOptions = strategy.pages.options || {}
+
+  // If the file name will not be used as the path (eg: next, nuxt)
+  // And if the option to create each page in its folder is passed (eg: preact)
+  const pageFileName =
+    !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
+      ? pagesStrategyOptions.overrideFileName || 'index'
+      : fileName
 
   const pageUIDL = {
     name: componentName,
     node,
     meta: {
-      fileName: createFolderForEachComponent ? 'index' : fileName,
+      fileName: pageFileName,
     },
   }
 
@@ -70,7 +77,6 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
   )
   const options = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
-    meta: strategy.router.metaDataOptions,
   }
 
   root.meta = root.meta || {}

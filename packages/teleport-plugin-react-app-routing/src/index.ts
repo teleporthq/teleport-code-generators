@@ -21,6 +21,7 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
+  flavor: 'preact' | 'react'
 }
 
 export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
@@ -28,16 +29,13 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
     domRenderChunkName = 'app-router-export',
+    flavor = 'react',
   } = config || {}
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
-    // @ts-ignore-next-line
-    const { createFolderForEachComponent, flavour } = options.meta || {
-      createFolderForEachComponent: false,
-    }
 
-    if (flavour === 'preact') {
+    if (flavor === 'preact') {
       registerPreactRouterDeps(dependencies)
     } else {
       registerReactRouterDeps(dependencies)
@@ -61,10 +59,10 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         path: `${pageDependencyPrefix}${fileName}`,
       }
 
-      return constructRouteJSX(flavour, componentName, path)
+      return constructRouteJSX(flavor, componentName, path)
     })
 
-    const rootRouterTag = createRouteRouterTag(flavour, routeJSXDefinitions)
+    const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
 
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
@@ -76,7 +74,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    if (flavour === 'preact') {
+    if (flavor === 'preact') {
       const exportJSXApp = createDefaultExport('App')
 
       structure.chunks.push({

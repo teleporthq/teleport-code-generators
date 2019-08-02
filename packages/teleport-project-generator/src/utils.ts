@@ -199,7 +199,7 @@ const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
 }
 
 export const computePath = (strategy: ProjectStrategy, fileName: string) => {
-  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
+  const { createFolderForEachComponent } = strategy.pages.options || {
     createFolderForEachComponent: false,
   }
   const { path } = strategy.pages

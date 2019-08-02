@@ -4,24 +4,25 @@ export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
     path: string[]
+    options?: {
+      createFolderForEachComponent?: boolean
+      overrideFileName?: string // only used when createFolderForEachComponent is true
+    }
   }
   pages: {
     generator: ComponentGenerator
     path: string[]
-    metaDataOptions?: {
+    options?: {
       usePathAsFileName?: boolean
       convertDefaultToIndex?: boolean
       createFolderForEachComponent?: boolean
+      overrideFileName?: string // only used when createFolderForEachComponent is true
     }
   }
   router?: {
     generator: ComponentGenerator
     path: string[]
     fileName?: string
-    metaDataOptions?: {
-      flavour?: string
-      createFolderForEachComponent?: boolean
-    }
   }
   entry: {
     generator: ComponentGenerator
