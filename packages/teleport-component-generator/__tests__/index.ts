@@ -78,7 +78,7 @@ describe('component generator', () => {
         js: [
           {
             type: CHUNK_TYPE.STRING,
-            fileId: FILE_TYPE.JS,
+            fileType: FILE_TYPE.JS,
             name: 'chunk',
             content: 'import lib from "lib"',
             linkAfter: [],

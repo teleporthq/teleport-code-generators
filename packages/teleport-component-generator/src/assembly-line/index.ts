@@ -1,4 +1,4 @@
-import { extractExternalDependencies, groupChunksByFileId } from './utils'
+import { extractExternalDependencies, groupChunksByFileType } from './utils'
 import {
   ComponentStructure,
   ComponentPlugin,
@@ -34,7 +34,7 @@ export default class AssemblyLine {
     )
 
     const externalDependencies = extractExternalDependencies(finalStructure.dependencies)
-    const chunks = groupChunksByFileId(finalStructure.chunks)
+    const chunks = groupChunksByFileType(finalStructure.chunks)
 
     return {
       chunks,

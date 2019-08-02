@@ -72,7 +72,7 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -84,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       name: exportChunkName,
       content: createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],

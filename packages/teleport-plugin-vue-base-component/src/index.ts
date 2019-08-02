@@ -1,30 +1,27 @@
-import { generateVueComponentJS, generateNodeSyntax, extractStateObject } from './utils'
+import { generateVueComponentJS, extractStateObject } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import * as htmlUtils from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
+import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
 
 import {
   DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
   DEFAULT_VUE_JS_CHUNK_NAME,
-  DEFAULT_JS_FILE_AFTER,
+  DEFAULT_JS_CHUNK_AFTER,
 } from './constants'
 
 interface VueComponentConfig {
   vueTemplateChunkName: string
   vueJSChunkName: string
-  htmlFileId: string
-  jsFileAfter: string[]
-  jsFileId: string
+  jsChunkAfter: string[]
 }
 
 export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
   const {
     vueTemplateChunkName = DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
     vueJSChunkName = DEFAULT_VUE_JS_CHUNK_NAME,
-    htmlFileId = FILE_TYPE.HTML,
-    jsFileId = FILE_TYPE.JS,
-    jsFileAfter = DEFAULT_JS_FILE_AFTER,
+    jsChunkAfter = DEFAULT_JS_CHUNK_AFTER,
   } = config || {}
 
   const vueBasicComponentChunks: ComponentPlugin = async (structure) => {
@@ -34,13 +31,14 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const dataObject: Record<string, any> = {}
     const methodsObject: Record<string, any> = {}
 
-    let templateContent = generateNodeSyntax(uidl.node, {
+    let templateContent = createHTMLTemplateSyntax(uidl.node, {
       templateLookup,
       dependencies,
       dataObject,
       methodsObject,
     })
 
+    // special case for when the root node is not an element
     if (typeof templateContent === 'string') {
       const htmlNode = createHTMLNode('span')
       htmlUtils.addTextNode(htmlNode, templateContent)
@@ -50,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     chunks.push({
       type: CHUNK_TYPE.HAST,
       name: vueTemplateChunkName,
-      fileId: htmlFileId,
+      fileType: FILE_TYPE.HTML,
       meta: {
         nodesLookup: templateLookup,
       },
@@ -72,8 +70,8 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     chunks.push({
       type: CHUNK_TYPE.AST,
       name: vueJSChunkName,
-      fileId: jsFileId,
-      linkAfter: jsFileAfter,
+      fileType: FILE_TYPE.JS,
+      linkAfter: jsChunkAfter,
       content: jsContent,
     })
 

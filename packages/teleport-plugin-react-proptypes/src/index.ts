@@ -55,7 +55,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
       const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
       chunks.push({
         type: CHUNK_TYPE.AST,
-        fileId: FILE_TYPE.JS,
+        fileType: FILE_TYPE.JS,
         name: defaultPropsChunkName,
         linkAfter: [componentChunkName],
         content: defaultPropsAst,
@@ -65,7 +65,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
 
     chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       name: typesOfPropsChunkName,
       linkAfter: [componentChunkName],
       content: typesOfPropsAst,

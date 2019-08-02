@@ -24,7 +24,6 @@ import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/cons
 interface CSSModulesConfig {
   componentChunkName?: string
   styleObjectImportName?: string
-  fileId?: string
   styleChunkName?: string
   camelCaseClassNames?: boolean
   classAttributeName?: string
@@ -34,7 +33,6 @@ const defaultConfigProps = {
   componentChunkName: 'jsx-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  fileId: FILE_TYPE.CSS,
   camelCaseClassNames: true,
   classAttributeName: 'className',
 }
@@ -44,7 +42,6 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     componentChunkName,
     styleObjectImportName,
     styleChunkName,
-    fileId,
     camelCaseClassNames,
     classAttributeName,
   } = {
@@ -124,7 +121,7 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     structure.chunks.push({
       name: styleChunkName,
       type: CHUNK_TYPE.STRING,
-      fileId,
+      fileType: FILE_TYPE.CSS,
       content: cssClasses.join('\n'),
       linkAfter: [],
     })

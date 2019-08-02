@@ -19,7 +19,6 @@ interface StencilStyleChunkConfig {
   componentChunkName: string
   componentDecoratorChunkName: string
   styleChunkName: string
-  styleFileId: string
 }
 
 export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (config) => {
@@ -27,7 +26,6 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
     componentChunkName = 'jsx-component',
     componentDecoratorChunkName = 'decorator',
     styleChunkName = 'stencil-style',
-    styleFileId = FILE_TYPE.CSS,
   } = config || {}
 
   const stencilComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
@@ -86,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
       chunks.push({
         type: CHUNK_TYPE.STRING,
         name: styleChunkName,
-        fileId: styleFileId,
+        fileType: FILE_TYPE.CSS,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })

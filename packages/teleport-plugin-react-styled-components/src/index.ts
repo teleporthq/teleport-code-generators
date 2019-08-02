@@ -72,7 +72,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
         const code = {
           type: CHUNK_TYPE.AST,
-          fileId: FILE_TYPE.JS,
+          fileType: FILE_TYPE.JS,
           name: className,
           linkAfter: [importChunkName],
           content: generateStyledComponent(className, elementType, jssStyleMap[className]),

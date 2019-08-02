@@ -87,7 +87,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
     chunks.push({
       type: CHUNK_TYPE.AST,
-      fileId: FILE_TYPE.JS,
+      fileType: FILE_TYPE.JS,
       name: styleChunkName,
       linkAfter: [importChunkName],
       content: createConstAssignment(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
@@ -103,7 +103,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     } else {
       chunks.push({
         type: CHUNK_TYPE.AST,
-        fileId: FILE_TYPE.JS,
+        fileType: FILE_TYPE.JS,
         name: exportChunkName,
         content: exportStatement,
         linkAfter: [importChunkName, styleChunkName],
