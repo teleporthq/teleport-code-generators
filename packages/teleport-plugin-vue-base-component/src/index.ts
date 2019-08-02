@@ -31,12 +31,27 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     const dataObject: Record<string, any> = {}
     const methodsObject: Record<string, any> = {}
 
-    let templateContent = createHTMLTemplateSyntax(uidl.node, {
-      templateLookup,
-      dependencies,
-      dataObject,
-      methodsObject,
-    })
+    let templateContent = createHTMLTemplateSyntax(
+      uidl.node,
+      {
+        templateLookup,
+        dependencies,
+        dataObject,
+        methodsObject,
+      },
+      {
+        interpolation: (value) => `{{ ${value} }}`,
+        eventBinding: (value) => `@${value}`,
+        valueBinding: (value) => `:${value}`,
+        eventEmmitter: (value) => `this.$emit('${value}')`,
+        conditionalAttr: 'v-if',
+        repeatAttr: 'v-for',
+        repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
+          const iterator = useIndex ? `(${iteratorName}, index)` : iteratorName
+          return `${iterator} in ${iteratedCollection}`
+        },
+      }
+    )
 
     // special case for when the root node is not an element
     if (typeof templateContent === 'string') {

@@ -7,7 +7,7 @@ import {
   UIDLAttributeValue,
   UIDLDynamicReference,
   UIDLStateDefinition,
-  EventHandlerStatement,
+  UIDLEventHandlerStatement,
   UIDLConditionalExpression,
 } from '@teleporthq/teleport-types'
 
@@ -25,7 +25,7 @@ import {
 export const addEventHandlerToTag = (
   tag: types.JSXElement,
   eventKey: string,
-  eventHandlerStatements: EventHandlerStatement[],
+  eventHandlerStatements: UIDLEventHandlerStatement[],
   params: JSXGenerationParams,
   options: JSXGenerationOptions,
   t = types
@@ -67,7 +67,7 @@ export const addEventHandlerToTag = (
 }
 
 const createPropCallStatement = (
-  eventHandlerStatement: EventHandlerStatement,
+  eventHandlerStatement: UIDLEventHandlerStatement,
   propDefinitions: Record<string, UIDLPropDefinition>,
   options: JSXGenerationOptions,
   t = types
@@ -97,7 +97,7 @@ const createPropCallStatement = (
 }
 
 const createStateChangeStatement = (
-  eventHandlerStatement: EventHandlerStatement,
+  eventHandlerStatement: UIDLEventHandlerStatement,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   options: JSXGenerationOptions,
   t = types

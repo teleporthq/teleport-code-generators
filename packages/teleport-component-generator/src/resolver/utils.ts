@@ -7,7 +7,7 @@ import {
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
-  EventDefinitions,
+  UIDLEventDefinitions,
   UIDLElement,
   UIDLNode,
   ComponentDependency,
@@ -428,8 +428,8 @@ const resolveDependency = (
   return nodeDependency
 }
 
-const resolveEvents = (events: EventDefinitions, eventsMapping: Record<string, string>) => {
-  const resultedEvents: EventDefinitions = {}
+const resolveEvents = (events: UIDLEventDefinitions, eventsMapping: Record<string, string>) => {
+  const resultedEvents: UIDLEventDefinitions = {}
   Object.keys(events).forEach((eventKey) => {
     const resolvedKey = eventsMapping[eventKey] || eventKey
     resultedEvents[resolvedKey] = events[eventKey]

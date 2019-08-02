@@ -137,7 +137,7 @@ export interface UIDLElement {
   dependency?: ComponentDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>
-  events?: EventDefinitions
+  events?: UIDLEventDefinitions
   children?: UIDLNode[]
 }
 
@@ -155,9 +155,9 @@ export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
-export type EventDefinitions = Record<string, EventHandlerStatement[]>
+export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
 
-export interface EventHandlerStatement {
+export interface UIDLEventHandlerStatement {
   type: string
   modifies?: string
   newState?: string | number | boolean

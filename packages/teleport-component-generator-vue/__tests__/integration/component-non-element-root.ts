@@ -42,7 +42,7 @@ describe('Vue Component Generator support for non elements as root', () => {
 
     expect(VUE_FILE).toBeDefined()
     expect(result.files).toBeDefined()
-    expect(content).toContain('<span>{{name}}</span>')
+    expect(content).toContain('<span>{{ name }}</span>')
     expect(content).toContain("default: 'Teleport'")
     expect(result.files.length).toBeTruthy()
   })
