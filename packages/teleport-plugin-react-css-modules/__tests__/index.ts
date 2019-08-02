@@ -72,6 +72,6 @@ describe('plugin-react-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe('styles.container')
+    expect(classNameAttr.value.expression.name).toBe("styles['container']")
   })
 })

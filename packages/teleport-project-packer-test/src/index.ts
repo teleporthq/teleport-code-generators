@@ -1,10 +1,10 @@
 import projectPacker from '@teleporthq/teleport-project-packer'
 
-import reactGenerator from '@teleporthq/teleport-project-generator-react-basic'
-import reactNextGenerator from '@teleporthq/teleport-project-generator-react-next'
-import vueGenerator from '@teleporthq/teleport-project-generator-vue-basic'
-import vueNuxtGenerator from '@teleporthq/teleport-project-generator-vue-nuxt'
-import preactGenerator from '@teleporthq/teleport-project-generator-preact-basic'
+import reactGenerator from '@teleporthq/teleport-project-generator-react'
+import nextGenerator from '@teleporthq/teleport-project-generator-next'
+import vueGenerator from '@teleporthq/teleport-project-generator-vue'
+import nuxtGenerator from '@teleporthq/teleport-project-generator-nuxt'
+import preactGenerator from '@teleporthq/teleport-project-generator-preact'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { ProjectUIDL, RemoteTemplateDefinition } from '@teleporthq/teleport-types'
@@ -24,9 +24,9 @@ import projectUIDL from '../../../examples/uidl-samples/project.json'
 
 const generators = {
   react: reactGenerator,
-  next: reactNextGenerator,
+  next: nextGenerator,
   vue: vueGenerator,
-  nuxt: vueNuxtGenerator,
+  nuxt: nuxtGenerator,
   preact: preactGenerator,
 }
 

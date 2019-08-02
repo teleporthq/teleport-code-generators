@@ -17,15 +17,15 @@ export const PUBLISHERS = {
 }
 
 export const GENERATORS = {
-  REACT_BASIC: 'ReactBasic',
-  REACT_NEXT: 'ReactNext',
-  VUE_BASIC: 'VueBasic',
-  VUE_NUXT: 'VueNuxt',
+  REACT: 'React',
+  NEXT: 'Next',
+  VUE: 'Vue',
+  NUXT: 'Nuxt',
 }
 
 export const TEMPLATES = {
-  REACT_BASIC: 'ReactBasic',
-  REACT_NEXT: 'ReactNext',
-  VUE_BASIC: 'VueBasic',
-  VUE_NUXT: 'VueNuxt',
+  REACT: 'React',
+  NEXT: 'Next',
+  VUE: 'Vue',
+  NUXT: 'Nuxt',
 }
