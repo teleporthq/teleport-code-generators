@@ -8,7 +8,7 @@ import {
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
-  EventHandlerStatement,
+  UIDLEventHandlerStatement,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
 
@@ -23,7 +23,7 @@ export const generateVueComponentJS = (
   uidl: ComponentUIDL,
   componentDependencies: string[],
   dataObject: Record<string, any>,
-  methodsObject: Record<string, EventHandlerStatement[]>,
+  methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
   const vueObjectProperties = []
@@ -127,7 +127,7 @@ const createVuePropsDefinition = (
 }
 
 const createMethodsObject = (
-  methods: Record<string, EventHandlerStatement[]>,
+  methods: Record<string, UIDLEventHandlerStatement[]>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
@@ -147,7 +147,7 @@ const createMethodsObject = (
   })
 }
 
-const createStateChangeStatement = (statement: EventHandlerStatement, t = types) => {
+const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
   const { modifies, newState } = statement
 
   const rightOperand =
@@ -165,7 +165,7 @@ const createStateChangeStatement = (statement: EventHandlerStatement, t = types)
 }
 
 const createPropCallStatement = (
-  eventHandlerStatement: EventHandlerStatement,
+  eventHandlerStatement: UIDLEventHandlerStatement,
   propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
