@@ -26,6 +26,7 @@ interface CSSModulesConfig {
   styleObjectImportName?: string
   styleChunkName?: string
   camelCaseClassNames?: boolean
+  moduleExtension?: boolean
   classAttributeName?: string
 }
 
@@ -33,7 +34,8 @@ const defaultConfigProps = {
   componentChunkName: 'jsx-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  camelCaseClassNames: true,
+  camelCaseClassNames: false,
+  moduleExtension: 'false',
   classAttributeName: 'className',
 }
 
@@ -43,6 +45,7 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     styleObjectImportName,
     styleChunkName,
     camelCaseClassNames,
+    moduleExtension,
     classAttributeName,
   } = {
     ...defaultConfigProps,
@@ -107,6 +110,9 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
       return structure
     }
 
+    // create-react-app expects css modules to be in files named [filename].module.css
+    const cssFileType = moduleExtension ? FILE_TYPE.CSSMODULE : FILE_TYPE.CSS
+
     /**
      * Setup an import statement for the styles
      * The name of the file is either in the meta of the component generator
@@ -115,13 +121,13 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     const cssFileName = (meta && meta.fileName) || camelCaseToDashCase(name)
     dependencies[styleObjectImportName] = {
       type: 'local',
-      path: `./${cssFileName}.css`,
+      path: `./${cssFileName}.${cssFileType}`,
     }
 
     structure.chunks.push({
       name: styleChunkName,
       type: CHUNK_TYPE.STRING,
-      fileType: FILE_TYPE.CSS,
+      fileType: cssFileType,
       content: cssClasses.join('\n'),
       linkAfter: [],
     })

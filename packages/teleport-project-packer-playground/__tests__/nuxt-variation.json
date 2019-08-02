@@ -1,10 +1,10 @@
 {
-  "technology": "ReactNext",
+  "technology": "VueNuxt",
   "publisher": {
     "type": "Disk"
   },
   "template": {
-    "name": "react-next",
+    "name": "nuxt",
     "files": [],
     "subFolders": [
       {

@@ -1,10 +1,10 @@
 {
-  "technology": "ReactBasic",
+  "technology": "VueBasic",
   "publisher": {
     "type": "Disk"
   },
   "template": {
-    "name": "react-basic",
+    "name": "vue",
     "files": [],
     "subFolders": [
       {
@@ -17,12 +17,12 @@
             "subFolders": []              
           },
           {
-            "name": "pages",
+            "name": "views",
             "files": [],
             "subFolders": []              
           },
           {
-            "name": "static",
+            "name": "public",
             "files": [],
             "subFolders": []              
           }

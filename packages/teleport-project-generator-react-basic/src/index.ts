@@ -39,7 +39,7 @@ export const createReactBasicGenerator = () => {
     },
     entry: {
       generator: htmlFileGenerator,
-      path: ['src'],
+      path: ['public'],
       fileName: 'index',
     },
     static: {

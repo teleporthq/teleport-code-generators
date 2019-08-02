@@ -22,10 +22,10 @@ import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 
 import {
   GITHUB_TEMPLATE_OWNER,
-  REACT_BASIC_GITHUB_PROJECT,
-  REACT_NEXT_GITHUB_PROJECT,
+  REACT_GITHUB_PROJECT,
+  NEXT_GITHUB_PROJECT,
   VUE_GITHUB_PROJECT,
-  VUE_NUXT_GITHUB_PROJECT,
+  NUXT_GITHUB_PROJECT,
   PUBLISHERS,
   GENERATORS,
   TEMPLATES,
@@ -84,16 +84,10 @@ const getGithubRemoteDefinition = (username: string, repo: string): RemoteTempla
 }
 
 const projectTemplates = {
-  [TEMPLATES.REACT_BASIC]: getGithubRemoteDefinition(
-    GITHUB_TEMPLATE_OWNER,
-    REACT_BASIC_GITHUB_PROJECT
-  ),
-  [TEMPLATES.REACT_NEXT]: getGithubRemoteDefinition(
-    GITHUB_TEMPLATE_OWNER,
-    REACT_NEXT_GITHUB_PROJECT
-  ),
+  [TEMPLATES.REACT_BASIC]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
+  [TEMPLATES.REACT_NEXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
   [TEMPLATES.VUE_BASIC]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
-  [TEMPLATES.VUE_NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
+  [TEMPLATES.VUE_NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
 }
 
 const defaultTechnology = GENERATORS.REACT_NEXT

@@ -8,18 +8,18 @@ import { ProjectUIDL } from '@teleporthq/teleport-types'
 import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'
 
 // @ts-ignore
-import reactBasicVariation from './react-basic-variation.json'
+import reactVariation from './react-variation.json'
 // @ts-ignore
-import reactNextVariation from './react-next-variation.json'
+import nextVariation from './next-variation.json'
 // @ts-ignore
-import vueBasicVariation from './vue-basic-variation.json'
+import vueVariation from './vue-variation.json'
 // @ts-ignore
-import vueNuxtVariation from './vue-nuxt-variation.json'
+import nuxtVariation from './nuxt-variation.json'
 
-const reactBasicProjectPath = join(__dirname, 'react-basic')
-const reactNextProjectPath = join(__dirname, 'react-next')
-const vueBasicProjectPath = join(__dirname, 'vue-basic')
-const vueNuxtProjectPath = join(__dirname, 'vue-nuxt')
+const reactBasicProjectPath = join(__dirname, 'react')
+const reactNextProjectPath = join(__dirname, 'next')
+const vueBasicProjectPath = join(__dirname, 'vue')
+const vueNuxtProjectPath = join(__dirname, 'nuxt')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -54,7 +54,7 @@ describe('project packer playground', () => {
 
   it('should pack react basic project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactBasicVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactVariation))
 
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactBasicProjectPath }
@@ -65,7 +65,7 @@ describe('project packer playground', () => {
 
   it('should pack react next project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactNextVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nextVariation))
 
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
@@ -76,7 +76,7 @@ describe('project packer playground', () => {
 
   it('should pack vue basic project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueBasicVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueVariation))
 
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: vueBasicProjectPath }
@@ -87,7 +87,7 @@ describe('project packer playground', () => {
 
   it('should pack vue nuxt project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueNuxtVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nuxtVariation))
 
     factoryParams.assets = assetsData
     factoryParams.publisher.meta = { outputPath: vueNuxtProjectPath }
