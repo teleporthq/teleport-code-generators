@@ -24,7 +24,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     jsChunkAfter = DEFAULT_JS_CHUNK_AFTER,
   } = config || {}
 
-  const vueBasicComponentChunks: ComponentPlugin = async (structure) => {
+  const vueBasePlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
     const templateLookup: { [key: string]: any } = {}
@@ -93,7 +93,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     return structure
   }
 
-  return vueBasicComponentChunks
+  return vueBasePlugin
 }
 
 export default createPlugin()

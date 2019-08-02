@@ -9,10 +9,10 @@ import {
 
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 
-import { createReactBasicGenerator } from '@teleporthq/teleport-project-generator-react-basic'
-import { createReactNextGenerator } from '@teleporthq/teleport-project-generator-react-next'
-import { createVueBasicGenerator } from '@teleporthq/teleport-project-generator-vue-basic'
-import { createVueNuxtGenerator } from '@teleporthq/teleport-project-generator-vue-nuxt'
+import { createReactProjectGenerator } from '@teleporthq/teleport-project-generator-react'
+import { createNextProjectGenerator } from '@teleporthq/teleport-project-generator-next'
+import { createVueProjectGenerator } from '@teleporthq/teleport-project-generator-vue'
+import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generator-nuxt'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -22,10 +22,10 @@ import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 
 import {
   GITHUB_TEMPLATE_OWNER,
-  REACT_BASIC_GITHUB_PROJECT,
-  REACT_NEXT_GITHUB_PROJECT,
+  REACT_GITHUB_PROJECT,
+  NEXT_GITHUB_PROJECT,
   VUE_GITHUB_PROJECT,
-  VUE_NUXT_GITHUB_PROJECT,
+  NUXT_GITHUB_PROJECT,
   PUBLISHERS,
   GENERATORS,
   TEMPLATES,
@@ -58,10 +58,10 @@ export interface PublisherDefinition {
 }
 
 const projectGenerators = {
-  [GENERATORS.REACT_BASIC]: createReactBasicGenerator,
-  [GENERATORS.REACT_NEXT]: createReactNextGenerator,
-  [GENERATORS.VUE_BASIC]: createVueBasicGenerator,
-  [GENERATORS.VUE_NUXT]: createVueNuxtGenerator,
+  [GENERATORS.REACT]: createReactProjectGenerator,
+  [GENERATORS.NEXT]: createNextProjectGenerator,
+  [GENERATORS.VUE]: createVueProjectGenerator,
+  [GENERATORS.NUXT]: createNuxtProjectGenerator,
 }
 
 type SupportedPublishers =
@@ -84,19 +84,13 @@ const getGithubRemoteDefinition = (username: string, repo: string): RemoteTempla
 }
 
 const projectTemplates = {
-  [TEMPLATES.REACT_BASIC]: getGithubRemoteDefinition(
-    GITHUB_TEMPLATE_OWNER,
-    REACT_BASIC_GITHUB_PROJECT
-  ),
-  [TEMPLATES.REACT_NEXT]: getGithubRemoteDefinition(
-    GITHUB_TEMPLATE_OWNER,
-    REACT_NEXT_GITHUB_PROJECT
-  ),
-  [TEMPLATES.VUE_BASIC]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
-  [TEMPLATES.VUE_NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_NUXT_GITHUB_PROJECT),
+  [TEMPLATES.REACT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
+  [TEMPLATES.NEXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
+  [TEMPLATES.VUE]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
+  [TEMPLATES.NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
 }
 
-const defaultTechnology = GENERATORS.REACT_NEXT
+const defaultTechnology = GENERATORS.NEXT
 
 const defaultPublisher = {
   type: PUBLISHERS.ZIP,
@@ -139,7 +133,7 @@ export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
     packer.setPublisher(projectPublisher)
 
     const remoteGithubTemplate =
-      projectTemplates[packTechnology] || projectTemplates[TEMPLATES.REACT_NEXT]
+      projectTemplates[packTechnology] || projectTemplates[TEMPLATES.NEXT]
 
     if (packParams.template) {
       // First priority for the template passed as a param for pack()

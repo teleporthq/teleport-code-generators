@@ -1,0 +1,27 @@
+{
+  "name": "preact",
+  "files": [],
+  "subFolders": [
+    {
+      "name": "src",
+      "files": [],
+      "subFolders": [
+        {
+          "name": "components",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "routes",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "static",
+          "files": [],
+          "subFolders": []              
+        }
+      ]
+    }
+  ]
+}

@@ -8,18 +8,18 @@ import { ProjectUIDL } from '@teleporthq/teleport-types'
 import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'
 
 // @ts-ignore
-import reactBasicVariation from './react-basic-variation.json'
+import reactVariation from './react-variation.json'
 // @ts-ignore
-import reactNextVariation from './react-next-variation.json'
+import nextVariation from './next-variation.json'
 // @ts-ignore
-import vueBasicVariation from './vue-basic-variation.json'
+import vueVariation from './vue-variation.json'
 // @ts-ignore
-import vueNuxtVariation from './vue-nuxt-variation.json'
+import nuxtVariation from './nuxt-variation.json'
 
-const reactBasicProjectPath = join(__dirname, 'react-basic')
-const reactNextProjectPath = join(__dirname, 'react-next')
-const vueBasicProjectPath = join(__dirname, 'vue-basic')
-const vueNuxtProjectPath = join(__dirname, 'vue-nuxt')
+const reactProjectPath = join(__dirname, 'react')
+const nextProjectPath = join(__dirname, 'next')
+const vueProjectPath = join(__dirname, 'vue')
+const nuxtProjectPath = join(__dirname, 'nuxt')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -39,10 +39,10 @@ const assetsData = {
 
 afterAll(() => {
   // Comment these lines if you want to see the generated projects
-  removeDirectory(reactBasicProjectPath)
-  removeDirectory(reactNextProjectPath)
-  removeDirectory(vueBasicProjectPath)
-  removeDirectory(vueNuxtProjectPath)
+  removeDirectory(reactProjectPath)
+  removeDirectory(nextProjectPath)
+  removeDirectory(vueProjectPath)
+  removeDirectory(nuxtProjectPath)
 })
 
 describe('project packer playground', () => {
@@ -52,45 +52,45 @@ describe('project packer playground', () => {
     expect(packer.pack).toBeDefined()
   })
 
-  it('should pack react basic project', async () => {
+  it('should pack a react project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactBasicVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactVariation))
 
     factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: reactBasicProjectPath }
+    factoryParams.publisher.meta = { outputPath: reactProjectPath }
 
     const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 
-  it('should pack react next project', async () => {
+  it('should pack a next project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactNextVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nextVariation))
 
     factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: reactNextProjectPath }
+    factoryParams.publisher.meta = { outputPath: nextProjectPath }
 
     const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 
-  it('should pack vue basic project', async () => {
+  it('should pack a vue project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueBasicVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueVariation))
 
     factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: vueBasicProjectPath }
+    factoryParams.publisher.meta = { outputPath: vueProjectPath }
 
     const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()
   })
 
-  it('should pack vue nuxt project', async () => {
+  it('should pack a nuxt project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueNuxtVariation))
+    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nuxtVariation))
 
     factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: vueNuxtProjectPath }
+    factoryParams.publisher.meta = { outputPath: nuxtProjectPath }
 
     const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
     expect(success).toBeTruthy()

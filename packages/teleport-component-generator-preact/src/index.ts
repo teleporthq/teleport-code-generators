@@ -13,7 +13,6 @@ import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
 
 const cssModulesPlugin = createCSSModulesPlugin({
   classAttributeName: 'class',
-  camelCaseClassNames: false,
 })
 
 export const createPreactComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {

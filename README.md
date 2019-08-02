@@ -161,10 +161,10 @@ The generators will output an abstract structure with folders and files, without
 Check the official guides on [how to use an existing project generator](https://docs.teleporthq.io/guides/generate-your-first-project.html) or [how to create your custom configuration](https://docs.teleporthq.io/guides/customize-your-project-generator.html)
 
 #### Flavors
-* `teleport-project-generator-react-basic` - `react` + `react-router` and `css-modules` setup
-* `teleport-project-generator-react-next` - based on [Next.js](https://nextjs.org/)
-* `teleport-project-generator-vue-basic` - with a structure starting from the `vue-cli`
-* `teleport-project-generator-vue-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
+* `teleport-project-generator-react` - `react` + `react-router` and `css-modules` on top of `create-react-app`
+* `teleport-project-generator-next` - based on [Next.js](https://nextjs.org/)
+* `teleport-project-generator-vue` - with a structure starting from the `vue-cli`
+* `teleport-project-generator-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
 * `teleport-project-generator-react-native` (coming soon)
 * `teleport-project-generator-angular` (coming soon)
 * `teleport-project-generator-gatsby` (coming soon)

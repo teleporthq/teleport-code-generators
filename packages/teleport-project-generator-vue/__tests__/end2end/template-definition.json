@@ -1,0 +1,27 @@
+{
+  "name": "vue",
+  "files": [],
+  "subFolders": [
+    {
+      "name": "src",
+      "files": [],
+      "subFolders": [
+        {
+          "name": "components",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "views",
+          "files": [],
+          "subFolders": []              
+        },
+        {
+          "name": "public",
+          "files": [],
+          "subFolders": []              
+        }
+      ]
+    }
+  ]
+}

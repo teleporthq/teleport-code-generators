@@ -1,0 +1,34 @@
+{
+  "technology": "React",
+  "publisher": {
+    "type": "Disk"
+  },
+  "template": {
+    "name": "react",
+    "files": [],
+    "subFolders": [
+      {
+        "name": "src",
+        "files": [],
+        "subFolders": [
+          {
+            "name": "components",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "pages",
+            "files": [],
+            "subFolders": []              
+          },
+          {
+            "name": "static",
+            "files": [],
+            "subFolders": []              
+          }
+        ]
+      }
+    ]
+  },
+  "assets": {}
+}

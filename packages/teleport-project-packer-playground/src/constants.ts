@@ -1,12 +1,12 @@
 export const GITHUB_TEMPLATE_OWNER = 'teleporthq'
 
-export const REACT_BASIC_GITHUB_PROJECT = 'teleport-project-template-react-basic'
+export const REACT_GITHUB_PROJECT = 'teleport-project-template-react'
 
-export const REACT_NEXT_GITHUB_PROJECT = 'teleport-project-template-react-next'
+export const NEXT_GITHUB_PROJECT = 'teleport-project-template-next'
 
-export const VUE_GITHUB_PROJECT = 'teleport-project-template-vue-basic'
+export const VUE_GITHUB_PROJECT = 'teleport-project-template-vue'
 
-export const VUE_NUXT_GITHUB_PROJECT = 'teleport-project-template-vue-nuxt'
+export const NUXT_GITHUB_PROJECT = 'teleport-project-template-nuxt'
 
 export const PUBLISHERS = {
   DISK: 'Disk',
@@ -17,15 +17,15 @@ export const PUBLISHERS = {
 }
 
 export const GENERATORS = {
-  REACT_BASIC: 'ReactBasic',
-  REACT_NEXT: 'ReactNext',
-  VUE_BASIC: 'VueBasic',
-  VUE_NUXT: 'VueNuxt',
+  REACT: 'React',
+  NEXT: 'Next',
+  VUE: 'Vue',
+  NUXT: 'Nuxt',
 }
 
 export const TEMPLATES = {
-  REACT_BASIC: 'ReactBasic',
-  REACT_NEXT: 'ReactNext',
-  VUE_BASIC: 'VueBasic',
-  VUE_NUXT: 'VueNuxt',
+  REACT: 'React',
+  NEXT: 'Next',
+  VUE: 'Vue',
+  NUXT: 'Nuxt',
 }
