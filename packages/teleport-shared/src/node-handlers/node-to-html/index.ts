@@ -124,7 +124,9 @@ const generateRepeatNode = (
   )
 
   htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.repeatAttr, repeatIterator)
-  htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
+  if (!templateSyntax.noValueBindingWithRepeat) {
+    htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
+  }
   return repeatContentTag
 }
 

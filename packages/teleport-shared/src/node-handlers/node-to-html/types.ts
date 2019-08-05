@@ -15,4 +15,5 @@ export interface HTMLTemplateSyntax {
   conditionalAttr: string
   repeatAttr: string
   repeatIterator: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
+  noValueBindingWithRepeat?: boolean
 }

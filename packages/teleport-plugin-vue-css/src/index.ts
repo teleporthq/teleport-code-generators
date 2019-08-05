@@ -10,21 +10,23 @@ import {
   addClassToNode,
   addAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-  UIDLDynamicReference,
-} from '@teleporthq/teleport-types'
+import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { DEFAULT_VUE_DYNAMIC_STYLE } from './utils'
 
 interface VueStyleChunkConfig {
   chunkName: string
   vueJSChunk: string
   vueTemplateChunk: string
+  dynamicStylesSyntax?: (value) => any
 }
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
-  const { chunkName = 'vue-style-chunk', vueTemplateChunk = 'vue-template-chunk' } = config || {}
+  const {
+    chunkName = 'vue-style-chunk',
+    vueTemplateChunk = 'vue-template-chunk',
+    dynamicStylesSyntax = DEFAULT_VUE_DYNAMIC_STYLE,
+  } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
@@ -52,9 +54,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
-          const vueFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
-            return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
-          })
+          const vueFriendlyStyleBind = dynamicStylesSyntax(rootStyles)
 
           // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
           if (Object.keys(vueFriendlyStyleBind).length > 0) {

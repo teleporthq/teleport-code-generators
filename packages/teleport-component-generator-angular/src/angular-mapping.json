@@ -1,0 +1,14 @@
+{
+  "elements": {
+    "group": {
+      "elementType": "div"
+    },
+    "navLink": {
+      "elementType": "a"
+    }
+  },
+  "events": {
+    "click": "(click)"
+  },
+  "attributes": {} 
+}
