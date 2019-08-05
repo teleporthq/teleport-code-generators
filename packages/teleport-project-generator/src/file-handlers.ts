@@ -21,43 +21,54 @@ import {
   ComponentUIDL,
   GeneratorOptions,
   UIDLConditionalNode,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { EntryFileOptions, PackageJSON, ProjectStrategy } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
 
-export const createPage = async (
+export const createPageUIDL = (
   routeNode: UIDLConditionalNode,
-  strategy: ProjectStrategy,
-  options: GeneratorOptions
+  routeDefintion: UIDLStateDefinition,
+  strategy: ProjectStrategy
 ) => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
+  const pagesStrategyOptions = strategy.pages.options || {}
 
   const { componentName, fileName } = extractPageMetadata(
-    options.projectRouteDefinition,
+    routeDefintion,
     pageName,
     strategy.pages.options
   )
 
-  const pagesStrategyOptions = strategy.pages.options || {}
-
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
-  const pageFileName =
+  const createPathInOwnFile =
     !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
-      ? pagesStrategyOptions.overrideFileName || 'index'
-      : fileName
 
-  const pageUIDL = {
+  const pageFileName = createPathInOwnFile
+    ? pagesStrategyOptions.overrideFileName || 'index'
+    : fileName
+
+  const pagePath = createPathInOwnFile ? [fileName] : []
+
+  return {
     name: componentName,
     node,
     meta: {
       fileName: pageFileName,
+      path: pagePath,
     },
   }
+}
 
+export const createPage = async (
+  pageUIDL: ComponentUIDL,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
   return strategy.pages.generator.generateComponent(pageUIDL, options)
 }
 

@@ -1,5 +1,4 @@
 import {
-  cloneObject,
   traverseElements,
   getComponentFileName,
   getComponentPath,
@@ -8,25 +7,25 @@ import {
 import {
   GeneratedFile,
   GeneratedFolder,
-  ProjectUIDL,
   UIDLElement,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
 
 import { ProjectStrategy } from './types'
 
-export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectStrategy) => {
-  const result = cloneObject(input)
-
-  const { components, root } = result
-
-  // we don't care about the name of the specific page here, we only want an additional name in the path
-  // so that the import statement is computed correctly (eg: ../../components/ instead of ../components)
-  const pagesPath = computePath(strategy, 'any-page')
-  traverseElements(root.node, (elementNode) => {
-    if (emptyLocalDependency(elementNode)) {
-      setLocalDependencyPath(elementNode, components, pagesPath, strategy.components.path)
-    }
+export const resolveLocalDependencies = (
+  pageUIDLs: ComponentUIDL[],
+  components: Record<string, ComponentUIDL>,
+  strategy: ProjectStrategy
+) => {
+  pageUIDLs.forEach((pageUIDL) => {
+    const pagePath = getComponentPath(pageUIDL)
+    const fromPath = strategy.pages.path.concat(pagePath)
+    traverseElements(pageUIDL.node, (elementNode) => {
+      if (emptyLocalDependency(elementNode)) {
+        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
+      }
+    })
   })
 
   Object.keys(components).forEach((componentKey) => {
@@ -40,8 +39,6 @@ export const resolveLocalDependencies = (input: ProjectUIDL, strategy: ProjectSt
       }
     })
   })
-
-  return result
 }
 
 const emptyLocalDependency = (elementNode: UIDLElement) =>

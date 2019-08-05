@@ -1,10 +1,11 @@
-import { injectFilesToPath, resolveLocalDependencies, computePath } from './utils'
+import { injectFilesToPath, resolveLocalDependencies } from './utils'
 
 import {
   createManifestJSONFile,
   handlePackageJSON,
   createComponent,
   createPage,
+  createPageUIDL,
   createRouterFile,
   createEntryFile,
 } from './file-handlers'
@@ -17,6 +18,7 @@ import {
   extractRoutes,
   cloneObject,
   getComponentPath,
+  getComponentFileName,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
@@ -49,18 +51,34 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       throw new Error(schemaValidationResult.errorMsg)
     }
 
-    const parsedInput = Parser.parseProjectJSON(input)
-    const contentValidationResult = validator.validateProjectContent(parsedInput)
+    const uidl = Parser.parseProjectJSON(input)
+    const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    // Local dependency paths are set inside the UIDL
-    const uidl = resolveLocalDependencies(parsedInput, strategy)
-
     // Initialize output folder and other reusable structures
     const { components = {}, root } = uidl
     const routeNodes = extractRoutes(root)
+    const pageUIDLs = routeNodes.map((routeNode) =>
+      createPageUIDL(routeNode, root.stateDefinitions.route, strategy)
+    )
+
+    if (strategy.components.options && strategy.components.options.createFolderForEachComponent) {
+      Object.keys(components).forEach((componentKey) => {
+        const component = components[componentKey]
+        const fileName = getComponentFileName(component)
+
+        component.meta = {
+          fileName: strategy.components.options.overrideFileName || 'index',
+          path: [fileName],
+        }
+      })
+    }
+
+    // Local dependency paths are set inside the UIDL
+    resolveLocalDependencies(pageUIDLs, components, strategy)
+
     const options: GeneratorOptions = {
       assetsPrefix,
       projectRouteDefinition: root.stateDefinitions.route,
@@ -72,10 +90,12 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     let collectedDependencies: Record<string, string> = {}
 
     // Handling pages, based on the conditionals in the root node
-    for (const routeNode of routeNodes) {
-      const { files, dependencies } = await createPage(routeNode, strategy, options)
-      const fileName: string = routeNode.content.value as string
-      const path = computePath(strategy, fileName)
+    for (const pageUIDL of pageUIDLs) {
+      const { files, dependencies } = await createPage(pageUIDL, strategy, options)
+      // const fileName = routeNode.content.value.toString()
+      // const path = computePath(strategy, fileName)
+      const relativePath = getComponentPath(pageUIDL)
+      const path = strategy.pages.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }

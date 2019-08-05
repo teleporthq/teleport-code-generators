@@ -28,6 +28,9 @@ export const createPreactProjectGenerator = () => {
     components: {
       generator: preactComponentGenerator,
       path: ['src', 'components'],
+      options: {
+        createFolderForEachComponent: true,
+      },
     },
     pages: {
       generator: preactComponentGenerator,
