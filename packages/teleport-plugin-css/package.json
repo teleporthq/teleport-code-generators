@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-plugin-vue-css",
+  "name": "@teleporthq/teleport-plugin-css",
   "version": "0.8.1",
-  "description": "A plugin for creating the styles of a Vue component",
+  "description": "A plugin for creating the styles in css and adding them to Components",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

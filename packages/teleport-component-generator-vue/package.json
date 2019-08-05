@@ -29,7 +29,7 @@
     "@teleporthq/teleport-plugin-import-statements": "^0.8.1",
     "@teleporthq/teleport-plugin-vue-app-routing": "^0.8.1",
     "@teleporthq/teleport-plugin-vue-base-component": "^0.8.1",
-    "@teleporthq/teleport-plugin-vue-css": "^0.8.1",
+    "@teleporthq/teleport-plugin-css": "^0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.8.1",
     "@teleporthq/teleport-postprocessor-vue-file": "^0.8.1",

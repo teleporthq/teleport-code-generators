@@ -2,7 +2,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import angularComponentPlugin from '@teleporthq/teleport-plugin-angular-base-component'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-import { createPlugin as createStylePlugin } from '@teleporthq/teleport-plugin-vue-css'
+import { createPlugin as createStylePlugin } from '@teleporthq/teleport-plugin-css'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'

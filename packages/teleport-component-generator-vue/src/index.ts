@@ -1,7 +1,7 @@
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
-import { createPlugin as createVueStylePlugin } from '@teleporthq/teleport-plugin-vue-css'
+import { createPlugin as createVueStylePlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -15,11 +15,13 @@ import { Mapping, ComponentGenerator, UIDLDynamicReference } from '@teleporthq/t
 export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
   const vueStylePlugin = createVueStylePlugin({
-    dynamicStylesSyntax: (rootStyles) => {
+    dynamicStylesSyntax: (rootStyles: object) => {
       return Object.keys(rootStyles).map((styleKey) => {
         return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
       })
     },
+    dynamicStyleAttributeKey: () => ':style',
+    dynamicStyleAttributeValue: (style: string[]) => `{${style.join(', ')}`,
   })
 
   generator.addMapping(vueMapping)

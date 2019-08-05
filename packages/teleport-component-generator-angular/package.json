@@ -25,7 +25,7 @@
   "dependencies": {
     "@teleporthq/teleport-types": "0.8.1",
     "@teleporthq/teleport-shared": "0.8.1",
-    "@teleporthq/teleport-plugin-vue-css": "^0.8.1",
+    "@teleporthq/teleport-plugin-css": "^0.8.1",
     "@teleporthq/teleport-component-generator": "0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-html": "0.8.1",
     "@teleporthq/teleport-postprocessor-prettier-js": "0.8.1",
