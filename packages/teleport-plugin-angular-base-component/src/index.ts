@@ -50,8 +50,8 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       },
       {
         interpolation: (value) => `{{ ${value} }}`,
-        eventBinding: (value) => `(${value})`,
-        valueBinding: (value) => `:${value}`,
+        eventBinding: (value) => `${value}`,
+        valueBinding: (value) => `[${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
         conditionalAttr: '*ngIf',
         repeatAttr: '*ngFor',

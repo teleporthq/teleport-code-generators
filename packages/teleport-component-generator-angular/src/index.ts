@@ -12,7 +12,9 @@ import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
 const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
 const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TS })
-const stylePlugin = createStylePlugin()
+const stylePlugin = createStylePlugin({
+  dynamicStyleAttributeKey: () => '[ngStyle]',
+})
 
 export const createAngularComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createComponentGenerator()

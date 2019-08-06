@@ -10,18 +10,12 @@ import vueFile from '@teleporthq/teleport-postprocessor-vue-file'
 
 import vueMapping from './vue-mapping.json'
 
-import { Mapping, ComponentGenerator, UIDLDynamicReference } from '@teleporthq/teleport-types'
+import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
 export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
   const vueStylePlugin = createVueStylePlugin({
-    dynamicStylesSyntax: (rootStyles: object) => {
-      return Object.keys(rootStyles).map((styleKey) => {
-        return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
-      })
-    },
     dynamicStyleAttributeKey: () => ':style',
-    dynamicStyleAttributeValue: (style: string[]) => `{${style.join(', ')}`,
   })
 
   generator.addMapping(vueMapping)

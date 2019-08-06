@@ -10,26 +10,25 @@ import {
   addClassToNode,
   addAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  UIDLDynamicReference,
+} from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { DEFAULT_VUE_DYNAMIC_STYLE } from './utils'
 
 interface VueStyleChunkConfig {
   chunkName: string
   vueJSChunk: string
   vueTemplateChunk: string
-  dynamicStylesSyntax?: (value: object) => any
   dynamicStyleAttributeKey: () => string
-  dynamicStyleAttributeValue: (value: string[]) => string
 }
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
   const {
     chunkName = 'style-chunk',
     vueTemplateChunk = 'template-chunk',
-    dynamicStylesSyntax = DEFAULT_VUE_DYNAMIC_STYLE,
     dynamicStyleAttributeKey = () => ':style',
-    dynamicStyleAttributeValue = (style: string[]) => `{${style.join(', ')}}`,
   } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
@@ -59,14 +58,16 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
-          const flavorFriendlyStyleBind = dynamicStylesSyntax(rootStyles)
+          const flavorFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
+            return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
+          })
 
           // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
           if (Object.keys(flavorFriendlyStyleBind).length > 0) {
             addAttributeToNode(
               root,
               dynamicStyleAttributeKey(),
-              dynamicStyleAttributeValue(flavorFriendlyStyleBind)
+              `{${flavorFriendlyStyleBind.join(', ')}}`
             )
           }
         }
