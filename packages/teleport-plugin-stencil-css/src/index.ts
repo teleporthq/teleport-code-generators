@@ -5,6 +5,7 @@ import {
   cleanupNestedStyles,
   traverseElements,
   transformDynamicStyles,
+  getStyleFileName,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   createCSSClass,
@@ -75,7 +76,7 @@ export const createPlugin: ComponentPluginFactory<StencilStyleChunkConfig> = (co
     })
 
     if (jssStylesArray.length > 0) {
-      const cssFileName = (uidl.meta && uidl.meta.fileName) || camelCaseToDashCase(uidl.name)
+      const cssFileName = getStyleFileName(uidl)
 
       const decoratorAST = stencilDecorator.content
       const decoratorParam = decoratorAST.expression.arguments[0]

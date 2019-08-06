@@ -4,10 +4,7 @@ import {
   addTextNode,
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import {
-  prefixPlaygroundAssetsURL,
-  extractPageMetadata,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -20,49 +17,13 @@ import {
   ChunkDefinition,
   ComponentUIDL,
   GeneratorOptions,
-  UIDLConditionalNode,
-  UIDLStateDefinition,
+  ProjectStrategy,
+  EntryFileOptions,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
-import { EntryFileOptions, PackageJSON, ProjectStrategy } from './types'
+import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
-
-export const createPageUIDL = (
-  routeNode: UIDLConditionalNode,
-  routeDefintion: UIDLStateDefinition,
-  strategy: ProjectStrategy
-) => {
-  const { value, node } = routeNode.content
-  const pageName = value.toString()
-  const pagesStrategyOptions = strategy.pages.options || {}
-
-  const { componentName, fileName } = extractPageMetadata(
-    routeDefintion,
-    pageName,
-    strategy.pages.options
-  )
-
-  // If the file name will not be used as the path (eg: next, nuxt)
-  // And if the option to create each page in its folder is passed (eg: preact)
-  const createPathInOwnFile =
-    !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
-
-  const pageFileName = createPathInOwnFile
-    ? pagesStrategyOptions.overrideFileName || 'index'
-    : fileName
-
-  const pagePath = createPathInOwnFile ? [fileName] : []
-
-  return {
-    name: componentName,
-    node,
-    meta: {
-      fileName: pageFileName,
-      path: pagePath,
-    },
-  }
-}
 
 export const createPage = async (
   pageUIDL: ComponentUIDL,
@@ -86,8 +47,10 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     routerFilePath,
     strategy.pages.path
   )
+
   const options = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
+    strategy,
   }
 
   root.meta = root.meta || {}

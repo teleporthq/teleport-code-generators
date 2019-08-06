@@ -1,24 +1,24 @@
-import { injectFilesToPath, resolveLocalDependencies } from './utils'
+import {
+  injectFilesToPath,
+  resolveLocalDependencies,
+  createPageUIDLs,
+  prepareComponentFilenamesAndPath,
+} from './utils'
 
 import {
   createManifestJSONFile,
   handlePackageJSON,
   createComponent,
   createPage,
-  createPageUIDL,
   createRouterFile,
   createEntryFile,
 } from './file-handlers'
 
-import { ProjectStrategy } from './types'
-
 import { DEFAULT_TEMPLATE } from './constants'
 
 import {
-  extractRoutes,
   cloneObject,
   getComponentPath,
-  getComponentFileName,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
@@ -28,6 +28,7 @@ import {
   GeneratedFolder,
   Mapping,
   ProjectGenerator,
+  ProjectStrategy,
 } from '@teleporthq/teleport-types'
 
 export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenerator => {
@@ -57,28 +58,20 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    // Initialize output folder and other reusable structures
     const { components = {}, root } = uidl
-    const routeNodes = extractRoutes(root)
-    const pageUIDLs = routeNodes.map((routeNode) =>
-      createPageUIDL(routeNode, root.stateDefinitions.route, strategy)
-    )
 
-    if (strategy.components.options && strategy.components.options.createFolderForEachComponent) {
-      Object.keys(components).forEach((componentKey) => {
-        const component = components[componentKey]
-        const fileName = getComponentFileName(component)
+    // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
+    const pageUIDLs = createPageUIDLs(root, strategy)
 
-        component.meta = {
-          fileName: strategy.components.options.overrideFileName || 'index',
-          path: [fileName],
-        }
-      })
-    }
+    // Set the filename and path for each component based on the strategy
+    prepareComponentFilenamesAndPath(components, strategy)
 
-    // Local dependency paths are set inside the UIDL
+    // Set the local dependency paths based on the relative paths between files
     resolveLocalDependencies(pageUIDLs, components, strategy)
 
+    // Initialize output folder and other reusable structures
+    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
+    let collectedDependencies: Record<string, string> = {}
     const options: GeneratorOptions = {
       assetsPrefix,
       projectRouteDefinition: root.stateDefinitions.route,
@@ -86,14 +79,11 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       skipValidation: true,
     }
 
-    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
-    let collectedDependencies: Record<string, string> = {}
-
-    // Handling pages, based on the conditionals in the root node
+    // Handling pages
     for (const pageUIDL of pageUIDLs) {
       const { files, dependencies } = await createPage(pageUIDL, strategy, options)
-      // const fileName = routeNode.content.value.toString()
-      // const path = computePath(strategy, fileName)
+
+      // Pages might be generated inside subfolders in the main pages folder
       const relativePath = getComponentPath(pageUIDL)
       const path = strategy.pages.path.concat(relativePath)
 
@@ -101,15 +91,14 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
-    // Handle the components from the UIDL
+    // Handling components
     for (const componentName of Object.keys(components)) {
       const componentUIDL = components[componentName]
+      const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = getComponentPath(componentUIDL)
       const path = strategy.components.path.concat(relativePath)
-
-      const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }

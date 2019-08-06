@@ -44,19 +44,32 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     const { stateDefinitions = {} } = uidl
 
     const routes = extractRoutes(uidl)
+    const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
 
-      const { fileName, componentName, path } = extractPageMetadata(
+      const { fileName: pageName, componentName, path } = extractPageMetadata(
         stateDefinitions.route,
         routeKey.toString()
       )
 
+      /* If pages are exported in their own folder and in custom file names.
+         Import statements must then be:
+
+         import Home from '../pages/home/component'
+
+         so the `/component` suffix is computed below.
+      */
+      const pageStrategyOptions = (strategy && strategy.pages.options) || {}
+      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
+        ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
+        : ''
+
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${fileName}`,
+        path: `${pageDependencyPrefix}${pageName}${pageComponentSuffix}`,
       }
 
       return constructRouteJSX(flavor, componentName, path)

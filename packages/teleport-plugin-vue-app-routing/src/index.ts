@@ -34,11 +34,26 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
     const routeDefinitions = uidl.stateDefinitions.route
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
+    /* If pages are exported in their own folder and in custom file names.
+         Import statements must then be:
+
+         import Home from '../pages/home/component'
+
+         so the `/component` suffix is computed below.
+      */
+    const pageStrategyOptions = (options.strategy && options.strategy.pages.options) || {}
+    const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
+      ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
+      : ''
+
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
       const { fileName, componentName, path } = extractPageMetadata(routeDefinitions, pageKey)
 
-      dependencies[componentName] = { type: 'local', path: `${pageDependencyPrefix}${fileName}` }
+      dependencies[componentName] = {
+        type: 'local',
+        path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
+      }
 
       return t.objectExpression([
         t.objectProperty(t.identifier('name'), t.stringLiteral(pageKey)),

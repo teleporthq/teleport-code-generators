@@ -69,6 +69,7 @@ export interface GeneratorOptions {
   mapping?: Mapping
   skipValidation?: boolean
   projectRouteDefinition?: UIDLStateDefinition
+  strategy?: ProjectStrategy
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -101,6 +102,55 @@ export interface ProjectGenerator {
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string
+}
+
+export interface ProjectStrategy {
+  components: {
+    generator: ComponentGenerator
+    path: string[]
+    options?: {
+      createFolderForEachComponent?: boolean
+      customComponentFileName?: string // only used when createFolderForEachComponent is true
+      customStyleFileName?: string
+      customTemplateFileName?: string
+    }
+  }
+  pages: {
+    generator: ComponentGenerator
+    path: string[]
+    options?: {
+      usePathAsFileName?: boolean
+      convertDefaultToIndex?: boolean
+      createFolderForEachComponent?: boolean
+      customComponentFileName?: string // only used when createFolderForEachComponent is true
+      customStyleFileName?: string
+      customTemplateFileName?: string
+    }
+  }
+  router?: {
+    generator: ComponentGenerator
+    path: string[]
+    fileName?: string
+  }
+  entry: {
+    generator: ComponentGenerator
+    path: string[]
+    fileName?: string
+    chunkGenerationFunction?: (
+      uidl: ProjectUIDL,
+      options: EntryFileOptions
+    ) => Record<string, ChunkDefinition[]>
+    appRootOverride?: string
+  }
+  static: {
+    prefix?: string
+    path: string[]
+  }
+}
+
+export interface EntryFileOptions {
+  assetsPrefix?: string
+  appRootOverride?: string
 }
 
 export interface GeneratedFolder {

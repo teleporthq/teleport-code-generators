@@ -1,5 +1,9 @@
-import { Mapping, CompiledComponent, GeneratedFolder } from '@teleporthq/teleport-types'
-import { ProjectStrategy } from '../src/types'
+import {
+  Mapping,
+  CompiledComponent,
+  GeneratedFolder,
+  ProjectStrategy,
+} from '@teleporthq/teleport-types'
 
 export const mockMapping: Mapping = {
   elements: {

@@ -34,6 +34,8 @@ export interface ComponentUIDL {
   node: UIDLNode
   meta?: {
     fileName?: string
+    styleFileName?: string
+    templateFileName?: string
     path?: string[]
   }
   propDefinitions?: Record<string, UIDLPropDefinition>

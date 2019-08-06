@@ -1,6 +1,6 @@
 import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../src/file-handlers'
 import { PackageJSON } from '../src/types'
-import { GeneratedFolder, ProjectUIDL, HastNode, HastText } from '@teleporthq/teleport-types'
+import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -25,7 +25,7 @@ describe('createHtmlIndexFile', () => {
 describe('createManifestJSONFile', () => {
   it('returns manifest file with prefixed assets', () => {
     const assetsPrefix = 'playground'
-    const result = createManifestJSONFile(uidlSample, assetsPrefix)
+    const result = createManifestJSONFile(uidlSample as ProjectUIDL, assetsPrefix)
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
@@ -33,7 +33,7 @@ describe('createManifestJSONFile', () => {
   })
 
   it('returns manifest file with no prefixed assets', () => {
-    const result = createManifestJSONFile(uidlSample)
+    const result = createManifestJSONFile(uidlSample as ProjectUIDL)
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
