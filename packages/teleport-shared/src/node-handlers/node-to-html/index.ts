@@ -63,7 +63,10 @@ const generateElementNode = (
 ) => {
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = createHTMLNode(elementType)
+  const htmlNode =
+    dependency && dependency.type === 'local'
+      ? createHTMLNode(templateSyntax.customElementTagNames(elementType))
+      : createHTMLNode(elementType)
 
   if (dependency) {
     dependencies[elementType] = { ...dependency }
@@ -124,9 +127,7 @@ const generateRepeatNode = (
   )
 
   htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.repeatAttr, repeatIterator)
-  if (!templateSyntax.noValueBindingWithRepeat) {
-    htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
-  }
+  htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
   return repeatContentTag
 }
 

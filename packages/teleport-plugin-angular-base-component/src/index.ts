@@ -2,6 +2,7 @@ import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import { generateExportAST, generateComponentDecorator } from './utils'
 
@@ -59,7 +60,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
           const index = useIndex ? `; index as i` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        noValueBindingWithRepeat: true,
+        customElementTagNames: (value) => `app-${camelCaseToDashCase(value)}`,
       }
     )
 
