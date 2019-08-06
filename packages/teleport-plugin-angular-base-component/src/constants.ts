@@ -1,4 +1,4 @@
-export const DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME = 'angular-template-chunk'
+export const DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME = 'template-chunk'
 
 export const DEFAULT_ANGULAR_TS_CHUNK_NAME = 'angular-ts-chunk'
 

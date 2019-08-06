@@ -25,8 +25,8 @@ interface VueStyleChunkConfig {
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
   const {
-    chunkName = 'vue-style-chunk',
-    vueTemplateChunk = 'vue-template-chunk',
+    chunkName = 'style-chunk',
+    vueTemplateChunk = 'template-chunk',
     dynamicStylesSyntax = DEFAULT_VUE_DYNAMIC_STYLE,
     dynamicStyleAttributeKey = () => ':style',
     dynamicStyleAttributeValue = (style: string[]) => `{${style.join(', ')}}`,
@@ -38,6 +38,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
     const { node } = uidl
 
     const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
+
     const templateLookup = templateChunk.meta.nodesLookup
 
     const jssStylesArray = []
