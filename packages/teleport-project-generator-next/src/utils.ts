@@ -9,8 +9,7 @@ import * as types from '@babel/types'
 
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { EntryFileOptions } from '@teleporthq/teleport-project-generator/dist/cjs/types'
-import { ProjectUIDL, ChunkDefinition } from '@teleporthq/teleport-types'
+import { ProjectUIDL, ChunkDefinition, EntryFileOptions } from '@teleporthq/teleport-types'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest } = uidl.globals
