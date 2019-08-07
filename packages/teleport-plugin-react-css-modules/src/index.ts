@@ -35,7 +35,7 @@ const defaultConfigProps = {
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
   camelCaseClassNames: false,
-  moduleExtension: 'false',
+  moduleExtension: false,
   classAttributeName: 'className',
 }
 
@@ -76,13 +76,16 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
 
         if (Object.keys(staticStyles).length > 0) {
           const className = camelCaseToDashCase(key)
-          const classNameInJS = dashCaseToCamelCase(className)
+          const jsFriendlyClassName = dashCaseToCamelCase(className)
 
           cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
 
-          const classReferenceIdentifier = camelCaseClassNames
-            ? `styles.${classNameInJS}`
-            : `styles['${className}']`
+          // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
+          const classNameIsJSFriendly = className === jsFriendlyClassName
+          const classReferenceIdentifier =
+            camelCaseClassNames || classNameIsJSFriendly
+              ? `styles.${jsFriendlyClassName}`
+              : `styles['${className}']`
 
           addDynamicAttributeToJSXTag(root, classAttributeName, classReferenceIdentifier)
         }
