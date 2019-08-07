@@ -10,7 +10,7 @@ import { createPlugin } from '../src/index'
 import { createComponentChunk, setupPluginStructure } from './mocks'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-react-css-modules', () => {
+describe('plugin-css-modules', () => {
   it('generates no chunk if no styles exist', async () => {
     const plugin = createPlugin()
     const uidlSample = component('CSSModules', elementNode('container'))

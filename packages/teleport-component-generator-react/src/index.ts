@@ -1,10 +1,10 @@
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
 import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
 import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
-import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-react-css-modules'
+import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
 import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
-import reactPropTypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
+import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -36,7 +36,7 @@ export const createReactComponentGenerator = (
 
   generator.addPlugin(reactComponentPlugin)
   generator.addPlugin(stylePlugin)
-  generator.addPlugin(reactPropTypesPlugin)
+  generator.addPlugin(propTypesPlugin)
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)

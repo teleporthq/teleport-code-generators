@@ -3,7 +3,7 @@ import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/bui
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-react-proptypes', () => {
+describe('plugin-jsx-proptypes', () => {
   const plugin = createPlugin()
   const reactChunk = {
     type: CHUNK_TYPE.AST,
@@ -31,7 +31,7 @@ describe('plugin-react-proptypes', () => {
     try {
       await plugin(structure)
     } catch (e) {
-      expect(e.message).toContain('React component chunk with name')
+      expect(e.message).toContain('JSX component chunk with name')
     }
   })
 
@@ -56,12 +56,8 @@ describe('plugin-react-proptypes', () => {
     }
     const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-default-props'
-    )
-    const propTypes = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-types-of-props'
-    )
+    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
+    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
 
     expect(defaultProps.length).toEqual(1)
     expect(defaultProps[0].type).toBe(CHUNK_TYPE.AST)
@@ -88,12 +84,8 @@ describe('plugin-react-proptypes', () => {
     }
     const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-default-props'
-    )
-    const propTypes = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-types-of-props'
-    )
+    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
+    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)
@@ -121,13 +113,8 @@ describe('plugin-react-proptypes', () => {
     }
     const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-default-props'
-    )
-
-    const propTypes = result.chunks.filter(
-      (chunk) => chunk.name === 'react-component-types-of-props'
-    )
+    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
+    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)

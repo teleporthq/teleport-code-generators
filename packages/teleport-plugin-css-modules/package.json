@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-plugin-react-proptypes",
+  "name": "@teleporthq/teleport-plugin-css-modules",
   "version": "0.8.1",
-  "description": "A plugin for generating prop-types according to the component specification",
+  "description": "A plugin for handling the styles as a separate css-module file for JSX based components",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -25,7 +25,6 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@babel/types": "^7.3.3",
     "@teleporthq/teleport-shared": "^0.8.1",
     "@teleporthq/teleport-types": "^0.8.1"
   }

@@ -1,7 +1,7 @@
 import preactComponentPlugin from '@teleporthq/teleport-plugin-preact-base-component'
-import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-react-css-modules'
+import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
-import proptypesPlugin from '@teleporthq/teleport-plugin-react-proptypes'
+import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 

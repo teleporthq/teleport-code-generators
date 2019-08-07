@@ -1,4 +1,4 @@
-# teleport-plugin-react-proptypes
+# teleport-plugin-jsx-proptypes
 
 A plugin for generating prop-types according to the component specification.
 
@@ -6,9 +6,9 @@ A plugin for generating prop-types according to the component specification.
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-plugin-react-proptypes
+npm install @teleporthq/teleport-plugin-jsx-proptypes
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-plugin-react-proptypes
+yarn add @teleporthq/teleport-plugin-jsx-proptypes
 ```

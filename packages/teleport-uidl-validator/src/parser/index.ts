@@ -29,7 +29,7 @@ export const parseComponentJSON = (
 
   const node = safeInput.node as Record<string, unknown>
   const result: ComponentUIDL = {
-    ...(safeInput as ComponentUIDL),
+    ...((safeInput as unknown) as ComponentUIDL),
   }
 
   // other parsers for other sections of the component here
@@ -47,16 +47,19 @@ export const parseProjectJSON = (
   params: ParseProjectJSONParams = {}
 ): ProjectUIDL => {
   const safeInput = params.noClone ? input : cloneObject(input)
-  const root = safeInput.root as ComponentUIDL
+  const root = safeInput.root as Record<string, unknown>
 
   const result = {
-    ...(safeInput as ProjectUIDL),
+    ...((safeInput as unknown) as ProjectUIDL),
   }
 
   result.root = parseComponentJSON(root, { noClone: true })
   if (result.components) {
     result.components = Object.keys(result.components).reduce((parsedComponnets, key) => {
-      parsedComponnets[key] = parseComponentJSON(result.components[key])
+      parsedComponnets[key] = parseComponentJSON((result.components[key] as unknown) as Record<
+        string,
+        unknown
+      >)
       return parsedComponnets
     }, {})
   }
@@ -65,7 +68,7 @@ export const parseProjectJSON = (
 }
 
 const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
-  switch ((node as UIDLNode).type) {
+  switch (((node as unknown) as UIDLNode).type) {
     case 'element':
       const elementContent = node.content as Record<string, unknown>
 
@@ -93,13 +96,14 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         }, [])
       }
 
-      return node as UIDLNode
+      return (node as unknown) as UIDLNode
 
     case 'conditional':
-      const conditionalNode = node as UIDLConditionalNode
+      const conditionalNode = (node as unknown) as UIDLConditionalNode
       const { reference } = conditionalNode.content
 
-      conditionalNode.content.node = parseComponentNode(conditionalNode.content.node)
+      conditionalNode.content.node = parseComponentNode((conditionalNode.content
+        .node as unknown) as Record<string, unknown>)
 
       if (typeof reference === 'string') {
         conditionalNode.content.reference = transformStringAssignmentToJson(
@@ -113,7 +117,10 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const repeatNode = (node as unknown) as UIDLRepeatNode
       const { dataSource } = repeatNode.content
 
-      repeatNode.content.node = parseComponentNode(repeatNode.content.node)
+      repeatNode.content.node = parseComponentNode((repeatNode.content.node as unknown) as Record<
+        string,
+        unknown
+      >)
 
       if (typeof dataSource === 'string') {
         repeatNode.content.dataSource = transformStringAssignmentToJson(dataSource)
@@ -122,10 +129,11 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       return repeatNode
 
     case 'slot':
-      const slotNode = node as UIDLSlotNode
+      const slotNode = (node as unknown) as UIDLSlotNode
 
       if (slotNode.content.fallback) {
-        slotNode.content.fallback = parseComponentNode(slotNode.content.fallback) as
+        slotNode.content.fallback = parseComponentNode((slotNode.content
+          .fallback as unknown) as Record<string, unknown>) as
           | UIDLElementNode
           | UIDLStaticValue
           | UIDLDynamicReference
@@ -135,7 +143,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
     case 'dynamic':
     case 'static':
-      return node as UIDLNode
+      return (node as unknown) as UIDLNode
 
     default:
       throw new Error(`parseComponentNode attempted to parsed invalid node type ${node.type}`)

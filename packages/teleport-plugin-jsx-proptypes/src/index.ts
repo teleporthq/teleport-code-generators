@@ -2,31 +2,31 @@ import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-interface ReactJSPropTypesConfig {
+interface PropTypesConfig {
   componentChunkName?: string
   defaultPropsChunkName?: string
   typesOfPropsChunkName?: string
   exportComponentName?: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (config) => {
+export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
-    defaultPropsChunkName = 'react-component-default-props',
-    typesOfPropsChunkName = 'react-component-types-of-props',
+    defaultPropsChunkName = 'component-default-props',
+    typesOfPropsChunkName = 'component-types-of-props',
     exportComponentName = 'export',
   } = config || {}
 
-  const reactJSPropTypesChunkPlugin: ComponentPlugin = async (structure) => {
+  const propTypesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
     const { name } = uidl
 
-    const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
-    const exportChunk = chunks.filter((chunk) => chunk.name === exportComponentName)[0]
+    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+    const exportChunk = chunks.find((chunk) => chunk.name === exportComponentName)
 
     if (!componentChunk) {
       throw new Error(
-        `React component chunk with name ${componentChunkName} was required and not found.`
+        `JSX component chunk with name ${componentChunkName} was required and not found.`
       )
     }
 
@@ -77,7 +77,7 @@ export const createPlugin: ComponentPluginFactory<ReactJSPropTypesConfig> = (con
     return structure
   }
 
-  return reactJSPropTypesChunkPlugin
+  return propTypesPlugin
 }
 
 export default createPlugin()

@@ -1,4 +1,4 @@
-# teleport-plugin-react-css-modules
+# teleport-plugin-css-modules
 
 A plugin for handling the styles as a separate css-module file for React components.
 
@@ -6,9 +6,9 @@ A plugin for handling the styles as a separate css-module file for React compone
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-plugin-react-css-modules
+npm install @teleporthq/teleport-plugin-css-modules
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-plugin-react-css-modules
+yarn add @teleporthq/teleport-plugin-css-modules
 ```
