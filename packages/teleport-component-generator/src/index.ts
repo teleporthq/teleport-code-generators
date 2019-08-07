@@ -3,8 +3,13 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import {
+  getComponentFileName,
+  getStyleFileName,
+  getTemplateFileName,
+} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
   ChunkDefinition,
   ComponentGenerator,
@@ -71,7 +76,9 @@ export const createComponentGenerator = (
     })
 
     const fileName = getComponentFileName(resolvedUIDL)
-    const files = fileBundler(fileName, codeChunks)
+    const styleFileName = getStyleFileName(resolvedUIDL)
+    const templateFileName = getTemplateFileName(resolvedUIDL)
+    const files = fileBundler(codeChunks, fileName, styleFileName, templateFileName)
 
     return {
       files,
@@ -95,7 +102,7 @@ export const createComponentGenerator = (
       codeChunks = processor(codeChunks)
     })
 
-    return fileBundler(fileName, codeChunks)
+    return fileBundler(codeChunks, fileName)
   }
 
   const addPostProcessor = (fn: PostProcessor) => {
@@ -114,12 +121,36 @@ export const createComponentGenerator = (
 
 export default createComponentGenerator()
 
-const fileBundler = (fileName: string, codeChunks: Record<string, string>) => {
+const fileBundler = (
+  codeChunks: Record<string, string>,
+  fileName: string,
+  styleFileName?: string,
+  templateFileName?: string
+) => {
   return Object.keys(codeChunks).map((fileType) => {
     return {
-      name: fileName,
+      name: getFileName(fileType, fileName, styleFileName, templateFileName),
       fileType,
       content: codeChunks[fileType],
     }
   })
+}
+
+// Based on the file type we selected the file name associated.
+// This is mostly used by project generators when a component is exported in its own folder
+const getFileName = (
+  fileType: string,
+  fileName: string,
+  styleFileName: string,
+  templateFileName: string
+) => {
+  if (fileType === FILE_TYPE.CSS || fileType === FILE_TYPE.CSSMODULE) {
+    return styleFileName || fileName
+  }
+
+  if (fileType === FILE_TYPE.HTML) {
+    return templateFileName || fileName
+  }
+
+  return fileName
 }

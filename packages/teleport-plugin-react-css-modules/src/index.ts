@@ -11,6 +11,7 @@ import {
   splitDynamicAndStaticStyles,
   cleanupNestedStyles,
   transformDynamicStyles,
+  getStyleFileName,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   createCSSClass,
@@ -54,7 +55,6 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { name, meta } = uidl
 
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
 
@@ -121,7 +121,7 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
      * The name of the file is either in the meta of the component generator
      * or we fallback to the name of the component
      */
-    const cssFileName = (meta && meta.fileName) || camelCaseToDashCase(name)
+    const cssFileName = getStyleFileName(uidl)
     dependencies[styleObjectImportName] = {
       type: 'local',
       path: `./${cssFileName}.${cssFileType}`,

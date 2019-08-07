@@ -1,10 +1,10 @@
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 import { createProjectGenerator } from '../src'
 import { resolveLocalDependencies } from '../src/utils'
 import { mockMapping, firstStrategy, secondStrategy } from './mocks'
 
 // @ts-ignore
 import projectUIDL from '../../../examples/test-samples/project-sample.json'
-import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 describe('Generic Project Generator', () => {
   describe('with the same component generator for pages and components', () => {
@@ -32,15 +32,17 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
 
+      const uidl = projectUIDL as ProjectUIDL
+
       // This adds the local dependencies on the UIDL, so we can proper assert below
-      const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, firstStrategy)
+      resolveLocalDependencies([], uidl.components, firstStrategy)
 
       expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
-        resolvedUIDL.components.ExpandableArea,
+        expect.objectContaining({ name: 'ExpandableArea' }),
         {
           assetsPrefix: '/test/static',
-          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
@@ -49,15 +51,18 @@ describe('Generic Project Generator', () => {
       expect(routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {
-        ...resolvedUIDL.root,
+        ...uidl.root,
         meta: {
           fileName: 'index',
         },
       }
 
-      expect(routerGenerator.generateComponent).toBeCalledWith(routerUIDL, {
-        localDependenciesPrefix: './pages/',
-      })
+      expect(routerGenerator.generateComponent).toBeCalledWith(
+        routerUIDL,
+        expect.objectContaining({
+          localDependenciesPrefix: './pages/',
+        })
+      )
     })
   })
 
@@ -89,15 +94,17 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
 
+      const uidl = projectUIDL as ProjectUIDL
+
       // This adds the local dependencies on the UIDL, so we can proper assert below
-      const resolvedUIDL = resolveLocalDependencies(projectUIDL as ProjectUIDL, secondStrategy)
+      resolveLocalDependencies([], uidl.components, secondStrategy)
 
       expect(componentsGenerator.generateComponent).toBeCalledTimes(4)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
-        resolvedUIDL.components.ExpandableArea,
+        expect.objectContaining({ name: 'ExpandableArea' }),
         {
           assetsPrefix: '/static',
-          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
@@ -109,7 +116,7 @@ describe('Generic Project Generator', () => {
         }),
         {
           assetsPrefix: '/static',
-          projectRouteDefinition: resolvedUIDL.root.stateDefinitions.route,
+          projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
         }
@@ -117,16 +124,19 @@ describe('Generic Project Generator', () => {
       expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
 
       const routerUIDL = {
-        ...resolvedUIDL.root,
+        ...uidl.root,
         meta: {
           fileName: secondStrategy.router.fileName,
         },
       }
 
       expect(routerGenerator.generateComponent).toBeCalledTimes(1)
-      expect(routerGenerator.generateComponent).toBeCalledWith(routerUIDL, {
-        localDependenciesPrefix: './pages/',
-      })
+      expect(routerGenerator.generateComponent).toBeCalledWith(
+        routerUIDL,
+        expect.objectContaining({
+          localDependenciesPrefix: './pages/',
+        })
+      )
     })
   })
 })

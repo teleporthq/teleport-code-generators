@@ -1,4 +1,9 @@
-import { injectFilesToPath, resolveLocalDependencies, computePath } from './utils'
+import {
+  injectFilesToPath,
+  resolveLocalDependencies,
+  createPageUIDLs,
+  prepareComponentFilenamesAndPath,
+} from './utils'
 
 import {
   createManifestJSONFile,
@@ -9,12 +14,9 @@ import {
   createEntryFile,
 } from './file-handlers'
 
-import { ProjectStrategy } from './types'
-
 import { DEFAULT_TEMPLATE } from './constants'
 
 import {
-  extractRoutes,
   cloneObject,
   getComponentPath,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
@@ -26,6 +28,7 @@ import {
   GeneratedFolder,
   Mapping,
   ProjectGenerator,
+  ProjectStrategy,
 } from '@teleporthq/teleport-types'
 
 export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenerator => {
@@ -49,18 +52,26 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       throw new Error(schemaValidationResult.errorMsg)
     }
 
-    const parsedInput = Parser.parseProjectJSON(input)
-    const contentValidationResult = validator.validateProjectContent(parsedInput)
+    const uidl = Parser.parseProjectJSON(input)
+    const contentValidationResult = validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    // Local dependency paths are set inside the UIDL
-    const uidl = resolveLocalDependencies(parsedInput, strategy)
+    const { components = {}, root } = uidl
+
+    // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
+    const pageUIDLs = createPageUIDLs(root, strategy)
+
+    // Set the filename and path for each component based on the strategy
+    prepareComponentFilenamesAndPath(components, strategy)
+
+    // Set the local dependency paths based on the relative paths between files
+    resolveLocalDependencies(pageUIDLs, components, strategy)
 
     // Initialize output folder and other reusable structures
-    const { components = {}, root } = uidl
-    const routeNodes = extractRoutes(root)
+    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
+    let collectedDependencies: Record<string, string> = {}
     const options: GeneratorOptions = {
       assetsPrefix,
       projectRouteDefinition: root.stateDefinitions.route,
@@ -68,28 +79,26 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       skipValidation: true,
     }
 
-    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
-    let collectedDependencies: Record<string, string> = {}
+    // Handling pages
+    for (const pageUIDL of pageUIDLs) {
+      const { files, dependencies } = await createPage(pageUIDL, strategy, options)
 
-    // Handling pages, based on the conditionals in the root node
-    for (const routeNode of routeNodes) {
-      const { files, dependencies } = await createPage(routeNode, strategy, options)
-      const fileName: string = routeNode.content.value as string
-      const path = computePath(strategy, fileName)
+      // Pages might be generated inside subfolders in the main pages folder
+      const relativePath = getComponentPath(pageUIDL)
+      const path = strategy.pages.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
-    // Handle the components from the UIDL
+    // Handling components
     for (const componentName of Object.keys(components)) {
       const componentUIDL = components[componentName]
+      const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = getComponentPath(componentUIDL)
       const path = strategy.components.path.concat(relativePath)
-
-      const { files, dependencies } = await createComponent(componentUIDL, strategy, options)
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }

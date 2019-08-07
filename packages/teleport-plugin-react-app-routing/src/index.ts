@@ -21,6 +21,7 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
+  flavor: 'preact' | 'react'
 }
 
 export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
@@ -28,16 +29,13 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
     domRenderChunkName = 'app-router-export',
+    flavor = 'react',
   } = config || {}
 
   const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
-    // @ts-ignore-next-line
-    const { createFolderForEachComponent, flavour } = options.meta || {
-      createFolderForEachComponent: false,
-    }
 
-    if (flavour === 'preact') {
+    if (flavor === 'preact') {
       registerPreactRouterDeps(dependencies)
     } else {
       registerReactRouterDeps(dependencies)
@@ -46,25 +44,38 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     const { stateDefinitions = {} } = uidl
 
     const routes = extractRoutes(uidl)
+    const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
 
-      const { fileName, componentName, path } = extractPageMetadata(
+      const { fileName: pageName, componentName, path } = extractPageMetadata(
         stateDefinitions.route,
         routeKey.toString()
       )
 
+      /* If pages are exported in their own folder and in custom file names.
+         Import statements must then be:
+
+         import Home from '../pages/home/component'
+
+         so the `/component` suffix is computed below.
+      */
+      const pageStrategyOptions = (strategy && strategy.pages.options) || {}
+      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
+        ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
+        : ''
+
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${fileName}`,
+        path: `${pageDependencyPrefix}${pageName}${pageComponentSuffix}`,
       }
 
-      return constructRouteJSX(flavour, componentName, path)
+      return constructRouteJSX(flavor, componentName, path)
     })
 
-    const rootRouterTag = createRouteRouterTag(flavour, routeJSXDefinitions)
+    const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
 
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
@@ -76,7 +87,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       linkAfter: [importChunkName],
     })
 
-    if (flavour === 'preact') {
+    if (flavor === 'preact') {
       const exportJSXApp = createDefaultExport('App')
 
       structure.chunks.push({

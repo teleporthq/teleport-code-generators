@@ -4,10 +4,7 @@ import {
   addTextNode,
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import {
-  prefixPlaygroundAssetsURL,
-  extractPageMetadata,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -20,37 +17,19 @@ import {
   ChunkDefinition,
   ComponentUIDL,
   GeneratorOptions,
-  UIDLConditionalNode,
+  ProjectStrategy,
+  EntryFileOptions,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
-import { EntryFileOptions, PackageJSON, ProjectStrategy } from './types'
+import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
 
 export const createPage = async (
-  routeNode: UIDLConditionalNode,
+  pageUIDL: ComponentUIDL,
   strategy: ProjectStrategy,
   options: GeneratorOptions
 ) => {
-  const { value, node } = routeNode.content
-  const pageName = value.toString()
-  const { createFolderForEachComponent } = strategy.pages.metaDataOptions || {
-    createFolderForEachComponent: false,
-  }
-  const { componentName, fileName } = extractPageMetadata(
-    options.projectRouteDefinition,
-    pageName,
-    strategy.pages.metaDataOptions
-  )
-
-  const pageUIDL = {
-    name: componentName,
-    node,
-    meta: {
-      fileName: createFolderForEachComponent ? 'index' : fileName,
-    },
-  }
-
   return strategy.pages.generator.generateComponent(pageUIDL, options)
 }
 
@@ -68,9 +47,10 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     routerFilePath,
     strategy.pages.path
   )
+
   const options = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
-    meta: strategy.router.metaDataOptions,
+    strategy,
   }
 
   root.meta = root.meta || {}

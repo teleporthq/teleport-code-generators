@@ -73,6 +73,24 @@ export const getComponentFileName = (component: ComponentUIDL) => {
   return camelCaseToDashCase(name)
 }
 
+export const getStyleFileName = (component: ComponentUIDL) => {
+  const componentFileName = getComponentFileName(component)
+
+  // If component meta style file name is not set, we default to the component file name
+  return component.meta && component.meta.styleFileName
+    ? component.meta.styleFileName
+    : componentFileName
+}
+
+export const getTemplateFileName = (component: ComponentUIDL) => {
+  const componentFileName = getComponentFileName(component)
+
+  // If component meta style file name is not set, we default to the component file name
+  return component.meta && component.meta.templateFileName
+    ? component.meta.templateFileName
+    : componentFileName
+}
+
 export const getComponentPath = (component: ComponentUIDL) =>
   component.meta ? component.meta.path : []
 
