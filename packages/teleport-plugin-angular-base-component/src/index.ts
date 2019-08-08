@@ -5,16 +5,18 @@ import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/cons
 import { generateExportAST, generateComponentDecorator } from './utils'
 
 import {
-  DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
-  DEFAULT_ANGULAR_TS_CHUNK_NAME,
-  ANGULAR_CORE_DEPENDENCY,
   DEFAULT_TS_CHUNK_AFTER,
+  ANGULAR_CORE_DEPENDENCY,
+  DEFAULT_ANGULAR_TS_CHUNK_NAME,
+  DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
+  DEFAULT_ANGULAR_DECORATOR_CHUNK_NAME,
 } from './constants'
 import { UIDLElementNode } from '../../teleport-generator-shared/lib/typings/uidl'
 
 interface AngularPluginConfig {
   angularTemplateChunkName: string
   exportClassChunk: string
+  componentDecoratorChunkName: string
   tsChunkAfter: string[]
 }
 
@@ -22,6 +24,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
   const {
     angularTemplateChunkName = DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
     exportClassChunk = DEFAULT_ANGULAR_TS_CHUNK_NAME,
+    componentDecoratorChunkName = DEFAULT_ANGULAR_DECORATOR_CHUNK_NAME,
     tsChunkAfter = DEFAULT_TS_CHUNK_AFTER,
   } = config || {}
 
@@ -74,17 +77,17 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       linkAfter: [],
     })
 
-    const componentDecorator = generateComponentDecorator(uidl)
+    const componentDecoratorAST = generateComponentDecorator(uidl)
 
     chunks.push({
       type: CHUNK_TYPE.AST,
-      name: exportClassChunk,
+      name: componentDecoratorChunkName,
       fileType: FILE_TYPE.TS,
       linkAfter: tsChunkAfter,
-      content: componentDecorator,
+      content: componentDecoratorAST,
     })
 
-    const exportAST = generateExportAST(uidl.name, propDefinitions, stateDefinitions)
+    const exportAST = generateExportAST(uidl.name, propDefinitions, stateDefinitions, dataObject)
 
     chunks.push({
       type: CHUNK_TYPE.AST,

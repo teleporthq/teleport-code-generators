@@ -64,10 +64,9 @@ const generateElementNode = (
 ) => {
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode =
-    dependency && dependency.type === 'local'
-      ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
-      : createHTMLNode(elementType)
+  const htmlNode = dependency
+    ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
+    : createHTMLNode(elementType)
 
   if (dependency) {
     dependencies[elementType] = { ...dependency }
