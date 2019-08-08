@@ -11,6 +11,7 @@ import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 
 export const handleAttribute = (
   htmlNode: HastNode,
+  elementName: string,
   attrKey: string,
   attrValue: UIDLAttributeValue,
   params: HTMLTemplateGenerationParams,
@@ -26,7 +27,7 @@ export const handleAttribute = (
       if (Array.isArray(attrValue.content)) {
         // This handles the cases when arrays are sent as props or passed as attributes
         // The array will be placed on the dataObject and the data reference is placed on the node
-        const dataObjectIdentifier = `${name}${capitalize(attrKey)}`
+        const dataObjectIdentifier = `${elementName}${capitalize(attrKey)}`
         dataObject[dataObjectIdentifier] = attrValue.content
         htmlUtils.addAttributeToNode(htmlNode, dynamicAttrKey, dataObjectIdentifier)
       } else if (typeof attrValue.content === 'boolean') {

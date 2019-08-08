@@ -72,7 +72,7 @@ const generateElementNode = (
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
       const attrValue = attrs[attrKey]
-      handleAttribute(htmlNode, attrKey, attrValue, params, templateSyntax)
+      handleAttribute(htmlNode, name, attrKey, attrValue, params, templateSyntax)
     })
   }
 

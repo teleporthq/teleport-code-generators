@@ -1,8 +1,9 @@
-import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import componentUIDLSample from '../../../examples/test-samples/component-sample.json'
+import { ComponentUIDL } from '@teleporthq/teleport-types'
 
 export const structure = {
   chunks: [],
   options: {},
-  uidl: component('Test', elementNode('container')),
+  uidl: componentUIDLSample as ComponentUIDL,
   dependencies: {},
 }

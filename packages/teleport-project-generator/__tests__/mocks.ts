@@ -57,53 +57,58 @@ const mockEntryFileGenerator = () => ({
   resolveElement: jest.fn(),
 })
 
-const commonGenerator = mockComponentGenerator()
-
-export const firstStrategy: ProjectStrategy = {
-  components: {
-    generator: commonGenerator,
-    path: ['test', 'components'],
-  },
-  pages: {
-    generator: commonGenerator,
-    path: ['test', 'pages'],
-  },
-  entry: {
-    generator: mockEntryFileGenerator(),
-    path: ['test'],
-  },
-  router: {
-    generator: mockRouterGenerator(),
-    path: ['test'],
-  },
-  static: {
-    path: ['test', 'static'],
-  },
+export const createStrategyWithCommonGenerator = () => {
+  const commonGenerator = mockComponentGenerator()
+  const strategy: ProjectStrategy = {
+    components: {
+      generator: commonGenerator,
+      path: ['test', 'components'],
+    },
+    pages: {
+      generator: commonGenerator,
+      path: ['test', 'pages'],
+    },
+    entry: {
+      generator: mockEntryFileGenerator(),
+      path: ['test'],
+    },
+    router: {
+      generator: mockRouterGenerator(),
+      path: ['test'],
+    },
+    static: {
+      path: ['test', 'static'],
+    },
+  }
+  return strategy
 }
 
-export const secondStrategy: ProjectStrategy = {
-  components: {
-    generator: mockComponentGenerator(),
-    path: ['test', 'components'],
-  },
-  pages: {
-    generator: mockComponentGenerator(),
-    path: ['test', 'pages'],
-  },
-  entry: {
-    generator: mockEntryFileGenerator(),
-    path: ['test'],
-    fileName: 'mock-filename',
-  },
-  router: {
-    generator: mockRouterGenerator(),
-    path: ['test'],
-    fileName: 'mock-filename',
-  },
-  static: {
-    prefix: '/static',
-    path: ['test', 'static'],
-  },
+export const createStrategyWithSeparateGenerators = () => {
+  const strategy: ProjectStrategy = {
+    components: {
+      generator: mockComponentGenerator(),
+      path: ['test', 'components'],
+    },
+    pages: {
+      generator: mockComponentGenerator(),
+      path: ['test', 'pages'],
+    },
+    entry: {
+      generator: mockEntryFileGenerator(),
+      path: ['test'],
+      fileName: 'mock-filename',
+    },
+    router: {
+      generator: mockRouterGenerator(),
+      path: ['test'],
+      fileName: 'mock-filename',
+    },
+    static: {
+      prefix: '/static',
+      path: ['test', 'static'],
+    },
+  }
+  return strategy
 }
 
 export const emptyFolder = (name: string = 'test'): GeneratedFolder => {

@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
 
 import { slotNode, elementNode, staticNode } from '../../../src/builders/uidl-builders'
@@ -6,24 +7,38 @@ import {
   JSXGenerationParams,
   JSXGenerationOptions,
 } from '../../../src/node-handlers/node-to-jsx/types'
+import { ComponentUIDL } from '@teleporthq/teleport-types'
+
+const uidl = componentUIDLSample as ComponentUIDL
 
 describe('generateJSXSyntax', () => {
+  const params: JSXGenerationParams = {
+    dependencies: {},
+    propDefinitions: uidl.propDefinitions,
+    stateDefinitions: uidl.stateDefinitions,
+    nodesLookup: {},
+  }
+
+  const options: JSXGenerationOptions = {
+    dynamicReferencePrefixMap: {
+      prop: 'props',
+      state: '',
+      local: '',
+    },
+  }
+
+  describe('uidl node', () => {
+    it('returns a JSX AST Syntax', () => {
+      const result = generateJSXSyntax(uidl.node, params, { ...options, slotHandling: 'props' })
+
+      const element = result as types.JSXElement
+
+      expect(element.children.length).toBe(6)
+      expect((element.openingElement.name as types.JSXIdentifier).name).toBe('container')
+    })
+  })
+
   describe('slot node', () => {
-    const params: JSXGenerationParams = {
-      dependencies: {},
-      propDefinitions: null,
-      stateDefinitions: null,
-      nodesLookup: {},
-    }
-
-    const options: JSXGenerationOptions = {
-      dynamicReferencePrefixMap: {
-        prop: 'props',
-        state: '',
-        local: '',
-      },
-    }
-
     it('returns a props.children expression', () => {
       const node = slotNode()
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'props' })
