@@ -50,7 +50,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
           const iterator = useIndex ? `(${iteratorName}, index)` : iteratorName
           return `${iterator} in ${iteratedCollection}`
         },
-        customElementTagNames: (value) => value,
+        customElementTagName: (value) => value,
       }
     )
 

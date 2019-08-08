@@ -12,5 +12,5 @@ export const DEFAULT_TEMPLATE_SYNTAX: HTMLTemplateSyntax = {
     const iterator = useIndex ? `(${iteratorName}, index)` : iteratorName
     return `${iterator} in ${iteratedCollection}`
   },
-  customElementTagNames: (value) => value,
+  customElementTagName: (value) => value,
 }

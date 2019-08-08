@@ -15,5 +15,5 @@ export interface HTMLTemplateSyntax {
   conditionalAttr: string
   repeatAttr: string
   repeatIterator: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
-  customElementTagNames: (value: string) => string
+  customElementTagName: (value: string) => string
 }

@@ -32,7 +32,7 @@ export const generateExportAST = (
     )
   )
 
-  const propertydeclerations = Object.keys(stateDefinitions).map((stateKey) =>
+  const propertyDeclarations = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(
       t.identifier(stateKey),
       convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
@@ -41,7 +41,7 @@ export const generateExportAST = (
   )
 
   const classBodyAST = () => {
-    return t.classBody([...propDeclaration, ...propertydeclerations, constructorAST()])
+    return t.classBody([...propDeclaration, ...propertyDeclarations, constructorAST()])
   }
 
   return t.exportNamedDeclaration(

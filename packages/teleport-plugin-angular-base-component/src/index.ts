@@ -15,15 +15,15 @@ import {
 
 interface AngularPluginConfig {
   angularTemplateChunkName: string
-  angularComponentChunkName: string
-  tsChukAfter: string[]
+  exportClassChunk: string
+  tsChunkAfter: string[]
 }
 
 export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config) => {
   const {
     angularTemplateChunkName = DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
-    angularComponentChunkName = DEFAULT_ANGULAR_TS_CHUNK_NAME,
-    tsChukAfter = DEFAULT_TS_CHUNK_AFTER,
+    exportClassChunk = DEFAULT_ANGULAR_TS_CHUNK_NAME,
+    tsChunkAfter = DEFAULT_TS_CHUNK_AFTER,
   } = config || {}
 
   const angularComponentPlugin: ComponentPlugin = async (structure) => {
@@ -51,7 +51,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       },
       {
         interpolation: (value) => `{{ ${value} }}`,
-        eventBinding: (value) => `${value}`,
+        eventBinding: (value) => `(${value})`,
         valueBinding: (value) => `[${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
         conditionalAttr: '*ngIf',
@@ -60,7 +60,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
           const index = useIndex ? `; index as i` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        customElementTagNames: (value) => `app-${camelCaseToDashCase(value)}`,
+        customElementTagName: (value) => `app-${camelCaseToDashCase(value)}`,
       }
     )
 
@@ -79,9 +79,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
     chunks.push({
       type: CHUNK_TYPE.AST,
-      name: angularComponentChunkName,
+      name: exportClassChunk,
       fileType: FILE_TYPE.TS,
-      linkAfter: tsChukAfter,
+      linkAfter: tsChunkAfter,
       content: componentDecorator,
     })
 
@@ -89,9 +89,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
     chunks.push({
       type: CHUNK_TYPE.AST,
-      name: angularComponentChunkName,
+      name: exportClassChunk,
       fileType: FILE_TYPE.TS,
-      linkAfter: tsChukAfter,
+      linkAfter: tsChunkAfter,
       content: exportAST,
     })
 

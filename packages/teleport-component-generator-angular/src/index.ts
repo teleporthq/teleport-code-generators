@@ -7,7 +7,7 @@ import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import anuglarMapping from './angular-mapping.json'
+import angularMapping from './angular-mapping.json'
 import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
 const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
@@ -20,7 +20,7 @@ export const createAngularComponentGenerator = (mapping: Mapping = {}): Componen
   const generator = createComponentGenerator()
 
   generator.addMapping(mapping)
-  generator.addMapping(anuglarMapping)
+  generator.addMapping(angularMapping)
 
   generator.addPlugin(angularComponentPlugin)
   generator.addPlugin(importStatementsPlugin)

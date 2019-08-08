@@ -65,7 +65,7 @@ const generateElementNode = (
   const { elementType, name, key, children, attrs, dependency, events } = node.content
   const htmlNode =
     dependency && dependency.type === 'local'
-      ? createHTMLNode(templateSyntax.customElementTagNames(elementType))
+      ? createHTMLNode(templateSyntax.customElementTagName(elementType))
       : createHTMLNode(elementType)
 
   if (dependency) {

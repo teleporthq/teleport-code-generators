@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-component-generator-angular",
   "version": "0.8.1",
-  "description": "Component generator customization, capable of creating Angular components with a number of different style flavours",
+  "description": "Component generator customization, capable of creating Angular components",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
   "license": "MIT",
