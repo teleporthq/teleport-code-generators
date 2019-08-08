@@ -1,5 +1,9 @@
 import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  UIDLElementNode,
+} from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 import { generateExportAST, generateComponentDecorator } from './utils'
@@ -11,7 +15,6 @@ import {
   DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
   DEFAULT_ANGULAR_DECORATOR_CHUNK_NAME,
 } from './constants'
-import { UIDLElementNode } from '../../teleport-generator-shared/lib/typings/uidl'
 
 interface AngularPluginConfig {
   angularTemplateChunkName: string
