@@ -49,6 +49,23 @@
                   "referenceType": "prop",
                   "id": "title"
                 }
+              },
+              {
+                "type": "element",
+                "content": {
+                  "elementType": "button",
+                  "events": {
+                    "click": [{
+                      "type": "stateChange",
+                      "modifies": "isVisible",
+                      "newState": true
+                    }]
+                  },
+                  "children": [{
+                    "type": "static",
+                    "content": "Update me!"
+                  }]
+                }
               }
             ]
           }
