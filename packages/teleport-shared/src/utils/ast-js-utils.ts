@@ -93,3 +93,16 @@ export const addPropertyToASTObject = (
 ) => {
   obj.properties.push(t.objectProperty(t.identifier(key), convertValueToLiteral(value)))
 }
+
+export const getTSAnnotationForType = (type: any, t = types) => {
+  switch (type) {
+    case 'string':
+      return t.tsStringKeyword()
+    case 'number':
+      return t.tsNumberKeyword()
+    case 'boolean':
+      return t.tsBooleanKeyword()
+    default:
+      return t.tsUnknownKeyword()
+  }
+}

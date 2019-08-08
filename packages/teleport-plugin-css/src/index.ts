@@ -21,10 +21,15 @@ interface VueStyleChunkConfig {
   chunkName: string
   vueJSChunk: string
   vueTemplateChunk: string
+  dynamicStyleAttributeKey: () => string
 }
 
 export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config) => {
-  const { chunkName = 'vue-style-chunk', vueTemplateChunk = 'vue-template-chunk' } = config || {}
+  const {
+    chunkName = 'style-chunk',
+    vueTemplateChunk = 'template-chunk',
+    dynamicStyleAttributeKey = () => ':style',
+  } = config || {}
 
   const vueComponentStyleChunkPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
@@ -32,6 +37,7 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
     const { node } = uidl
 
     const templateChunk = chunks.filter((chunk) => chunk.name === vueTemplateChunk)[0]
+
     const templateLookup = templateChunk.meta.nodesLookup
 
     const jssStylesArray = []
@@ -52,13 +58,17 @@ export const createPlugin: ComponentPluginFactory<VueStyleChunkConfig> = (config
         if (Object.keys(dynamicStyles).length) {
           const rootStyles = cleanupNestedStyles(dynamicStyles)
 
-          const vueFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
+          const flavorFriendlyStyleBind = Object.keys(rootStyles).map((styleKey) => {
             return `${styleKey}: ${(rootStyles[styleKey] as UIDLDynamicReference).content.id}`
           })
 
           // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
-          if (Object.keys(vueFriendlyStyleBind).length > 0) {
-            addAttributeToNode(root, ':style', `{${vueFriendlyStyleBind.join(', ')}}`)
+          if (Object.keys(flavorFriendlyStyleBind).length > 0) {
+            addAttributeToNode(
+              root,
+              dynamicStyleAttributeKey(),
+              `{${flavorFriendlyStyleBind.join(', ')}}`
+            )
           }
         }
       }

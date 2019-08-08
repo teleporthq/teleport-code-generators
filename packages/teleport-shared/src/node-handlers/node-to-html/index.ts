@@ -12,6 +12,7 @@ import {
 import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
+import { camelCaseToDashCase } from '../../utils/string-utils'
 
 type HTMLTemplateSyntaxFunction = (
   node: UIDLNode,
@@ -63,7 +64,9 @@ const generateElementNode = (
 ) => {
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = createHTMLNode(elementType)
+  const htmlNode = dependency
+    ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
+    : createHTMLNode(elementType)
 
   if (dependency) {
     dependencies[elementType] = { ...dependency }
@@ -72,7 +75,7 @@ const generateElementNode = (
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
       const attrValue = attrs[attrKey]
-      handleAttribute(htmlNode, name, attrKey, attrValue, params, templateSyntax)
+      handleAttribute(htmlNode, name, attrKey, attrValue, params, templateSyntax, node)
     })
   }
 

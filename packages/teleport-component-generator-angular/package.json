@@ -1,0 +1,35 @@
+{
+  "name": "@teleporthq/teleport-component-generator-angular",
+  "version": "0.8.1",
+  "description": "Component generator customization, capable of creating Angular components",
+  "author": "teleportHQ",
+  "homepage": "https://teleporthq.io/",
+  "license": "MIT",
+  "main": "dist/cjs/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-types": "0.8.1",
+    "@teleporthq/teleport-shared": "0.8.1",
+    "@teleporthq/teleport-plugin-css": "^0.8.1",
+    "@teleporthq/teleport-component-generator": "0.8.1",
+    "@teleporthq/teleport-postprocessor-prettier-html": "0.8.1",
+    "@teleporthq/teleport-postprocessor-prettier-js": "0.8.1",
+    "@teleporthq/teleport-plugin-angular-base-component": "^0.8.1",
+    "@teleporthq/teleport-plugin-import-statements": "^0.8.1"
+  }
+}

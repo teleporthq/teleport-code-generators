@@ -1,0 +1,11 @@
+{
+  "elements": {
+    "group": {
+      "elementType": "div"
+    }
+  },
+  "events": {
+    "click": "click"
+  },
+  "attributes": {} 
+}

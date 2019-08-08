@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-component-generator-vue",
+  "name": "@teleporthq/teleport-plugin-css",
   "version": "0.8.1",
-  "description": "Component generator customization, capable of creating Vue components",
+  "description": "A plugin for creating the styles into external css files",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -25,14 +25,6 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.8.1",
-    "@teleporthq/teleport-plugin-import-statements": "^0.8.1",
-    "@teleporthq/teleport-plugin-vue-app-routing": "^0.8.1",
-    "@teleporthq/teleport-plugin-vue-base-component": "^0.8.1",
-    "@teleporthq/teleport-plugin-css": "^0.8.1",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.8.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.8.1",
-    "@teleporthq/teleport-postprocessor-vue-file": "^0.8.1",
     "@teleporthq/teleport-shared": "^0.8.1",
     "@teleporthq/teleport-types": "^0.8.1"
   }

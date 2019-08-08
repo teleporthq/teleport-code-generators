@@ -1,22 +1,22 @@
 {
-  "name": "@teleporthq/teleport-plugin-vue-css",
+  "name": "@teleporthq/teleport-plugin-angular-base-component",
   "version": "0.8.1",
-  "description": "A plugin for creating the styles of a Vue component",
+  "description": "A plugin for handling the skeleton/baseline of a Angular Component",
   "author": "teleportHQ",
-  "license": "MIT",
   "homepage": "https://teleporthq.io/",
+  "license": "MIT",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
   },
   "bugs": {
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "scripts": {
     "clean": "rimraf dist",
@@ -25,7 +25,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.8.1",
-    "@teleporthq/teleport-types": "^0.8.1"
+    "@babel/types": "^7.3.3",
+    "@teleporthq/teleport-types": "^0.8.1",
+    "@teleporthq/teleport-shared": "^0.8.1"
   }
 }

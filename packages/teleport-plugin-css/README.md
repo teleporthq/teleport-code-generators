@@ -1,14 +1,14 @@
-# teleport-plugin-vue-css
+# teleport-plugin-css
 
-A plugin for creating the styles of a Vue component.
+A plugin for creating the styles into external css files.
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-plugin-vue-css
+npm install @teleporthq/teleport-plugin-css
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-plugin-vue-css
+yarn add @teleporthq/teleport-plugin-css
 ```

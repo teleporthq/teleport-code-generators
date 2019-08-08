@@ -1,7 +1,7 @@
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import vueComponentPlugin from '@teleporthq/teleport-plugin-vue-base-component'
-import vueStylePlugin from '@teleporthq/teleport-plugin-vue-css'
+import { createPlugin as createVueStylePlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -14,6 +14,9 @@ import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 
 export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
+  const vueStylePlugin = createVueStylePlugin({
+    dynamicStyleAttributeKey: () => ':style',
+  })
 
   generator.addMapping(vueMapping)
   generator.addMapping(mapping)

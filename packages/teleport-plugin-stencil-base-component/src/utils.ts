@@ -3,6 +3,7 @@ import * as types from '@babel/types'
 import {
   objectToObjectExpression,
   convertValueToLiteral,
+  getTSAnnotationForType,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
@@ -50,19 +51,6 @@ export const createClassDeclaration = (
 
   const classDeclaration = t.classDeclaration(t.identifier(name), null, classBody, [])
   return t.exportNamedDeclaration(classDeclaration, [])
-}
-
-const getTSAnnotationForType = (type: any, t = types) => {
-  switch (type) {
-    case 'string':
-      return t.tsStringKeyword()
-    case 'number':
-      return t.tsNumberKeyword()
-    case 'boolean':
-      return t.tsBooleanKeyword()
-    default:
-      return t.tsUnknownKeyword()
-  }
 }
 
 export const createComponentDecorator = (name: string, t = types) => {
