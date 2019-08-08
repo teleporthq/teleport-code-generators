@@ -4,7 +4,7 @@ import { GeneratedFolder, ProjectUIDL } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-import { firstStrategy } from './mocks'
+import { createStrategyWithCommonGenerator } from './mocks'
 
 // @ts-ignore
 import uidlSample from '../../../examples/test-samples/project-sample.json'
@@ -15,7 +15,7 @@ describe('createHtmlIndexFile', () => {
       assetsPrefix: '/static',
       appRootOverride: '{{root-placeholder}}',
     }
-    const result = await createEntryFile(uidlSample, firstStrategy, options)
+    const result = await createEntryFile(uidlSample, createStrategyWithCommonGenerator(), options)
 
     expect(result.content).toContain('<html')
     expect(result.content).toContain('{{root-placeholder}}')
