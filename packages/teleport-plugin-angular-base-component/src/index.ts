@@ -1,7 +1,6 @@
 import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import { generateExportAST, generateComponentDecorator } from './utils'
@@ -29,7 +28,6 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
   const angularComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
-    const fileName = getComponentFileName(uidl)
 
     dependencies.Component = ANGULAR_CORE_DEPENDENCY
 
@@ -75,7 +73,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       linkAfter: [],
     })
 
-    const componentDecorator = generateComponentDecorator(fileName)
+    const componentDecorator = generateComponentDecorator(uidl)
 
     chunks.push({
       type: CHUNK_TYPE.AST,
