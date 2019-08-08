@@ -1,7 +1,6 @@
 import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import { generateExportAST, generateComponentDecorator } from './utils'
 
@@ -11,6 +10,7 @@ import {
   ANGULAR_CORE_DEPENDENCY,
   DEFAULT_TS_CHUNK_AFTER,
 } from './constants'
+import { UIDLElementNode } from '../../teleport-generator-shared/lib/typings/uidl'
 
 interface AngularPluginConfig {
   angularTemplateChunkName: string
@@ -50,7 +50,8 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       {
         interpolation: (value) => `{{ ${value} }}`,
         eventBinding: (value) => `(${value})`,
-        valueBinding: (value) => `[${value}]`,
+        valueBinding: (value, node?: UIDLElementNode) =>
+          node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
         conditionalAttr: '*ngIf',
         repeatAttr: '*ngFor',
@@ -58,7 +59,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
           const index = useIndex ? `; index as i` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        customElementTagName: (value) => `app-${camelCaseToDashCase(value)}`,
+        customElementTagName: (value) => `app-${value}`,
       }
     )
 

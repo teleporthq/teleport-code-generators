@@ -6,6 +6,7 @@ import {
   HastNode,
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 
@@ -15,10 +16,11 @@ export const handleAttribute = (
   attrKey: string,
   attrValue: UIDLAttributeValue,
   params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
+  templateSyntax: HTMLTemplateSyntax,
+  node: UIDLElementNode
 ) => {
   const { dataObject } = params
-  const dynamicAttrKey = templateSyntax.valueBinding(attrKey)
+  const dynamicAttrKey = templateSyntax.valueBinding(attrKey, node)
   switch (attrValue.type) {
     case 'dynamic':
       htmlUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
