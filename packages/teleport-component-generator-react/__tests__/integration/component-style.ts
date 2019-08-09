@@ -54,7 +54,7 @@ const findFileByType = (files: GeneratedFile[], type: string = FILE_TYPE.JS) =>
 describe('React Styles in Component', () => {
   describe('supports usage of state in styles', () => {
     it('Inline Styles should refer state in styles when state is mapped', async () => {
-      const generator = createReactComponentGenerator()
+      const generator = createReactComponentGenerator('InlineStyles')
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, FILE_TYPE.JS)
 
@@ -73,6 +73,20 @@ describe('React Styles in Component', () => {
       expect(cssFile).toBeDefined()
       expect(jsFile.content).toContain('display: active')
       expect(jsFile.content).toContain('height: props.config.height')
+      expect(cssFile.content).toContain('align-self: center;')
+    })
+
+    it('Basic CSS should refer state in styles when state is mapped', async () => {
+      const generator = createReactComponentGenerator('CSS')
+      const result = await generator.generateComponent(ComponentWithStateReference)
+      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
+
+      expect(jsFile).toBeDefined()
+      expect(cssFile).toBeDefined()
+      expect(jsFile.content).toContain('display: active')
+      expect(jsFile.content).toContain('height: props.config.height')
+      expect(cssFile.content).toContain('align-self: center;')
     })
 
     it('JSS should through error when state is refered', async () => {
@@ -87,7 +101,7 @@ describe('React Styles in Component', () => {
   })
 
   describe('supports props json declaration in styles', () => {
-    const generator = createReactComponentGenerator()
+    const generator = createReactComponentGenerator('InlineStyles')
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)

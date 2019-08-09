@@ -28,6 +28,7 @@
     "@teleporthq/teleport-component-generator": "^0.8.1",
     "@teleporthq/teleport-plugin-import-statements": "^0.8.1",
     "@teleporthq/teleport-plugin-react-base-component": "^0.8.1",
+    "@teleporthq/teleport-plugin-css": "^0.8.1",
     "@teleporthq/teleport-plugin-css-modules": "^0.8.1",
     "@teleporthq/teleport-plugin-react-inline-styles": "^0.8.1",
     "@teleporthq/teleport-plugin-react-jss": "^0.8.1",

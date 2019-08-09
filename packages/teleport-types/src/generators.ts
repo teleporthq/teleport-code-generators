@@ -87,9 +87,10 @@ export interface HastText {
 }
 
 export interface ImportIdentifier {
-  identifierName: string
-  namedImport: boolean
-  originalName: string
+  identifierName?: string
+  namedImport?: boolean
+  originalName?: string
+  importJustPath?: boolean
 }
 
 /* Project Types */
