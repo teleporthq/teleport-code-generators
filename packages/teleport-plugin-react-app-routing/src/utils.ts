@@ -1,4 +1,4 @@
-import { ComponentDependency } from '@teleporthq/teleport-types'
+import { UIDLDependency } from '@teleporthq/teleport-types'
 import {
   createSelfClosingJSXTag,
   createJSXTag,
@@ -42,9 +42,7 @@ export const constructRouteJSX = (flavour: string, componentName: string, path: 
   return route
 }
 
-export const registerReactRouterDeps = (
-  dependencies: Record<string, ComponentDependency>
-): void => {
+export const registerReactRouterDeps = (dependencies: Record<string, UIDLDependency>): void => {
   dependencies.React = {
     type: 'library',
     path: 'react',
@@ -77,9 +75,7 @@ export const registerReactRouterDeps = (
   }
 }
 
-export const registerPreactRouterDeps = (
-  dependencies: Record<string, ComponentDependency>
-): void => {
+export const registerPreactRouterDeps = (dependencies: Record<string, UIDLDependency>): void => {
   dependencies.Router = {
     type: 'library',
     path: 'preact-router',

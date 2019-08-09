@@ -1,7 +1,7 @@
 import {
   ComponentUIDL,
   ReferenceType,
-  ComponentDependency,
+  UIDLDependency,
   UIDLNode,
   UIDLSlotNode,
   UIDLStyleValue,
@@ -43,7 +43,7 @@ export const elementNode = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
-  dependency?: ComponentDependency,
+  dependency?: UIDLDependency,
   style?: Record<string, UIDLStyleValue>
 ): UIDLElementNode => {
   return {
@@ -58,7 +58,7 @@ export const element = (
   elementType: string,
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
-  dependency?: ComponentDependency,
+  dependency?: UIDLDependency,
   style?: Record<string, UIDLStyleValue>
 ) => {
   if (dependency) {
@@ -85,7 +85,7 @@ export const componentDependency = (
   path?: string,
   version?: string,
   meta?: Record<string, string | boolean>
-): ComponentDependency => {
+): UIDLDependency => {
   return {
     type,
     path,

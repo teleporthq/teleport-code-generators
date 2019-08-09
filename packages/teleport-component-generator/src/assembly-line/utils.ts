@@ -1,7 +1,7 @@
-import { ComponentDependency, ChunkDefinition } from '@teleporthq/teleport-types'
+import { UIDLDependency, ChunkDefinition } from '@teleporthq/teleport-types'
 
 export const extractExternalDependencies = (
-  dependencies: Record<string, ComponentDependency>
+  dependencies: Record<string, UIDLDependency>
 ): Record<string, string> => {
   return Object.keys(dependencies)
     .filter((key) => {

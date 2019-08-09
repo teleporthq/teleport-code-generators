@@ -1,7 +1,7 @@
 import {
   ComponentUIDL,
   ProjectUIDL,
-  ComponentDependency,
+  UIDLDependency,
   Mapping,
   UIDLElement,
   UIDLStateDefinition,
@@ -31,7 +31,7 @@ export interface ComponentStructure {
   chunks: ChunkDefinition[]
   uidl: ComponentUIDL
   options: GeneratorOptions
-  dependencies: Record<string, ComponentDependency>
+  dependencies: Record<string, UIDLDependency>
 }
 
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>

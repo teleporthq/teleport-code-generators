@@ -1,7 +1,7 @@
 import preactComponentPlugin from '@teleporthq/teleport-plugin-preact-base-component'
 import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import { createPlugin as createCSSPlugin } from '@teleporthq/teleport-plugin-css'
-import jsxInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
+import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 
@@ -25,7 +25,7 @@ const cssModulesPlugin = createCSSModulesPlugin({
 })
 
 const stylePlugins = {
-  InlineStyles: jsxInlineStylesPlugin,
+  InlineStyles: inlineStylesPlugin,
   CSSModules: cssModulesPlugin,
   CSS: cssPlugin,
 }

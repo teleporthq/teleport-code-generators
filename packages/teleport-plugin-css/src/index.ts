@@ -34,6 +34,7 @@ interface CSSPluginConfig {
   templateChunkName: string
   componentDecoratorChunkName: string
   inlineStyleAttributeKey: string
+  classAttributeName: string
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
 }
@@ -44,6 +45,7 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
     templateChunkName = 'template-chunk',
     componentDecoratorChunkName = 'component-decorator',
     inlineStyleAttributeKey = 'style',
+    classAttributeName = 'class',
     templateStyle = 'html',
     declareDependency = 'none',
   } = config || {}
@@ -84,7 +86,7 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
         if (templateStyle === 'html') {
           addClassToNode(root, className)
         } else {
-          addClassStringOnJSXTag(root, className)
+          addClassStringOnJSXTag(root, className, classAttributeName)
         }
       }
 

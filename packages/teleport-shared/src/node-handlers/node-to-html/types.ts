@@ -1,12 +1,12 @@
 import {
-  ComponentDependency,
+  UIDLDependency,
   UIDLEventHandlerStatement,
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 
 export interface HTMLTemplateGenerationParams {
   templateLookup: Record<string, any>
-  dependencies: Record<string, ComponentDependency>
+  dependencies: Record<string, UIDLDependency>
   dataObject: Record<string, any>
   methodsObject: Record<string, UIDLEventHandlerStatement[]>
 }

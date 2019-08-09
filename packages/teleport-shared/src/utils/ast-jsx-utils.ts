@@ -7,9 +7,9 @@ import { convertValueToLiteral } from './ast-js-utils'
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
   classString: string,
-  t = types
+  classAttributeName?: string
 ) => {
-  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true }, t)
+  const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
   if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
     const classArray = classAttribute.value.value.split(' ')
     classArray.push(classString)

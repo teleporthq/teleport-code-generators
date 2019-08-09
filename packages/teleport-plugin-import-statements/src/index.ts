@@ -3,7 +3,7 @@ import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkDefinition,
-  ComponentDependency,
+  UIDLDependency,
   ImportIdentifier,
 } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -40,7 +40,7 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
 export default createPlugin()
 
 const groupDependenciesByPackage = (
-  dependencies: Record<string, ComponentDependency>,
+  dependencies: Record<string, UIDLDependency>,
   packageType?: string
 ) => {
   const result: Record<string, ImportIdentifier[]> = {}

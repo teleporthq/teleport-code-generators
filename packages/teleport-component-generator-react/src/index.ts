@@ -1,5 +1,5 @@
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
-import reactInlineStylesPlugin from '@teleporthq/teleport-plugin-react-inline-styles'
+import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
 import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
 import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import { createPlugin as createCSSPlugin } from '@teleporthq/teleport-plugin-css'
@@ -20,12 +20,13 @@ const cssPlugin = createCSSPlugin({
   templateChunkName: 'jsx-component',
   templateStyle: 'jsx',
   declareDependency: 'import',
+  classAttributeName: 'className',
 })
 
 const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
 
 const stylePlugins = {
-  InlineStyles: reactInlineStylesPlugin,
+  InlineStyles: inlineStylesPlugin,
   StyledComponents: reactStyledComponentsPlugin,
   StyledJSX: reactStyledJSXPlugin,
   CSSModules: cssModulesPlugin,
@@ -37,7 +38,7 @@ export const createReactComponentGenerator = (
   variation: string = 'CSS',
   mapping: Mapping = {}
 ): ComponentGenerator => {
-  const stylePlugin = stylePlugins[variation] || reactInlineStylesPlugin
+  const stylePlugin = stylePlugins[variation] || cssPlugin
 
   const generator = createComponentGenerator()
 

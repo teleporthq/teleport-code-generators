@@ -7,7 +7,7 @@ import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-react-inline-styles', () => {
+describe('plugin-jsx-inline-styles', () => {
   const plugin = createPlugin()
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',

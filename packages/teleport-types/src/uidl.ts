@@ -136,7 +136,7 @@ export interface UIDLElement {
   elementType: string
   name?: string
   key?: string // internal usage
-  dependency?: ComponentDependency
+  dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>
   events?: UIDLEventDefinitions
@@ -167,7 +167,7 @@ export interface UIDLEventHandlerStatement {
   args?: Array<string | number | boolean>
 }
 
-export interface ComponentDependency {
+export interface UIDLDependency {
   type: string
   path?: string
   version?: string

@@ -10,7 +10,7 @@ import {
   UIDLEventDefinitions,
   UIDLElement,
   UIDLNode,
-  ComponentDependency,
+  UIDLDependency,
   UIDLStyleDefinitions,
   UIDLRepeatContent,
   UIDLAttributeValue,
@@ -405,7 +405,7 @@ const resolveAttributes = (
 
 const resolveDependency = (
   mappedElement: UIDLElement,
-  uidlDependency?: ComponentDependency,
+  uidlDependency?: UIDLDependency,
   localDependenciesPrefix = './'
 ) => {
   // If dependency is specified at UIDL level it will have priority over the mapping one
