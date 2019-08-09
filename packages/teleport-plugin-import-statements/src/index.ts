@@ -59,6 +59,7 @@ const groupDependenciesByPackage = (
         result[dep.path] = [] // Initialize the dependencies from this path
       }
 
+      const importJustPath = (dep.meta && dep.meta.importJustPath) || false
       const namedImport = !!(dep.meta && dep.meta.namedImport)
       const originalName = dep.meta && dep.meta.originalName ? dep.meta.originalName : key
 
@@ -66,6 +67,7 @@ const groupDependenciesByPackage = (
         identifierName: key,
         namedImport,
         originalName,
+        importJustPath,
       })
     })
 

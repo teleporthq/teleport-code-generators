@@ -174,6 +174,7 @@ export interface ComponentDependency {
   meta?: {
     namedImport?: boolean
     originalName?: string
+    importJustPath?: boolean
   }
 }
 

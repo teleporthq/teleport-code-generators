@@ -15,7 +15,7 @@ import { Mapping, ComponentGenerator } from '@teleporthq/teleport-types'
 export const createVueComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
   const vueStylePlugin = createVueStylePlugin({
-    dynamicStyleAttributeKey: () => ':style',
+    inlineStyleAttributeKey: ':style',
   })
 
   generator.addMapping(vueMapping)

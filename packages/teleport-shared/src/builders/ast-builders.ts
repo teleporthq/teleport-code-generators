@@ -35,8 +35,12 @@ export const createGenericImportStatement = (
 ) => {
   // Only one of the imports can be the default one so this is a fail safe for invalid UIDL data
   const defaultImport = imports.find((imp) => !imp.namedImport) // only one import can be default
+  const importJustPath = imports.some((imp) => imp.importJustPath)
   let importASTs: any[] = []
-  if (defaultImport) {
+  if (importJustPath) {
+    // Just the import path will be present, eg: import './styles.css'
+    importASTs = []
+  } else if (defaultImport) {
     const namedImports = imports.filter(
       (imp) => imp.identifierName !== defaultImport.identifierName
     )
