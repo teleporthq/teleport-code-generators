@@ -30,6 +30,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
 
     dependencies.Component = STENCIL_CORE_DEPENDENCY
     dependencies.h = STENCIL_CORE_DEPENDENCY
+    console.log(stateDefinitions, 'from stencil base component')
 
     if (Object.keys(propDefinitions).length > 0) {
       dependencies.Prop = STENCIL_CORE_DEPENDENCY

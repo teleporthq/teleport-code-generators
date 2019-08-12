@@ -1,0 +1,15 @@
+{
+  "elements": {
+    "navlink": {
+      "elementType": "Link",
+      "dependency": {
+        "type": "library",
+        "path": "@stencil/router",
+        "version": "1.0.1",
+        "meta": {
+          "namedImport": true
+        }
+      }
+    }
+  }
+}
