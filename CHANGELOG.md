@@ -1,3 +1,49 @@
+## v0.9.0 (2019-08-13)
+
+#### :electric_plug: Angular Generators
+  * [#335](https://github.com/teleporthq/teleport-code-generators/pull/335) feat(angular-base): Adding Angular generator ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Stencil Generators
+  * [#319](https://github.com/teleporthq/teleport-code-generators/pull/319) feat(stencil): stencil component generator ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Preact Generators
+  * [#320](https://github.com/teleporthq/teleport-code-generators/pull/320) feat(preact-project-gen): A Preact project generator ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :nail_care: Style Flavours
+  * [#338](https://github.com/teleporthq/teleport-code-generators/pull/338) refactor(css): teleport-plugin-css now works for both html templates and jsx code chunks ([@alexnm](https://github.com/alexnm))
+  * [#309](https://github.com/teleporthq/teleport-code-generators/pull/309) fix(plugin-styles): Fix generation of empty styles ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+  * [#334](https://github.com/teleporthq/teleport-code-generators/pull/334) refactor components generated in own folder ([@alexnm](https://github.com/alexnm))
+  * [#331](https://github.com/teleporthq/teleport-code-generators/pull/331) refactor(core): template generation syntax is now configurable from base plugins ([@alexnm](https://github.com/alexnm))
+  * [#327](https://github.com/teleporthq/teleport-code-generators/pull/327) fix(slots): restrictions for slot node fallback and separate handling for native / prop based slot ([@alexnm](https://github.com/alexnm))
+  * [#328](https://github.com/teleporthq/teleport-code-generators/pull/328) feat(postprocessors): factory functions defined with options for configurability ([@alexnm](https://github.com/alexnm))
+  * [#314](https://github.com/teleporthq/teleport-code-generators/pull/314) refactor(react-base-plugin): jsx generation extracted to shared package ([@alexnm](https://github.com/alexnm))
+
+#### :bug: Bug Fix
+* `teleport-component-generator-react`, `teleport-plugin-react-styled-components`, `teleport-shared`
+  * [#318](https://github.com/teleporthq/teleport-code-generators/pull/318) fix(styled-comp): Converting to camel case when passing as props ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-component-generator-vue`, `teleport-plugin-vue-base-component`
+  * [#276](https://github.com/teleporthq/teleport-code-generators/pull/276) fix(vue-base-com): Handling non-element root nodes for vue ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :house: Dev Experience
+  * [#329](https://github.com/teleporthq/teleport-code-generators/pull/329) feat(Builders): Added project-builders and tests ([@andreiTnu](https://github.com/andreiTnu))
+  * [#312](https://github.com/teleporthq/teleport-code-generators/pull/312) feat(build): experimental tasks for react generator ([@alexnm](https://github.com/alexnm))
+  * [#313](https://github.com/teleporthq/teleport-code-generators/pull/313) refactor(repl-component): Watcher first builds all packages before wa… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+  * [#307](https://github.com/teleporthq/teleport-code-generators/pull/307) chore(watcher.js): A Watcher to that triggers for changes in file and rebuild the package ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :fire: Refactoring
+  * [#336](https://github.com/teleporthq/teleport-code-generators/pull/336) refactor(css-modules): classname generation optimization and tests for multiple cases ([@alexnm](https://github.com/alexnm))
+  * [#333](https://github.com/teleporthq/teleport-code-generators/pull/333) refactor: updated template names and new react template based on cra ([@alexnm](https://github.com/alexnm))
+  * [#330](https://github.com/teleporthq/teleport-code-generators/pull/330) refactor(vue): extract html generation syntax into shared package ([@alexnm](https://github.com/alexnm))
+  * [#325](https://github.com/teleporthq/teleport-code-generators/pull/325) refactor: standard file and chunk types ([@alexnm](https://github.com/alexnm))
+  * [#305](https://github.com/teleporthq/teleport-code-generators/pull/305) refactor(shared): renames, reusability, tests, cleanup, etc. ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- [@andreiTnu](https://github.com/andreiTnu)
+
 ## v0.8.0 (2019-06-28)
 
 #### :rocket: New Features
