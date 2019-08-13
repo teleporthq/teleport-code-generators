@@ -208,8 +208,6 @@
       "elementType": "hr"
     }
   },
-  "events": {
-    "click": "onclick"
-  },
+  "events": {},
   "attributes": {}
 }

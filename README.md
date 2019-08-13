@@ -2,16 +2,16 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.8 - Beta!</h2>
+<h2 align="center">Code Generators v0.9 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
   <span> · </span>
   <a href="#quick-setup">Quick Setup</a>
   <span> · </span>
-  <a href="#ecoystem">Ecosystem</a>
+  <a href="#ecosystem">Ecosystem</a>
   <span> · </span>
-  <a href="https://docs.teleporthq.io">Documentation</a>
+  <a href="https://docs.teleporthq.io" target="_blank">Documentation</a>
   <span> · </span>
   <a href="#development">Development</a>
   <span> · </span>
@@ -29,7 +29,7 @@
   <a target="_blank" href="https://twitter.com/teleporthqio"><img src="https://img.shields.io/twitter/follow/teleporthqio.svg" /></a>
 </p>
 
-We are not far from the **first official version** of the code generators, but meanwhile, keep in mind that this is not yet production ready!
+We are not far from the **first official version** of the code generators, but meanwhile, keep in mind that some of the parts of the ecosystem are experimental.
 
 <h2 id="what">🤔 What is this?</h2>
 
@@ -52,11 +52,17 @@ The easiest way to jump into the **teleport ecosystem** is to try out one of the
 ```bash
 npm install @teleporthq/teleport-component-generator-react
 npm install @teleporthq/teleport-component-generator-vue
+npm install @teleporthq/teleport-component-generator-angular
+npm install @teleporthq/teleport-component-generator-stencil
+npm install @teleporthq/teleport-component-generator-preact
 ```
 or using yarn:
 ```bash
 yarn add @teleporthq/teleport-component-generator-react
 yarn add @teleporthq/teleport-component-generator-vue
+yarn add @teleporthq/teleport-component-generator-angular
+yarn add @teleporthq/teleport-component-generator-stencil
+yarn add @teleporthq/teleport-component-generator-preact
 ```
 
 For generating a simple component, you have to start from a **component UIDL**:
@@ -100,7 +106,7 @@ const MyFirstComponent = (props) => {
 export default MyFirstComponent
 ```
 
-For the `Vue` generator, just switch the package:
+For other frameworks, just switch the package:
 ```javascript
 import VueGenerator from '@teleporthq/teleport-component-generator-vue'
 
@@ -131,7 +137,7 @@ You can play with the UIDL structure and also observe the generated code in [the
 The teleport ecosystem consists of **three** main categories of packages: *component generators*, *project generators* and *project packers*.
 
 ### Component Generators
-We have **official** component generators for `React` and `Vue`, but we also plan on supporting other frameworks and standards as soon as possible. Also, `React Native` is definitely on our minds, since we've designed the UIDL in such a way that it's agnostic of the web platform. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
+We have **official** component generators for [a couple of popular web frontend frameworks](https://docs.teleporthq.io/component-generators/flavors.html), but we are actively working on supporting mobile application with `react-native`. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
 
 All the component generators are exposing an instance of the `teleport-component-generator` package. You can also install this package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
 
@@ -140,8 +146,11 @@ In the docs, you'll find a complete guide on how to [build your custom component
 #### Flavors
 * `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
 * `teleport-component-generator-vue` - generating standard `.vue` files
-* `teleport-component-generator-angular` (coming soon)
-* `teleport-component-generator-webcomponent` (coming soon)
+* `teleport-component-generator-angular` - generates `.ts`, `.html` and `.css` files
+* `teleport-component-generator-stencil` - generates `.tsx` files and standard `.css` files
+* `teleport-component-generator-preact` - similar to `react`, with a bunch of styling options
+* `teleport-component-generator-react-native` - (coming soon)
+* `teleport-component-generator-svelte` - (coming soon)
 
 #### Capabilities
 Here's a list of functionalities that the UIDL and the component generators are supporting at the moment, besides the obvious presentational layer:
@@ -165,6 +174,7 @@ Check the official guides on [how to use an existing project generator](https://
 * `teleport-project-generator-next` - based on [Next.js](https://nextjs.org/)
 * `teleport-project-generator-vue` - with a structure starting from the `vue-cli`
 * `teleport-project-generator-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
+* `teleport-project-generator-preact` - based on the [preact-cli](https://github.com/preactjs/preact-cli)
 * `teleport-project-generator-react-native` (coming soon)
 * `teleport-project-generator-angular` (coming soon)
 * `teleport-project-generator-gatsby` (coming soon)
@@ -213,7 +223,7 @@ To complete the lerna setup, you need to run:
 ```
 yarn build
 ```
-This will run the `build` task inside each individual package, creating the output `lib` folder.
+This will run the `build` task inside each individual package, creating the output `lib` folder. We have two outputs for each package: `cjs` - common js style modules and `esm` - modern es modules. If you want to speed up your build time, you can run just `build:cjs` to avoid the `esm` build.
 
 Running the test suite:
 ```
@@ -245,7 +255,7 @@ It's not just our code that's open source, we're also planning the development o
 We're especially interested in opening discussions around the issues tagged with the [`discussion`](https://github.com/teleporthq/teleport-code-generators/issues?q=is%3Aissue+is%3Aopen+label%3Adiscussion) label.
 
 ### Official Release
-The official release will be a switch to version `1.0`. ETA for this is around mid July 2019.
+The official release will be a switch to version `1.0`. ETA for this is around the end of 2019.
 
 <h2 id="contributions">💕 Contributions</h2>
 

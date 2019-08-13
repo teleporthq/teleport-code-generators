@@ -1,5 +1,6 @@
 {
   "name": "@teleporthq/teleport-repl-component",
+  "private": true,
   "version": "0.8.1",
   "description": "Repl editor component",
   "author": "teleportHQ",
