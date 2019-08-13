@@ -19,7 +19,6 @@ import {
   VUE_GITHUB_PROJECT,
   NUXT_GITHUB_PROJECT,
   PREACT_GITHUB_PROJECT,
-  STENCIL_AUTHOR,
   STENCIL_GITHUB_PROJECT,
 } from './constants'
 
@@ -44,7 +43,7 @@ const templates = {
   vue: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
   nuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
   preact: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
-  stencil: getGithubRemoteDefinition(STENCIL_AUTHOR, STENCIL_GITHUB_PROJECT),
+  stencil: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, STENCIL_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -70,10 +69,10 @@ const packProject = async (projectType: string) => {
 const run = async () => {
   try {
     await packProject('react')
-    // await packProject('next')
-    // await packProject('vue')
-    // await packProject('nuxt')
-    // await packProject('preact')
+    await packProject('next')
+    await packProject('vue')
+    await packProject('nuxt')
+    await packProject('preact')
     await packProject('stencil')
   } catch (e) {
     console.info(e)

@@ -31,7 +31,6 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
-    console.log(stateDefinitions, 'from react base component')
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
 

@@ -1,4 +1,5 @@
-import { createClassDeclaration, createComponentDecorator } from './utils'
+import { createClassDeclaration } from './utils'
+import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -30,7 +31,6 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
 
     dependencies.Component = STENCIL_CORE_DEPENDENCY
     dependencies.h = STENCIL_CORE_DEPENDENCY
-    console.log(stateDefinitions, 'from stencil base component')
 
     if (Object.keys(propDefinitions).length > 0) {
       dependencies.Prop = STENCIL_CORE_DEPENDENCY

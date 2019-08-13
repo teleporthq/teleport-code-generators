@@ -10,6 +10,4 @@ export const NUXT_GITHUB_PROJECT = 'teleport-project-template-nuxt'
 
 export const PREACT_GITHUB_PROJECT = 'teleport-project-template-preact'
 
-export const STENCIL_AUTHOR = 'JayaKrishnaNamburu'
-
 export const STENCIL_GITHUB_PROJECT = 'teleport-project-template-stencil'

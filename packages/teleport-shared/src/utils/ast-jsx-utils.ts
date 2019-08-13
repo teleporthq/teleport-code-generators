@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
-import { convertValueToLiteral } from './ast-js-utils'
+import { convertValueToLiteral, objectToObjectExpression } from './ast-js-utils'
+import { camelCaseToDashCase } from './string-utils'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -145,4 +146,15 @@ export const renameJSXTag = (jsxTag: types.JSXElement, newName: string, t = type
   if (jsxTag.closingElement) {
     jsxTag.closingElement.name = t.jsxIdentifier(newName)
   }
+}
+
+export const createComponentDecorator = (name: string, t = types) => {
+  return t.decorator(
+    t.callExpression(t.identifier('Component'), [
+      objectToObjectExpression({
+        tag: camelCaseToDashCase(name),
+        shadow: true,
+      }),
+    ])
+  )
 }

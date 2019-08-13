@@ -1,9 +1,11 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import { createPlugin as createRouterPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
+import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import stencilAppRouting from '@teleporthq/teleport-plugin-stencil-app-routing'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import { Mapping } from '@teleporthq/teleport-types'
@@ -11,12 +13,15 @@ import { Mapping } from '@teleporthq/teleport-types'
 import stencilProjectMapping from './stencil-mapping.json'
 
 export const createStencilProjectGenerator = () => {
+  const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
+  const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
+
   const stencilComponentGenerator = createStencilComponentGenerator()
   stencilComponentGenerator.addMapping(stencilProjectMapping as Mapping)
 
-  const routerPlugin = createRouterPlugin({ flavor: 'stencil' })
-  const routingComponentGenerator = createStencilComponentGenerator()
-  routingComponentGenerator.addPlugin(routerPlugin)
+  const routingComponentGenerator = createComponentGenerator()
+  routingComponentGenerator.addPlugin(stencilAppRouting)
+  routingComponentGenerator.addPlugin(importStatementsPlugin)
   routingComponentGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
