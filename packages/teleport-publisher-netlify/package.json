@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-netlify",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Publishes a static site to netlify",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,8 +25,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-publisher-zip": "^0.8.1",
-    "@teleporthq/teleport-types": "^0.8.1",
+    "@teleporthq/teleport-publisher-zip": "^0.9.0",
+    "@teleporthq/teleport-types": "^0.9.0",
     "cross-fetch": "^3.0.2"
   }
 }

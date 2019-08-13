@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-preact",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Project generator for a standard Preact project",
   "author": "JayaKrishna <namburu1995@gmail.com>",
   "homepage": "https://teleporthq.io/",
@@ -23,13 +23,13 @@
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.8.1",
-    "@teleporthq/teleport-project-generator": "^0.8.1",
-    "@teleporthq/teleport-component-generator": "0.8.1",
-    "@teleporthq/teleport-component-generator-preact": "^0.8.1",
-    "@teleporthq/teleport-plugin-react-app-routing": "0.8.1",
-    "@teleporthq/teleport-plugin-import-statements": "0.8.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "0.8.1",
-    "@teleporthq/teleport-postprocessor-prettier-html": "0.8.1"
+    "@teleporthq/teleport-component-generator": "^0.9.0",
+    "@teleporthq/teleport-component-generator-preact": "^0.9.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.9.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.9.0",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.9.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.9.0",
+    "@teleporthq/teleport-project-generator": "^0.9.0",
+    "@teleporthq/teleport-types": "^0.9.0"
   }
 }

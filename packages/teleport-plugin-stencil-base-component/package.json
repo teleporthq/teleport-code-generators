@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-stencil-base-component",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "A plugin for handling the skeleton/baseline of a Stencil component",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.3.3",
-    "@teleporthq/teleport-shared": "^0.8.1",
-    "@teleporthq/teleport-types": "^0.8.1"
+    "@teleporthq/teleport-shared": "^0.9.0",
+    "@teleporthq/teleport-types": "^0.9.0"
   }
 }
