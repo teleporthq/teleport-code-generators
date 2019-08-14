@@ -18,14 +18,19 @@ export const createClassDecleration = (routes, routeDefinitions, t = types) => {
 
     const stencilRouteTag = createJSXTag('stencil-route')
     addAttributeToJSXTag(stencilRouteTag, 'url', path)
-    addAttributeToJSXTag(stencilRouteTag, 'component', camelCaseToDashCase(componentName))
+    if (path === '/') {
+      addAttributeToJSXTag(stencilRouteTag, 'exact', true)
+    }
+    addAttributeToJSXTag(stencilRouteTag, 'component', `app-${camelCaseToDashCase(componentName)}`)
     addChildJSXTag(stencilRouteSwitchTag, stencilRouteTag)
   })
 
   const mainTag = createJSXTag('main')
   addChildJSXTag(mainTag, stencilRouterTag)
+  const divTag = createJSXTag('div')
+  addChildJSXTag(divTag, mainTag)
 
-  const returnAST = mainTag as types.JSXElement
+  const returnAST = divTag as types.JSXElement
 
   const classBodyAST = t.classBody([
     t.classMethod(

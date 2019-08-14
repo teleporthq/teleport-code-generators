@@ -11,6 +11,7 @@ import {
   STENCIL_CORE_DEPENDENCY,
 } from './constants'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 interface StencilPluginConfig {
   componentChunkName: string
@@ -60,6 +61,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       dependencyHandling: 'webcomponents',
       stateHandling: 'mutation',
       slotHandling: 'native',
+      customElementTag: (name: string) => `app-${camelCaseToDashCase(name)}`,
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

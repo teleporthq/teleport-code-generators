@@ -40,7 +40,13 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
   const { dependencies, nodesLookup } = params
   const { elementType, children, key, attrs, dependency, events } = node.content
-  const elementTag = children ? createJSXTag(elementType) : createSelfClosingJSXTag(elementType)
+  // Append app for only local dependencies
+  const elementTag =
+    dependency && dependency.type === 'local' && options.customElementTag
+      ? createJSXTag(options.customElementTag(elementType))
+      : children
+      ? createJSXTag(elementType)
+      : createSelfClosingJSXTag(elementType)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {

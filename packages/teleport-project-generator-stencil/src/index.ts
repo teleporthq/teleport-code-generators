@@ -45,12 +45,18 @@ export const createStencilProjectGenerator = () => {
     router: {
       generator: routingComponentGenerator,
       path: ['src', 'components'],
-      fileName: 'app',
+      fileName: 'app-root',
     },
     entry: {
       generator: htmlFileGenerator,
+      appRootOverride: `<app-root></app-root>`,
       path: ['src'],
       fileName: 'index',
+      customScriptTags: [
+        { type: 'module', path: ['build', 'app.esm.js'] },
+        { type: 'nomodule', path: ['buid', 'app.js'] },
+      ],
+      customLinkTags: [{ type: 'stylesheet', path: ['build', 'app.css'] }],
     },
     static: {
       prefix: '/assets',

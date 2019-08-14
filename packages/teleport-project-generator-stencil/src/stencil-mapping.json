@@ -1,7 +1,7 @@
 {
   "elements": {
     "navlink": {
-      "elementType": "Link",
+      "elementType": "stencil-route-link",
       "dependency": {
         "type": "library",
         "path": "@stencil/router",
@@ -9,6 +9,9 @@
         "meta": {
           "namedImport": true
         }
+      },
+      "attrs": {
+        "url":{ "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
       }
     }
   }

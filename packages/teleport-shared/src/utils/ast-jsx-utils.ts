@@ -149,10 +149,12 @@ export const renameJSXTag = (jsxTag: types.JSXElement, newName: string, t = type
 }
 
 export const createComponentDecorator = (name: string, t = types) => {
+  /* Stencil/ WebComponents follows a dash-cased convention for naming. Adding a 
+   dash by default, so we won'r into edge cases where comp having only a single word as name */
   return t.decorator(
     t.callExpression(t.identifier('Component'), [
       objectToObjectExpression({
-        tag: camelCaseToDashCase(name),
+        tag: `app-${camelCaseToDashCase(name)}`,
         shadow: true,
       }),
     ])

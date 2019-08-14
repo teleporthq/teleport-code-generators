@@ -19,6 +19,8 @@ import {
   GeneratorOptions,
   ProjectStrategy,
   EntryFileOptions,
+  CustomScriptTag,
+  CustomLinkTag,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -70,7 +72,14 @@ export const createEntryFile = async (
     strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
   const appRootOverride = strategy.entry.appRootOverride || null
   const entryFileName = strategy.entry.fileName || 'index'
-  const chunks = chunkGenerationFunction(uidl, { assetsPrefix, appRootOverride })
+  const customScriptTags = strategy.entry.customScriptTags || []
+  const customLinkTags = strategy.entry.customLinkTags || []
+  const chunks = chunkGenerationFunction(uidl, {
+    assetsPrefix,
+    appRootOverride,
+    customScriptTags,
+    customLinkTags,
+  })
 
   const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
   return entryFile
@@ -78,7 +87,7 @@ export const createEntryFile = async (
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const { assetsPrefix = '', appRootOverride } = options
+  const { assetsPrefix = '', appRootOverride, customScriptTags, customLinkTags } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -181,6 +190,31 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       addChildNode(headNode, iconTag)
     }
   })
+
+  // Stencil need to inject and point out the generated build files
+  if (customScriptTags.length > 0) {
+    customScriptTags.forEach((tag: CustomScriptTag) => {
+      const { type, path } = tag
+      const scriptTag = createHTMLNode('script')
+      if (type === 'module') {
+        addAttributeToNode(scriptTag, 'type', type)
+      } else {
+        addAttributeToNode(scriptTag, 'nomodule', '')
+      }
+      addAttributeToNode(scriptTag, 'src', path.join('/'))
+      addChildNode(headNode, scriptTag)
+    })
+  }
+
+  if (customLinkTags.length > 0) {
+    customLinkTags.forEach((tag: CustomLinkTag) => {
+      const { path, type } = tag
+      const linkTag = createHTMLNode('link')
+      addAttributeToNode(linkTag, 'href', path.join('/'))
+      addAttributeToNode(linkTag, 'rel', type)
+      addChildNode(headNode, linkTag)
+    })
+  }
 
   const chunks: Record<string, ChunkDefinition[]> = {
     [FILE_TYPE.HTML]: [
