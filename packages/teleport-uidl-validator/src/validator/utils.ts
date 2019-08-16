@@ -77,7 +77,11 @@ export const checkDynamicDefinitions = (input: any) => {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
         errors.push(errorMsg)
       }
-      usedPropKeys.push(node.content.id)
+
+      // for member expression we check the root
+      // if value has no `.` it will be checked as it is
+      const dynamicIdRoot = node.content.id.split('.')[0]
+      usedPropKeys.push(dynamicIdRoot)
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
@@ -85,7 +89,11 @@ export const checkDynamicDefinitions = (input: any) => {
         const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
         errors.push(errorMsg)
       }
-      usedstateKeys.push(node.content.id)
+
+      // for member expression we check the root
+      // if value has no `.` it will be checked as it is
+      const dynamicIdRoot = node.content.id.split('.')[0]
+      usedstateKeys.push(dynamicIdRoot)
     }
   })
 

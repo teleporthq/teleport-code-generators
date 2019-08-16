@@ -31,7 +31,7 @@ const stylePlugins = {
 }
 
 export const createPreactComponentGenerator = (
-  variation: string = 'CSS',
+  variation: string = 'CSSModules',
   mapping: Mapping = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()

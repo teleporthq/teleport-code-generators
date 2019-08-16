@@ -74,6 +74,10 @@ describe('AST Utils ', () => {
       expect(result).toHaveProperty('type')
       expect(result.type).toBe('Identifier')
     })
+    it('returns a null literal for null or undefined', () => {
+      expect(convertValueToLiteral(null).type).toBe('NullLiteral')
+      expect(convertValueToLiteral(undefined).type).toBe('NullLiteral')
+    })
   })
 
   describe('objectToObjectExpression', () => {

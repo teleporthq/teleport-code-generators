@@ -112,7 +112,7 @@ const createVuePropsDefinition = (
 
     let defaultPropValue = null
 
-    if (defaultValue !== 'undefined') {
+    if (defaultValue !== undefined) {
       defaultPropValue =
         type === 'array' || type === 'object'
           ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))

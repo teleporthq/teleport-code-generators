@@ -60,12 +60,17 @@ type ExpressionLiteral =
   | types.Identifier
   | types.ArrayExpression
   | types.ObjectExpression
+  | types.NullLiteral
 
 export const convertValueToLiteral = (
   value: any,
   explicitType: string = '',
   t = types
 ): ExpressionLiteral => {
+  if (value === undefined || value === null) {
+    return t.nullLiteral()
+  }
+
   if (Array.isArray(value)) {
     return t.arrayExpression(value.map((val) => convertValueToLiteral(val)))
   }

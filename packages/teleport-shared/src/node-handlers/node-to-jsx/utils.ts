@@ -159,17 +159,20 @@ export const createConditionIdentifier = (
 ): ConditionalIdentifier => {
   const { id, referenceType } = dynamicReference.content
 
+  // in case the id is a member expression: eg: fields.name
+  const referenceRoot = id.split('.')[0]
+
   switch (referenceType) {
     case 'prop':
       return {
         key: id,
-        type: params.propDefinitions[id].type,
+        type: params.propDefinitions[referenceRoot].type,
         prefix: options.dynamicReferencePrefixMap.prop,
       }
     case 'state':
       return {
         key: id,
-        type: params.stateDefinitions[id].type,
+        type: params.stateDefinitions[referenceRoot].type,
         prefix: options.dynamicReferencePrefixMap.state,
       }
     default:

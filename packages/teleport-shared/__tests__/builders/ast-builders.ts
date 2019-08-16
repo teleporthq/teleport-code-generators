@@ -40,6 +40,17 @@ describe('createGenericImportStatement', () => {
     expect(result.source).toHaveProperty('value')
     expect(result.source.value).toBe('../testConst')
   })
+  it('should use the identifierName as originalName if no originalName is provided', () => {
+    const imports = [{ identifierName: 'Card', namedImport: true }]
+    const result = createGenericImportStatement('some-package', imports)
+    expect(result.type).toBe('ImportDeclaration')
+    expect(result.specifiers.length).toEqual(imports.length)
+    expect(result.source).toHaveProperty('value')
+    expect(result.source.value).toBe('some-package')
+    const specifier = result.specifiers[0] as types.ImportSpecifier
+    expect(specifier.local.name).toBe('Card')
+    expect(specifier.imported.name).toBe('Card')
+  })
   it('should creat generic import statements if no import array is provided', () => {
     const result = createGenericImportStatement('../testConst', [])
     expect(result.type).toBe('ImportDeclaration')

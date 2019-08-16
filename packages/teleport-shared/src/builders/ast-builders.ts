@@ -48,13 +48,19 @@ export const createGenericImportStatement = (
     importASTs = [
       t.importDefaultSpecifier(t.identifier(defaultImport.identifierName)),
       ...namedImports.map((imp) =>
-        t.importSpecifier(t.identifier(imp.identifierName), t.identifier(imp.originalName))
+        t.importSpecifier(
+          t.identifier(imp.identifierName),
+          t.identifier(imp.originalName || imp.identifierName)
+        )
       ),
     ]
   } else {
     // No default import, so array order doesn't matter
     importASTs = imports.map((imp) =>
-      t.importSpecifier(t.identifier(imp.identifierName), t.identifier(imp.originalName))
+      t.importSpecifier(
+        t.identifier(imp.identifierName),
+        t.identifier(imp.originalName || imp.identifierName)
+      )
     )
   }
   return t.importDeclaration(importASTs, t.stringLiteral(path))

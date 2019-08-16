@@ -45,7 +45,7 @@ export const generateExportAST = (
     )
   )
 
-  const dataDecleration = Object.keys(dataObject).map((dataKey) => {
+  const dataDeclaration = Object.keys(dataObject).map((dataKey) => {
     return t.classProperty(
       t.identifier(dataKey),
       convertValueToLiteral(dataObject[dataKey]),
@@ -57,7 +57,7 @@ export const generateExportAST = (
     return t.classBody([
       ...propDeclaration,
       ...propertyDecleration,
-      ...dataDecleration,
+      ...dataDeclaration,
       constructorAST(),
     ])
   }
