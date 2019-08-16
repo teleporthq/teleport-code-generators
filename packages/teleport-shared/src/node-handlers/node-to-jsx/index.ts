@@ -28,7 +28,7 @@ import {
   addDynamicAttributeToJSXTag,
   renameJSXTag,
 } from '../../utils/ast-jsx-utils'
-import { createJSXTag } from '../../builders/ast-builders'
+import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { camelCaseToDashCase } from '../../utils/string-utils'
 
 const generateJSXSyntax = (
@@ -88,7 +88,7 @@ const generateElementNode = (
 ) => {
   const { dependencies, nodesLookup } = params
   const { elementType, children, key, attrs, dependency, events } = node.content
-  const elementTag = createJSXTag(elementType)
+  const elementTag = children ? createJSXTag(elementType) : createSelfClosingJSXTag(elementType)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
@@ -248,7 +248,7 @@ const generateNativeSlotNode = (
   options?: JSXGenerationOptions,
   t = types
 ) => {
-  const slotNode = createJSXTag('slot')
+  const slotNode = createSelfClosingJSXTag('slot')
 
   if (node.content.name) {
     addAttributeToJSXTag(slotNode, 'name', node.content.name)
