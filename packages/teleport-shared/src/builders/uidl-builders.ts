@@ -17,7 +17,7 @@ import {
 
 export const component = (
   name: string,
-  node: UIDLNode,
+  node: UIDLElementNode,
   propDefinitions?: Record<string, UIDLPropDefinition>,
   stateDefinitions?: Record<string, UIDLStateDefinition>
 ): ComponentUIDL => {

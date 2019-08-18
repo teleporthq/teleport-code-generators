@@ -33,7 +33,7 @@ export const parseComponentJSON = (
   }
 
   // other parsers for other sections of the component here
-  result.node = parseComponentNode(node)
+  result.node = parseComponentNode(node) as UIDLElementNode
 
   return result
 }

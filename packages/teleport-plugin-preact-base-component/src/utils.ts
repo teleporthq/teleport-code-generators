@@ -3,13 +3,11 @@ import * as types from '@babel/types'
 import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
-import { JSXRootReturnType } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-
 export const createClassComponent = (
   name: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  jsxTagTree: JSXRootReturnType,
+  jsxTagTree: types.JSXElement,
   t = types
 ) => {
   // TODO: Add event handlers as separate functions later
@@ -35,16 +33,13 @@ export const createClassComponent = (
     renderMethodArguments.push(t.identifier('state'))
   }
 
-  const returnedAST =
-    typeof jsxTagTree === 'string' ? t.stringLiteral(jsxTagTree) : (jsxTagTree as types.JSXElement)
-
   const classBody = t.classBody([
     ...classMethodsAndProperties,
     t.classMethod(
       'method',
       t.identifier('render'),
       renderMethodArguments,
-      t.blockStatement([t.returnStatement(returnedAST)])
+      t.blockStatement([t.returnStatement(jsxTagTree)])
     ),
   ])
 
@@ -60,14 +55,11 @@ export const createClassComponent = (
 export const createPureComponent = (
   name: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
-  jsxTagTree: JSXRootReturnType,
+  jsxTagTree: types.JSXElement,
   t = types
 ): types.VariableDeclaration => {
   const componentArgs = []
-  const arrowFunctionBody =
-    typeof jsxTagTree === 'string'
-      ? t.stringLiteral(jsxTagTree)
-      : t.blockStatement([t.returnStatement(jsxTagTree as types.JSXElement)])
+  const arrowFunctionBody = t.blockStatement([t.returnStatement(jsxTagTree)])
 
   if (Object.keys(propDefinitions).length > 0) {
     componentArgs.push(t.identifier('props'))

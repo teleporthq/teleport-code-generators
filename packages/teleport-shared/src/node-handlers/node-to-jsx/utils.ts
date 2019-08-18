@@ -14,7 +14,7 @@ import {
 import {
   BinaryOperator,
   UnaryOperation,
-  JSXRootReturnType,
+  JSXASTReturnType,
   ConditionalIdentifier,
   JSXGenerationParams,
   JSXGenerationOptions,
@@ -187,7 +187,7 @@ export const createConditionIdentifier = (
 }
 
 export const createConditionalJSXExpression = (
-  content: JSXRootReturnType,
+  content: JSXASTReturnType,
   conditionalExpression: UIDLConditionalExpression,
   conditionalIdentifier: ConditionalIdentifier,
   t = types

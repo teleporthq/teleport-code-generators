@@ -48,7 +48,13 @@ export interface JSXGenerationOptions {
   slotHandling?: 'native' | 'props'
 }
 
-export type JSXRootReturnType =
+export type NodeToJSX<NodeType, ReturnType> = (
+  node: NodeType,
+  params: JSXGenerationParams,
+  options?: JSXGenerationOptions
+) => ReturnType
+
+export type JSXASTReturnType =
   | string
   | types.JSXExpressionContainer
   | types.JSXElement

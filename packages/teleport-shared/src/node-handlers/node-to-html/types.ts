@@ -12,12 +12,18 @@ export interface HTMLTemplateGenerationParams {
 }
 
 export interface HTMLTemplateSyntax {
-  interpolation: (value: string) => string
-  valueBinding: (value: string, node?: UIDLElementNode) => string
-  eventBinding: (value: string) => string
-  eventEmmitter: (value: string) => string
-  conditionalAttr: string
-  repeatAttr: string
-  repeatIterator: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
-  customElementTagName: (value: string) => string
+  interpolation?: (value: string) => string
+  valueBinding?: (value: string, node?: UIDLElementNode) => string
+  eventBinding?: (value: string) => string
+  eventEmmitter?: (value: string) => string
+  conditionalAttr?: string
+  repeatAttr?: string
+  repeatIterator?: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
+  customElementTagName?: (value: string) => string
 }
+
+export type NodeToHTML<NodeType, ReturnType> = (
+  node: NodeType,
+  params: HTMLTemplateGenerationParams,
+  templateSyntax: HTMLTemplateSyntax
+) => ReturnType

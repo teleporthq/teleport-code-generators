@@ -31,7 +31,7 @@ export interface GlobalAsset {
 export interface ComponentUIDL {
   $schema?: string
   name: string
-  node: UIDLNode
+  node: UIDLElementNode
   meta?: {
     fileName?: string
     styleFileName?: string

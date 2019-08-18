@@ -14,6 +14,7 @@ import {
   UIDLConditionalNode,
   UIDLStateDefinition,
   ProjectStrategy,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 
 export const createPageUIDLs = (
@@ -62,7 +63,7 @@ const createPageUIDL = (
 
   return {
     name: componentName,
-    node,
+    node: node as UIDLElementNode,
     meta,
   }
 }
