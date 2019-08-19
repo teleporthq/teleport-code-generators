@@ -44,13 +44,13 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
       linkAfter: [importChunkName],
     })
 
-    const exportClassAST = createClassDecleration(routes, routeDefinitions)
+    const classDeclarationAST = createClassDecleration(routes, routeDefinitions)
 
     chunks.push({
       name: componentChunkName,
       type: CHUNK_TYPE.AST,
       fileType: FILE_TYPE.TSX,
-      content: exportClassAST,
+      content: classDeclarationAST,
       linkAfter: [componentDecoratorChunkName],
     })
 

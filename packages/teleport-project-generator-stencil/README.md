@@ -1,11 +1,14 @@
-# `teleport-project-generator-stencil`
+# teleport-project-generator-stencil
 
-> TODO: description
+Project generator using Stencil, on top of a standard stencil config.
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-stencil
 ```
-const teleportProjectGeneratorStencil = require('teleport-project-generator-stencil');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-stencil
 ```

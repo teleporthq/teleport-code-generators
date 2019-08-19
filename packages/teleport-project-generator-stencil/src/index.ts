@@ -53,10 +53,10 @@ export const createStencilProjectGenerator = () => {
       path: ['src'],
       fileName: 'index',
       customScriptTags: [
-        { type: 'module', path: ['build', 'app.esm.js'] },
-        { type: 'nomodule', path: ['buid', 'app.js'] },
+        { type: 'module', path: 'build/app.esm.js' },
+        { type: 'nomodule', path: 'buid/app.js' },
       ],
-      customLinkTags: [{ type: 'stylesheet', path: ['build', 'app.css'] }],
+      customLinkTags: [{ type: 'stylesheet', path: 'build/app.css' }],
     },
     static: {
       prefix: '/assets',

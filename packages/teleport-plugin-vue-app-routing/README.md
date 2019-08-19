@@ -1,4 +1,4 @@
-# teleport-plugin-vue-app-routing
+# `@teleporthq/teleport-plugin-vue-app-routing`
 
 A plugin for generating the routing file for a Vue project.
 

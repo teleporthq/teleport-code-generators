@@ -153,12 +153,12 @@ export interface ProjectStrategy {
 
 export interface CustomLinkTag {
   type: string
-  path: string[]
+  path: string
 }
 
 export interface CustomScriptTag {
   type: string
-  path: string[]
+  path: string
 }
 
 export interface EntryFileOptions {

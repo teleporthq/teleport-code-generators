@@ -191,7 +191,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     }
   })
 
-  // Stencil need to inject and point out the generated build files
+  // For frameworks that need to inject and point out the generated build files
   if (customScriptTags.length > 0) {
     customScriptTags.forEach((tag: CustomScriptTag) => {
       const { type, path } = tag
@@ -201,7 +201,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       } else {
         addAttributeToNode(scriptTag, 'nomodule', '')
       }
-      addAttributeToNode(scriptTag, 'src', path.join('/'))
+      addAttributeToNode(scriptTag, 'src', path)
       addChildNode(headNode, scriptTag)
     })
   }
@@ -210,7 +210,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     customLinkTags.forEach((tag: CustomLinkTag) => {
       const { path, type } = tag
       const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'href', path.join('/'))
+      addAttributeToNode(linkTag, 'href', path)
       addAttributeToNode(linkTag, 'rel', type)
       addChildNode(headNode, linkTag)
     })
