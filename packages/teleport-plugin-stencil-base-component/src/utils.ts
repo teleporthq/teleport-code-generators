@@ -8,18 +8,13 @@ import {
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
-import { JSXRootReturnType } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-
 export const createClassDeclaration = (
   name: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  jsxTagTree: JSXRootReturnType,
+  jsxTagTree: types.JSXElement,
   t = types
 ) => {
-  const returnedAST =
-    typeof jsxTagTree === 'string' ? t.stringLiteral(jsxTagTree) : (jsxTagTree as types.JSXElement)
-
   const propDeclaration = Object.keys(propDefinitions).map((propKey) =>
     t.classProperty(
       t.identifier(propKey),
@@ -45,7 +40,7 @@ export const createClassDeclaration = (
       'method',
       t.identifier('render'),
       [],
-      t.blockStatement([t.returnStatement(returnedAST)])
+      t.blockStatement([t.returnStatement(jsxTagTree)])
     ),
   ])
 

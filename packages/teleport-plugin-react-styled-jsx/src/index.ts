@@ -3,7 +3,6 @@ import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/
 import {
   transformDynamicStyles,
   traverseElements,
-  findFirstElementNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { createCSSClass } from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -57,8 +56,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
-    const elmRootNode = findFirstElementNode(uidl.node)
-    const rootJSXNode = jsxNodesLookup[elmRootNode.content.key]
+    const rootJSXNode = jsxNodesLookup[uidl.node.content.key]
     rootJSXNode.children.push(jsxASTNodeReference)
     return structure
   }

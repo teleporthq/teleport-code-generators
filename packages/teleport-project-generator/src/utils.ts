@@ -15,6 +15,7 @@ import {
   UIDLStateDefinition,
   ProjectStrategy,
 } from '@teleporthq/teleport-types'
+import { elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 export const createPageUIDLs = (
   root: ComponentUIDL,
@@ -60,9 +61,14 @@ const createPageUIDL = (
         path: [],
       }
 
+  // Because conditional nodes accept any type of UIDLNode as a child
+  // we need to ensure that the page is always of type 'element'
+  // The solution is to wrap a non-element node with a 'group' element
+  const pageContent = node.type === 'element' ? node : elementNode('group', {}, [node])
+
   return {
     name: componentName,
-    node,
+    node: pageContent,
     meta,
   }
 }
@@ -106,9 +112,9 @@ export const resolveLocalDependencies = (
   pageUIDLs.forEach((pageUIDL) => {
     const pagePath = getComponentPath(pageUIDL)
     const fromPath = strategy.pages.path.concat(pagePath)
-    traverseElements(pageUIDL.node, (elementNode) => {
-      if (isLocalDependency(elementNode)) {
-        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
+    traverseElements(pageUIDL.node, (element) => {
+      if (isLocalDependency(element)) {
+        setLocalDependencyPath(element, components, fromPath, strategy.components.path)
       }
     })
   })
@@ -118,24 +124,24 @@ export const resolveLocalDependencies = (
     const componentPath = getComponentPath(component)
     const fromPath = strategy.components.path.concat(componentPath)
 
-    traverseElements(component.node, (elementNode) => {
-      if (isLocalDependency(elementNode)) {
-        setLocalDependencyPath(elementNode, components, fromPath, strategy.components.path)
+    traverseElements(component.node, (element) => {
+      if (isLocalDependency(element)) {
+        setLocalDependencyPath(element, components, fromPath, strategy.components.path)
       }
     })
   })
 }
 
-const isLocalDependency = (elementNode: UIDLElement) =>
-  elementNode.dependency && elementNode.dependency.type === 'local'
+const isLocalDependency = (element: UIDLElement) =>
+  element.dependency && element.dependency.type === 'local'
 
 const setLocalDependencyPath = (
-  elementNode: UIDLElement,
+  element: UIDLElement,
   components: Record<string, ComponentUIDL>,
   fromPath: string[],
   toBasePath: string[]
 ) => {
-  const componentKey = elementNode.elementType
+  const componentKey = element.elementType
   const component = components[componentKey]
   const componentPath = getComponentPath(component)
 
@@ -143,7 +149,7 @@ const setLocalDependencyPath = (
 
   const importFileName = getComponentFileName(component)
   const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
-  elementNode.dependency.path = `${importPath}${importFileName}`
+  element.dependency.path = `${importPath}${importFileName}`
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {

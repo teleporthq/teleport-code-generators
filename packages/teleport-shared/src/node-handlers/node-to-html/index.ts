@@ -2,29 +2,62 @@ import * as htmlUtils from '../../utils/html-utils'
 import { createHTMLNode } from '../../builders/html-builders'
 import { getRepeatIteratorNameAndKey } from '../../utils/uidl-utils'
 import {
-  UIDLElementNode,
   UIDLRepeatNode,
   UIDLConditionalNode,
   UIDLSlotNode,
   UIDLNode,
+  UIDLElementNode,
   HastNode,
 } from '@teleporthq/teleport-types'
 import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
-import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
+import { NodeToHTML } from './types'
 import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
 import { camelCaseToDashCase } from '../../utils/string-utils'
 
-type HTMLTemplateSyntaxFunction = (
-  node: UIDLNode,
-  params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
-) => HastNode | string
+const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params, syntax) => {
+  const templateSyntax = { ...DEFAULT_TEMPLATE_SYNTAX, ...syntax }
+  const { dependencies, templateLookup } = params
+  const { elementType, name, key, children, attrs, dependency, events } = node.content
+  const htmlNode = dependency
+    ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
+    : createHTMLNode(elementType)
 
-const createHTMLTemplateSyntax: HTMLTemplateSyntaxFunction = (
-  node,
-  params,
-  templateSyntax = DEFAULT_TEMPLATE_SYNTAX
-) => {
+  if (dependency) {
+    dependencies[elementType] = { ...dependency }
+  }
+
+  if (attrs) {
+    Object.keys(attrs).forEach((attrKey) => {
+      const attrValue = attrs[attrKey]
+      handleAttribute(htmlNode, name, attrKey, attrValue, params, templateSyntax, node)
+    })
+  }
+
+  if (events) {
+    Object.keys(events).forEach((eventKey) =>
+      handleEvent(htmlNode, name, eventKey, events[eventKey], params, templateSyntax)
+    )
+  }
+
+  if (children) {
+    children.forEach((child) => {
+      const childTag = generateNode(child, params, templateSyntax)
+
+      if (typeof childTag === 'string') {
+        htmlUtils.addTextNode(htmlNode, childTag)
+      } else {
+        htmlUtils.addChildNode(htmlNode, childTag)
+      }
+    })
+  }
+
+  templateLookup[key] = htmlNode
+  return htmlNode
+}
+
+export default generateElementNode
+
+const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
   switch (node.type) {
     case 'static':
       return node.content.toString()
@@ -55,62 +88,9 @@ const createHTMLTemplateSyntax: HTMLTemplateSyntaxFunction = (
   }
 }
 
-export default createHTMLTemplateSyntax
-
-const generateElementNode = (
-  node: UIDLElementNode,
-  params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
-) => {
-  const { dependencies, templateLookup } = params
-  const { elementType, name, key, children, attrs, dependency, events } = node.content
-  const htmlNode = dependency
-    ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
-    : createHTMLNode(elementType)
-
-  if (dependency) {
-    dependencies[elementType] = { ...dependency }
-  }
-
-  if (attrs) {
-    Object.keys(attrs).forEach((attrKey) => {
-      const attrValue = attrs[attrKey]
-      handleAttribute(htmlNode, name, attrKey, attrValue, params, templateSyntax, node)
-    })
-  }
-
-  if (events) {
-    Object.keys(events).forEach((eventKey) =>
-      handleEvent(htmlNode, name, eventKey, events[eventKey], params, templateSyntax)
-    )
-  }
-
-  if (children) {
-    children.forEach((child) => {
-      const childTag = createHTMLTemplateSyntax(child, params, templateSyntax)
-
-      if (typeof childTag === 'string') {
-        htmlUtils.addTextNode(htmlNode, childTag)
-      } else {
-        htmlUtils.addChildNode(htmlNode, childTag)
-      }
-    })
-  }
-
-  templateLookup[key] = htmlNode
-  return htmlNode
-}
-
-const generateRepeatNode = (
-  node: UIDLRepeatNode,
-  params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
-) => {
+const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, templateSyntax) => {
   const { dataSource, node: repeatContent, meta = {} } = node.content
-  const repeatContentTag = createHTMLTemplateSyntax(repeatContent, params, templateSyntax)
-  if (typeof repeatContentTag === 'string') {
-    throw new Error(`generateRepeatNode received an invalid content ${repeatContentTag}`)
-  }
+  const repeatContentTag = generateElementNode(repeatContent, params, templateSyntax)
 
   let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
   if (dataSource.type === 'dynamic') {
@@ -131,12 +111,12 @@ const generateRepeatNode = (
   return repeatContentTag
 }
 
-const generateConditionalNode = (
-  node: UIDLConditionalNode,
-  params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
+const generateConditionalNode: NodeToHTML<UIDLConditionalNode, HastNode> = (
+  node,
+  params,
+  templateSyntax
 ) => {
-  let conditionalTag = createHTMLTemplateSyntax(node.content.node, params, templateSyntax)
+  let conditionalTag = generateNode(node.content.node, params, templateSyntax)
   // conditional attribute needs to be added on a tag, so in case of a text node we wrap it with
   // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
@@ -150,11 +130,7 @@ const generateConditionalNode = (
   return conditionalTag
 }
 
-const generateSlotNode = (
-  node: UIDLSlotNode,
-  params: HTMLTemplateGenerationParams,
-  templateSyntax: HTMLTemplateSyntax
-) => {
+const generateSlotNode: NodeToHTML<UIDLSlotNode, HastNode> = (node, params, templateSyntax) => {
   const slotNode = createHTMLNode('slot')
 
   if (node.content.name) {
@@ -163,7 +139,7 @@ const generateSlotNode = (
 
   if (node.content.fallback) {
     const { fallback } = node.content
-    const fallbackContent = createHTMLTemplateSyntax(fallback, params, templateSyntax)
+    const fallbackContent = generateNode(fallback, params, templateSyntax)
 
     if (typeof fallbackContent === 'string') {
       htmlUtils.addTextNode(slotNode, fallbackContent)

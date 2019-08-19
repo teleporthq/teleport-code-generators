@@ -33,7 +33,7 @@ export const parseComponentJSON = (
   }
 
   // other parsers for other sections of the component here
-  result.node = parseComponentNode(node)
+  result.node = parseComponentNode(node) as UIDLElementNode
 
   return result
 }
@@ -120,7 +120,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       repeatNode.content.node = parseComponentNode((repeatNode.content.node as unknown) as Record<
         string,
         unknown
-      >)
+      >) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
         repeatNode.content.dataSource = transformStringAssignmentToJson(dataSource)

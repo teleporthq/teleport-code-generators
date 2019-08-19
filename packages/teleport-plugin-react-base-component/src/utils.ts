@@ -2,40 +2,16 @@ import * as types from '@babel/types'
 
 import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import { capitalize } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
-
-import { JSXRootReturnType } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
+import { UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 export const createPureComponent = (
   name: string,
-  propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  jsxTagTree: JSXRootReturnType,
-  nodeType: string,
+  jsxTagTree: types.JSXElement,
   t = types
 ): types.VariableDeclaration => {
-  let arrowFunctionBody: any
-  switch (nodeType) {
-    case 'static':
-      arrowFunctionBody = typeof jsxTagTree === 'string' && types.stringLiteral(jsxTagTree)
-      break
-    case 'dynamic':
-    case 'conditional':
-      arrowFunctionBody =
-        Object.keys(stateDefinitions).length === 0
-          ? jsxTagTree
-          : createReturnExpressionSyntax(stateDefinitions, jsxTagTree as types.JSXElement)
-      break
-    default:
-      arrowFunctionBody = createReturnExpressionSyntax(
-        stateDefinitions,
-        jsxTagTree as types.JSXElement
-      )
-      break
-  }
-
+  const arrowFunctionBody = createReturnExpressionSyntax(stateDefinitions, jsxTagTree)
   const arrowFunctionProps = [t.identifier('props')]
-
   const arrowFunction = t.arrowFunctionExpression(arrowFunctionProps, arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)

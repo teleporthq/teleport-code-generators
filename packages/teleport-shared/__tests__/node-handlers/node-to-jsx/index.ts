@@ -40,10 +40,10 @@ describe('generateJSXSyntax', () => {
 
   describe('slot node', () => {
     it('returns a props.children expression', () => {
-      const node = slotNode()
+      const node = elementNode('container', {}, [slotNode()])
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'props' })
 
-      const expression = result as types.JSXExpressionContainer
+      const expression = result.children[0] as types.JSXExpressionContainer
       expect(expression.expression.type).toBe('MemberExpression')
 
       const memberExpression = expression.expression as types.MemberExpression
@@ -52,10 +52,12 @@ describe('generateJSXSyntax', () => {
     })
 
     it('returns a props.children with fallback', () => {
-      const node = slotNode(elementNode('span', {}, [staticNode('fallback')]))
+      const node = elementNode('container', {}, [
+        slotNode(elementNode('span', {}, [staticNode('fallback')])),
+      ])
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'props' })
 
-      const expression = result as types.JSXExpressionContainer
+      const expression = result.children[0] as types.JSXExpressionContainer
       expect(expression.expression.type).toBe('LogicalExpression')
 
       const logicalExpression = expression.expression as types.LogicalExpression
@@ -69,18 +71,20 @@ describe('generateJSXSyntax', () => {
     })
 
     it('returns a <slot> tag', () => {
-      const node = slotNode()
+      const node = elementNode('container', {}, [slotNode()])
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'native' })
 
-      const slotJSXTag = result as types.JSXElement
+      const slotJSXTag = result.children[0] as types.JSXElement
       expect((slotJSXTag.openingElement.name as types.JSXIdentifier).name).toBe('slot')
     })
 
     it('returns a <slot> tag with fallback', () => {
-      const node = slotNode(elementNode('span', {}, [staticNode('fallback')]))
+      const node = elementNode('container', {}, [
+        slotNode(elementNode('span', {}, [staticNode('fallback')])),
+      ])
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'native' })
 
-      const slotJSXTag = result as types.JSXElement
+      const slotJSXTag = result.children[0] as types.JSXElement
       expect((slotJSXTag.openingElement.name as types.JSXIdentifier).name).toBe('slot')
 
       const slotFallbackJSXTag = slotJSXTag.children[0] as types.JSXElement
@@ -88,10 +92,10 @@ describe('generateJSXSyntax', () => {
     })
 
     it('returns a named <slot> tag', () => {
-      const node = slotNode(null, 'hole')
+      const node = elementNode('container', {}, [slotNode(null, 'hole')])
       const result = generateJSXSyntax(node, params, { ...options, slotHandling: 'native' })
 
-      const slotJSXTag = result as types.JSXElement
+      const slotJSXTag = result.children[0] as types.JSXElement
       expect((slotJSXTag.openingElement.name as types.JSXIdentifier).name).toBe('slot')
 
       const nameAttr = slotJSXTag.openingElement.attributes[0] as types.JSXAttribute

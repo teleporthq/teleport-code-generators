@@ -14,7 +14,15 @@
       "type": "string",
       "default": "MyComponent"
     },
-    "node": {"$ref": "#/definitions/node"},
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": {
+        "type": { "type": "string", "enum": ["element"] },
+        "content": { "$ref": "#/definitions/elementNodeContent" }
+      }
+    },
     "meta": {"type": "object"},
     "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
     "propDefinitions": { "$ref": "#/definitions/propDefinitions" }

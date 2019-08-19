@@ -17,7 +17,7 @@ import {
 
 export const component = (
   name: string,
-  node: UIDLNode,
+  node: UIDLElementNode,
   propDefinitions?: Record<string, UIDLPropDefinition>,
   stateDefinitions?: Record<string, UIDLStateDefinition>
 ): ComponentUIDL => {
@@ -140,7 +140,7 @@ export const conditionalNode = (
 }
 
 export const repeatNode = (
-  node: UIDLNode,
+  node: UIDLElementNode,
   dataSource: UIDLAttributeValue,
   meta?: Record<string, any>
 ): UIDLRepeatNode => {

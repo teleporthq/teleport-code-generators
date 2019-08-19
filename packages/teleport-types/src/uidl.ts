@@ -31,7 +31,7 @@ export interface GlobalAsset {
 export interface ComponentUIDL {
   $schema?: string
   name: string
-  node: UIDLNode
+  node: UIDLElementNode
   meta?: {
     fileName?: string
     styleFileName?: string
@@ -97,7 +97,7 @@ export interface UIDLRepeatNode {
 }
 
 export interface UIDLRepeatContent {
-  node: UIDLNode
+  node: UIDLElementNode
   dataSource: UIDLAttributeValue
   meta?: UIDLRepeatMeta
 }

@@ -10,7 +10,7 @@ import {
   UIDLNode,
 } from '@teleporthq/teleport-types'
 
-import { JSXGenerationParams, JSXGenerationOptions, JSXRootReturnType } from './types'
+import { JSXASTReturnType, NodeToJSX } from './types'
 
 import {
   addEventHandlerToTag,
@@ -30,62 +30,14 @@ import {
 } from '../../utils/ast-jsx-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { camelCaseToDashCase } from '../../utils/string-utils'
+import { DEFAULT_JSX_OPTIONS } from './constants'
 
-const generateJSXSyntax = (
-  node: UIDLNode,
-  params: JSXGenerationParams,
-  options: JSXGenerationOptions = {
-    dynamicReferencePrefixMap: {
-      prop: '',
-      state: '',
-      local: '',
-    },
-    dependencyHandling: 'import',
-    stateHandling: 'mutation',
-    slotHandling: 'native',
-  }
-): JSXRootReturnType => {
-  switch (node.type) {
-    case 'static':
-      return node.content.toString()
-
-    case 'dynamic':
-      return createDynamicValueExpression(node, options)
-
-    case 'element':
-      return generateElementNode(node, params, options)
-
-    case 'repeat':
-      return generateRepeatNode(node, params, options)
-
-    case 'conditional':
-      return generateConditionalNode(node, params, options)
-
-    case 'slot':
-      if (options.slotHandling === 'native') {
-        return generateNativeSlotNode(node, params, options)
-      } else {
-        return generatePropsSlotNode(node, params, options)
-      }
-
-    default:
-      throw new Error(
-        `generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
-          node,
-          null,
-          2
-        )}`
-      )
-  }
-}
-
-export default generateJSXSyntax
-
-const generateElementNode = (
-  node: UIDLElementNode,
-  params: JSXGenerationParams,
-  options?: JSXGenerationOptions
+const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
+  node,
+  params,
+  jsxOptions
 ) => {
+  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
   const { dependencies, nodesLookup } = params
   const { elementType, children, key, attrs, dependency, events } = node.content
   const elementTag = children ? createJSXTag(elementType) : createSelfClosingJSXTag(elementType)
@@ -135,7 +87,7 @@ const generateElementNode = (
 
   if (children) {
     children.forEach((child) => {
-      const childTag = generateJSXSyntax(child, params, options)
+      const childTag = generateNode(child, params, options)
 
       if (typeof childTag === 'string') {
         addChildJSXText(elementTag, childTag)
@@ -151,55 +103,80 @@ const generateElementNode = (
   return elementTag
 }
 
-const generateRepeatNode = (
-  node: UIDLRepeatNode,
-  params: JSXGenerationParams,
-  options?: JSXGenerationOptions,
-  t = types
+export default generateElementNode
+
+const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
+  switch (node.type) {
+    case 'static':
+      return node.content.toString()
+
+    case 'dynamic':
+      return createDynamicValueExpression(node, options)
+
+    case 'element':
+      return generateElementNode(node, params, options)
+
+    case 'repeat':
+      return generateRepeatNode(node, params, options)
+
+    case 'conditional':
+      return generateConditionalNode(node, params, options)
+
+    case 'slot':
+      if (options.slotHandling === 'native') {
+        return generateNativeSlotNode(node, params, options)
+      } else {
+        return generatePropsSlotNode(node, params, options)
+      }
+
+    default:
+      throw new Error(
+        `generateNodeSyntax encountered a node of unsupported type: ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
+      )
+  }
+}
+
+const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer> = (
+  node,
+  params,
+  options
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
 
-  const contentAST = generateJSXSyntax(repeatContent, params, options)
+  const contentAST = generateElementNode(repeatContent, params, options)
 
-  if (typeof contentAST === 'string' || (contentAST as types.JSXExpressionContainer).expression) {
-    throw new Error(
-      `generateRepeatNode found a repeat node that specified invalid content ${JSON.stringify(
-        contentAST,
-        null,
-        2
-      )}`
-    )
-  }
-
-  const content = contentAST as types.JSXElement
   const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
-  addDynamicAttributeToJSXTag(content, 'key', iteratorKey, localIteratorPrefix)
+  addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
 
   const source = getRepeatSourceIdentifier(dataSource, options)
 
-  const arrowFunctionArguments = [t.identifier(iteratorName)]
+  const arrowFunctionArguments = [types.identifier(iteratorName)]
   if (meta.useIndex) {
-    arrowFunctionArguments.push(t.identifier('index'))
+    arrowFunctionArguments.push(types.identifier('index'))
   }
 
-  return t.jsxExpressionContainer(
-    t.callExpression(t.memberExpression(source, t.identifier('map')), [
-      t.arrowFunctionExpression(arrowFunctionArguments, content),
+  return types.jsxExpressionContainer(
+    types.callExpression(types.memberExpression(source, types.identifier('map')), [
+      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
     ])
   )
 }
 
-const generateConditionalNode = (
-  node: UIDLConditionalNode,
-  params: JSXGenerationParams,
-  options?: JSXGenerationOptions
+const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpression> = (
+  node,
+  params,
+  options
 ) => {
   const { reference, value } = node.content
   const conditionIdentifier = createConditionIdentifier(reference, params, options)
 
-  const subTree = generateJSXSyntax(node.content.node, params, options)
+  const subTree = generateNode(node.content.node, params, options)
 
   const condition: UIDLConditionalExpression =
     value !== undefined && value !== null
@@ -209,11 +186,10 @@ const generateConditionalNode = (
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
-const generatePropsSlotNode = (
+const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContainer> = (
   node: UIDLSlotNode,
-  params: JSXGenerationParams,
-  options?: JSXGenerationOptions,
-  t = types
+  params,
+  options
 ) => {
   // React/Preact do not have native slot nodes and implement this differently through the props.children syntax.
   // Unfortunately, names slots are ignored because React/Preact treat all the inner content of the component as props.children
@@ -228,25 +204,26 @@ const generatePropsSlotNode = (
   const childrenExpression = createDynamicValueExpression(childrenProp, options)
 
   if (node.content.fallback) {
-    const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+    const fallbackContent = generateNode(node.content.fallback, params, options)
     // only static dynamic or element are allowed here
     const fallbackNode =
       typeof fallbackContent === 'string'
-        ? t.stringLiteral(fallbackContent)
+        ? types.stringLiteral(fallbackContent)
         : (fallbackContent as types.JSXElement | types.MemberExpression)
 
     // props.children with fallback
-    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, fallbackNode))
+    return types.jsxExpressionContainer(
+      types.logicalExpression('||', childrenExpression, fallbackNode)
+    )
   }
 
-  return t.jsxExpressionContainer(childrenExpression)
+  return types.jsxExpressionContainer(childrenExpression)
 }
 
-const generateNativeSlotNode = (
-  node: UIDLSlotNode,
-  params: JSXGenerationParams,
-  options?: JSXGenerationOptions,
-  t = types
+const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
+  node,
+  params,
+  options
 ) => {
   const slotNode = createSelfClosingJSXTag('slot')
 
@@ -255,11 +232,11 @@ const generateNativeSlotNode = (
   }
 
   if (node.content.fallback) {
-    const fallbackContent = generateJSXSyntax(node.content.fallback, params, options)
+    const fallbackContent = generateNode(node.content.fallback, params, options)
     if (typeof fallbackContent === 'string') {
       addChildJSXText(slotNode, fallbackContent)
     } else if (fallbackContent.type === 'MemberExpression') {
-      addChildJSXTag(slotNode, t.jsxExpressionContainer(fallbackContent))
+      addChildJSXTag(slotNode, types.jsxExpressionContainer(fallbackContent))
     } else {
       addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
     }

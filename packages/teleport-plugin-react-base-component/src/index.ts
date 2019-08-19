@@ -62,13 +62,7 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
 
-    const pureComponent = createPureComponent(
-      uidl.name,
-      propDefinitions,
-      stateDefinitions,
-      jsxTagStructure,
-      uidl.node.type
-    )
+    const pureComponent = createPureComponent(uidl.name, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,
