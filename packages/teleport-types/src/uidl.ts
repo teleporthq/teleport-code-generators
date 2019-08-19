@@ -97,7 +97,7 @@ export interface UIDLRepeatNode {
 }
 
 export interface UIDLRepeatContent {
-  node: UIDLNode
+  node: UIDLElementNode
   dataSource: UIDLAttributeValue
   meta?: UIDLRepeatMeta
 }

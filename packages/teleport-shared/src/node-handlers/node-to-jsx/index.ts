@@ -147,23 +147,12 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
 
-  const contentAST = generateNode(repeatContent, params, options)
+  const contentAST = generateElementNode(repeatContent, params, options)
 
-  if (typeof contentAST === 'string' || (contentAST as types.JSXExpressionContainer).expression) {
-    throw new Error(
-      `generateRepeatNode found a repeat node that specified invalid content ${JSON.stringify(
-        contentAST,
-        null,
-        2
-      )}`
-    )
-  }
-
-  const content = contentAST as types.JSXElement
   const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
-  addDynamicAttributeToJSXTag(content, 'key', iteratorKey, localIteratorPrefix)
+  addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
 
   const source = getRepeatSourceIdentifier(dataSource, options)
 
@@ -174,7 +163,7 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
 
   return types.jsxExpressionContainer(
     types.callExpression(types.memberExpression(source, types.identifier('map')), [
-      types.arrowFunctionExpression(arrowFunctionArguments, content),
+      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
     ])
   )
 }

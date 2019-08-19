@@ -90,10 +90,7 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, tem
 
 const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, templateSyntax) => {
   const { dataSource, node: repeatContent, meta = {} } = node.content
-  const repeatContentTag = generateNode(repeatContent, params, templateSyntax)
-  if (typeof repeatContentTag === 'string') {
-    throw new Error(`generateRepeatNode received an invalid content ${repeatContentTag}`)
-  }
+  const repeatContentTag = generateElementNode(repeatContent, params, templateSyntax)
 
   let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
   if (dataSource.type === 'dynamic') {
