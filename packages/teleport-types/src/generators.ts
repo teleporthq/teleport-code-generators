@@ -109,24 +109,12 @@ export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
     path: string[]
-    options?: {
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
-    }
+    options?: ProjectStrategyComponentOptions
   }
   pages: {
     generator: ComponentGenerator
     path: string[]
-    options?: {
-      usePathAsFileName?: boolean
-      convertDefaultToIndex?: boolean
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
-    }
+    options?: ProjectStrategyPageOptions
   }
   router?: {
     generator: ComponentGenerator
@@ -147,6 +135,18 @@ export interface ProjectStrategy {
     prefix?: string
     path: string[]
   }
+}
+
+export interface ProjectStrategyComponentOptions {
+  createFolderForEachComponent?: boolean
+  customComponentFileName?: string // only used when createFolderForEachComponent is true
+  customStyleFileName?: string
+  customTemplateFileName?: string
+}
+
+export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
+  usePathAsFileName?: boolean
+  convertDefaultToIndex?: boolean
 }
 
 export interface EntryFileOptions {
