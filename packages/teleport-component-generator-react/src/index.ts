@@ -14,7 +14,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import reactMapping from './react-mapping.json'
 
-import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
+import { ComponentGenerator, Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
 
 const cssPlugin = createCSSPlugin({
   templateChunkName: 'jsx-component',
@@ -36,18 +36,23 @@ const stylePlugins = {
 
 export const createReactComponentGenerator = (
   variation: string = 'CSS',
+  plugins: ComponentPlugin[] = [],
   mapping: Mapping = {}
 ): ComponentGenerator => {
   const stylePlugin = stylePlugins[variation] || cssPlugin
 
   const generator = createComponentGenerator()
 
-  generator.addMapping(reactMapping)
+  generator.addMapping(reactMapping as Mapping)
   generator.addMapping(mapping)
 
   generator.addPlugin(reactComponentPlugin)
   generator.addPlugin(stylePlugin)
   generator.addPlugin(propTypesPlugin)
+  plugins.forEach((plugin) => generator.addPlugin(plugin))
+
+  // Import plugin needs to be last to handle all dependencies
+  // TODO: use a different function to set/interact with the import plugin
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)

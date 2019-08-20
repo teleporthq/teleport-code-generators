@@ -11,7 +11,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import preactMapping from './preact-mapping.json'
 
-import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
+import { ComponentGenerator, Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
 
 const cssPlugin = createCSSPlugin({
   templateChunkName: 'jsx-component',
@@ -32,6 +32,7 @@ const stylePlugins = {
 
 export const createPreactComponentGenerator = (
   variation: string = 'CSSModules',
+  plugins: ComponentPlugin[] = [],
   mapping: Mapping = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()
@@ -43,6 +44,7 @@ export const createPreactComponentGenerator = (
   generator.addPlugin(preactComponentPlugin)
   generator.addPlugin(stylePlugin)
   generator.addPlugin(proptypesPlugin)
+  plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)

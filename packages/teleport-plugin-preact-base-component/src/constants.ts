@@ -1,4 +1,6 @@
-export const PREACT_COMPONENT_DEPENDENCY = {
+import { UIDLDependency } from '@teleporthq/teleport-types'
+
+export const PREACT_COMPONENT_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'preact',
   version: 'next',

@@ -81,7 +81,7 @@ export const element = (
 }
 
 export const componentDependency = (
-  type?: string,
+  type: 'library' | 'package' | 'local',
   path?: string,
   version?: string,
   meta?: Record<string, string | boolean>

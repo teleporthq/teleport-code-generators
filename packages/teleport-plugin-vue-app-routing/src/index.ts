@@ -25,9 +25,17 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       type: 'library',
       path: 'vue-router',
     }
+    dependencies.Meta = {
+      type: 'library',
+      path: 'vue-meta',
+    }
 
-    const declaration = t.expressionStatement(
+    const routerDeclaration = t.expressionStatement(
       t.callExpression(t.identifier('Vue.use'), [t.identifier('Router')])
+    )
+
+    const metaDeclaration = t.expressionStatement(
+      t.callExpression(t.identifier('Vue.use'), [t.identifier('Meta')])
     )
 
     const routes = extractRoutes(uidl)
@@ -76,7 +84,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       linkAfter: [importChunkName],
       type: CHUNK_TYPE.AST,
       fileType: FILE_TYPE.JS,
-      content: [declaration, exportStatement],
+      content: [routerDeclaration, metaDeclaration, exportStatement],
     })
 
     return structure

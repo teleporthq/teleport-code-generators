@@ -73,7 +73,7 @@ describe('React Component Generator', () => {
 
   describe('with Custom Mapping', () => {
     const mapping = { elements: { container: { elementType: 'fakediv' } } }
-    const generator = createReactComponentGenerator('InlineStyles', mapping)
+    const generator = createReactComponentGenerator('InlineStyles', [], mapping)
 
     it('should render <fakediv> tags', async () => {
       const result = await generator.generateComponent(uidlSample)

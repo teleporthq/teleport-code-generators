@@ -168,7 +168,7 @@ export interface UIDLEventHandlerStatement {
 }
 
 export interface UIDLDependency {
-  type: string
+  type: 'library' | 'package' | 'local'
   path?: string
   version?: string
   meta?: {
