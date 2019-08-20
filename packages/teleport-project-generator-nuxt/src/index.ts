@@ -29,9 +29,11 @@ export const createNuxtProjectGenerator = () => {
     },
     entry: {
       generator: htmlFileGenerator,
-      appRootOverride: '{{APP}}',
       fileName: 'app',
       path: [],
+      options: {
+        appRootOverride: '{{APP}}',
+      },
     },
     static: {
       prefix: '/static',

@@ -70,10 +70,12 @@ export const createEntryFile = async (
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
   const chunkGenerationFunction =
     strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
-  const appRootOverride = strategy.entry.appRootOverride || null
+  const { options } = strategy.entry
+
+  const appRootOverride = (options && options.appRootOverride) || null
   const entryFileName = strategy.entry.fileName || 'index'
-  const customScriptTags = strategy.entry.customScriptTags || []
-  const customLinkTags = strategy.entry.customLinkTags || []
+  const customScriptTags = (options && options.customScriptTags) || []
+  const customLinkTags = (options && options.customLinkTags) || []
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,

@@ -141,9 +141,11 @@ export interface ProjectStrategy {
       uidl: ProjectUIDL,
       options: EntryFileOptions
     ) => Record<string, ChunkDefinition[]>
-    appRootOverride?: string
-    customScriptTags?: CustomScriptTag[]
-    customLinkTags?: CustomLinkTag[]
+    options?: {
+      appRootOverride?: string
+      customScriptTags?: CustomScriptTag[]
+      customLinkTags?: CustomLinkTag[]
+    }
   }
   static: {
     prefix?: string

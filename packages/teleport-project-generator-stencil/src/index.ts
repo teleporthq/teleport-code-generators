@@ -49,14 +49,16 @@ export const createStencilProjectGenerator = () => {
     },
     entry: {
       generator: htmlFileGenerator,
-      appRootOverride: `<app-root></app-root>`,
       path: ['src'],
       fileName: 'index',
-      customScriptTags: [
-        { type: 'module', path: 'build/app.esm.js' },
-        { type: 'nomodule', path: 'buid/app.js' },
-      ],
-      customLinkTags: [{ type: 'stylesheet', path: 'build/app.css' }],
+      options: {
+        appRootOverride: `<app-root></app-root>`,
+        customScriptTags: [
+          { type: 'module', path: 'build/app.esm.js' },
+          { type: 'nomodule', path: 'buid/app.js' },
+        ],
+        customLinkTags: [{ type: 'stylesheet', path: 'build/app.css' }],
+      },
     },
     static: {
       prefix: '/assets',
