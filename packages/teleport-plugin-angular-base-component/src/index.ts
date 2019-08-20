@@ -5,8 +5,10 @@ import {
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
-import { generateExportAST, generateComponentDecorator } from './utils'
+import { generateExportAST } from './utils'
 
 import {
   DEFAULT_TS_CHUNK_AFTER,
@@ -80,7 +82,11 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       linkAfter: [],
     })
 
-    const componentDecoratorAST = generateComponentDecorator(uidl)
+    const params = {
+      selector: 'app-root',
+      templateUrl: `${getComponentFileName(uidl)}.${FILE_TYPE.HTML}`,
+    }
+    const componentDecoratorAST = createComponentDecorator(params)
 
     chunks.push({
       type: CHUNK_TYPE.AST,

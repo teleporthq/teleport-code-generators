@@ -72,7 +72,12 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       jsxTagStructure
     )
 
-    const decoratorAST = createComponentDecorator(uidl.name)
+    const params = {
+      tag: `app-${camelCaseToDashCase(uidl.name)}`,
+      shadow: true,
+    }
+
+    const decoratorAST = createComponentDecorator(params)
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,

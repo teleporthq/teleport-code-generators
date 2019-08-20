@@ -34,7 +34,11 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
 
     /* The name should be injected only with AppRoot only then it acts as entry point,
     Sending only Root because app is appended while generation of decorators*/
-    const decoratorAST = createComponentDecorator('Root')
+    const params = {
+      tag: 'app-root',
+      shadow: true,
+    }
+    const decoratorAST = createComponentDecorator(params)
 
     chunks.push({
       name: componentDecoratorChunkName,

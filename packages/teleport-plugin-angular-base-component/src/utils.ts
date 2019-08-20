@@ -3,23 +3,7 @@ import {
   convertValueToLiteral,
   getTSAnnotationForType,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { UIDLPropDefinition, UIDLStateDefinition, ComponentUIDL } from '@teleporthq/teleport-types'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-
-export const generateComponentDecorator = (uidl: ComponentUIDL, t = types) => {
-  const decoratorArgs = [
-    t.objectExpression([
-      t.objectProperty(t.identifier('selector'), t.stringLiteral('app-root')),
-      t.objectProperty(
-        t.identifier('templateUrl'),
-        t.stringLiteral(`${getComponentFileName(uidl)}.${FILE_TYPE.HTML}`)
-      ),
-    ]),
-  ]
-
-  return t.decorator(t.callExpression(t.identifier('Component'), decoratorArgs))
-}
+import { UIDLPropDefinition, UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
   componentName: string,
