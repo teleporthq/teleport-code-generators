@@ -26,10 +26,8 @@ import {
   addChildJSXTag,
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
-  renameJSXTag,
 } from '../../utils/ast-jsx-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
-import { camelCaseToDashCase } from '../../utils/string-utils'
 import { DEFAULT_JSX_OPTIONS } from './constants'
 
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
@@ -40,13 +38,12 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
   const { dependencies, nodesLookup } = params
   const { elementType, children, key, attrs, dependency, events } = node.content
-  // Append app for only local dependencies
-  const elementTag =
+
+  const elementName =
     dependency && dependency.type === 'local' && options.customElementTag
-      ? createJSXTag(options.customElementTag(elementType))
-      : children
-      ? createJSXTag(elementType)
-      : createSelfClosingJSXTag(elementType)
+      ? options.customElementTag(elementType)
+      : elementType
+  const elementTag = children ? createJSXTag(elementName) : createSelfClosingJSXTag(elementName)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
@@ -77,11 +74,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     if (options.dependencyHandling === 'import') {
       // Make a copy to avoid reference leaking
       dependencies[elementType] = { ...dependency }
-    } else {
-      // Convert
-      const rootElementIdentifier = elementTag.openingElement.name as types.JSXIdentifier
-      const webComponentName = camelCaseToDashCase(rootElementIdentifier.name)
-      renameJSXTag(elementTag, webComponentName)
     }
   }
 
