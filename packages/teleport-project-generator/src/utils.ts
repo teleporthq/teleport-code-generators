@@ -47,7 +47,7 @@ const createPageUIDL = (
   const createPathInOwnFile =
     !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
 
-  const meta = createPathInOwnFile
+  const fileMeta = createPathInOwnFile
     ? {
         fileName: pagesStrategyOptions.customComponentFileName || 'index',
         styleFileName: pagesStrategyOptions.customStyleFileName || 'style',
@@ -61,6 +61,12 @@ const createPageUIDL = (
         path: [],
       }
 
+  // Looking into the state definition, we take the seo information for the corresponding page
+  const pageDefinition = routeDefintion.values.find((stateDef) => stateDef.value === pageName)
+  const seoMeta = pageDefinition.meta
+    ? { title: pageDefinition.meta.title, metaTags: pageDefinition.meta.metaTags }
+    : null
+
   // Because conditional nodes accept any type of UIDLNode as a child
   // we need to ensure that the page is always of type 'element'
   // The solution is to wrap a non-element node with a 'group' element
@@ -69,7 +75,7 @@ const createPageUIDL = (
   return {
     name: componentName,
     node: pageContent,
-    meta,
+    meta: { ...fileMeta, ...seoMeta },
   }
 }
 

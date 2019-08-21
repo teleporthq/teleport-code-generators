@@ -48,6 +48,9 @@ export default class Resolver {
 
     const name = sanitizeVariableName(uidl.name)
 
+    // There might be urls that need to be prefixed in the metaTags of the component
+    utils.resolveMetaTags(uidl, options)
+
     return {
       ...uidl,
       name,

@@ -14,13 +14,29 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
     const { uidl, chunks } = structure
 
     const componentChunk = chunks.find((chunk) => chunk.name === vueJSChunkName)
+    if (!componentChunk) {
+      throw new Error(`JS component chunk with name ${vueJSChunkName} was required and not found.`)
+    }
 
-    const head = { title: `You are on page: ${uidl.name}` }
+    const headObject: {
+      title?: string
+      meta?: Array<Record<string, string>>
+    } = {}
 
-    const exportObjectAST = componentChunk.content.declaration as types.ObjectExpression
-    exportObjectAST.properties.push(
-      types.objectProperty(types.identifier(metaObjectKey), objectToObjectExpression(head))
-    )
+    if (uidl.meta && uidl.meta.title) {
+      headObject.title = uidl.meta.title
+    }
+
+    if (uidl.meta && uidl.meta.metaTags) {
+      headObject.meta = uidl.meta.metaTags
+    }
+
+    if (Object.keys(headObject).length > 0) {
+      const exportObjectAST = componentChunk.content.declaration as types.ObjectExpression
+      exportObjectAST.properties.push(
+        types.objectProperty(types.identifier(metaObjectKey), objectToObjectExpression(headObject))
+      )
+    }
 
     return structure
   }

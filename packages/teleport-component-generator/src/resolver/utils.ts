@@ -17,6 +17,7 @@ import {
   Mapping,
   UIDLStateDefinition,
   GeneratorOptions,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import deepmerge from 'deepmerge'
@@ -68,6 +69,18 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
         console.warn(`No path was defined for router state: '${transitionState}'.`)
       }
     }
+  })
+}
+
+export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) => {
+  if (!uidl.meta || !uidl.meta.metaTags || !options.assetsPrefix) {
+    return
+  }
+
+  uidl.meta.metaTags.forEach((tag) => {
+    Object.keys(tag).forEach((key) => {
+      tag[key] = prefixPlaygroundAssetsURL(options.assetsPrefix, tag[key])
+    })
   })
 }
 

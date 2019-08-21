@@ -37,14 +37,23 @@
             "value": "home",
             "meta": {
               "path": "/",
-              "componentName": "Home"
+              "componentName": "Home",
+              "title": "Home Page"
             }
           },
           {
             "value": "team",
             "meta": {
               "path": "/team",
-              "componentName": "Team"
+              "componentName": "Team",
+              "title": "About Page",
+              "metaTags": [
+                { "name": "description", "content": "What is this about?" },
+                { "name": "keywords", "content": "prea bun, prea ca la tara" },
+                { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
+                { "property": "og:title", "content": "What is this about?" },
+                { "property": "og:url", "content": "/playground_assets/asdasd.png" }
+              ]
             }
           },
           {

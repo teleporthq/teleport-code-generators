@@ -1,23 +1,35 @@
+import * as types from '@babel/types'
 import { createPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-jsx-proptypes', () => {
+describe('plugin-jsx-head-config', () => {
   const plugin = createPlugin()
-  const reactChunk = {
+  const jsxChunk = {
     type: CHUNK_TYPE.AST,
     fileType: FILE_TYPE.JS,
     name: 'jsx-component',
     content: {},
     linkAfter: [],
-  }
-  const exportChunk = {
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
-    name: 'export',
-    content: {},
-    linkAfter: ['jsx-component'],
+    meta: {
+      nodesLookup: {
+        container: {
+          type: 'JSXElement',
+          openingElement: {
+            type: 'JSXOpeningElement',
+            name: { type: 'JSXIdentifier', name: 'div' },
+            attributes: [],
+            selfClosing: false,
+          },
+          closingElement: {
+            type: 'JSXClosingElement',
+            name: { type: 'JSXIdentifier', name: 'div' },
+          },
+          children: [],
+        },
+      },
+    },
   }
 
   it('Should throw error when the chunk is supplied', async () => {
@@ -35,89 +47,76 @@ describe('plugin-jsx-proptypes', () => {
     }
   })
 
-  it('Should generate chunks, defaultProps and propTypes', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-        defualtValue: 'true',
-      },
-      name: {
-        type: 'string',
-        defaultValue: 'Teleport',
-      },
+  it('Should set the title in the <Helmet> component', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.meta = {
+      title: 'Test Title',
     }
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [reactChunk, exportChunk],
+      chunks: [jsxChunk],
       dependencies: {},
     }
-    const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
+    await plugin(structure)
 
-    expect(defaultProps.length).toEqual(1)
-    expect(defaultProps[0].type).toBe(CHUNK_TYPE.AST)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    const astNode = structure.chunks[0].meta.nodesLookup.container as types.JSXElement
+    expect(astNode.children.length).toBe(1)
+
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect((helmetNode.openingElement.name as types.JSXIdentifier).name).toBe('Helmet')
+
+    const titleNode = helmetNode.children[0] as types.JSXElement
+    const titleText = titleNode.children[0] as types.JSXText
+    expect((titleNode.openingElement.name as types.JSXIdentifier).name).toBe('title')
+    expect(titleText.value).toBe('Test Title')
   })
 
-  it('Should not generate defaultProps', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-      },
-      name: {
-        type: 'string',
-      },
+  it('Should set the meta tags in the <Helmet> component', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.meta = {
+      metaTags: [
+        {
+          name: 'description',
+          value: 'test',
+        },
+        {
+          randomKey: 'randomValue',
+        },
+      ],
     }
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [reactChunk, exportChunk],
+      chunks: [jsxChunk],
       dependencies: {},
     }
-    const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
+    await plugin(structure)
 
-    expect(defaultProps.length).toEqual(0)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
-  })
+    const astNode = structure.chunks[0].meta.nodesLookup.container as types.JSXElement
+    expect(astNode.children.length).toBe(2)
 
-  it('Should generate chunks after specifying required to props', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-        isRequired: true,
-      },
-      name: {
-        type: 'string',
-        isRequired: true,
-      },
-    }
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect((helmetNode.openingElement.name as types.JSXIdentifier).name).toBe('Helmet')
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
-    const structure: ComponentStructure = {
-      uidl: uidlSample,
-      options: {},
-      chunks: [reactChunk, exportChunk],
-      dependencies: {},
-    }
-    const result = await plugin(structure)
+    const firstMetaNode = helmetNode.children[0] as types.JSXElement
+    const secondMetaNode = helmetNode.children[1] as types.JSXElement
 
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
+    const nameAttribute = firstMetaNode.openingElement.attributes[0] as types.JSXAttribute
+    const valueAttribute = firstMetaNode.openingElement.attributes[1] as types.JSXAttribute
+    expect((nameAttribute.name as types.JSXIdentifier).name).toBe('name')
+    expect((nameAttribute.value as types.StringLiteral).value).toBe('description')
+    expect((valueAttribute.name as types.JSXIdentifier).name).toBe('value')
+    expect((valueAttribute.value as types.StringLiteral).value).toBe('test')
 
-    expect(defaultProps.length).toEqual(0)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    const randomKeyAttribute = secondMetaNode.openingElement.attributes[0] as types.JSXAttribute
+    expect((randomKeyAttribute.name as types.JSXIdentifier).name).toBe('randomKey')
+    expect((randomKeyAttribute.value as types.StringLiteral).value).toBe('randomValue')
   })
 })

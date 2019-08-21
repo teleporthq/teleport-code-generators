@@ -1,24 +1,11 @@
+import * as types from '@babel/types'
 import { createPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('plugin-jsx-proptypes', () => {
+describe('plugin-vue-head-config', () => {
   const plugin = createPlugin()
-  const reactChunk = {
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
-    name: 'jsx-component',
-    content: {},
-    linkAfter: [],
-  }
-  const exportChunk = {
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
-    name: 'export',
-    content: {},
-    linkAfter: ['jsx-component'],
-  }
 
   it('Should throw error when the chunk is supplied', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
@@ -31,93 +18,90 @@ describe('plugin-jsx-proptypes', () => {
     try {
       await plugin(structure)
     } catch (e) {
-      expect(e.message).toContain('JSX component chunk with name')
+      expect(e.message).toContain('JS component chunk with name')
     }
   })
 
-  it('Should generate chunks, defaultProps and propTypes', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-        defualtValue: 'true',
-      },
-      name: {
-        type: 'string',
-        defaultValue: 'Teleport',
-      },
+  it('Should set the title in head object of the component', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.meta = {
+      title: 'Test Title',
     }
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
+    const jsChunk = {
+      type: CHUNK_TYPE.AST,
+      fileType: FILE_TYPE.JS,
+      name: 'vue-js-chunk',
+      content: {
+        declaration: {
+          properties: [],
+        },
+      },
+      linkAfter: [],
+    }
+
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [reactChunk, exportChunk],
+      chunks: [jsChunk],
       dependencies: {},
     }
-    const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
+    await plugin(structure)
 
-    expect(defaultProps.length).toEqual(1)
-    expect(defaultProps[0].type).toBe(CHUNK_TYPE.AST)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    const headProperty = jsChunk.content.declaration.properties[0] as types.ObjectProperty
+    expect((headProperty.key as types.Identifier).name).toBe('head')
+
+    const headObject = headProperty.value as types.ObjectExpression
+    const titleProperty = headObject.properties[0] as types.ObjectProperty
+
+    expect(titleProperty.key.value).toBe('title')
+    expect(titleProperty.value.value).toBe('Test Title')
   })
 
-  it('Should not generate defaultProps', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-      },
-      name: {
-        type: 'string',
-      },
+  it('Should set the meta tags in the <Helmet> component', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.meta = {
+      metaTags: [
+        {
+          name: 'description',
+          value: 'test',
+        },
+        {
+          randomKey: 'randomValue',
+        },
+      ],
     }
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
+    const jsChunk = {
+      type: CHUNK_TYPE.AST,
+      fileType: FILE_TYPE.JS,
+      name: 'vue-js-chunk',
+      content: {
+        declaration: {
+          properties: [],
+        },
+      },
+      linkAfter: [],
+    }
+
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
-      chunks: [reactChunk, exportChunk],
+      chunks: [jsChunk],
       dependencies: {},
     }
-    const result = await plugin(structure)
 
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
+    await plugin(structure)
 
-    expect(defaultProps.length).toEqual(0)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
-  })
+    const headProperty = jsChunk.content.declaration.properties[0] as types.ObjectProperty
+    expect((headProperty.key as types.Identifier).name).toBe('head')
 
-  it('Should generate chunks after specifying required to props', async () => {
-    const props = {
-      test: {
-        type: 'boolean',
-        isRequired: true,
-      },
-      name: {
-        type: 'string',
-        isRequired: true,
-      },
-    }
+    const headObject = headProperty.value as types.ObjectExpression
+    const metaProperty = headObject.properties[0] as types.ObjectProperty
 
-    const uidlSample = component('SimpleComponent', elementNode('container'), props)
-    const structure: ComponentStructure = {
-      uidl: uidlSample,
-      options: {},
-      chunks: [reactChunk, exportChunk],
-      dependencies: {},
-    }
-    const result = await plugin(structure)
-
-    const defaultProps = result.chunks.filter((chunk) => chunk.name === 'component-default-props')
-    const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
-
-    expect(defaultProps.length).toEqual(0)
-    expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    expect(metaProperty.key.value).toBe('meta')
   })
 })
