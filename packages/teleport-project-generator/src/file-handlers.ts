@@ -119,6 +119,31 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     addChildNode(headNode, titleTag)
   }
 
+  // For frameworks that need to inject and point out the generated build files
+  if (customScriptTags.length > 0) {
+    customScriptTags.forEach((tag: CustomScriptTag) => {
+      const { type, path } = tag
+      const scriptTag = createHTMLNode('script')
+      if (type === 'module') {
+        addAttributeToNode(scriptTag, 'type', type)
+      } else {
+        addAttributeToNode(scriptTag, 'nomodule', '')
+      }
+      addAttributeToNode(scriptTag, 'src', path)
+      addChildNode(headNode, scriptTag)
+    })
+  }
+
+  if (customLinkTags.length > 0) {
+    customLinkTags.forEach((tag: CustomLinkTag) => {
+      const { path, type } = tag
+      const linkTag = createHTMLNode('link')
+      addAttributeToNode(linkTag, 'href', path)
+      addAttributeToNode(linkTag, 'rel', type)
+      addChildNode(headNode, linkTag)
+    })
+  }
+
   if (manifest) {
     const linkTag = createHTMLNode('link') // , { selfClosing: true })
     addAttributeToNode(linkTag, 'rel', 'manifest')
@@ -192,31 +217,6 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       addChildNode(headNode, iconTag)
     }
   })
-
-  // For frameworks that need to inject and point out the generated build files
-  if (customScriptTags.length > 0) {
-    customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { type, path } = tag
-      const scriptTag = createHTMLNode('script')
-      if (type === 'module') {
-        addAttributeToNode(scriptTag, 'type', type)
-      } else {
-        addAttributeToNode(scriptTag, 'nomodule', '')
-      }
-      addAttributeToNode(scriptTag, 'src', path)
-      addChildNode(headNode, scriptTag)
-    })
-  }
-
-  if (customLinkTags.length > 0) {
-    customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, type } = tag
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'href', path)
-      addAttributeToNode(linkTag, 'rel', type)
-      addChildNode(headNode, linkTag)
-    })
-  }
 
   const chunks: Record<string, ChunkDefinition[]> = {
     [FILE_TYPE.HTML]: [
