@@ -1,11 +1,9 @@
 import * as types from '@babel/types'
 
 import {
-  objectToObjectExpression,
   convertValueToLiteral,
   getTSAnnotationForType,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (
@@ -46,15 +44,4 @@ export const createClassDeclaration = (
 
   const classDeclaration = t.classDeclaration(t.identifier(name), null, classBody, [])
   return t.exportNamedDeclaration(classDeclaration, [])
-}
-
-export const createComponentDecorator = (name: string, t = types) => {
-  return t.decorator(
-    t.callExpression(t.identifier('Component'), [
-      objectToObjectExpression({
-        tag: camelCaseToDashCase(name),
-        shadow: true,
-      }),
-    ])
-  )
 }

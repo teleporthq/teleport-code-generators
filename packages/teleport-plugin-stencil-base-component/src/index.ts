@@ -1,4 +1,5 @@
-import { createClassDeclaration, createComponentDecorator } from './utils'
+import { createClassDeclaration } from './utils'
+import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
 import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -10,6 +11,7 @@ import {
   STENCIL_CORE_DEPENDENCY,
 } from './constants'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 interface StencilPluginConfig {
   componentChunkName: string
@@ -59,6 +61,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       dependencyHandling: 'webcomponents',
       stateHandling: 'mutation',
       slotHandling: 'native',
+      customElementTag: (name: string) => `app-${camelCaseToDashCase(name)}`,
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
@@ -69,7 +72,12 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       jsxTagStructure
     )
 
-    const decoratorAST = createComponentDecorator(uidl.name)
+    const params = {
+      tag: `app-${camelCaseToDashCase(uidl.name)}`,
+      shadow: true,
+    }
+
+    const decoratorAST = createComponentDecorator(params)
 
     structure.chunks.push({
       type: CHUNK_TYPE.AST,

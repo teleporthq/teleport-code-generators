@@ -808,8 +808,8 @@
                         "border-color": "#ccc"
                       },
                       "attrs": {
-                        "rows": "8",
-                        "cols": "30",
+                        "rows": 8,
+                        "cols": 30,
                         "id": "message",
                         "name": "message"
                       }

@@ -46,6 +46,7 @@ export interface JSXGenerationOptions {
     - 'props' will render a `props.children` node and needs some workarounds for multiple slots per component
   */
   slotHandling?: 'native' | 'props'
+  customElementTag?: (name: string) => string
 }
 
 export type NodeToJSX<NodeType, ReturnType> = (

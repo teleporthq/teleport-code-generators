@@ -141,7 +141,11 @@ export interface ProjectStrategy {
       uidl: ProjectUIDL,
       options: EntryFileOptions
     ) => Record<string, ChunkDefinition[]>
-    appRootOverride?: string
+    options?: {
+      appRootOverride?: string
+      customScriptTags?: CustomScriptTag[]
+      customLinkTags?: CustomLinkTag[]
+    }
   }
   static: {
     prefix?: string
@@ -149,9 +153,21 @@ export interface ProjectStrategy {
   }
 }
 
+export interface CustomLinkTag {
+  type: string
+  path: string
+}
+
+export interface CustomScriptTag {
+  type: string
+  path: string
+}
+
 export interface EntryFileOptions {
   assetsPrefix?: string
   appRootOverride?: string
+  customScriptTags?: CustomScriptTag[]
+  customLinkTags?: CustomLinkTag[]
 }
 
 export interface GeneratedFolder {
