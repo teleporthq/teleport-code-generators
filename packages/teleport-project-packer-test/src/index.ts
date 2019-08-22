@@ -6,6 +6,7 @@ import vueGenerator from '@teleporthq/teleport-project-generator-vue'
 import nuxtGenerator from '@teleporthq/teleport-project-generator-nuxt'
 import preactGenerator from '@teleporthq/teleport-project-generator-preact'
 import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
+import componentSystemGenerator from '@teleporthq/teleport-component-system-generator'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition } from '@teleporthq/teleport-types'
@@ -68,12 +69,18 @@ const packProject = async (projectType: string) => {
 
 const run = async () => {
   try {
+    const components = Object.keys(projectUIDL.components).map(
+      (componentKey) => projectUIDL.components[componentKey]
+    )
+    const project = await componentSystemGenerator.generateComponentSystem(components)
+    console.log(project)
+    publisher.publish({ project })
     await packProject('react')
-    await packProject('next')
-    await packProject('vue')
-    await packProject('nuxt')
-    await packProject('preact')
-    await packProject('stencil')
+    // await packProject('next')
+    // await packProject('vue')
+    // await packProject('nuxt')
+    // await packProject('preact')
+    // await packProject('stencil')
   } catch (e) {
     console.info(e)
   }

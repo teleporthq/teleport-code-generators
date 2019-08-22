@@ -22,6 +22,7 @@
     "start": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/index.ts"
   },
   "dependencies": {
+    "@teleporthq/teleport-component-system-generator": "^0.9.0",
     "@teleporthq/teleport-project-generator-react": "^0.9.0",
     "@teleporthq/teleport-project-generator-next": "^0.9.0",
     "@teleporthq/teleport-project-generator-vue": "^0.9.0",
