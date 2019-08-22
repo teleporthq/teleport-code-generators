@@ -6,11 +6,10 @@ import { createPlugin as createRouterPlugin } from '@teleporthq/teleport-plugin-
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-
 import { Mapping } from '@teleporthq/teleport-types'
 
 import preactProjectMapping from './preact-project-mapping.json'
+import { customHeadContent, customBodyContent } from './constants'
 
 export const createPreactProjectGenerator = () => {
   const preactComponentGenerator = createPreactComponentGenerator('CSSModules')
@@ -26,7 +25,6 @@ export const createPreactProjectGenerator = () => {
   routingComponentGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({
     components: {
@@ -49,6 +47,21 @@ export const createPreactProjectGenerator = () => {
       generator: htmlFileGenerator,
       path: ['src'],
       fileName: 'index',
+      options: {
+        appRootOverride: customBodyContent(),
+        customHeadContent: customHeadContent(),
+        customScriptTags: [
+          {
+            target: 'body',
+            type: 'defer',
+            path: `<%= htmlWebpackPlugin.files.chunks['bundle'].entry %>`,
+          },
+          {
+            target: 'body',
+            content: `window.fetch||document.write('<script src="<%= htmlWebpackPlugin.files.chunks["polyfills"].entry %>"><\/script>`,
+          },
+        ],
+      },
     },
     static: {
       prefix: '/assets',
