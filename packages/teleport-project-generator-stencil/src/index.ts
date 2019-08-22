@@ -54,8 +54,11 @@ export const createStencilProjectGenerator = () => {
       options: {
         appRootOverride: `<app-root></app-root>`,
         customScriptTags: [
-          { type: 'module', path: '/build/app.esm.js' },
-          { type: 'nomodule', path: '/buid/app.js' },
+          { attributeKey: 'type', attributeValue: 'module', path: '/build/app.esm.js' },
+          {
+            attributeValue: 'nomodule',
+            path: '/buid/app.js',
+          },
         ],
         customLinkTags: [{ type: 'stylesheet', path: '/build/app.css' }],
       },

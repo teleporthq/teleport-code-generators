@@ -160,10 +160,11 @@ export interface CustomLinkTag {
 }
 
 export interface CustomScriptTag {
-  type?: string
   path?: string
   target?: string
   content?: string
+  attributeKey?: string
+  attributeValue?: string
 }
 
 export interface EntryFileOptions {

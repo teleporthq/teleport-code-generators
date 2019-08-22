@@ -1,4 +1,4 @@
-export const customHeadContent = () => `<% if (htmlWebpackPlugin.options.manifest.theme_color) { %>
+export const CUSTOM_HEAD_CONTENT = `<% if (htmlWebpackPlugin.options.manifest.theme_color) { %>
 	<meta name="theme-color" content="<%= htmlWebpackPlugin.options.manifest.theme_color %>">
 <% } %>
 <% for (var chunk of webpack.chunks) { %>
@@ -12,6 +12,10 @@ export const customHeadContent = () => `<% if (htmlWebpackPlugin.options.manifes
 	<% } %>
 <% } %>`
 
-export const customBodyContent = () => `<%= htmlWebpackPlugin.options.ssr({
+export const CUSTOM_BODY_CONTENT = `<%= htmlWebpackPlugin.options.ssr({
 	url: '/'
 }) %>`
+
+export const ENTRY_CHUNK = `<%= htmlWebpackPlugin.files.chunks['bundle'].entry %>`
+
+export const POLYFILLS_TAG = `window.fetch||document.write('<script src="<%= htmlWebpackPlugin.files.chunks["polyfills"].entry %>"><\/script>`

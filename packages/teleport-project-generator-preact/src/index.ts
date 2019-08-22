@@ -9,7 +9,7 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping } from '@teleporthq/teleport-types'
 
 import preactProjectMapping from './preact-project-mapping.json'
-import { customHeadContent, customBodyContent } from './constants'
+import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } from './constants'
 
 export const createPreactProjectGenerator = () => {
   const preactComponentGenerator = createPreactComponentGenerator('CSSModules')
@@ -48,17 +48,17 @@ export const createPreactProjectGenerator = () => {
       path: ['src'],
       fileName: 'index',
       options: {
-        appRootOverride: customBodyContent(),
-        customHeadContent: customHeadContent(),
+        appRootOverride: CUSTOM_BODY_CONTENT,
+        customHeadContent: CUSTOM_HEAD_CONTENT,
         customScriptTags: [
           {
             target: 'body',
-            type: 'defer',
-            path: `<%= htmlWebpackPlugin.files.chunks['bundle'].entry %>`,
+            path: ENTRY_CHUNK,
+            attributeValue: 'defer',
           },
           {
             target: 'body',
-            content: `window.fetch||document.write('<script src="<%= htmlWebpackPlugin.files.chunks["polyfills"].entry %>"><\/script>`,
+            content: POLYFILLS_TAG,
           },
         ],
       },

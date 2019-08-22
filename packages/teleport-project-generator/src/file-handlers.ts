@@ -131,16 +131,19 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   or adding some script tags in head or body */
   if (customScriptTags.length > 0) {
     customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { type, path, content } = tag
+      const { attributeKey, attributeValue, path, content } = tag
       const { target } = tag || { target: 'head' }
 
       const targetNode = target === 'body' ? bodyNode : headNode
       const scriptTag = createHTMLNode('script')
 
-      if (type) {
-        type === 'module'
-          ? addAttributeToNode(scriptTag, 'type', type)
-          : addAttributeToNode(scriptTag, type, '')
+      /* For few script tags we add only values and not the key, 
+        for example defer, nomodule etc. For such behaviours we can omit 
+        attributeKey so only value is added to the tag */
+      if (attributeValue) {
+        attributeKey
+          ? addAttributeToNode(scriptTag, attributeKey, attributeValue)
+          : addBooleanAttributeToNode(scriptTag, attributeValue)
       }
 
       if (content) {
