@@ -155,8 +155,9 @@ export interface ProjectStrategy {
 }
 
 export interface CustomLinkTag {
-  type: string
-  path: string
+  path?: string
+  attributeKey?: string
+  attributeValue?: string
 }
 
 export interface CustomScriptTag {

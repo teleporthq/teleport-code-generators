@@ -160,10 +160,15 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
   if (customLinkTags.length > 0) {
     customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, type } = tag
+      const { path, attributeKey, attributeValue } = tag
       const linkTag = createHTMLNode('link')
       addAttributeToNode(linkTag, 'href', path)
-      addAttributeToNode(linkTag, 'rel', type)
+
+      if (attributeValue) {
+        attributeKey
+          ? addAttributeToNode(linkTag, attributeKey, attributeValue)
+          : addBooleanAttributeToNode(linkTag, attributeValue)
+      }
       addChildNode(headNode, linkTag)
     })
   }

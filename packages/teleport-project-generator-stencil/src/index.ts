@@ -60,7 +60,9 @@ export const createStencilProjectGenerator = () => {
             path: '/buid/app.js',
           },
         ],
-        customLinkTags: [{ type: 'stylesheet', path: '/build/app.css' }],
+        customLinkTags: [
+          { attributeKey: 'rel', attributeValue: 'stylesheet', path: '/build/app.css' },
+        ],
       },
     },
     static: {
