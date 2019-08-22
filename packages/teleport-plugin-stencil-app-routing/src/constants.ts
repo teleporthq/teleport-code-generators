@@ -1,4 +1,6 @@
-export const STENCIL_CORE_DEPENDENCY = {
+import { UIDLDependency } from '@teleporthq/teleport-types'
+
+export const STENCIL_CORE_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: '@stencil/core',
   version: '1.1.4',
