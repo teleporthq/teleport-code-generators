@@ -1,10 +1,12 @@
-export const REACT_LIBRARY_DEPENDENCY = {
+import { UIDLDependency } from '@teleporthq/teleport-types'
+
+export const REACT_LIBRARY_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'react',
   version: '16.8.3',
 }
 
-export const USE_STATE_DEPENDENCY = {
+export const USE_STATE_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'react',
   version: '16.8.3',

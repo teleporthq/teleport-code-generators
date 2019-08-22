@@ -4,6 +4,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
@@ -14,6 +15,9 @@ import reactProjectMapping from './react-project-mapping.json'
 export const createReactProjectGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator('CSSModules')
   reactComponentGenerator.addMapping(reactProjectMapping as Mapping)
+
+  const reactPagesGenerator = createReactComponentGenerator('CSSModules', [headConfigPlugin])
+  reactPagesGenerator.addMapping(reactProjectMapping as Mapping)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
@@ -29,7 +33,7 @@ export const createReactProjectGenerator = () => {
       path: ['src', 'components'],
     },
     pages: {
-      generator: reactComponentGenerator,
+      generator: reactPagesGenerator,
       path: ['src', 'views'],
     },
     router: {

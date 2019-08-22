@@ -105,10 +105,23 @@
                   "value": {},
                   "meta": { 
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                       "componentName": { "type": "string" },
                       "path": { "type": "string" },
-                      "fileName": { "type": "string" }
+                      "fileName": { "type": "string" },
+                      "title": { "type": "string" },
+                      "metaTags": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "patternProperties": {
+                            ".*": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   },
                   "transitions": { "type": "object" }

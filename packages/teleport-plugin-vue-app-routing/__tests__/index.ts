@@ -13,7 +13,7 @@ describe('plugin-vue-app-routing', () => {
     codeChunkName: 'code-chunk',
   })
 
-  it('outputs two AST chunks with the corresponding chunk names', async () => {
+  it('outputs three AST chunks with the corresponding chunk names', async () => {
     const structure = {
       chunks: [],
       options: {},
@@ -40,7 +40,7 @@ describe('plugin-vue-app-routing', () => {
     expect(result.chunks.length).toBe(1)
     expect(result.chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(result.chunks[0].content).toBeDefined()
-    expect(result.chunks[0].content.length).toBe(2)
+    expect(result.chunks[0].content.length).toBe(3)
     expect(result.chunks[0].name).toBe('code-chunk')
 
     // Dependencies

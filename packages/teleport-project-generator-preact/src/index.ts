@@ -3,6 +3,7 @@ import { createPreactComponentGenerator } from '@teleporthq/teleport-component-g
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import { createPlugin as createRouterPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
+import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
@@ -12,8 +13,11 @@ import { Mapping } from '@teleporthq/teleport-types'
 import preactProjectMapping from './preact-project-mapping.json'
 
 export const createPreactProjectGenerator = () => {
-  const preactComponentGenerator = createPreactComponentGenerator()
+  const preactComponentGenerator = createPreactComponentGenerator('CSSModules')
   preactComponentGenerator.addMapping(preactProjectMapping as Mapping)
+
+  const preactPageGenerator = createPreactComponentGenerator('CSSModules', [headConfigPlugin])
+  preactPageGenerator.addMapping(preactProjectMapping as Mapping)
 
   const routerPlugin = createRouterPlugin({ flavor: 'preact' })
   const routingComponentGenerator = createComponentGenerator()
@@ -30,7 +34,7 @@ export const createPreactProjectGenerator = () => {
       path: ['src', 'components'],
     },
     pages: {
-      generator: preactComponentGenerator,
+      generator: preactPageGenerator,
       path: ['src', 'routes'],
       options: {
         createFolderForEachComponent: true,

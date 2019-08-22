@@ -3,6 +3,7 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
+import { createPlugin as createHeadConfigPlugin } from '@teleporthq/teleport-plugin-vue-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -11,8 +12,12 @@ import { Mapping } from '@teleporthq/teleport-types'
 
 import vueProjectMapping from './vue-project-mapping.json'
 
+const vueHeadConfigPlugin = createHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
+
 export const createVueProjectGenerator = () => {
   const vueComponentGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
+  const vuePagesGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
+  vuePagesGenerator.addPlugin(vueHeadConfigPlugin)
 
   const vueRouterGenerator = createComponentGenerator()
   vueRouterGenerator.addPlugin(vueRoutingPlugin)
@@ -28,7 +33,7 @@ export const createVueProjectGenerator = () => {
       path: ['src', 'components'],
     },
     pages: {
-      generator: vueComponentGenerator,
+      generator: vuePagesGenerator,
       path: ['src', 'views'],
     },
     router: {

@@ -37,6 +37,8 @@ export interface ComponentUIDL {
     styleFileName?: string
     templateFileName?: string
     path?: string[]
+    title?: string
+    metaTags?: Array<Record<string, string>>
   }
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
@@ -54,9 +56,12 @@ export interface UIDLStateDefinition {
   values?: Array<{
     value: string | number | boolean
     meta?: {
+      // Used when the StateDefinition is used as the router
       componentName?: string
       path?: string
       fileName?: string
+      title?: string
+      metaTags?: Array<Record<string, string>>
     }
     transitions?: any
   }>
@@ -168,7 +173,7 @@ export interface UIDLEventHandlerStatement {
 }
 
 export interface UIDLDependency {
-  type: string
+  type: 'library' | 'package' | 'local'
   path?: string
   version?: string
   meta?: {
