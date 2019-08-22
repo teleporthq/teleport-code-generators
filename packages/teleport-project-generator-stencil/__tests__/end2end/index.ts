@@ -25,7 +25,7 @@ describe('Preact Project Generator', () => {
 
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('html')
-    expect(srcFolder.files[0].content).toContain('<script type="module" src="build/app.esm.js">')
+    expect(srcFolder.files[0].content).toContain('<script type="module" src="/build/app.esm.js">')
     expect(rootFiles[0].name).toBe('app-root')
     expect(rootFiles[0].fileType).toBe('tsx')
     expect(srcFolder.subFolders[0].name).toBe('components')
