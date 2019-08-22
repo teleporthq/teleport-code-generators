@@ -1,3 +1,4 @@
+import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
 import {
   createSelfClosingJSXTag,
@@ -9,7 +10,7 @@ import {
   addDynamicAttributeToJSXTag,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
-export const createRouteRouterTag = (flavour: string, routeJSXDefinitions) => {
+export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types.JSXElement[]) => {
   const routerTag = createJSXTag('Router')
 
   if (flavour === 'preact') {
@@ -25,7 +26,7 @@ export const createRouteRouterTag = (flavour: string, routeJSXDefinitions) => {
 
 export const constructRouteJSX = (flavour: string, componentName: string, path: string) => {
   let JSXRoutePrefix: string
-  let route
+  let route: types.JSXElement
 
   if (flavour === 'preact') {
     JSXRoutePrefix = componentName

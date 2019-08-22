@@ -1,3 +1,4 @@
+import * as types from '@babel/types'
 import {
   stringAsTemplateLiteral,
   addAttributeToJSXTag,
@@ -9,7 +10,7 @@ import {
   createJSXExpresionContainer,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
-export const generateStyledJSXTag = (content: string) => {
+export const generateStyledJSXTag = (content: string): types.JSXElement => {
   const templateLiteral = stringAsTemplateLiteral(content)
   const styleContent = createJSXExpresionContainer(templateLiteral)
   const styleTag = createJSXTag('style', [styleContent])
