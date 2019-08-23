@@ -25,12 +25,12 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@babel/generator": "^7.4.0",
-    "@babel/types": "^7.3.3",
-    "@starptech/prettyhtml-hast-to-html": "^0.8.17",
+    "@babel/generator": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "@starptech/prettyhtml-hast-to-html": "^0.10.0",
     "@teleporthq/teleport-shared": "^0.9.0",
     "@teleporthq/teleport-types": "^0.9.0",
     "@teleporthq/teleport-uidl-validator": "^0.9.0",
-    "deepmerge": "^3.2.1"
+    "deepmerge": "^4.0.0"
   }
 }

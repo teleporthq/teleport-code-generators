@@ -27,6 +27,6 @@
   "dependencies": {
     "@teleporthq/teleport-publisher-zip": "^0.9.0",
     "@teleporthq/teleport-types": "^0.9.0",
-    "cross-fetch": "^3.0.2"
+    "cross-fetch": "^3.0.4"
   }
 }

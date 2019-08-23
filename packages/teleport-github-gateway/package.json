@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-types": "^0.9.0",
-    "cross-fetch": "^3.0.2",
-    "github-api": "^3.2.0"
+    "cross-fetch": "^3.0.4",
+    "github-api": "^3.2.2"
   }
 }
