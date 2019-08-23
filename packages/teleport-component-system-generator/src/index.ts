@@ -1,8 +1,12 @@
 import { ComponentUIDL, ComponentGenerator, GeneratedFolder } from '@teleporthq/teleport-types'
 import reactGenerator from '@teleporthq/teleport-component-generator-react'
 
-export const createComponentSystemGenerator = (generator?: ComponentGenerator) => {
-  let componentGenerator = generator || reactGenerator
+interface ComponentSystemGeneratorParams {
+  generator?: ComponentGenerator
+}
+
+export const createComponentSystemGenerator = (params: ComponentSystemGeneratorParams = {}) => {
+  let componentGenerator = params.generator || reactGenerator
 
   const generateComponentSystem = async (components: ComponentUIDL[]) => {
     const allFiles = []

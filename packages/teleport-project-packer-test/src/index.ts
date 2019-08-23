@@ -73,7 +73,7 @@ const run = async () => {
       (componentKey) => projectUIDL.components[componentKey]
     )
     const project = await componentSystemGenerator.generateComponentSystem(components)
-    console.log(project)
+    console.info(project)
     publisher.publish({ project })
     await packProject('react')
     // await packProject('next')

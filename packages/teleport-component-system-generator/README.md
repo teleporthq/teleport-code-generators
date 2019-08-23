@@ -1,6 +1,6 @@
 # teleport-component-system-generator
 
-Generic project generator that requires a specific strategy to run on custom configurations.
+Generates a list of components and some glue code between them, using on an existing component generator.
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 

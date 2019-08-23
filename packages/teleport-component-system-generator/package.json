@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-component-system-generator",
   "version": "0.9.0",
-  "description": "Generic project generator that requires a specific strategy to run on custom configurations",
+  "description": "Generates a list of components and some glue code between them, using on an existing component generator",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
