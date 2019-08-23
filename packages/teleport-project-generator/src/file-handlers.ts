@@ -76,11 +76,13 @@ export const createEntryFile = async (
   const entryFileName = strategy.entry.fileName || 'index'
   const customScriptTags = (options && options.customScriptTags) || []
   const customLinkTags = (options && options.customLinkTags) || []
+  const customHeadContent = (options && options.customHeadContent) || null
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,
     customScriptTags,
     customLinkTags,
+    customHeadContent,
   })
 
   const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
@@ -89,7 +91,13 @@ export const createEntryFile = async (
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const { assetsPrefix = '', appRootOverride, customScriptTags, customLinkTags } = options
+  const {
+    assetsPrefix = '',
+    appRootOverride,
+    customScriptTags,
+    customLinkTags,
+    customHeadContent,
+  } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -119,27 +127,48 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     addChildNode(headNode, titleTag)
   }
 
-  // For frameworks that need to inject and point out the generated build files
+  /* For frameworks that need to inject and point out the generated build files
+  or adding some script tags in head or body */
   if (customScriptTags.length > 0) {
     customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { type, path } = tag
+      const { attributeKey, attributeValue, path, content } = tag
+      const { target } = tag || { target: 'head' }
+
+      const targetNode = target === 'body' ? bodyNode : headNode
       const scriptTag = createHTMLNode('script')
-      if (type === 'module') {
-        addAttributeToNode(scriptTag, 'type', type)
-      } else {
-        addAttributeToNode(scriptTag, 'nomodule', '')
+
+      /* For few script tags we add only values and not the key, 
+        for example defer, nomodule etc. For such behaviours we can omit 
+        attributeKey so only value is added to the tag */
+      if (attributeValue) {
+        attributeKey
+          ? addAttributeToNode(scriptTag, attributeKey, attributeValue)
+          : addBooleanAttributeToNode(scriptTag, attributeValue)
       }
-      addAttributeToNode(scriptTag, 'src', path)
-      addChildNode(headNode, scriptTag)
+
+      if (content) {
+        addTextNode(scriptTag, content)
+      }
+
+      if (path) {
+        addAttributeToNode(scriptTag, 'src', path)
+      }
+
+      addChildNode(targetNode, scriptTag)
     })
   }
 
   if (customLinkTags.length > 0) {
     customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, type } = tag
+      const { path, attributeKey, attributeValue } = tag
       const linkTag = createHTMLNode('link')
       addAttributeToNode(linkTag, 'href', path)
-      addAttributeToNode(linkTag, 'rel', type)
+
+      if (attributeValue) {
+        attributeKey
+          ? addAttributeToNode(linkTag, attributeKey, attributeValue)
+          : addBooleanAttributeToNode(linkTag, attributeValue)
+      }
       addChildNode(headNode, linkTag)
     })
   }
@@ -217,6 +246,10 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       addChildNode(headNode, iconTag)
     }
   })
+
+  if (customHeadContent) {
+    addTextNode(headNode, customHeadContent)
+  }
 
   const chunks: Record<string, ChunkDefinition[]> = {
     [FILE_TYPE.HTML]: [

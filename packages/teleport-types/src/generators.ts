@@ -145,6 +145,7 @@ export interface ProjectStrategy {
       appRootOverride?: string
       customScriptTags?: CustomScriptTag[]
       customLinkTags?: CustomLinkTag[]
+      customHeadContent?: string
     }
   }
   static: {
@@ -154,13 +155,17 @@ export interface ProjectStrategy {
 }
 
 export interface CustomLinkTag {
-  type: string
-  path: string
+  path?: string
+  attributeKey?: string
+  attributeValue?: string
 }
 
 export interface CustomScriptTag {
-  type: string
-  path: string
+  path?: string
+  target?: string
+  content?: string
+  attributeKey?: string
+  attributeValue?: string
 }
 
 export interface EntryFileOptions {
@@ -168,6 +173,7 @@ export interface EntryFileOptions {
   appRootOverride?: string
   customScriptTags?: CustomScriptTag[]
   customLinkTags?: CustomLinkTag[]
+  customHeadContent: string
 }
 
 export interface GeneratedFolder {
