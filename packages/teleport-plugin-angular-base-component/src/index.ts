@@ -97,6 +97,20 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       content: componentDecoratorAST,
     })
 
+    if (Object.keys(methodsObject).length > 0) {
+      const shouldImportEventEmitter = Object.keys(methodsObject).some((method) => {
+        const statements = methodsObject[method]
+        if (statements.length > 0) {
+          return statements.some((event) => event.type === 'propCall')
+        }
+        return false
+      })
+      if (shouldImportEventEmitter) {
+        dependencies.Output = ANGULAR_CORE_DEPENDENCY
+        dependencies.EventEmitter = ANGULAR_CORE_DEPENDENCY
+      }
+    }
+
     const exportAST = generateExportAST(
       uidl.name,
       propDefinitions,

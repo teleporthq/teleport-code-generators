@@ -27,14 +27,28 @@ export const generateExportAST = (
     ) as types.ClassMethod[]
   }
 
-  const propDeclaration = Object.keys(propDefinitions).map((propKey) =>
-    t.classProperty(
+  const propDeclaration = Object.keys(propDefinitions).map((propKey) => {
+    const definition = propDefinitions[propKey]
+    if (definition.type === 'func') {
+      return t.classProperty(
+        t.identifier(propKey),
+        t.newExpression(t.identifier('EventEmitter'), []),
+        t.typeAnnotation(
+          t.genericTypeAnnotation(
+            t.identifier('EventEmitter'),
+            t.typeParameterInstantiation([t.anyTypeAnnotation()])
+          )
+        ),
+        [t.decorator(t.callExpression(t.identifier('Output'), []))]
+      )
+    }
+    return t.classProperty(
       t.identifier(propKey),
       convertValueToLiteral(propDefinitions[propKey].defaultValue),
       t.tsTypeAnnotation(getTSAnnotationForType(propDefinitions[propKey].type)),
       [t.decorator(t.callExpression(t.identifier('Input'), []))]
     )
-  )
+  })
 
   const propertyDecleration = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(

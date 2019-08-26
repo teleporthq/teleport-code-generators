@@ -124,7 +124,7 @@ export const createMethodsObject = (
     methods[eventKey].map((statement) => {
       const astStatement =
         statement.type === 'propCall'
-          ? createPropCallStatement(statement, propDefinitions)
+          ? createPropCallStatement(statement, propDefinitions, flavor)
           : createStateChangeStatement(statement)
 
       if (astStatement) {
@@ -157,6 +157,7 @@ const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = ty
 const createPropCallStatement = (
   eventHandlerStatement: UIDLEventHandlerStatement,
   propDefinitions: Record<string, UIDLPropDefinition>,
+  flavor: 'angular' | 'vue',
   t = types
 ) => {
   const { calls: propFunctionKey, args = [] } = eventHandlerStatement
@@ -174,10 +175,22 @@ const createPropCallStatement = (
   }
 
   // In vue it's favorable to use $emit for a specific event than sending the function as a prop
-  return t.expressionStatement(
-    t.callExpression(t.identifier('this.$emit'), [
-      t.stringLiteral(propFunctionKey),
-      ...args.map((arg) => convertValueToLiteral(arg)),
-    ])
-  )
+  const emitter =
+    flavor === 'angular'
+      ? t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier(propFunctionKey)),
+              t.identifier('emit')
+            ),
+            []
+          )
+        )
+      : t.expressionStatement(
+          t.callExpression(t.identifier('this.$emit'), [
+            t.stringLiteral(propFunctionKey),
+            ...args.map((arg) => convertValueToLiteral(arg)),
+          ])
+        )
+  return emitter
 }
