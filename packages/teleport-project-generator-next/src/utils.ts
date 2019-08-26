@@ -1,7 +1,6 @@
 import {
   addAttributeToJSXTag,
   addChildJSXTag,
-  addChildJSXText,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 
@@ -30,11 +29,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     addAttributeToJSXTag(htmlNode, 'lang', settings.language)
   }
 
-  if (settings.title) {
-    const titleTag = createJSXTag('title')
-    addChildJSXText(titleTag, settings.title)
-    addChildJSXTag(headNode, titleTag)
-  }
+  // NOTE: Title is added in per page, not in the layout file
 
   if (manifest) {
     const linkTag = createJSXTag('link')
@@ -54,6 +49,14 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
 
   assets.forEach((asset) => {
     const assetPath = prefixPlaygroundAssetsURL(options.assetsPrefix, asset.path)
+
+    // link canonical for SEO
+    if (asset.type === 'canonical' && assetPath) {
+      const linkTag = createJSXTag('link')
+      addAttributeToJSXTag(linkTag, 'rel', 'canonical')
+      addAttributeToJSXTag(linkTag, 'href', assetPath)
+      addChildJSXTag(headNode, linkTag)
+    }
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {

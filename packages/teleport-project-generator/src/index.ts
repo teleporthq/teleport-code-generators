@@ -61,7 +61,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     const { components = {}, root } = uidl
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
-    const pageUIDLs = createPageUIDLs(root, strategy)
+    const pageUIDLs = createPageUIDLs(uidl, strategy)
 
     // Set the filename and path for each component based on the strategy
     prepareComponentFilenamesAndPath(components, strategy)

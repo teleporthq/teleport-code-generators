@@ -16,7 +16,7 @@ export interface ProjectUIDL {
 }
 
 export interface GlobalAsset {
-  type: string
+  type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
   path?: string
   content?: string
   options?: {
@@ -37,11 +37,16 @@ export interface ComponentUIDL {
     styleFileName?: string
     templateFileName?: string
     path?: string[]
-    title?: string
-    metaTags?: Array<Record<string, string>>
   }
+  seo?: UIDLComponentSEO
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
+}
+
+export interface UIDLComponentSEO {
+  title?: string
+  metaTags?: Array<Record<string, string>>
+  assets?: GlobalAsset[]
 }
 
 export interface UIDLPropDefinition {
@@ -60,9 +65,8 @@ export interface UIDLStateDefinition {
       componentName?: string
       path?: string
       fileName?: string
-      title?: string
-      metaTags?: Array<Record<string, string>>
     }
+    seo?: UIDLComponentSEO
     transitions?: any
   }>
   actions?: string[]

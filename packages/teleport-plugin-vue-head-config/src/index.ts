@@ -21,14 +21,24 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
     const headObject: {
       title?: string
       meta?: Array<Record<string, string>>
+      link?: Array<Record<string, string>>
     } = {}
 
-    if (uidl.meta && uidl.meta.title) {
-      headObject.title = uidl.meta.title
+    if (uidl.seo && uidl.seo.title) {
+      headObject.title = uidl.seo.title
     }
 
-    if (uidl.meta && uidl.meta.metaTags) {
-      headObject.meta = uidl.meta.metaTags
+    if (uidl.seo && uidl.seo.metaTags) {
+      headObject.meta = uidl.seo.metaTags
+    }
+
+    if (uidl.seo.assets) {
+      uidl.seo.assets.forEach((asset) => {
+        // TODO: Handle other asset types when needed
+        if (asset.type === 'canonical') {
+          headObject.link = [{ rel: 'canonical', href: asset.path }]
+        }
+      })
     }
 
     if (Object.keys(headObject).length > 0) {

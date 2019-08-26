@@ -37,7 +37,9 @@
             "value": "home",
             "meta": {
               "path": "/",
-              "componentName": "Home",
+              "componentName": "Home"
+            },
+            "seo": {
               "title": "Home Page"
             }
           },
@@ -45,7 +47,9 @@
             "value": "team",
             "meta": {
               "path": "/team",
-              "componentName": "Team",
+              "componentName": "Team"
+            },
+            "seo": {
               "title": "About Page",
               "metaTags": [
                 { "name": "description", "content": "What is this about?" },
@@ -53,6 +57,9 @@
                 { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
                 { "property": "og:title", "content": "What is this about?" },
                 { "property": "og:url", "content": "/playground_assets/asdasd.png" }
+              ],
+              "assets": [
+                { "type": "canonical", "path": "https://teleporthq.io" }
               ]
             }
           },
@@ -61,6 +68,11 @@
             "meta": {
               "path": "/contact-us",
               "componentName": "ContactPage"
+            },
+            "seo": {
+              "assets": [
+                { "type": "canonical", "path": "https://teleporthq.io" }
+              ]
             }
           }
         ]

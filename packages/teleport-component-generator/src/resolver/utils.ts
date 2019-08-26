@@ -73,11 +73,11 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
 }
 
 export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) => {
-  if (!uidl.meta || !uidl.meta.metaTags || !options.assetsPrefix) {
+  if (!uidl.seo || !uidl.seo.metaTags || !options.assetsPrefix) {
     return
   }
 
-  uidl.meta.metaTags.forEach((tag) => {
+  uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
       tag[key] = prefixPlaygroundAssetsURL(options.assetsPrefix, tag[key])
     })
