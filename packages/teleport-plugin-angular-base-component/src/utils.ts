@@ -2,16 +2,31 @@ import * as types from '@babel/types'
 import {
   convertValueToLiteral,
   getTSAnnotationForType,
+  createMethodsObject,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import { UIDLPropDefinition, UIDLStateDefinition } from '@teleporthq/teleport-types'
+import {
+  UIDLPropDefinition,
+  UIDLStateDefinition,
+  UIDLEventHandlerStatement,
+} from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
   componentName: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   dataObject: Record<string, any>,
+  methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
+  let angularMethodsAST = []
+  if (Object.keys(methodsObject).length > 0) {
+    angularMethodsAST = createMethodsObject(
+      methodsObject,
+      propDefinitions,
+      'angular'
+    ) as types.ClassMethod[]
+  }
+
   const propDeclaration = Object.keys(propDefinitions).map((propKey) =>
     t.classProperty(
       t.identifier(propKey),
@@ -43,6 +58,7 @@ export const generateExportAST = (
       ...propertyDecleration,
       ...dataDeclaration,
       constructorAST(),
+      ...angularMethodsAST,
     ])
   }
 

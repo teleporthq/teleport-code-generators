@@ -58,6 +58,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       {
         interpolation: (value) => `{{ ${value} }}`,
         eventBinding: (value) => `(${value})`,
+        eventNameBinding: (value) => `${value}()`,
         valueBinding: (value, node?: UIDLElementNode) =>
           node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
@@ -96,7 +97,13 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       content: componentDecoratorAST,
     })
 
-    const exportAST = generateExportAST(uidl.name, propDefinitions, stateDefinitions, dataObject)
+    const exportAST = generateExportAST(
+      uidl.name,
+      propDefinitions,
+      stateDefinitions,
+      dataObject,
+      methodsObject
+    )
 
     chunks.push({
       type: CHUNK_TYPE.AST,
