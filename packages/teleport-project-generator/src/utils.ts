@@ -11,33 +11,29 @@ import {
   GeneratedFolder,
   UIDLElement,
   ComponentUIDL,
+  ProjectUIDL,
   UIDLConditionalNode,
-  UIDLStateDefinition,
   ProjectStrategy,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
-export const createPageUIDLs = (
-  root: ComponentUIDL,
-  strategy: ProjectStrategy
-): ComponentUIDL[] => {
-  const routeNodes = extractRoutes(root)
-  return routeNodes.map((routeNode) =>
-    createPageUIDL(routeNode, root.stateDefinitions.route, strategy)
-  )
+export const createPageUIDLs = (uidl: ProjectUIDL, strategy: ProjectStrategy): ComponentUIDL[] => {
+  const routeNodes = extractRoutes(uidl.root)
+  return routeNodes.map((routeNode) => createPageUIDL(routeNode, uidl, strategy))
 }
 
 const createPageUIDL = (
   routeNode: UIDLConditionalNode,
-  routeDefintion: UIDLStateDefinition,
+  uidl: ProjectUIDL,
   strategy: ProjectStrategy
 ): ComponentUIDL => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
+  const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
   const { componentName, fileName } = extractPageMetadata(
-    routeDefintion,
+    routeDefinition,
     pageName,
     strategy.pages.options
   )
@@ -47,7 +43,7 @@ const createPageUIDL = (
   const createPathInOwnFile =
     !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
 
-  const fileMeta = createPathInOwnFile
+  const meta = createPathInOwnFile
     ? {
         fileName: pagesStrategyOptions.customComponentFileName || 'index',
         styleFileName: pagesStrategyOptions.customStyleFileName || 'style',
@@ -62,10 +58,13 @@ const createPageUIDL = (
       }
 
   // Looking into the state definition, we take the seo information for the corresponding page
-  const pageDefinition = routeDefintion.values.find((stateDef) => stateDef.value === pageName)
-  const seoMeta = pageDefinition.meta
-    ? { title: pageDefinition.meta.title, metaTags: pageDefinition.meta.metaTags }
-    : null
+  // If no title is provided for the page, the global settings title is passed as a default
+  const pageDefinition = routeDefinition.values.find((stateDef) => stateDef.value === pageName)
+  const title = (pageDefinition.seo && pageDefinition.seo.title) || uidl.globals.settings.title
+  const seo = {
+    ...pageDefinition.seo,
+    title,
+  }
 
   // Because conditional nodes accept any type of UIDLNode as a child
   // we need to ensure that the page is always of type 'element'
@@ -75,7 +74,8 @@ const createPageUIDL = (
   return {
     name: componentName,
     node: pageContent,
-    meta: { ...fileMeta, ...seoMeta },
+    meta,
+    seo,
   }
 }
 

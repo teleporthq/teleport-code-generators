@@ -25,7 +25,7 @@ describe('plugin-vue-head-config', () => {
   it('Should set the title in head object of the component', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
-    uidlSample.meta = {
+    uidlSample.seo = {
       title: 'Test Title',
     }
 
@@ -57,13 +57,13 @@ describe('plugin-vue-head-config', () => {
     const titleProperty = headObject.properties[0] as types.ObjectProperty
 
     expect(titleProperty.key.value).toBe('title')
-    expect(titleProperty.value.value).toBe('Test Title')
+    expect((titleProperty.value as types.StringLiteral).value).toBe('Test Title')
   })
 
-  it('Should set the meta tags in the <Helmet> component', async () => {
+  it('Sets the meta tags in the component object', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
-    uidlSample.meta = {
+    uidlSample.seo = {
       metaTags: [
         {
           name: 'description',
@@ -103,5 +103,47 @@ describe('plugin-vue-head-config', () => {
     const metaProperty = headObject.properties[0] as types.ObjectProperty
 
     expect(metaProperty.key.value).toBe('meta')
+  })
+
+  it('Sets the link tag for the canonical in the component object', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      assets: [
+        {
+          type: 'canonical',
+          path: 'https://teleporthq.io',
+        },
+      ],
+    }
+
+    const jsChunk = {
+      type: CHUNK_TYPE.AST,
+      fileType: FILE_TYPE.JS,
+      name: 'vue-js-chunk',
+      content: {
+        declaration: {
+          properties: [],
+        },
+      },
+      linkAfter: [],
+    }
+
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [jsChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const headProperty = jsChunk.content.declaration.properties[0] as types.ObjectProperty
+    expect((headProperty.key as types.Identifier).name).toBe('head')
+
+    const headObject = headProperty.value as types.ObjectExpression
+    const linkProperty = headObject.properties[0] as types.ObjectProperty
+
+    expect(linkProperty.key.value).toBe('link')
   })
 })

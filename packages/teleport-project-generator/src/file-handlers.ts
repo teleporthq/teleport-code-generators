@@ -192,6 +192,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   assets.forEach((asset) => {
     const assetPath = prefixPlaygroundAssetsURL(assetsPrefix, asset.path)
 
+    // link canonical for SEO
+    if (asset.type === 'canonical' && assetPath) {
+      const linkTag = createHTMLNode('link')
+      addAttributeToNode(linkTag, 'rel', 'canonical')
+      addAttributeToNode(linkTag, 'href', assetPath)
+      addChildNode(headNode, linkTag)
+    }
+
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
       const linkTag = createHTMLNode('link') // , { selfClosing: true })

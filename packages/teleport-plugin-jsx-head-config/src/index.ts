@@ -30,21 +30,37 @@ export const createPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config
       )
     }
 
+    if (!uidl.seo) {
+      return structure
+    }
+
     const headASTTags = []
 
-    if (uidl.meta && uidl.meta.title) {
+    if (uidl.seo.title) {
       const titleAST = createJSXTag('title')
-      addChildJSXText(titleAST, uidl.meta.title)
+      addChildJSXText(titleAST, uidl.seo.title)
       headASTTags.push(titleAST)
     }
 
-    if (uidl.meta && uidl.meta.metaTags) {
-      uidl.meta.metaTags.forEach((tag) => {
+    if (uidl.seo.metaTags) {
+      uidl.seo.metaTags.forEach((tag) => {
         const metaAST = createSelfClosingJSXTag('meta')
         Object.keys(tag).forEach((key) => {
           addAttributeToJSXTag(metaAST, key, tag[key])
         })
         headASTTags.push(metaAST)
+      })
+    }
+
+    if (uidl.seo.assets) {
+      uidl.seo.assets.forEach((asset) => {
+        // TODO: Handle other asset types when needed
+        if (asset.type === 'canonical') {
+          const canonicalLink = createSelfClosingJSXTag('link')
+          addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
+          addAttributeToJSXTag(canonicalLink, 'href', asset.path)
+          headASTTags.push(canonicalLink)
+        }
       })
     }
 

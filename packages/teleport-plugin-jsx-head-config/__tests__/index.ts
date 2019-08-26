@@ -50,7 +50,7 @@ describe('plugin-jsx-head-config', () => {
   it('Should set the title in the <Helmet> component', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
-    uidlSample.meta = {
+    uidlSample.seo = {
       title: 'Test Title',
     }
 
@@ -78,7 +78,7 @@ describe('plugin-jsx-head-config', () => {
   it('Should set the meta tags in the <Helmet> component', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
     uidlSample.node.content.key = 'container'
-    uidlSample.meta = {
+    uidlSample.seo = {
       metaTags: [
         {
           name: 'description',
@@ -118,5 +118,40 @@ describe('plugin-jsx-head-config', () => {
     const randomKeyAttribute = secondMetaNode.openingElement.attributes[0] as types.JSXAttribute
     expect((randomKeyAttribute.name as types.JSXIdentifier).name).toBe('randomKey')
     expect((randomKeyAttribute.value as types.StringLiteral).value).toBe('randomValue')
+  })
+
+  it('Should set the link tag in the <Helmet> for canonical', async () => {
+    const uidlSample = component('SimpleComponent', elementNode('container'))
+    uidlSample.node.content.key = 'container'
+    uidlSample.seo = {
+      assets: [
+        {
+          type: 'canonical',
+          path: 'https://teleporthq.io',
+        },
+      ],
+    }
+
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [jsxChunk],
+      dependencies: {},
+    }
+
+    await plugin(structure)
+
+    const astNode = structure.chunks[0].meta.nodesLookup.container as types.JSXElement
+    const helmetNode = astNode.children[0] as types.JSXElement
+    expect((helmetNode.openingElement.name as types.JSXIdentifier).name).toBe('Helmet')
+
+    const linkNode = helmetNode.children[0] as types.JSXElement
+
+    const relAttribute = linkNode.openingElement.attributes[0] as types.JSXAttribute
+    const hrefAttribute = linkNode.openingElement.attributes[1] as types.JSXAttribute
+    expect((relAttribute.name as types.JSXIdentifier).name).toBe('rel')
+    expect((relAttribute.value as types.StringLiteral).value).toBe('canonical')
+    expect((hrefAttribute.name as types.JSXIdentifier).name).toBe('href')
+    expect((hrefAttribute.value as types.StringLiteral).value).toBe('https://teleporthq.io')
   })
 })
