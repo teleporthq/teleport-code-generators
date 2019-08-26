@@ -1,10 +1,10 @@
 import * as types from '@babel/types'
 
 import {
-  objectToObjectExpression,
-  convertValueToLiteral,
-  createMethodsObject,
   ParsedASTNode,
+  convertValueToLiteral,
+  objectToObjectExpression,
+  createStateChangeStatement,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import {
   UIDLPropDefinition,
@@ -62,11 +62,7 @@ export const generateVueComponentJS = (
   }
 
   if (Object.keys(methodsObject).length > 0) {
-    const methodsAST = createMethodsObject(
-      methodsObject,
-      uidl.propDefinitions,
-      'vue'
-    ) as types.ObjectMethod[]
+    const methodsAST = createMethodsObject(methodsObject, uidl.propDefinitions)
     vueObjectProperties.push(
       t.objectProperty(t.identifier('methods'), t.objectExpression(methodsAST))
     )
@@ -129,4 +125,53 @@ const createVuePropsDefinition = (
 
     return acc
   }, {})
+}
+
+const createMethodsObject = (
+  methods: Record<string, UIDLEventHandlerStatement[]>,
+  propDefinitions: Record<string, UIDLPropDefinition>,
+  t = types
+) => {
+  return Object.keys(methods).map((eventKey) => {
+    const astStatements = []
+    methods[eventKey].map((statement) => {
+      const astStatement =
+        statement.type === 'propCall'
+          ? createPropCallStatement(statement, propDefinitions)
+          : createStateChangeStatement(statement)
+
+      if (astStatement) {
+        astStatements.push(astStatement)
+      }
+    })
+    return t.objectMethod('method', t.identifier(eventKey), [], t.blockStatement(astStatements))
+  })
+}
+
+export const createPropCallStatement = (
+  eventHandlerStatement: UIDLEventHandlerStatement,
+  propDefinitions: Record<string, UIDLPropDefinition>,
+  t = types
+) => {
+  const { calls: propFunctionKey, args = [] } = eventHandlerStatement
+
+  if (!propFunctionKey) {
+    console.warn(`No prop definition referenced under the "calls" field`)
+    return null
+  }
+
+  const propDefinition = propDefinitions[propFunctionKey]
+
+  if (!propDefinition) {
+    console.warn(`No prop definition was found for function "${propFunctionKey}"`)
+    return null
+  }
+
+  // In vue it's favorable to use $emit for a specific event than sending the function as a prop
+  return t.expressionStatement(
+    t.callExpression(t.identifier('this.$emit'), [
+      t.stringLiteral(propFunctionKey),
+      ...args.map((arg) => convertValueToLiteral(arg)),
+    ])
+  )
 }

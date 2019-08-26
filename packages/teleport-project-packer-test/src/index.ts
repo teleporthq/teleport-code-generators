@@ -22,7 +22,7 @@ import {
   STENCIL_GITHUB_PROJECT,
 } from './constants'
 
-import projectUIDL from '../../../examples/test-samples/project-sample.json'
+import projectUIDL from '../../../examples/uidl-samples/project.json'
 
 const generators = {
   react: reactGenerator,

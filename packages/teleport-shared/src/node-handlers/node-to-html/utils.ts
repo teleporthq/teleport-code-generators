@@ -81,8 +81,8 @@ export const handleEvent = (
     const methodName = `handle${dashCaseToUpperCamelCase(elementName)}${dashCaseToUpperCamelCase(
       eventKey
     )}`
-    const eventNameBiding = templateSyntax.eventNameBinding
-      ? templateSyntax.eventNameBinding(methodName)
+    const eventNameBiding = templateSyntax.eventHandlersBindingMode
+      ? templateSyntax.eventHandlersBindingMode(methodName)
       : methodName
 
     methodsObject[methodName] = eventHandlerStatements

@@ -58,7 +58,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       {
         interpolation: (value) => `{{ ${value} }}`,
         eventBinding: (value) => `(${value})`,
-        eventNameBinding: (value) => `${value}()`,
+        eventHandlersBindingMode: (value) => `${value}()`,
         valueBinding: (value, node?: UIDLElementNode) =>
           node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
@@ -97,6 +97,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       content: componentDecoratorAST,
     })
 
+    /* We need to import EventEmitter and Output in Angular to temit events to the parent
+    So, to make sure if we need to import them we need to loop through all the methods and
+    check if any of them are referring to the function that is passed as prop*/
     if (Object.keys(methodsObject).length > 0) {
       const shouldImportEventEmitter = Object.keys(methodsObject).some((method) => {
         const statements = methodsObject[method]

@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { UIDLEventHandlerStatement, UIDLPropDefinition } from '@teleporthq/teleport-types'
+import { UIDLEventHandlerStatement } from '@teleporthq/teleport-types'
 /**
  * A tricky way to pass down custom configuration into
  * the objectToObjectExpression values, to allow for member expressions like
@@ -113,31 +113,7 @@ export const getTSAnnotationForType = (type: any, t = types) => {
   }
 }
 
-export const createMethodsObject = (
-  methods: Record<string, UIDLEventHandlerStatement[]>,
-  propDefinitions: Record<string, UIDLPropDefinition>,
-  flavor: 'angular' | 'vue',
-  t = types
-) => {
-  return Object.keys(methods).map((eventKey) => {
-    const astStatements = []
-    methods[eventKey].map((statement) => {
-      const astStatement =
-        statement.type === 'propCall'
-          ? createPropCallStatement(statement, propDefinitions, flavor)
-          : createStateChangeStatement(statement)
-
-      if (astStatement) {
-        astStatements.push(astStatement)
-      }
-    })
-    return flavor === 'angular'
-      ? t.classMethod('method', t.identifier(eventKey), [], t.blockStatement(astStatements))
-      : t.objectMethod('method', t.identifier(eventKey), [], t.blockStatement(astStatements))
-  })
-}
-
-const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
+export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
   const { modifies, newState } = statement
 
   const rightOperand =
@@ -152,45 +128,4 @@ const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = ty
       rightOperand
     )
   )
-}
-
-const createPropCallStatement = (
-  eventHandlerStatement: UIDLEventHandlerStatement,
-  propDefinitions: Record<string, UIDLPropDefinition>,
-  flavor: 'angular' | 'vue',
-  t = types
-) => {
-  const { calls: propFunctionKey, args = [] } = eventHandlerStatement
-
-  if (!propFunctionKey) {
-    console.warn(`No prop definition referenced under the "calls" field`)
-    return null
-  }
-
-  const propDefinition = propDefinitions[propFunctionKey]
-
-  if (!propDefinition) {
-    console.warn(`No prop definition was found for function "${propFunctionKey}"`)
-    return null
-  }
-
-  // In vue it's favorable to use $emit for a specific event than sending the function as a prop
-  const emitter =
-    flavor === 'angular'
-      ? t.expressionStatement(
-          t.callExpression(
-            t.memberExpression(
-              t.memberExpression(t.thisExpression(), t.identifier(propFunctionKey)),
-              t.identifier('emit')
-            ),
-            []
-          )
-        )
-      : t.expressionStatement(
-          t.callExpression(t.identifier('this.$emit'), [
-            t.stringLiteral(propFunctionKey),
-            ...args.map((arg) => convertValueToLiteral(arg)),
-          ])
-        )
-  return emitter
 }
