@@ -13,6 +13,7 @@ import {
   UIDLStateDefinition,
   UIDLConditionalNode,
   UIDLDynamicReference,
+  UIDLEventDefinitions,
 } from '@teleporthq/teleport-types'
 
 export const component = (
@@ -44,13 +45,14 @@ export const elementNode = (
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
   dependency?: UIDLDependency,
-  style?: Record<string, UIDLStyleValue>
+  style?: Record<string, UIDLStyleValue>,
+  events?: UIDLEventDefinitions
 ): UIDLElementNode => {
   return {
     type: 'element',
     content: style
-      ? element(elementType, attrs, children, dependency, style)
-      : element(elementType, attrs, children, dependency),
+      ? element(elementType, attrs, children, dependency, events, style)
+      : element(elementType, attrs, children, dependency, events),
   }
 }
 
@@ -59,6 +61,7 @@ export const element = (
   attrs?: Record<string, UIDLAttributeValue>,
   children?: UIDLNode[],
   dependency?: UIDLDependency,
+  events?: UIDLEventDefinitions,
   style?: Record<string, UIDLStyleValue>
 ) => {
   if (dependency) {
@@ -68,6 +71,7 @@ export const element = (
       dependency,
       attrs,
       style,
+      events,
       children,
     }
   }
@@ -76,6 +80,7 @@ export const element = (
     name: elementType,
     attrs,
     style,
+    events,
     children,
   }
 }
