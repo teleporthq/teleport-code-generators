@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import { UIDLEventHandlerStatement } from '@teleporthq/teleport-types'
 /**
  * A tricky way to pass down custom configuration into
  * the objectToObjectExpression values, to allow for member expressions like
@@ -110,4 +111,21 @@ export const getTSAnnotationForType = (type: any, t = types) => {
     default:
       return t.tsUnknownKeyword()
   }
+}
+
+export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
+  const { modifies, newState } = statement
+
+  const rightOperand =
+    newState === '$toggle'
+      ? t.unaryExpression('!', t.memberExpression(t.identifier('this'), t.identifier(modifies)))
+      : convertValueToLiteral(newState)
+
+  return t.expressionStatement(
+    t.assignmentExpression(
+      '=',
+      t.memberExpression(t.identifier('this'), t.identifier(modifies)),
+      rightOperand
+    )
+  )
 }

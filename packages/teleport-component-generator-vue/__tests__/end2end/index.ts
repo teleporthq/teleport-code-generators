@@ -4,7 +4,18 @@ import uidlSampleJSON from '../../../../examples/test-samples/component-sample.j
 import invalidUidlSampleJSON from '../../../../examples/test-samples/component-invalid-sample.json'
 
 import { createVueComponentGenerator } from '../../src'
-import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
+import {
+  ComponentUIDL,
+  GeneratedFile,
+  UIDLPropDefinition,
+  UIDLEventDefinitions,
+} from '@teleporthq/teleport-types'
+import {
+  component,
+  elementNode,
+  dynamicNode,
+  staticNode,
+} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
@@ -66,5 +77,48 @@ describe('Vue Component Validator', () => {
     expect(vueFile).toBeDefined()
     expect(vueFile.content).toContain('<template>')
     expect(result.dependencies).toBeDefined()
+  })
+})
+
+describe('Should add EventEmitter and Emit events when a fun is sent via prop', () => {
+  const generator = createVueComponentGenerator()
+  const propDefinitions: Record<string, UIDLPropDefinition> = {
+    message: {
+      type: 'string',
+      defaultValue: 'Hello',
+    },
+    onClose: {
+      type: 'func',
+      defaultValue: '() => {}',
+    },
+  }
+  const events: UIDLEventDefinitions = {
+    click: [
+      {
+        type: 'propCall',
+        calls: 'onClose',
+      },
+      {
+        type: 'stateChange',
+        modifies: 'fakeState',
+        newState: false,
+      },
+    ],
+  }
+  const uidl: ComponentUIDL = component(
+    'PropEventComponent',
+    elementNode('container', {}, [
+      dynamicNode('prop', 'message'),
+      elementNode('button', {}, [staticNode('close')], null, null, events),
+    ]),
+    propDefinitions
+  )
+
+  it('Adds EmitEmitter to the import', async () => {
+    const result = await generator.generateComponent(uidl)
+    const vueFile = findFileByType(result.files, VUE_FILE)
+
+    expect(vueFile.content).toContain(`@click="handleButtonClick"`)
+    expect(vueFile.content).toContain(`this.$emit('onClose')`)
   })
 })

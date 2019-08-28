@@ -1,9 +1,10 @@
 import * as types from '@babel/types'
 
 import {
-  objectToObjectExpression,
-  convertValueToLiteral,
   ParsedASTNode,
+  convertValueToLiteral,
+  objectToObjectExpression,
+  createStateChangeStatement,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import {
   UIDLPropDefinition,
@@ -147,24 +148,7 @@ const createMethodsObject = (
   })
 }
 
-const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
-  const { modifies, newState } = statement
-
-  const rightOperand =
-    newState === '$toggle'
-      ? t.unaryExpression('!', t.memberExpression(t.identifier('this'), t.identifier(modifies)))
-      : convertValueToLiteral(newState)
-
-  return t.expressionStatement(
-    t.assignmentExpression(
-      '=',
-      t.memberExpression(t.identifier('this'), t.identifier(modifies)),
-      rightOperand
-    )
-  )
-}
-
-const createPropCallStatement = (
+export const createPropCallStatement = (
   eventHandlerStatement: UIDLEventHandlerStatement,
   propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
