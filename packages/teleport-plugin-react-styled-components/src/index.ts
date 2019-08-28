@@ -1,5 +1,6 @@
+import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { generateStyledComponent, countPropReferences } from './utils'
+import { generateStyledComponent, countPropReferences, removeUnusedDependencies } from './utils'
 import {
   traverseElements,
   transformDynamicStyles,
@@ -18,10 +19,15 @@ import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/cons
 interface StyledComponentsConfig {
   componentChunkName: string
   importChunkName?: string
+  componentLibrary?: 'react' | 'reactnative'
 }
 
 export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (config) => {
-  const { componentChunkName = 'jsx-component', importChunkName = 'import-local' } = config || {}
+  const {
+    componentChunkName = 'jsx-component',
+    importChunkName = 'import-local',
+    componentLibrary = 'react',
+  } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
@@ -31,7 +37,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       return structure
     }
 
-    const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap = {}
 
@@ -87,8 +93,13 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
     dependencies.styled = {
       type: 'library',
-      path: 'styled-components',
+      path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
       version: '4.2.0',
+    }
+
+    // React Native elements are imported from styled-components/native, so direct dependency to `react-native` is removed
+    if (componentLibrary === 'reactnative') {
+      removeUnusedDependencies(dependencies, jsxNodesLookup)
     }
 
     return structure

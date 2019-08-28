@@ -114,7 +114,7 @@ const objectIsASTType = (obj: any) => {
   }
 
   // TODO: extensive list
-  return obj.type === 'JSXElement' || obj.type === 'CallExpression'
+  return obj.type === 'JSXElement' || obj.type === 'CallExpression' || obj.type === 'Identifier'
 }
 
 // equivalent to (props) => props.title

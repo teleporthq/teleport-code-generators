@@ -6,15 +6,17 @@ import vueGenerator from '@teleporthq/teleport-project-generator-vue'
 import nuxtGenerator from '@teleporthq/teleport-project-generator-nuxt'
 import preactGenerator from '@teleporthq/teleport-project-generator-preact'
 import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
+import reactNativeGenerator from '@teleporthq/teleport-project-generator-reactnative'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { RemoteTemplateDefinition } from '@teleporthq/teleport-types'
+import { RemoteTemplateDefinition, ProjectUIDL } from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 
 import {
   GITHUB_TEMPLATE_OWNER,
   REACT_GITHUB_PROJECT,
+  REACTNATIVE_GITHUB_PROJECT,
   NEXT_GITHUB_PROJECT,
   VUE_GITHUB_PROJECT,
   NUXT_GITHUB_PROJECT,
@@ -26,6 +28,7 @@ import projectUIDL from '../../../examples/uidl-samples/project.json'
 
 const generators = {
   react: reactGenerator,
+  reactnative: reactNativeGenerator,
   next: nextGenerator,
   vue: vueGenerator,
   nuxt: nuxtGenerator,
@@ -39,6 +42,7 @@ const getGithubRemoteDefinition = (username: string, repo: string): RemoteTempla
 
 const templates = {
   react: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
+  reactnative: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACTNATIVE_GITHUB_PROJECT),
   next: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
   vue: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
   nuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
@@ -59,21 +63,22 @@ const packProject = async (projectType: string) => {
 
   projectPacker.setPublisher(publisher)
   projectPacker.setGenerator(generators[projectType])
-  await projectPacker.loadTemplate(remoteTemplate)
+  // await projectPacker.loadTemplate(remoteTemplate)
 
-  const result = await projectPacker.pack(projectUIDL)
+  const result = await projectPacker.pack((projectUIDL as unknown) as ProjectUIDL)
 
   console.info(projectType, ' - ', result)
 }
 
 const run = async () => {
   try {
-    await packProject('react')
-    await packProject('next')
-    await packProject('vue')
-    await packProject('nuxt')
-    await packProject('preact')
-    await packProject('stencil')
+    await packProject('reactnative')
+    // await packProject('react')
+    // await packProject('next')
+    // await packProject('vue')
+    // await packProject('nuxt')
+    // await packProject('preact')
+    // await packProject('stencil')
   } catch (e) {
     console.info(e)
   }

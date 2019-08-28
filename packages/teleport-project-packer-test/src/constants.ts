@@ -2,6 +2,8 @@ export const GITHUB_TEMPLATE_OWNER = 'teleporthq'
 
 export const REACT_GITHUB_PROJECT = 'teleport-project-template-react'
 
+export const REACTNATIVE_GITHUB_PROJECT = 'teleport-project-template-react-native'
+
 export const NEXT_GITHUB_PROJECT = 'teleport-project-template-next'
 
 export const VUE_GITHUB_PROJECT = 'teleport-project-template-vue'

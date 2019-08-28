@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-project-generator-react": "^0.9.0",
+    "@teleporthq/teleport-project-generator-reactnative": "^0.9.0",
     "@teleporthq/teleport-project-generator-next": "^0.9.0",
     "@teleporthq/teleport-project-generator-vue": "^0.9.0",
     "@teleporthq/teleport-project-generator-nuxt": "^0.9.0",

@@ -1,11 +1,8 @@
-import {
-  component,
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { createElementWithStyle } from './mocks'
 
 describe('Testing the functionality for StyledComponents', () => {
   const plugin = createPlugin()
@@ -46,18 +43,8 @@ describe('Testing the functionality for StyledComponents', () => {
   })
 
   it('Should add styled as dependency', async () => {
-    const style = {
-      height: staticNode('100px'),
-    }
-    const element = elementNode('container', {}, [], { type: 'package' }, style)
-    const elementWithKey = {
-      ...element,
-      content: {
-        ...element.content,
-        key: 'container',
-      },
-    }
-    const uidlSample = component('StyledComponents', elementWithKey)
+    const elementWithStyle = createElementWithStyle()
+    const uidlSample = component('StyledComponents', elementWithStyle)
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
@@ -94,5 +81,33 @@ describe('Testing the functionality for StyledComponents', () => {
     const { dependencies } = await plugin(structure)
 
     expect(Object.keys(dependencies).length).toBe(0)
+  })
+
+  it('Generates the reactnative dependency path and removes unneeded dependencies', async () => {
+    const reactNativePlugin = createPlugin({ componentLibrary: 'reactnative' })
+
+    const elementWithStyle = createElementWithStyle()
+    const uidlSample = component('StyledComponents', elementWithStyle)
+    const structure: ComponentStructure = {
+      uidl: uidlSample,
+      options: {},
+      chunks: [componentChunk],
+      dependencies: {
+        container: {
+          type: 'library',
+          path: 'react-native',
+        },
+      },
+    }
+
+    const { dependencies } = await reactNativePlugin(structure)
+
+    expect(dependencies.container).toBeUndefined()
+
+    const { styled } = dependencies
+
+    expect(Object.keys(dependencies).length).toBeGreaterThan(0)
+    expect(styled.type).toBe('library')
+    expect(styled.path).toBe('styled-components/native')
   })
 })

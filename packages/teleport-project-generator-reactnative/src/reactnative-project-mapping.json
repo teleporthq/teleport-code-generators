@@ -1,0 +1,26 @@
+{
+  "elements": {
+    "navlink": {
+      "elementType": "TouchableWithoutFeedback",
+      "dependency": {
+        "type": "library",
+        "path": "react-native-gesture-handler",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "Text",
+            "name": "text",
+            "children": [
+              { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

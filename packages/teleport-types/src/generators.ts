@@ -133,7 +133,7 @@ export interface ProjectStrategy {
     path: string[]
     fileName?: string
   }
-  entry: {
+  entry?: {
     generator: ComponentGenerator
     path: string[]
     fileName?: string

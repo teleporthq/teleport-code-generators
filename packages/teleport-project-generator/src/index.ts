@@ -117,8 +117,10 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     }
 
     // Create the entry file of the project (ex: index.html, _document.js)
-    const entryFile = await createEntryFile(uidl, strategy, { assetsPrefix })
-    injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
+    if (strategy.entry) {
+      const entryFile = await createEntryFile(uidl, strategy, { assetsPrefix })
+      injectFilesToPath(rootFolder, strategy.entry.path, [entryFile])
+    }
 
     // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies)
