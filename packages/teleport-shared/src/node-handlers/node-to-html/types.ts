@@ -15,6 +15,7 @@ export interface HTMLTemplateSyntax {
   interpolation?: (value: string) => string
   valueBinding?: (value: string, node?: UIDLElementNode) => string
   eventBinding?: (value: string) => string
+  eventHandlersBindingMode?: (value: string) => string
   eventEmmitter?: (value: string) => string
   conditionalAttr?: string
   repeatAttr?: string

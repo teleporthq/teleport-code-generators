@@ -6,6 +6,7 @@ export const DEFAULT_TEMPLATE_SYNTAX: HTMLTemplateSyntax = {
   eventBinding: (value) => `@${value}`,
   valueBinding: (value) => `:${value}`,
   eventEmmitter: (value) => `this.$emit('${value}')`,
+  eventHandlersBindingMode: (value) => value,
   conditionalAttr: 'v-if',
   repeatAttr: 'v-for',
   repeatIterator: (iteratorName, iteratedCollection, useIndex) => {

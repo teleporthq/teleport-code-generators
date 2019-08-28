@@ -58,6 +58,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       {
         interpolation: (value) => `{{ ${value} }}`,
         eventBinding: (value) => `(${value})`,
+        eventHandlersBindingMode: (value) => `${value}()`,
         valueBinding: (value, node?: UIDLElementNode) =>
           node && node.content.dependency ? `[${value}]` : `[attr.${value}]`,
         eventEmmitter: (value) => `this.$emit('${value}')`,
@@ -96,7 +97,30 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       content: componentDecoratorAST,
     })
 
-    const exportAST = generateExportAST(uidl.name, propDefinitions, stateDefinitions, dataObject)
+    /* We need to import EventEmitter and Output in Angular to temit events to the parent
+    So, to make sure if we need to import them we need to loop through all the methods and
+    check if any of them are referring to the function that is passed as prop*/
+    if (Object.keys(methodsObject).length > 0) {
+      const shouldImportEventEmitter = Object.keys(methodsObject).some((method) => {
+        const statements = methodsObject[method]
+        if (statements.length > 0) {
+          return statements.some((event) => event.type === 'propCall')
+        }
+        return false
+      })
+      if (shouldImportEventEmitter) {
+        dependencies.Output = ANGULAR_CORE_DEPENDENCY
+        dependencies.EventEmitter = ANGULAR_CORE_DEPENDENCY
+      }
+    }
+
+    const exportAST = generateExportAST(
+      uidl.name,
+      propDefinitions,
+      stateDefinitions,
+      dataObject,
+      methodsObject
+    )
 
     chunks.push({
       type: CHUNK_TYPE.AST,
