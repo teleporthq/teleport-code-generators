@@ -3,7 +3,6 @@ import uidlSampleJSON from '../../../examples/test-samples/component-sample.json
 
 import { createReactNativeComponentGenerator } from '../src'
 import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
-import console = require('console')
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const JS_FILE = 'js'

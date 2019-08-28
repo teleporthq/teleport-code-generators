@@ -37,20 +37,20 @@
             "value": "home",
             "meta": {
               "path": "/",
-              "componentName": "Home"
+              "componentName": "HomeScreen"
             },
             "seo": {
-              "title": "Home Page"
+              "title": "Home Screen"
             }
           },
           {
             "value": "team",
             "meta": {
               "path": "/team",
-              "componentName": "Team"
+              "componentName": "TeamScreen"
             },
             "seo": {
-              "title": "About Page",
+              "title": "About Screen",
               "metaTags": [
                 { "name": "description", "content": "What is this about?" },
                 { "name": "keywords", "content": "prea bun, prea ca la tara" },
@@ -67,7 +67,7 @@
             "value": "contact-us",
             "meta": {
               "path": "/contact-us",
-              "componentName": "ContactPage"
+              "componentName": "ContactScreen"
             },
             "seo": {
               "assets": [
@@ -701,6 +701,16 @@
             "font-size": "18px"
           },
           "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "name": "form-banner",
+                "attrs": {
+                  "url": "/playground_assets/some-banner.png"
+                }
+              }
+            },
             {
               "type": "element",
               "content": {

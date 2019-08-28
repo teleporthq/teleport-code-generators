@@ -152,3 +152,17 @@ export const createComponentDecorator = (params, t = types) => {
     t.callExpression(t.identifier('Component'), [objectToObjectExpression(params)])
   )
 }
+
+export const findAttributeByName = (jsxTag: types.JSXElement, attrName: string) => {
+  return jsxTag.openingElement.attributes.find(
+    (attr) => attr.type === 'JSXAttribute' && attr.name.name === attrName
+  ) as types.JSXAttribute
+}
+
+export const removeAttributeByName = (jsxTag: types.JSXElement, attrName: string) => {
+  jsxTag.openingElement.attributes = jsxTag.openingElement.attributes.filter(
+    (attr) =>
+      attr.type === 'JSXSpreadAttribute' ||
+      (attr.type === 'JSXAttribute' && attr.name.name !== attrName)
+  )
+}

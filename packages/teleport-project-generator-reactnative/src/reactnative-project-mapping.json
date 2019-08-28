@@ -8,19 +8,7 @@
         "meta": {
           "namedImport": true
         }
-      },
-      "children": [
-        {
-          "type": "element",
-          "content": {
-            "elementType": "Text",
-            "name": "text",
-            "children": [
-              { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
-            ]
-          }
-        }
-      ]
+      }
     }
   }
 }

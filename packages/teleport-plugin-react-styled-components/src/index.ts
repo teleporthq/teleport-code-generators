@@ -4,6 +4,7 @@ import { generateStyledComponent, countPropReferences, removeUnusedDependencies 
 import {
   traverseElements,
   transformDynamicStyles,
+  cleanupNestedStyles,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   dashCaseToUpperCamelCase,
@@ -42,11 +43,16 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     const jssStyleMap = {}
 
     traverseElements(node, (element) => {
-      const { style, key, elementType } = element
+      let { style } = element
+      const { key, elementType } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
         const className = `${dashCaseToUpperCamelCase(key)}`
         const timesReferred = countPropReferences(style, 0)
+
+        if (componentLibrary === 'reactnative') {
+          style = cleanupNestedStyles(style)
+        }
 
         jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
           if (styleValue.content.referenceType === 'prop') {
