@@ -3,14 +3,14 @@ import componentUIDLJSON from '../../../../examples/test-samples/component-sampl
 // @ts-ignore
 import bigUIDL from './big-sample.json'
 
-import { createReactComponentGenerator } from '../../src'
+import { createReactComponentGenerator, ReactStyleVariation } from '../../src'
 
 import { performance } from 'perf_hooks'
 import { ComponentUIDL, UIDLElement } from '@teleporthq/teleport-types'
 
 const componentUIDL = componentUIDLJSON as ComponentUIDL
 
-const generator = createReactComponentGenerator('StyledJSX')
+const generator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
 
 describe('React Generator Performance Run', () => {
   describe('with realistic component sample', () => {

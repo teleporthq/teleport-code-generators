@@ -10,14 +10,17 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import vueProjectMapping from './vue-project-mapping.json'
+import VueProjectMapping from './vue-project-mapping.json'
 
 const vueHeadConfigPlugin = createHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
 
-export const createVueProjectGenerator = () => {
-  const vueComponentGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
-  const vuePagesGenerator = createVueComponentGenerator(vueProjectMapping as Mapping)
-  vuePagesGenerator.addPlugin(vueHeadConfigPlugin)
+const createVueProjectGenerator = () => {
+  const vueComponentGenerator = createVueComponentGenerator()
+  vueComponentGenerator.addMapping(VueProjectMapping as Mapping)
+
+  const vuePageGenerator = createVueComponentGenerator()
+  vuePageGenerator.addMapping(VueProjectMapping as Mapping)
+  vuePageGenerator.addPlugin(vueHeadConfigPlugin)
 
   const vueRouterGenerator = createComponentGenerator()
   vueRouterGenerator.addPlugin(vueRoutingPlugin)
@@ -33,7 +36,7 @@ export const createVueProjectGenerator = () => {
       path: ['src', 'components'],
     },
     pages: {
-      generator: vuePagesGenerator,
+      generator: vuePageGenerator,
       path: ['src', 'views'],
     },
     router: {
@@ -53,5 +56,7 @@ export const createVueProjectGenerator = () => {
 
   return generator
 }
+
+export { createVueProjectGenerator, VueProjectMapping }
 
 export default createVueProjectGenerator()

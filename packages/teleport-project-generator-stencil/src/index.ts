@@ -10,14 +10,14 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import stencilProjectMapping from './stencil-mapping.json'
+import StencilProjectMapping from './stencil-mapping.json'
 
-export const createStencilProjectGenerator = () => {
+const createStencilProjectGenerator = () => {
   const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
   const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
 
   const stencilComponentGenerator = createStencilComponentGenerator()
-  stencilComponentGenerator.addMapping(stencilProjectMapping as Mapping)
+  stencilComponentGenerator.addMapping(StencilProjectMapping as Mapping)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(stencilAppRouting)
@@ -73,5 +73,7 @@ export const createStencilProjectGenerator = () => {
 
   return generator
 }
+
+export { createStencilProjectGenerator, StencilProjectMapping }
 
 export default createStencilProjectGenerator()

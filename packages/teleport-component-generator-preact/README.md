@@ -17,7 +17,7 @@ yarn add @teleporthq/teleport-component-generator-preact
 ```javascript
 import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 
-const preactGenerator = createPreactComponentGenerator(')
+const preactGenerator = createPreactComponentGenerator()
 
 const result = await preactGenerator.generateComponent(uidl)
 ```
