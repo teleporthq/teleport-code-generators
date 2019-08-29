@@ -1,5 +1,5 @@
 import {
-  prefixPlaygroundAssetsURL,
+  prefixAssetsPath,
   traverseElements,
   traverseNodes,
   traverseRepeats,
@@ -79,7 +79,7 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = prefixPlaygroundAssetsURL(options.assetsPrefix, tag[key])
+      tag[key] = prefixAssetsPath(options.assetsPrefix, tag[key])
     })
   })
 }
@@ -138,10 +138,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     Object.keys(originalElement.attrs).forEach((attrKey) => {
       const attrValue = originalElement.attrs[attrKey]
       if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
-        originalElement.attrs[attrKey].content = prefixPlaygroundAssetsURL(
-          assetsPrefix,
-          attrValue.content
-        )
+        originalElement.attrs[attrKey].content = prefixAssetsPath(assetsPrefix, attrValue.content)
       }
     })
   }
@@ -352,10 +349,7 @@ const prefixAssetURLs = (
           const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER)
           acc[styleKey] =
             staticContent.slice(0, startIndex) +
-            prefixPlaygroundAssetsURL(
-              assetsPrefix,
-              staticContent.slice(startIndex, staticContent.length)
-            )
+            prefixAssetsPath(assetsPrefix, staticContent.slice(startIndex, staticContent.length))
         } else {
           acc[styleKey] = styleValue
         }

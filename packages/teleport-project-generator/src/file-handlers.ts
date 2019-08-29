@@ -4,7 +4,7 @@ import {
   addTextNode,
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
@@ -183,14 +183,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   meta.forEach((metaItem) => {
     const metaTag = createHTMLNode('meta') // , { selfClosing: true })
     Object.keys(metaItem).forEach((key) => {
-      const prefixedURL = prefixPlaygroundAssetsURL(assetsPrefix, metaItem[key])
+      const prefixedURL = prefixAssetsPath(assetsPrefix, metaItem[key])
       addAttributeToNode(metaTag, key, prefixedURL)
     })
     addChildNode(headNode, metaTag)
   })
 
   assets.forEach((asset) => {
-    const assetPath = prefixPlaygroundAssetsURL(assetsPrefix, asset.path)
+    const assetPath = prefixAssetsPath(assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
@@ -293,7 +293,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
   }
 
   const icons = manifest.icons.map((icon) => {
-    const src = prefixPlaygroundAssetsURL(assetsPrefix || '', icon.src)
+    const src = prefixAssetsPath(assetsPrefix || '', icon.src)
     return { ...icon, src }
   })
 

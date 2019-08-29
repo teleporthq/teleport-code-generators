@@ -6,7 +6,7 @@ import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-
 
 import * as types from '@babel/types'
 
-import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { ProjectUIDL, ChunkDefinition, EntryFileOptions } from '@teleporthq/teleport-types'
 
@@ -41,14 +41,14 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   meta.forEach((metaItem) => {
     const metaTag = createJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
-      const metaValue = prefixPlaygroundAssetsURL(options.assetsPrefix, metaItem[key])
+      const metaValue = prefixAssetsPath(options.assetsPrefix, metaItem[key])
       addAttributeToJSXTag(metaTag, key, metaValue)
     })
     addChildJSXTag(headNode, metaTag)
   })
 
   assets.forEach((asset) => {
-    const assetPath = prefixPlaygroundAssetsURL(options.assetsPrefix, asset.path)
+    const assetPath = prefixAssetsPath(options.assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
