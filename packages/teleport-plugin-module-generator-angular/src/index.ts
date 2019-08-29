@@ -1,9 +1,8 @@
 import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createModuleDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
-import { createRoutesAST, createExportModuleAST } from './utils'
+import { createRoutesAST, createExportModuleAST, createModuleDecorator } from './utils'
 
 import {
   ANGULAR_CORE_DEPENDENCY,
@@ -46,14 +45,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
       linkAfter: [importChunkName],
     })
 
-    const params = {
-      decleration: ['AppComponent'],
-      imports: [],
-      providers: [],
-      bootstrap: [],
-    }
-
-    const ngModuleAST = createModuleDecorator(params)
+    const ngModuleAST = createModuleDecorator()
     const moduleDecoratorAST = createExportModuleAST()
 
     chunks.push({

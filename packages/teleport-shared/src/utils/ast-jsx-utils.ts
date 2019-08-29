@@ -152,7 +152,3 @@ export const createComponentDecorator = (params, t = types) => {
     t.callExpression(t.identifier('Component'), [objectToObjectExpression(params)])
   )
 }
-
-export const createModuleDecorator = (params, t = types) => {
-  return t.decorator(t.callExpression(t.identifier('NgModule'), [objectToObjectExpression(params)]))
-}
