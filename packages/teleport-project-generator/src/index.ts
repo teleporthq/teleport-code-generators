@@ -12,6 +12,7 @@ import {
   createPage,
   createRouterFile,
   createEntryFile,
+  createComponentModule,
 } from './file-handlers'
 
 import { DEFAULT_TEMPLATE } from './constants'
@@ -102,6 +103,12 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    // Handling module generation for components
+    if (strategy.components.options && strategy.components.options.module) {
+      const componentsModuleFile = await createComponentModule(root, strategy, components)
+      injectFilesToPath(rootFolder, strategy.components.path, [componentsModuleFile])
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support

@@ -1,4 +1,4 @@
-import angularModuleGeneratorAngular from '@teleporthq/teleport-plugin-module-generator-angular'
+import { createPlugin as createAngularModuleGenerator } from '@teleporthq/teleport-plugin-module-generator-angular'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -14,15 +14,29 @@ export const createPreactProjectGenerator = () => {
   const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TS })
   const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
 
+  const rootModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'root' })
+  const componentModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'component' })
+  const pagesModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'pages' })
+
   const angularComponentGenerator = createAngularComponentGenerator()
   angularComponentGenerator.addMapping(anuglarProjectMapping as Mapping)
 
   const angularPageGenerator = createAngularComponentGenerator()
 
-  const anuglarRoutingComponentGenerator = createComponentGenerator()
-  anuglarRoutingComponentGenerator.addPlugin(angularModuleGeneratorAngular)
-  anuglarRoutingComponentGenerator.addPlugin(importStatementsPlugin)
-  anuglarRoutingComponentGenerator.addPostProcessor(prettierJS)
+  const angulaRootModuleGenerator = createComponentGenerator()
+  angulaRootModuleGenerator.addPlugin(rootModuleGeneratorAngular)
+  angulaRootModuleGenerator.addPlugin(importStatementsPlugin)
+  angulaRootModuleGenerator.addPostProcessor(prettierJS)
+
+  const angularComponentModuleGenerator = createComponentGenerator()
+  angularComponentModuleGenerator.addPlugin(componentModuleGeneratorAngular)
+  angularComponentModuleGenerator.addPlugin(importStatementsPlugin)
+  angularComponentModuleGenerator.addPostProcessor(prettierJS)
+
+  const anuglarPageModuleGenerator = createComponentGenerator()
+  anuglarPageModuleGenerator.addPlugin(pagesModuleGeneratorAngular)
+  anuglarPageModuleGenerator.addPlugin(importStatementsPlugin)
+  anuglarPageModuleGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
@@ -30,21 +44,24 @@ export const createPreactProjectGenerator = () => {
   const generator = createProjectGenerator({
     components: {
       generator: angularComponentGenerator,
-      path: ['src', 'components'],
+      path: ['src', 'app', 'components'],
       options: {
         createFolderForEachComponent: true,
+        module: {
+          generator: angularComponentModuleGenerator,
+        },
       },
     },
     pages: {
       generator: angularPageGenerator,
-      path: ['src', 'pages'],
+      path: ['src', 'app', 'pages'],
       options: {
         createFolderForEachComponent: true,
       },
     },
     router: {
-      generator: anuglarRoutingComponentGenerator,
-      path: ['src'],
+      generator: angulaRootModuleGenerator,
+      path: ['src', 'app'],
       fileName: 'app.module',
     },
     entry: {

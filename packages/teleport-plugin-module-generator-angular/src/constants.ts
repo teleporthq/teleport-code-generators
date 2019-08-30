@@ -32,3 +32,28 @@ export const ANGULAR_ROUTER: UIDLDependency = {
     namedImport: true,
   },
 }
+
+export const ANGULAR_COMMON_MODULE: UIDLDependency = {
+  type: 'library',
+  path: '@angular/commong',
+  version: '8.1.0',
+  meta: {
+    namedImport: true,
+  },
+}
+
+export const COMPONENTS_MODULE: UIDLDependency = {
+  type: 'local',
+  path: `./components/components.module`,
+  meta: {
+    namedImport: true,
+  },
+}
+
+export const APP_COMPONENT: UIDLDependency = {
+  type: 'local',
+  path: `./app.component`,
+  meta: {
+    namedImport: true,
+  },
+}

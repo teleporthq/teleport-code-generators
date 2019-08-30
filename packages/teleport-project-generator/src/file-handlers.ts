@@ -43,6 +43,30 @@ export const createComponent = async (
   return strategy.components.generator.generateComponent(componentUIDL, options)
 }
 
+export const createComponentModule = async (
+  root: ComponentUIDL,
+  strategy: ProjectStrategy,
+  components: Record<string, ComponentUIDL>
+) => {
+  const { path } = strategy.components
+  const { generator } = strategy.components.options.module
+  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+    path,
+    strategy.components.path
+  )
+
+  const options = {
+    localDependenciesPrefix: componentLocalDependenciesPrefix,
+    strategy,
+  }
+
+  root.meta = root.meta || {}
+  root.meta.fileName = 'components.module'
+
+  const { files } = await generator.generateComponent(root, options)
+  return files[0]
+}
+
 export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
   const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
   const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(

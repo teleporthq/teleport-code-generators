@@ -114,6 +114,9 @@ export interface ProjectStrategy {
       customComponentFileName?: string // only used when createFolderForEachComponent is true
       customStyleFileName?: string
       customTemplateFileName?: string
+      module?: {
+        generator?: ComponentGenerator
+      }
     }
   }
   pages: {
@@ -126,6 +129,9 @@ export interface ProjectStrategy {
       customComponentFileName?: string // only used when createFolderForEachComponent is true
       customStyleFileName?: string
       customTemplateFileName?: string
+      module?: {
+        generator?: ComponentGenerator
+      }
     }
   }
   router?: {

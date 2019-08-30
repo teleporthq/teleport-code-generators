@@ -1,7 +1,30 @@
 import * as types from '@babel/types'
 import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
-export const createModuleDecorator = (t = types) => {
+export const createComponentModuleDecorator = (t = types) => {
+  const declerations: types.ObjectProperty = t.objectProperty(
+    t.identifier('declerations'),
+    t.arrayExpression([])
+  )
+
+  const imports: types.ObjectProperty = t.objectProperty(
+    t.identifier('imports'),
+    t.arrayExpression([t.identifier('CommonModule')])
+  )
+
+  const exportsProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('exports'),
+    t.arrayExpression([])
+  )
+
+  return t.decorator(
+    t.callExpression(t.identifier('NgModule'), [
+      t.objectExpression([declerations, imports, exportsProperty]),
+    ])
+  )
+}
+
+export const createRootModuleDecorator = (t = types) => {
   const declerations: types.ObjectProperty = t.objectProperty(
     t.identifier('decleration'),
     t.arrayExpression([t.identifier('AppComponent')])
@@ -11,7 +34,7 @@ export const createModuleDecorator = (t = types) => {
     t.identifier('imports'),
     t.arrayExpression([
       t.identifier('BrowserModule'),
-      t.callExpression(t.memberExpression(t.identifier('RouterModule'), t.identifier('routes')), [
+      t.callExpression(t.memberExpression(t.identifier('RouterModule'), t.identifier('forRoot')), [
         t.identifier('routes'),
       ]),
       t.identifier('ComponentsModule'),
@@ -32,9 +55,9 @@ export const createModuleDecorator = (t = types) => {
   )
 }
 
-export const createExportModuleAST = (t = types) => {
+export const createExportModuleAST = (moduleName: string, t = types) => {
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier('AppModule'), null, t.classBody([])),
+    t.classDeclaration(t.identifier(moduleName), null, t.classBody([])),
     [],
     null
   )
@@ -46,9 +69,10 @@ export const createRoutesAST = (routes, t = types) => {
     const { content } = route
     return constructRoute(content.value)
   })
-  return t.variableDeclaration('const', [
+  const ast = t.variableDeclaration('const', [
     t.variableDeclarator(t.identifier('routes'), t.arrayExpression(routesObject)),
   ])
+  return ast
 }
 
 const constructRoute = (routeName: string, t = types) => {
