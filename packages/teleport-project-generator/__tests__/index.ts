@@ -24,7 +24,8 @@ describe('Generic Project Generator', () => {
     })
 
     it('sets the default assets prefix', () => {
-      expect(generator.getAssetsPath()).toBe('test/static')
+      expect(generator.getAssetsPath()[0]).toBe('test')
+      expect(generator.getAssetsPath()[1]).toBe('static')
     })
 
     it('sends the mapping to the component generators', () => {
@@ -88,7 +89,8 @@ describe('Generic Project Generator', () => {
     })
 
     it('sets the default assets prefix', () => {
-      expect(generator.getAssetsPath()).toBe('test/static')
+      expect(generator.getAssetsPath()[0]).toBe('test')
+      expect(generator.getAssetsPath()[1]).toBe('static')
     })
 
     it('sends the mapping to the component generators', () => {

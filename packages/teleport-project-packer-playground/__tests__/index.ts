@@ -5,16 +5,7 @@ import { join } from 'path'
 import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
-import { createPlaygroundPacker, PackerFactoryParams } from '../src/index'
-
-// @ts-ignore
-import reactVariation from './react-variation.json'
-// @ts-ignore
-import nextVariation from './next-variation.json'
-// @ts-ignore
-import vueVariation from './vue-variation.json'
-// @ts-ignore
-import nuxtVariation from './nuxt-variation.json'
+import { createPlaygroundPacker, PackerOptions, PublisherType, GeneratorType } from '../src/index'
 
 const reactProjectPath = join(__dirname, 'react')
 const nextProjectPath = join(__dirname, 'next')
@@ -24,18 +15,15 @@ const nuxtProjectPath = join(__dirname, 'nuxt')
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
 
-const assetsData = {
-  assets: [
-    {
-      data: base64File,
-      name: 'asset',
-      type: 'png',
-    },
-  ],
-  meta: {
-    prefix: [''],
+const assets = [
+  {
+    data: base64File,
+    name: 'asset',
+    type: 'png',
   },
-}
+]
+
+const projectUIDL = projectJson as ProjectUIDL
 
 afterAll(() => {
   // Comment these lines if you want to see the generated projects
@@ -48,51 +36,58 @@ afterAll(() => {
 describe('project packer playground', () => {
   it('creates a new instance of the project packer playground', () => {
     const packer = createPlaygroundPacker()
-    expect(packer.loadTemplate).toBeDefined()
     expect(packer.pack).toBeDefined()
   })
 
   it('should pack a react project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(reactVariation))
+    const options: PackerOptions = {
+      generator: GeneratorType.REACT,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: reactProjectPath },
+    }
 
-    factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: reactProjectPath }
-
-    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
   it('should pack a next project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nextVariation))
+    const options: PackerOptions = {
+      generator: GeneratorType.NEXT,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: nextProjectPath },
+    }
 
-    factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: nextProjectPath }
-
-    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
   it('should pack a vue project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(vueVariation))
+    const options: PackerOptions = {
+      generator: GeneratorType.VUE,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: vueProjectPath },
+    }
 
-    factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: vueProjectPath }
-
-    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
   it('should pack a nuxt project', async () => {
     const packer = createPlaygroundPacker()
-    const factoryParams: PackerFactoryParams = JSON.parse(JSON.stringify(nuxtVariation))
+    const options: PackerOptions = {
+      generator: GeneratorType.NUXT,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: nuxtProjectPath },
+    }
 
-    factoryParams.assets = assetsData
-    factoryParams.publisher.meta = { outputPath: nuxtProjectPath }
-
-    const { success } = await packer.pack(projectJson as ProjectUIDL, factoryParams)
+    const { success } = await packer.pack(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 })

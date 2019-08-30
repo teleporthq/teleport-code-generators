@@ -144,7 +144,7 @@ export class ProjectGenerator {
     // Initialize output folder and other reusable structures
     const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
     let collectedDependencies: Record<string, string> = {}
-    const assetsPrefix = this.strategy.static.prefix || '/' + this.getAssetsPath()
+    const assetsPrefix = this.strategy.static.prefix || '/' + this.getAssetsPath().join('/')
     const options: GeneratorOptions = {
       assetsPrefix,
       projectRouteDefinition: root.stateDefinitions.route,
@@ -212,7 +212,7 @@ export class ProjectGenerator {
   }
 
   public getAssetsPath() {
-    return this.strategy.static.path.join('/')
+    return this.strategy.static.path
   }
 }
 

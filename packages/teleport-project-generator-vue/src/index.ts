@@ -10,6 +10,7 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
+import VueTemplate from './project-template'
 import VueProjectMapping from './vue-project-mapping.json'
 
 const vueHeadConfigPlugin = createHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
@@ -57,6 +58,6 @@ const createVueProjectGenerator = () => {
   return generator
 }
 
-export { createVueProjectGenerator, VueProjectMapping }
+export { createVueProjectGenerator, VueProjectMapping, VueTemplate }
 
 export default createVueProjectGenerator()

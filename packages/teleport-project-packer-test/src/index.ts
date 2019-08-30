@@ -8,7 +8,7 @@ import preactGenerator from '@teleporthq/teleport-project-generator-preact'
 import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { RemoteTemplateDefinition } from '@teleporthq/teleport-types'
+import { RemoteTemplateDefinition, ProjectUIDL } from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 
@@ -61,7 +61,7 @@ const packProject = async (projectType: string) => {
   projectPacker.setGenerator(generators[projectType])
   await projectPacker.loadTemplate(remoteTemplate)
 
-  const result = await projectPacker.pack(projectUIDL)
+  const result = await projectPacker.pack((projectUIDL as unknown) as ProjectUIDL)
 
   console.info(projectType, ' - ', result)
 }

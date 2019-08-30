@@ -7,6 +7,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { Mapping } from '@teleporthq/teleport-types'
 
 import NuxtMapping from './nuxt-mapping.json'
+import NuxtTemplate from './project-template'
 
 const createNuxtProjectGenerator = () => {
   const vueComponentGenerator = createVueComponentGenerator()
@@ -48,6 +49,6 @@ const createNuxtProjectGenerator = () => {
   return generator
 }
 
-export { createNuxtProjectGenerator, NuxtMapping }
+export { createNuxtProjectGenerator, NuxtMapping, NuxtTemplate }
 
 export default createNuxtProjectGenerator()

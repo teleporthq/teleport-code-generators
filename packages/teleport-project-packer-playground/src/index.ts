@@ -1,18 +1,17 @@
-import {
-  AssetsDefinition,
-  PublisherResponse,
-  ProjectUIDL,
-  ServiceAuth,
-  GeneratedFolder,
-  RemoteTemplateDefinition,
-} from '@teleporthq/teleport-types'
-
+import { PublisherResponse, ProjectUIDL } from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
+import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-import { createReactProjectGenerator } from '@teleporthq/teleport-project-generator-react'
-import { createNextProjectGenerator } from '@teleporthq/teleport-project-generator-next'
-import { createVueProjectGenerator } from '@teleporthq/teleport-project-generator-vue'
-import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generator-nuxt'
+import reactProjectGenerator, { ReactTemplate } from '@teleporthq/teleport-project-generator-react'
+import nextProjectGenerator, { NextTemplate } from '@teleporthq/teleport-project-generator-next'
+import vueProjectGenerator, { VueTemplate } from '@teleporthq/teleport-project-generator-vue'
+import nuxtProjectGenerator, { NuxtTemplate } from '@teleporthq/teleport-project-generator-nuxt'
+import preactProjectGenerator, {
+  PreactTemplate,
+} from '@teleporthq/teleport-project-generator-preact'
+import stencilProjectGenerator, {
+  StencilTemplate,
+} from '@teleporthq/teleport-project-generator-stencil'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -20,142 +19,78 @@ import { createNowPublisher } from '@teleporthq/teleport-publisher-now'
 import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 
-import {
-  GITHUB_TEMPLATE_OWNER,
-  REACT_GITHUB_PROJECT,
-  NEXT_GITHUB_PROJECT,
-  VUE_GITHUB_PROJECT,
-  NUXT_GITHUB_PROJECT,
-  PUBLISHERS,
-  GENERATORS,
-  TEMPLATES,
-} from './constants'
-import { GENERATOR_NOT_FOUND, PUBLISHER_NOT_FOUND } from './errors'
-
-export interface PackerFactoryParams {
-  technology?: string
-  publisher?: PublisherDefinition
-  template?: GeneratedFolder
-  remoteTemplateDefinition?: RemoteTemplateDefinition
-  assets?: AssetsDefinition
-}
-
-export interface PublisherDefinition {
-  type: string
-  meta?: {
-    outputPath?: string
-    accessToken?: string
-    projectName?: string
-  }
-  github?: {
-    authMeta?: ServiceAuth
-    repositoryOwner?: string
-    repository?: string
-    masterBranch?: string
-    commitBranch?: string
-    commitMessage?: string
-  }
-}
+import { PackerOptions } from './types'
+import { PublisherType, GeneratorType } from './constants'
 
 const projectGenerators = {
-  [GENERATORS.REACT]: createReactProjectGenerator,
-  [GENERATORS.NEXT]: createNextProjectGenerator,
-  [GENERATORS.VUE]: createVueProjectGenerator,
-  [GENERATORS.NUXT]: createNuxtProjectGenerator,
+  [GeneratorType.REACT]: reactProjectGenerator,
+  [GeneratorType.NEXT]: nextProjectGenerator,
+  [GeneratorType.VUE]: vueProjectGenerator,
+  [GeneratorType.NUXT]: nuxtProjectGenerator,
+  [GeneratorType.PREACT]: preactProjectGenerator,
+  [GeneratorType.STENCIL]: stencilProjectGenerator,
 }
 
-type SupportedPublishers =
-  | typeof createDiskPublisher
-  | typeof createZipPublisher
-  | typeof createNowPublisher
-  | typeof createNetlifyPublisher
-  | typeof createGithubPublisher
-
-const projectPublishers: Record<string, SupportedPublishers> = {
-  [PUBLISHERS.DISK]: createDiskPublisher,
-  [PUBLISHERS.ZIP]: createZipPublisher,
-  [PUBLISHERS.NOW]: createNowPublisher,
-  [PUBLISHERS.NETLIFY]: createNetlifyPublisher,
-  [PUBLISHERS.GITHUB]: createGithubPublisher,
+const templates = {
+  [GeneratorType.REACT]: ReactTemplate,
+  [GeneratorType.NEXT]: NextTemplate,
+  [GeneratorType.VUE]: VueTemplate,
+  [GeneratorType.NUXT]: NuxtTemplate,
+  [GeneratorType.PREACT]: PreactTemplate,
+  [GeneratorType.STENCIL]: StencilTemplate,
 }
 
-const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
-  return { username, repo, provider: 'github' }
+const projectPublishers = {
+  [PublisherType.ZIP]: createZipPublisher,
+  [PublisherType.DISK]: createDiskPublisher,
+  [PublisherType.NOW]: createNowPublisher,
+  [PublisherType.NETLIFY]: createNetlifyPublisher,
+  [PublisherType.GITHUB]: createGithubPublisher,
 }
 
-const projectTemplates = {
-  [TEMPLATES.REACT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
-  [TEMPLATES.NEXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
-  [TEMPLATES.VUE]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
-  [TEMPLATES.NUXT]: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
-}
+const createPlaygroundPacker = (factoryOptions: PackerOptions = {}) => {
+  const {
+    publisher = PublisherType.ZIP,
+    generator = GeneratorType.NEXT,
+    publishOptions = {},
+    assets = [],
+  } = factoryOptions
 
-const defaultTechnology = GENERATORS.NEXT
-
-const defaultPublisher = {
-  type: PUBLISHERS.ZIP,
-  meta: {},
-  github: {},
-}
-
-export const createPlaygroundPacker = (params: PackerFactoryParams = {}) => {
-  const { assets, publisher, technology, template } = params
-
-  const packer = createProjectPacker({ assets, template })
+  const packer = createProjectPacker()
 
   const pack = async (
     projectUIDL: ProjectUIDL,
-    packParams: PackerFactoryParams = {}
+    packOptions?: PackerOptions
   ): Promise<PublisherResponse<any>> => {
-    const projectAssets = packParams.assets || assets
+    const packGenerator = packOptions.generator || generator
+    const packPublisher = packOptions.publisher || publisher
+    const packPublishOptions = { ...publishOptions, ...packOptions.publishOptions }
+    const packAssets = packOptions.assets || assets
 
-    const packTechnology = packParams.technology || technology || defaultTechnology
-    const packPublisher = packParams.publisher || publisher || defaultPublisher
+    const projectGenerator =
+      projectGenerators[packGenerator] || projectGenerators[GeneratorType.NEXT]
+    const projectTemplate = templates[packGenerator] || templates[GeneratorType.NEXT]
+    const publisherFactory =
+      projectPublishers[packPublisher] || projectPublishers[PublisherType.ZIP]
 
-    const generatorFactory = projectGenerators[packTechnology]
-    if (!generatorFactory) {
-      return { success: false, payload: GENERATOR_NOT_FOUND }
-    }
+    const projectPublisher = publisherFactory(packPublishOptions)
 
-    const publisherFactory = projectPublishers[packPublisher.type]
-    if (!publisherFactory) {
-      return { success: false, payload: PUBLISHER_NOT_FOUND }
-    }
-
-    const projectGenerator = generatorFactory()
-
-    const meta =
-      packPublisher.type === PUBLISHERS.GITHUB ? packPublisher.github : packPublisher.meta
-    const projectPublisher = publisherFactory({ ...meta })
-
-    packer.setAssets(projectAssets)
+    packer.setAssets({
+      assets: packAssets,
+      path: [ASSETS_IDENTIFIER],
+    })
     packer.setGenerator(projectGenerator)
+    packer.setTemplate(projectTemplate)
     packer.setPublisher(projectPublisher)
-
-    const remoteGithubTemplate =
-      projectTemplates[packTechnology] || projectTemplates[TEMPLATES.NEXT]
-
-    if (packParams.template) {
-      // First priority for the template passed as a param for pack()
-      packer.setTemplate(packParams.template)
-    } else if (packParams.remoteTemplateDefinition) {
-      // Second priority for the remote template definition passed as param for pack()
-      await packer.loadTemplate(packParams.remoteTemplateDefinition)
-    } else if (template) {
-      // Third priority for the template passed to the factory function
-      packer.setTemplate(template)
-    } else {
-      // Fourth priority for the remote definition associated with the technology (default to next.js)
-      await packer.loadTemplate(remoteGithubTemplate)
-    }
 
     return packer.pack(projectUIDL)
   }
 
   return {
     pack,
-    loadTemplate: packer.loadTemplate.bind(this),
   }
 }
+
+export { createPlaygroundPacker, GeneratorType, PublisherType, PackerOptions }
 
 export default createPlaygroundPacker()

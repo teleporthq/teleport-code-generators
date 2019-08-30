@@ -11,6 +11,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { Mapping } from '@teleporthq/teleport-types'
 
 import StencilProjectMapping from './stencil-mapping.json'
+import StencilTemplate from './project-template'
 
 const createStencilProjectGenerator = () => {
   const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
@@ -74,6 +75,6 @@ const createStencilProjectGenerator = () => {
   return generator
 }
 
-export { createStencilProjectGenerator, StencilProjectMapping }
+export { createStencilProjectGenerator, StencilProjectMapping, StencilTemplate }
 
 export default createStencilProjectGenerator()

@@ -104,7 +104,7 @@ export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
 }
 
 export const prefixAssetsPath = (prefix: string, originalString: string | undefined) => {
-  if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
+  if (!originalString || !originalString.includes(ASSETS_IDENTIFIER)) {
     return originalString
   }
 

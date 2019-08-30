@@ -14,6 +14,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { Mapping } from '@teleporthq/teleport-types'
 
 import ReactProjectMapping from './react-project-mapping.json'
+import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
@@ -60,6 +61,6 @@ const createReactProjectGenerator = () => {
   return generator
 }
 
-export { createReactProjectGenerator, ReactProjectMapping }
+export { createReactProjectGenerator, ReactProjectMapping, ReactTemplate }
 
 export default createReactProjectGenerator()

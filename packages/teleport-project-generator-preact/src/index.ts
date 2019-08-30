@@ -11,6 +11,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping } from '@teleporthq/teleport-types'
 
+import PreactTemplate from './project-template'
 import PreactProjectMapping from './preact-project-mapping.json'
 import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } from './constants'
 
@@ -78,6 +79,6 @@ const createPreactProjectGenerator = () => {
   return generator
 }
 
-export { createPreactProjectGenerator, PreactProjectMapping }
+export { createPreactProjectGenerator, PreactProjectMapping, PreactTemplate }
 
 export default createPreactProjectGenerator()

@@ -346,7 +346,7 @@ const prefixAssetURLs = (
           staticContent.includes(ASSETS_IDENTIFIER)
         ) {
           // split the string at the beginning of the ASSETS_IDENTIFIER string
-          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER)
+          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER) - 1 // account for the leading '/'
           acc[styleKey] =
             staticContent.slice(0, startIndex) +
             prefixAssetsPath(assetsPrefix, staticContent.slice(startIndex, staticContent.length))

@@ -12,6 +12,7 @@ import { Mapping } from '@teleporthq/teleport-types'
 
 import { createDocumentFileChunks } from './utils'
 import NextMapping from './next-mapping.json'
+import NextTemplate from './project-template'
 
 const headConfigPlugin = createHeadConfigPlugin({
   configTagIdentifier: 'Head',
@@ -58,6 +59,6 @@ const createNextProjectGenerator = () => {
   return generator
 }
 
-export { createNextProjectGenerator, NextMapping }
+export { createNextProjectGenerator, NextMapping, NextTemplate }
 
 export default createNextProjectGenerator()

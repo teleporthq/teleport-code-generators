@@ -102,7 +102,7 @@ export interface ProjectGenerator {
     mapping?: Mapping
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
-  getAssetsPath: () => string
+  getAssetsPath: () => string[]
 }
 
 export interface ProjectStrategy {
@@ -211,11 +211,10 @@ export interface PublisherResponse<T> {
 /**
  * Interfaces used in the packers
  */
+
 export interface AssetsDefinition {
   assets: AssetInfo[]
-  meta?: {
-    prefix: string | string[]
-  }
+  path?: string[]
 }
 
 export interface AssetInfo {
