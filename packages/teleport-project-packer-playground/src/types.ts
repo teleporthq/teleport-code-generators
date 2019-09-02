@@ -17,8 +17,13 @@ interface GithubOptions {
 }
 
 export interface PackerOptions {
-  generator?: string
+  projectType?: string
   publisher?: string
   publishOptions?: GithubOptions | PublisherOptions
   assets?: AssetInfo[]
+}
+
+export interface GenerateOptions {
+  componentType?: string
+  componentStyleVariation?: string
 }

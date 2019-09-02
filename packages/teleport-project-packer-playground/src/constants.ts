@@ -6,11 +6,19 @@ export const PublisherType = {
   GITHUB: 'Github',
 }
 
-export const GeneratorType = {
+export const ProjectType = {
   REACT: 'React',
   NEXT: 'Next',
   VUE: 'Vue',
   NUXT: 'Nuxt',
   PREACT: 'Preact',
   STENCIL: 'Stencil',
+}
+
+export const ComponentType = {
+  REACT: 'React',
+  VUE: 'Vue',
+  PREACT: 'Preact',
+  STENCIL: 'Stencil',
+  ANGULAR: 'Angular',
 }
