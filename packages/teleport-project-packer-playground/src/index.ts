@@ -41,7 +41,14 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 
-import { PackerOptions, GenerateOptions, PublisherType, ProjectType, ComponentType } from './types'
+import {
+  PackerOptions,
+  GenerateOptions,
+  PublisherType,
+  ProjectType,
+  ComponentType,
+  ComponentStyleVariation,
+} from './types'
 
 const projectGenerators = {
   [ProjectType.REACT]: reactProjectGenerator,
@@ -151,6 +158,7 @@ export {
   ProjectType,
   PublisherType,
   ComponentType,
+  ComponentStyleVariation,
   ComponentStyleVariations,
   PackerOptions,
 }

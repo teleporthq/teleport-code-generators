@@ -1,4 +1,6 @@
 import { ServiceAuth, AssetInfo } from '@teleporthq/teleport-types'
+import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
+import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
 
 interface PublisherOptions {
   accessToken?: string
@@ -17,15 +19,17 @@ interface GithubOptions {
 }
 
 export interface PackerOptions {
-  projectType?: string
+  projectType?: ProjectType
   publisher?: string
   publishOptions?: GithubOptions | PublisherOptions
   assets?: AssetInfo[]
 }
 
+export type ComponentStyleVariation = ReactStyleVariation | PreactStyleVariation
+
 export interface GenerateOptions {
-  componentType?: string
-  componentStyleVariation?: string
+  componentType?: ComponentType
+  componentStyleVariation?: ComponentStyleVariation
 }
 
 export enum PublisherType {
