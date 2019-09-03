@@ -160,6 +160,8 @@ export {
   ComponentType,
   ComponentStyleVariation,
   ComponentStyleVariations,
+  ReactStyleVariation,
+  PreactStyleVariation,
   PackerOptions,
 }
 

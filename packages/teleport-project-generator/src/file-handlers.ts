@@ -264,7 +264,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
         name: 'doctype',
         type: CHUNK_TYPE.STRING,
         fileType: FILE_TYPE.HTML,
-        content: '<!DOCTYPE>',
+        content: '<!DOCTYPE html>',
         linkAfter: [],
       },
       {
