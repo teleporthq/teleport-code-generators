@@ -1,21 +1,34 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import {
   createPlaygroundPacker,
   PublisherType,
   ProjectType,
-  ComponentType,
-  ComponentStyleVariations,
 } from '@teleporthq/teleport-project-packer-playground'
-import { ProjectUIDL, UIDLElement } from '@teleporthq/teleport-types'
+import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import projectJSON from '../../../examples/uidl-samples/project.json'
 
 const projectUIDL = (projectJSON as unknown) as ProjectUIDL
-const componentUIDL = projectUIDL.components.ExpandableArea
+const assetFile = readFileSync(join(__dirname, 'asset.png'))
+const base64File = new Buffer(assetFile).toString('base64')
 const packer = createPlaygroundPacker({
   publisher: PublisherType.DISK,
   publishOptions: {
     outputPath: 'dist',
   },
+  assets: [
+    {
+      type: 'png',
+      name: 'icons-192',
+      data: base64File,
+    },
+    {
+      type: 'png',
+      name: 'icons-512',
+      data: base64File,
+    },
+  ],
 })
 
 const run = async () => {
@@ -32,18 +45,6 @@ const run = async () => {
     console.info(ProjectType.STENCIL, ' - done')
     await packer.packProject(projectUIDL, { projectType: ProjectType.PREACT })
     console.info(ProjectType.PREACT, ' - done')
-
-    const componentType = ComponentType.REACT
-    const componentStyleVariation = ComponentStyleVariations[componentType].CSSModules
-
-    const result = await packer.generateComponent(componentUIDL, {
-      componentType,
-      componentStyleVariation,
-    })
-    console.info(ComponentType.REACT, JSON.stringify(result, null, 2))
-
-    const element = packer.resolveElement(componentUIDL.node.content as UIDLElement)
-    console.info(element)
   } catch (e) {
     console.info(e)
   }

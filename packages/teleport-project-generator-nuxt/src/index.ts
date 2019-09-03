@@ -41,7 +41,7 @@ const createNuxtProjectGenerator = () => {
       },
     },
     static: {
-      prefix: '/static',
+      prefix: '',
       path: ['static'],
     },
   })

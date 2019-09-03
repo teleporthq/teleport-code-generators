@@ -50,8 +50,8 @@ const createVueProjectGenerator = () => {
       path: ['public'],
     },
     static: {
-      prefix: '/assets',
-      path: ['src', 'assets'],
+      prefix: '',
+      path: ['public'],
     },
   })
 

@@ -41,8 +41,7 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 
-import { PackerOptions, GenerateOptions } from './types'
-import { PublisherType, ProjectType, ComponentType } from './constants'
+import { PackerOptions, GenerateOptions, PublisherType, ProjectType, ComponentType } from './types'
 
 const projectGenerators = {
   [ProjectType.REACT]: reactProjectGenerator,
@@ -99,7 +98,7 @@ const createPlaygroundPacker = (factoryOptions: PackerOptions = {}) => {
 
   const packProject = async (
     projectUIDL: ProjectUIDL,
-    packOptions?: PackerOptions
+    packOptions: PackerOptions = {}
   ): Promise<PublisherResponse<any>> => {
     const packProjectType = packOptions.projectType || projectType
     const packPublisher = packOptions.publisher || publisher
@@ -127,26 +126,11 @@ const createPlaygroundPacker = (factoryOptions: PackerOptions = {}) => {
 
   const generateComponent = async (
     componentUIDL: ComponentUIDL,
-    generateOptions: GenerateOptions = {
-      componentType: ComponentType.REACT,
-      componentStyleVariation: ReactStyleVariation.CSSModules,
-    }
+    generateOptions: GenerateOptions = {}
   ) => {
     const componentType = generateOptions.componentType || ComponentType.REACT
-    const generatorFactory = componentGeneratorFactories[componentType]
-    let generator
-
-    if (componentType === ComponentType.REACT) {
-      const styleVariation =
-        generateOptions.componentStyleVariation || ReactStyleVariation.CSSModules
-      generator = generatorFactory(styleVariation)
-    } else if (componentType === ComponentType.PREACT) {
-      const styleVariation =
-        generateOptions.componentStyleVariation || PreactStyleVariation.CSSModules
-      generator = generatorFactory(styleVariation)
-    } else {
-      generator = generatorFactory()
-    }
+    const styleVariation = generateOptions.componentStyleVariation || ReactStyleVariation.CSSModules
+    const generator = createComponentGenerator(componentType, styleVariation)
 
     return generator.generateComponent(componentUIDL)
   }
@@ -172,3 +156,13 @@ export {
 }
 
 export default createPlaygroundPacker()
+
+const createComponentGenerator = (componentType: string, styleVariation: string) => {
+  const generatorFactory = componentGeneratorFactories[componentType]
+
+  if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
+    return generatorFactory(styleVariation)
+  }
+
+  return generatorFactory()
+}

@@ -34,7 +34,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   if (manifest) {
     const linkTag = createJSXTag('link')
     addAttributeToJSXTag(linkTag, 'rel', 'manifest')
-    addAttributeToJSXTag(linkTag, 'href', '/static/manifest.json')
+    addAttributeToJSXTag(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
     addChildJSXTag(headNode, linkTag)
   }
 

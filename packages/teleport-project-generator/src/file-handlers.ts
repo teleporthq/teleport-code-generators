@@ -174,14 +174,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   }
 
   if (manifest) {
-    const linkTag = createHTMLNode('link') // , { selfClosing: true })
+    const linkTag = createHTMLNode('link')
     addAttributeToNode(linkTag, 'rel', 'manifest')
-    addAttributeToNode(linkTag, 'href', '/static/manifest.json')
+    addAttributeToNode(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
     addChildNode(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
-    const metaTag = createHTMLNode('meta') // , { selfClosing: true })
+    const metaTag = createHTMLNode('meta')
     Object.keys(metaItem).forEach((key) => {
       const prefixedURL = prefixAssetsPath(assetsPrefix, metaItem[key])
       addAttributeToNode(metaTag, key, prefixedURL)
@@ -202,7 +202,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = createHTMLNode('link') // , { selfClosing: true })
+      const linkTag = createHTMLNode('link')
       addAttributeToNode(linkTag, 'rel', 'stylesheet')
       addAttributeToNode(linkTag, 'href', assetPath)
       addChildNode(headNode, linkTag)
@@ -219,7 +219,6 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     if (asset.type === 'script') {
       const scriptInBody = (asset.options && asset.options.target === 'body') || false
       const scriptTag = createHTMLNode('script')
-      // addTextNode(scriptTag, ' ') // To ensure tag is not automatically self-closing, which causes problems in the <head>
       addAttributeToNode(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         addAttributeToNode(scriptTag, 'src', assetPath)
@@ -241,7 +240,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // icon
     if (asset.type === 'icon' && assetPath) {
-      const iconTag = createHTMLNode('link') // , { selfClosing: true })
+      const iconTag = createHTMLNode('link')
       addAttributeToNode(iconTag, 'rel', 'shortcut icon')
       addAttributeToNode(iconTag, 'href', assetPath)
 

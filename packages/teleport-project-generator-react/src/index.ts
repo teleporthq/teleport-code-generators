@@ -53,8 +53,8 @@ const createReactProjectGenerator = () => {
       fileName: 'index',
     },
     static: {
-      prefix: '/static',
-      path: ['src', 'static'],
+      prefix: '',
+      path: ['public'],
     },
   })
 

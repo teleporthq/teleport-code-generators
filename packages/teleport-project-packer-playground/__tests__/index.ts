@@ -1,16 +1,21 @@
 import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync } from 'fs'
 import { join } from 'path'
 
-// @ts-ignore
 import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
+import { element } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
 import { createPlaygroundPacker, PackerOptions, PublisherType, ProjectType } from '../src/index'
+import { GenerateOptions, ComponentType } from '../src/types'
+import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
+import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
 
 const reactProjectPath = join(__dirname, 'react')
 const nextProjectPath = join(__dirname, 'next')
 const vueProjectPath = join(__dirname, 'vue')
 const nuxtProjectPath = join(__dirname, 'nuxt')
+const stencilProjectPath = join(__dirname, 'stencil')
+const preactProjectPath = join(__dirname, 'preact')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -23,7 +28,8 @@ const assets = [
   },
 ]
 
-const projectUIDL = projectJson as ProjectUIDL
+const projectUIDL = (projectJson as unknown) as ProjectUIDL
+const componentUIDL = projectUIDL.components.ExpandableArea
 
 afterAll(() => {
   // Comment these lines if you want to see the generated projects
@@ -31,16 +37,13 @@ afterAll(() => {
   removeDirectory(nextProjectPath)
   removeDirectory(vueProjectPath)
   removeDirectory(nuxtProjectPath)
+  removeDirectory(stencilProjectPath)
+  removeDirectory(preactProjectPath)
 })
 
 describe('project packer playground', () => {
-  it('creates a new instance of the project packer playground', () => {
-    const packer = createPlaygroundPacker()
-    expect(packer.packProject).toBeDefined()
-  })
-
+  const packer = createPlaygroundPacker()
   it('should pack a react project', async () => {
-    const packer = createPlaygroundPacker()
     const options: PackerOptions = {
       projectType: ProjectType.REACT,
       assets,
@@ -53,7 +56,6 @@ describe('project packer playground', () => {
   })
 
   it('should pack a next project', async () => {
-    const packer = createPlaygroundPacker()
     const options: PackerOptions = {
       projectType: ProjectType.NEXT,
       assets,
@@ -66,7 +68,6 @@ describe('project packer playground', () => {
   })
 
   it('should pack a vue project', async () => {
-    const packer = createPlaygroundPacker()
     const options: PackerOptions = {
       projectType: ProjectType.VUE,
       assets,
@@ -79,7 +80,6 @@ describe('project packer playground', () => {
   })
 
   it('should pack a nuxt project', async () => {
-    const packer = createPlaygroundPacker()
     const options: PackerOptions = {
       projectType: ProjectType.NUXT,
       assets,
@@ -89,6 +89,83 @@ describe('project packer playground', () => {
 
     const { success } = await packer.packProject(projectUIDL, options)
     expect(success).toBeTruthy()
+  })
+
+  it('should pack a nuxt project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.STENCIL,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: stencilProjectPath },
+    }
+
+    const { success } = await packer.packProject(projectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('should pack a nuxt project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.PREACT,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: preactProjectPath },
+    }
+
+    const { success } = await packer.packProject(projectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('should generate a react component', async () => {
+    const options: GenerateOptions = {
+      componentType: ComponentType.REACT,
+      componentStyleVariation: ReactStyleVariation.CSSModules,
+    }
+
+    const { files } = await packer.generateComponent(componentUIDL, options)
+    expect(files.length).toBe(2)
+  })
+
+  it('should generate a preact component', async () => {
+    const options: GenerateOptions = {
+      componentType: ComponentType.PREACT,
+      componentStyleVariation: PreactStyleVariation.CSS,
+    }
+
+    const { files } = await packer.generateComponent(componentUIDL, options)
+    expect(files.length).toBe(2)
+  })
+
+  it('should generate a vue component', async () => {
+    const options: GenerateOptions = {
+      componentType: ComponentType.VUE,
+    }
+
+    const { files } = await packer.generateComponent(componentUIDL, options)
+    expect(files.length).toBe(1)
+  })
+
+  it('should generate a stencil component', async () => {
+    const options: GenerateOptions = {
+      componentType: ComponentType.STENCIL,
+    }
+
+    const { files } = await packer.generateComponent(componentUIDL, options)
+    expect(files.length).toBe(2)
+  })
+
+  it('should generate a angular component', async () => {
+    const options: GenerateOptions = {
+      componentType: ComponentType.ANGULAR,
+    }
+
+    const { files } = await packer.generateComponent(componentUIDL, options)
+    expect(files.length).toBe(3)
+  })
+
+  it('should resolve an element with react mapping', async () => {
+    const elementNode = element('container')
+    const result = await packer.resolveElement(elementNode)
+    expect(result.elementType).toBe('div')
   })
 })
 
