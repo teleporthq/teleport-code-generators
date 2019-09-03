@@ -165,7 +165,10 @@ export {
 
 export default createPlaygroundPacker()
 
-const createComponentGenerator = (componentType: string, styleVariation: string) => {
+const createComponentGenerator = (
+  componentType: string,
+  styleVariation: ComponentStyleVariation
+) => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
   if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
