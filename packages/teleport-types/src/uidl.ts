@@ -36,6 +36,7 @@ export interface ComponentUIDL {
     fileName?: string
     styleFileName?: string
     templateFileName?: string
+    moduleName?: string
     path?: string[]
   }
   seo?: UIDLComponentSEO

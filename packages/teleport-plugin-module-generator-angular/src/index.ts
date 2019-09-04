@@ -2,18 +2,23 @@ import * as types from '@babel/types'
 import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import {
   createRoutesAST,
+  createPageRouteAST,
   createExportModuleAST,
+  constructLocalDependency,
   createRootModuleDecorator,
+  constructComponentDependency,
   createComponentModuleDecorator,
+  createPageModuleModuleDecorator,
+  constructRouteForComponentsModule,
 } from './utils'
 
 import {
   APP_COMPONENT,
   ANGULAR_ROUTER,
-  COMPONENTS_MODULE,
   ANGULAR_COMMON_MODULE,
   ANGULAR_CORE_DEPENDENCY,
   ANGULAR_PLATFORM_BROWSER,
@@ -26,7 +31,7 @@ interface AngularRoutingConfig {
   moduleChunkName: string
   decoratorChunkName: string
   importChunkName: string
-  moduleType: 'root' | 'component' | 'pages'
+  moduleType: 'root' | 'component' | 'page'
 }
 
 export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (config) => {
@@ -38,7 +43,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
   } = config || {}
 
   const createAngularModuleGenerator: ComponentPlugin = async (structure) => {
-    const { uidl, dependencies, chunks } = structure
+    const { uidl, dependencies, chunks, options } = structure
+    const { componentsList } = options
 
     let routesAST: types.VariableDeclaration
     let ngModuleAST: types.Decorator
@@ -50,7 +56,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
         {
           dependencies.BrowserModule = ANGULAR_PLATFORM_BROWSER
           dependencies.RouterModule = ANGULAR_ROUTER
-          dependencies.ComponentsModule = COMPONENTS_MODULE
+          dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
 
           const routes = extractRoutes(uidl)
@@ -59,19 +65,35 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           moduleDecoratorAST = createExportModuleAST('AppModule')
         }
         break
+      case 'page':
+        {
+          dependencies.RouterModule = ANGULAR_ROUTER
+          dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
+          dependencies.CommonModule = ANGULAR_COMMON_MODULE
+          const componentName = `${uidl.name}Component`
+          dependencies[componentName] = constructLocalDependency(uidl.meta.fileName)
+
+          routesAST = createPageRouteAST(componentName)
+          ngModuleAST = createPageModuleModuleDecorator(componentName)
+          moduleDecoratorAST = createExportModuleAST(uidl.meta.moduleName)
+
+          // Acording to widely followd convention module should have .module in its name
+          uidl.meta.fileName = `${uidl.meta.fileName}.module`
+        }
+        break
       case 'component':
         {
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
+          // Looping throgh all components and adding importing them into component module
+          componentsList.forEach(
+            (component) =>
+              (dependencies[`${component}Component`] = constructComponentDependency(
+                camelCaseToDashCase(component)
+              ))
+          )
 
-          ngModuleAST = createComponentModuleDecorator()
+          ngModuleAST = createComponentModuleDecorator(componentsList)
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
-        }
-        break
-      case 'pages':
-        {
-          dependencies.RouterModule = ANGULAR_ROUTER
-          dependencies.ComponentsModule = COMPONENTS_MODULE
-          dependencies.CommonModule = ANGULAR_COMMON_MODULE
         }
         break
     }

@@ -45,9 +45,9 @@ const createPageUIDL = (
 
   const meta = createPathInOwnFile
     ? {
-        fileName: pagesStrategyOptions.customComponentFileName || 'index',
-        styleFileName: pagesStrategyOptions.customStyleFileName || 'style',
-        templateFileName: pagesStrategyOptions.customTemplateFileName || 'template',
+        fileName: pagesStrategyOptions.customComponentFileName(fileName) || 'index',
+        styleFileName: pagesStrategyOptions.customStyleFileName(fileName) || 'style',
+        templateFileName: pagesStrategyOptions.customTemplateFileName(fileName) || 'template',
         path: [fileName],
       }
     : {
@@ -94,9 +94,9 @@ export const prepareComponentFilenamesAndPath = (
     // In this case, the file name (dash converted) is used as the folder name
     if (componentStrategyOptions.createFolderForEachComponent) {
       component.meta = {
-        fileName: componentStrategyOptions.customComponentFileName || 'index',
-        styleFileName: componentStrategyOptions.customStyleFileName || 'style',
-        templateFileName: componentStrategyOptions.customTemplateFileName || 'template',
+        fileName: componentStrategyOptions.customComponentFileName(fileName) || 'index',
+        styleFileName: componentStrategyOptions.customStyleFileName(fileName) || 'style',
+        templateFileName: componentStrategyOptions.customTemplateFileName(fileName) || 'template',
         path: [...path, fileName],
       }
     } else {

@@ -13,6 +13,7 @@ import {
   createRouterFile,
   createEntryFile,
   createComponentModule,
+  createPageModule,
 } from './file-handlers'
 
 import { DEFAULT_TEMPLATE } from './constants'
@@ -90,6 +91,15 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+
+      const { module } = strategy.pages.options || {
+        module: {},
+      }
+
+      if (module.generator) {
+        const pageModule = await createPageModule(pageUIDL, strategy, options)
+        injectFilesToPath(rootFolder, path, pageModule.files)
+      }
     }
 
     // Handling components
@@ -107,7 +117,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
 
     // Handling module generation for components
     if (strategy.components.options && strategy.components.options.module) {
-      const componentsModuleFile = await createComponentModule(root, strategy, components)
+      const componentsModuleFile = await createComponentModule(uidl, strategy)
       injectFilesToPath(rootFolder, strategy.components.path, [componentsModuleFile])
     }
 

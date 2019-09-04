@@ -5,7 +5,10 @@ import {
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
 import { prefixPlaygroundAssetsURL } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import {
+  slugify,
+  dashCaseToUpperCamelCase,
+} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -43,21 +46,20 @@ export const createComponent = async (
   return strategy.components.generator.generateComponent(componentUIDL, options)
 }
 
-export const createComponentModule = async (
-  root: ComponentUIDL,
-  strategy: ProjectStrategy,
-  components: Record<string, ComponentUIDL>
-) => {
+export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+  const { root } = uidl
   const { path } = strategy.components
   const { generator } = strategy.components.options.module
   const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     path,
     strategy.components.path
   )
+  const componentsList = Object.keys(uidl.components)
 
   const options = {
     localDependenciesPrefix: componentLocalDependenciesPrefix,
     strategy,
+    componentsList,
   }
 
   root.meta = root.meta || {}
@@ -65,6 +67,17 @@ export const createComponentModule = async (
 
   const { files } = await generator.generateComponent(root, options)
   return files[0]
+}
+
+export const createPageModule = async (
+  pageUIDL: ComponentUIDL,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
+  pageUIDL.meta = pageUIDL.meta || {}
+  pageUIDL.meta.fileName = pageUIDL.meta.path[0]
+  pageUIDL.meta.moduleName = `${dashCaseToUpperCamelCase(pageUIDL.meta.path[0])}Module`
+  return strategy.pages.options.module.generator.generateComponent(pageUIDL, options)
 }
 
 export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {

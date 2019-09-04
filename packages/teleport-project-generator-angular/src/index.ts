@@ -16,7 +16,7 @@ export const createPreactProjectGenerator = () => {
 
   const rootModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'root' })
   const componentModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'component' })
-  const pagesModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'pages' })
+  const pagesModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'page' })
 
   const angularComponentGenerator = createAngularComponentGenerator()
   angularComponentGenerator.addMapping(anuglarProjectMapping as Mapping)
@@ -47,6 +47,9 @@ export const createPreactProjectGenerator = () => {
       path: ['src', 'app', 'components'],
       options: {
         createFolderForEachComponent: true,
+        customComponentFileName: (name: string) => `${name}.component`,
+        customStyleFileName: (name: string) => `${name}.component`,
+        customTemplateFileName: (name: string) => `${name}.component`,
         module: {
           generator: angularComponentModuleGenerator,
         },
@@ -57,6 +60,12 @@ export const createPreactProjectGenerator = () => {
       path: ['src', 'app', 'pages'],
       options: {
         createFolderForEachComponent: true,
+        customComponentFileName: (name: string) => `${name}.component`,
+        customStyleFileName: (name: string) => `${name}.component`,
+        customTemplateFileName: (name: string) => `${name}.component`,
+        module: {
+          generator: anuglarPageModuleGenerator,
+        },
       },
     },
     router: {

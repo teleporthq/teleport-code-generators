@@ -70,6 +70,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
+  componentsList?: string[]
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -111,9 +112,9 @@ export interface ProjectStrategy {
     path: string[]
     options?: {
       createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
+      customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+      customStyleFileName?: (name?: string) => string
+      customTemplateFileName?: (name?: string) => string
       module?: {
         generator?: ComponentGenerator
       }
@@ -126,9 +127,9 @@ export interface ProjectStrategy {
       usePathAsFileName?: boolean
       convertDefaultToIndex?: boolean
       createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
+      customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+      customStyleFileName?: (name?: string) => string
+      customTemplateFileName?: (name?: string) => string
       module?: {
         generator?: ComponentGenerator
       }

@@ -74,7 +74,7 @@ export const generateExportAST = (
   }
 
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(componentName), null, classBodyAST()),
+    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST()),
     [],
     null
   )

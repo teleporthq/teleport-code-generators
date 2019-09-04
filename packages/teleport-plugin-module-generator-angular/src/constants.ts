@@ -17,7 +17,7 @@ export const ANGULAR_CORE_DEPENDENCY: UIDLDependency = {
 
 export const ANGULAR_PLATFORM_BROWSER: UIDLDependency = {
   type: 'library',
-  path: '@angular/core',
+  path: '@angular/platform-browser',
   version: '8.1.0',
   meta: {
     namedImport: true,
@@ -35,16 +35,8 @@ export const ANGULAR_ROUTER: UIDLDependency = {
 
 export const ANGULAR_COMMON_MODULE: UIDLDependency = {
   type: 'library',
-  path: '@angular/commong',
+  path: '@angular/common',
   version: '8.1.0',
-  meta: {
-    namedImport: true,
-  },
-}
-
-export const COMPONENTS_MODULE: UIDLDependency = {
-  type: 'local',
-  path: `./components/components.module`,
   meta: {
     namedImport: true,
   },
