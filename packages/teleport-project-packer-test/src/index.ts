@@ -72,12 +72,12 @@ const packProject = async (projectType: string) => {
 
 const run = async () => {
   try {
-    // await packProject('react')
-    // await packProject('next')
-    // await packProject('vue')
-    // await packProject('nuxt')
-    // await packProject('preact')
-    // await packProject('stencil')
+    await packProject('react')
+    await packProject('next')
+    await packProject('vue')
+    await packProject('nuxt')
+    await packProject('preact')
+    await packProject('stencil')
     await packProject('angular')
   } catch (e) {
     console.info(e)

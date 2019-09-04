@@ -96,7 +96,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
         module: {},
       }
 
-      if (module.generator) {
+      if (module && module.generator) {
         const pageModule = await createPageModule(pageUIDL, strategy, options)
         injectFilesToPath(rootFolder, path, pageModule.files)
       }
