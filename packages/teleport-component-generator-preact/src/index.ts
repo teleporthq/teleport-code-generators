@@ -17,9 +17,9 @@ import PreactMapping from './preact-mapping.json'
 import { ComponentGenerator } from '@teleporthq/teleport-types'
 
 enum PreactStyleVariation {
-  InlineStyles,
-  CSSModules,
-  CSS,
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
 }
 
 const cssPlugin = createCSSPlugin({

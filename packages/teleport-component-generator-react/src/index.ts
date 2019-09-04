@@ -20,12 +20,12 @@ import ReactMapping from './react-mapping.json'
 import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
 
 enum ReactStyleVariation {
-  InlineStyles,
-  CSSModules,
-  CSS,
-  StyledComponents,
-  StyledJSX,
-  ReactJSS,
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
+  StyledComponents = 'Styled Components',
+  StyledJSX = 'Styled JSX',
+  ReactJSS = 'React JSS',
 }
 
 const cssPlugin = createCSSPlugin({

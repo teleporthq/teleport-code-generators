@@ -118,7 +118,7 @@ describe('project packer playground', () => {
   it('should generate a react component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.REACT,
-      componentStyleVariation: ReactStyleVariation.CSSModules,
+      styleVariation: ReactStyleVariation.CSSModules,
     }
 
     const { files } = await packer.generateComponent(componentUIDL, options)
@@ -128,7 +128,7 @@ describe('project packer playground', () => {
   it('should generate a preact component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.PREACT,
-      componentStyleVariation: PreactStyleVariation.CSS,
+      styleVariation: PreactStyleVariation.CSS,
     }
 
     const { files } = await packer.generateComponent(componentUIDL, options)

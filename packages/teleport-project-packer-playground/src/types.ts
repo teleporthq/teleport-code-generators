@@ -25,11 +25,11 @@ export interface PackerOptions {
   assets?: AssetInfo[]
 }
 
-export type ComponentStyleVariation = ReactStyleVariation | PreactStyleVariation
+export type StyleVariation = ReactStyleVariation | PreactStyleVariation
 
 export interface GenerateOptions {
   componentType?: ComponentType
-  componentStyleVariation?: ComponentStyleVariation
+  styleVariation?: StyleVariation
 }
 
 export enum PublisherType {

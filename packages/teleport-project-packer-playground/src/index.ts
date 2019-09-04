@@ -47,7 +47,7 @@ import {
   PublisherType,
   ProjectType,
   ComponentType,
-  ComponentStyleVariation,
+  StyleVariation,
 } from './types'
 
 const projectGenerators = {
@@ -93,12 +93,14 @@ const reactStyledJSXGenerator = createReactComponentGenerator(ReactStyleVariatio
   mappings: [NextMapping as Mapping],
 })
 
-const createPlaygroundPacker = (factoryOptions: PackerOptions = {}) => {
+const createPlaygroundPacker = (factoryOptions: PackerOptions & GenerateOptions = {}) => {
   const {
     publisher = PublisherType.ZIP,
     projectType = ProjectType.NEXT,
     publishOptions = {},
     assets = [],
+    componentType = ComponentType.REACT,
+    styleVariation = ReactStyleVariation.CSSModules,
   } = factoryOptions
 
   const packer = createProjectPacker()
@@ -135,9 +137,9 @@ const createPlaygroundPacker = (factoryOptions: PackerOptions = {}) => {
     componentUIDL: ComponentUIDL,
     generateOptions: GenerateOptions = {}
   ) => {
-    const componentType = generateOptions.componentType || ComponentType.REACT
-    const styleVariation = generateOptions.componentStyleVariation || ReactStyleVariation.CSSModules
-    const generator = createComponentGenerator(componentType, styleVariation)
+    const generateComponentType = generateOptions.componentType || componentType
+    const generateStyleVariation = generateOptions.styleVariation || styleVariation
+    const generator = createComponentGenerator(generateComponentType, generateStyleVariation)
 
     return generator.generateComponent(componentUIDL)
   }
@@ -158,7 +160,7 @@ export {
   ProjectType,
   PublisherType,
   ComponentType,
-  ComponentStyleVariation,
+  StyleVariation,
   ComponentStyleVariations,
   ReactStyleVariation,
   PreactStyleVariation,
@@ -167,10 +169,7 @@ export {
 
 export default createPlaygroundPacker()
 
-const createComponentGenerator = (
-  componentType: string,
-  styleVariation: ComponentStyleVariation
-) => {
+const createComponentGenerator = (componentType: string, styleVariation: StyleVariation) => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
   if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
