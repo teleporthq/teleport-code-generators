@@ -51,11 +51,11 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     let moduleDecoratorAST: types.ExportNamedDeclaration
 
     dependencies.NgModule = ANGULAR_CORE_DEPENDENCY
+    dependencies.RouterModule = ANGULAR_ROUTER
     switch (moduleType) {
       case 'root':
         {
           dependencies.BrowserModule = ANGULAR_PLATFORM_BROWSER
-          dependencies.RouterModule = ANGULAR_ROUTER
           dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
 
@@ -67,7 +67,6 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
         break
       case 'page':
         {
-          dependencies.RouterModule = ANGULAR_ROUTER
           dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
           const componentName = `${uidl.name}Component`

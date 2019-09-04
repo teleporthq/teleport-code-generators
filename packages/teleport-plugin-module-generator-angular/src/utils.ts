@@ -44,7 +44,7 @@ export const createComponentModuleDecorator = (components?: string[], t = types)
 
   const imports: types.ObjectProperty = t.objectProperty(
     t.identifier('imports'),
-    t.arrayExpression([t.identifier('CommonModule')])
+    t.arrayExpression([t.identifier('CommonModule'), t.identifier('RouterModule')])
   )
 
   const exportsProperty: types.ObjectProperty = t.objectProperty(
