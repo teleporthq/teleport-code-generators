@@ -93,7 +93,7 @@ const reactStyledJSXGenerator = createReactComponentGenerator(ReactStyleVariatio
   mappings: [NextMapping as Mapping],
 })
 
-const createPlaygroundPacker = (factoryOptions: PackerOptions & GenerateOptions = {}) => {
+const createCodeGenerator = (factoryOptions: PackerOptions & GenerateOptions = {}) => {
   const {
     publisher = PublisherType.ZIP,
     projectType = ProjectType.NEXT,
@@ -156,7 +156,7 @@ const createPlaygroundPacker = (factoryOptions: PackerOptions & GenerateOptions 
 }
 
 export {
-  createPlaygroundPacker,
+  createCodeGenerator,
   ProjectType,
   PublisherType,
   ComponentType,
@@ -167,7 +167,7 @@ export {
   PackerOptions,
 }
 
-export default createPlaygroundPacker()
+export default createCodeGenerator()
 
 const createComponentGenerator = (componentType: string, styleVariation: StyleVariation) => {
   const generatorFactory = componentGeneratorFactories[componentType]

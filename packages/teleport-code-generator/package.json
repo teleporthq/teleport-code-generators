@@ -1,8 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-packer-playground",
-  "private": true,
+  "name": "@teleporthq/teleport-code-generator",
   "version": "0.9.0",
-  "description": "Teleport playground packer - use this package is you want to use all the project generators and all the publishers only from one package",
+  "description": "A standalone version of the teleport ecosystem with all the project and component generators installed",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

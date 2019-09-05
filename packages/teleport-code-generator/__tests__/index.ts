@@ -5,7 +5,7 @@ import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 import { element } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
 
-import { createPlaygroundPacker, PackerOptions, PublisherType, ProjectType } from '../src/index'
+import { createCodeGenerator, PackerOptions, PublisherType, ProjectType } from '../src/index'
 import { GenerateOptions, ComponentType } from '../src/types'
 import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
 import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
@@ -41,8 +41,8 @@ afterAll(() => {
   removeDirectory(preactProjectPath)
 })
 
-describe('project packer playground', () => {
-  const packer = createPlaygroundPacker()
+describe('code generator', () => {
+  const packer = createCodeGenerator()
   it('should pack a react project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.REACT,

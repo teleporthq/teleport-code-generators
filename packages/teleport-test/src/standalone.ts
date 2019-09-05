@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
-  createPlaygroundPacker,
+  createCodeGenerator,
   PublisherType,
   ProjectType,
-} from '@teleporthq/teleport-project-packer-playground'
+} from '@teleporthq/teleport-code-generator'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
 import projectJSON from '../../../examples/uidl-samples/project.json'
@@ -12,7 +12,7 @@ import projectJSON from '../../../examples/uidl-samples/project.json'
 const projectUIDL = (projectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
-const packer = createPlaygroundPacker({
+const packer = createCodeGenerator({
   publisher: PublisherType.DISK,
   publishOptions: {
     outputPath: 'dist',
