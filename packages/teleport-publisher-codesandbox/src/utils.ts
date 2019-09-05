@@ -11,12 +11,10 @@ export const convertToCodesandboxStructure = (
     return acc
   }, {})
 
-  const subFolderFiles = folder.subFolders.map((subFolder) =>
-    convertToCodesandboxStructure(subFolder, `${prefix}${subFolder.name}/`)
-  )
-  const aggregatedFile = subFolderFiles.reduce((acc, file) => ({ ...acc, ...file }), {})
-
-  return { ...folderFiles, ...aggregatedFile }
+  return folder.subFolders.reduce((acc, subFolder) => {
+    const subFiles = convertToCodesandboxStructure(subFolder, `${prefix}${subFolder.name}/`)
+    return { ...acc, ...subFiles }
+  }, folderFiles)
 }
 
 interface CodesandboxFile {
