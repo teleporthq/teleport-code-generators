@@ -92,11 +92,9 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
 
-      const { module } = strategy.pages.options || {
-        module: {},
-      }
+      const { moduleGenerator } = strategy.pages
 
-      if (module && module.generator) {
+      if (moduleGenerator) {
         const pageModule = await createPageModule(pageUIDL, strategy, options)
         injectFilesToPath(rootFolder, path, pageModule.files)
       }
@@ -116,7 +114,7 @@ export const createProjectGenerator = (strategy: ProjectStrategy): ProjectGenera
     }
 
     // Handling module generation for components
-    if (strategy.components.options && strategy.components.options.module) {
+    if (strategy.components.moduleGenerator) {
       const componentsModuleFile = await createComponentModule(uidl, strategy)
       injectFilesToPath(rootFolder, strategy.components.path, [componentsModuleFile])
     }

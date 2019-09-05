@@ -70,7 +70,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
         customElementTagName: (value) => `app-${value}`,
-        shouldOmitLocalDependencies: true,
+        dependencyHandling: 'ignore',
       }
     )
 

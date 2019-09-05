@@ -46,7 +46,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     const { uidl, dependencies, chunks, options } = structure
     const { stateDefinitions = {} } = uidl
 
-    const { componentsList } = options
+    const { moduleComponents } = options
 
     let routesAST: types.VariableDeclaration
     let ngModuleAST: types.Decorator
@@ -78,22 +78,22 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           ngModuleAST = createPageModuleModuleDecorator(componentName)
           moduleDecoratorAST = createExportModuleAST(uidl.meta.moduleName)
 
-          // Acording to widely followd convention module should have .module in its name
+          // Acording to widely followed convention module should have .module in its name
           uidl.meta.fileName = `${uidl.meta.fileName}.module`
         }
         break
       case 'component':
         {
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
-          // Looping throgh all components and adding importing them into component module
-          componentsList.forEach(
+          // Looping through all components and importing them into component module
+          moduleComponents.forEach(
             (component) =>
               (dependencies[`${component}Component`] = constructComponentDependency(
                 camelCaseToDashCase(component)
               ))
           )
 
-          ngModuleAST = createComponentModuleDecorator(componentsList)
+          ngModuleAST = createComponentModuleDecorator(moduleComponents)
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
         }
         break

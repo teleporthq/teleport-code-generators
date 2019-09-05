@@ -1,4 +1,4 @@
-import { createPlugin as createAngularModuleGenerator } from '@teleporthq/teleport-plugin-module-generator-angular'
+import { createPlugin as createModuleGenerator } from '@teleporthq/teleport-plugin-angular-module'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -10,25 +10,25 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
 import { CUSTOM_BODY_CONTENT } from './constants'
-import anuglarProjectMapping from './angular-mapping.json'
+import angularProjectMapping from './angular-mapping.json'
 
-export const createPreactProjectGenerator = () => {
+export const createAngularProjectGenerator = () => {
   const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TS })
   const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
 
-  const rootModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'root' })
-  const componentModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'component' })
-  const pagesModuleGeneratorAngular = createAngularModuleGenerator({ moduleType: 'page' })
+  const rootModuleGeneratorAngular = createModuleGenerator({ moduleType: 'root' })
+  const componentModuleGeneratorAngular = createModuleGenerator({ moduleType: 'component' })
+  const pagesModuleGeneratorAngular = createModuleGenerator({ moduleType: 'page' })
 
   const angularComponentGenerator = createAngularComponentGenerator()
-  angularComponentGenerator.addMapping(anuglarProjectMapping as Mapping)
+  angularComponentGenerator.addMapping(angularProjectMapping as Mapping)
 
   const angularPageGenerator = createAngularComponentGenerator()
 
-  const angulaRootModuleGenerator = createComponentGenerator()
-  angulaRootModuleGenerator.addPlugin(rootModuleGeneratorAngular)
-  angulaRootModuleGenerator.addPlugin(importStatementsPlugin)
-  angulaRootModuleGenerator.addPostProcessor(prettierJS)
+  const angularRootModuleGenerator = createComponentGenerator()
+  angularRootModuleGenerator.addPlugin(rootModuleGeneratorAngular)
+  angularRootModuleGenerator.addPlugin(importStatementsPlugin)
+  angularRootModuleGenerator.addPostProcessor(prettierJS)
 
   const angularComponentModuleGenerator = createComponentGenerator()
   angularComponentModuleGenerator.addPlugin(componentModuleGeneratorAngular)
@@ -46,32 +46,28 @@ export const createPreactProjectGenerator = () => {
   const generator = createProjectGenerator({
     components: {
       generator: angularComponentGenerator,
+      moduleGenerator: angularComponentModuleGenerator,
       path: ['src', 'app', 'components'],
       options: {
         createFolderForEachComponent: true,
         customComponentFileName: (name: string) => `${name}.component`,
         customStyleFileName: (name: string) => `${name}.component`,
         customTemplateFileName: (name: string) => `${name}.component`,
-        module: {
-          generator: angularComponentModuleGenerator,
-        },
       },
     },
     pages: {
       generator: angularPageGenerator,
+      moduleGenerator: anuglarPageModuleGenerator,
       path: ['src', 'app', 'pages'],
       options: {
         createFolderForEachComponent: true,
         customComponentFileName: (name: string) => `${name}.component`,
         customStyleFileName: (name: string) => `${name}.component`,
         customTemplateFileName: (name: string) => `${name}.component`,
-        module: {
-          generator: anuglarPageModuleGenerator,
-        },
       },
     },
     router: {
-      generator: angulaRootModuleGenerator,
+      generator: angularRootModuleGenerator,
       path: ['src', 'app'],
       fileName: 'app.module',
     },
@@ -82,7 +78,11 @@ export const createPreactProjectGenerator = () => {
       options: {
         appRootOverride: CUSTOM_BODY_CONTENT,
         customTags: [
-          { tagName: 'base', attributeKey: 'href', attributeValue: '/', targetTag: 'head' },
+          {
+            tagName: 'base',
+            targetTag: 'head',
+            attributes: [{ attributeKey: 'href', attributeValue: '/' }],
+          },
         ],
       },
     },
@@ -95,4 +95,4 @@ export const createPreactProjectGenerator = () => {
   return generator
 }
 
-export default createPreactProjectGenerator()
+export default createAngularProjectGenerator()

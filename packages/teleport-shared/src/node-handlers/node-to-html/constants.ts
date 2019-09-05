@@ -14,4 +14,5 @@ export const DEFAULT_TEMPLATE_SYNTAX: HTMLTemplateSyntax = {
     return `${iterator} in ${iteratedCollection}`
   },
   customElementTagName: (value) => value,
+  dependencyHandling: 'import',
 }

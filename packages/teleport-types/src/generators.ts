@@ -70,7 +70,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
-  componentsList?: string[]
+  moduleComponents?: string[]
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -109,19 +109,18 @@ export interface ProjectGenerator {
 export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
+    moduleGenerator?: ComponentGenerator
     path: string[]
     options?: {
       createFolderForEachComponent?: boolean
       customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
       customStyleFileName?: (name?: string) => string
       customTemplateFileName?: (name?: string) => string
-      module?: {
-        generator?: ComponentGenerator
-      }
     }
   }
   pages: {
     generator: ComponentGenerator
+    moduleGenerator?: ComponentGenerator
     path: string[]
     options?: {
       usePathAsFileName?: boolean
@@ -130,9 +129,6 @@ export interface ProjectStrategy {
       customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
       customStyleFileName?: (name?: string) => string
       customTemplateFileName?: (name?: string) => string
-      module?: {
-        generator?: ComponentGenerator
-      }
     }
   }
   router?: {
@@ -150,8 +146,6 @@ export interface ProjectStrategy {
     ) => Record<string, ChunkDefinition[]>
     options?: {
       appRootOverride?: string
-      customScriptTags?: CustomScriptTag[]
-      customLinkTags?: CustomLinkTag[]
       customTags?: CustomTag[]
       customHeadContent?: string
     }
@@ -165,29 +159,18 @@ export interface ProjectStrategy {
 export interface CustomTag {
   tagName: string
   targetTag: string
-  attributeKey: string
-  attributeValue: string
-}
-
-export interface CustomLinkTag {
-  path?: string
-  attributeKey?: string
-  attributeValue?: string
-}
-
-export interface CustomScriptTag {
-  path?: string
-  target?: string
   content?: string
-  attributeKey?: string
+  attributes?: Attribute[]
+}
+
+export interface Attribute {
+  attributeKey: string
   attributeValue?: string
 }
 
 export interface EntryFileOptions {
   assetsPrefix?: string
   appRootOverride?: string
-  customScriptTags?: CustomScriptTag[]
-  customLinkTags?: CustomLinkTag[]
   customTags?: CustomTag[]
   customHeadContent: string
 }

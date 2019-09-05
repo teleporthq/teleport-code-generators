@@ -22,9 +22,8 @@ import {
   GeneratorOptions,
   ProjectStrategy,
   EntryFileOptions,
-  CustomScriptTag,
-  CustomLinkTag,
   CustomTag,
+  Attribute,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -50,23 +49,23 @@ export const createComponent = async (
 export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
   const { root } = uidl
   const { path } = strategy.components
-  const { generator } = strategy.components.options.module
+  const { moduleGenerator } = strategy.components
   const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     path,
     strategy.components.path
   )
-  const componentsList = Object.keys(uidl.components)
+  const moduleComponents = Object.keys(uidl.components)
 
   const options = {
     localDependenciesPrefix: componentLocalDependenciesPrefix,
     strategy,
-    componentsList,
+    moduleComponents,
   }
 
   root.meta = root.meta || {}
   root.meta.fileName = 'components.module'
 
-  const { files } = await generator.generateComponent(root, options)
+  const { files } = await moduleGenerator.generateComponent(root, options)
   return files[0]
 }
 
@@ -78,7 +77,7 @@ export const createPageModule = async (
   pageUIDL.meta = pageUIDL.meta || {}
   pageUIDL.meta.fileName = pageUIDL.meta.path[0]
   pageUIDL.meta.moduleName = `${dashCaseToUpperCamelCase(pageUIDL.meta.path[0])}Module`
-  return strategy.pages.options.module.generator.generateComponent(pageUIDL, options)
+  return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
 }
 
 export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
@@ -112,15 +111,11 @@ export const createEntryFile = async (
 
   const appRootOverride = (options && options.appRootOverride) || null
   const entryFileName = strategy.entry.fileName || 'index'
-  const customScriptTags = (options && options.customScriptTags) || []
-  const customLinkTags = (options && options.customLinkTags) || []
   const customHeadContent = (options && options.customHeadContent) || null
   const customTags = (options && options.customTags) || []
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,
-    customScriptTags,
-    customLinkTags,
     customHeadContent,
     customTags,
   })
@@ -131,14 +126,7 @@ export const createEntryFile = async (
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const {
-    assetsPrefix = '',
-    appRootOverride,
-    customScriptTags,
-    customLinkTags,
-    customHeadContent,
-    customTags,
-  } = options
+  const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -170,56 +158,27 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
   /* For frameworks that need to inject and point out the generated build files
   or adding some script tags in head or body */
-  if (customScriptTags.length > 0) {
-    customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { attributeKey, attributeValue, path, content } = tag
-      const { target } = tag || { target: 'head' }
-
-      const targetNode = target === 'body' ? bodyNode : headNode
-      const scriptTag = createHTMLNode('script')
-
-      /* For few script tags we add only values and not the key, 
-        for example defer, nomodule etc. For such behaviours we can omit 
-        attributeKey so only value is added to the tag */
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(scriptTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(scriptTag, attributeValue)
-      }
-
-      if (content) {
-        addTextNode(scriptTag, content)
-      }
-
-      if (path) {
-        addAttributeToNode(scriptTag, 'src', path)
-      }
-
-      addChildNode(targetNode, scriptTag)
-    })
-  }
-
-  if (customLinkTags.length > 0) {
-    customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, attributeKey, attributeValue } = tag
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'href', path)
-
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(linkTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(linkTag, attributeValue)
-      }
-      addChildNode(headNode, linkTag)
-    })
-  }
-
   if (customTags.length > 0) {
     customTags.forEach((tag: CustomTag) => {
-      const { targetTag, tagName, attributeKey, attributeValue } = tag
+      const { targetTag, tagName, attributes, content } = tag
       const targetNode = targetTag === 'head' ? headNode : bodyNode
       const createdNode = createHTMLNode(tagName)
-      addAttributeToNode(createdNode, attributeKey, attributeValue)
+
+      if (content) {
+        addTextNode(createdNode, content)
+      }
+
+      if (attributes && attributes.length > 0) {
+        attributes.forEach((attribute: Attribute) => {
+          const { attributeKey, attributeValue } = attribute
+          if (attributeValue) {
+            addAttributeToNode(createdNode, attributeKey, attributeValue)
+          } else {
+            addBooleanAttributeToNode(createdNode, attributeKey)
+          }
+        })
+      }
+
       addChildNode(targetNode, createdNode)
     })
   }

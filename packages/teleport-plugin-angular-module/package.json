@@ -1,5 +1,5 @@
 {
-  "name": "@teleporthq/teleport-plugin-module-generator-angular",
+  "name": "@teleporthq/teleport-plugin-angular-module",
   "version": "0.9.0",
   "description": "A Plugin for generating modules for angular",
   "author": "teleportHQ",
