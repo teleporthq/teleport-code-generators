@@ -7,11 +7,20 @@ import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import {
+  createComponentGenerator,
+  GeneratorFactoryParams,
+} from '@teleporthq/teleport-component-generator'
 
-import preactMapping from './preact-mapping.json'
+import PreactMapping from './preact-mapping.json'
 
-import { ComponentGenerator, Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
+import { ComponentGenerator } from '@teleporthq/teleport-types'
+
+enum PreactStyleVariation {
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
+}
 
 const cssPlugin = createCSSPlugin({
   templateChunkName: 'jsx-component',
@@ -25,21 +34,20 @@ const cssModulesPlugin = createCSSModulesPlugin({
 })
 
 const stylePlugins = {
-  InlineStyles: inlineStylesPlugin,
-  CSSModules: cssModulesPlugin,
-  CSS: cssPlugin,
+  [PreactStyleVariation.InlineStyles]: inlineStylesPlugin,
+  [PreactStyleVariation.CSSModules]: cssModulesPlugin,
+  [PreactStyleVariation.CSS]: cssPlugin,
 }
 
-export const createPreactComponentGenerator = (
-  variation: string = 'CSSModules',
-  plugins: ComponentPlugin[] = [],
-  mapping: Mapping = {}
+const createPreactComponentGenerator = (
+  variation = PreactStyleVariation.CSSModules,
+  { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()
   const stylePlugin = stylePlugins[variation] || cssPlugin
 
-  generator.addMapping(preactMapping)
-  generator.addMapping(mapping)
+  generator.addMapping(PreactMapping)
+  mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(preactComponentPlugin)
   generator.addPlugin(stylePlugin)
@@ -48,8 +56,11 @@ export const createPreactComponentGenerator = (
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)
+  postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
 
   return generator
 }
+
+export { createPreactComponentGenerator, PreactMapping, PreactStyleVariation }
 
 export default createPreactComponentGenerator()

@@ -3,10 +3,14 @@ import { join } from 'path'
 
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 
-export const writeFolder = async (folder: GeneratedFolder, currentPath: string): Promise<void> => {
+export const writeFolder = async (
+  folder: GeneratedFolder,
+  currentPath: string,
+  createProjectFolder = true
+): Promise<void> => {
   const { name, files, subFolders } = folder
 
-  const folderPath = join(currentPath, name)
+  const folderPath = createProjectFolder ? join(currentPath, name) : currentPath
 
   if (!existsSync(folderPath)) {
     await createDirectory(folderPath)

@@ -42,15 +42,6 @@ describe('teleport publisher zip', () => {
     expect(publisherPath).toBe(path)
   })
 
-  it('should set output zip file name', () => {
-    const publisher = createZipPublisher()
-    const zipName = 'zip-name'
-    publisher.setOutputZipName(zipName)
-
-    const publisherZipName = publisher.getOutputZipName()
-    expect(publisherZipName).toBe(zipName)
-  })
-
   it('should fail if no project is provided', async () => {
     const publisher = createZipPublisher()
 
@@ -60,7 +51,7 @@ describe('teleport publisher zip', () => {
   })
 
   it('should generate project', async () => {
-    const publisher = createZipPublisher()
+    const publisher = createZipPublisher({ outputPath: projectPath })
 
     const { success } = await publisher.publish({ project })
     expect(success).toBeTruthy()
@@ -70,7 +61,7 @@ describe('teleport publisher zip', () => {
     const publisher = createZipPublisher({ project, outputPath: projectPath })
     const zipName = 'zip-name'
 
-    const { success, payload } = await publisher.publish({ outputZipName: zipName })
+    const { success, payload } = await publisher.publish({ projectName: zipName })
     expect(success).toBeTruthy()
 
     const zipPath = join(projectPath, `${zipName}.zip`)

@@ -10,11 +10,23 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import {
+  createComponentGenerator,
+  GeneratorFactoryParams,
+} from '@teleporthq/teleport-component-generator'
 
-import reactMapping from './react-mapping.json'
+import ReactMapping from './react-mapping.json'
 
-import { ComponentGenerator, Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
+import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
+
+enum ReactStyleVariation {
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
+  StyledComponents = 'Styled Components',
+  StyledJSX = 'Styled JSX',
+  ReactJSS = 'React JSS',
+}
 
 const cssPlugin = createCSSPlugin({
   templateChunkName: 'jsx-component',
@@ -26,25 +38,24 @@ const cssPlugin = createCSSPlugin({
 const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
 
 const stylePlugins = {
-  InlineStyles: inlineStylesPlugin,
-  StyledComponents: reactStyledComponentsPlugin,
-  StyledJSX: reactStyledJSXPlugin,
-  CSSModules: cssModulesPlugin,
-  CSS: cssPlugin,
-  JSS: reactJSSPlugin,
+  [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
+  [ReactStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
+  [ReactStyleVariation.StyledJSX]: reactStyledJSXPlugin,
+  [ReactStyleVariation.CSSModules]: cssModulesPlugin,
+  [ReactStyleVariation.CSS]: cssPlugin,
+  [ReactStyleVariation.ReactJSS]: reactJSSPlugin,
 }
 
-export const createReactComponentGenerator = (
-  variation: string = 'CSS',
-  plugins: ComponentPlugin[] = [],
-  mapping: Mapping = {}
+const createReactComponentGenerator = (
+  variation = ReactStyleVariation.CSSModules,
+  { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
 ): ComponentGenerator => {
   const stylePlugin = stylePlugins[variation] || cssPlugin
 
   const generator = createComponentGenerator()
 
-  generator.addMapping(reactMapping as Mapping)
-  generator.addMapping(mapping)
+  generator.addMapping(ReactMapping as Mapping)
+  mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)
   generator.addPlugin(stylePlugin)
@@ -56,8 +67,11 @@ export const createReactComponentGenerator = (
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)
+  postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
 
   return generator
 }
+
+export { createReactComponentGenerator, ReactMapping, ReactStyleVariation }
 
 export default createReactComponentGenerator()

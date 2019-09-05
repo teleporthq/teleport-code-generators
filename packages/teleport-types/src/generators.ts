@@ -102,31 +102,19 @@ export interface ProjectGenerator {
     mapping?: Mapping
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
-  getAssetsPath: () => string
+  getAssetsPath: () => string[]
 }
 
 export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
     path: string[]
-    options?: {
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
-    }
+    options?: ProjectStrategyComponentOptions
   }
   pages: {
     generator: ComponentGenerator
     path: string[]
-    options?: {
-      usePathAsFileName?: boolean
-      convertDefaultToIndex?: boolean
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: string // only used when createFolderForEachComponent is true
-      customStyleFileName?: string
-      customTemplateFileName?: string
-    }
+    options?: ProjectStrategyPageOptions
   }
   router?: {
     generator: ComponentGenerator
@@ -154,16 +142,20 @@ export interface ProjectStrategy {
   }
 }
 
-export interface CustomLinkTag {
-  path?: string
-  attributeKey?: string
-  attributeValue?: string
+export interface ProjectStrategyComponentOptions {
+  createFolderForEachComponent?: boolean
+  customComponentFileName?: string // only used when createFolderForEachComponent is true
+  customStyleFileName?: string
+  customTemplateFileName?: string
 }
 
-export interface CustomScriptTag {
+export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
+  usePathAsFileName?: boolean
+  convertDefaultToIndex?: boolean
+}
+
+export interface CustomLinkTag {
   path?: string
-  target?: string
-  content?: string
   attributeKey?: string
   attributeValue?: string
 }
@@ -174,6 +166,14 @@ export interface EntryFileOptions {
   customScriptTags?: CustomScriptTag[]
   customLinkTags?: CustomLinkTag[]
   customHeadContent: string
+}
+
+export interface CustomScriptTag {
+  path?: string
+  target?: string
+  content?: string
+  attributeKey?: string
+  attributeValue?: string
 }
 
 export interface GeneratedFolder {
@@ -211,11 +211,10 @@ export interface PublisherResponse<T> {
 /**
  * Interfaces used in the packers
  */
+
 export interface AssetsDefinition {
   assets: AssetInfo[]
-  meta?: {
-    prefix: string | string[]
-  }
+  path?: string[]
 }
 
 export interface AssetInfo {

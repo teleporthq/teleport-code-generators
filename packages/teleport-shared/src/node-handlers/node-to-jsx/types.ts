@@ -28,9 +28,9 @@ export interface JSXGenerationOptions {
     Dependencies handling can differ based on the target framework. Web components do not need implicit imports
     because all the components are registered at the DOM level, so they will be used as regular HTML tags.
     - 'import' will create an import statement in the current component for any other local dependency
-    - 'webcomponents' will assume the component is registered at the DOM level and will use the dash-case naming convention
+    - 'ignore' will not perform any action for the dependency, assuming it's been solved by another means
   */
-  dependencyHandling?: 'import' | 'webcomponents'
+  dependencyHandling?: 'import' | 'ignore'
 
   /*
     State changes handled inside event listeners differ from framework to framework

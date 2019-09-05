@@ -15,10 +15,10 @@ yarn add @teleporthq/teleport-component-generator-react
 
 ## Usage
 ```javascript
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+import { createReactComponentGenerator, ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
 
-// other style options: "InlineStyles" - default, "StyledComponents", "StyledJSX", "JSS"
-const reactGenerator = createReactComponentGenerator('CSSModules')
+// other style options: "CSS", "InlineStyles", "StyledComponents", "StyledJSX", "ReactJSS"
+const reactGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
 
 const result = await reactGenerator.generateComponent(uidl)
 ```

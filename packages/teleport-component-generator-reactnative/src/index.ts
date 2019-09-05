@@ -10,27 +10,32 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
-import reactNativeMapping from './react-native-mapping.json'
+import ReactNativeMapping from './react-native-mapping.json'
 
 import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
+
+enum ReactNativeStyleVariation {
+  InlineStyles = 'Inline Styles',
+  StyledComponents = 'Styled Components',
+}
 
 const styledComponentsPlugin = createStyledComponentsPlugin({
   componentLibrary: 'reactnative',
 })
 
 const stylePlugins = {
-  InlineStyles: inlineStylesPlugin,
-  StyledComponents: styledComponentsPlugin,
+  [ReactNativeStyleVariation.InlineStyles]: inlineStylesPlugin,
+  [ReactNativeStyleVariation.StyledComponents]: styledComponentsPlugin,
 }
 
-export const createReactNativeComponentGenerator = (
-  variation: string = 'StyledComponents',
+const createReactNativeComponentGenerator = (
+  variation = ReactNativeStyleVariation.StyledComponents,
   mapping: Mapping = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()
   const stylePlugin = stylePlugins[variation] || styledComponentsPlugin
 
-  generator.addMapping(reactNativeMapping as Mapping)
+  generator.addMapping(ReactNativeMapping as Mapping)
   generator.addMapping(mapping)
 
   generator.addPlugin(reactComponentPlugin)
@@ -53,5 +58,7 @@ export const createReactNativeComponentGenerator = (
 
   return generator
 }
+
+export { createReactNativeComponentGenerator, ReactNativeMapping, ReactNativeStyleVariation }
 
 export default createReactNativeComponentGenerator()
