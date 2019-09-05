@@ -8,6 +8,8 @@ import { Mapping } from '@teleporthq/teleport-types'
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
+
+import { CUSTOM_BODY_CONTENT } from './constants'
 import anuglarProjectMapping from './angular-mapping.json'
 
 export const createPreactProjectGenerator = () => {
@@ -78,7 +80,10 @@ export const createPreactProjectGenerator = () => {
       path: ['src'],
       fileName: 'index',
       options: {
-        appRootOverride: `<app-root></app-root>`,
+        appRootOverride: CUSTOM_BODY_CONTENT,
+        customTags: [
+          { tagName: 'base', attributeKey: 'href', attributeValue: '/', targetTag: 'head' },
+        ],
       },
     },
     static: {

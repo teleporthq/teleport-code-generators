@@ -44,6 +44,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
 
   const createAngularModuleGenerator: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, chunks, options } = structure
+    const { stateDefinitions = {} } = uidl
+
     const { componentsList } = options
 
     let routesAST: types.VariableDeclaration
@@ -60,7 +62,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           dependencies.AppComponent = APP_COMPONENT
 
           const routes = extractRoutes(uidl)
-          routesAST = createRoutesAST(routes)
+          routesAST = createRoutesAST(routes, stateDefinitions)
           ngModuleAST = createRootModuleDecorator()
           moduleDecoratorAST = createExportModuleAST('AppModule')
         }

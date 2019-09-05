@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
 import { dashCaseToUpperCamelCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { extractPageMetadata } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 export const createPageModuleModuleDecorator = (componentName: string, t = types) => {
   const imports: types.ObjectProperty = t.objectProperty(
@@ -98,20 +99,33 @@ export const createExportModuleAST = (moduleName: string, t = types) => {
   )
 }
 
-export const createRoutesAST = (routes, t = types) => {
+export const createRoutesAST = (routes, stateDefinitions, t = types) => {
   // TODO: Need to generate type annotation for routes variable, currently babel throwing erro
-  const routesObject = routes.map((route) => {
-    const { content } = route
-    return constructRootRoute(content.value)
+  const routesObject = routes.map((conditionalNode) => {
+    const { value: routeKey } = conditionalNode.content
+    const { fileName: pageName, path } = extractPageMetadata(
+      stateDefinitions.route,
+      routeKey.toString()
+    )
+
+    return t.objectExpression([
+      t.objectProperty(t.identifier('path'), t.stringLiteral(path.slice(1, path.length))),
+      t.objectProperty(
+        t.identifier('loadChildren'),
+        t.stringLiteral(
+          `./pages/${pageName}/${pageName}.module#${dashCaseToUpperCamelCase(`${pageName}-module`)}`
+        )
+      ),
+    ])
   })
-  const ast = t.variableDeclaration('const', [
+
+  return t.variableDeclaration('const', [
     t.variableDeclarator(t.identifier('routes'), t.arrayExpression(routesObject)),
   ])
-  return ast
 }
 
 export const createPageRouteAST = (componentName: string, t = types) => {
-  const ast = t.variableDeclaration('const', [
+  return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.identifier('routes'),
       t.arrayExpression([
@@ -120,21 +134,6 @@ export const createPageRouteAST = (componentName: string, t = types) => {
           t.objectProperty(t.identifier('component'), t.identifier(componentName)),
         ]),
       ])
-    ),
-  ])
-  return ast
-}
-
-const constructRootRoute = (routeName: string, t = types) => {
-  return t.objectExpression([
-    t.objectProperty(t.identifier('path'), t.stringLiteral(routeName)),
-    t.objectProperty(
-      t.identifier('loadChildren'),
-      t.stringLiteral(
-        `./pages/${routeName}/${routeName}.module#${dashCaseToUpperCamelCase(
-          `${routeName}-module`
-        )}`
-      )
     ),
   ])
 }

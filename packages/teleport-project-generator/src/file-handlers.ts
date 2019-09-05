@@ -24,6 +24,7 @@ import {
   EntryFileOptions,
   CustomScriptTag,
   CustomLinkTag,
+  CustomTag,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -114,12 +115,14 @@ export const createEntryFile = async (
   const customScriptTags = (options && options.customScriptTags) || []
   const customLinkTags = (options && options.customLinkTags) || []
   const customHeadContent = (options && options.customHeadContent) || null
+  const customTags = (options && options.customTags) || []
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,
     customScriptTags,
     customLinkTags,
     customHeadContent,
+    customTags,
   })
 
   const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
@@ -134,6 +137,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     customScriptTags,
     customLinkTags,
     customHeadContent,
+    customTags,
   } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
@@ -207,6 +211,16 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
           : addBooleanAttributeToNode(linkTag, attributeValue)
       }
       addChildNode(headNode, linkTag)
+    })
+  }
+
+  if (customTags.length > 0) {
+    customTags.forEach((tag: CustomTag) => {
+      const { targetTag, tagName, attributeKey, attributeValue } = tag
+      const targetNode = targetTag === 'head' ? headNode : bodyNode
+      const createdNode = createHTMLNode(tagName)
+      addAttributeToNode(createdNode, attributeKey, attributeValue)
+      addChildNode(targetNode, createdNode)
     })
   }
 

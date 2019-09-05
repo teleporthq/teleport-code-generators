@@ -152,6 +152,7 @@ export interface ProjectStrategy {
       appRootOverride?: string
       customScriptTags?: CustomScriptTag[]
       customLinkTags?: CustomLinkTag[]
+      customTags?: CustomTag[]
       customHeadContent?: string
     }
   }
@@ -159,6 +160,13 @@ export interface ProjectStrategy {
     prefix?: string
     path: string[]
   }
+}
+
+export interface CustomTag {
+  tagName: string
+  targetTag: string
+  attributeKey: string
+  attributeValue: string
 }
 
 export interface CustomLinkTag {
@@ -180,6 +188,7 @@ export interface EntryFileOptions {
   appRootOverride?: string
   customScriptTags?: CustomScriptTag[]
   customLinkTags?: CustomLinkTag[]
+  customTags?: CustomTag[]
   customHeadContent: string
 }
 
