@@ -38,6 +38,7 @@ export enum PublisherType {
   NOW = 'Now',
   NETLIFY = 'Netlify',
   GITHUB = 'Github',
+  CODESANDBOX = 'CodeSandbox',
 }
 
 export enum ProjectType {

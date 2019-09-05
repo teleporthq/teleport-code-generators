@@ -28,6 +28,7 @@ import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { createNowPublisher } from '@teleporthq/teleport-publisher-now'
 import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
+import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codesandbox'
 
 import {
   createReactComponentGenerator,
@@ -74,6 +75,7 @@ const projectPublisherFactories = {
   [PublisherType.NOW]: createNowPublisher,
   [PublisherType.NETLIFY]: createNetlifyPublisher,
   [PublisherType.GITHUB]: createGithubPublisher,
+  [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
 }
 
 const componentGeneratorFactories = {
