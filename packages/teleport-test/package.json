@@ -31,6 +31,7 @@
     "@teleporthq/teleport-project-generator-preact": "^0.9.0",
     "@teleporthq/teleport-project-generator-stencil": "^0.9.0",
     "@teleporthq/teleport-project-packer": "^0.9.0",
+    "@teleporthq/teleport-publisher-codesandbox": "^0.9.0",
     "@teleporthq/teleport-publisher-disk": "^0.9.0",
     "@teleporthq/teleport-types": "^0.9.0"
   },
