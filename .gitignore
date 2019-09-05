@@ -36,5 +36,3 @@ node_modules/
 .changelog
 
 packages/teleport-test/config.json
-
-packages/teleport-repl-component/src/components.d.ts
