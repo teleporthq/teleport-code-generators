@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-nuxt",
-  "version": "0.9.0",
+  "version": "0.10.0-alpha.0",
   "description": "Project generator for a standard Nuxt.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,12 +25,12 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.9.0",
-    "@teleporthq/teleport-component-generator-vue": "^0.9.0",
-    "@teleporthq/teleport-plugin-vue-head-config": "^0.9.0",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.9.0",
-    "@teleporthq/teleport-project-generator": "^0.9.0",
-    "@teleporthq/teleport-shared": "^0.9.0",
-    "@teleporthq/teleport-types": "^0.9.0"
+    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-component-generator-vue": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-plugin-vue-head-config": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
   }
 }

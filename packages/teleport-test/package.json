@@ -1,7 +1,7 @@
 {
   "name": "teleport-test",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0-alpha.0",
   "description": "A private repo used for testing the entire ecosystem locally",
   "author": "teleportHQ",
   "license": "MIT",
@@ -23,17 +23,17 @@
     "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts"
   },
   "dependencies": {
-    "@teleporthq/teleport-code-generator": "^0.9.0",
-    "@teleporthq/teleport-project-generator-react": "^0.9.0",
-    "@teleporthq/teleport-project-generator-next": "^0.9.0",
-    "@teleporthq/teleport-project-generator-vue": "^0.9.0",
-    "@teleporthq/teleport-project-generator-nuxt": "^0.9.0",
-    "@teleporthq/teleport-project-generator-preact": "^0.9.0",
-    "@teleporthq/teleport-project-generator-stencil": "^0.9.0",
-    "@teleporthq/teleport-project-packer": "^0.9.0",
-    "@teleporthq/teleport-publisher-codesandbox": "^0.9.0",
-    "@teleporthq/teleport-publisher-disk": "^0.9.0",
-    "@teleporthq/teleport-types": "^0.9.0"
+    "@teleporthq/teleport-code-generator": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-next": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-nuxt": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-preact": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-react": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-stencil": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-vue": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-packer": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-publisher-codesandbox": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-publisher-disk": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
   },
   "devDependencies": {
     "ts-node": "^8.3.0",
