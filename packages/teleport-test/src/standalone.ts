@@ -34,18 +34,20 @@ const packer = createCodeGenerator({
 const run = async () => {
   try {
     let result
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.REACT })
-    console.info(ProjectType.REACT, '-', result.payload)
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.NEXT })
-    console.info(ProjectType.NEXT, '-', result.payload)
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.NUXT })
-    console.info(ProjectType.NUXT, '-', result.payload)
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.VUE })
-    console.info(ProjectType.VUE, '-', result.payload)
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.STENCIL })
-    console.info(ProjectType.STENCIL, '-', result.payload)
-    result = await packer.packProject(projectUIDL, { projectType: ProjectType.PREACT })
-    console.info(ProjectType.PREACT, '-', result.payload)
+    result = await packer.packProject(projectUIDL, { projectType: ProjectType.REACTNATIVE })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.REACT })
+    // console.info(ProjectType.REACT, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.NEXT })
+    // console.info(ProjectType.NEXT, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.NUXT })
+    // console.info(ProjectType.NUXT, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.VUE })
+    // console.info(ProjectType.VUE, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.STENCIL })
+    // console.info(ProjectType.STENCIL, '-', result.payload)
+    // result = await packer.packProject(projectUIDL, { projectType: ProjectType.PREACT })
+    // console.info(ProjectType.PREACT, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

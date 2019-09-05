@@ -8,14 +8,15 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import reactNativeProjectMapping from './reactnative-project-mapping.json'
+import ReactNativeProjectMapping from './reactnative-project-mapping.json'
+import ReactNativeTemplate from './reactnative-project-template'
 
-export const createReactNativeProjectGenerator = () => {
+const createReactNativeProjectGenerator = () => {
   const reactComponentGenerator = createReactNativeComponentGenerator()
-  reactComponentGenerator.addMapping(reactNativeProjectMapping as Mapping)
+  reactComponentGenerator.addMapping(ReactNativeProjectMapping as Mapping)
 
   const reactPagesGenerator = createReactNativeComponentGenerator()
-  reactPagesGenerator.addMapping(reactNativeProjectMapping as Mapping)
+  reactPagesGenerator.addMapping(ReactNativeProjectMapping as Mapping)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactNativeAppRoutingPlugin)
@@ -44,5 +45,7 @@ export const createReactNativeProjectGenerator = () => {
 
   return generator
 }
+
+export { createReactNativeProjectGenerator, ReactNativeTemplate, ReactNativeProjectMapping }
 
 export default createReactNativeProjectGenerator()

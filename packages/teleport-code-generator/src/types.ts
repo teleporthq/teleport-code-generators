@@ -1,6 +1,7 @@
 import { ServiceAuth, AssetInfo } from '@teleporthq/teleport-types'
 import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
 import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
+import { ReactNativeStyleVariation } from '@teleporthq/teleport-component-generator-reactnative'
 
 interface PublisherOptions {
   accessToken?: string
@@ -25,7 +26,7 @@ export interface PackerOptions {
   assets?: AssetInfo[]
 }
 
-export type StyleVariation = ReactStyleVariation | PreactStyleVariation
+export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation
 
 export interface GenerateOptions {
   componentType?: ComponentType
@@ -48,6 +49,7 @@ export enum ProjectType {
   NUXT = 'Nuxt',
   PREACT = 'Preact',
   STENCIL = 'Stencil',
+  REACTNATIVE = 'React Native',
 }
 
 export enum ComponentType {
@@ -56,4 +58,5 @@ export enum ComponentType {
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
+  REACTNATIVE = 'React Native',
 }

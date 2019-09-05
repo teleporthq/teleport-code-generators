@@ -22,6 +22,9 @@ import preactProjectGenerator, {
 import stencilProjectGenerator, {
   StencilTemplate,
 } from '@teleporthq/teleport-project-generator-stencil'
+import reactNativeProjectGenerator, {
+  ReactNativeTemplate,
+} from '@teleporthq/teleport-project-generator-reactnative'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -41,6 +44,10 @@ import {
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
+import {
+  createReactNativeComponentGenerator,
+  ReactNativeStyleVariation,
+} from '@teleporthq/teleport-component-generator-reactnative'
 
 import {
   PackerOptions,
@@ -58,6 +65,7 @@ const projectGenerators = {
   [ProjectType.NUXT]: nuxtProjectGenerator,
   [ProjectType.PREACT]: preactProjectGenerator,
   [ProjectType.STENCIL]: stencilProjectGenerator,
+  [ProjectType.REACTNATIVE]: reactNativeProjectGenerator,
 }
 
 const templates = {
@@ -67,6 +75,7 @@ const templates = {
   [ProjectType.NUXT]: NuxtTemplate,
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
+  [ProjectType.REACTNATIVE]: ReactNativeTemplate,
 }
 
 const projectPublisherFactories = {
@@ -84,11 +93,13 @@ const componentGeneratorFactories = {
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
   [ComponentType.VUE]: createVueComponentGenerator,
   [ComponentType.STENCIL]: createStencilComponentGenerator,
+  [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
 }
 
 const ComponentStyleVariations = {
   [ComponentType.REACT]: ReactStyleVariation,
   [ComponentType.PREACT]: PreactStyleVariation,
+  [ComponentType.REACTNATIVE]: ReactNativeStyleVariation,
 }
 
 const reactStyledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX, {
