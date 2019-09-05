@@ -1,11 +1,15 @@
-# `@teleporthq/teleport-project-generator-angular`
+# `teleport-project-generator-angular`
 
-> TODO: description
+Project generator using Angular, on top of a boilerplate generated using angular-cli
 
-## Usage
+> This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
+## Install
+```bash
+npm install @teleporthq/teleport-project-generator-angular
 ```
-const teleportProjectGeneratorAngular = require('@teleporthq/teleport-project-generator-angular');
-
-// TODO: DEMONSTRATE API
+or
+```bash
+yarn add @teleporthq/teleport-project-generator-angular
 ```
+
