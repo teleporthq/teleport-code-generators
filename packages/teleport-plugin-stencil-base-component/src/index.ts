@@ -58,7 +58,7 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
         state: 'this',
         local: '',
       },
-      dependencyHandling: 'webcomponents',
+      dependencyHandling: 'ignore',
       stateHandling: 'mutation',
       slotHandling: 'native',
       customElementTag: (name: string) => `app-${camelCaseToDashCase(name)}`,

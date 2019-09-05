@@ -20,21 +20,21 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
-import htmlMapping from './html-mapping.json'
+import HtmlMapping from './html-mapping.json'
 
-export interface GeneratorFactoryParams {
+interface GeneratorFactoryParams {
   mappings?: Mapping[]
   plugins?: ComponentPlugin[]
   postprocessors?: PostProcessor[]
 }
 
-export const createComponentGenerator = (
-  params: GeneratorFactoryParams = { mappings: [], plugins: [], postprocessors: [] }
-): ComponentGenerator => {
-  const { mappings, plugins, postprocessors } = params
-
+const createComponentGenerator = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([htmlMapping as Mapping, ...mappings])
+  const resolver = new Resolver([HtmlMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
   const processors: PostProcessor[] = postprocessors
@@ -118,6 +118,8 @@ export const createComponentGenerator = (
     addPostProcessor,
   }
 }
+
+export { createComponentGenerator, HtmlMapping, GeneratorFactoryParams }
 
 export default createComponentGenerator()
 

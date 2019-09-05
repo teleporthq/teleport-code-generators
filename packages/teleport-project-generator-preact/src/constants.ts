@@ -18,4 +18,4 @@ export const CUSTOM_BODY_CONTENT = `<%= htmlWebpackPlugin.options.ssr({
 
 export const ENTRY_CHUNK = `<%= htmlWebpackPlugin.files.chunks['bundle'].entry %>`
 
-export const POLYFILLS_TAG = `window.fetch||document.write('<script src="<%= htmlWebpackPlugin.files.chunks["polyfills"].entry %>"><\/script>`
+export const POLYFILLS_TAG = `if(typeof fetch==='undefined')document.head.appendChild(document.createElement('script')).src='<%= htmlWebpackPlugin.files.chunks["polyfills"].entry %>'`

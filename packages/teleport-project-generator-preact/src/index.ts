@@ -1,5 +1,8 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
+import {
+  createPreactComponentGenerator,
+  PreactStyleVariation,
+} from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import { createPlugin as createRouterPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
@@ -8,15 +11,19 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping } from '@teleporthq/teleport-types'
 
-import preactProjectMapping from './preact-project-mapping.json'
+import PreactTemplate from './project-template'
+import PreactProjectMapping from './preact-project-mapping.json'
 import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } from './constants'
 
-export const createPreactProjectGenerator = () => {
-  const preactComponentGenerator = createPreactComponentGenerator('CSSModules')
-  preactComponentGenerator.addMapping(preactProjectMapping as Mapping)
+const createPreactProjectGenerator = () => {
+  const preactComponentGenerator = createPreactComponentGenerator(PreactStyleVariation.CSSModules, {
+    mappings: [PreactProjectMapping as Mapping],
+  })
 
-  const preactPageGenerator = createPreactComponentGenerator('CSSModules', [headConfigPlugin])
-  preactPageGenerator.addMapping(preactProjectMapping as Mapping)
+  const preactPageGenerator = createPreactComponentGenerator(PreactStyleVariation.CSSModules, {
+    plugins: [headConfigPlugin],
+    mappings: [PreactProjectMapping as Mapping],
+  })
 
   const routerPlugin = createRouterPlugin({ flavor: 'preact' })
   const routingComponentGenerator = createComponentGenerator()
@@ -71,5 +78,7 @@ export const createPreactProjectGenerator = () => {
 
   return generator
 }
+
+export { createPreactProjectGenerator, PreactProjectMapping, PreactTemplate }
 
 export default createPreactProjectGenerator()

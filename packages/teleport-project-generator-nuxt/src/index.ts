@@ -6,11 +6,14 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import nuxtMapping from './nuxt-mapping.json'
+import NuxtMapping from './nuxt-mapping.json'
+import NuxtTemplate from './project-template'
 
-export const createNuxtProjectGenerator = () => {
-  const vueComponentGenerator = createVueComponentGenerator(nuxtMapping as Mapping)
-  const vuePageGenerator = createVueComponentGenerator(nuxtMapping as Mapping)
+const createNuxtProjectGenerator = () => {
+  const vueComponentGenerator = createVueComponentGenerator()
+  vueComponentGenerator.addMapping(NuxtMapping as Mapping)
+  const vuePageGenerator = createVueComponentGenerator()
+  vuePageGenerator.addMapping(NuxtMapping as Mapping)
   vuePageGenerator.addPlugin(vueHeadConfigPlugin)
 
   const htmlFileGenerator = createComponentGenerator()
@@ -38,12 +41,14 @@ export const createNuxtProjectGenerator = () => {
       },
     },
     static: {
-      prefix: '/static',
+      prefix: '',
       path: ['static'],
     },
   })
 
   return generator
 }
+
+export { createNuxtProjectGenerator, NuxtMapping, NuxtTemplate }
 
 export default createNuxtProjectGenerator()

@@ -172,6 +172,6 @@ const dummyGeneratorFunction = async (
 
 const dummyGenerator = {
   addMapping: jest.fn(),
-  getAssetsPath: jest.fn(() => 'static'),
+  getAssetsPath: jest.fn(() => ['static']),
   generateProject: dummyGeneratorFunction,
 }

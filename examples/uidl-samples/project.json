@@ -24,7 +24,23 @@
         }
       }
     ],
-    "meta": []
+    "meta": [],
+    "manifest": {
+      "icons": [
+        {
+          "src": "/playground_assets/icons-192.png",
+          "type": "image/png",
+          "sizes": "192x192"
+        },
+        {
+          "src": "/playground_assets/icons-512.png",
+          "type": "image/png",
+          "sizes": "512x512"
+        }
+      ],
+      "theme_color": "#822CEC",
+      "background_color": "#822CEC"
+    }
   },
   "root": {
     "name": "App",

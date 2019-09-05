@@ -4,8 +4,10 @@ import {
   createSelfClosingJSXTag,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 import * as types from '@babel/types'
-import { addChildJSXText } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/src/utils/ast-jsx-utils'
+import {
+  addChildJSXText,
+  addAttributeToJSXTag,
+} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
 interface JSXHeadPluginConfig {
   componentChunkName?: string

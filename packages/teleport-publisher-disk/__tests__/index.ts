@@ -14,7 +14,7 @@ import {
 import { createDiskPublisher } from '../src'
 
 import project from './project-files.json'
-import { NO_PROJECT_UIDL, NO_OUTPUT_PATH } from '../src/errors'
+import { NO_PROJECT_UIDL } from '../src/errors'
 
 const projectPath = join(__dirname, 'disk-project')
 const noPermissionsPath = join(__dirname, 'no-permissions-folder')
@@ -57,15 +57,6 @@ describe('teleport publisher disk', () => {
     const { success, payload } = await publisher.publish()
     expect(success).toBeFalsy()
     expect(payload).toBe(NO_PROJECT_UIDL)
-  })
-
-  it('should fail if not output path is provided', async () => {
-    const publisher = createDiskPublisher()
-    publisher.setProject(project)
-
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_OUTPUT_PATH)
   })
 
   it('should fail if there are no writing permissions to the output folder', async () => {

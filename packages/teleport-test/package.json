@@ -1,8 +1,8 @@
 {
-  "name": "teleport-project-packer-test",
+  "name": "teleport-test",
   "private": true,
   "version": "0.9.0",
-  "description": "A private repo used for testing the project generators locally",
+  "description": "A private repo used for testing the entire ecosystem locally",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -19,9 +19,11 @@
     "access": "public"
   },
   "scripts": {
-    "start": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/index.ts"
+    "packer": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
+    "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts"
   },
   "dependencies": {
+    "@teleporthq/teleport-code-generator": "^0.9.0",
     "@teleporthq/teleport-project-generator-react": "^0.9.0",
     "@teleporthq/teleport-project-generator-next": "^0.9.0",
     "@teleporthq/teleport-project-generator-vue": "^0.9.0",
