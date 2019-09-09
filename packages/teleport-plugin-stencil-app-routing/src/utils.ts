@@ -5,7 +5,7 @@ import {
   addAttributeToJSXTag,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { extractPageMetadata } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/src/utils/string-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 export const createClassDecleration = (routes, routeDefinitions, t = types) => {
   const stencilRouterTag = createJSXTag('stencil-router')

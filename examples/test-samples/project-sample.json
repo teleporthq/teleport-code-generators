@@ -336,6 +336,9 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "style": {
+            "margin": "10px"
+          },
           "children": [
             {
               "type": "element",

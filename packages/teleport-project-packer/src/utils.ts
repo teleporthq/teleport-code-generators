@@ -17,13 +17,13 @@ export const fetchTemplate = async (template: RemoteTemplateDefinition) => {
 export const injectAssetsToProject = async (
   project: GeneratedFolder,
   assetsData: AssetsDefinition,
-  assetsPath: string
+  assetsRootPath: string[]
 ): Promise<GeneratedFolder> => {
   if (!assetsData) {
     return project
   }
 
-  const { assets, meta } = assetsData
+  const { assets, path = [] } = assetsData
 
   assets.forEach((asset: AssetInfo) => {
     const { data, name, type } = asset
@@ -34,11 +34,7 @@ export const injectAssetsToProject = async (
       fileType: type,
     }
 
-    let filePath = [assetsPath]
-    if (meta && meta.prefix) {
-      const prefix = [].concat(meta.prefix)
-      filePath = filePath.concat(prefix)
-    }
+    const filePath = [...assetsRootPath, ...path]
     project = injectFileInGeneratedFolder(project, file, filePath)
   })
 

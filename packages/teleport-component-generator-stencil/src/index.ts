@@ -4,11 +4,14 @@ import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import {
+  createComponentGenerator,
+  GeneratorFactoryParams,
+} from '@teleporthq/teleport-component-generator'
 
-import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
+import { ComponentGenerator } from '@teleporthq/teleport-types'
 
-import stencilMapping from './stencil-mapping.json'
+import StencilMapping from './stencil-mapping.json'
 
 const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
 const stencilStylePlugin = createCSSPlugin({
@@ -18,19 +21,27 @@ const stencilStylePlugin = createCSSPlugin({
 })
 const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
 
-export const createStencilComponentGenerator = (mapping: Mapping = {}): ComponentGenerator => {
+const createStencilComponentGenerator = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
 
-  generator.addMapping(stencilMapping)
-  generator.addMapping(mapping)
+  generator.addMapping(StencilMapping)
+  mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(stencilComponentPlugin)
   generator.addPlugin(stencilStylePlugin)
+  plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJS)
+  postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
 
   return generator
 }
+
+export { createStencilComponentGenerator, StencilMapping }
 
 export default createStencilComponentGenerator()

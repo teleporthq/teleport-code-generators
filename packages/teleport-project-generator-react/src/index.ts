@@ -1,5 +1,8 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+import {
+  createReactComponentGenerator,
+  ReactStyleVariation,
+} from '@teleporthq/teleport-component-generator-react'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
@@ -10,14 +13,17 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import reactProjectMapping from './react-project-mapping.json'
+import ReactProjectMapping from './react-project-mapping.json'
+import ReactTemplate from './project-template'
 
-export const createReactProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator('CSSModules')
-  reactComponentGenerator.addMapping(reactProjectMapping as Mapping)
+const createReactProjectGenerator = () => {
+  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+  reactComponentGenerator.addMapping(ReactProjectMapping as Mapping)
 
-  const reactPagesGenerator = createReactComponentGenerator('CSSModules', [headConfigPlugin])
-  reactPagesGenerator.addMapping(reactProjectMapping as Mapping)
+  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
+    plugins: [headConfigPlugin],
+    mappings: [ReactProjectMapping as Mapping],
+  })
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
@@ -47,12 +53,14 @@ export const createReactProjectGenerator = () => {
       fileName: 'index',
     },
     static: {
-      prefix: '/static',
-      path: ['src', 'static'],
+      prefix: '',
+      path: ['public'],
     },
   })
 
   return generator
 }
+
+export { createReactProjectGenerator, ReactProjectMapping, ReactTemplate }
 
 export default createReactProjectGenerator()

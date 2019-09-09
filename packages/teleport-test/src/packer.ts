@@ -9,7 +9,7 @@ import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
 import angularGenerator from '@teleporthq/teleport-project-generator-angular'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { RemoteTemplateDefinition } from '@teleporthq/teleport-types'
+import { RemoteTemplateDefinition, ProjectUIDL } from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 
@@ -64,8 +64,8 @@ const packProject = async (projectType: string) => {
   projectPacker.setPublisher(publisher)
   projectPacker.setGenerator(generators[projectType])
   await projectPacker.loadTemplate(remoteTemplate)
-  // @ts-ignore
-  const result = await projectPacker.pack(projectUIDL)
+
+  const result = await projectPacker.pack((projectUIDL as unknown) as ProjectUIDL)
 
   console.info(projectType, ' - ', result)
 }

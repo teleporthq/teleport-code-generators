@@ -24,7 +24,8 @@ describe('Generic Project Generator', () => {
     })
 
     it('sets the default assets prefix', () => {
-      expect(generator.getAssetsPath()).toBe('test/static')
+      expect(generator.getAssetsPath()[0]).toBe('test')
+      expect(generator.getAssetsPath()[1]).toBe('static')
     })
 
     it('sends the mapping to the component generators', () => {
@@ -88,7 +89,8 @@ describe('Generic Project Generator', () => {
     })
 
     it('sets the default assets prefix', () => {
-      expect(generator.getAssetsPath()).toBe('test/static')
+      expect(generator.getAssetsPath()[0]).toBe('test')
+      expect(generator.getAssetsPath()[1]).toBe('static')
     })
 
     it('sends the mapping to the component generators', () => {
@@ -198,6 +200,76 @@ describe('Generic Project Generator', () => {
 
       const componentFolder = result.subFolders[0].subFolders[1].subFolders[0]
       expect(componentFolder.name).toBe('one-component')
+    })
+  })
+
+  describe('updateComponentsStrategy', () => {
+    it('changes the internal strategy object when no options are passed', () => {
+      const generator = createProjectGenerator(createStrategyWithCommonGenerator())
+      generator.updateComponentsStrategy({
+        options: {
+          createFolderForEachComponent: true,
+        },
+      })
+
+      const strategy = generator.getStrategy()
+
+      expect(strategy.components.options.createFolderForEachComponent).toBe(true)
+    })
+
+    it('overrides existing options', () => {
+      const initialStrategy = createStrategyWithCommonGenerator()
+      initialStrategy.components.options = {
+        createFolderForEachComponent: false,
+      }
+      const generator = createProjectGenerator(initialStrategy)
+
+      generator.updateComponentsStrategy({
+        options: {
+          createFolderForEachComponent: true,
+        },
+      })
+
+      const strategy = generator.getStrategy()
+
+      expect(strategy.components.options.createFolderForEachComponent).toBe(true)
+    })
+  })
+
+  describe('updatePagesStrategy', () => {
+    it('changes the internal strategy object when no options are passed', () => {
+      const generator = createProjectGenerator(createStrategyWithCommonGenerator())
+      generator.updatePagesStrategy({
+        options: {
+          createFolderForEachComponent: true,
+          convertDefaultToIndex: false,
+        },
+      })
+
+      const strategy = generator.getStrategy()
+
+      expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
+      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
+    })
+
+    it('overrides existing options', () => {
+      const initialStrategy = createStrategyWithCommonGenerator()
+      initialStrategy.pages.options = {
+        convertDefaultToIndex: true,
+      }
+      const generator = createProjectGenerator(initialStrategy)
+
+      generator.updatePagesStrategy({
+        options: {
+          createFolderForEachComponent: true,
+          convertDefaultToIndex: false,
+        },
+      })
+
+      const strategy = generator.getStrategy()
+
+      expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
+      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
     })
   })
 })

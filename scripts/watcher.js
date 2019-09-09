@@ -5,7 +5,7 @@ const log = console.log
 
 const ignorePackages = [
   'teleport-repl-component',
-  'teleport-project-packer-test'
+  'teleport-test'
 ]
 
 const watcher = chokidar.watch('packages/**/src/**/*.ts', { 

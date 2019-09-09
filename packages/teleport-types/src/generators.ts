@@ -103,7 +103,7 @@ export interface ProjectGenerator {
     mapping?: Mapping
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
-  getAssetsPath: () => string
+  getAssetsPath: () => string[]
 }
 
 export interface ProjectStrategy {
@@ -111,25 +111,13 @@ export interface ProjectStrategy {
     generator: ComponentGenerator
     moduleGenerator?: ComponentGenerator
     path: string[]
-    options?: {
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
-      customStyleFileName?: (name?: string) => string
-      customTemplateFileName?: (name?: string) => string
-    }
+    options?: ProjectStrategyComponentOptions
   }
   pages: {
     generator: ComponentGenerator
     moduleGenerator?: ComponentGenerator
     path: string[]
-    options?: {
-      usePathAsFileName?: boolean
-      convertDefaultToIndex?: boolean
-      createFolderForEachComponent?: boolean
-      customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
-      customStyleFileName?: (name?: string) => string
-      customTemplateFileName?: (name?: string) => string
-    }
+    options?: ProjectStrategyPageOptions
   }
   router?: {
     generator: ComponentGenerator
@@ -166,6 +154,18 @@ export interface CustomTag {
 export interface Attribute {
   attributeKey: string
   attributeValue?: string
+}
+
+export interface ProjectStrategyComponentOptions {
+  createFolderForEachComponent?: boolean
+  customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+  customStyleFileName?: (name?: string) => string
+  customTemplateFileName?: (name?: string) => string
+}
+
+export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
+  usePathAsFileName?: boolean
+  convertDefaultToIndex?: boolean
 }
 
 export interface EntryFileOptions {
@@ -210,11 +210,10 @@ export interface PublisherResponse<T> {
 /**
  * Interfaces used in the packers
  */
+
 export interface AssetsDefinition {
   assets: AssetInfo[]
-  meta?: {
-    prefix: string | string[]
-  }
+  path?: string[]
 }
 
 export interface AssetInfo {

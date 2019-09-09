@@ -25,8 +25,10 @@ describe('React Project Generator', () => {
 
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('js')
-    expect(publicFolder.files[0].name).toBe('index')
-    expect(publicFolder.files[0].fileType).toBe('html')
+    expect(publicFolder.files[0].name).toBe('manifest')
+    expect(publicFolder.files[0].fileType).toBe('json')
+    expect(publicFolder.files[1].name).toBe('index')
+    expect(publicFolder.files[1].fileType).toBe('html')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[1].name).toBe('pages')
   })

@@ -103,8 +103,8 @@ export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   }
 }
 
-export const prefixPlaygroundAssetsURL = (prefix: string, originalString: string | undefined) => {
-  if (!originalString || !originalString.startsWith(ASSETS_IDENTIFIER)) {
+export const prefixAssetsPath = (prefix: string, originalString: string | undefined) => {
+  if (!originalString || !originalString.includes(ASSETS_IDENTIFIER)) {
     return originalString
   }
 

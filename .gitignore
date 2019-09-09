@@ -35,4 +35,4 @@ node_modules/
 
 .changelog
 
-packages/teleport-project-packer-test/config.json
+packages/teleport-test/config.json
