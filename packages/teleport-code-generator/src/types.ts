@@ -48,6 +48,7 @@ export enum ProjectType {
   NUXT = 'Nuxt',
   PREACT = 'Preact',
   STENCIL = 'Stencil',
+  ANGULAR = 'Angular',
 }
 
 export enum ComponentType {
