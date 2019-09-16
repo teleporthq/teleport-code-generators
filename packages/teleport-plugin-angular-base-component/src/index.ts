@@ -66,7 +66,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
         conditionalAttr: '*ngIf',
         repeatAttr: '*ngFor',
         repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
-          const index = useIndex ? `; index as i` : ''
+          const index = useIndex ? `; index as index` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
         customElementTagName: (value) => `app-${value}`,
