@@ -7,6 +7,7 @@ import {
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import { generateExportAST } from './utils'
 
@@ -65,10 +66,11 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
         conditionalAttr: '*ngIf',
         repeatAttr: '*ngFor',
         repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
-          const index = useIndex ? `; index as i` : ''
+          const index = useIndex ? `; index as index` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
         customElementTagName: (value) => `app-${value}`,
+        dependencyHandling: 'ignore',
       }
     )
 
@@ -84,7 +86,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     })
 
     const params = {
-      selector: 'app-root',
+      selector: `app-${camelCaseToDashCase(uidl.name)}`,
       templateUrl: `${getComponentFileName(uidl)}.${FILE_TYPE.HTML}`,
     }
     const componentDecoratorAST = createComponentDecorator(params)

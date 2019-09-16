@@ -43,11 +43,18 @@ const createPageUIDL = (
   const createPathInOwnFile =
     !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
 
+  const {
+    customComponentFileName,
+    customStyleFileName,
+    customTemplateFileName,
+  } = pagesStrategyOptions
+
   const meta = createPathInOwnFile
     ? {
-        fileName: pagesStrategyOptions.customComponentFileName || 'index',
-        styleFileName: pagesStrategyOptions.customStyleFileName || 'style',
-        templateFileName: pagesStrategyOptions.customTemplateFileName || 'template',
+        fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
+        styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
+        templateFileName:
+          (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
         path: [fileName],
       }
     : {
@@ -93,10 +100,17 @@ export const prepareComponentFilenamesAndPath = (
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name
     if (componentStrategyOptions.createFolderForEachComponent) {
+      const {
+        customComponentFileName,
+        customStyleFileName,
+        customTemplateFileName,
+      } = componentStrategyOptions
+
       component.meta = {
-        fileName: componentStrategyOptions.customComponentFileName || 'index',
-        styleFileName: componentStrategyOptions.customStyleFileName || 'style',
-        templateFileName: componentStrategyOptions.customTemplateFileName || 'template',
+        fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
+        styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
+        templateFileName:
+          (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
         path: [...path, fileName],
       }
     } else {

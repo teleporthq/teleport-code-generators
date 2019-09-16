@@ -21,6 +21,7 @@ export interface HTMLTemplateSyntax {
   repeatAttr?: string
   repeatIterator?: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
   customElementTagName?: (value: string) => string
+  dependencyHandling?: 'import' | 'ignore'
 }
 
 export type NodeToHTML<NodeType, ReturnType> = (

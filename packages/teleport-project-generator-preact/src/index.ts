@@ -57,14 +57,18 @@ const createPreactProjectGenerator = () => {
       options: {
         appRootOverride: CUSTOM_BODY_CONTENT,
         customHeadContent: CUSTOM_HEAD_CONTENT,
-        customScriptTags: [
+        customTags: [
           {
-            target: 'body',
-            path: ENTRY_CHUNK,
-            attributeValue: 'defer',
+            tagName: 'script',
+            targetTag: 'body',
+            attributes: [
+              { attributeKey: 'defer' },
+              { attributeKey: 'src', attributeValue: ENTRY_CHUNK },
+            ],
           },
           {
-            target: 'body',
+            tagName: 'script',
+            targetTag: 'body',
             content: POLYFILLS_TAG,
           },
         ],

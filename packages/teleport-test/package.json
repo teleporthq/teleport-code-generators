@@ -30,6 +30,7 @@
     "@teleporthq/teleport-project-generator-react": "^0.10.0-alpha.0",
     "@teleporthq/teleport-project-generator-stencil": "^0.10.0-alpha.0",
     "@teleporthq/teleport-project-generator-vue": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-project-generator-angular": "^0.10.0-alpha.0",
     "@teleporthq/teleport-project-packer": "^0.10.0-alpha.0",
     "@teleporthq/teleport-publisher-codesandbox": "^0.10.0-alpha.0",
     "@teleporthq/teleport-publisher-disk": "^0.10.0-alpha.0",

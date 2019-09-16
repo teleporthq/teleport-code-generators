@@ -46,6 +46,8 @@ const run = async () => {
     console.info(ProjectType.STENCIL, '-', result.payload)
     result = await packer.packProject(projectUIDL, { projectType: ProjectType.PREACT })
     console.info(ProjectType.PREACT, '-', result.payload)
+    result = await packer.packProject(projectUIDL, { projectType: ProjectType.ANGULAR })
+    console.info(ProjectType.ANGULAR, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

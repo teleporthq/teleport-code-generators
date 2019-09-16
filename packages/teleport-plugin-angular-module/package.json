@@ -1,0 +1,32 @@
+{
+  "name": "@teleporthq/teleport-plugin-angular-module",
+  "version": "0.10.0-alpha.0",
+  "description": "A Plugin for generating modules for angular",
+  "author": "teleportHQ",
+  "homepage": "https://teleporthq.io/",
+  "license": "MIT",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.0"
+  }
+}

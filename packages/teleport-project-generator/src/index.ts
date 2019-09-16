@@ -12,6 +12,8 @@ import {
   createPage,
   createRouterFile,
   createEntryFile,
+  createComponentModule,
+  createPageModule,
 } from './file-handlers'
 
 import { DEFAULT_TEMPLATE } from './constants'
@@ -167,6 +169,13 @@ export class ProjectGenerator {
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+
+      const { moduleGenerator } = this.strategy.pages
+
+      if (moduleGenerator) {
+        const pageModule = await createPageModule(pageUIDL, this.strategy, options)
+        injectFilesToPath(rootFolder, path, pageModule.files)
+      }
     }
 
     // Handling components
@@ -180,6 +189,12 @@ export class ProjectGenerator {
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    // Handling module generation for components
+    if (this.strategy.components.moduleGenerator) {
+      const componentsModuleFile = await createComponentModule(uidl, this.strategy)
+      injectFilesToPath(rootFolder, this.strategy.components.path, [componentsModuleFile])
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support

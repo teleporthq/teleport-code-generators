@@ -5,7 +5,10 @@ import {
   addBooleanAttributeToNode,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
 import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import {
+  slugify,
+  dashCaseToUpperCamelCase,
+} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
@@ -19,8 +22,8 @@ import {
   GeneratorOptions,
   ProjectStrategy,
   EntryFileOptions,
-  CustomScriptTag,
-  CustomLinkTag,
+  CustomTag,
+  Attribute,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -41,6 +44,40 @@ export const createComponent = async (
   options: GeneratorOptions
 ) => {
   return strategy.components.generator.generateComponent(componentUIDL, options)
+}
+
+export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+  const { root } = uidl
+  const { path } = strategy.components
+  const { moduleGenerator } = strategy.components
+  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+    path,
+    strategy.components.path
+  )
+  const moduleComponents = Object.keys(uidl.components)
+
+  const options = {
+    localDependenciesPrefix: componentLocalDependenciesPrefix,
+    strategy,
+    moduleComponents,
+  }
+
+  root.meta = root.meta || {}
+  root.meta.fileName = 'components.module'
+
+  const { files } = await moduleGenerator.generateComponent(root, options)
+  return files[0]
+}
+
+export const createPageModule = async (
+  pageUIDL: ComponentUIDL,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
+  pageUIDL.meta = pageUIDL.meta || {}
+  pageUIDL.meta.fileName = pageUIDL.meta.path[0]
+  pageUIDL.meta.moduleName = `${dashCaseToUpperCamelCase(pageUIDL.meta.path[0])}Module`
+  return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
 }
 
 export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
@@ -74,15 +111,13 @@ export const createEntryFile = async (
 
   const appRootOverride = (options && options.appRootOverride) || null
   const entryFileName = strategy.entry.fileName || 'index'
-  const customScriptTags = (options && options.customScriptTags) || []
-  const customLinkTags = (options && options.customLinkTags) || []
   const customHeadContent = (options && options.customHeadContent) || null
+  const customTags = (options && options.customTags) || []
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,
-    customScriptTags,
-    customLinkTags,
     customHeadContent,
+    customTags,
   })
 
   const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
@@ -91,13 +126,7 @@ export const createEntryFile = async (
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const {
-    assetsPrefix = '',
-    appRootOverride,
-    customScriptTags,
-    customLinkTags,
-    customHeadContent,
-  } = options
+  const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
   const htmlNode = createHTMLNode('html')
@@ -129,47 +158,28 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
   /* For frameworks that need to inject and point out the generated build files
   or adding some script tags in head or body */
-  if (customScriptTags.length > 0) {
-    customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { attributeKey, attributeValue, path, content } = tag
-      const { target } = tag || { target: 'head' }
-
-      const targetNode = target === 'body' ? bodyNode : headNode
-      const scriptTag = createHTMLNode('script')
-
-      /* For few script tags we add only values and not the key, 
-        for example defer, nomodule etc. For such behaviours we can omit 
-        attributeKey so only value is added to the tag */
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(scriptTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(scriptTag, attributeValue)
-      }
+  if (customTags.length > 0) {
+    customTags.forEach((tag: CustomTag) => {
+      const { targetTag, tagName, attributes, content } = tag
+      const targetNode = targetTag === 'head' ? headNode : bodyNode
+      const createdNode = createHTMLNode(tagName)
 
       if (content) {
-        addTextNode(scriptTag, content)
+        addTextNode(createdNode, content)
       }
 
-      if (path) {
-        addAttributeToNode(scriptTag, 'src', path)
+      if (attributes && attributes.length > 0) {
+        attributes.forEach((attribute: Attribute) => {
+          const { attributeKey, attributeValue } = attribute
+          if (attributeValue) {
+            addAttributeToNode(createdNode, attributeKey, attributeValue)
+          } else {
+            addBooleanAttributeToNode(createdNode, attributeKey)
+          }
+        })
       }
 
-      addChildNode(targetNode, scriptTag)
-    })
-  }
-
-  if (customLinkTags.length > 0) {
-    customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, attributeKey, attributeValue } = tag
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'href', path)
-
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(linkTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(linkTag, attributeValue)
-      }
-      addChildNode(headNode, linkTag)
+      addChildNode(targetNode, createdNode)
     })
   }
 

@@ -6,6 +6,7 @@ import vueGenerator from '@teleporthq/teleport-project-generator-vue'
 import nuxtGenerator from '@teleporthq/teleport-project-generator-nuxt'
 import preactGenerator from '@teleporthq/teleport-project-generator-preact'
 import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
+import angularGenerator from '@teleporthq/teleport-project-generator-angular'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition, ProjectUIDL } from '@teleporthq/teleport-types'
@@ -20,6 +21,7 @@ import {
   NUXT_GITHUB_PROJECT,
   PREACT_GITHUB_PROJECT,
   STENCIL_GITHUB_PROJECT,
+  ANGULAR_GITHUB_PROJECT,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -31,6 +33,7 @@ const generators = {
   nuxt: nuxtGenerator,
   preact: preactGenerator,
   stencil: stencilGenerator,
+  angular: angularGenerator,
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -44,6 +47,7 @@ const templates = {
   nuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
   preact: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
   stencil: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, STENCIL_GITHUB_PROJECT),
+  angular: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, ANGULAR_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -74,6 +78,7 @@ const run = async () => {
     await packProject('nuxt')
     await packProject('preact')
     await packProject('stencil')
+    await packProject('angular')
   } catch (e) {
     console.info(e)
   }

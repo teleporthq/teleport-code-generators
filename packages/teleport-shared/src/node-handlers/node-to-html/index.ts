@@ -22,7 +22,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
     ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
     : createHTMLNode(elementType)
 
-  if (dependency) {
+  if (dependency && templateSyntax.dependencyHandling === 'import') {
     dependencies[elementType] = { ...dependency }
   }
 

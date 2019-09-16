@@ -154,8 +154,8 @@ describe('Generic Project Generator', () => {
     const strategy = createStrategyWithCommonGenerator()
     strategy.components.options = {
       createFolderForEachComponent: true,
-      customComponentFileName: 'component',
-      customStyleFileName: 'style',
+      customComponentFileName: (name) => 'component',
+      customStyleFileName: (name) => 'style',
     }
 
     const generator = createProjectGenerator(strategy)

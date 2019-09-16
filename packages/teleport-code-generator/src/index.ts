@@ -22,6 +22,9 @@ import preactProjectGenerator, {
 import stencilProjectGenerator, {
   StencilTemplate,
 } from '@teleporthq/teleport-project-generator-stencil'
+import angularProjectGenerator, {
+  AngularTemplate,
+} from '@teleporthq/teleport-project-generator-angular'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -58,6 +61,7 @@ const projectGenerators = {
   [ProjectType.NUXT]: nuxtProjectGenerator,
   [ProjectType.PREACT]: preactProjectGenerator,
   [ProjectType.STENCIL]: stencilProjectGenerator,
+  [ProjectType.ANGULAR]: angularProjectGenerator,
 }
 
 const templates = {
@@ -67,6 +71,7 @@ const templates = {
   [ProjectType.NUXT]: NuxtTemplate,
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
+  [ProjectType.ANGULAR]: AngularTemplate,
 }
 
 const projectPublisherFactories = {
