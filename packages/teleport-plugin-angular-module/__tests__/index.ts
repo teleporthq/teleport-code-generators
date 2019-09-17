@@ -4,9 +4,8 @@ import projectUIDL from '../../../examples/test-samples/project-sample.json'
 import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('Testing the functionality for Angular Modules', () => {
-  const plugin = createPlugin()
-
   it('Should add Angular dependencies for root module', async () => {
+    const rootModule = createPlugin({ moduleType: 'root' })
     const rootUIDL = projectUIDL.root as ComponentUIDL
     const structure: ComponentStructure = {
       uidl: rootUIDL,
@@ -15,14 +14,16 @@ describe('Testing the functionality for Angular Modules', () => {
       dependencies: {},
     }
 
-    const { dependencies, chunks } = await plugin(structure)
+    const { dependencies, chunks } = await rootModule(structure)
 
     expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(5)
     expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].content).toBeDefined()
     expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
     expect(chunks[1].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[1].content).toBeDefined()
   })
 
   it('Should add Angular dependencies for component module', async () => {
@@ -41,5 +42,35 @@ describe('Testing the functionality for Angular Modules', () => {
     expect(chunks.length).toBe(1)
     expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
     expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].content).toBeDefined()
+  })
+
+  it('Should add Angular dependencies for page module', async () => {
+    const componentUIDL = projectUIDL.components.OneComponent as ComponentUIDL
+    componentUIDL.meta = componentUIDL.meta || {}
+    componentUIDL.name = 'One'
+    componentUIDL.meta.fileName = 'OneComponent'
+    componentUIDL.meta.moduleName = 'OneComponentModule'
+
+    const componentPlugin = createPlugin({ moduleType: 'page' })
+    const structure: ComponentStructure = {
+      uidl: componentUIDL,
+      options: {},
+      chunks: [],
+      dependencies: {},
+    }
+
+    const { dependencies, chunks } = await componentPlugin(structure)
+    const pageComponent = dependencies.OneComponent
+
+    expect(Object.keys(dependencies).length).toBe(5)
+    expect(chunks.length).toBe(2)
+    expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
+    expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].content).toBeDefined()
+    expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
+    expect(chunks[1].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[1].content).toBeDefined()
+    expect(pageComponent.type).toBe('local')
   })
 })
