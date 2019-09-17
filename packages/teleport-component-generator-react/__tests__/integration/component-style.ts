@@ -67,7 +67,7 @@ describe('React Styles in Component', () => {
       const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, FILE_TYPE.JS)
-      const cssFile = findFileByType(result.files, FILE_TYPE.CSSMODULE)
+      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
@@ -321,7 +321,7 @@ describe('React Styles in Component', () => {
     it('should return code in an array of files', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
       const jsFile = findFileByType(result.files, FILE_TYPE.JS)
-      const cssFile = findFileByType(result.files, FILE_TYPE.CSSMODULE)
+      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()

@@ -109,7 +109,7 @@ export const createRoutesAST = (routes, stateDefinitions, t = types) => {
     )
 
     return t.objectExpression([
-      t.objectProperty(t.identifier('path'), t.stringLiteral(path.slice(1, path.length))),
+      t.objectProperty(t.identifier('path'), t.stringLiteral(path.replace('/', ''))),
       t.objectProperty(
         t.identifier('loadChildren'),
         t.stringLiteral(

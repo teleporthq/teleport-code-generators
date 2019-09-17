@@ -22,40 +22,38 @@ import {
 export const extractPageMetadata = (
   routeDefinitions: UIDLStateDefinition,
   stateName: string,
-  options: {
-    usePathAsFileName?: boolean
-    convertDefaultToIndex?: boolean
-  } = {
-    usePathAsFileName: false,
-    convertDefaultToIndex: false,
-  }
+  usePathAsFileName = false
 ): { fileName: string; componentName: string; path: string } => {
   const defaultPage = routeDefinitions.defaultValue
   const pageDefinitions = routeDefinitions.values || []
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
 
-  // If not meta object is defined, the stateName is used
-  if (!pageDefinition || !pageDefinition.meta) {
-    return {
-      fileName: options.convertDefaultToIndex && stateName === defaultPage ? 'index' : stateName,
-      componentName: stateName,
-      path: '/' + stateName,
-    }
+  // If no meta object is defined, the stateName is used
+  const defaultPageMetadata = {
+    fileName: usePathAsFileName && stateName === defaultPage ? 'index' : stateName,
+    componentName: stateName,
+    path: '/' + stateName,
   }
 
-  // In case the path is used as the url (next, nuxt), we override the filename from the path
-  const fileNameFromMeta = options.usePathAsFileName
-    ? pageDefinition.meta.path && pageDefinition.meta.path.slice(1)
-    : pageDefinition.meta.fileName
-
-  return {
-    fileName:
-      options.convertDefaultToIndex && stateName === defaultPage
-        ? 'index'
-        : fileNameFromMeta || stateName,
-    componentName: pageDefinition.meta.componentName || stateName,
-    path: pageDefinition.meta.path || '/' + stateName,
+  if (!pageDefinition || !pageDefinition.pageOptions) {
+    return defaultPageMetadata
   }
+
+  // The pageDefinition values have precedence, defaults are fallbacks
+  const pageMetadata = {
+    ...defaultPageMetadata,
+    ...pageDefinition.pageOptions,
+  }
+
+  // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
+  // Also, the defaultPage has to be index, overriding any other value set
+  if (usePathAsFileName) {
+    const fileNameFromPath =
+      pageDefinition.pageOptions.path && pageDefinition.pageOptions.path.replace('/', '')
+    pageMetadata.fileName = stateName === defaultPage ? 'index' : fileNameFromPath
+  }
+
+  return pageMetadata
 }
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -69,7 +67,10 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
 }
 
 export const getComponentFileName = (component: ComponentUIDL) => {
-  const name = component.meta && component.meta.fileName ? component.meta.fileName : component.name
+  const name =
+    component.outputOptions && component.outputOptions.fileName
+      ? component.outputOptions.fileName
+      : component.name
   return camelCaseToDashCase(name)
 }
 
@@ -77,8 +78,8 @@ export const getStyleFileName = (component: ComponentUIDL) => {
   const componentFileName = getComponentFileName(component)
 
   // If component meta style file name is not set, we default to the component file name
-  return component.meta && component.meta.styleFileName
-    ? component.meta.styleFileName
+  return component.outputOptions && component.outputOptions.styleFileName
+    ? component.outputOptions.styleFileName
     : componentFileName
 }
 
@@ -86,13 +87,13 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
   const componentFileName = getComponentFileName(component)
 
   // If component meta style file name is not set, we default to the component file name
-  return component.meta && component.meta.templateFileName
-    ? component.meta.templateFileName
+  return component.outputOptions && component.outputOptions.templateFileName
+    ? component.outputOptions.templateFileName
     : componentFileName
 }
 
 export const getComponentPath = (component: ComponentUIDL) =>
-  component.meta ? component.meta.path : []
+  component.outputOptions ? component.outputOptions.path : []
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'

@@ -13,7 +13,6 @@ export const PRETTIER_CONFIG: PrettierFormatOptions = {
 }
 export const FILE_TYPE = {
   CSS: 'css',
-  CSSMODULE: 'module.css',
   HTML: 'html',
   JS: 'js',
   JSON: 'json',

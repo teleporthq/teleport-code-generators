@@ -146,7 +146,7 @@ const getFileName = (
   styleFileName: string,
   templateFileName: string
 ) => {
-  if (fileType === FILE_TYPE.CSS || fileType === FILE_TYPE.CSSMODULE) {
+  if (fileType === FILE_TYPE.CSS) {
     return styleFileName || fileName
   }
 

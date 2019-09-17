@@ -57,7 +57,7 @@ describe('Generic Project Generator', () => {
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: 'index',
         },
       }
@@ -135,7 +135,7 @@ describe('Generic Project Generator', () => {
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: strategy.router.fileName,
         },
       }
@@ -186,7 +186,7 @@ describe('Generic Project Generator', () => {
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: 'index',
         },
       }
@@ -242,34 +242,32 @@ describe('Generic Project Generator', () => {
       generator.updatePagesStrategy({
         options: {
           createFolderForEachComponent: true,
-          convertDefaultToIndex: false,
         },
       })
 
       const strategy = generator.getStrategy()
 
       expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
-      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
     })
 
     it('overrides existing options', () => {
       const initialStrategy = createStrategyWithCommonGenerator()
       initialStrategy.pages.options = {
-        convertDefaultToIndex: true,
+        usePathAsFileName: true,
       }
       const generator = createProjectGenerator(initialStrategy)
 
       generator.updatePagesStrategy({
         options: {
           createFolderForEachComponent: true,
-          convertDefaultToIndex: false,
+          usePathAsFileName: false,
         },
       })
 
       const strategy = generator.getStrategy()
 
       expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
-      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
+      expect(strategy.pages.options.usePathAsFileName).toBe(false)
     })
   })
 })

@@ -72,14 +72,14 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
           const componentName = `${uidl.name}Component`
-          dependencies[componentName] = constructLocalDependency(uidl.meta.fileName)
+          dependencies[componentName] = constructLocalDependency(uidl.outputOptions.fileName)
 
           routesAST = createPageRouteAST(componentName)
           ngModuleAST = createPageModuleModuleDecorator(componentName)
-          moduleDecoratorAST = createExportModuleAST(uidl.meta.moduleName)
+          moduleDecoratorAST = createExportModuleAST(uidl.outputOptions.moduleName)
 
           // Acording to widely followed convention module should have .module in its name
-          uidl.meta.fileName = `${uidl.meta.fileName}.module`
+          uidl.outputOptions.fileName = `${uidl.outputOptions.fileName}.module`
         }
         break
       case 'component':

@@ -35,7 +35,7 @@ const createPageUIDL = (
   const { componentName, fileName } = extractPageMetadata(
     routeDefinition,
     pageName,
-    strategy.pages.options
+    pagesStrategyOptions.usePathAsFileName
   )
 
   // If the file name will not be used as the path (eg: next, nuxt)
@@ -49,7 +49,7 @@ const createPageUIDL = (
     customTemplateFileName,
   } = pagesStrategyOptions
 
-  const meta = createPathInOwnFile
+  const outputOptions = createPathInOwnFile
     ? {
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
@@ -81,7 +81,7 @@ const createPageUIDL = (
   return {
     name: componentName,
     node: pageContent,
-    meta,
+    outputOptions,
     seo,
   }
 }
@@ -106,7 +106,7 @@ export const prepareComponentFilenamesAndPath = (
         customTemplateFileName,
       } = componentStrategyOptions
 
-      component.meta = {
+      component.outputOptions = {
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
@@ -114,7 +114,7 @@ export const prepareComponentFilenamesAndPath = (
         path: [...path, fileName],
       }
     } else {
-      component.meta = {
+      component.outputOptions = {
         fileName,
         styleFileName: fileName,
         templateFileName: fileName,

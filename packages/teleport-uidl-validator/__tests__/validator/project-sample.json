@@ -18,21 +18,21 @@
         "values": [
           {
             "value": "index",
-            "meta": {
+            "pageOptions": {
               "path": "/",
               "componentName": "Home"
             }
           },
           {
             "value": "about",
-            "meta": {
+            "pageOptions": {
               "path": "/about",
               "componentName": "About"
             }
           },
           {
             "value": "contact-us",
-            "meta": {
+            "pageOptions": {
               "path": "/here-we-are",
               "componentName": "Us"
             }

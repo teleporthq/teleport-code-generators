@@ -237,7 +237,7 @@ describe('resolveNavlinks', () => {
     values: [
       {
         value: 'home-link',
-        meta: {
+        pageOptions: {
           path: '/home',
         },
       },

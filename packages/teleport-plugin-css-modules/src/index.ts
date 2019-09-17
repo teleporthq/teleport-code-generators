@@ -106,31 +106,37 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     })
 
     /**
-     * If no classes were added, we don't need to import anything or to alter any
-     * code
+     * If no classes were added, we don't need to import anything or to alter any code
      */
     if (!cssClasses.length) {
       return structure
     }
-
-    // create-react-app expects css modules to be in files named [filename].module.css
-    const cssFileType = moduleExtension ? FILE_TYPE.CSSMODULE : FILE_TYPE.CSS
 
     /**
      * Setup an import statement for the styles
      * The name of the file is either in the meta of the component generator
      * or we fallback to the name of the component
      */
-    const cssFileName = getStyleFileName(uidl)
+    let cssFileName = getStyleFileName(uidl)
+
+    /**
+     * In case the moduleExtension flag is passed, the file name should be in the form [fileName].module.css
+     */
+    if (moduleExtension) {
+      cssFileName = `${cssFileName}.module`
+      uidl.outputOptions = uidl.outputOptions || {}
+      uidl.outputOptions.styleFileName = cssFileName
+    }
+
     dependencies[styleObjectImportName] = {
       type: 'local',
-      path: `./${cssFileName}.${cssFileType}`,
+      path: `./${cssFileName}.${FILE_TYPE.CSS}`,
     }
 
     structure.chunks.push({
       name: styleChunkName,
       type: CHUNK_TYPE.STRING,
-      fileType: cssFileType,
+      fileType: FILE_TYPE.CSS,
       content: cssClasses.join('\n'),
       linkAfter: [],
     })

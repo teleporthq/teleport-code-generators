@@ -41,7 +41,6 @@ const createNextProjectGenerator = () => {
       path: ['pages'],
       options: {
         usePathAsFileName: true,
-        convertDefaultToIndex: true,
       },
     },
     entry: {

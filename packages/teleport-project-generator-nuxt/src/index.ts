@@ -29,7 +29,6 @@ const createNuxtProjectGenerator = () => {
       path: ['pages'],
       options: {
         usePathAsFileName: true,
-        convertDefaultToIndex: true,
       },
     },
     entry: {

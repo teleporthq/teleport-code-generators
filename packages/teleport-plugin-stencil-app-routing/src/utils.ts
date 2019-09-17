@@ -7,7 +7,7 @@ import {
 import { extractPageMetadata } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
-export const createClassDecleration = (routes, routeDefinitions, t = types) => {
+export const createClassDeclaration = (routes, routeDefinitions, t = types) => {
   const stencilRouterTag = createJSXTag('stencil-router')
   const stencilRouteSwitchTag = createJSXTag('stencil-route-switch')
   addChildJSXTag(stencilRouterTag, stencilRouteSwitchTag)

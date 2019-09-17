@@ -51,7 +51,7 @@
         "values": [
           {
             "value": "home",
-            "meta": {
+            "pageOptions": {
               "path": "/",
               "componentName": "Home"
             },
@@ -61,8 +61,8 @@
           },
           {
             "value": "team",
-            "meta": {
-              "path": "/team",
+            "pageOptions": {
+              "path": "team",
               "componentName": "Team"
             },
             "seo": {
@@ -81,7 +81,7 @@
           },
           {
             "value": "contact-us",
-            "meta": {
+            "pageOptions": {
               "path": "/contact-us",
               "componentName": "ContactPage"
             },

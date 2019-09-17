@@ -98,15 +98,17 @@ describe('plugin-css-modules', () => {
     expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
   })
 
-  it('generates a string chunk of type CSSMODULE', async () => {
+  it('generates a string chunk of type CSS', async () => {
     const plugin = createPlugin({ moduleExtension: true })
     const structure = setupPluginStructure('list-container')
-    const { chunks } = await plugin(structure)
+    const { chunks, dependencies } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSSMODULE)
+    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
+    expect(structure.uidl.outputOptions.styleFileName).toContain('.module')
+    expect(dependencies.styles.path).toContain('.module.css')
   })
 
   it('inlines dynamic style and does not generate a new chunk if no static styles are present', async () => {
