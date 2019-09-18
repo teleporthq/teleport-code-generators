@@ -53,7 +53,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           const {
             content: { id, referenceType },
           } = attributeValue
-          const prefix = options.dynamicReferencePrefixMap[referenceType]
+          const prefix =
+            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
           addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix)
           break
         case 'static':

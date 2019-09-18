@@ -18,7 +18,7 @@ export const generateExportAST = (
   methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
-  let angularMethodsAST = []
+  let angularMethodsAST: types.ClassMethod[] = []
   if (Object.keys(methodsObject).length > 0) {
     angularMethodsAST = createMethodsObject(methodsObject, propDefinitions)
   }
@@ -90,7 +90,7 @@ const createMethodsObject = (
   t = types
 ) => {
   return Object.keys(methods).map((eventKey) => {
-    const astStatements = []
+    const astStatements: types.ExpressionStatement[] = []
     methods[eventKey].map((statement) => {
       const astStatement =
         statement.type === 'propCall'

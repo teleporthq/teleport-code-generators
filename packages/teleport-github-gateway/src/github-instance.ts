@@ -1,3 +1,4 @@
+// @ts-ignore
 import Github from 'github-api'
 
 import { ServiceAuth } from '@teleporthq/teleport-types'
@@ -22,6 +23,7 @@ import {
 import { createBase64GithubFileBlob } from './utils'
 
 export default class GithubInstance {
+  // @ts-ignore
   private githubApi = null
   private auth: ServiceAuth = null
 

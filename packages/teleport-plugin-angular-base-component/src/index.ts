@@ -3,6 +3,7 @@ import {
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLElementNode,
+  UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
 import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
@@ -46,7 +47,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
     const templateLookup: { [key: string]: any } = {}
     const dataObject: Record<string, any> = {}
-    const methodsObject: Record<string, any> = {}
+    const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
 
     const templateContent = createHTMLTemplateSyntax(
       uidl.node,

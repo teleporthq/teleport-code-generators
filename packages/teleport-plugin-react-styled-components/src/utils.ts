@@ -3,7 +3,11 @@ import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/
 import { stringAsTemplateLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
-export const generateStyledComponent = (name: string, type: string, styles: object) => {
+export const generateStyledComponent = (
+  name: string,
+  type: string,
+  styles: Record<string, any>
+) => {
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.identifier(name),
@@ -15,7 +19,7 @@ export const generateStyledComponent = (name: string, type: string, styles: obje
   ])
 }
 
-const mapStyles = (styles: object) => {
+const mapStyles = (styles: Record<string, any>) => {
   let style = ''
   Object.keys(styles).forEach((item) => {
     if (typeof styles[item] === 'string') {

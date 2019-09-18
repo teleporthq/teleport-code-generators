@@ -14,7 +14,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
-  return Object.keys(stateDefinitions).reduce((result, key) => {
+  return Object.keys(stateDefinitions).reduce((result: Record<string, any>, key) => {
     result[key] = stateDefinitions[key].defaultValue
     return result
   }, {})
@@ -133,7 +133,7 @@ const createMethodsObject = (
   t = types
 ) => {
   return Object.keys(methods).map((eventKey) => {
-    const astStatements = []
+    const astStatements: types.ExpressionStatement[] = []
     methods[eventKey].map((statement) => {
       const astStatement =
         statement.type === 'propCall'

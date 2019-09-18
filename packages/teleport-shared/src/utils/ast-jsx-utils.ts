@@ -147,7 +147,7 @@ export const renameJSXTag = (jsxTag: types.JSXElement, newName: string, t = type
   }
 }
 
-export const createComponentDecorator = (params, t = types) => {
+export const createComponentDecorator = (params: Record<string, any>, t = types) => {
   return t.decorator(
     t.callExpression(t.identifier('Component'), [objectToObjectExpression(params)])
   )

@@ -33,7 +33,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
-    const jssStyleMap = {}
+    const jssStyleMap: Record<string, any> = {}
 
     traverseElements(node, (element) => {
       const { style, key, elementType } = element
@@ -81,14 +81,12 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       }
     })
 
-    if (!Object.keys(jssStyleMap).length) {
-      return structure
-    }
-
-    dependencies.styled = {
-      type: 'library',
-      path: 'styled-components',
-      version: '4.2.0',
+    if (Object.keys(jssStyleMap).length > 0) {
+      dependencies.styled = {
+        type: 'library',
+        path: 'styled-components',
+        version: '4.2.0',
+      }
     }
 
     return structure

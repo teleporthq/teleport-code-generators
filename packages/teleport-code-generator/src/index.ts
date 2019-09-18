@@ -182,10 +182,11 @@ export {
 
 export default createCodeGenerator()
 
-const createComponentGenerator = (componentType: string, styleVariation: StyleVariation) => {
+const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
   if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
+    // @ts-ignore
     return generatorFactory(styleVariation)
   }
 

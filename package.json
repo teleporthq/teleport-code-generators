@@ -40,6 +40,9 @@
   "devDependencies": {
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^24.0.18",
+    "@types/jss": "^9.5.8",
+    "@types/jszip": "^3.1.6",
+    "@types/prettier": "^1.18.2",
     "@types/rimraf": "^2.0.2",
     "all-contributors-cli": "^6.8.1",
     "chalk": "^2.4.2",

@@ -1,3 +1,4 @@
+// @ts-ignore
 import toHTML from '@starptech/prettyhtml-hast-to-html'
 import { CodeGeneratorFunction, HastNode } from '@teleporthq/teleport-types'
 

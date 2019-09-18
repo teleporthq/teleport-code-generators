@@ -132,7 +132,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   return chunks
 }
 
-const createDocumentWrapperAST = (htmlNode, t = types) => {
+const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
   return t.program([
     t.importDeclaration(
       [

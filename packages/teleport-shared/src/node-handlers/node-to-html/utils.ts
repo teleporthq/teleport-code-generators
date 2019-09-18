@@ -90,7 +90,7 @@ export const handleEvent = (
   }
 }
 
-export const createConditionalStatement = (node: UIDLConditionalNode) => {
+export const createConditionalStatement = (node: UIDLConditionalNode): string => {
   const { node: childNode, reference, value, condition } = node.content
 
   const expression = standardizeUIDLConditionalExpression(value, condition)

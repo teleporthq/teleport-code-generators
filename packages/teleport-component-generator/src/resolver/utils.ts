@@ -334,7 +334,7 @@ const prefixAssetURLs = (
   assetsPrefix: string
 ): UIDLStyleDefinitions => {
   // iterate through all the style keys
-  return Object.keys(style).reduce((acc, styleKey) => {
+  return Object.keys(style).reduce((acc: UIDLStyleDefinitions, styleKey) => {
     const styleValue = style[styleKey]
 
     switch (styleValue.type) {
@@ -355,9 +355,13 @@ const prefixAssetURLs = (
         ) {
           // split the string at the beginning of the ASSETS_IDENTIFIER string
           const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER) - 1 // account for the leading '/'
-          acc[styleKey] =
+          const newStyleValue =
             staticContent.slice(0, startIndex) +
             prefixAssetsPath(assetsPrefix, staticContent.slice(startIndex, staticContent.length))
+          acc[styleKey] = {
+            type: 'static',
+            content: newStyleValue,
+          }
         } else {
           acc[styleKey] = styleValue
         }

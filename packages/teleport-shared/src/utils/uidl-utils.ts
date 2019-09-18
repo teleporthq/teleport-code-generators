@@ -13,6 +13,7 @@ import {
   UIDLRepeatContent,
   UIDLRepeatMeta,
   UIDLPageOptions,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -360,8 +361,8 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
-  transform: (value: UIDLDynamicReference, key?: string) => unknown
-) => {
+  transform: (value: UIDLDynamicReference, key?: string) => any
+): Record<string, any> => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]
 
@@ -527,7 +528,7 @@ export const transformAttributesAssignmentsToJson = (
   return newStyleObject
 }
 
-export const findFirstElementNode = (node: UIDLNode) => {
+export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
   switch (node.type) {
     case 'element':
       return node

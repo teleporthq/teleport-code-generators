@@ -206,7 +206,7 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
 }
 
 const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
-  const pathsClone = JSON.parse(JSON.stringify(paths))
+  const pathsClone: string[][] = JSON.parse(JSON.stringify(paths))
 
   const shortestPathLength = Math.min(
     ...pathsClone.map((path) => {

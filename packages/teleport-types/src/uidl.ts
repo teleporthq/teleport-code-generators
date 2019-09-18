@@ -1,21 +1,23 @@
 export interface ProjectUIDL {
   $schema?: string
   name: string
-  globals: {
-    settings: {
-      title: string
-      language: string
-    }
-    meta: Array<Record<string, string>>
-    assets: GlobalAsset[]
-    manifest?: WebManifest
-    variables?: Record<string, string>
-  }
+  globals: UIDLGlobalProjectValues
   root: ComponentUIDL
   components?: Record<string, ComponentUIDL>
 }
 
-export interface GlobalAsset {
+export interface UIDLGlobalProjectValues {
+  settings: {
+    title: string
+    language: string
+  }
+  meta: Array<Record<string, string>>
+  assets: UIDLGlobalAsset[]
+  manifest?: WebManifest
+  variables?: Record<string, string>
+}
+
+export interface UIDLGlobalAsset {
   type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
   path?: string
   content?: string
@@ -47,7 +49,7 @@ export interface ComponentUIDL {
 export interface UIDLComponentSEO {
   title?: string
   metaTags?: Array<Record<string, string>>
-  assets?: GlobalAsset[]
+  assets?: UIDLGlobalAsset[]
 }
 
 export interface UIDLPropDefinition {

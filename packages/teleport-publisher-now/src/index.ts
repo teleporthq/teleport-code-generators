@@ -16,7 +16,7 @@ export interface NowPublisher extends Publisher<NowFactoryParams, string> {
   setAccessToken: (token: string) => void
 }
 
-const defaultPublisherParams = {
+const defaultPublisherParams: NowFactoryParams = {
   accessToken: null,
 }
 

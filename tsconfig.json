@@ -14,6 +14,7 @@
     "noUnusedLocals": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "noImplicitAny": true,
     "typeRoots" : [
       "node_modules/@types"
     ]

@@ -48,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
 
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jsxNodesLookup = componentChunk.meta.nodesLookup
-    const jssStyleMap = {}
+    const jssStyleMap: Record<string, any> = {}
 
     traverseElements(node, (element) => {
       const { style, key } = element

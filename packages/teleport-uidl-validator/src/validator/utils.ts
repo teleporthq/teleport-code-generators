@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import {
   traverseNodes,
   traverseRepeats,
@@ -24,7 +25,7 @@ export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
 // If index is used, "useIndex" must be declared in "meta"
 // If custom local variable is used, it's name must be specified inside "meta" as "iteratorName"
 export const checkForLocalVariables = (input: ComponentUIDL) => {
-  const errors = []
+  const errors: string[] = []
 
   traverseRepeats(input.node, (repeatContent) => {
     traverseNodes(repeatContent.node, (childNode) => {
@@ -67,9 +68,9 @@ export const checkDynamicDefinitions = (input: any) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
 
-  const usedPropKeys = []
-  const usedstateKeys = []
-  const errors = []
+  const usedPropKeys: string[] = []
+  const usedStateKeys: string[] = []
+  const errors: string[] = []
 
   traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
@@ -93,7 +94,7 @@ export const checkDynamicDefinitions = (input: any) => {
       // for member expression we check the root
       // if value has no `.` it will be checked as it is
       const dynamicIdRoot = node.content.id.split('.')[0]
-      usedstateKeys.push(dynamicIdRoot)
+      usedStateKeys.push(dynamicIdRoot)
     }
   })
 
@@ -104,7 +105,7 @@ export const checkDynamicDefinitions = (input: any) => {
     )
 
   stateKeys
-    .filter((x) => !usedstateKeys.includes(x))
+    .filter((x) => !usedStateKeys.includes(x))
     .forEach((diff) =>
       console.warn(`"${diff}" is defined in stateDefinitions but it is not used in the UIDL.`)
     )
@@ -139,7 +140,7 @@ export const checkRouteDefinition = (input: ProjectUIDL) => {
 // All referenced components inside of the projectUIDL should be defined
 // in the component section
 export const checkComponentExistence = (input: ProjectUIDL) => {
-  const errors = []
+  const errors: string[] = []
   const components = Object.keys(input.components)
 
   traverseElements(input.root.node, (element) => {
@@ -180,14 +181,14 @@ export const checkComponentNaming = (input: ProjectUIDL) => {
 // The "root" node should contain only elements of type "conditional"
 export const checkRootComponent = (input: ProjectUIDL) => {
   const errors = []
-  const routeNaming = []
+  const routeNaming: string[] = []
   const rootNode = input.root.node.content as UIDLElement
   rootNode.children.forEach((child) => {
     if (child.type !== 'conditional') {
       const errorMsg = `\nRoot Node contains elements of type "${child.type}". It should contain only elements of type "conditional"`
       errors.push(errorMsg)
     } else {
-      routeNaming.push(child.content.value)
+      routeNaming.push(child.content.value.toString())
     }
   })
 
@@ -198,7 +199,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
     )
   } else {
     input.root.stateDefinitions.route.values
-      .filter((route) => !routeNaming.includes(route.value))
+      .filter((route) => !routeNaming.includes(route.value.toString()))
       .forEach((route) => {
         const errorMsg = `\nRoot Node contains a route that don't have a specified state: ${route.pageOptions.navLink}.`
         errors.push(errorMsg)
@@ -209,8 +210,8 @@ export const checkRootComponent = (input: ProjectUIDL) => {
 }
 
 // The errors should be displayed in a human-readeable way
-export const formatErrors = (errors: any) => {
-  const listOfErrors = []
+export const formatErrors = (errors: Ajv.ErrorObject[]) => {
+  const listOfErrors: string[] = []
   errors.forEach((error) => {
     const message =
       error.keyword === 'type'

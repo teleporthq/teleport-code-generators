@@ -20,7 +20,7 @@ interface GithubOptions {
 
 export interface PackerOptions {
   projectType?: ProjectType
-  publisher?: string
+  publisher?: PublisherType
   publishOptions?: GithubOptions | PublisherOptions
   assets?: AssetInfo[]
 }

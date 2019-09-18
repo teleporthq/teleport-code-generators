@@ -67,7 +67,7 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
       ? templateChunk.meta.dynamicRefPrefix.prop
       : ''
 
-    const jssStylesArray = []
+    const jssStylesArray: string[] = []
 
     traverseElements(node, (element) => {
       const { style, key } = element

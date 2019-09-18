@@ -1,6 +1,6 @@
 import { HastNode, HastText } from '@teleporthq/teleport-types'
 
-export const createHTMLNode = (tagName: string, children = []): HastNode => {
+export const createHTMLNode = (tagName: string, children: HastNode[] = []): HastNode => {
   return {
     type: 'element',
     tagName,

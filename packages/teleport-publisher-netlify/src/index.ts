@@ -19,14 +19,14 @@ export interface NetlifyPublisher extends Publisher<NetlifyFactoryParams, string
   setAccessToken: (token: string) => void
 }
 
-const defaultPublisherParams = {
+const defaultPublisherParams: NetlifyFactoryParams = {
   accessToken: null,
   buildCommand: BUILD_COMMAND,
   publishDirectory: PUBLISH_DIRECTORY,
 }
 
 export const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, NetlifyPublisher> = (
-  params: NetlifyFactoryParams = defaultPublisherParams
+  params = defaultPublisherParams
 ): NetlifyPublisher => {
   let { project, accessToken } = params
 

@@ -55,13 +55,16 @@ export const parseProjectJSON = (
 
   result.root = parseComponentJSON(root, { noClone: true })
   if (result.components) {
-    result.components = Object.keys(result.components).reduce((parsedComponnets, key) => {
-      parsedComponnets[key] = parseComponentJSON((result.components[key] as unknown) as Record<
-        string,
-        unknown
-      >)
-      return parsedComponnets
-    }, {})
+    result.components = Object.keys(result.components).reduce(
+      (parsedComponnets: Record<string, ComponentUIDL>, key) => {
+        parsedComponnets[key] = parseComponentJSON((result.components[key] as unknown) as Record<
+          string,
+          unknown
+        >)
+        return parsedComponnets
+      },
+      {}
+    )
   }
 
   return result

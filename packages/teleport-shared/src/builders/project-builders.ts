@@ -1,4 +1,10 @@
-import { ComponentUIDL, ProjectUIDL, GlobalAsset, WebManifest } from '@teleporthq/teleport-types'
+import {
+  ComponentUIDL,
+  ProjectUIDL,
+  UIDLGlobalAsset,
+  WebManifest,
+  UIDLGlobalProjectValues,
+} from '@teleporthq/teleport-types'
 
 export const project = (
   name: string,
@@ -10,7 +16,7 @@ export const project = (
       language: string
     }
     meta: Array<Record<string, string>>
-    assets: GlobalAsset[]
+    assets: UIDLGlobalAsset[]
     manifest?: WebManifest
     variables?: Record<string, string>
   }
@@ -24,7 +30,7 @@ export const project = (
 }
 
 export const UIDLArrayToRecord = (array: ComponentUIDL[]): Record<string, ComponentUIDL> => {
-  const record = {}
+  const record: Record<string, ComponentUIDL> = {}
   array.forEach((element) => {
     record[element.name] = element
   })
@@ -32,7 +38,9 @@ export const UIDLArrayToRecord = (array: ComponentUIDL[]): Record<string, Compon
   return record
 }
 
-export const simpleProjectGlobals = (title: string = 'My teleport project') => {
+export const simpleProjectGlobals = (
+  title: string = 'My teleport project'
+): UIDLGlobalProjectValues => {
   return {
     settings: {
       title,
@@ -47,7 +55,7 @@ export const explicitProjectGlobals = (
   title: string,
   language: string,
   meta: Array<Record<string, string>>,
-  assets: GlobalAsset[],
+  assets: UIDLGlobalAsset[],
   manifest?: WebManifest
 ) => {
   return {
@@ -107,6 +115,6 @@ export const projectAssetContent = (
   }
 }
 
-export const projectAssets = (assets: GlobalAsset[]) => {
+export const projectAssets = (assets: UIDLGlobalAsset[]) => {
   return assets
 }

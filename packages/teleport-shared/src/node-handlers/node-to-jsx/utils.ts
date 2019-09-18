@@ -143,7 +143,7 @@ export const createDynamicValueExpression = (
   options: JSXGenerationOptions,
   t = types
 ) => {
-  const refType = identifier.content.referenceType
+  const refType = identifier.content.referenceType as 'prop' | 'state' | 'local'
   const prefix = options.dynamicReferencePrefixMap[refType] || ''
   return prefix === ''
     ? t.identifier(identifier.content.id)
