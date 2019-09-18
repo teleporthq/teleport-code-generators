@@ -23,33 +23,11 @@
         "content": { "$ref": "#/definitions/elementNodeContent" }
       }
     },
-    "meta": {"type": "object"},
+    "outputOptions": {"type": "object"},
     "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
     "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
   },
   "definitions": {
-    "dependency": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["package", "local", "library"],
-          "examples": ["package", "local", "library"]
-        },
-        "path": {"type": "string"},
-        "version": {"type": "string", "default": "1.0.0"},
-        "meta": {
-          "type": "object", 
-          "additionalProperties": false,
-          "properties": {
-            "namedImport": {"type": "boolean", "default": false},
-            "originalName": {"type": "string"}
-          }
-        }
-      }
-    },
     "propDefinitions": {
       "type": "object",
       "patternProperties": {
@@ -103,13 +81,19 @@
                 "type": "object",
                 "properties": {
                   "value": {},
-                  "meta": { 
+                  "pageOptions": { 
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
                       "componentName": { "type": "string" },
-                      "path": { "type": "string" },
-                      "fileName": { "type": "string" },
+                      "navLink": { "type": "string" },
+                      "fileName": { "type": "string" }
+                    }
+                  },
+                  "seo": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
                       "title": { "type": "string" },
                       "metaTags": {
                         "type": "array",
@@ -121,15 +105,27 @@
                             }
                           }
                         }
+                      },
+                      "assets": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["type"],
+                          "properties": {
+                            "type": { "type": "string", "enum": ["link", "script", "font", "icon", "style", "canonical"] },
+                            "path": { "type": "string" },
+                            "content": { "type": "string" },
+                            "meta": { "type": "object" }
+                          }
+                        }
                       }
                     }
-                  },
-                  "transitions": { "type": "object" }
+                  }
                 }
               }
             },
-            "defaultValue": {},
-            "actions": {"type": "array"}
+            "defaultValue": {}
           }
         }
       }

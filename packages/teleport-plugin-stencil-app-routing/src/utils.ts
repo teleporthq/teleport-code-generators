@@ -4,21 +4,26 @@ import {
   addChildJSXTag,
   addAttributeToJSXTag,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { extractPageMetadata } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { extractPageOptions } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
-export const createClassDecleration = (routes, routeDefinitions, t = types) => {
+export const createClassDeclaration = (
+  routes: UIDLConditionalNode[],
+  routeDefinitions: UIDLStateDefinition,
+  t = types
+) => {
   const stencilRouterTag = createJSXTag('stencil-router')
   const stencilRouteSwitchTag = createJSXTag('stencil-route-switch')
   addChildJSXTag(stencilRouterTag, stencilRouteSwitchTag)
 
   routes.forEach((routeNode) => {
     const pageKey = routeNode.content.value.toString()
-    const { componentName, path } = extractPageMetadata(routeDefinitions, pageKey)
+    const { componentName, navLink } = extractPageOptions(routeDefinitions, pageKey)
 
     const stencilRouteTag = createJSXTag('stencil-route')
-    addAttributeToJSXTag(stencilRouteTag, 'url', path)
-    if (path === '/') {
+    addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    if (navLink === '/') {
       addAttributeToJSXTag(stencilRouteTag, 'exact', true)
     }
     addAttributeToJSXTag(stencilRouteTag, 'component', `app-${camelCaseToDashCase(componentName)}`)

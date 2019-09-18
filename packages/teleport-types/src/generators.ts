@@ -164,8 +164,7 @@ export interface ProjectStrategyComponentOptions {
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
-  usePathAsFileName?: boolean
-  convertDefaultToIndex?: boolean
+  useFileNameForNavigation?: boolean
 }
 
 export interface EntryFileOptions {
@@ -219,7 +218,7 @@ export interface AssetsDefinition {
 export interface AssetInfo {
   data: string
   name: string
-  type: string
+  type?: string
 }
 
 export interface RemoteTemplateDefinition {

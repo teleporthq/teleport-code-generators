@@ -16,7 +16,7 @@
     "moduleResolution": "node",
     "typeRoots" : [
       "node_modules/@types"
-    ],
+    ]
   },
   "exclude": [
     "examples",

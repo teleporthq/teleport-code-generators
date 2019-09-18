@@ -2,9 +2,7 @@ import { createGithubPublisher } from '../src'
 
 import { NO_PROJECT_UIDL, NO_AUTH, NO_REPO, NO_REPO_OWNER } from '../src/errors'
 
-// @ts-ignore
 import project from './project-files.json'
-// @ts-ignore
 import githubFiles from './github-files-content.json'
 import { generateProjectFiles } from '../src/utils'
 

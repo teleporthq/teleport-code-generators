@@ -32,16 +32,16 @@ export interface ComponentUIDL {
   $schema?: string
   name: string
   node: UIDLElementNode
-  meta?: {
+  propDefinitions?: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
+  outputOptions?: {
     fileName?: string
     styleFileName?: string
     templateFileName?: string
     moduleName?: string
-    path?: string[]
+    folderPath?: string[]
   }
   seo?: UIDLComponentSEO
-  propDefinitions?: Record<string, UIDLPropDefinition>
-  stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
 export interface UIDLComponentSEO {
@@ -61,16 +61,15 @@ export interface UIDLStateDefinition {
   defaultValue: string | number | boolean | any[] | object | (() => void)
   values?: Array<{
     value: string | number | boolean
-    meta?: {
-      // Used when the StateDefinition is used as the router
-      componentName?: string
-      path?: string
-      fileName?: string
-    }
+    pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
     seo?: UIDLComponentSEO
-    transitions?: any
   }>
-  actions?: string[]
+}
+
+export interface UIDLPageOptions {
+  componentName?: string
+  navLink?: string
+  fileName?: string
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'

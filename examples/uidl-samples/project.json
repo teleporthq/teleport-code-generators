@@ -51,8 +51,8 @@
         "values": [
           {
             "value": "home",
-            "meta": {
-              "path": "/",
+            "pageOptions": {
+              "navLink": "/",
               "componentName": "Home"
             },
             "seo": {
@@ -61,10 +61,6 @@
           },
           {
             "value": "team",
-            "meta": {
-              "path": "/team",
-              "componentName": "Team"
-            },
             "seo": {
               "title": "About Page",
               "metaTags": [
@@ -81,8 +77,8 @@
           },
           {
             "value": "contact-us",
-            "meta": {
-              "path": "/contact-us",
+            "pageOptions": {
+              "navLink": "/about-us",
               "componentName": "ContactPage"
             },
             "seo": {

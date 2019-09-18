@@ -8,7 +8,7 @@ import {
   DEFAULT_COMPONENT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
 } from './constants'
-import { createClassDecleration } from './utils'
+import { createClassDeclaration } from './utils'
 
 interface StencilRouterConfig {
   componentDecoratorChunkName: string
@@ -48,7 +48,7 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
       linkAfter: [importChunkName],
     })
 
-    const classDeclarationAST = createClassDecleration(routes, routeDefinitions)
+    const classDeclarationAST = createClassDeclaration(routes, routeDefinitions)
 
     chunks.push({
       name: componentChunkName,

@@ -5,7 +5,7 @@ import {
   createDefaultExport,
 } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
 import {
-  extractPageMetadata,
+  extractPageOptions,
   extractRoutes,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
@@ -50,7 +50,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
 
-      const { fileName: pageName, componentName, path } = extractPageMetadata(
+      const { fileName: pageName, componentName, navLink } = extractPageOptions(
         stateDefinitions.route,
         routeKey.toString()
       )
@@ -72,7 +72,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         path: `${pageDependencyPrefix}${pageName}${pageComponentSuffix}`,
       }
 
-      return constructRouteJSX(flavor, componentName, path)
+      return constructRouteJSX(flavor, componentName, navLink)
     })
 
     const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)

@@ -237,8 +237,8 @@ describe('resolveNavlinks', () => {
     values: [
       {
         value: 'home-link',
-        meta: {
-          path: '/home',
+        pageOptions: {
+          navLink: '/home',
         },
       },
     ],
@@ -253,6 +253,17 @@ describe('resolveNavlinks', () => {
 
     resolveNavlinks(uidlNode, routeDef)
     expect(navlink.content.attrs.transitionTo.content).toBe('/home')
+  })
+
+  it('does not change an attribute which starts with /', () => {
+    const navlink = elementNode('navlink', {
+      transitionTo: staticNode('/home-link'),
+    })
+
+    const uidlNode = elementNode('container', {}, [elementNode('div', {}, [navlink])])
+
+    resolveNavlinks(uidlNode, routeDef)
+    expect(navlink.content.attrs.transitionTo.content).toBe('/home-link')
   })
 
   it('throws an error for dynamic attributes', () => {
@@ -274,8 +285,10 @@ describe('resolveNavlinks', () => {
 
     resolveNavlinks(navlink, routeDef)
 
-    expect(warn).toHaveBeenCalledWith("No path was defined for router state: 'non-existing-state'.")
-    expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
+    expect(warn).toHaveBeenCalledWith(
+      "No navlink was defined for router state: 'non-existing-state'. Falling back to '/non-existing-state'"
+    )
+    expect(navlink.content.attrs.transitionTo.content).toBe('/non-existing-state')
   })
 })
 

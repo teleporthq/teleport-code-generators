@@ -63,10 +63,18 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
         (route) => route.value === transitionState
       )
 
-      if (transitionRoute && transitionRoute.meta && transitionRoute.meta.path) {
-        transitionAttribute.content = transitionRoute.meta.path
+      if (transitionState.startsWith('/')) {
+        // attribute was explicitly set as a custom navlink
+        return
+      }
+
+      if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
+        transitionAttribute.content = transitionRoute.pageOptions.navLink
       } else {
-        console.warn(`No path was defined for router state: '${transitionState}'.`)
+        transitionAttribute.content = `/${transitionState}`
+        console.warn(
+          `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
+        )
       }
     }
   })

@@ -43,7 +43,7 @@ afterAll(() => {
 
 describe('code generator', () => {
   const packer = createCodeGenerator()
-  it('should pack a react project', async () => {
+  it('creates a react project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.REACT,
       assets,
@@ -55,7 +55,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should pack a next project', async () => {
+  it('creates a next project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.NEXT,
       assets,
@@ -67,7 +67,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should pack a vue project', async () => {
+  it('creates a vue project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.VUE,
       assets,
@@ -79,7 +79,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should pack a nuxt project', async () => {
+  it('creates a nuxt project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.NUXT,
       assets,
@@ -91,7 +91,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should pack a nuxt project', async () => {
+  it('creates a stencil project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.STENCIL,
       assets,
@@ -103,7 +103,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should pack a nuxt project', async () => {
+  it('creates a preact project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.PREACT,
       assets,
@@ -115,7 +115,7 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should generate a react component', async () => {
+  it('creates a react component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.REACT,
       styleVariation: ReactStyleVariation.CSSModules,
@@ -125,7 +125,7 @@ describe('code generator', () => {
     expect(files.length).toBe(2)
   })
 
-  it('should generate a preact component', async () => {
+  it('creates a preact component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.PREACT,
       styleVariation: PreactStyleVariation.CSS,
@@ -135,7 +135,7 @@ describe('code generator', () => {
     expect(files.length).toBe(2)
   })
 
-  it('should generate a vue component', async () => {
+  it('creates a vue component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.VUE,
     }
@@ -144,7 +144,7 @@ describe('code generator', () => {
     expect(files.length).toBe(1)
   })
 
-  it('should generate a stencil component', async () => {
+  it('creates a stencil component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.STENCIL,
     }
@@ -153,7 +153,7 @@ describe('code generator', () => {
     expect(files.length).toBe(2)
   })
 
-  it('should generate a angular component', async () => {
+  it('creates an angular component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.ANGULAR,
     }
@@ -162,10 +162,20 @@ describe('code generator', () => {
     expect(files.length).toBe(3)
   })
 
-  it('should resolve an element with react mapping', async () => {
+  it('resolves an element with the react mapping', async () => {
     const elementNode = element('container')
-    const result = await packer.resolveElement(elementNode)
+    const result = packer.resolveElement(elementNode)
     expect(result.elementType).toBe('div')
+  })
+
+  it('throws an error when given an invalid ProjectType', async () => {
+    const result = packer.packProject(projectUIDL, { projectType: 'random' })
+    await expect(result).rejects.toThrow(Error)
+  })
+
+  it('throws an error when given an invalid Publisher', async () => {
+    const result = packer.packProject(projectUIDL, { publisher: 'random' })
+    await expect(result).rejects.toThrow(Error)
   })
 })
 

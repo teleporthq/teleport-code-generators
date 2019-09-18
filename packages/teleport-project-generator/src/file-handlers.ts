@@ -62,8 +62,8 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
     moduleComponents,
   }
 
-  root.meta = root.meta || {}
-  root.meta.fileName = 'components.module'
+  root.outputOptions = root.outputOptions || {}
+  root.outputOptions.fileName = 'components.module'
 
   const { files } = await moduleGenerator.generateComponent(root, options)
   return files[0]
@@ -74,9 +74,11 @@ export const createPageModule = async (
   strategy: ProjectStrategy,
   options: GeneratorOptions
 ) => {
-  pageUIDL.meta = pageUIDL.meta || {}
-  pageUIDL.meta.fileName = pageUIDL.meta.path[0]
-  pageUIDL.meta.moduleName = `${dashCaseToUpperCamelCase(pageUIDL.meta.path[0])}Module`
+  pageUIDL.outputOptions = pageUIDL.outputOptions || {}
+  pageUIDL.outputOptions.fileName = pageUIDL.outputOptions.folderPath[0]
+  pageUIDL.outputOptions.moduleName = `${dashCaseToUpperCamelCase(
+    pageUIDL.outputOptions.folderPath[0]
+  )}Module`
   return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
 }
 
@@ -92,8 +94,8 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     strategy,
   }
 
-  root.meta = root.meta || {}
-  root.meta.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
+  root.outputOptions = root.outputOptions || {}
+  root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
   const { files } = await routerGenerator.generateComponent(root, options)
   return files[0]

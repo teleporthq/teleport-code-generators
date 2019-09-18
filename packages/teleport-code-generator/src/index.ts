@@ -121,11 +121,17 @@ const createCodeGenerator = (factoryOptions: PackerOptions & GenerateOptions = {
     const packPublishOptions = { ...publishOptions, ...packOptions.publishOptions }
     const packAssets = packOptions.assets || assets
 
-    const projectGenerator =
-      projectGenerators[packProjectType] || projectGenerators[ProjectType.NEXT]
-    const projectTemplate = templates[packProjectType] || templates[ProjectType.NEXT]
-    const publisherFactory =
-      projectPublisherFactories[packPublisher] || projectPublisherFactories[PublisherType.ZIP]
+    const projectGenerator = projectGenerators[packProjectType]
+    const projectTemplate = templates[packProjectType]
+    const publisherFactory = projectPublisherFactories[packPublisher]
+
+    if (!projectGenerator) {
+      throw new Error(`Invalid ProjectType: ${packProjectType}`)
+    }
+
+    if (!publisherFactory) {
+      throw new Error(`Invalid PublisherType: ${packPublisher}`)
+    }
 
     const projectPublisher = publisherFactory(packPublishOptions)
 

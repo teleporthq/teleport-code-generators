@@ -3,7 +3,7 @@ import {
   getComponentFileName,
   getComponentPath,
   extractRoutes,
-  extractPageMetadata,
+  extractPageOptions,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
 import {
@@ -32,16 +32,17 @@ const createPageUIDL = (
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
-  const { componentName, fileName } = extractPageMetadata(
+  const { componentName, fileName } = extractPageOptions(
     routeDefinition,
     pageName,
-    strategy.pages.options
+    pagesStrategyOptions.useFileNameForNavigation
   )
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
-  const createPathInOwnFile =
-    !pagesStrategyOptions.usePathAsFileName && pagesStrategyOptions.createFolderForEachComponent
+  const createFolderForEachComponent =
+    !pagesStrategyOptions.useFileNameForNavigation &&
+    pagesStrategyOptions.createFolderForEachComponent
 
   const {
     customComponentFileName,
@@ -49,19 +50,19 @@ const createPageUIDL = (
     customTemplateFileName,
   } = pagesStrategyOptions
 
-  const meta = createPathInOwnFile
+  const outputOptions = createFolderForEachComponent
     ? {
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
           (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
-        path: [fileName],
+        folderPath: [fileName],
       }
     : {
         fileName,
         styleFileName: fileName,
         templateFileName: fileName,
-        path: [],
+        folderPath: [],
       }
 
   // Looking into the state definition, we take the seo information for the corresponding page
@@ -81,12 +82,12 @@ const createPageUIDL = (
   return {
     name: componentName,
     node: pageContent,
-    meta,
+    outputOptions,
     seo,
   }
 }
 
-export const prepareComponentFilenamesAndPath = (
+export const prepareComponentOutputOptions = (
   components: Record<string, ComponentUIDL>,
   strategy: ProjectStrategy
 ) => {
@@ -95,7 +96,7 @@ export const prepareComponentFilenamesAndPath = (
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
     const fileName = getComponentFileName(component)
-    const path = getComponentPath(component)
+    const folderPath = getComponentPath(component)
 
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name
@@ -106,19 +107,19 @@ export const prepareComponentFilenamesAndPath = (
         customTemplateFileName,
       } = componentStrategyOptions
 
-      component.meta = {
+      component.outputOptions = {
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
           (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
-        path: [...path, fileName],
+        folderPath: [...folderPath, fileName],
       }
     } else {
-      component.meta = {
+      component.outputOptions = {
         fileName,
         styleFileName: fileName,
         templateFileName: fileName,
-        path,
+        folderPath,
       }
     }
   })
