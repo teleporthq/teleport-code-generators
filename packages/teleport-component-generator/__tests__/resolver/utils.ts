@@ -238,7 +238,7 @@ describe('resolveNavlinks', () => {
       {
         value: 'home-link',
         pageOptions: {
-          path: '/home',
+          navLink: '/home',
         },
       },
     ],
@@ -274,7 +274,9 @@ describe('resolveNavlinks', () => {
 
     resolveNavlinks(navlink, routeDef)
 
-    expect(warn).toHaveBeenCalledWith("No path was defined for router state: 'non-existing-state'.")
+    expect(warn).toHaveBeenCalledWith(
+      "No navlink was defined for router state: 'non-existing-state'."
+    )
     expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
   })
 })

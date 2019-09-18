@@ -40,7 +40,7 @@ const createNextProjectGenerator = () => {
       generator: reactPageGenerator,
       path: ['pages'],
       options: {
-        usePathAsFileName: true,
+        useFileNameForNavigation: true,
       },
     },
     entry: {

@@ -124,7 +124,7 @@ Index variable is used but the "useIndex" meta information is false.,
  - Path : should have required property 'name'. {"missingProperty":"name"},
  - Path .globals.settings: should NOT have additional properties. {"additionalProperty":"key"},
  - Path .globals.settings.language: should be string. Received number,
- - Path .globals.assets[1].type: should be equal to one of the allowed values. {"allowedValues":["link","script","font","icon","style"]}`
+ - Path .globals.assets[1].type: should be equal to one of the allowed values. {"allowedValues":["link","script","font","icon","style","canonical"]}`
       )
     })
   })
@@ -149,7 +149,7 @@ Index variable is used but the "useIndex" meta information is false.,
 The component "Navbars" is not defined in the UIDL's component section.,
 The following components have different name than their key: Navbar,OneComponent,
 Root Node contains elements of type "static". It should contain only elements of type "conditional",
-Root Node contains routes that don't have corresponding components. Check the "value" for the following routes: /about.`
+Root Node contains a route that don't have a specified state: /about.`
       )
     })
     it('returns error if route is missing from state definitions', () => {

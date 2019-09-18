@@ -47,10 +47,10 @@ describe('Testing the functionality for Angular Modules', () => {
 
   it('Should add Angular dependencies for page module', async () => {
     const componentUIDL = projectUIDL.components.OneComponent as ComponentUIDL
-    componentUIDL.meta = componentUIDL.meta || {}
+    componentUIDL.outputOptions = componentUIDL.outputOptions || {}
     componentUIDL.name = 'One'
-    componentUIDL.meta.fileName = 'OneComponent'
-    componentUIDL.meta.moduleName = 'OneComponentModule'
+    componentUIDL.outputOptions.fileName = 'OneComponent'
+    componentUIDL.outputOptions.moduleName = 'OneComponentModule'
 
     const componentPlugin = createPlugin({ moduleType: 'page' })
     const structure: ComponentStructure = {

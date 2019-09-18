@@ -164,7 +164,7 @@ describe('code generator', () => {
 
   it('should resolve an element with react mapping', async () => {
     const elementNode = element('container')
-    const result = await packer.resolveElement(elementNode)
+    const result = packer.resolveElement(elementNode)
     expect(result.elementType).toBe('div')
   })
 })

@@ -52,7 +52,7 @@
           {
             "value": "home",
             "pageOptions": {
-              "path": "/",
+              "navLink": "/",
               "componentName": "Home"
             },
             "seo": {
@@ -62,7 +62,7 @@
           {
             "value": "team",
             "pageOptions": {
-              "path": "team",
+              "navLink": "team",
               "componentName": "Team"
             },
             "seo": {
@@ -82,7 +82,7 @@
           {
             "value": "contact-us",
             "pageOptions": {
-              "path": "/contact-us",
+              "navLink": "/contact-us",
               "componentName": "ContactPage"
             },
             "seo": {

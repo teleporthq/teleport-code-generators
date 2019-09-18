@@ -63,10 +63,10 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
         (route) => route.value === transitionState
       )
 
-      if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.path) {
-        transitionAttribute.content = transitionRoute.pageOptions.path
+      if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
+        transitionAttribute.content = transitionRoute.pageOptions.navLink
       } else {
-        console.warn(`No path was defined for router state: '${transitionState}'.`)
+        console.warn(`No navlink was defined for router state: '${transitionState}'.`)
       }
     }
   })

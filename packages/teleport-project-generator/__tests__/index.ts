@@ -104,7 +104,7 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
 
-      const uidl = projectUIDL as ProjectUIDL
+      const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -166,7 +166,7 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
 
-      const uidl = projectUIDL as ProjectUIDL
+      const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -253,21 +253,21 @@ describe('Generic Project Generator', () => {
     it('overrides existing options', () => {
       const initialStrategy = createStrategyWithCommonGenerator()
       initialStrategy.pages.options = {
-        usePathAsFileName: true,
+        useFileNameForNavigation: true,
       }
       const generator = createProjectGenerator(initialStrategy)
 
       generator.updatePagesStrategy({
         options: {
           createFolderForEachComponent: true,
-          usePathAsFileName: false,
+          useFileNameForNavigation: false,
         },
       })
 
       const strategy = generator.getStrategy()
 
       expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
-      expect(strategy.pages.options.usePathAsFileName).toBe(false)
+      expect(strategy.pages.options.useFileNameForNavigation).toBe(false)
     })
   })
 })

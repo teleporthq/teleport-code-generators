@@ -7,7 +7,7 @@ import template from './template-definition.json'
 import { createAngularProjectGenerator } from '../../src'
 import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
-describe('React Next Project Generator', () => {
+describe('Angular Project Generator', () => {
   const generator = createAngularProjectGenerator()
 
   it('runs without crashing', async () => {

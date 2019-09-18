@@ -39,7 +39,7 @@ export interface ComponentUIDL {
     styleFileName?: string
     templateFileName?: string
     moduleName?: string
-    path?: string[]
+    folderPath?: string[]
   }
   seo?: UIDLComponentSEO
 }
@@ -61,14 +61,15 @@ export interface UIDLStateDefinition {
   defaultValue: string | number | boolean | any[] | object | (() => void)
   values?: Array<{
     value: string | number | boolean
-    pageOptions?: {
-      // Used when the StateDefinition is used as the router
-      componentName?: string
-      path?: string
-      fileName?: string
-    }
+    pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
     seo?: UIDLComponentSEO
   }>
+}
+
+export interface UIDLPageOptions {
+  componentName?: string
+  navLink?: string
+  fileName?: string
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'

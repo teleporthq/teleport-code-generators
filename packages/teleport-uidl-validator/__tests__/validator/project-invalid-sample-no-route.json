@@ -19,21 +19,21 @@
           {
             "value": "index",
             "pageOptions": {
-              "path": "/",
+              "navLink": "/",
               "componentName": "Home"
             }
           },
           {
             "value": "abouts",
             "pageOptions": {
-              "path": "/about",
+              "navLink": "/about",
               "componentName": "About"
             }
           },
           {
             "value": "contact-us",
             "pageOptions": {
-              "path": "/here-we-are",
+              "navLink": "/here-we-are",
               "componentName": "Us"
             }
           }

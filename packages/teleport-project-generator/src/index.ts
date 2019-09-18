@@ -2,7 +2,7 @@ import {
   injectFilesToPath,
   resolveLocalDependencies,
   createPageUIDLs,
-  prepareComponentFilenamesAndPath,
+  prepareComponentOutputOptions,
 } from './utils'
 
 import {
@@ -137,8 +137,8 @@ export class ProjectGenerator {
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
 
-    // Set the filename and path for each component based on the strategy
-    prepareComponentFilenamesAndPath(components, this.strategy)
+    // Set the filename and folder path for each component based on the strategy
+    prepareComponentOutputOptions(components, this.strategy)
 
     // Set the local dependency paths based on the relative paths between files
     resolveLocalDependencies(pageUIDLs, components, this.strategy)

@@ -75,9 +75,9 @@ export const createPageModule = async (
   options: GeneratorOptions
 ) => {
   pageUIDL.outputOptions = pageUIDL.outputOptions || {}
-  pageUIDL.outputOptions.fileName = pageUIDL.outputOptions.path[0]
+  pageUIDL.outputOptions.fileName = pageUIDL.outputOptions.folderPath[0]
   pageUIDL.outputOptions.moduleName = `${dashCaseToUpperCamelCase(
-    pageUIDL.outputOptions.path[0]
+    pageUIDL.outputOptions.folderPath[0]
   )}Module`
   return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
 }

@@ -12,6 +12,7 @@ import {
   UIDLDynamicReference,
   UIDLRepeatContent,
   UIDLRepeatMeta,
+  UIDLPageOptions,
 } from '@teleporthq/teleport-types'
 
 /**
@@ -19,20 +20,20 @@ import {
  * In case of next/nuxt generators, the file names represent the urls of the pages
  * Also the root path needs to be represented by the index file
  */
-export const extractPageMetadata = (
+export const extractPageOptions = (
   routeDefinitions: UIDLStateDefinition,
   stateName: string,
-  usePathAsFileName = false
-): { fileName: string; componentName: string; path: string } => {
+  useFileNameForNavigation = false
+): UIDLPageOptions => {
   const defaultPage = routeDefinitions.defaultValue
   const pageDefinitions = routeDefinitions.values || []
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
 
   // If no meta object is defined, the stateName is used
-  const defaultPageMetadata = {
-    fileName: usePathAsFileName && stateName === defaultPage ? 'index' : stateName,
+  const defaultPageMetadata: UIDLPageOptions = {
+    fileName: useFileNameForNavigation && stateName === defaultPage ? 'index' : stateName,
     componentName: stateName,
-    path: '/' + stateName,
+    navLink: '/' + stateName,
   }
 
   if (!pageDefinition || !pageDefinition.pageOptions) {
@@ -47,10 +48,9 @@ export const extractPageMetadata = (
 
   // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
   // Also, the defaultPage has to be index, overriding any other value set
-  if (usePathAsFileName) {
-    const fileNameFromPath =
-      pageDefinition.pageOptions.path && pageDefinition.pageOptions.path.replace('/', '')
-    pageMetadata.fileName = stateName === defaultPage ? 'index' : fileNameFromPath
+  if (useFileNameForNavigation) {
+    const fileName = pageMetadata.navLink.replace('/', '')
+    pageMetadata.fileName = stateName === defaultPage ? 'index' : fileName
   }
 
   return pageMetadata
@@ -93,7 +93,7 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
 }
 
 export const getComponentPath = (component: ComponentUIDL) =>
-  component.outputOptions ? component.outputOptions.path : []
+  component.outputOptions ? component.outputOptions.folderPath : []
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'

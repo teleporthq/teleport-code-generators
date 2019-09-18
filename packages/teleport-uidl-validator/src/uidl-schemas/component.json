@@ -86,7 +86,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "componentName": { "type": "string" },
-                      "path": { "type": "string" },
+                      "navLink": { "type": "string" },
                       "fileName": { "type": "string" }
                     }
                   },
@@ -103,6 +103,20 @@
                             ".*": {
                               "type": "string"
                             }
+                          }
+                        }
+                      },
+                      "assets": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["type"],
+                          "properties": {
+                            "type": { "type": "string", "enum": ["link", "script", "font", "icon", "style", "canonical"] },
+                            "path": { "type": "string" },
+                            "content": { "type": "string" },
+                            "meta": { "type": "object" }
                           }
                         }
                       }

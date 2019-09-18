@@ -7,7 +7,7 @@ import {
   getComponentPath,
   getComponentFileName,
   getRepeatIteratorNameAndKey,
-  extractPageMetadata,
+  extractPageOptions,
 } from '../../src/utils/uidl-utils'
 import { component, staticNode, elementNode } from '../../src/builders/uidl-builders'
 import {
@@ -359,7 +359,7 @@ describe('getComponentPath', () => {
 
   it('returns the input meta path', () => {
     testComponent.outputOptions = {
-      path: ['one', 'two'],
+      folderPath: ['one', 'two'],
     }
 
     const path = getComponentPath(testComponent)
@@ -420,7 +420,7 @@ describe('getRepeatIteratorNameAndKey', () => {
   })
 })
 
-describe('extractPageMetadata', () => {
+describe('extractPageOptions', () => {
   const routeDefinitions: UIDLStateDefinition = {
     type: 'string',
     defaultValue: 'home',
@@ -428,20 +428,20 @@ describe('extractPageMetadata', () => {
       {
         value: 'home',
         pageOptions: {
-          path: '/',
+          navLink: '/',
         },
       },
       {
         value: 'about',
         pageOptions: {
-          path: '/about-us',
+          navLink: '/about-us',
           componentName: 'AboutUs',
         },
       },
       {
         value: 'contact-us',
         pageOptions: {
-          path: '/team',
+          navLink: '/team',
         },
       },
       {
@@ -451,36 +451,36 @@ describe('extractPageMetadata', () => {
   }
 
   it('uses the state for a non-declared page', () => {
-    const result = extractPageMetadata(routeDefinitions, 'non-declared')
-    expect(result.path).toBe('/non-declared')
+    const result = extractPageOptions(routeDefinitions, 'non-declared')
+    expect(result.navLink).toBe('/non-declared')
     expect(result.fileName).toBe('non-declared')
     expect(result.componentName).toBe('non-declared')
   })
 
   it('uses the state for a page without meta', () => {
-    const result = extractPageMetadata(routeDefinitions, 'no-meta')
-    expect(result.path).toBe('/no-meta')
+    const result = extractPageOptions(routeDefinitions, 'no-meta')
+    expect(result.navLink).toBe('/no-meta')
     expect(result.fileName).toBe('no-meta')
     expect(result.componentName).toBe('no-meta')
   })
 
   it('returns values from the meta with defaults from the state', () => {
-    const result = extractPageMetadata(routeDefinitions, 'about')
-    expect(result.path).toBe('/about-us') // meta value
+    const result = extractPageOptions(routeDefinitions, 'about')
+    expect(result.navLink).toBe('/about-us') // meta value
     expect(result.fileName).toBe('about') // state value
     expect(result.componentName).toBe('AboutUs') // meta value
   })
 
   it('converts the fileName to index', () => {
-    const result = extractPageMetadata(routeDefinitions, 'home', true)
-    expect(result.path).toBe('/')
+    const result = extractPageOptions(routeDefinitions, 'home', true)
+    expect(result.navLink).toBe('/')
     expect(result.fileName).toBe('index')
     expect(result.componentName).toBe('home')
   })
 
   it('uses the path as the fileName', () => {
-    const result = extractPageMetadata(routeDefinitions, 'about', true)
-    expect(result.path).toBe('/about-us')
+    const result = extractPageOptions(routeDefinitions, 'about', true)
+    expect(result.navLink).toBe('/about-us')
     expect(result.fileName).toBe('about-us')
     expect(result.componentName).toBe('AboutUs')
   })

@@ -164,7 +164,7 @@ export interface ProjectStrategyComponentOptions {
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
-  usePathAsFileName?: boolean
+  useFileNameForNavigation?: boolean
 }
 
 export interface EntryFileOptions {
