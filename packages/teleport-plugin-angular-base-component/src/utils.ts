@@ -1,12 +1,15 @@
 import * as types from '@babel/types'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
 import {
+  ComponentUIDL,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
+  UIDLComponentSEO,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
+  uidl: ComponentUIDL,
   componentName: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -59,25 +62,31 @@ export const generateExportAST = (
     )
   })
 
-  const classBodyAST = () => {
+  const classBodyAST = (componentUIDL: ComponentUIDL) => {
     return t.classBody([
       ...propDeclaration,
       ...propertyDecleration,
       ...dataDeclaration,
-      constructorAST(),
+      constructorAST(componentUIDL.seo),
       ...angularMethodsAST,
     ])
   }
 
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST()),
+    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST(uidl)),
     [],
     null
   )
 }
 
-const constructorAST = (t = types) => {
-  return t.classMethod('constructor', t.identifier('constructor'), [], t.blockStatement([]))
+const constructorAST = (seo: UIDLComponentSEO, t = types) => {
+  const params = []
+  if (seo) {
+    const seoBinding = t.identifier(`private titleService: Title`)
+    params.push(seoBinding)
+  }
+
+  return t.classMethod('constructor', t.identifier('constructor'), params, t.blockStatement([]))
 }
 
 const createMethodsObject = (
