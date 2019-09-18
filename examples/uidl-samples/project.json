@@ -61,10 +61,6 @@
           },
           {
             "value": "team",
-            "pageOptions": {
-              "navLink": "team",
-              "componentName": "Team"
-            },
             "seo": {
               "title": "About Page",
               "metaTags": [
@@ -82,7 +78,7 @@
           {
             "value": "contact-us",
             "pageOptions": {
-              "navLink": "/contact-us",
+              "navLink": "/about-us",
               "componentName": "ContactPage"
             },
             "seo": {
