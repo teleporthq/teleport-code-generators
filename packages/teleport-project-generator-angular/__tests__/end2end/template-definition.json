@@ -1,0 +1,27 @@
+{
+	"name": "angular",
+	"files": [],
+	"subFolders": [
+		{
+			"name": "src",
+			"files": [],
+			"subFolders": [
+				{
+					"name": "app",
+					"files": [],
+					"subFolders": []
+				},
+				{
+					"name": "assets",
+					"files": [],
+					"subFolders": []
+				},
+				{
+					"name": "environments",
+					"files": [],
+					"subFolders": []
+				}
+			]
+		}
+	]
+}
