@@ -1,7 +1,6 @@
-import { ComponentStructure, ComponentUIDL } from '@teleporthq/teleport-types'
+import { ComponentStructure, ComponentUIDL, ChunkType, FileType } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 import projectUIDL from '../../../examples/test-samples/project-sample.json'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('Testing the functionality for Angular Modules', () => {
   it('Should add Angular dependencies for root module', async () => {
@@ -18,11 +17,11 @@ describe('Testing the functionality for Angular Modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(5)
-    expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
-    expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].type).toBe(ChunkType.AST)
+    expect(chunks[0].fileType).toBe(FileType.TS)
     expect(chunks[0].content).toBeDefined()
-    expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
-    expect(chunks[1].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[1].type).toBe(ChunkType.AST)
+    expect(chunks[1].fileType).toBe(FileType.TS)
     expect(chunks[1].content).toBeDefined()
   })
 
@@ -40,8 +39,8 @@ describe('Testing the functionality for Angular Modules', () => {
 
     expect(Object.keys(dependencies).length).toBe(4)
     expect(chunks.length).toBe(1)
-    expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
-    expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].type).toBe(ChunkType.AST)
+    expect(chunks[0].fileType).toBe(FileType.TS)
     expect(chunks[0].content).toBeDefined()
   })
 
@@ -65,11 +64,11 @@ describe('Testing the functionality for Angular Modules', () => {
 
     expect(Object.keys(dependencies).length).toBe(5)
     expect(chunks.length).toBe(2)
-    expect(chunks[0].type).toBe(CHUNK_TYPE.AST)
-    expect(chunks[0].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[0].type).toBe(ChunkType.AST)
+    expect(chunks[0].fileType).toBe(FileType.TS)
     expect(chunks[0].content).toBeDefined()
-    expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
-    expect(chunks[1].fileType).toBe(FILE_TYPE.TS)
+    expect(chunks[1].type).toBe(ChunkType.AST)
+    expect(chunks[1].fileType).toBe(FileType.TS)
     expect(chunks[1].content).toBeDefined()
     expect(pageComponent.type).toBe('local')
   })

@@ -1,7 +1,11 @@
 import * as types from '@babel/types'
 import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import {
@@ -103,8 +107,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     if (routesAST) {
       chunks.push({
         name: moduleChunkName,
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.TS,
+        type: ChunkType.AST,
+        fileType: FileType.TS,
         content: routesAST,
         linkAfter: [importChunkName],
       })
@@ -112,8 +116,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
 
     chunks.push({
       name: decoratorChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TS,
+      type: ChunkType.AST,
+      fileType: FileType.TS,
       content: [ngModuleAST, moduleDecoratorAST],
       linkAfter: [importChunkName],
     })

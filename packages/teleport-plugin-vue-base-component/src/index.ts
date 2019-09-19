@@ -1,7 +1,11 @@
 import { generateVueComponentJS, extractStateObject } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  FileType,
+  ChunkType,
+} from '@teleporthq/teleport-types'
+import { createHTMLTemplateSyntax } from '@teleporthq/teleport-shared'
 
 import {
   DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
@@ -53,9 +57,9 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     )
 
     chunks.push({
-      type: CHUNK_TYPE.HAST,
+      type: ChunkType.HAST,
       name: vueTemplateChunkName,
-      fileType: FILE_TYPE.HTML,
+      fileType: FileType.HTML,
       meta: {
         nodesLookup: templateLookup,
       },
@@ -75,9 +79,9 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     )
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
+      type: ChunkType.AST,
       name: vueJSChunkName,
-      fileType: FILE_TYPE.JS,
+      fileType: FileType.JS,
       linkAfter: jsChunkAfter,
       content: jsContent,
     })

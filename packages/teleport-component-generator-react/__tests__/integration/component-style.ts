@@ -17,14 +17,9 @@ import {
   GeneratedFile,
   UIDLPropDefinition,
   UIDLStyleDefinitions,
+  FileType,
 } from '@teleporthq/teleport-types'
-import {
-  staticNode,
-  dynamicNode,
-  component,
-  elementNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { staticNode, dynamicNode, component, elementNode } from '@teleporthq/teleport-uidl-builders'
 
 const ComponentWithValidStyle: ComponentUIDL = component(
   'ComponentWithAttrProp',
@@ -48,7 +43,7 @@ const ComponentWithValidStyle: ComponentUIDL = component(
   {}
 )
 
-const findFileByType = (files: GeneratedFile[], type: string = FILE_TYPE.JS) =>
+const findFileByType = (files: GeneratedFile[], type: string = FileType.JS) =>
   files.find((file) => file.fileType === type)
 
 describe('React Styles in Component', () => {
@@ -56,7 +51,7 @@ describe('React Styles in Component', () => {
     it('Inline Styles should refer state in styles when state is mapped', async () => {
       const generator = createReactComponentGenerator(ReactStyleVariation.InlineStyles)
       const result = await generator.generateComponent(ComponentWithStateReference)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('display: active')
@@ -66,8 +61,8 @@ describe('React Styles in Component', () => {
     it('CSSModules should refer state in styles when state is mapped', async () => {
       const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
       const result = await generator.generateComponent(ComponentWithStateReference)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
-      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
+      const jsFile = findFileByType(result.files, FileType.JS)
+      const cssFile = findFileByType(result.files, FileType.CSS)
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
@@ -79,8 +74,8 @@ describe('React Styles in Component', () => {
     it('Basic CSS should refer state in styles when state is mapped', async () => {
       const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
       const result = await generator.generateComponent(ComponentWithStateReference)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
-      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
+      const jsFile = findFileByType(result.files, FileType.JS)
+      const cssFile = findFileByType(result.files, FileType.CSS)
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()
@@ -105,7 +100,7 @@ describe('React Styles in Component', () => {
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('props.direction')
@@ -115,7 +110,7 @@ describe('React Styles in Component', () => {
     it('should support object props in styledjsx', async () => {
       const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain(`align-self: center`)
@@ -126,7 +121,7 @@ describe('React Styles in Component', () => {
       const result = await styledJSXGenerator.generateComponent(
         ComponentWithNestedStyles as ComponentUIDL
       )
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       // tslint:disable-next-line:no-invalid-template-strings
@@ -155,7 +150,7 @@ describe('React Styles in Component', () => {
       const result = await styledComponentsGenerator.generateComponent(
         ComponentWithValidSingleStlye
       )
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('<Container height={props.config.height}')
@@ -184,7 +179,7 @@ describe('React Styles in Component', () => {
         ReactStyleVariation.StyledComponents
       )
       const result = await styledComponentsGenerator.generateComponent(uidl)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('<Container backgroundColor={props.backgroundColor}')
@@ -219,7 +214,7 @@ describe('React Styles in Component', () => {
       )
       const result = await styledComponentsGenerator.generateComponent(uidl)
 
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('<Container {...props}')
@@ -234,7 +229,7 @@ describe('React Styles in Component', () => {
         ReactStyleVariation.StyledComponents
       )
       const result = await styledComponentsGenerator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain(`align-self: center`)
@@ -247,7 +242,7 @@ describe('React Styles in Component', () => {
       const result = await styledComponentsGenerator.generateComponent(
         ComponentWithNestedStyles as ComponentUIDL
       )
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       // tslint:disable-next-line:no-invalid-template-strings
@@ -264,7 +259,7 @@ describe('React Styles in Component', () => {
       const result = await styledComponentsGenerator.generateComponent(
         ComponentWithNestedMultiplePropRef as ComponentUIDL
       )
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       // tslint:disable-next-line:no-invalid-template-strings
@@ -283,7 +278,7 @@ describe('React Styles in Component', () => {
       const result = await styledComponentsGenerator.generateComponent(
         ComponentWithNestedSinglePropRef as ComponentUIDL
       )
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain(`align-self: center`)
@@ -298,7 +293,7 @@ describe('React Styles in Component', () => {
     it('should inject props only once for styled components', async () => {
       const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
+      const jsFile = findFileByType(result.files, FileType.JS)
       expect(jsFile.content).toContain('<Container {...props}')
     })
 
@@ -320,8 +315,8 @@ describe('React Styles in Component', () => {
 
     it('should return code in an array of files', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FILE_TYPE.JS)
-      const cssFile = findFileByType(result.files, FILE_TYPE.CSS)
+      const jsFile = findFileByType(result.files, FileType.JS)
+      const cssFile = findFileByType(result.files, FileType.CSS)
 
       expect(jsFile).toBeDefined()
       expect(cssFile).toBeDefined()

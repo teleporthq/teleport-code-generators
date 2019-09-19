@@ -1,6 +1,6 @@
 import { createPlugin } from '../src/index'
 import { structure } from './mocks'
-import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { ChunkType } from '@teleporthq/teleport-types'
 
 describe('vue-base-component-plugin', () => {
   const plugin = createPlugin({
@@ -16,10 +16,10 @@ describe('vue-base-component-plugin', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(2)
-    expect(result.chunks[0].type).toBe(CHUNK_TYPE.HAST)
+    expect(result.chunks[0].type).toBe(ChunkType.HAST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].name).toBe('component-html')
-    expect(result.chunks[1].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[1].type).toBe(ChunkType.AST)
     expect(result.chunks[1].content).toBeDefined()
     expect(result.chunks[1].name).toBe('component-js')
 

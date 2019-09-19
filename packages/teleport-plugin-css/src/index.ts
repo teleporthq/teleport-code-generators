@@ -26,8 +26,9 @@ import {
   ComponentPlugin,
   UIDLDynamicReference,
   UIDLStyleDefinitions,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface CSSPluginConfig {
   chunkName: string
@@ -112,9 +113,9 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
 
     if (jssStylesArray.length > 0) {
       chunks.push({
-        type: CHUNK_TYPE.STRING,
+        type: ChunkType.STRING,
         name: chunkName,
-        fileType: FILE_TYPE.CSS,
+        fileType: FileType.CSS,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })
@@ -129,14 +130,14 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
       if (declareDependency === 'decorator' && componentDecoratorChunk) {
         const decoratorAST = componentDecoratorChunk.content
         const decoratorParam = decoratorAST.expression.arguments[0]
-        addPropertyToASTObject(decoratorParam, 'styleUrls', [`${cssFileName}.${FILE_TYPE.CSS}`])
+        addPropertyToASTObject(decoratorParam, 'styleUrls', [`${cssFileName}.${FileType.CSS}`])
       }
 
       if (declareDependency === 'import') {
         dependencies.styles = {
           // styles will not be used in this case as we have importJustPath flag set
           type: 'local',
-          path: `./${cssFileName}.${FILE_TYPE.CSS}`,
+          path: `./${cssFileName}.${FileType.CSS}`,
           meta: {
             importJustPath: true,
           },

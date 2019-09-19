@@ -1,6 +1,10 @@
 import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 interface PropTypesConfig {
   componentChunkName?: string
@@ -54,8 +58,8 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
     if (hasDefaultProps) {
       const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
       chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: defaultPropsChunkName,
         linkAfter: [componentChunkName],
         content: defaultPropsAst,
@@ -64,8 +68,8 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
     }
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: typesOfPropsChunkName,
       linkAfter: [componentChunkName],
       content: typesOfPropsAst,

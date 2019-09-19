@@ -6,7 +6,7 @@ import {
   definition,
   elementNode,
   componentDependency,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+} from '@teleporthq/teleport-uidl-builders'
 
 const generator = createReactComponentGenerator()
 

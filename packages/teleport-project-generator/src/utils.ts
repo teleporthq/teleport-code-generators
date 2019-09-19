@@ -15,7 +15,7 @@ import {
   UIDLConditionalNode,
   ProjectStrategy,
 } from '@teleporthq/teleport-types'
-import { elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { elementNode } from '@teleporthq/teleport-uidl-builders'
 
 export const createPageUIDLs = (uidl: ProjectUIDL, strategy: ProjectStrategy): ComponentUIDL[] => {
   const routeNodes = extractRoutes(uidl.root)

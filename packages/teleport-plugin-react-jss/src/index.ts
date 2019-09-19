@@ -15,8 +15,12 @@ import {
   traverseElements,
   transformDynamicStyles,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -86,8 +90,8 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     }
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: styleChunkName,
       linkAfter: [importChunkName],
       content: createConstAssignment(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
@@ -102,8 +106,8 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
       exportChunk.linkAfter = [importChunkName, styleChunkName]
     } else {
       chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: exportChunkName,
         content: exportStatement,
         linkAfter: [importChunkName, styleChunkName],

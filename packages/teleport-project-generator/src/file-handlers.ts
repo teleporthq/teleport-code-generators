@@ -10,7 +10,6 @@ import {
   dashCaseToUpperCamelCase,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 import {
   GeneratedFile,
@@ -24,6 +23,8 @@ import {
   EntryFileOptions,
   CustomTag,
   Attribute,
+  FileType,
+  ChunkType,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -271,18 +272,18 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   }
 
   const chunks: Record<string, ChunkDefinition[]> = {
-    [FILE_TYPE.HTML]: [
+    [FileType.HTML]: [
       {
         name: 'doctype',
-        type: CHUNK_TYPE.STRING,
-        fileType: FILE_TYPE.HTML,
+        type: ChunkType.STRING,
+        fileType: FileType.HTML,
         content: '<!DOCTYPE html>',
         linkAfter: [],
       },
       {
         name: 'html-node',
-        type: CHUNK_TYPE.HAST,
-        fileType: FILE_TYPE.HTML,
+        type: ChunkType.HAST,
+        fileType: FileType.HTML,
         content: htmlNode,
         linkAfter: ['doctype'],
       },
@@ -316,7 +317,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
 
   return {
     name: 'manifest',
-    fileType: FILE_TYPE.JSON,
+    fileType: FileType.JSON,
     content: JSON.stringify(content, null, 2),
   }
 }
@@ -327,7 +328,7 @@ export const handlePackageJSON = (
   dependencies: Record<string, string>
 ) => {
   const inputPackageJSONFile = template.files.find(
-    (file) => file.name === 'package' && file.fileType === FILE_TYPE.JSON
+    (file) => file.name === 'package' && file.fileType === FileType.JSON
   )
 
   if (inputPackageJSONFile) {
@@ -349,7 +350,7 @@ export const handlePackageJSON = (
 
     template.files.push({
       name: 'package',
-      fileType: FILE_TYPE.JSON,
+      fileType: FileType.JSON,
       content: JSON.stringify(content, null, 2),
     })
   }

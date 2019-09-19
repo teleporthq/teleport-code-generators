@@ -1,6 +1,10 @@
 import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
   STENCIL_CORE_DEPENDENCY,
@@ -42,8 +46,8 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
 
     chunks.push({
       name: componentDecoratorChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       content: [decoratorAST],
       linkAfter: [importChunkName],
     })
@@ -52,8 +56,8 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
 
     chunks.push({
       name: componentChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       content: classDeclarationAST,
       linkAfter: [componentDecoratorChunkName],
     })

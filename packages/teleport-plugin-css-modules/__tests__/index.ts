@@ -1,14 +1,8 @@
 import * as types from '@babel/types'
-import {
-  component,
-  elementNode,
-  dynamicNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure } from '@teleporthq/teleport-types'
+import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { ComponentStructure, FileType } from '@teleporthq/teleport-types'
 import { createPlugin } from '../src/index'
 import { createComponentChunk, setupPluginStructure } from './mocks'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-css-modules', () => {
   it('generates no chunk if no styles exist', async () => {
@@ -33,7 +27,7 @@ describe('plugin-css-modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup.container
@@ -51,7 +45,7 @@ describe('plugin-css-modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -69,7 +63,7 @@ describe('plugin-css-modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -87,7 +81,7 @@ describe('plugin-css-modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -105,7 +99,7 @@ describe('plugin-css-modules', () => {
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
     expect(structure.uidl.outputOptions.styleFileName).toContain('.module')
     expect(dependencies.styles.path).toContain('.module.css')
@@ -144,7 +138,7 @@ describe('plugin-css-modules', () => {
     expect(chunks.length).toBe(2)
 
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('width: auto;')
 
     const nodeReference = chunks[0].meta.nodesLookup.container

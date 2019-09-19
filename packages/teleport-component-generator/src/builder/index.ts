@@ -1,15 +1,19 @@
 import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as htmlGenerator } from './generators/html-to-string'
-import { ChunkDefinition, CodeGeneratorFunction, ChunkContent } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ChunkDefinition,
+  CodeGeneratorFunction,
+  ChunkContent,
+  ChunkType,
+} from '@teleporthq/teleport-types'
 
 export default class Builder {
   private chunkDefinitions: ChunkDefinition[] = []
 
   private generators: { [key: string]: CodeGeneratorFunction<ChunkContent> } = {
-    [CHUNK_TYPE.AST]: babelCodeGenerator,
-    [CHUNK_TYPE.HAST]: htmlGenerator,
-    [CHUNK_TYPE.STRING]: (str: string) => str, // no-op for string chunks
+    [ChunkType.AST]: babelCodeGenerator,
+    [ChunkType.HAST]: htmlGenerator,
+    [ChunkType.STRING]: (str: string) => str, // no-op for string chunks
   }
 
   constructor(chunkDefinitions: ChunkDefinition[] = []) {

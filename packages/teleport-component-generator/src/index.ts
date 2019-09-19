@@ -9,7 +9,6 @@ import {
   getTemplateFileName,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
   ChunkDefinition,
   ComponentGenerator,
@@ -17,6 +16,7 @@ import {
   ComponentPlugin,
   PostProcessor,
   Mapping,
+  FileType,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
@@ -146,11 +146,11 @@ const getFileName = (
   styleFileName: string,
   templateFileName: string
 ) => {
-  if (fileType === FILE_TYPE.CSS) {
+  if (fileType === FileType.CSS) {
     return styleFileName || fileName
   }
 
-  if (fileType === FILE_TYPE.HTML) {
+  if (fileType === FileType.HTML) {
     return templateFileName || fileName
   }
 

@@ -5,8 +5,8 @@ import {
   conditionalNode,
   dynamicNode,
   definition,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+} from '@teleporthq/teleport-uidl-builders'
+import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-vue-app-routing', () => {
   const plugin = createPlugin({
@@ -14,7 +14,7 @@ describe('plugin-vue-app-routing', () => {
   })
 
   it('outputs three AST chunks with the corresponding chunk names', async () => {
-    const structure = {
+    const structure: ComponentStructure = {
       chunks: [],
       options: {},
       uidl: component(
@@ -38,7 +38,7 @@ describe('plugin-vue-app-routing', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(1)
-    expect(result.chunks[0].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[0].type).toBe(ChunkType.AST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].content.length).toBe(3)
     expect(result.chunks[0].name).toBe('code-chunk')

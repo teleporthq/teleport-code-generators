@@ -10,12 +10,7 @@ import {
   UIDLPropDefinition,
   UIDLEventDefinitions,
 } from '@teleporthq/teleport-types'
-import {
-  component,
-  elementNode,
-  dynamicNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL

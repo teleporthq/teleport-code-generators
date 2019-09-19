@@ -14,8 +14,12 @@ import {
   constructRouteJSX,
   createRouteRouterTag,
 } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string
@@ -80,8 +84,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: componentChunkName,
       content: pureComponent,
       linkAfter: [importChunkName],
@@ -91,8 +95,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       const exportJSXApp = createDefaultExport('App')
 
       structure.chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: domRenderChunkName,
         content: exportJSXApp,
         linkAfter: [componentChunkName],
@@ -104,8 +108,8 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
       ])
 
       structure.chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: domRenderChunkName,
         content: reactDomBind,
         linkAfter: [componentChunkName],

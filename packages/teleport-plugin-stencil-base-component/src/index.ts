@@ -1,8 +1,12 @@
 import { createClassDeclaration } from './utils'
 import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { createJSXSyntax, JSXGenerationOptions } from '@teleporthq/teleport-shared'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -10,7 +14,6 @@ import {
   DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
   STENCIL_CORE_DEPENDENCY,
 } from './constants'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 interface StencilPluginConfig {
@@ -80,8 +83,8 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     const decoratorAST = createComponentDecorator(params)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       name: componentDecoratorChunkName,
       meta: {
         nodesLookup,
@@ -91,8 +94,8 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     })
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       name: componentChunkName,
       meta: {
         nodesLookup,

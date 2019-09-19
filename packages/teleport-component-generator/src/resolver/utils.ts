@@ -5,7 +5,7 @@ import {
   traverseRepeats,
   cloneObject,
 } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { Constants } from '@teleporthq/teleport-shared'
 import {
   UIDLEventDefinitions,
   UIDLElement,
@@ -351,10 +351,10 @@ const prefixAssetURLs = (
         if (
           typeof staticContent === 'string' &&
           STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
-          staticContent.includes(ASSETS_IDENTIFIER)
+          staticContent.includes(Constants.ASSETS_IDENTIFIER)
         ) {
           // split the string at the beginning of the ASSETS_IDENTIFIER string
-          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER) - 1 // account for the leading '/'
+          const startIndex = staticContent.indexOf(Constants.ASSETS_IDENTIFIER) - 1 // account for the leading '/'
           const newStyleValue =
             staticContent.slice(0, startIndex) +
             prefixAssetsPath(assetsPrefix, staticContent.slice(startIndex, staticContent.length))

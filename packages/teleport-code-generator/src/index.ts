@@ -7,7 +7,7 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { Constants } from '@teleporthq/teleport-shared'
 
 import reactProjectGenerator, { ReactTemplate } from '@teleporthq/teleport-project-generator-react'
 import nextProjectGenerator, {
@@ -137,7 +137,7 @@ const createCodeGenerator = (factoryOptions: PackerOptions & GenerateOptions = {
 
     packer.setAssets({
       assets: packAssets,
-      path: [ASSETS_IDENTIFIER],
+      path: [Constants.ASSETS_IDENTIFIER],
     })
     packer.setGenerator(projectGenerator)
     packer.setTemplate(projectTemplate)
