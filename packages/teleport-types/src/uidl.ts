@@ -48,13 +48,11 @@ export interface ComponentUIDL {
 
 export interface UIDLComponentSEO {
   title?: string
-  metaTags?: MetaTag[]
+  metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
 }
 
-export interface MetaTag {
-  type: Record<string, string>
-}
+export type UIDLMetaTag = Record<string, string>
 
 export interface UIDLPropDefinition {
   type: string

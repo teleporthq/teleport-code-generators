@@ -1,7 +1,7 @@
 import * as types from '@babel/types'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
 import {
-  MetaTag,
+  UIDLMetaTag,
   ComponentUIDL,
   UIDLComponentSEO,
   UIDLPropDefinition,
@@ -126,9 +126,9 @@ const constructorAST = (seo: UIDLComponentSEO, t = types) => {
   )
 }
 
-const constructMetaTagAST = (metaTags: MetaTag[], t = types) => {
-  const metaTagsAST = []
-  metaTags.forEach((tag: MetaTag) => {
+const constructMetaTagAST = (metaTags: UIDLMetaTag[]) => {
+  const metaTagsAST: types.ObjectExpression[] = []
+  metaTags.forEach((tag: UIDLMetaTag) => {
     metaTagsAST.push(objectToObjectExpression(tag))
   })
   return metaTagsAST
