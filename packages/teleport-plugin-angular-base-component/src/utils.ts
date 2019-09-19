@@ -129,7 +129,7 @@ const constructorAST = (seo: UIDLComponentSEO, t = types) => {
 const constructMetaTagAST = (metaTags: UIDLMetaTag[]) => {
   const metaTagsAST: types.ObjectExpression[] = []
   metaTags.forEach((tag: UIDLMetaTag) => {
-    metaTagsAST.push(objectToObjectExpression(tag))
+    metaTagsAST.push(ASTUtils.objectToObjectExpression(tag))
   })
   return metaTagsAST
 }

@@ -16,9 +16,9 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   const fileType = options.fileType || FileType.JS
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
 
-  const jsParser = fileType === FILE_TYPE.TS ? parserTypescript : parserBabylon
+  const jsParser = fileType === FileType.TS ? parserTypescript : parserBabylon
   const plugins = [jsParser, parserPostCSS]
-  const parser = fileType === FILE_TYPE.TS ? 'typescript' : 'babel'
+  const parser = fileType === FileType.TS ? 'typescript' : 'babel'
 
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
