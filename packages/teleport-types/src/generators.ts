@@ -7,6 +7,22 @@ import {
   UIDLStateDefinition,
 } from './uidl'
 
+export enum FileType {
+  CSS = 'css',
+  HTML = 'html',
+  JS = 'js',
+  JSON = 'json',
+  VUE = 'vue',
+  TS = 'ts',
+  TSX = 'tsx',
+}
+
+export enum ChunkType {
+  AST = 'ast',
+  HAST = 'hast',
+  STRING = 'string',
+}
+
 export type ChunkContent = string | any | any[]
 
 /**
@@ -15,9 +31,9 @@ export type ChunkContent = string | any | any[]
  * chunk and a style chunk
  */
 export interface ChunkDefinition {
-  type: string
+  type: ChunkType
   name: string
-  fileType: string
+  fileType: FileType
   meta?: any
   content: ChunkContent
   linkAfter: string[]
@@ -37,7 +53,7 @@ export interface ComponentStructure {
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
 export interface ComponentDefaultPluginParams {
-  fileType: string
+  fileType: FileType
 }
 
 export type ComponentPluginFactory<T> = (

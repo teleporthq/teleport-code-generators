@@ -1,6 +1,6 @@
 import { createPlugin } from '../src/index'
-import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-angular-base-component', () => {
   const plugin = createPlugin({
@@ -11,7 +11,7 @@ describe('plugin-angular-base-component', () => {
   })
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
-    const structure = {
+    const structure: ComponentStructure = {
       chunks: [],
       options: {},
       uidl: component('Test', elementNode('container')),
@@ -24,19 +24,19 @@ describe('plugin-angular-base-component', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(3)
-    expect(result.chunks[0].type).toBe(CHUNK_TYPE.HAST)
+    expect(result.chunks[0].type).toBe(ChunkType.HAST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].name).toBe('template-chunk')
-    expect(result.chunks[1].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[1].type).toBe(ChunkType.AST)
     expect(result.chunks[1].content).toBeDefined()
     expect(result.chunks[1].name).toBe('component-decorator')
-    expect(result.chunks[2].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[2].type).toBe(ChunkType.AST)
     expect(result.chunks[2].content).toBeDefined()
     expect(result.chunks[2].name).toBe('angular-ts-chunk')
   })
 
   it('works with state definitions', async () => {
-    const structure = {
+    const structure: ComponentStructure = {
       chunks: [],
       options: {},
       uidl: component(
@@ -56,13 +56,13 @@ describe('plugin-angular-base-component', () => {
 
     // AST chunks created
     expect(result.chunks.length).toBe(3)
-    expect(result.chunks[0].type).toBe(CHUNK_TYPE.HAST)
+    expect(result.chunks[0].type).toBe(ChunkType.HAST)
     expect(result.chunks[0].content).toBeDefined()
     expect(result.chunks[0].name).toBe('template-chunk')
-    expect(result.chunks[1].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[1].type).toBe(ChunkType.AST)
     expect(result.chunks[1].content).toBeDefined()
     expect(result.chunks[1].name).toBe('component-decorator')
-    expect(result.chunks[2].type).toBe(CHUNK_TYPE.AST)
+    expect(result.chunks[2].type).toBe(ChunkType.AST)
     expect(result.chunks[2].content).toBeDefined()
     expect(result.chunks[2].name).toBe('angular-ts-chunk')
   })

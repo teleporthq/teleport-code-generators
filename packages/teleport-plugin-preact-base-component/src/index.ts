@@ -1,9 +1,12 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
 import { createClassComponent, createPureComponent } from './utils'
-import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
+import { createJSXSyntax, JSXGenerationOptions, ASTBuilders } from '@teleporthq/teleport-shared'
 
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -11,8 +14,6 @@ import {
   DEFAULT_IMPORT_CHUNK_NAME,
   PREACT_COMPONENT_DEPENDENCY,
 } from './constants'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface PreactPluginConfig {
   componentChunkName: string
@@ -66,8 +67,8 @@ export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config)
       : createClassComponent(uidl.name, propDefinitions, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -78,10 +79,10 @@ export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config)
     })
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: exportChunkName,
-      content: createDefaultExport(uidl.name),
+      content: ASTBuilders.createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],
     })
 

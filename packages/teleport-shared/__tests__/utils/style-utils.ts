@@ -1,4 +1,4 @@
-import { getContentOfStyleObject } from '../../src/utils/jss-utils'
+import { getContentOfStyleObject } from '../../src/utils/style-utils'
 import { UIDLStyleDefinitions } from '@teleporthq/teleport-types'
 
 describe('JSS Utils ', () => {

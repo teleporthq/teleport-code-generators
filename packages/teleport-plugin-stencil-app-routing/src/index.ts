@@ -1,7 +1,10 @@
-import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { UIDLUtils, ASTBuilders } from '@teleporthq/teleport-shared'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 import {
   STENCIL_CORE_DEPENDENCY,
   DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
@@ -29,7 +32,7 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
     dependencies.Component = STENCIL_CORE_DEPENDENCY
     dependencies.h = STENCIL_CORE_DEPENDENCY
 
-    const routes = extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl)
     const routeDefinitions = uidl.stateDefinitions.route
 
     /* The name should be injected only with AppRoot only then it acts as entry point,
@@ -38,12 +41,12 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
       tag: 'app-root',
       shadow: true,
     }
-    const decoratorAST = createComponentDecorator(params)
+    const decoratorAST = ASTBuilders.createComponentDecorator(params)
 
     chunks.push({
       name: componentDecoratorChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       content: [decoratorAST],
       linkAfter: [importChunkName],
     })
@@ -52,8 +55,8 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
 
     chunks.push({
       name: componentChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       content: classDeclarationAST,
       linkAfter: [componentDecoratorChunkName],
     })

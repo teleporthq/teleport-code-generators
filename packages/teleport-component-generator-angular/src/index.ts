@@ -6,15 +6,14 @@ import {
 import angularComponentPlugin from '@teleporthq/teleport-plugin-angular-base-component'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createPlugin as createStylePlugin } from '@teleporthq/teleport-plugin-css'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import AngularMapping from './angular-mapping.json'
-import { ComponentGenerator } from '@teleporthq/teleport-types'
+import { ComponentGenerator, FileType } from '@teleporthq/teleport-types'
 
-const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
-const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TS })
+const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
+const prettierJS = createPostProcessor({ fileType: FileType.TS })
 const stylePlugin = createStylePlugin({
   inlineStyleAttributeKey: '[ngStyle]',
   declareDependency: 'decorator',

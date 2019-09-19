@@ -1,6 +1,5 @@
 import * as t from '@babel/types'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { stringAsTemplateLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (
@@ -13,7 +12,7 @@ export const generateStyledComponent = (
       t.identifier(name),
       t.taggedTemplateExpression(
         t.memberExpression(t.identifier('styled'), t.identifier(type)),
-        stringAsTemplateLiteral(mapStyles(styles))
+        ASTUtils.stringAsTemplateLiteral(mapStyles(styles))
       )
     ),
   ])
@@ -24,7 +23,7 @@ const mapStyles = (styles: Record<string, any>) => {
   Object.keys(styles).forEach((item) => {
     if (typeof styles[item] === 'string') {
       style = `${style}
-      ${camelCaseToDashCase(item)}: ${styles[item]};`
+      ${StringUtils.camelCaseToDashCase(item)}: ${styles[item]};`
     } else {
       style = `${style}
       ${item} {

@@ -1,13 +1,6 @@
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import {
-  createJSXTag,
-  createSelfClosingJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
-import {
-  addChildJSXText,
-  addAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 
 interface JSXHeadPluginConfig {
   componentChunkName?: string
@@ -39,16 +32,16 @@ export const createPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config
     const headASTTags = []
 
     if (uidl.seo.title) {
-      const titleAST = createJSXTag('title')
-      addChildJSXText(titleAST, uidl.seo.title)
+      const titleAST = ASTBuilders.createJSXTag('title')
+      ASTUtils.addChildJSXText(titleAST, uidl.seo.title)
       headASTTags.push(titleAST)
     }
 
     if (uidl.seo.metaTags) {
       uidl.seo.metaTags.forEach((tag) => {
-        const metaAST = createSelfClosingJSXTag('meta')
+        const metaAST = ASTBuilders.createSelfClosingJSXTag('meta')
         Object.keys(tag).forEach((key) => {
-          addAttributeToJSXTag(metaAST, key, tag[key])
+          ASTUtils.addAttributeToJSXTag(metaAST, key, tag[key])
         })
         headASTTags.push(metaAST)
       })
@@ -58,16 +51,16 @@ export const createPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config
       uidl.seo.assets.forEach((asset) => {
         // TODO: Handle other asset types when needed
         if (asset.type === 'canonical') {
-          const canonicalLink = createSelfClosingJSXTag('link')
-          addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
-          addAttributeToJSXTag(canonicalLink, 'href', asset.path)
+          const canonicalLink = ASTBuilders.createSelfClosingJSXTag('link')
+          ASTUtils.addAttributeToJSXTag(canonicalLink, 'rel', 'canonical')
+          ASTUtils.addAttributeToJSXTag(canonicalLink, 'href', asset.path)
           headASTTags.push(canonicalLink)
         }
       })
     }
 
     if (headASTTags.length > 0) {
-      const headConfigTag = createJSXTag(configTagIdentifier, headASTTags)
+      const headConfigTag = ASTBuilders.createJSXTag(configTagIdentifier, headASTTags)
 
       const rootKey = uidl.node.content.key
       const rootElement = componentChunk.meta.nodesLookup[rootKey] as types.JSXElement

@@ -3,13 +3,8 @@ import AssemblyLine from './assembly-line'
 import Builder from './builder'
 import Resolver from './resolver'
 
-import {
-  getComponentFileName,
-  getStyleFileName,
-  getTemplateFileName,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
   ChunkDefinition,
   ComponentGenerator,
@@ -17,6 +12,7 @@ import {
   ComponentPlugin,
   PostProcessor,
   Mapping,
+  FileType,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
@@ -75,9 +71,9 @@ const createComponentGenerator = ({
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = getComponentFileName(resolvedUIDL)
-    const styleFileName = getStyleFileName(resolvedUIDL)
-    const templateFileName = getTemplateFileName(resolvedUIDL)
+    const fileName = UIDLUtils.getComponentFileName(resolvedUIDL)
+    const styleFileName = UIDLUtils.getStyleFileName(resolvedUIDL)
+    const templateFileName = UIDLUtils.getTemplateFileName(resolvedUIDL)
     const files = fileBundler(codeChunks, fileName, styleFileName, templateFileName)
 
     return {
@@ -146,11 +142,11 @@ const getFileName = (
   styleFileName: string,
   templateFileName: string
 ) => {
-  if (fileType === FILE_TYPE.CSS) {
+  if (fileType === FileType.CSS) {
     return styleFileName || fileName
   }
 
-  if (fileType === FILE_TYPE.HTML) {
+  if (fileType === FileType.HTML) {
     return templateFileName || fileName
   }
 

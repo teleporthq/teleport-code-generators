@@ -1,10 +1,11 @@
 import * as t from '@babel/types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
-  extractPageOptions,
-  extractRoutes,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 interface VueRouterConfig {
   codeChunkName: string
@@ -38,7 +39,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       t.callExpression(t.identifier('Vue.use'), [t.identifier('Meta')])
     )
 
-    const routes = extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl)
     const routeDefinitions = uidl.stateDefinitions.route
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
@@ -56,7 +57,10 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
 
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
-      const { fileName, componentName, navLink } = extractPageOptions(routeDefinitions, pageKey)
+      const { fileName, componentName, navLink } = UIDLUtils.extractPageOptions(
+        routeDefinitions,
+        pageKey
+      )
 
       dependencies[componentName] = {
         type: 'local',
@@ -82,8 +86,8 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
     chunks.push({
       name: codeChunkName,
       linkAfter: [importChunkName],
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       content: [routerDeclaration, metaDeclaration, exportStatement],
     })
 

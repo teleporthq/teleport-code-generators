@@ -1,26 +1,17 @@
 import {
-  camelCaseToDashCase,
-  dashCaseToCamelCase,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import {
-  addDynamicAttributeToJSXTag,
-  addAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import {
-  traverseElements,
-  splitDynamicAndStaticStyles,
-  cleanupNestedStyles,
-  transformDynamicStyles,
-  getStyleFileName,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import {
-  createCSSClass,
-  createDynamicStyleExpression,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
-import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/utils/jss-utils'
+  StringUtils,
+  ASTUtils,
+  UIDLUtils,
+  StyleBuilders,
+  StyleUtils,
+} from '@teleporthq/teleport-shared'
 
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  FileType,
+  ChunkType,
+} from '@teleporthq/teleport-types'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -68,17 +59,22 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
-    traverseElements(uidl.node, (element) => {
+    UIDLUtils.traverseElements(uidl.node, (element) => {
       const { style, key } = element
       if (style) {
         const root = astNodesLookup[key]
-        const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
+        const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
 
         if (Object.keys(staticStyles).length > 0) {
-          const className = camelCaseToDashCase(key)
-          const jsFriendlyClassName = dashCaseToCamelCase(className)
+          const className = StringUtils.camelCaseToDashCase(key)
+          const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
 
-          cssClasses.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
+          cssClasses.push(
+            StyleBuilders.createCSSClass(
+              className,
+              StyleUtils.getContentOfStyleObject(staticStyles)
+            )
+          )
 
           // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
           const classNameIsJSFriendly = className === jsFriendlyClassName
@@ -87,19 +83,19 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
               ? `styles.${jsFriendlyClassName}`
               : `styles['${className}']`
 
-          addDynamicAttributeToJSXTag(root, classAttributeName, classReferenceIdentifier)
+          ASTUtils.addDynamicAttributeToJSXTag(root, classAttributeName, classReferenceIdentifier)
         }
 
         if (Object.keys(dynamicStyles).length) {
-          const rootStyles = cleanupNestedStyles(dynamicStyles)
+          const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
 
-          const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-            createDynamicStyleExpression(styleValue, propsPrefix)
+          const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+            StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
           // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
           if (Object.keys(inlineStyles).length > 0) {
-            addAttributeToJSXTag(root, 'style', inlineStyles)
+            ASTUtils.addAttributeToJSXTag(root, 'style', inlineStyles)
           }
         }
       }
@@ -117,7 +113,7 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
      * The name of the file is either in the meta of the component generator
      * or we fallback to the name of the component
      */
-    let cssFileName = getStyleFileName(uidl)
+    let cssFileName = UIDLUtils.getStyleFileName(uidl)
 
     /**
      * In case the moduleExtension flag is passed, the file name should be in the form [fileName].module.css
@@ -130,13 +126,13 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
 
     dependencies[styleObjectImportName] = {
       type: 'local',
-      path: `./${cssFileName}.${FILE_TYPE.CSS}`,
+      path: `./${cssFileName}.${FileType.CSS}`,
     }
 
     structure.chunks.push({
       name: styleChunkName,
-      type: CHUNK_TYPE.STRING,
-      fileType: FILE_TYPE.CSS,
+      type: ChunkType.STRING,
+      fileType: FileType.CSS,
       content: cssClasses.join('\n'),
       linkAfter: [],
     })

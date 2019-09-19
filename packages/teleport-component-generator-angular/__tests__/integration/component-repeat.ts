@@ -7,7 +7,7 @@ import {
   repeatNode,
   dynamicNode,
   elementNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+} from '@teleporthq/teleport-uidl-builders'
 
 const TS_FILE = 'ts'
 const HTML_FILE = 'html'

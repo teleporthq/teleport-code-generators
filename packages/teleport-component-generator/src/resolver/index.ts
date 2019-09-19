@@ -1,6 +1,5 @@
 import * as utils from './utils'
-import { sanitizeVariableName } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { cloneObject } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 
 /**
@@ -32,7 +31,7 @@ export default class Resolver {
       mapping,
     }
 
-    const node = cloneObject(uidl.node)
+    const node = UIDLUtils.cloneObject(uidl.node)
 
     if (options.projectRouteDefinition) {
       utils.resolveNavlinks(node, options.projectRouteDefinition)
@@ -46,7 +45,7 @@ export default class Resolver {
 
     utils.ensureDataSourceUniqueness(node)
 
-    const name = sanitizeVariableName(uidl.name)
+    const name = StringUtils.sanitizeVariableName(uidl.name)
 
     // There might be urls that need to be prefixed in the metaTags of the component
     utils.resolveMetaTags(uidl, options)
@@ -65,7 +64,7 @@ export default class Resolver {
       ...options,
       mapping,
     }
-    const returnElement = cloneObject(element)
+    const returnElement = UIDLUtils.cloneObject(element)
     utils.resolveElement(returnElement, newOptions)
     return returnElement
   }

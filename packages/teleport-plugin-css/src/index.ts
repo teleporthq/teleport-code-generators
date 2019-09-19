@@ -1,33 +1,20 @@
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import {
-  splitDynamicAndStaticStyles,
-  cleanupNestedStyles,
-  traverseElements,
-  transformDynamicStyles,
-  getStyleFileName,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import {
-  createCSSClass,
-  createDynamicStyleExpression,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
+  StringUtils,
+  UIDLUtils,
+  StyleUtils,
+  StyleBuilders,
+  HASTUtils,
+  ASTUtils,
+} from '@teleporthq/teleport-shared'
 
-import { getContentOfStyleObject } from '@teleporthq/teleport-shared/dist/cjs/utils/jss-utils'
-import {
-  addClassToNode,
-  addAttributeToNode,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import {
-  addClassStringOnJSXTag,
-  addAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { addPropertyToASTObject } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLDynamicReference,
   UIDLStyleDefinitions,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface CSSPluginConfig {
   chunkName: string
@@ -69,42 +56,44 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
 
     const jssStylesArray: string[] = []
 
-    traverseElements(node, (element) => {
+    UIDLUtils.traverseElements(node, (element) => {
       const { style, key } = element
 
       if (!style) {
         return
       }
 
-      const { staticStyles, dynamicStyles } = splitDynamicAndStaticStyles(style)
+      const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
       const root = templateLookup[key]
 
       if (Object.keys(staticStyles).length > 0) {
-        const className = camelCaseToDashCase(key)
-        jssStylesArray.push(createCSSClass(className, getContentOfStyleObject(staticStyles)))
+        const className = StringUtils.camelCaseToDashCase(key)
+        jssStylesArray.push(
+          StyleBuilders.createCSSClass(className, StyleUtils.getContentOfStyleObject(staticStyles))
+        )
 
         if (templateStyle === 'html') {
-          addClassToNode(root, className)
+          HASTUtils.addClassToNode(root, className)
         } else {
-          addClassStringOnJSXTag(root, className, classAttributeName)
+          ASTUtils.addClassStringOnJSXTag(root, className, classAttributeName)
         }
       }
 
       if (Object.keys(dynamicStyles).length > 0) {
-        const rootStyles = cleanupNestedStyles(dynamicStyles)
+        const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
 
         // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
         if (Object.keys(rootStyles).length > 0) {
           if (templateStyle === 'html') {
             // simple string expression
             const inlineStyles = createDynamicInlineStyle(rootStyles)
-            addAttributeToNode(root, inlineStyleAttributeKey, `{${inlineStyles}}`)
+            HASTUtils.addAttributeToNode(root, inlineStyleAttributeKey, `{${inlineStyles}}`)
           } else {
             // jsx object expression
-            const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-              createDynamicStyleExpression(styleValue, propsPrefix)
+            const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+              StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
             )
-            addAttributeToJSXTag(root, inlineStyleAttributeKey, inlineStyles)
+            ASTUtils.addAttributeToJSXTag(root, inlineStyleAttributeKey, inlineStyles)
           }
         }
       }
@@ -112,9 +101,9 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
 
     if (jssStylesArray.length > 0) {
       chunks.push({
-        type: CHUNK_TYPE.STRING,
+        type: ChunkType.STRING,
         name: chunkName,
-        fileType: FILE_TYPE.CSS,
+        fileType: FileType.CSS,
         content: jssStylesArray.join('\n'),
         linkAfter: [],
       })
@@ -124,19 +113,21 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
        * The name of the file is either in the meta of the component generator
        * or we fallback to the name of the component
        */
-      const cssFileName = getStyleFileName(uidl)
+      const cssFileName = UIDLUtils.getStyleFileName(uidl)
 
       if (declareDependency === 'decorator' && componentDecoratorChunk) {
         const decoratorAST = componentDecoratorChunk.content
         const decoratorParam = decoratorAST.expression.arguments[0]
-        addPropertyToASTObject(decoratorParam, 'styleUrls', [`${cssFileName}.${FILE_TYPE.CSS}`])
+        ASTUtils.addPropertyToASTObject(decoratorParam, 'styleUrls', [
+          `${cssFileName}.${FileType.CSS}`,
+        ])
       }
 
       if (declareDependency === 'import') {
         dependencies.styles = {
           // styles will not be used in this case as we have importJustPath flag set
           type: 'local',
-          path: `./${cssFileName}.${FILE_TYPE.CSS}`,
+          path: `./${cssFileName}.${FileType.CSS}`,
           meta: {
             importJustPath: true,
           },

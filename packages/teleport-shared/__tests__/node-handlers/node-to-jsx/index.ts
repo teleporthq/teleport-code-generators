@@ -2,7 +2,7 @@ import * as types from '@babel/types'
 import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
 
-import { slotNode, elementNode, staticNode } from '../../../src/builders/uidl-builders'
+import { slotNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import {
   JSXGenerationParams,
   JSXGenerationOptions,

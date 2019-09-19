@@ -1,11 +1,4 @@
-import {
-  prefixAssetsPath,
-  traverseElements,
-  traverseNodes,
-  traverseRepeats,
-  cloneObject,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { UIDLUtils, StringUtils, Constants } from '@teleporthq/teleport-shared'
 import {
   UIDLEventDefinitions,
   UIDLElement,
@@ -19,7 +12,6 @@ import {
   GeneratorOptions,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 import deepmerge from 'deepmerge'
 
 const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
@@ -45,7 +37,7 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping, deepMer
 // Finds all the navlink elements and converts the content of the transitionTo attribute
 // to the actual route value that is defined in the project UIDL, in the routing definition
 export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateDefinition) => {
-  traverseElements(uidlNode, (element) => {
+  UIDLUtils.traverseElements(uidlNode, (element) => {
     if (element.elementType === 'navlink') {
       const transitionAttribute = element.attrs.transitionTo
       if (transitionAttribute.type !== 'static') {
@@ -87,13 +79,13 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = prefixAssetsPath(options.assetsPrefix, tag[key])
+      tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key])
     })
   })
 }
 
 export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
-  traverseNodes(uidlNode, (node, parentNode) => {
+  UIDLUtils.traverseNodes(uidlNode, (node, parentNode) => {
     if (node.type === 'element') {
       resolveElement(node.content, options)
     }
@@ -146,7 +138,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     Object.keys(originalElement.attrs).forEach((attrKey) => {
       const attrValue = originalElement.attrs[attrKey]
       if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
-        originalElement.attrs[attrKey].content = prefixAssetsPath(assetsPrefix, attrValue.content)
+        originalElement.attrs[attrKey].content = UIDLUtils.prefixAssetsPath(
+          assetsPrefix,
+          attrValue.content
+        )
       }
     })
   }
@@ -173,11 +168,11 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 }
 
 export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {
-  let newChildren = cloneObject(mappedChildren)
+  let newChildren = UIDLUtils.cloneObject(mappedChildren)
 
   let placeholderFound = false
   newChildren.forEach((childNode) => {
-    traverseNodes(childNode, (node, parentNode) => {
+    UIDLUtils.traverseNodes(childNode, (node, parentNode) => {
       if (!isPlaceholderNode(node)) {
         return // we're only interested in placeholder nodes
       }
@@ -249,7 +244,7 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
 export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
-  traverseElements(node, (element) => {
+  UIDLUtils.traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
     const nodeOcurrence = lookup[element.name]
@@ -281,7 +276,7 @@ const generateNextIncrementalKey = (currentKey: string): string => {
 }
 
 export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
-  traverseElements(node, (element) => {
+  UIDLUtils.traverseElements(node, (element) => {
     const elementName = element.name
     if (!lookup[elementName]) {
       lookup[elementName] = {
@@ -311,7 +306,7 @@ const isPowerOfTen = (value: number) => {
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
-  traverseRepeats(node, (repeat) => {
+  UIDLUtils.traverseRepeats(node, (repeat) => {
     if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
       repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`
@@ -351,13 +346,16 @@ const prefixAssetURLs = (
         if (
           typeof staticContent === 'string' &&
           STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
-          staticContent.includes(ASSETS_IDENTIFIER)
+          staticContent.includes(Constants.ASSETS_IDENTIFIER)
         ) {
           // split the string at the beginning of the ASSETS_IDENTIFIER string
-          const startIndex = staticContent.indexOf(ASSETS_IDENTIFIER) - 1 // account for the leading '/'
+          const startIndex = staticContent.indexOf(Constants.ASSETS_IDENTIFIER) - 1 // account for the leading '/'
           const newStyleValue =
             staticContent.slice(0, startIndex) +
-            prefixAssetsPath(assetsPrefix, staticContent.slice(startIndex, staticContent.length))
+            UIDLUtils.prefixAssetsPath(
+              assetsPrefix,
+              staticContent.slice(startIndex, staticContent.length)
+            )
           acc[styleKey] = {
             type: 'static',
             content: newStyleValue,
@@ -434,7 +432,7 @@ const resolveDependency = (
 
     // ex: PrimaryButton component should be written in a file called primary-button
     const componentName = mappedElement.elementType
-    const componentFileName = camelCaseToDashCase(componentName)
+    const componentFileName = StringUtils.camelCaseToDashCase(componentName)
 
     // concatenate a trailing slash in case it's missing
     if (localDependenciesPrefix[localDependenciesPrefix.length - 1] !== '/') {

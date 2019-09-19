@@ -3,7 +3,7 @@ import {
   repeatNode,
   elementNode,
   dynamicNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+} from '@teleporthq/teleport-uidl-builders'
 import {
   generateUniqueKeys,
   createNodesLookup,

@@ -5,7 +5,7 @@ import invalidUidlSample from '../../../../examples/test-samples/project-invalid
 // @ts-ignore
 import template from './template-definition.json'
 import { createAngularProjectGenerator } from '../../src'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { FileType } from '@teleporthq/teleport-types'
 
 describe('Angular Project Generator', () => {
   const generator = createAngularProjectGenerator()
@@ -23,10 +23,10 @@ describe('Angular Project Generator', () => {
     const pagesFolder = appFolder.subFolders[0]
     const componentsFolder = appFolder.subFolders[1]
 
-    expect(srcFolder.files[0].fileType).toBe(FILE_TYPE.HTML)
+    expect(srcFolder.files[0].fileType).toBe(FileType.HTML)
     expect(srcFolder.files[0].content).toBeDefined()
     expect(appFolder.files[0].name).toBe('app.module')
-    expect(appFolder.files[0].fileType).toBe(FILE_TYPE.TS)
+    expect(appFolder.files[0].fileType).toBe(FileType.TS)
     expect(appFolder.files[0].content).toBeDefined()
     expect(componentsFolder.name).toBe('components')
     expect(componentsFolder.files[0].name).toBe('components.module')

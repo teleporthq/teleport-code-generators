@@ -1,4 +1,4 @@
-import { createCSSClass } from '../../src/builders/css-builders'
+import { createCSSClass } from '../../src/builders/style-builders'
 
 describe('CSS Class Generation', () => {
   it('with empty styles', () => {

@@ -1,22 +1,17 @@
-import { addDynamicAttributeToJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
 import {
+  ASTUtils,
+  ASTBuilders,
+  StringUtils,
+  UIDLUtils,
   ParsedASTNode,
-  objectToObjectExpression,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+} from '@teleporthq/teleport-shared'
 
 import {
-  createConstAssignment,
-  createReactJSSDefaultExport,
-  createArrowFunctionWithMemberExpression,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import {
-  traverseElements,
-  transformDynamicStyles,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 interface JSSConfig {
   styleChunkName?: string
@@ -50,22 +45,22 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap: Record<string, any> = {}
 
-    traverseElements(node, (element) => {
+    UIDLUtils.traverseElements(node, (element) => {
       const { style, key } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
-        const className = camelCaseToDashCase(key)
-        jssStyleMap[className] = transformDynamicStyles(style, (styleValue) => {
+        const className = StringUtils.camelCaseToDashCase(key)
+        jssStyleMap[className] = UIDLUtils.transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
             return new ParsedASTNode(
-              createArrowFunctionWithMemberExpression('props', styleValue.content.id)
+              ASTBuilders.createArrowFunctionWithMemberExpression('props', styleValue.content.id)
             )
           }
           throw new Error(
             `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        addDynamicAttributeToJSXTag(
+        ASTUtils.addDynamicAttributeToJSXTag(
           root,
           classAttributeName,
           `classes['${className}']`,
@@ -86,24 +81,27 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     }
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: styleChunkName,
       linkAfter: [importChunkName],
-      content: createConstAssignment(jssDeclarationName, objectToObjectExpression(jssStyleMap)),
+      content: ASTBuilders.createConstAssignment(
+        jssDeclarationName,
+        ASTUtils.objectToObjectExpression(jssStyleMap)
+      ),
     })
 
     const exportChunk = chunks.find((chunk) => chunk.name === exportChunkName)
 
-    const exportStatement = createReactJSSDefaultExport(uidl.name, jssDeclarationName)
+    const exportStatement = ASTBuilders.createReactJSSDefaultExport(uidl.name, jssDeclarationName)
 
     if (exportChunk) {
       exportChunk.content = exportStatement
       exportChunk.linkAfter = [importChunkName, styleChunkName]
     } else {
       chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: exportChunkName,
         content: exportStatement,
         linkAfter: [importChunkName, styleChunkName],

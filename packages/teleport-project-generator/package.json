@@ -27,6 +27,7 @@
   "dependencies": {
     "@teleporthq/teleport-shared": "^0.10.0-alpha.0",
     "@teleporthq/teleport-types": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-uidl-validator": "^0.10.0-alpha.0"
+    "@teleporthq/teleport-uidl-validator": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-uidl-builders": "^0.10.0-alpha.0"
   }
 }

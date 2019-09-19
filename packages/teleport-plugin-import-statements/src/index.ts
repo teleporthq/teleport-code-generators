@@ -1,12 +1,13 @@
-import { createGenericImportStatement } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
+import { ASTBuilders } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkDefinition,
   UIDLDependency,
   ImportIdentifier,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
@@ -19,7 +20,7 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
     importLocalsChunkName = 'import-local',
-    fileType = FILE_TYPE.JS,
+    fileType = FileType.JS,
   } = config || {}
 
   const importPlugin: ComponentPlugin = async (structure) => {
@@ -78,14 +79,14 @@ const addImportChunk = (
   chunks: ChunkDefinition[],
   dependencies: Record<string, ImportIdentifier[]>,
   newChunkName: string,
-  fileType: string
+  fileType: FileType
 ) => {
   const importASTs = Object.keys(dependencies).map((key) =>
-    createGenericImportStatement(key, dependencies[key])
+    ASTBuilders.createGenericImportStatement(key, dependencies[key])
   )
 
   chunks.push({
-    type: CHUNK_TYPE.AST,
+    type: ChunkType.AST,
     name: newChunkName,
     fileType,
     content: importASTs,

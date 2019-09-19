@@ -1,8 +1,11 @@
 import * as types from '@babel/types'
-import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   createRoutesAST,
@@ -61,7 +64,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
 
-          const routes = extractRoutes(uidl)
+          const routes = UIDLUtils.extractRoutes(uidl)
           routesAST = createRoutesAST(routes, stateDefinitions)
           ngModuleAST = createRootModuleDecorator()
           moduleDecoratorAST = createExportModuleAST('AppModule')
@@ -89,7 +92,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           moduleComponents.forEach(
             (component) =>
               (dependencies[`${component}Component`] = constructComponentDependency(
-                camelCaseToDashCase(component)
+                StringUtils.camelCaseToDashCase(component)
               ))
           )
 
@@ -103,8 +106,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     if (routesAST) {
       chunks.push({
         name: moduleChunkName,
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.TS,
+        type: ChunkType.AST,
+        fileType: FileType.TS,
         content: routesAST,
         linkAfter: [importChunkName],
       })
@@ -112,8 +115,8 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
 
     chunks.push({
       name: decoratorChunkName,
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TS,
+      type: ChunkType.AST,
+      fileType: FileType.TS,
       content: [ngModuleAST, moduleDecoratorAST],
       linkAfter: [importChunkName],
     })

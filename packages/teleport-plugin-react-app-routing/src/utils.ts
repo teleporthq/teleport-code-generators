@@ -1,25 +1,17 @@
 import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
-import {
-  createSelfClosingJSXTag,
-  createJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  addChildJSXTag,
-  addAttributeToJSXTag,
-  addDynamicAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-shared'
 
 export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types.JSXElement[]) => {
-  const routerTag = createJSXTag('Router')
+  const routerTag = ASTBuilders.createJSXTag('Router')
 
   if (flavour === 'preact') {
-    routeJSXDefinitions.forEach((route) => addChildJSXTag(routerTag, route))
+    routeJSXDefinitions.forEach((route) => ASTUtils.addChildJSXTag(routerTag, route))
     return routerTag
   }
-  const divContainer = createJSXTag('div')
-  addChildJSXTag(routerTag, divContainer)
-  routeJSXDefinitions.forEach((route) => addChildJSXTag(divContainer, route))
+  const divContainer = ASTBuilders.createJSXTag('div')
+  ASTUtils.addChildJSXTag(routerTag, divContainer)
+  routeJSXDefinitions.forEach((route) => ASTUtils.addChildJSXTag(divContainer, route))
 
   return routerTag
 }
@@ -30,15 +22,15 @@ export const constructRouteJSX = (flavour: string, componentName: string, path: 
 
   if (flavour === 'preact') {
     JSXRoutePrefix = componentName
-    route = createSelfClosingJSXTag(JSXRoutePrefix)
+    route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
   } else {
     JSXRoutePrefix = 'Route'
-    route = createSelfClosingJSXTag(JSXRoutePrefix)
-    addAttributeToJSXTag(route, 'exact')
-    addDynamicAttributeToJSXTag(route, 'component', componentName)
+    route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
+    ASTUtils.addAttributeToJSXTag(route, 'exact')
+    ASTUtils.addDynamicAttributeToJSXTag(route, 'component', componentName)
   }
 
-  addAttributeToJSXTag(route, 'path', path)
+  ASTUtils.addAttributeToJSXTag(route, 'path', path)
 
   return route
 }

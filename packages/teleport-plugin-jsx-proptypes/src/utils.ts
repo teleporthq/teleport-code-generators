@@ -1,8 +1,5 @@
 import * as types from '@babel/types'
-import {
-  objectToObjectExpression,
-  ParsedASTNode,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils, ParsedASTNode } from '@teleporthq/teleport-shared'
 import { UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const buildDefaultPropsAst = (
@@ -35,7 +32,7 @@ export const buildDefaultPropsAst = (
     t.identifier('defaultProps')
   )
 
-  const memberExpressionValue = objectToObjectExpression(defaultValuesSearch.values)
+  const memberExpressionValue = ASTUtils.objectToObjectExpression(defaultValuesSearch.values)
 
   const assignmentExpression = t.assignmentExpression('=', memberExpression, memberExpressionValue)
 
@@ -75,7 +72,7 @@ export const buildTypesOfPropsAst = (
     t.identifier('propTypes')
   )
 
-  const memberExpressionValue = objectToObjectExpression(defaultValuesSearch.values)
+  const memberExpressionValue = ASTUtils.objectToObjectExpression(defaultValuesSearch.values)
 
   const assignmentExpression = t.assignmentExpression('=', memberExpression, memberExpressionValue)
 

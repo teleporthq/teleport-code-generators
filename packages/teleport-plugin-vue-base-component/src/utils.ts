@@ -1,11 +1,6 @@
 import * as types from '@babel/types'
 
-import {
-  ParsedASTNode,
-  convertValueToLiteral,
-  objectToObjectExpression,
-  createStateChangeStatement,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
@@ -31,7 +26,7 @@ export const generateVueComponentJS = (
 
   if (uidl.propDefinitions) {
     const props = createVuePropsDefinition(uidl.propDefinitions)
-    const propsAST = objectToObjectExpression(props)
+    const propsAST = ASTUtils.objectToObjectExpression(props)
     vueObjectProperties.push(t.objectProperty(t.identifier('props'), propsAST))
   }
 
@@ -50,7 +45,7 @@ export const generateVueComponentJS = (
   }
 
   if (Object.keys(dataObject).length > 0) {
-    const dataAST = objectToObjectExpression(dataObject)
+    const dataAST = ASTUtils.objectToObjectExpression(dataObject)
     vueObjectProperties.push(
       t.objectMethod(
         'method',
@@ -116,7 +111,9 @@ const createVuePropsDefinition = (
     if (defaultValue !== undefined) {
       defaultPropValue =
         type === 'array' || type === 'object'
-          ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))
+          ? new ParsedASTNode(
+              t.arrowFunctionExpression([], ASTUtils.convertValueToLiteral(defaultValue))
+            )
           : defaultValue
     }
 
@@ -138,7 +135,7 @@ const createMethodsObject = (
       const astStatement =
         statement.type === 'propCall'
           ? createPropCallStatement(statement, propDefinitions)
-          : createStateChangeStatement(statement)
+          : ASTBuilders.createStateChangeStatement(statement)
 
       if (astStatement) {
         astStatements.push(astStatement)
@@ -171,7 +168,7 @@ export const createPropCallStatement = (
   return t.expressionStatement(
     t.callExpression(t.identifier('this.$emit'), [
       t.stringLiteral(propFunctionKey),
-      ...args.map((arg) => convertValueToLiteral(arg)),
+      ...args.map((arg) => ASTUtils.convertValueToLiteral(arg)),
     ])
   )
 }

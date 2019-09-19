@@ -1,8 +1,6 @@
-import { UIDLStaticValue } from '@teleporthq/teleport-types/lib'
-import { ComponentUIDL } from '@teleporthq/teleport-types/src'
-import { component } from '../../src/builders/uidl-builders'
-import { ProjectUIDL } from '@teleporthq/teleport-types/dist/esm'
-import { project, simpleProjectGlobals } from '../../src/builders/project-builders'
+import { component } from '../src/component-builders'
+import { ProjectUIDL, ComponentUIDL, UIDLStaticValue } from '@teleporthq/teleport-types'
+import { project, simpleProjectGlobals } from '../src/project-builders'
 
 describe('Project Builders', () => {
   const dummyNode: UIDLStaticValue = { type: 'static', content: 'test' }

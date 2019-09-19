@@ -1,14 +1,17 @@
-import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLElementNode,
   UIDLEventHandlerStatement,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import {
+  ASTBuilders,
+  UIDLUtils,
+  StringUtils,
+  createHTMLTemplateSyntax,
+} from '@teleporthq/teleport-shared'
 
 import { generateExportAST } from './utils'
 
@@ -76,9 +79,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     )
 
     chunks.push({
-      type: CHUNK_TYPE.HAST,
+      type: ChunkType.HAST,
       name: angularTemplateChunkName,
-      fileType: FILE_TYPE.HTML,
+      fileType: FileType.HTML,
       meta: {
         nodesLookup: templateLookup,
       },
@@ -87,15 +90,15 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     })
 
     const params = {
-      selector: `app-${camelCaseToDashCase(uidl.name)}`,
-      templateUrl: `${getComponentFileName(uidl)}.${FILE_TYPE.HTML}`,
+      selector: `app-${StringUtils.camelCaseToDashCase(uidl.name)}`,
+      templateUrl: `${UIDLUtils.getComponentFileName(uidl)}.${FileType.HTML}`,
     }
-    const componentDecoratorAST = createComponentDecorator(params)
+    const componentDecoratorAST = ASTBuilders.createComponentDecorator(params)
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
+      type: ChunkType.AST,
       name: componentDecoratorChunkName,
-      fileType: FILE_TYPE.TS,
+      fileType: FileType.TS,
       linkAfter: tsChunkAfter,
       content: componentDecoratorAST,
     })
@@ -126,9 +129,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     )
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
+      type: ChunkType.AST,
       name: exportClassChunk,
-      fileType: FILE_TYPE.TS,
+      fileType: FileType.TS,
       linkAfter: tsChunkAfter,
       content: exportAST,
     })

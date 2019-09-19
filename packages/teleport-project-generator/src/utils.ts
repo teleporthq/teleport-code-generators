@@ -1,10 +1,4 @@
-import {
-  traverseElements,
-  getComponentFileName,
-  getComponentPath,
-  extractRoutes,
-  extractPageOptions,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import {
   GeneratedFile,
@@ -15,10 +9,10 @@ import {
   UIDLConditionalNode,
   ProjectStrategy,
 } from '@teleporthq/teleport-types'
-import { elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { elementNode } from '@teleporthq/teleport-uidl-builders'
 
 export const createPageUIDLs = (uidl: ProjectUIDL, strategy: ProjectStrategy): ComponentUIDL[] => {
-  const routeNodes = extractRoutes(uidl.root)
+  const routeNodes = UIDLUtils.extractRoutes(uidl.root)
   return routeNodes.map((routeNode) => createPageUIDL(routeNode, uidl, strategy))
 }
 
@@ -32,7 +26,7 @@ const createPageUIDL = (
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
-  const { componentName, fileName } = extractPageOptions(
+  const { componentName, fileName } = UIDLUtils.extractPageOptions(
     routeDefinition,
     pageName,
     pagesStrategyOptions.useFileNameForNavigation
@@ -95,8 +89,8 @@ export const prepareComponentOutputOptions = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const fileName = getComponentFileName(component)
-    const folderPath = getComponentPath(component)
+    const fileName = UIDLUtils.getComponentFileName(component)
+    const folderPath = UIDLUtils.getComponentPath(component)
 
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name
@@ -131,9 +125,9 @@ export const resolveLocalDependencies = (
   strategy: ProjectStrategy
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
-    const pagePath = getComponentPath(pageUIDL)
+    const pagePath = UIDLUtils.getComponentPath(pageUIDL)
     const fromPath = strategy.pages.path.concat(pagePath)
-    traverseElements(pageUIDL.node, (element) => {
+    UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
         setLocalDependencyPath(element, components, fromPath, strategy.components.path)
       }
@@ -142,10 +136,10 @@ export const resolveLocalDependencies = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const componentPath = getComponentPath(component)
+    const componentPath = UIDLUtils.getComponentPath(component)
     const fromPath = strategy.components.path.concat(componentPath)
 
-    traverseElements(component.node, (element) => {
+    UIDLUtils.traverseElements(component.node, (element) => {
       if (isLocalDependency(element)) {
         setLocalDependencyPath(element, components, fromPath, strategy.components.path)
       }
@@ -164,11 +158,11 @@ const setLocalDependencyPath = (
 ) => {
   const componentKey = element.elementType
   const component = components[componentKey]
-  const componentPath = getComponentPath(component)
+  const componentPath = UIDLUtils.getComponentPath(component)
 
   const toPath = toBasePath.concat(componentPath)
 
-  const importFileName = getComponentFileName(component)
+  const importFileName = UIDLUtils.getComponentFileName(component)
   const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
   element.dependency.path = `${importPath}${importFileName}`
 }

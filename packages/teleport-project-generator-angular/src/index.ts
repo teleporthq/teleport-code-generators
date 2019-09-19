@@ -3,8 +3,7 @@ import { createAngularComponentGenerator } from '@teleporthq/teleport-component-
 import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { Mapping } from '@teleporthq/teleport-types'
+import { Mapping, FileType } from '@teleporthq/teleport-types'
 
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
@@ -14,8 +13,8 @@ import AngularProjectMapping from './angular-mapping.json'
 import AngularTemplate from './project-template'
 
 const createAngularProjectGenerator = () => {
-  const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TS })
-  const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TS })
+  const prettierJS = createPostProcessor({ fileType: FileType.TS })
+  const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 
   const rootModuleGeneratorAngular = createModuleGenerator({ moduleType: 'root' })
   const componentModuleGeneratorAngular = createModuleGenerator({ moduleType: 'component' })

@@ -1,9 +1,5 @@
 import * as types from '@babel/types'
-import {
-  convertValueToLiteral,
-  getTSAnnotationForType,
-  createStateChangeStatement,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
@@ -41,8 +37,8 @@ export const generateExportAST = (
     }
     return t.classProperty(
       t.identifier(propKey),
-      convertValueToLiteral(propDefinitions[propKey].defaultValue),
-      t.tsTypeAnnotation(getTSAnnotationForType(propDefinitions[propKey].type)),
+      ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(propDefinitions[propKey].type)),
       [t.decorator(t.callExpression(t.identifier('Input'), []))]
     )
   })
@@ -50,16 +46,16 @@ export const generateExportAST = (
   const propertyDecleration = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(
       t.identifier(stateKey),
-      convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
-      t.tsTypeAnnotation(getTSAnnotationForType(stateDefinitions[stateKey].type))
+      ASTUtils.convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDefinitions[stateKey].type))
     )
   )
 
   const dataDeclaration = Object.keys(dataObject).map((dataKey) => {
     return t.classProperty(
       t.identifier(dataKey),
-      convertValueToLiteral(dataObject[dataKey]),
-      t.tsTypeAnnotation(getTSAnnotationForType(typeof dataObject[dataKey]))
+      ASTUtils.convertValueToLiteral(dataObject[dataKey]),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(typeof dataObject[dataKey]))
     )
   })
 
@@ -95,7 +91,7 @@ const createMethodsObject = (
       const astStatement =
         statement.type === 'propCall'
           ? createPropCallStatement(statement, propDefinitions)
-          : createStateChangeStatement(statement)
+          : ASTBuilders.createStateChangeStatement(statement)
 
       if (astStatement) {
         astStatements.push(astStatement)

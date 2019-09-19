@@ -11,18 +11,3 @@ export const PRETTIER_CONFIG: PrettierFormatOptions = {
   trailingComma: 'es5',
   bracketSpacing: true,
 }
-export const FILE_TYPE = {
-  CSS: 'css',
-  HTML: 'html',
-  JS: 'js',
-  JSON: 'json',
-  VUE: 'vue',
-  TS: 'ts',
-  TSX: 'tsx',
-}
-
-export const CHUNK_TYPE = {
-  AST: 'ast',
-  HAST: 'hast',
-  STRING: 'string',
-}

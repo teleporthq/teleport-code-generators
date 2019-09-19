@@ -1,20 +1,24 @@
 import { createPlugin } from '../src'
-import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import {
+  ComponentStructure,
+  ChunkType,
+  FileType,
+  ChunkDefinition,
+} from '@teleporthq/teleport-types'
 
 describe('plugin-jsx-proptypes', () => {
   const plugin = createPlugin()
-  const reactChunk = {
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+  const reactChunk: ChunkDefinition = {
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     name: 'jsx-component',
     content: {},
     linkAfter: [],
   }
   const exportChunk = {
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     name: 'export',
     content: {},
     linkAfter: ['jsx-component'],
@@ -60,9 +64,9 @@ describe('plugin-jsx-proptypes', () => {
     const propTypes = result.chunks.filter((chunk) => chunk.name === 'component-types-of-props')
 
     expect(defaultProps.length).toEqual(1)
-    expect(defaultProps[0].type).toBe(CHUNK_TYPE.AST)
+    expect(defaultProps[0].type).toBe(ChunkType.AST)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    expect(propTypes[0].type).toBe(ChunkType.AST)
   })
 
   it('Should not generate defaultProps', async () => {
@@ -89,7 +93,7 @@ describe('plugin-jsx-proptypes', () => {
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    expect(propTypes[0].type).toBe(ChunkType.AST)
   })
 
   it('Should generate chunks after specifying required to props', async () => {
@@ -118,6 +122,6 @@ describe('plugin-jsx-proptypes', () => {
 
     expect(defaultProps.length).toEqual(0)
     expect(propTypes.length).toEqual(1)
-    expect(propTypes[0].type).toBe(CHUNK_TYPE.AST)
+    expect(propTypes[0].type).toBe(ChunkType.AST)
   })
 })

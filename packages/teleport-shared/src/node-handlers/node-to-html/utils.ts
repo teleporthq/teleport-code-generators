@@ -1,4 +1,4 @@
-import * as htmlUtils from '../../utils/html-utils'
+import * as hastUtils from '../../utils/hast-utils'
 import { capitalize, dashCaseToUpperCamelCase } from '../../utils/string-utils'
 import {
   UIDLConditionalExpression,
@@ -23,7 +23,7 @@ export const handleAttribute = (
   const dynamicAttrKey = templateSyntax.valueBinding(attrKey, node)
   switch (attrValue.type) {
     case 'dynamic':
-      htmlUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
+      hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
       break
     case 'static':
       if (Array.isArray(attrValue.content)) {
@@ -31,14 +31,14 @@ export const handleAttribute = (
         // The array will be placed on the dataObject and the data reference is placed on the node
         const dataObjectIdentifier = `${elementName}${capitalize(attrKey)}`
         dataObject[dataObjectIdentifier] = attrValue.content
-        htmlUtils.addAttributeToNode(htmlNode, dynamicAttrKey, dataObjectIdentifier)
+        hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, dataObjectIdentifier)
       } else if (typeof attrValue.content === 'boolean') {
-        htmlUtils.addBooleanAttributeToNode(htmlNode, attrKey)
+        hastUtils.addBooleanAttributeToNode(htmlNode, attrKey)
       } else if (typeof attrValue.content === 'string') {
-        htmlUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
+        hastUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
       } else {
         // For numbers and values that are passed to components and maintain their type
-        htmlUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.toString())
+        hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.toString())
       }
       break
     default:
@@ -67,9 +67,9 @@ export const handleEvent = (
 
     if (isPropEvent) {
       const eventEmitter = templateSyntax.eventEmmitter(statement.calls)
-      htmlUtils.addAttributeToNode(htmlNode, eventHandlerKey, eventEmitter)
+      hastUtils.addAttributeToNode(htmlNode, eventHandlerKey, eventEmitter)
     } else {
-      htmlUtils.addAttributeToNode(
+      hastUtils.addAttributeToNode(
         htmlNode,
         eventHandlerKey,
         statement.newState === '$toggle'
@@ -86,7 +86,7 @@ export const handleEvent = (
       : methodName
 
     methodsObject[methodName] = eventHandlerStatements
-    htmlUtils.addAttributeToNode(htmlNode, eventHandlerKey, eventNameBiding)
+    hastUtils.addAttributeToNode(htmlNode, eventHandlerKey, eventNameBiding)
   }
 }
 

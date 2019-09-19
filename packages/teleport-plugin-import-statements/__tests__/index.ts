@@ -1,5 +1,5 @@
 import { createPlugin } from '../src/'
-import { componentDependency } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { componentDependency } from '@teleporthq/teleport-uidl-builders'
 
 describe('plugin-import-statements', () => {
   const plugin = createPlugin({

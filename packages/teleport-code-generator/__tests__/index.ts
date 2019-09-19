@@ -3,7 +3,7 @@ import { join } from 'path'
 
 import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
-import { element } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { element } from '@teleporthq/teleport-uidl-builders'
 
 import { createCodeGenerator, PackerOptions, PublisherType, ProjectType } from '../src/index'
 import { GenerateOptions, ComponentType } from '../src/types'

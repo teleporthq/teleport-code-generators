@@ -1,10 +1,4 @@
-import { addAttributeToJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { createDynamicStyleExpression } from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
-import {
-  cleanupNestedStyles,
-  transformDynamicStyles,
-  traverseElements,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { ASTUtils, StyleBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface InlineStyleConfig {
@@ -26,7 +20,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
       return structure
     }
 
-    traverseElements(uidl.node, (element) => {
+    UIDLUtils.traverseElements(uidl.node, (element) => {
       const { style, key } = element
 
       if (style && Object.keys(style).length > 0) {
@@ -37,12 +31,12 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
         }
 
         // Nested styles are ignored
-        const rootStyles = cleanupNestedStyles(style)
-        const inlineStyles = transformDynamicStyles(rootStyles, (styleValue) =>
-          createDynamicStyleExpression(styleValue, propsPrefix)
+        const rootStyles = UIDLUtils.cleanupNestedStyles(style)
+        const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+          StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
         )
 
-        addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)
+        ASTUtils.addAttributeToJSXTag(jsxASTTag, 'style', inlineStyles)
       }
     })
 

@@ -2,7 +2,7 @@ import {
   createBinaryExpression,
   createConditionIdentifier,
 } from '../../../src/node-handlers/node-to-jsx/utils'
-import { dynamicNode } from '../../../src/builders/uidl-builders'
+import { dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import {
   JSXGenerationParams,
   JSXGenerationOptions,

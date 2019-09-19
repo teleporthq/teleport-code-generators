@@ -1,5 +1,5 @@
 import { HastNode } from '@teleporthq/teleport-types'
-import { createTextNode } from '../builders/html-builders'
+import { createTextNode } from '../builders/hast-builders'
 
 export const addBooleanAttributeToNode = (node: HastNode, key: string) => {
   node.properties[key] = ''
