@@ -1,11 +1,12 @@
 import * as types from '@babel/types'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
 import {
+  MetaTag,
   ComponentUIDL,
+  UIDLComponentSEO,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
-  UIDLComponentSEO,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
@@ -81,12 +82,56 @@ export const generateExportAST = (
 
 const constructorAST = (seo: UIDLComponentSEO, t = types) => {
   const params = []
+  const blockStatements = []
   if (seo) {
-    const seoBinding = t.identifier(`private titleService: Title`)
-    params.push(seoBinding)
+    const { title, metaTags } = seo
+
+    if (title) {
+      params.push(t.identifier(`private title: Title`))
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('title')),
+              t.identifier('setTitle')
+            ),
+            [t.stringLiteral(title)]
+          )
+        )
+      )
+    }
+
+    if (metaTags && metaTags.length > 0) {
+      params.push(t.identifier(`private meta: Meta`))
+
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('meta')),
+              t.identifier('addTags')
+            ),
+            [t.arrayExpression(constructMetaTagAST(metaTags))]
+          )
+        )
+      )
+    }
   }
 
-  return t.classMethod('constructor', t.identifier('constructor'), params, t.blockStatement([]))
+  return t.classMethod(
+    'constructor',
+    t.identifier('constructor'),
+    params,
+    t.blockStatement(blockStatements)
+  )
+}
+
+const constructMetaTagAST = (metaTags: MetaTag[], t = types) => {
+  const metaTagsAST = []
+  metaTags.forEach((tag: MetaTag) => {
+    metaTagsAST.push(objectToObjectExpression(tag))
+  })
+  return metaTagsAST
 }
 
 const createMethodsObject = (

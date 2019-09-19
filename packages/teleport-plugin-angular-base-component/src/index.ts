@@ -41,12 +41,16 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
   const angularComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { stateDefinitions = {}, propDefinitions = {} } = uidl
+    const { seo = {}, stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.Component = ANGULAR_CORE_DEPENDENCY
 
-    if (uidl.seo) {
+    if (seo.title) {
       dependencies.Title = ANGULAR_PLATFORM_BROWSER
+    }
+
+    if (seo.metaTags && seo.metaTags.length > 0) {
+      dependencies.Meta = ANGULAR_PLATFORM_BROWSER
     }
 
     if (Object.keys(propDefinitions).length > 0) {
