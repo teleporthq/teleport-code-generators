@@ -1,12 +1,11 @@
 import * as types from '@babel/types'
-import { extractRoutes } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 import {
   createRoutesAST,
@@ -65,7 +64,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
 
-          const routes = extractRoutes(uidl)
+          const routes = UIDLUtils.extractRoutes(uidl)
           routesAST = createRoutesAST(routes, stateDefinitions)
           ngModuleAST = createRootModuleDecorator()
           moduleDecoratorAST = createExportModuleAST('AppModule')
@@ -93,7 +92,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
           moduleComponents.forEach(
             (component) =>
               (dependencies[`${component}Component`] = constructComponentDependency(
-                camelCaseToDashCase(component)
+                StringUtils.camelCaseToDashCase(component)
               ))
           )
 

@@ -4,7 +4,7 @@ import {
   Publisher,
   GeneratedFolder,
 } from '@teleporthq/teleport-types'
-import { GithubFile } from '@teleporthq/teleport-github-gateway/dist/cjs/types'
+import { GithubFile } from '@teleporthq/teleport-github-gateway'
 
 export interface GithubFactoryParams extends PublisherFactoryParams {
   authMeta?: ServiceAuth

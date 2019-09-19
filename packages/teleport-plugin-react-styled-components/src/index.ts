@@ -5,19 +5,7 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { generateStyledComponent, countPropReferences } from './utils'
-import {
-  traverseElements,
-  transformDynamicStyles,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import {
-  dashCaseToUpperCamelCase,
-  dashCaseToCamelCase,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import {
-  addDynamicAttributeToJSXTag,
-  addSpreadAttributeToJSXTag,
-  renameJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { UIDLUtils, StringUtils, ASTUtils } from '@teleporthq/teleport-shared'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -39,40 +27,43 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap: Record<string, any> = {}
 
-    traverseElements(node, (element) => {
+    UIDLUtils.traverseElements(node, (element) => {
       const { style, key, elementType } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
-        const className = `${dashCaseToUpperCamelCase(key)}`
+        const className = `${StringUtils.dashCaseToUpperCamelCase(key)}`
         const timesReferred = countPropReferences(style, 0)
 
-        jssStyleMap[className] = transformDynamicStyles(style, (styleValue, attribute) => {
-          if (styleValue.content.referenceType === 'prop') {
-            const dashCaseAttribute = dashCaseToCamelCase(attribute)
-            switch (timesReferred) {
-              case 1:
-                addDynamicAttributeToJSXTag(
-                  root,
-                  dashCaseAttribute,
-                  styleValue.content.id,
-                  propsPrefix
-                )
-                return `\$\{props => props.${dashCaseAttribute}\}`
-              default:
-                return `\$\{props => props.${styleValue.content.id}\}`
+        jssStyleMap[className] = UIDLUtils.transformDynamicStyles(
+          style,
+          (styleValue, attribute) => {
+            if (styleValue.content.referenceType === 'prop') {
+              const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
+              switch (timesReferred) {
+                case 1:
+                  ASTUtils.addDynamicAttributeToJSXTag(
+                    root,
+                    dashCaseAttribute,
+                    styleValue.content.id,
+                    propsPrefix
+                  )
+                  return `\$\{props => props.${dashCaseAttribute}\}`
+                default:
+                  return `\$\{props => props.${styleValue.content.id}\}`
+              }
             }
-          }
 
-          throw new Error(
-            `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
-          )
-        })
+            throw new Error(
+              `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+            )
+          }
+        )
 
         if (timesReferred > 1) {
-          addSpreadAttributeToJSXTag(root, propsPrefix)
+          ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
         }
 
-        renameJSXTag(root, className)
+        ASTUtils.renameJSXTag(root, className)
 
         const code = {
           type: ChunkType.AST,

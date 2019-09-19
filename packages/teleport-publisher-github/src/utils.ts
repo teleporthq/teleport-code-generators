@@ -1,10 +1,10 @@
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 import {
+  createGithubGateway,
   GithubFile,
   RepositoryIdentity,
   GithubCommitMeta,
-} from '@teleporthq/teleport-github-gateway/dist/cjs/types'
-import { createGithubGateway } from '@teleporthq/teleport-github-gateway'
+} from '@teleporthq/teleport-github-gateway'
 
 import { GithubPublishMeta, ProjectFolderInfo } from './types'
 

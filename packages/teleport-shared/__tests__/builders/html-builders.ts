@@ -1,4 +1,4 @@
-import { createHTMLNode, createTextNode } from '../../src/builders/html-builders'
+import { createHTMLNode, createTextNode } from '../../src/builders/hast-builders'
 
 describe('HTML Builders', () => {
   describe('createHTMLNode', () => {

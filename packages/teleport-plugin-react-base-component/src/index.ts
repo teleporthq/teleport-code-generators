@@ -1,7 +1,5 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
 import { createPureComponent } from './utils'
-import { createJSXSyntax, JSXGenerationOptions } from '@teleporthq/teleport-shared'
+import { createJSXSyntax, JSXGenerationOptions, ASTBuilders } from '@teleporthq/teleport-shared'
 
 import {
   ComponentPluginFactory,
@@ -83,7 +81,7 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
       type: ChunkType.AST,
       fileType: FileType.JS,
       name: exportChunkName,
-      content: createDefaultExport(uidl.name),
+      content: ASTBuilders.createDefaultExport(uidl.name),
       linkAfter: [componentChunkName],
     })
 

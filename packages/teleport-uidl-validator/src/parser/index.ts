@@ -1,9 +1,4 @@
-import {
-  transformStylesAssignmentsToJson,
-  transformAttributesAssignmentsToJson,
-  transformStringAssignmentToJson,
-  cloneObject,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import {
   UIDLDynamicReference,
@@ -25,7 +20,7 @@ export const parseComponentJSON = (
   input: Record<string, unknown>,
   params: ParseComponentJSONParams = {}
 ): ComponentUIDL => {
-  const safeInput = params.noClone ? input : cloneObject(input)
+  const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
   const node = safeInput.node as Record<string, unknown>
   const result: ComponentUIDL = {
@@ -46,7 +41,7 @@ export const parseProjectJSON = (
   input: Record<string, unknown>,
   params: ParseProjectJSONParams = {}
 ): ProjectUIDL => {
-  const safeInput = params.noClone ? input : cloneObject(input)
+  const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
   const root = safeInput.root as Record<string, unknown>
 
   const result = {
@@ -76,23 +71,21 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const elementContent = node.content as Record<string, unknown>
 
       if (elementContent.style) {
-        elementContent.style = transformStylesAssignmentsToJson(elementContent.style as Record<
-          string,
-          unknown
-        >)
+        elementContent.style = UIDLUtils.transformStylesAssignmentsToJson(
+          elementContent.style as Record<string, unknown>
+        )
       }
 
       if (elementContent.attrs) {
-        elementContent.attrs = transformAttributesAssignmentsToJson(elementContent.attrs as Record<
-          string,
-          unknown
-        >)
+        elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+          elementContent.attrs as Record<string, unknown>
+        )
       }
 
       if (Array.isArray(elementContent.children)) {
         elementContent.children = elementContent.children.map((child) => {
           if (typeof child === 'string') {
-            return transformStringAssignmentToJson(child)
+            return UIDLUtils.transformStringAssignmentToJson(child)
           } else {
             return parseComponentNode(child)
           }
@@ -109,7 +102,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         .node as unknown) as Record<string, unknown>)
 
       if (typeof reference === 'string') {
-        conditionalNode.content.reference = transformStringAssignmentToJson(
+        conditionalNode.content.reference = UIDLUtils.transformStringAssignmentToJson(
           reference
         ) as UIDLDynamicReference
       }
@@ -126,7 +119,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       >) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
-        repeatNode.content.dataSource = transformStringAssignmentToJson(dataSource)
+        repeatNode.content.dataSource = UIDLUtils.transformStringAssignmentToJson(dataSource)
       }
 
       return repeatNode

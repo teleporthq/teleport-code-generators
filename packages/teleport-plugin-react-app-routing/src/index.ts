@@ -1,13 +1,4 @@
-import {
-  createSelfClosingJSXTag,
-  createFunctionCall,
-  createFunctionalComponent,
-  createDefaultExport,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  extractPageOptions,
-  extractRoutes,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   registerReactRouterDeps,
   registerPreactRouterDeps,
@@ -47,14 +38,14 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
     const { stateDefinitions = {} } = uidl
 
-    const routes = extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
 
-      const { fileName: pageName, componentName, navLink } = extractPageOptions(
+      const { fileName: pageName, componentName, navLink } = UIDLUtils.extractPageOptions(
         stateDefinitions.route,
         routeKey.toString()
       )
@@ -81,7 +72,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
     const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
 
-    const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
+    const pureComponent = ASTBuilders.createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
       type: ChunkType.AST,
@@ -92,7 +83,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     })
 
     if (flavor === 'preact') {
-      const exportJSXApp = createDefaultExport('App')
+      const exportJSXApp = ASTBuilders.createDefaultExport('App')
 
       structure.chunks.push({
         type: ChunkType.AST,
@@ -102,9 +93,9 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
         linkAfter: [componentChunkName],
       })
     } else {
-      const reactDomBind = createFunctionCall('ReactDOM.render', [
-        createSelfClosingJSXTag(uidl.name),
-        createFunctionCall('document.getElementById', ['app']),
+      const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
+        ASTBuilders.createSelfClosingJSXTag(uidl.name),
+        ASTBuilders.createFunctionCall('document.getElementById', ['app']),
       ])
 
       structure.chunks.push({

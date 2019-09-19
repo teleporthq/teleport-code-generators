@@ -2,7 +2,7 @@ import jss from 'jss'
 import preset from 'jss-preset-default'
 import * as types from '@babel/types'
 import { UIDLDynamicReference } from '@teleporthq/teleport-types'
-import { ParsedASTNode } from '../utils/ast-js-utils'
+import ParsedASTNode from '../utils/parsed-ast'
 
 jss.setup(preset())
 

@@ -1,6 +1,6 @@
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { objectToObjectExpression } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils } from '@teleporthq/teleport-shared'
 
 interface VueMetaPluginConfig {
   vueJSChunkName?: string
@@ -44,7 +44,10 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
     if (Object.keys(headObject).length > 0) {
       const exportObjectAST = componentChunk.content.declaration as types.ObjectExpression
       exportObjectAST.properties.push(
-        types.objectProperty(types.identifier(metaObjectKey), objectToObjectExpression(headObject))
+        types.objectProperty(
+          types.identifier(metaObjectKey),
+          ASTUtils.objectToObjectExpression(headObject)
+        )
       )
     }
 

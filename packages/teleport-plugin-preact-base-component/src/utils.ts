@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const createClassComponent = (
@@ -23,7 +23,7 @@ export const createClassComponent = (
       const stateDefinition = stateDefinitions[stateKey]
       return t.objectProperty(
         t.identifier(stateKey),
-        convertValueToLiteral(stateDefinition.defaultValue)
+        ASTUtils.convertValueToLiteral(stateDefinition.defaultValue)
       )
     })
 

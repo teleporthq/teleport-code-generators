@@ -1,5 +1,5 @@
-import * as htmlUtils from '../../utils/html-utils'
-import { createHTMLNode } from '../../builders/html-builders'
+import * as hastUtils from '../../utils/hast-utils'
+import { createHTMLNode } from '../../builders/hast-builders'
 import { getRepeatIteratorNameAndKey } from '../../utils/uidl-utils'
 import {
   UIDLRepeatNode,
@@ -44,9 +44,9 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
       const childTag = generateNode(child, params, templateSyntax)
 
       if (typeof childTag === 'string') {
-        htmlUtils.addTextNode(htmlNode, childTag)
+        hastUtils.addTextNode(htmlNode, childTag)
       } else {
-        htmlUtils.addChildNode(htmlNode, childTag)
+        hastUtils.addChildNode(htmlNode, childTag)
       }
     })
   }
@@ -106,8 +106,8 @@ const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, 
     meta.useIndex
   )
 
-  htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.repeatAttr, repeatIterator)
-  htmlUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
+  hastUtils.addAttributeToNode(repeatContentTag, templateSyntax.repeatAttr, repeatIterator)
+  hastUtils.addAttributeToNode(repeatContentTag, templateSyntax.valueBinding('key'), iteratorKey)
   return repeatContentTag
 }
 
@@ -121,12 +121,12 @@ const generateConditionalNode: NodeToHTML<UIDLConditionalNode, HastNode> = (
   // a 'span' which is the less intrusive of all
   if (typeof conditionalTag === 'string') {
     const wrappingSpan = createHTMLNode('span')
-    htmlUtils.addTextNode(wrappingSpan, conditionalTag)
+    hastUtils.addTextNode(wrappingSpan, conditionalTag)
     conditionalTag = wrappingSpan
   }
 
   const conditionalStatement = createConditionalStatement(node)
-  htmlUtils.addAttributeToNode(conditionalTag, templateSyntax.conditionalAttr, conditionalStatement)
+  hastUtils.addAttributeToNode(conditionalTag, templateSyntax.conditionalAttr, conditionalStatement)
   return conditionalTag
 }
 
@@ -134,7 +134,7 @@ const generateSlotNode: NodeToHTML<UIDLSlotNode, HastNode> = (node, params, temp
   const slotNode = createHTMLNode('slot')
 
   if (node.content.name) {
-    htmlUtils.addAttributeToNode(slotNode, 'name', node.content.name)
+    hastUtils.addAttributeToNode(slotNode, 'name', node.content.name)
   }
 
   if (node.content.fallback) {
@@ -142,9 +142,9 @@ const generateSlotNode: NodeToHTML<UIDLSlotNode, HastNode> = (node, params, temp
     const fallbackContent = generateNode(fallback, params, templateSyntax)
 
     if (typeof fallbackContent === 'string') {
-      htmlUtils.addTextNode(slotNode, fallbackContent)
+      hastUtils.addTextNode(slotNode, fallbackContent)
     } else {
-      htmlUtils.addChildNode(slotNode, fallbackContent)
+      hastUtils.addChildNode(slotNode, fallbackContent)
     }
   }
 

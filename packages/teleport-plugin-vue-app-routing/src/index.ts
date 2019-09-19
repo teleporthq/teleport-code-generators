@@ -1,8 +1,5 @@
 import * as t from '@babel/types'
-import {
-  extractPageOptions,
-  extractRoutes,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -42,7 +39,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
       t.callExpression(t.identifier('Vue.use'), [t.identifier('Meta')])
     )
 
-    const routes = extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl)
     const routeDefinitions = uidl.stateDefinitions.route
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
@@ -60,7 +57,10 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
 
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
-      const { fileName, componentName, navLink } = extractPageOptions(routeDefinitions, pageKey)
+      const { fileName, componentName, navLink } = UIDLUtils.extractPageOptions(
+        routeDefinitions,
+        pageKey
+      )
 
       dependencies[componentName] = {
         type: 'local',

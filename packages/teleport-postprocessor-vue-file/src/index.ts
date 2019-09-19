@@ -1,8 +1,5 @@
 import { PostProcessor, FileType } from '@teleporthq/teleport-types'
-import {
-  removeLastEmptyLine,
-  addSpacesToEachLine,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const createPostProcessor = () => {
   const processor: PostProcessor = (codeChunks) => {
@@ -11,23 +8,23 @@ export const createPostProcessor = () => {
     let htmlCode
 
     if (codeChunks[FileType.HTML]) {
-      htmlCode = removeLastEmptyLine(codeChunks[FileType.HTML])
+      htmlCode = StringUtils.removeLastEmptyLine(codeChunks[FileType.HTML])
     } else {
       throw new Error('No code chunk of type HTML found, vue file concatenation aborded')
     }
 
     if (codeChunks[FileType.JS]) {
-      jsCode = removeLastEmptyLine(codeChunks[FileType.JS])
+      jsCode = StringUtils.removeLastEmptyLine(codeChunks[FileType.JS])
     } else {
       throw new Error('No code chunk of type JS found, vue file concatenation aborded')
     }
 
     // if no CSS, skip the <style></style>
     if (codeChunks[FileType.CSS]) {
-      cssCode = removeLastEmptyLine(codeChunks[FileType.CSS])
+      cssCode = StringUtils.removeLastEmptyLine(codeChunks[FileType.CSS])
     }
 
-    const formattedHTMLCode = addSpacesToEachLine(' '.repeat(2), htmlCode)
+    const formattedHTMLCode = StringUtils.addSpacesToEachLine(' '.repeat(2), htmlCode)
     const vueCode = buildVueFile(formattedHTMLCode, jsCode, cssCode)
 
     return {

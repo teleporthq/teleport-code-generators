@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '../../utils/ast-js-utils'
+import { convertValueToLiteral } from '../../utils/ast-utils'
 import { capitalize } from '../../utils/string-utils'
 import {
   UIDLPropDefinition,

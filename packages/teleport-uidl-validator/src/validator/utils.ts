@@ -1,9 +1,5 @@
 import Ajv from 'ajv'
-import {
-  traverseNodes,
-  traverseRepeats,
-  traverseElements,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
 
@@ -27,8 +23,8 @@ export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
 export const checkForLocalVariables = (input: ComponentUIDL) => {
   const errors: string[] = []
 
-  traverseRepeats(input.node, (repeatContent) => {
-    traverseNodes(repeatContent.node, (childNode) => {
+  UIDLUtils.traverseRepeats(input.node, (repeatContent) => {
+    UIDLUtils.traverseNodes(repeatContent.node, (childNode) => {
       if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
         if (childNode.content.id === 'index') {
           if (!repeatContent.meta.useIndex) {
@@ -72,7 +68,7 @@ export const checkDynamicDefinitions = (input: any) => {
   const usedStateKeys: string[] = []
   const errors: string[] = []
 
-  traverseNodes(input.node, (node) => {
+  UIDLUtils.traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
@@ -143,7 +139,7 @@ export const checkComponentExistence = (input: ProjectUIDL) => {
   const errors: string[] = []
   const components = Object.keys(input.components)
 
-  traverseElements(input.root.node, (element) => {
+  UIDLUtils.traverseElements(input.root.node, (element) => {
     if (
       element.dependency &&
       element.dependency.type === 'local' &&

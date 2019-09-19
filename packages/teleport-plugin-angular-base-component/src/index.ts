@@ -1,4 +1,3 @@
-import { createHTMLTemplateSyntax } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -7,9 +6,12 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import {
+  ASTBuilders,
+  UIDLUtils,
+  StringUtils,
+  createHTMLTemplateSyntax,
+} from '@teleporthq/teleport-shared'
 
 import { generateExportAST } from './utils'
 
@@ -88,10 +90,10 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     })
 
     const params = {
-      selector: `app-${camelCaseToDashCase(uidl.name)}`,
-      templateUrl: `${getComponentFileName(uidl)}.${FileType.HTML}`,
+      selector: `app-${StringUtils.camelCaseToDashCase(uidl.name)}`,
+      templateUrl: `${UIDLUtils.getComponentFileName(uidl)}.${FileType.HTML}`,
     }
-    const componentDecoratorAST = createComponentDecorator(params)
+    const componentDecoratorAST = ASTBuilders.createComponentDecorator(params)
 
     chunks.push({
       type: ChunkType.AST,

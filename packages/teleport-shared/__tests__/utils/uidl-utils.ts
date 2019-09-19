@@ -24,7 +24,7 @@ import {
   repeatNode,
   conditionalNode,
   slotNode,
-} from '../../src/builders/uidl-builders'
+} from '@teleporthq/teleport-uidl-builders'
 import {
   UIDLStyleDefinitions,
   UIDLElementNode,

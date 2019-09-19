@@ -26,7 +26,7 @@ import {
   addChildJSXTag,
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
-} from '../../utils/ast-jsx-utils'
+} from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
 

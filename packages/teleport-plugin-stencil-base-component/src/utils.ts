@@ -1,9 +1,6 @@
 import * as types from '@babel/types'
 
-import {
-  convertValueToLiteral,
-  getTSAnnotationForType,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (
@@ -16,8 +13,8 @@ export const createClassDeclaration = (
   const propDeclaration = Object.keys(propDefinitions).map((propKey) =>
     t.classProperty(
       t.identifier(propKey),
-      convertValueToLiteral(propDefinitions[propKey].defaultValue),
-      types.tsTypeAnnotation(getTSAnnotationForType(propDefinitions[propKey].type)),
+      ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
+      types.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(propDefinitions[propKey].type)),
       [t.decorator(t.callExpression(t.identifier('Prop'), []))]
     )
   )
@@ -25,8 +22,8 @@ export const createClassDeclaration = (
   const stateDeclaration = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(
       t.identifier(stateKey),
-      convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
-      t.tsTypeAnnotation(getTSAnnotationForType(stateDefinitions[stateKey].type)),
+      ASTUtils.convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDefinitions[stateKey].type)),
       [t.decorator(t.callExpression(t.identifier('State'), []))]
     )
   )

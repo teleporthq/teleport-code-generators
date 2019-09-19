@@ -1,7 +1,6 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import { capitalize } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 export const createPureComponent = (
@@ -38,14 +37,17 @@ const createReturnExpressionSyntax = (
  * Creates an AST line for defining a single state hook
  */
 const createStateHookAST = (stateKey: string, stateDefinition: UIDLStateDefinition, t = types) => {
-  const defaultValueArgument = convertValueToLiteral(
+  const defaultValueArgument = ASTUtils.convertValueToLiteral(
     stateDefinition.defaultValue,
     stateDefinition.type
   )
 
   return t.variableDeclaration('const', [
     t.variableDeclarator(
-      t.arrayPattern([t.identifier(stateKey), t.identifier(`set${capitalize(stateKey)}`)]),
+      t.arrayPattern([
+        t.identifier(stateKey),
+        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
+      ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
   ])

@@ -18,10 +18,7 @@ import {
 
 import { DEFAULT_TEMPLATE } from './constants'
 
-import {
-  cloneObject,
-  getComponentPath,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 
@@ -144,7 +141,7 @@ export class ProjectGenerator {
     resolveLocalDependencies(pageUIDLs, components, this.strategy)
 
     // Initialize output folder and other reusable structures
-    const rootFolder = cloneObject(template || DEFAULT_TEMPLATE)
+    const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
     let collectedDependencies: Record<string, string> = {}
 
     // If static prefix is not specified, compute it from the path, but if the string is empty it should work
@@ -164,7 +161,7 @@ export class ProjectGenerator {
       const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
 
       // Pages might be generated inside subfolders in the main pages folder
-      const relativePath = getComponentPath(pageUIDL)
+      const relativePath = UIDLUtils.getComponentPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)
@@ -184,7 +181,7 @@ export class ProjectGenerator {
       const { files, dependencies } = await createComponent(componentUIDL, this.strategy, options)
 
       // Components might be generated inside subfolders in the main components folder
-      const relativePath = getComponentPath(componentUIDL)
+      const relativePath = UIDLUtils.getComponentPath(componentUIDL)
       const path = this.strategy.components.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)
