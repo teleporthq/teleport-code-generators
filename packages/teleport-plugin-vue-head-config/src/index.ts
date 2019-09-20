@@ -1,4 +1,4 @@
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { ComponentPluginFactory, ComponentPlugin, UIDLMetaTag } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-shared'
 
@@ -20,7 +20,7 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
 
     const headObject: {
       title?: string
-      meta?: Array<Record<string, string>>
+      meta?: UIDLMetaTag[]
       link?: Array<Record<string, string>>
     } = {}
 

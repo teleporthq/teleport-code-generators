@@ -1,12 +1,16 @@
 import * as types from '@babel/types'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
 import {
+  UIDLMetaTag,
+  ComponentUIDL,
+  UIDLComponentSEO,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
+  uidl: ComponentUIDL,
   componentName: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -59,25 +63,75 @@ export const generateExportAST = (
     )
   })
 
-  const classBodyAST = () => {
+  const classBodyAST = (componentUIDL: ComponentUIDL) => {
     return t.classBody([
       ...propDeclaration,
       ...propertyDecleration,
       ...dataDeclaration,
-      constructorAST(),
+      constructorAST(componentUIDL.seo),
       ...angularMethodsAST,
     ])
   }
 
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST()),
+    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST(uidl)),
     [],
     null
   )
 }
 
-const constructorAST = (t = types) => {
-  return t.classMethod('constructor', t.identifier('constructor'), [], t.blockStatement([]))
+const constructorAST = (seo: UIDLComponentSEO, t = types) => {
+  const params = []
+  const blockStatements = []
+  if (seo) {
+    const { title, metaTags } = seo
+
+    if (title) {
+      params.push(t.identifier(`private title: Title`))
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('title')),
+              t.identifier('setTitle')
+            ),
+            [t.stringLiteral(title)]
+          )
+        )
+      )
+    }
+
+    if (metaTags && metaTags.length > 0) {
+      params.push(t.identifier(`private meta: Meta`))
+
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('meta')),
+              t.identifier('addTags')
+            ),
+            [t.arrayExpression(constructMetaTagAST(metaTags))]
+          )
+        )
+      )
+    }
+  }
+
+  return t.classMethod(
+    'constructor',
+    t.identifier('constructor'),
+    params,
+    t.blockStatement(blockStatements)
+  )
+}
+
+const constructMetaTagAST = (metaTags: UIDLMetaTag[]) => {
+  const metaTagsAST: types.ObjectExpression[] = []
+  metaTags.forEach((tag: UIDLMetaTag) => {
+    metaTagsAST.push(ASTUtils.objectToObjectExpression(tag))
+  })
+  return metaTagsAST
 }
 
 const createMethodsObject = (

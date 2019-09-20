@@ -18,6 +18,7 @@ import { generateExportAST } from './utils'
 import {
   DEFAULT_TS_CHUNK_AFTER,
   ANGULAR_CORE_DEPENDENCY,
+  ANGULAR_PLATFORM_BROWSER,
   DEFAULT_ANGULAR_TS_CHUNK_NAME,
   DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
   DEFAULT_ANGULAR_DECORATOR_CHUNK_NAME,
@@ -40,9 +41,17 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
   const angularComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { stateDefinitions = {}, propDefinitions = {} } = uidl
+    const { seo = {}, stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.Component = ANGULAR_CORE_DEPENDENCY
+
+    if (seo.title) {
+      dependencies.Title = ANGULAR_PLATFORM_BROWSER
+    }
+
+    if (seo.metaTags && seo.metaTags.length > 0) {
+      dependencies.Meta = ANGULAR_PLATFORM_BROWSER
+    }
 
     if (Object.keys(propDefinitions).length > 0) {
       dependencies.Input = ANGULAR_CORE_DEPENDENCY
@@ -121,6 +130,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     }
 
     const exportAST = generateExportAST(
+      uidl,
       uidl.name,
       propDefinitions,
       stateDefinitions,
