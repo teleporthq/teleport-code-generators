@@ -1,5 +1,5 @@
 import { ASSETS_IDENTIFIER } from '../constants'
-import { camelCaseToDashCase } from './string-utils'
+import { camelCaseToDashCase, dashCaseToUpperCamelCase } from './string-utils'
 import {
   ComponentUIDL,
   UIDLStateDefinition,
@@ -33,7 +33,7 @@ export const extractPageOptions = (
   // If no meta object is defined, the stateName is used
   const defaultPageMetadata: UIDLPageOptions = {
     fileName: useFileNameForNavigation && stateName === defaultPage ? 'index' : stateName,
-    componentName: stateName,
+    componentName: dashCaseToUpperCamelCase(stateName),
     navLink: '/' + stateName,
   }
 

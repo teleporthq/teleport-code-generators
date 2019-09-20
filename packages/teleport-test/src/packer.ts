@@ -9,7 +9,7 @@ import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
 import angularGenerator from '@teleporthq/teleport-project-generator-angular'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { RemoteTemplateDefinition, ProjectUIDL } from '@teleporthq/teleport-types'
+import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 
@@ -26,7 +26,7 @@ import {
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
 
-const generators = {
+const generators: Record<string, ProjectGenerator> = {
   react: reactGenerator,
   next: nextGenerator,
   vue: vueGenerator,
@@ -40,7 +40,7 @@ const getGithubRemoteDefinition = (username: string, repo: string): RemoteTempla
   return { username, repo, provider: 'github' }
 }
 
-const templates = {
+const templates: Record<string, RemoteTemplateDefinition> = {
   react: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
   next: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
   vue: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
