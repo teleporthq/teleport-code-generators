@@ -510,14 +510,14 @@ describe('extractPageOptions', () => {
     const result = extractPageOptions(routeDefinitions, 'non-declared')
     expect(result.navLink).toBe('/non-declared')
     expect(result.fileName).toBe('non-declared')
-    expect(result.componentName).toBe('non-declared')
+    expect(result.componentName).toBe('NonDeclared')
   })
 
   it('uses the state for a page without meta', () => {
     const result = extractPageOptions(routeDefinitions, 'no-meta')
     expect(result.navLink).toBe('/no-meta')
     expect(result.fileName).toBe('no-meta')
-    expect(result.componentName).toBe('no-meta')
+    expect(result.componentName).toBe('NoMeta')
   })
 
   it('returns values from the meta with defaults from the state', () => {
@@ -531,7 +531,7 @@ describe('extractPageOptions', () => {
     const result = extractPageOptions(routeDefinitions, 'home', true)
     expect(result.navLink).toBe('/')
     expect(result.fileName).toBe('index')
-    expect(result.componentName).toBe('home')
+    expect(result.componentName).toBe('Home')
   })
 
   it('uses the path as the fileName', () => {
