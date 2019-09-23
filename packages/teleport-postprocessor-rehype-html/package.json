@@ -1,0 +1,33 @@
+{
+  "name": "@teleporthq/teleport-postprocessor-rehype-html",
+  "version": "0.10.0-alpha.0",
+  "description": "A post-processing function that formats html code chunks using rehype and the rehype-html plugin",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
+  },
+  "dependencies": {
+    "rehype": "^9.0.0",
+    "rehype-format": "^3.0.0",
+    "rehype-parse": "^6.0.1",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
+  }
+}
