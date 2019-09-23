@@ -10,7 +10,7 @@ describe('rehype html', () => {
 
     const result = processor(inputChunks)
 
-    expect(result.html).toBe('<div><span>Format me!</span></div>\n')
+    expect(result.html).toBe(`\n<div><span>Format me!</span></div>\n`)
     expect(result.js).toBe(inputChunks.js)
   })
 

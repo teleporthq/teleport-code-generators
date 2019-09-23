@@ -2,6 +2,8 @@
 import rehype from 'rehype'
 // @ts-ignore
 import format from 'rehype-format'
+// @ts-ignore
+import parse from 'rehype-parse'
 
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'
 
@@ -16,6 +18,7 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
       rehype()
+        .use(parse, { fragment: true })
         .use(format)
         .process(codeChunks[fileType], (err: any, file: any) => {
           codeChunks[fileType] = String(file)
