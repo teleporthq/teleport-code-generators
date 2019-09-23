@@ -1,5 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-rehype-html",
+  "private": true,
   "version": "0.10.0-alpha.0",
   "description": "A post-processing function that formats html code chunks using rehype and the rehype-html plugin",
   "author": "teleportHQ",
