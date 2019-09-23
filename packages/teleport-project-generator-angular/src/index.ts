@@ -5,7 +5,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { Mapping, FileType } from '@teleporthq/teleport-types'
 
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import prettierHTML from '@teleporthq/teleport-postprocessor-rehype-html'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
 import { CUSTOM_BODY_CONTENT } from './constants'
