@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-vue-app-routing",
-  "version": "0.10.0-alpha.0",
+  "version": "0.10.0-alpha.1",
   "description": "A plugin for generating the routing file for a Vue project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.1",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.1"
   }
 }

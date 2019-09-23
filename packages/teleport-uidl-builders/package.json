@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-builders",
-  "version": "0.10.0-alpha.0",
+  "version": "0.10.0-alpha.1",
   "description": "A set of functions used for constructing UIDL structures",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,6 +25,6 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
+    "@teleporthq/teleport-types": "^0.10.0-alpha.1"
   }
 }

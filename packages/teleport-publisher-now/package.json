@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-now",
-  "version": "0.10.0-alpha.0",
+  "version": "0.10.0-alpha.1",
   "description": "Publishes a generated folder structure to now",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.1",
     "cross-fetch": "^3.0.4"
   }
 }
