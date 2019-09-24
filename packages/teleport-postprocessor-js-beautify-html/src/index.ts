@@ -1,4 +1,3 @@
-// @ts-ignore
 import { html as beautifyHTML } from 'js-beautify'
 
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'

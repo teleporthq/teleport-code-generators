@@ -1,8 +1,8 @@
 {
-  "name": "@teleporthq/teleport-postprocessor-js-beautify-html",
+  "name": "@teleporthq/teleport-postprocessor-js-beautify-js",
   "private": true,
   "version": "0.10.0-alpha.1",
-  "description": "A post-processing function that formats html code chunks using js-beautify and the beautify-html plugin",
+  "description": "A post-processing function that formats js code chunks using js-beautify and the beautify-html plugin",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
