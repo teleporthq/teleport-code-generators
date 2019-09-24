@@ -20,7 +20,8 @@
   },
   "scripts": {
     "packer": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
-    "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts"
+    "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
+    "bundle": "webpack --config webpack.config.js"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.10.0-alpha.1",
@@ -38,6 +39,9 @@
   },
   "devDependencies": {
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.5.3",
+    "webpack": "^4.40.2",
+    "webpack-bundle-analyzer": "^3.5.1",
+    "webpack-cli": "^3.3.9"
   }
 }

@@ -8,6 +8,7 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
   "bugs": {
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },

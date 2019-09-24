@@ -7,7 +7,7 @@ import angularComponentPlugin from '@teleporthq/teleport-plugin-angular-base-com
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createPlugin as createStylePlugin } from '@teleporthq/teleport-plugin-css'
 import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
-import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-ts'
 
 import AngularMapping from './angular-mapping.json'
 import { ComponentGenerator, FileType } from '@teleporthq/teleport-types'

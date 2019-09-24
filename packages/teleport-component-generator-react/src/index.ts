@@ -8,7 +8,7 @@ import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
 import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 
 import {
   createComponentGenerator,
@@ -66,7 +66,7 @@ const createReactComponentGenerator = (
   // TODO: use a different function to set/interact with the import plugin
   generator.addPlugin(importStatementsPlugin)
 
-  generator.addPostProcessor(prettierJS)
+  generator.addPostProcessor(prettierJSX)
   postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
 
   return generator
