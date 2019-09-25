@@ -4,6 +4,7 @@ import {
   JSXGenerationOptions,
   ASTBuilders,
   StringUtils,
+  ASTUtils,
 } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
@@ -71,6 +72,13 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
+
+    if (uidl.seo && uidl.seo.title) {
+      const titleAST = ASTBuilders.createSelfClosingJSXTag('stencil-route-title')
+      ASTUtils.addAttributeToJSXTag(titleAST, 'pageTitle', uidl.seo.title)
+      jsxTagStructure.children.unshift(titleAST)
+    }
+
     const exportAST = createClassDeclaration(
       uidl.name,
       propDefinitions,
