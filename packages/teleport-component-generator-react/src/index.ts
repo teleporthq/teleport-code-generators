@@ -1,8 +1,8 @@
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
 import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
 import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
-import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
-import { createPlugin as createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
+import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
 import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
 import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
@@ -28,29 +28,33 @@ enum ReactStyleVariation {
   ReactJSS = 'React JSS',
 }
 
-const cssPlugin = createCSSPlugin({
-  templateChunkName: 'jsx-component',
-  templateStyle: 'jsx',
-  declareDependency: 'import',
-  classAttributeName: 'className',
-})
-
-const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
-
-const stylePlugins = {
-  [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
-  [ReactStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
-  [ReactStyleVariation.StyledJSX]: reactStyledJSXPlugin,
-  [ReactStyleVariation.CSSModules]: cssModulesPlugin,
-  [ReactStyleVariation.CSS]: cssPlugin,
-  [ReactStyleVariation.ReactJSS]: reactJSSPlugin,
-}
-
 const createReactComponentGenerator = (
   variation = ReactStyleVariation.CSSModules,
   { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
 ): ComponentGenerator => {
-  const stylePlugin = stylePlugins[variation] || cssPlugin
+  const cssPlugin = createCSSPlugin({
+    templateChunkName: 'jsx-component',
+    templateStyle: 'jsx',
+    declareDependency: 'import',
+    classAttributeName: 'className',
+  })
+
+  const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
+
+  const stylePlugins = {
+    [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
+    [ReactStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
+    [ReactStyleVariation.StyledJSX]: reactStyledJSXPlugin,
+    [ReactStyleVariation.CSSModules]: cssModulesPlugin,
+    [ReactStyleVariation.CSS]: cssPlugin,
+    [ReactStyleVariation.ReactJSS]: reactJSSPlugin,
+  }
+
+  const stylePlugin = stylePlugins[variation]
+
+  if (!stylePlugin) {
+    throw new Error(`Invalid style variation '${variation}'`)
+  }
 
   const generator = createComponentGenerator()
 
@@ -73,5 +77,3 @@ const createReactComponentGenerator = (
 }
 
 export { createReactComponentGenerator, ReactMapping, ReactStyleVariation }
-
-export default createReactComponentGenerator()

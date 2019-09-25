@@ -10,7 +10,7 @@ interface PostProcessorFactoryOptions {
   formatOptions?: PrettierFormatOptions
 }
 
-export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
+export const createPrettierHTMLPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
   const fileType = options.fileType || FileType.HTML
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
 
@@ -32,4 +32,4 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   return processor
 }
 
-export default createPostProcessor()
+export default createPrettierHTMLPostProcessor()

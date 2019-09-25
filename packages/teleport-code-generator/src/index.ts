@@ -69,39 +69,39 @@ const ComponentStyleVariations = {
   [ComponentType.PREACT]: PreactStyleVariation,
 }
 
+const projectGenerators = {
+  [ProjectType.REACT]: createReactProjectGenerator,
+  [ProjectType.NEXT]: createNextProjectGenerator,
+  [ProjectType.VUE]: createVueProjectGenerator,
+  [ProjectType.NUXT]: createNuxtProjectGenerator,
+  [ProjectType.PREACT]: createPreactProjectGenerator,
+  [ProjectType.STENCIL]: createStencilProjectGenerator,
+  [ProjectType.ANGULAR]: createAngularProjectGenerator,
+}
+
+const templates = {
+  [ProjectType.REACT]: ReactTemplate,
+  [ProjectType.NEXT]: NextTemplate,
+  [ProjectType.VUE]: VueTemplate,
+  [ProjectType.NUXT]: NuxtTemplate,
+  [ProjectType.PREACT]: PreactTemplate,
+  [ProjectType.STENCIL]: StencilTemplate,
+  [ProjectType.ANGULAR]: AngularTemplate,
+}
+
+const projectPublisherFactories = {
+  [PublisherType.ZIP]: createZipPublisher,
+  [PublisherType.DISK]: createDiskPublisher,
+  [PublisherType.NOW]: createNowPublisher,
+  [PublisherType.NETLIFY]: createNetlifyPublisher,
+  [PublisherType.GITHUB]: createGithubPublisher,
+  [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
+}
+
 const packProject = async (
   projectUIDL: ProjectUIDL,
   packOptions: PackerOptions = {}
 ): Promise<PublisherResponse<any>> => {
-  const projectGenerators = {
-    [ProjectType.REACT]: createReactProjectGenerator,
-    [ProjectType.NEXT]: createNextProjectGenerator,
-    [ProjectType.VUE]: createVueProjectGenerator,
-    [ProjectType.NUXT]: createNuxtProjectGenerator,
-    [ProjectType.PREACT]: createPreactProjectGenerator,
-    [ProjectType.STENCIL]: createStencilProjectGenerator,
-    [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  }
-
-  const templates = {
-    [ProjectType.REACT]: ReactTemplate,
-    [ProjectType.NEXT]: NextTemplate,
-    [ProjectType.VUE]: VueTemplate,
-    [ProjectType.NUXT]: NuxtTemplate,
-    [ProjectType.PREACT]: PreactTemplate,
-    [ProjectType.STENCIL]: StencilTemplate,
-    [ProjectType.ANGULAR]: AngularTemplate,
-  }
-
-  const projectPublisherFactories = {
-    [PublisherType.ZIP]: createZipPublisher,
-    [PublisherType.DISK]: createDiskPublisher,
-    [PublisherType.NOW]: createNowPublisher,
-    [PublisherType.NETLIFY]: createNetlifyPublisher,
-    [PublisherType.GITHUB]: createGithubPublisher,
-    [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
-  }
-
   const packer = createProjectPacker()
 
   const packProjectType = packOptions.projectType

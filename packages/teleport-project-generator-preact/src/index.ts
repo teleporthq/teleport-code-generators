@@ -5,7 +5,7 @@ import {
 } from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
-import { createPlugin as createRouterPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
+import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -25,7 +25,7 @@ const createPreactProjectGenerator = () => {
     mappings: [PreactProjectMapping as Mapping],
   })
 
-  const routerPlugin = createRouterPlugin({ flavor: 'preact' })
+  const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(routerPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
@@ -84,5 +84,3 @@ const createPreactProjectGenerator = () => {
 }
 
 export { createPreactProjectGenerator, PreactProjectMapping, PreactTemplate }
-
-export default createPreactProjectGenerator()

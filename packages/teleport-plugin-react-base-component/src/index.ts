@@ -22,7 +22,7 @@ interface ReactPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
+export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
@@ -91,4 +91,4 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
   return reactComponentPlugin
 }
 
-export default createPlugin()
+export default createReactComponentPlugin()

@@ -26,7 +26,7 @@ interface CSSPluginConfig {
   declareDependency: 'import' | 'decorator' | 'none'
 }
 
-export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
+export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
   const {
     chunkName = 'style-chunk',
     templateChunkName = 'template-chunk',
@@ -141,7 +141,7 @@ export const createPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) =>
   return cssPlugin
 }
 
-export default createPlugin()
+export default createCSSPlugin()
 
 const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
   return Object.keys(styles)

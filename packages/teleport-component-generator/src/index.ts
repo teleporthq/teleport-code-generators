@@ -117,8 +117,6 @@ const createComponentGenerator = ({
 
 export { createComponentGenerator, HtmlMapping, GeneratorFactoryParams }
 
-export default createComponentGenerator()
-
 const fileBundler = (
   codeChunks: Record<string, string>,
   fileName: string,

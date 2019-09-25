@@ -31,7 +31,7 @@ const defaultConfigProps = {
   classAttributeName: 'className',
 }
 
-export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = {}) => {
+export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = {}) => {
   const {
     componentChunkName,
     styleObjectImportName,
@@ -143,4 +143,4 @@ export const createPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = 
   return cssModulesPlugin
 }
 
-export default createPlugin()
+export default createCSSModulesPlugin()

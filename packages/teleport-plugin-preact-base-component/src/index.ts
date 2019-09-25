@@ -21,14 +21,14 @@ interface PreactPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config) => {
+export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
     importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
-  const reactComponentPlugin: ComponentPlugin = async (structure) => {
+  const preactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
@@ -89,7 +89,7 @@ export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config)
     return structure
   }
 
-  return reactComponentPlugin
+  return preactComponentPlugin
 }
 
-export default createPlugin()
+export default createPreactComponentPlugin()

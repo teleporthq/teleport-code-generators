@@ -10,9 +10,9 @@ interface PostProcessorFactoryOptions {
   formatOptions?: PrettierFormatOptions
 }
 
-export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
-  const fileType = options.fileType || FileType.JS
+export const createPrettierTSPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
+  const fileType = options.fileType || FileType.TS
 
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
@@ -31,4 +31,4 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   return processor
 }
 
-export default createPostProcessor()
+export default createPrettierTSPostProcessor()

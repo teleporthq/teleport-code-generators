@@ -64,5 +64,3 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
     setOutputPath,
   }
 }
-
-export default createZipPublisher()

@@ -67,5 +67,3 @@ export const createNetlifyPublisher: PublisherFactory<NetlifyFactoryParams, Netl
     publish,
   }
 }
-
-export default createNetlifyPublisher()

@@ -12,10 +12,10 @@ interface VueRouterConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) => {
+export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> = (config) => {
   const { codeChunkName = 'vue-router', importChunkName = 'import-local' } = config || {}
 
-  const vueRouterComponentPlugin: ComponentPlugin = async (structure) => {
+  const vueAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl, dependencies, options } = structure
 
     dependencies.Vue = {
@@ -94,7 +94,7 @@ export const createPlugin: ComponentPluginFactory<VueRouterConfig> = (config) =>
     return structure
   }
 
-  return vueRouterComponentPlugin
+  return vueAppRoutingPlugin
 }
 
-export default createPlugin()
+export default createVueAppRoutingPlugin()
