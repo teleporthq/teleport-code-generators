@@ -1,5 +1,4 @@
-import Resolver from '../../src/resolver'
-// @ts-ignore
+import Resolver from '../src/resolver'
 import mappingJSON from './mapping.json'
 import { Mapping } from '@teleporthq/teleport-types'
 

@@ -1,4 +1,4 @@
-import { createPlugin } from '../src'
+import { createPropTypesPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
   ComponentStructure,
@@ -8,7 +8,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 describe('plugin-jsx-proptypes', () => {
-  const plugin = createPlugin()
+  const plugin = createPropTypesPlugin()
   const reactChunk: ChunkDefinition = {
     type: ChunkType.AST,
     fileType: FileType.JS,

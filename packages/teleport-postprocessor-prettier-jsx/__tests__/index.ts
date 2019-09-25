@@ -1,6 +1,6 @@
 import processor from '../src'
 
-describe('prettier js', () => {
+describe('prettier jsx', () => {
   it('formats only the js chunk', () => {
     const inputChunks = {
       html: `<div><span >Format me!</span>  </div>`,

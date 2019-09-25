@@ -1,9 +1,9 @@
-import { createPlugin } from '../src/index'
+import { createStencilComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-stencil-base-component', () => {
-  const plugin = createPlugin({
+  const plugin = createStencilComponentPlugin({
     componentChunkName: 'component-chunk',
     componentDecoratorChunkName: 'decorator-chunk',
   })

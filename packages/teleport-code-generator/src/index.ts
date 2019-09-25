@@ -1,11 +1,4 @@
-import {
-  PublisherResponse,
-  ProjectUIDL,
-  ComponentUIDL,
-  Mapping,
-  UIDLElement,
-  GeneratorOptions,
-} from '@teleporthq/teleport-types'
+import { PublisherResponse, ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -16,7 +9,6 @@ import {
 import {
   createNextProjectGenerator,
   NextTemplate,
-  NextMapping,
 } from '@teleporthq/teleport-project-generator-next'
 import { VueTemplate, createVueProjectGenerator } from '@teleporthq/teleport-project-generator-vue'
 import {
@@ -69,7 +61,15 @@ const ComponentStyleVariations = {
   [ComponentType.PREACT]: PreactStyleVariation,
 }
 
-const projectGenerators = {
+const componentGeneratorFactories = {
+  [ComponentType.REACT]: createReactComponentGenerator,
+  [ComponentType.PREACT]: createPreactComponentGenerator,
+  [ComponentType.ANGULAR]: createAngularComponentGenerator,
+  [ComponentType.VUE]: createVueComponentGenerator,
+  [ComponentType.STENCIL]: createStencilComponentGenerator,
+}
+
+const projectGeneratorFactories = {
   [ProjectType.REACT]: createReactProjectGenerator,
   [ProjectType.NEXT]: createNextProjectGenerator,
   [ProjectType.VUE]: createVueProjectGenerator,
@@ -100,34 +100,34 @@ const projectPublisherFactories = {
 
 const packProject = async (
   projectUIDL: ProjectUIDL,
-  packOptions: PackerOptions = {}
+  {
+    projectType = ProjectType.NEXT,
+    publisher = PublisherType.ZIP,
+    publishOptions = {},
+    assets = [],
+  }: PackerOptions = {}
 ): Promise<PublisherResponse<any>> => {
   const packer = createProjectPacker()
 
-  const packProjectType = packOptions.projectType
-  const packPublisher = packOptions.publisher
-  const packPublishOptions = packOptions.publishOptions
-  const packAssets = packOptions.assets
+  const projectGeneratorFactory = projectGeneratorFactories[projectType]
+  const projectTemplate = templates[projectType]
+  const publisherFactory = projectPublisherFactories[publisher]
 
-  const projectGenerator = projectGenerators[packProjectType]
-  const projectTemplate = templates[packProjectType]
-  const publisherFactory = projectPublisherFactories[packPublisher]
-
-  if (!projectGenerator) {
-    throw new Error(`Invalid ProjectType: ${packProjectType}`)
+  if (!projectGeneratorFactory) {
+    throw new Error(`Invalid ProjectType: ${projectType}`)
   }
 
   if (!publisherFactory) {
-    throw new Error(`Invalid PublisherType: ${packPublisher}`)
+    throw new Error(`Invalid PublisherType: ${publisher}`)
   }
 
-  const projectPublisher = publisherFactory(packPublishOptions)
+  const projectPublisher = publisherFactory(publishOptions)
 
   packer.setAssets({
-    assets: packAssets,
+    assets,
     path: [Constants.ASSETS_IDENTIFIER],
   })
-  packer.setGenerator(projectGenerator())
+  packer.setGenerator(projectGeneratorFactory())
   packer.setTemplate(projectTemplate)
   packer.setPublisher(projectPublisher)
 
@@ -136,26 +136,18 @@ const packProject = async (
 
 const generateComponent = async (
   componentUIDL: ComponentUIDL,
-  generateOptions: GenerateOptions = {}
+  {
+    componentType = ComponentType.REACT,
+    styleVariation = ReactStyleVariation.CSSModules,
+  }: GenerateOptions = {}
 ) => {
-  const generateComponentType = generateOptions.componentType
-  const generateStyleVariation = generateOptions.styleVariation
-  const generator = createComponentGenerator(generateComponentType, generateStyleVariation)
-
+  const generator = createComponentGenerator(componentType, styleVariation)
   return generator.generateComponent(componentUIDL)
-}
-
-const resolveElement = (node: UIDLElement, options?: GeneratorOptions) => {
-  const reactStyledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX, {
-    mappings: [NextMapping as Mapping],
-  })
-  return reactStyledJSXGenerator.resolveElement(node, options)
 }
 
 export {
   packProject,
   generateComponent,
-  resolveElement,
   ProjectType,
   PublisherType,
   ComponentType,
@@ -167,15 +159,11 @@ export {
 }
 
 const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {
-  const componentGeneratorFactories = {
-    [ComponentType.REACT]: createReactComponentGenerator,
-    [ComponentType.PREACT]: createPreactComponentGenerator,
-    [ComponentType.ANGULAR]: createAngularComponentGenerator,
-    [ComponentType.VUE]: createVueComponentGenerator,
-    [ComponentType.STENCIL]: createStencilComponentGenerator,
-  }
-
   const generatorFactory = componentGeneratorFactories[componentType]
+
+  if (!generatorFactory) {
+    throw new Error(`Invalid ComponentType: ${componentType}`)
+  }
 
   if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
     // @ts-ignore

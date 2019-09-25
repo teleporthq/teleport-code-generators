@@ -3,9 +3,14 @@ import { join } from 'path'
 
 import projectJson from '../../../examples/test-samples/project-sample.json'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
-import { element } from '@teleporthq/teleport-uidl-builders'
 
-import { createCodeGenerator, PackerOptions, PublisherType, ProjectType } from '../src/index'
+import {
+  packProject,
+  generateComponent,
+  PackerOptions,
+  PublisherType,
+  ProjectType,
+} from '../src/index'
 import { GenerateOptions, ComponentType } from '../src/types'
 import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
 import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
@@ -42,7 +47,6 @@ afterAll(() => {
 })
 
 describe('code generator', () => {
-  const packer = createCodeGenerator()
   it('creates a react project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.REACT,
@@ -51,7 +55,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: reactProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -63,7 +67,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: nextProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -75,7 +79,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: vueProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -87,7 +91,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: nuxtProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -99,7 +103,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: stencilProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -111,7 +115,7 @@ describe('code generator', () => {
       publishOptions: { outputPath: preactProjectPath },
     }
 
-    const { success } = await packer.packProject(projectUIDL, options)
+    const { success } = await packProject(projectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -121,7 +125,7 @@ describe('code generator', () => {
       styleVariation: ReactStyleVariation.CSSModules,
     }
 
-    const { files } = await packer.generateComponent(componentUIDL, options)
+    const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(2)
   })
 
@@ -131,7 +135,7 @@ describe('code generator', () => {
       styleVariation: PreactStyleVariation.CSS,
     }
 
-    const { files } = await packer.generateComponent(componentUIDL, options)
+    const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(2)
   })
 
@@ -140,7 +144,7 @@ describe('code generator', () => {
       componentType: ComponentType.VUE,
     }
 
-    const { files } = await packer.generateComponent(componentUIDL, options)
+    const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(1)
   })
 
@@ -149,7 +153,7 @@ describe('code generator', () => {
       componentType: ComponentType.STENCIL,
     }
 
-    const { files } = await packer.generateComponent(componentUIDL, options)
+    const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(2)
   })
 
@@ -158,23 +162,17 @@ describe('code generator', () => {
       componentType: ComponentType.ANGULAR,
     }
 
-    const { files } = await packer.generateComponent(componentUIDL, options)
+    const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(3)
   })
 
-  it('resolves an element with the react mapping', async () => {
-    const elementNode = element('container')
-    const result = packer.resolveElement(elementNode)
-    expect(result.elementType).toBe('div')
-  })
-
   it('throws an error when given an invalid ProjectType', async () => {
-    const result = packer.packProject(projectUIDL, { projectType: 'random' })
+    const result = packProject(projectUIDL, { projectType: 'random' })
     await expect(result).rejects.toThrow(Error)
   })
 
   it('throws an error when given an invalid Publisher', async () => {
-    const result = packer.packProject(projectUIDL, { publisher: 'random' })
+    const result = packProject(projectUIDL, { publisher: 'random' })
     await expect(result).rejects.toThrow(Error)
   })
 })

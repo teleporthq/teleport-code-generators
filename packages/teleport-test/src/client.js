@@ -1,16 +1,19 @@
-import { resolveElement } from '@teleporthq/teleport-code-generator'
+import { resolveUIDLElement } from '@teleporthq/teleport-uidl-resolver'
+import uidl from '../../../examples/uidl-samples/component.json'
 
-const result = resolveElement({ elementType: 'container' })
+const resolvedElement = resolveUIDLElement({ elementType: 'container' })
+console.log(resolvedElement)
 
-// const function1 = generator.generateComponent
-// const function2 = generator.packProject
+const run = async() => {
+  import('./codegen').then(service => {
+    generate(service.default)
+  })
+}
 
-console.log(function1, function2)
+const generate = async(service) => {
+  console.log("service", service)
+  const result = await service.generateComponent(uidl)
+    console.log(result)
+}
 
-console.log(result)
-
-const a = 1;
-const b = 2;
-
-const c = a+b;
-console.log(c)
+run()

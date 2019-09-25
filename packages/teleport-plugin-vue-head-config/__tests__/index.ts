@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { createPlugin } from '../src'
+import { createVueHeadConfigPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
   ComponentStructure,
@@ -9,7 +9,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 describe('plugin-vue-head-config', () => {
-  const plugin = createPlugin()
+  const plugin = createVueHeadConfigPlugin()
 
   it('Should throw error when the chunk is supplied', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))

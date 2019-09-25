@@ -11,12 +11,13 @@ import {
   resolveNavlinks,
   ensureDataSourceUniqueness,
   mergeMappings,
-} from '../../src/resolver/utils'
+} from '../src/utils'
 import {
   UIDLElement,
   UIDLNode,
   UIDLStateDefinition,
   UIDLRepeatNode,
+  Mapping,
 } from '@teleporthq/teleport-types'
 
 describe('generateUniqueKeys', () => {
@@ -324,13 +325,13 @@ describe('mergeMappings', () => {
   }
 
   it('returns the old mapping if there is no new mapping present', () => {
-    const expectedMapping = mergeMappings(oldMapping)
+    const expectedMapping = mergeMappings(oldMapping as Mapping)
 
     expect(expectedMapping).toEqual(oldMapping)
   })
 
   it('merges the mappings using deepmerge if deepMerge parameter is present', () => {
-    const mergedMapping = mergeMappings(oldMapping, newMapping, true)
+    const mergedMapping = mergeMappings(oldMapping as Mapping, newMapping as Mapping, true)
 
     const expectedMapping = {
       elements: {
@@ -353,7 +354,7 @@ describe('mergeMappings', () => {
   })
 
   it('merges the mapping using the spread operator ', () => {
-    const mergedMapping = mergeMappings(oldMapping, newMapping)
+    const mergedMapping = mergeMappings(oldMapping as Mapping, newMapping as Mapping)
 
     const expectedMapping = {
       elements: {

@@ -5,11 +5,11 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createCSSPlugin } from '../src/index'
 
 describe('plugin-css', () => {
   describe('on html template based components', () => {
-    const plugin = createPlugin({ templateChunkName: 'template' })
+    const plugin = createCSSPlugin({ templateChunkName: 'template' })
     const componentChunk: ChunkDefinition = {
       name: 'template',
       meta: {
@@ -68,7 +68,7 @@ describe('plugin-css', () => {
   })
 
   describe('on jsx-based components', () => {
-    const plugin = createPlugin({
+    const plugin = createCSSPlugin({
       templateStyle: 'jsx',
       declareDependency: 'decorator',
       templateChunkName: 'jsx-component',
