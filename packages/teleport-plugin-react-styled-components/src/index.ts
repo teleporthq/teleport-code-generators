@@ -12,7 +12,9 @@ interface StyledComponentsConfig {
   importChunkName?: string
 }
 
-export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (config) => {
+export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledComponentsConfig> = (
+  config
+) => {
   const { componentChunkName = 'jsx-component', importChunkName = 'import-local' } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
@@ -90,4 +92,4 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
   return reactStyledComponentsPlugin
 }
 
-export default createPlugin()
+export default createReactStyledComponentsPlugin()

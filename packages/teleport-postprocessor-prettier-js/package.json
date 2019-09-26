@@ -1,13 +1,14 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-js",
   "version": "0.10.0-alpha.1",
-  "description": "A post-processing function that formats js code chunks using prettier and the prettier-js plugin",
+  "description": "A post-processing function that formats js code chunks using prettier and the babylon parser",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"

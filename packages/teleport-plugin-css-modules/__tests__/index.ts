@@ -1,12 +1,12 @@
 import * as types from '@babel/types'
 import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, FileType } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createCSSModulesPlugin } from '../src/index'
 import { createComponentChunk, setupPluginStructure } from './mocks'
 
 describe('plugin-css-modules', () => {
   it('generates no chunk if no styles exist', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const uidlSample = component('CSSModules', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
@@ -21,7 +21,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure()
     const { chunks } = await plugin(structure)
 
@@ -39,7 +39,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className between brackets', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -57,7 +57,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className in camel case', async () => {
-    const plugin = createPlugin({ camelCaseClassNames: true })
+    const plugin = createCSSModulesPlugin({ camelCaseClassNames: true })
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -75,7 +75,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the class attribute', async () => {
-    const plugin = createPlugin({ classAttributeName: 'class' })
+    const plugin = createCSSModulesPlugin({ classAttributeName: 'class' })
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -93,7 +93,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk of type CSS', async () => {
-    const plugin = createPlugin({ moduleExtension: true })
+    const plugin = createCSSModulesPlugin({ moduleExtension: true })
     const structure = setupPluginStructure('list-container')
     const { chunks, dependencies } = await plugin(structure)
 
@@ -106,7 +106,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('inlines dynamic style and does not generate a new chunk if no static styles are present', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('container', {
       height: dynamicNode('prop', 'height'),
     })
@@ -128,7 +128,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('inlines dynamic style and generates a new chunk with the static styles', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('container', {
       height: dynamicNode('prop', 'height'),
       width: staticNode('auto'),

@@ -1,9 +1,9 @@
-import { createPlugin } from '../src/index'
+import { createReactComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-react-base-component', () => {
-  const plugin = createPlugin({
+  const plugin = createReactComponentPlugin({
     componentChunkName: 'component-chunk',
     exportChunkName: 'export-chunk',
   })

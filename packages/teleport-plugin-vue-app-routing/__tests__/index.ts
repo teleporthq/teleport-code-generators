@@ -1,4 +1,4 @@
-import { createPlugin } from '../src/index'
+import { createVueAppRoutingPlugin } from '../src/index'
 import {
   component,
   elementNode,
@@ -9,7 +9,7 @@ import {
 import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-vue-app-routing', () => {
-  const plugin = createPlugin({
+  const plugin = createVueAppRoutingPlugin({
     codeChunkName: 'code-chunk',
   })
 

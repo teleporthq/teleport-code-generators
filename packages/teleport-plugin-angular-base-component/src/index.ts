@@ -31,7 +31,9 @@ interface AngularPluginConfig {
   tsChunkAfter: string[]
 }
 
-export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config) => {
+export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginConfig> = (
+  config
+) => {
   const {
     angularTemplateChunkName = DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
     exportClassChunk = DEFAULT_ANGULAR_TS_CHUNK_NAME,
@@ -151,4 +153,5 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
   return angularComponentPlugin
 }
-export default createPlugin()
+
+export default createAngularComponentPlugin()

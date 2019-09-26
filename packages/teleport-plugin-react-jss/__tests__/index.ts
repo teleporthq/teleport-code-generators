@@ -5,10 +5,13 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createReactJSSPlugin } from '../src/index'
 
 describe('plugin-react-jss', () => {
-  const plugin = createPlugin({ styleChunkName: 'jss-chunk', exportChunkName: 'export-chunk' })
+  const plugin = createReactJSSPlugin({
+    styleChunkName: 'jss-chunk',
+    exportChunkName: 'export-chunk',
+  })
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {

@@ -19,7 +19,9 @@ interface AppRoutingComponentConfig {
   flavor: 'preact' | 'react'
 }
 
-export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
+export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
+  config
+) => {
   const {
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
@@ -27,7 +29,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     flavor = 'react',
   } = config || {}
 
-  const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
+  const reactAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
 
     if (flavor === 'preact') {
@@ -110,7 +112,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     return structure
   }
 
-  return reactAppRoutingComponentPlugin
+  return reactAppRoutingPlugin
 }
 
-export default createPlugin()
+export default createReactAppRoutingPlugin()

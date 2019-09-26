@@ -1,8 +1,8 @@
 import preactComponentPlugin from '@teleporthq/teleport-plugin-preact-base-component'
-import { createPlugin as createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
-import { createPlugin as createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
+import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
-import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import importPlugin from '@teleporthq/teleport-plugin-import-statements'
 import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -22,29 +22,27 @@ enum PreactStyleVariation {
   CSS = 'CSS',
 }
 
-const cssPlugin = createCSSPlugin({
-  templateChunkName: 'jsx-component',
-  templateStyle: 'jsx',
-  declareDependency: 'import',
-})
-
-const cssModulesPlugin = createCSSModulesPlugin({
-  classAttributeName: 'class',
-  moduleExtension: false,
-})
-
-const stylePlugins = {
-  [PreactStyleVariation.InlineStyles]: inlineStylesPlugin,
-  [PreactStyleVariation.CSSModules]: cssModulesPlugin,
-  [PreactStyleVariation.CSS]: cssPlugin,
-}
-
 const createPreactComponentGenerator = (
   variation = PreactStyleVariation.CSSModules,
   { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()
-  const stylePlugin = stylePlugins[variation] || cssPlugin
+  const stylePlugins = {
+    [PreactStyleVariation.InlineStyles]: inlineStylesPlugin,
+    [PreactStyleVariation.CSSModules]: createCSSModulesPlugin({
+      classAttributeName: 'class',
+      moduleExtension: false,
+    }),
+    [PreactStyleVariation.CSS]: createCSSPlugin({
+      templateChunkName: 'jsx-component',
+      templateStyle: 'jsx',
+      declareDependency: 'import',
+    }),
+  }
+  const stylePlugin = stylePlugins[variation]
+  if (!stylePlugin) {
+    throw new Error(`Invalid style variation '${variation}'`)
+  }
 
   generator.addMapping(PreactMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
@@ -53,7 +51,7 @@ const createPreactComponentGenerator = (
   generator.addPlugin(stylePlugin)
   generator.addPlugin(proptypesPlugin)
   plugins.forEach((plugin) => generator.addPlugin(plugin))
-  generator.addPlugin(importStatementsPlugin)
+  generator.addPlugin(importPlugin)
 
   generator.addPostProcessor(prettierJS)
   postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
@@ -62,5 +60,3 @@ const createPreactComponentGenerator = (
 }
 
 export { createPreactComponentGenerator, PreactMapping, PreactStyleVariation }
-
-export default createPreactComponentGenerator()

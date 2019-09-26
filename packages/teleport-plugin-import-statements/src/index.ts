@@ -15,7 +15,7 @@ interface ImportPluginConfig {
   importLocalsChunkName?: string
 }
 
-export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
+export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
   const {
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
@@ -37,8 +37,6 @@ export const createPlugin: ComponentPluginFactory<ImportPluginConfig> = (config)
 
   return importPlugin
 }
-
-export default createPlugin()
 
 const groupDependenciesByPackage = (
   dependencies: Record<string, UIDLDependency>,
@@ -93,3 +91,5 @@ const addImportChunk = (
     linkAfter: [],
   })
 }
+
+export default createImportPlugin()

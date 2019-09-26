@@ -13,7 +13,7 @@ interface PropTypesConfig {
   exportComponentName?: string
 }
 
-export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) => {
+export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
     defaultPropsChunkName = 'component-default-props',
@@ -84,4 +84,4 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
   return propTypesPlugin
 }
 
-export default createPlugin()
+export default createPropTypesPlugin()

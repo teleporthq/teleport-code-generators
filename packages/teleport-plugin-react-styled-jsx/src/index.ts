@@ -6,10 +6,10 @@ interface StyledJSXConfig {
   componentChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
+export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
 
-  const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
+  const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { node } = uidl
 
@@ -55,7 +55,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     return structure
   }
 
-  return reactStyledJSXChunkPlugin
+  return reactStyledJSXPlugin
 }
 
-export default createPlugin()
+export default createReactStyledJSXPlugin()

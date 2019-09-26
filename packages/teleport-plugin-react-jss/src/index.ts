@@ -21,7 +21,7 @@ interface JSSConfig {
   jssDeclarationName?: string
   classAttributeName?: string
 }
-export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
+export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
     importChunkName = 'import-local',
@@ -31,7 +31,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     classAttributeName = 'className',
   } = config || {}
 
-  const reactJSSComponentStyleChunksPlugin: ComponentPlugin = async (structure) => {
+  const reactJSSPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
     const { node } = uidl
@@ -111,7 +111,7 @@ export const createPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
     return structure
   }
 
-  return reactJSSComponentStyleChunksPlugin
+  return reactJSSPlugin
 }
 
-export default createPlugin()
+export default createReactJSSPlugin()

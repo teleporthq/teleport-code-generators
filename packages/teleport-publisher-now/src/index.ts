@@ -63,5 +63,3 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     setAccessToken,
   }
 }
-
-export default createNowPublisher()

@@ -1,9 +1,9 @@
-import { createPlugin } from '../src/index'
+import { createVueComponentPlugin } from '../src/index'
 import { structure } from './mocks'
 import { ChunkType } from '@teleporthq/teleport-types'
 
 describe('vue-base-component-plugin', () => {
-  const plugin = createPlugin({
+  const plugin = createVueComponentPlugin({
     vueJSChunkName: 'component-js',
     vueTemplateChunkName: 'component-html',
   })

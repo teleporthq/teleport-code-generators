@@ -49,5 +49,3 @@ const createNuxtProjectGenerator = () => {
 }
 
 export { createNuxtProjectGenerator, NuxtMapping, NuxtTemplate }
-
-export default createNuxtProjectGenerator()

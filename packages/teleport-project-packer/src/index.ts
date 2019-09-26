@@ -94,5 +94,3 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     pack,
   }
 }
-
-export default createProjectPacker()

@@ -1,15 +1,16 @@
-import { createPlugin } from '../src/'
+import { createImportPlugin } from '../src/'
 import { componentDependency } from '@teleporthq/teleport-uidl-builders'
+import { ComponentStructure } from '@teleporthq/teleport-types'
 
 describe('plugin-import-statements', () => {
-  const plugin = createPlugin({
+  const plugin = createImportPlugin({
     importLibsChunkName: 'test-lib',
     importLocalsChunkName: 'test-local',
     importPackagesChunkName: 'test-pack',
   })
 
   it('creates 3 AST chunks from the different types of dependencies', async () => {
-    const structure = {
+    const structure: ComponentStructure = {
       chunks: [],
       uidl: null,
       options: {},
@@ -29,7 +30,7 @@ describe('plugin-import-statements', () => {
 
   // We need this functionality for the linkAfter field to work
   it('pushes chunks for imports even when no statement is needed', async () => {
-    const structure = {
+    const structure: ComponentStructure = {
       chunks: [],
       options: {},
       uidl: null,

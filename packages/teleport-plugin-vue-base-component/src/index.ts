@@ -19,14 +19,14 @@ interface VueComponentConfig {
   jsChunkAfter: string[]
 }
 
-export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
+export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig> = (config) => {
   const {
     vueTemplateChunkName = DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
     vueJSChunkName = DEFAULT_VUE_JS_CHUNK_NAME,
     jsChunkAfter = DEFAULT_JS_CHUNK_AFTER,
   } = config || {}
 
-  const vueBasePlugin: ComponentPlugin = async (structure) => {
+  const vueComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
     const templateLookup: { [key: string]: any } = {}
@@ -89,7 +89,7 @@ export const createPlugin: ComponentPluginFactory<VueComponentConfig> = (config)
     return structure
   }
 
-  return vueBasePlugin
+  return vueComponentPlugin
 }
 
-export default createPlugin()
+export default createVueComponentPlugin()

@@ -48,5 +48,3 @@ export const createCodesandboxPublisher: PublisherFactory<
     publish,
   }
 }
-
-export default createCodesandboxPublisher()

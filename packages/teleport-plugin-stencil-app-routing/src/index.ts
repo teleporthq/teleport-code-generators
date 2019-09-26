@@ -19,14 +19,16 @@ interface StencilRouterConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config) => {
+export const createStencilAppRoutingPlugin: ComponentPluginFactory<StencilRouterConfig> = (
+  config
+) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     componentDecoratorChunkName = DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
     importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
-  const stencilAppRouterComponentPlugin: ComponentPlugin = async (structure) => {
+  const stencilAppRoutingtPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl, dependencies } = structure
 
     dependencies.Component = STENCIL_CORE_DEPENDENCY
@@ -64,7 +66,7 @@ export const createPlugin: ComponentPluginFactory<StencilRouterConfig> = (config
     return structure
   }
 
-  return stencilAppRouterComponentPlugin
+  return stencilAppRoutingtPlugin
 }
 
-export default createPlugin()
+export default createStencilAppRoutingPlugin()

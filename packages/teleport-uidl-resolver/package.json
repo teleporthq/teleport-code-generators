@@ -1,14 +1,14 @@
 {
-  "name": "@teleporthq/teleport-postprocessor-rehype-html",
-  "private": true,
+  "name": "@teleporthq/teleport-uidl-resolver",
   "version": "0.10.0-alpha.1",
-  "description": "A post-processing function that formats html code chunks using rehype and the rehype-html plugin",
+  "description": "A small package that handles the transition from UIDL to HTML elements and has support for custom mappings.",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -26,9 +26,9 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.1",
+    "@teleporthq/teleport-uidl-builders": "^0.10.0-alpha.1",
     "@teleporthq/teleport-types": "^0.10.0-alpha.1",
-    "rehype": "^9.0.0",
-    "rehype-format": "^3.0.0",
-    "rehype-parse": "^6.0.1"
+    "deepmerge": "^4.0.0"
   }
 }

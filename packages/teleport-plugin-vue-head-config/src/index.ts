@@ -7,10 +7,10 @@ interface VueMetaPluginConfig {
   metaObjectKey?: string
 }
 
-export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config) => {
+export const createVueHeadConfigPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config) => {
   const { vueJSChunkName = 'vue-js-chunk', metaObjectKey = 'head' } = config || {}
 
-  const propTypesPlugin: ComponentPlugin = async (structure) => {
+  const vueHeadConfigPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
 
     const componentChunk = chunks.find((chunk) => chunk.name === vueJSChunkName)
@@ -54,7 +54,7 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
     return structure
   }
 
-  return propTypesPlugin
+  return vueHeadConfigPlugin
 }
 
-export default createPlugin()
+export default createVueHeadConfigPlugin()

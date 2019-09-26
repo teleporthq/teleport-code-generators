@@ -8,6 +8,7 @@
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -35,7 +36,7 @@
     "@teleporthq/teleport-plugin-react-jss": "^0.10.0-alpha.1",
     "@teleporthq/teleport-plugin-react-styled-components": "^0.10.0-alpha.1",
     "@teleporthq/teleport-plugin-react-styled-jsx": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.1",
+    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.0-alpha.1",
     "@teleporthq/teleport-shared": "^0.10.0-alpha.1",
     "@teleporthq/teleport-types": "^0.10.0-alpha.1"
   },

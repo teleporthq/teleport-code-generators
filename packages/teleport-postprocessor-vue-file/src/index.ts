@@ -1,7 +1,7 @@
 import { PostProcessor, FileType } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
-export const createPostProcessor = () => {
+export const createVueFilePostProcessor = () => {
   const processor: PostProcessor = (codeChunks) => {
     let jsCode
     let cssCode
@@ -35,7 +35,7 @@ export const createPostProcessor = () => {
   return processor
 }
 
-export default createPostProcessor()
+export default createVueFilePostProcessor()
 
 export const buildVueFile = (htmlCode: string, jsCode: string, cssCode: string) => {
   let code = `<template>

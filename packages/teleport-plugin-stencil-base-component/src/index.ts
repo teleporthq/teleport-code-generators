@@ -26,7 +26,9 @@ interface StencilPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config) => {
+export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginConfig> = (
+  config
+) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     componentDecoratorChunkName = DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
@@ -122,4 +124,4 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
   return stencilComponentPlugin
 }
 
-export default createPlugin()
+export default createStencilComponentPlugin()

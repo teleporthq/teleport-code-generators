@@ -1,9 +1,9 @@
-import { createPlugin } from '../src/index'
+import { createAngularComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 
 describe('plugin-angular-base-component', () => {
-  const plugin = createPlugin({
+  const plugin = createAngularComponentPlugin({
     angularTemplateChunkName: 'template-chunk',
     exportClassChunk: 'angular-ts-chunk',
     componentDecoratorChunkName: 'component-decorator',

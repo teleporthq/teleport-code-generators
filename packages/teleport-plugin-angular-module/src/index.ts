@@ -37,7 +37,7 @@ interface AngularRoutingConfig {
   moduleType: 'root' | 'component' | 'page'
 }
 
-export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (config) => {
+export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingConfig> = (config) => {
   const {
     moduleChunkName = DEFAULT_MODULE_CHUNK_NAME,
     decoratorChunkName = DEFAULT_MODULE_DECORATOR_CHUNK_NAME,
@@ -45,7 +45,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     moduleType = 'root',
   } = config || {}
 
-  const createAngularModuleGenerator: ComponentPlugin = async (structure) => {
+  const angularModuleGenerator: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, chunks, options } = structure
     const { stateDefinitions = {} } = uidl
 
@@ -124,7 +124,7 @@ export const createPlugin: ComponentPluginFactory<AngularRoutingConfig> = (confi
     return structure
   }
 
-  return createAngularModuleGenerator
+  return angularModuleGenerator
 }
 
-export default createPlugin()
+export default createAngularModulePlugin()

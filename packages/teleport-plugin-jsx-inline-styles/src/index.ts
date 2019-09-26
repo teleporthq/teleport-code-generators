@@ -4,15 +4,10 @@ import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-ty
 interface InlineStyleConfig {
   componentChunkName: string
 }
-export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) => {
+export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
-  /**
-   * Generate the inlines stlye definition as a AST block which will represent the
-   * defined styles of this component in UIDL
-   *
-   * @param structure : ComponentStructure
-   */
-  const reactInlineStyleComponentPlugin: ComponentPlugin = async (structure) => {
+
+  const inlineStylesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
 
@@ -42,7 +37,7 @@ export const createPlugin: ComponentPluginFactory<InlineStyleConfig> = (config) 
 
     return structure
   }
-  return reactInlineStyleComponentPlugin
+  return inlineStylesPlugin
 }
 
-export default createPlugin()
+export default createInlineStylesPlugin()

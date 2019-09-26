@@ -5,8 +5,8 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-component-generator-react'
 
-import { createPlugin as createHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
+import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
@@ -14,14 +14,14 @@ import { createDocumentFileChunks } from './utils'
 import NextMapping from './next-mapping.json'
 import NextTemplate from './project-template'
 
-const headConfigPlugin = createHeadConfigPlugin({
-  configTagIdentifier: 'Head',
-  configTagDependencyPath: 'next/head',
-})
-
 const createNextProjectGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
   reactComponentGenerator.addMapping(NextMapping as Mapping)
+
+  const headConfigPlugin = createJSXHeadConfigPlugin({
+    configTagIdentifier: 'Head',
+    configTagDependencyPath: 'next/head',
+  })
 
   const reactPageGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX, {
     plugins: [headConfigPlugin],
@@ -29,7 +29,7 @@ const createNextProjectGenerator = () => {
   })
 
   const documentFileGenerator = createComponentGenerator()
-  documentFileGenerator.addPostProcessor(prettierJS)
+  documentFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({
     components: {
@@ -59,5 +59,3 @@ const createNextProjectGenerator = () => {
 }
 
 export { createNextProjectGenerator, NextMapping, NextTemplate }
-
-export default createNextProjectGenerator()

@@ -1,7 +1,6 @@
 import { format } from 'prettier/standalone'
 
 import parserHTML from 'prettier/parser-html'
-import parserPostCSS from 'prettier/parser-postcss'
 
 import { Constants } from '@teleporthq/teleport-shared'
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'
@@ -11,7 +10,7 @@ interface PostProcessorFactoryOptions {
   formatOptions?: PrettierFormatOptions
 }
 
-export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
+export const createPrettierHTMLPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
   const fileType = options.fileType || FileType.HTML
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
 
@@ -20,7 +19,7 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,
         htmlWhitespaceSensitivity: 'ignore',
-        plugins: [parserHTML, parserPostCSS],
+        plugins: [parserHTML],
         parser: 'html',
       })
     } else {
@@ -33,4 +32,4 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   return processor
 }
 
-export default createPostProcessor()
+export default createPrettierHTMLPostProcessor()

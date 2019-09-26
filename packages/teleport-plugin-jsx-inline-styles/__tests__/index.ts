@@ -5,10 +5,10 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createInlineStylesPlugin } from '../src/index'
 
 describe('plugin-jsx-inline-styles', () => {
-  const plugin = createPlugin()
+  const plugin = createInlineStylesPlugin()
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {

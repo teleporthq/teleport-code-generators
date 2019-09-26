@@ -5,10 +5,10 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createReactStyledComponentsPlugin } from '../src/index'
 
 describe('Testing the functionality for StyledComponents', () => {
-  const plugin = createPlugin()
+  const plugin = createReactStyledComponentsPlugin()
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {

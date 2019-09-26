@@ -1,4 +1,4 @@
-import { createPlugin } from '../src/index'
+import { createReactAppRoutingPlugin } from '../src/index'
 import {
   component,
   elementNode,
@@ -9,7 +9,7 @@ import {
 import { ChunkType, ComponentStructure } from '@teleporthq/teleport-types'
 
 describe('plugin-react-app-routing', () => {
-  const plugin = createPlugin({
+  const plugin = createReactAppRoutingPlugin({
     componentChunkName: 'app-routing-chunk',
     domRenderChunkName: 'dom-render-chunk',
   })

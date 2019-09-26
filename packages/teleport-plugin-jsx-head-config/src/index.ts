@@ -8,14 +8,14 @@ interface JSXHeadPluginConfig {
   configTagDependencyPath?: string
 }
 
-export const createPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config) => {
+export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
     configTagIdentifier = 'Helmet',
     configTagDependencyPath = 'react-helmet',
   } = config || {}
 
-  const propTypesPlugin: ComponentPlugin = async (structure) => {
+  const jsxHeadConfigPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
@@ -77,7 +77,7 @@ export const createPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config
     return structure
   }
 
-  return propTypesPlugin
+  return jsxHeadConfigPlugin
 }
 
-export default createPlugin()
+export default createJSXHeadConfigPlugin()

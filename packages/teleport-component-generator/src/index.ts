@@ -1,7 +1,7 @@
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+import { Resolver, HTMLMapping } from '@teleporthq/teleport-uidl-resolver'
 import AssemblyLine from './assembly-line'
 import Builder from './builder'
-import Resolver from './resolver'
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -16,8 +16,6 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 
-import HtmlMapping from './html-mapping.json'
-
 interface GeneratorFactoryParams {
   mappings?: Mapping[]
   plugins?: ComponentPlugin[]
@@ -30,7 +28,7 @@ const createComponentGenerator = ({
   postprocessors = [],
 }: GeneratorFactoryParams = {}): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([HtmlMapping as Mapping, ...mappings])
+  const resolver = new Resolver([HTMLMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
   const processors: PostProcessor[] = postprocessors
@@ -115,9 +113,7 @@ const createComponentGenerator = ({
   }
 }
 
-export { createComponentGenerator, HtmlMapping, GeneratorFactoryParams }
-
-export default createComponentGenerator()
+export { createComponentGenerator, GeneratorFactoryParams }
 
 const fileBundler = (
   codeChunks: Record<string, string>,

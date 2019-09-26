@@ -1,10 +1,10 @@
 import { ComponentStructure, ComponentUIDL, ChunkType, FileType } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { createAngularModulePlugin } from '../src/index'
 import projectUIDL from '../../../examples/test-samples/project-sample.json'
 
 describe('Testing the functionality for Angular Modules', () => {
   it('Should add Angular dependencies for root module', async () => {
-    const rootModule = createPlugin({ moduleType: 'root' })
+    const rootModule = createAngularModulePlugin({ moduleType: 'root' })
     const rootUIDL = projectUIDL.root as ComponentUIDL
     const structure: ComponentStructure = {
       uidl: rootUIDL,
@@ -27,7 +27,7 @@ describe('Testing the functionality for Angular Modules', () => {
 
   it('Should add Angular dependencies for component module', async () => {
     const componentUIDL = projectUIDL.components.OneComponent as ComponentUIDL
-    const componentPlugin = createPlugin({ moduleType: 'component' })
+    const componentPlugin = createAngularModulePlugin({ moduleType: 'component' })
     const structure: ComponentStructure = {
       uidl: componentUIDL,
       options: { moduleComponents: ['OneComponent'] },
@@ -51,7 +51,7 @@ describe('Testing the functionality for Angular Modules', () => {
     componentUIDL.outputOptions.fileName = 'OneComponent'
     componentUIDL.outputOptions.moduleName = 'OneComponentModule'
 
-    const componentPlugin = createPlugin({ moduleType: 'page' })
+    const componentPlugin = createAngularModulePlugin({ moduleType: 'page' })
     const structure: ComponentStructure = {
       uidl: componentUIDL,
       options: {},

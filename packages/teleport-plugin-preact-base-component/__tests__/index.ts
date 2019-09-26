@@ -1,9 +1,9 @@
-import { createPlugin } from '../src/index'
+import { createPreactComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { ChunkType, ComponentStructure } from '@teleporthq/teleport-types'
 
 describe('plugin-preact-base-component', () => {
-  const plugin = createPlugin({
+  const plugin = createPreactComponentPlugin({
     componentChunkName: 'component-chunk',
     exportChunkName: 'export-chunk',
   })

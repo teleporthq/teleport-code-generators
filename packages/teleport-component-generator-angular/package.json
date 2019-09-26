@@ -6,6 +6,9 @@
   "homepage": "https://teleporthq.io/",
   "license": "MIT",
   "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "sideEffects": false,
   "publishConfig": {
     "access": "public"
   },
@@ -28,7 +31,7 @@
     "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.1",
     "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.1",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.1",
+    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.10.0-alpha.1",
     "@teleporthq/teleport-shared": "^0.10.0-alpha.1",
     "@teleporthq/teleport-types": "^0.10.0-alpha.1"
   }

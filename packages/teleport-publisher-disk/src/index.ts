@@ -68,5 +68,3 @@ export const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublis
     setOutputPath,
   }
 }
-
-export default createDiskPublisher()
