@@ -161,7 +161,7 @@ export class ProjectGenerator {
       const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
 
       // Pages might be generated inside subfolders in the main pages folder
-      const relativePath = UIDLUtils.getComponentPath(pageUIDL)
+      const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)
@@ -181,7 +181,7 @@ export class ProjectGenerator {
       const { files, dependencies } = await createComponent(componentUIDL, this.strategy, options)
 
       // Components might be generated inside subfolders in the main components folder
-      const relativePath = UIDLUtils.getComponentPath(componentUIDL)
+      const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
       const path = this.strategy.components.path.concat(relativePath)
 
       injectFilesToPath(rootFolder, path, files)

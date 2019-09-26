@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { ASTBuilders, ASTUtils, UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (
@@ -13,7 +13,8 @@ export const createClassDeclaration = (
 
   routes.forEach((routeNode) => {
     const pageKey = routeNode.content.value.toString()
-    const { componentName, navLink } = UIDLUtils.extractPageOptions(routeDefinitions, pageKey)
+    const pageDefinition = routeDefinitions.values.find((route) => route.value === pageKey)
+    const { componentName, navLink } = pageDefinition.pageOptions
 
     const stencilRouteTag = ASTBuilders.createJSXTag('stencil-route')
     ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)

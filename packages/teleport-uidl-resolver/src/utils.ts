@@ -60,6 +60,16 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
         return
       }
 
+      if (!transitionRoute) {
+        throw new Error(
+          `Invalid route value: '${transitionState}' was specified as transitionTo attribute on element\n ${JSON.stringify(
+            element,
+            null,
+            2
+          )}`
+        )
+      }
+
       if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
         transitionAttribute.content = transitionRoute.pageOptions.navLink
       } else {

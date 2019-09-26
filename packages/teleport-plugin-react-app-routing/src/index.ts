@@ -46,11 +46,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
+      const routeValues = stateDefinitions.route.values || []
 
-      const { fileName: pageName, componentName, navLink } = UIDLUtils.extractPageOptions(
-        stateDefinitions.route,
-        routeKey.toString()
-      )
+      const pageDefinition = routeValues.find((route) => route.value === routeKey)
+      const { fileName, componentName, navLink } = pageDefinition.pageOptions || {}
 
       /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
@@ -66,7 +65,7 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
 
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${pageName}${pageComponentSuffix}`,
+        path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
       }
 
       return constructRouteJSX(flavor, componentName, navLink)

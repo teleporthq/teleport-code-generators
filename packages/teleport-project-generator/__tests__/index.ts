@@ -45,12 +45,11 @@ describe('Generic Project Generator', () => {
       expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
+        expect.objectContaining({
           assetsPrefix: '/test/static',
-          projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
-        }
+        })
       )
       expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
       expect(routerGenerator.generateComponent).toBeCalledTimes(1)

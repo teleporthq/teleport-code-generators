@@ -277,19 +277,13 @@ describe('resolveNavlinks', () => {
     )
   })
 
-  it('does not change the attribute if no route is present', () => {
+  it('throws an error if no route is present', () => {
     const navlink = elementNode('navlink', {
       transitionTo: staticNode('non-existing-state'),
     })
 
-    const warn = jest.spyOn(global.console, 'warn')
-
-    resolveNavlinks(navlink, routeDef)
-
-    expect(warn).toHaveBeenCalledWith(
-      "No navlink was defined for router state: 'non-existing-state'. Falling back to '/non-existing-state'"
-    )
-    expect(navlink.content.attrs.transitionTo.content).toBe('/non-existing-state')
+    expect(() => resolveNavlinks(navlink, routeDef)).toThrow()
+    expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
   })
 })
 

@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 
 import {
   GeneratedFile,
@@ -8,6 +8,8 @@ import {
   ProjectUIDL,
   UIDLConditionalNode,
   ProjectStrategy,
+  UIDLStateDefinition,
+  UIDLPageOptions,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 
@@ -26,11 +28,17 @@ const createPageUIDL = (
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
-  const { componentName, fileName } = UIDLUtils.extractPageOptions(
+  const pageOptions = extractPageOptions(
     routeDefinition,
     pageName,
     pagesStrategyOptions.useFileNameForNavigation
   )
+
+  // Update pageOptions based on the values computed at the previous step
+  const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
+  pageDefinition.pageOptions = pageOptions
+
+  const { fileName, componentName } = pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -46,6 +54,7 @@ const createPageUIDL = (
 
   const outputOptions = createFolderForEachComponent
     ? {
+        componentName,
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
@@ -53,6 +62,7 @@ const createPageUIDL = (
         folderPath: [fileName],
       }
     : {
+        componentName,
         fileName,
         styleFileName: fileName,
         templateFileName: fileName,
@@ -61,7 +71,6 @@ const createPageUIDL = (
 
   // Looking into the state definition, we take the seo information for the corresponding page
   // If no title is provided for the page, the global settings title is passed as a default
-  const pageDefinition = routeDefinition.values.find((stateDef) => stateDef.value === pageName)
   const title = (pageDefinition.seo && pageDefinition.seo.title) || uidl.globals.settings.title
   const seo = {
     ...pageDefinition.seo,
@@ -81,6 +90,79 @@ const createPageUIDL = (
   }
 }
 
+/**
+ * A couple of different cases which need to be handled
+ * In case of next/nuxt generators, the file names represent the urls of the pages
+ * Also the root path needs to be represented by the index file
+ */
+export const extractPageOptions = (
+  routeDefinitions: UIDLStateDefinition,
+  routeName: string,
+  useFileNameForNavigation = false
+): UIDLPageOptions => {
+  const isHomePage = routeDefinitions.defaultValue === routeName
+  const pageDefinitions = routeDefinitions.values || []
+  const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === routeName)
+
+  // If no meta object is defined, the stateName is used
+  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) // remove space, leading numbers, etc.
+  const friendlyComponentName = StringUtils.dashCaseToUpperCamelCase(friendlyStateName) // component name in UpperCamelCase
+  const friendlyFileName = StringUtils.camelCaseToDashCase(friendlyStateName) // file name in dash-case
+
+  let pageOptions: UIDLPageOptions = {
+    // default values extracted from state name
+    fileName: friendlyFileName,
+    componentName: friendlyComponentName,
+    navLink: '/' + (isHomePage ? '' : friendlyFileName),
+  }
+
+  if (pageDefinition && pageDefinition.pageOptions) {
+    // The pageDefinition values have precedence, defaults are fallbacks
+    pageOptions = {
+      ...pageOptions,
+      ...pageDefinition.pageOptions,
+    }
+  }
+
+  // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
+  // Also, the defaultPage has to be index, overriding any other value set
+  if (useFileNameForNavigation) {
+    const fileName = pageOptions.navLink.replace('/', '')
+    pageOptions.fileName = isHomePage ? 'index' : fileName
+  }
+
+  const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
+  deduplicatePageOptionValues(pageOptions, otherPages.map((page) => page.pageOptions))
+
+  return pageOptions
+}
+
+const deduplicatePageOptionValues = (
+  pageOptions: UIDLPageOptions,
+  otherPagesOptions: UIDLPageOptions[]
+) => {
+  if (otherPagesOptions.some((opt) => opt.navLink === pageOptions.navLink)) {
+    console.warn(
+      `Potential duplication solved by appending a '1' to the navlink: ${pageOptions.navLink}`
+    )
+    pageOptions.navLink += '1'
+  }
+
+  if (otherPagesOptions.some((opt) => opt.componentName === pageOptions.componentName)) {
+    console.warn(
+      `Potential duplication solved by appending a '1' to the componentName: ${pageOptions.componentName}`
+    )
+    pageOptions.componentName += '1'
+  }
+
+  if (otherPagesOptions.some((opt) => opt.fileName === pageOptions.fileName)) {
+    console.warn(
+      `Potential duplication solved by appending a '1' to the fileName: ${pageOptions.fileName}`
+    )
+    pageOptions.fileName += '1'
+  }
+}
+
 export const prepareComponentOutputOptions = (
   components: Record<string, ComponentUIDL>,
   strategy: ProjectStrategy
@@ -90,7 +172,7 @@ export const prepareComponentOutputOptions = (
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
     const fileName = UIDLUtils.getComponentFileName(component)
-    const folderPath = UIDLUtils.getComponentPath(component)
+    const folderPath = UIDLUtils.getComponentFolderPath(component)
 
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name
@@ -125,7 +207,7 @@ export const resolveLocalDependencies = (
   strategy: ProjectStrategy
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
-    const pagePath = UIDLUtils.getComponentPath(pageUIDL)
+    const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
@@ -136,7 +218,7 @@ export const resolveLocalDependencies = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const componentPath = UIDLUtils.getComponentPath(component)
+    const componentPath = UIDLUtils.getComponentFolderPath(component)
     const fromPath = strategy.components.path.concat(componentPath)
 
     UIDLUtils.traverseElements(component.node, (element) => {
@@ -158,7 +240,7 @@ const setLocalDependencyPath = (
 ) => {
   const componentKey = element.elementType
   const component = components[componentKey]
-  const componentPath = UIDLUtils.getComponentPath(component)
+  const componentPath = UIDLUtils.getComponentFolderPath(component)
 
   const toPath = toBasePath.concat(componentPath)
 

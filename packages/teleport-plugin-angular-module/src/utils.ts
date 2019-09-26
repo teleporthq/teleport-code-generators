@@ -4,7 +4,7 @@ import {
   UIDLConditionalNode,
   UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const createPageModuleModuleDecorator = (componentName: string, t = types) => {
   const imports: types.ObjectProperty = t.objectProperty(
@@ -110,18 +110,16 @@ export const createRoutesAST = (
   // TODO: Need to generate type annotation for routes variable, currently babel throwing erro
   const routesObject = routes.map((conditionalNode) => {
     const { value: routeKey } = conditionalNode.content
-    const { fileName: pageName, navLink } = UIDLUtils.extractPageOptions(
-      stateDefinitions.route,
-      routeKey.toString()
-    )
+    const pageDefinition = stateDefinitions.route.values.find((route) => route.value === routeKey)
+    const { navLink, fileName } = pageDefinition.pageOptions
 
     return t.objectExpression([
       t.objectProperty(t.identifier('path'), t.stringLiteral(navLink.replace('/', ''))),
       t.objectProperty(
         t.identifier('loadChildren'),
         t.stringLiteral(
-          `./pages/${pageName}/${pageName}.module#${StringUtils.dashCaseToUpperCamelCase(
-            `${pageName}-module`
+          `./pages/${fileName}/${fileName}.module#${StringUtils.dashCaseToUpperCamelCase(
+            `${fileName}-module`
           )}`
         )
       ),

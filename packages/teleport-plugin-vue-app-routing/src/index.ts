@@ -40,7 +40,7 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
     )
 
     const routes = UIDLUtils.extractRoutes(uidl)
-    const routeDefinitions = uidl.stateDefinitions.route
+    const routeValues = uidl.stateDefinitions.route.values || []
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     /* If pages are exported in their own folder and in custom file names.
@@ -57,10 +57,9 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
 
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
-      const { fileName, componentName, navLink } = UIDLUtils.extractPageOptions(
-        routeDefinitions,
-        pageKey
-      )
+
+      const pageDefinition = routeValues.find((route) => route.value === pageKey)
+      const { componentName, navLink, fileName } = pageDefinition.pageOptions || {}
 
       dependencies[componentName] = {
         type: 'local',

@@ -37,6 +37,7 @@ export interface ComponentUIDL {
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: {
+    componentName?: string
     fileName?: string
     styleFileName?: string
     templateFileName?: string
@@ -63,11 +64,13 @@ export interface UIDLPropDefinition {
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | any[] | object | (() => void)
-  values?: Array<{
-    value: string | number | boolean
-    pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
-    seo?: UIDLComponentSEO
-  }>
+  values?: UIDLStateValueDetails[]
+}
+
+export interface UIDLStateValueDetails {
+  value: string | number | boolean
+  pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
+  seo?: UIDLComponentSEO
 }
 
 export interface UIDLPageOptions {

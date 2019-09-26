@@ -197,7 +197,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
     input.root.stateDefinitions.route.values
       .filter((route) => !routeNaming.includes(route.value.toString()))
       .forEach((route) => {
-        const errorMsg = `\nRoot Node contains a route that don't have a specified state: ${route.pageOptions.navLink}.`
+        const errorMsg = `\nRoot Node contains a route that don't have a specified state: ${route.value}.`
         errors.push(errorMsg)
       })
   }

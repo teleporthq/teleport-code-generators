@@ -6,7 +6,7 @@ import {
   dynamicNode,
   definition,
 } from '@teleporthq/teleport-uidl-builders'
-import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
+import { ComponentStructure, ChunkType, UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 describe('plugin-vue-app-routing', () => {
   const plugin = createVueAppRoutingPlugin({
@@ -14,6 +14,18 @@ describe('plugin-vue-app-routing', () => {
   })
 
   it('outputs three AST chunks with the corresponding chunk names', async () => {
+    const routeDefinition: UIDLStateDefinition = definition('string', 'home')
+    routeDefinition.values = [
+      { value: 'home', pageOptions: { fileName: 'home', componentName: 'Home', navLink: '/' } },
+      {
+        value: 'about',
+        pageOptions: { fileName: 'about', componentName: 'About', navLink: '/about' },
+      },
+      {
+        value: 'contact',
+        pageOptions: { fileName: 'contact', componentName: 'Contact', navLink: '/contact' },
+      },
+    ]
     const structure: ComponentStructure = {
       chunks: [],
       options: {},
@@ -26,7 +38,7 @@ describe('plugin-vue-app-routing', () => {
         ]),
         {},
         {
-          route: definition('string', 'home'),
+          route: routeDefinition,
         }
       ),
       dependencies: {},
