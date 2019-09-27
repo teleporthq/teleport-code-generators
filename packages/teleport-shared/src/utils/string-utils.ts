@@ -15,21 +15,10 @@ export const removeIllegalCharacters = (str: string) => {
 
   return str
     .replace(/[^a-zA-Z0-9-_]/g, '') // Remove all non-alphanumeric characters except _ and -
-    .replace(/^[0-9]*/, '') // Remove leading numbers
+    .replace(/^[0-9-_]*/, '') // Remove leading numbers
     .replace(/\-\-+/g, '-') // Replace multiple - with single -
     .replace(/^-+/, '') // Trim - from start of text
     .replace(/-+$/, '') // Trim - from end of text
-}
-
-// Replaces all ocurrences of non alpha-numeric characters in the string (except _)
-export const sanitizeVariableName = (str: string): string => {
-  if (typeof str !== 'string') {
-    return null
-  }
-
-  return str
-    .replace(/\W/g, '') // Remove all non-alphanumeric characters except _
-    .replace(/^[0-9]*/, '') // Remove leading numbers
 }
 
 export const slugify = (str: string): string => {

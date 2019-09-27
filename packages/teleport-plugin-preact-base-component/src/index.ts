@@ -1,5 +1,10 @@
 import { createClassComponent, createPureComponent } from './utils'
-import { createJSXSyntax, JSXGenerationOptions, ASTBuilders } from '@teleporthq/teleport-shared'
+import {
+  createJSXSyntax,
+  JSXGenerationOptions,
+  ASTBuilders,
+  UIDLUtils,
+} from '@teleporthq/teleport-shared'
 
 import {
   ComponentPluginFactory,
@@ -62,9 +67,10 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
       dependencies.Component = PREACT_COMPONENT_DEPENDENCY
     }
 
+    const componentName = UIDLUtils.getComponentClassName(uidl)
     const preactComponent = usePureComponent
-      ? createPureComponent(uidl.name, propDefinitions, jsxTagStructure)
-      : createClassComponent(uidl.name, propDefinitions, stateDefinitions, jsxTagStructure)
+      ? createPureComponent(componentName, propDefinitions, jsxTagStructure)
+      : createClassComponent(componentName, propDefinitions, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
       type: ChunkType.AST,
@@ -82,7 +88,7 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
       type: ChunkType.AST,
       fileType: FileType.JS,
       name: exportChunkName,
-      content: ASTBuilders.createDefaultExport(uidl.name),
+      content: ASTBuilders.createDefaultExport(componentName),
       linkAfter: [componentChunkName],
     })
 

@@ -25,11 +25,9 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
 }
 
 export const getComponentFileName = (component: ComponentUIDL) => {
-  const name =
-    component.outputOptions && component.outputOptions.fileName
-      ? component.outputOptions.fileName
-      : component.name
-  return camelCaseToDashCase(name)
+  return component.outputOptions && component.outputOptions.fileName
+    ? component.outputOptions.fileName
+    : camelCaseToDashCase(getComponentClassName(component))
 }
 
 export const getStyleFileName = (component: ComponentUIDL) => {
@@ -54,6 +52,11 @@ export const getComponentFolderPath = (component: ComponentUIDL) =>
   component.outputOptions && component.outputOptions.folderPath
     ? component.outputOptions.folderPath
     : []
+
+export const getComponentClassName = (component: ComponentUIDL) =>
+  component.outputOptions && component.outputOptions.componentClassName
+    ? component.outputOptions.componentClassName
+    : component.name
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'

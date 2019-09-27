@@ -35,10 +35,10 @@ export const createPageModuleModuleDecorator = (componentName: string, t = types
   )
 }
 
-export const createComponentModuleDecorator = (components?: string[], t = types) => {
+export const createComponentModuleDecorator = (componentNames?: string[], t = types) => {
   const componentsList =
-    components && components.length > 0
-      ? components.map((component) => t.identifier(`${component}Component`))
+    componentNames && componentNames.length > 0
+      ? componentNames.map((componentName) => t.identifier(`${componentName}Component`))
       : []
 
   const declerations: types.ObjectProperty = t.objectProperty(
@@ -145,10 +145,10 @@ export const createPageRouteAST = (componentName: string, t = types) => {
   ])
 }
 
-export const constructLocalDependency = (componentName: string) => {
+export const constructLocalDependency = (fileName: string) => {
   const dependency: UIDLDependency = {
     type: 'local',
-    path: `./${componentName}.component`,
+    path: `./${fileName}`,
     meta: {
       namedImport: true,
     },
@@ -156,10 +156,10 @@ export const constructLocalDependency = (componentName: string) => {
   return dependency
 }
 
-export const constructComponentDependency = (componentName: string) => {
+export const constructComponentDependency = (folderPath: string[], fileName: string) => {
   const dependency: UIDLDependency = {
     type: 'local',
-    path: `./${componentName}/${componentName}.component`,
+    path: `./${folderPath.join('/')}/${fileName}`,
     meta: {
       namedImport: true,
     },

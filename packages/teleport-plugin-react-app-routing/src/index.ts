@@ -10,6 +10,7 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  UIDLPageOptions,
 } from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
@@ -49,7 +50,8 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
       const routeValues = stateDefinitions.route.values || []
 
       const pageDefinition = routeValues.find((route) => route.value === routeKey)
-      const { fileName, componentName, navLink } = pageDefinition.pageOptions || {}
+      const defaultOptions: UIDLPageOptions = {}
+      const { fileName, componentName, navLink } = pageDefinition.pageOptions || defaultOptions
 
       /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
@@ -59,9 +61,7 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
          so the `/component` suffix is computed below.
       */
       const pageStrategyOptions = (strategy && strategy.pages.options) || {}
-      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
-        ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
-        : ''
+      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
       dependencies[componentName] = {
         type: 'local',

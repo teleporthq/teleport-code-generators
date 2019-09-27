@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLMetaTag,
   ComponentUIDL,
@@ -11,13 +11,13 @@ import {
 
 export const generateExportAST = (
   uidl: ComponentUIDL,
-  componentName: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   dataObject: Record<string, any>,
   methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
+  const componentName = UIDLUtils.getComponentClassName(uidl)
   let angularMethodsAST: types.ClassMethod[] = []
   if (Object.keys(methodsObject).length > 0) {
     angularMethodsAST = createMethodsObject(methodsObject, propDefinitions)

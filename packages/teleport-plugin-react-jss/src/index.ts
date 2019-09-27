@@ -93,7 +93,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
     const exportChunk = chunks.find((chunk) => chunk.name === exportChunkName)
 
-    const exportStatement = ASTBuilders.createReactJSSDefaultExport(uidl.name, jssDeclarationName)
+    const componentName = UIDLUtils.getComponentClassName(uidl)
+    const exportStatement = ASTBuilders.createReactJSSDefaultExport(
+      componentName,
+      jssDeclarationName
+    )
 
     if (exportChunk) {
       exportChunk.content = exportStatement

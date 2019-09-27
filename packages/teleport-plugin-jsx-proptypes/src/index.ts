@@ -5,6 +5,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface PropTypesConfig {
   componentChunkName?: string
@@ -23,8 +24,8 @@ export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (c
 
   const propTypesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { name } = uidl
 
+    const componentClassName = UIDLUtils.getComponentClassName(uidl)
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     const exportChunk = chunks.find((chunk) => chunk.name === exportComponentName)
 
@@ -43,7 +44,11 @@ export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (c
       (prop) => typeof uidl.propDefinitions[prop].defaultValue !== 'undefined'
     )
 
-    const typesOfPropsAst = buildTypesOfPropsAst(name, 'PropTypes', uidl.propDefinitions)
+    const typesOfPropsAst = buildTypesOfPropsAst(
+      componentClassName,
+      'PropTypes',
+      uidl.propDefinitions
+    )
 
     if (!hasDefaultProps && !typesOfPropsAst) {
       return structure
@@ -56,7 +61,7 @@ export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (c
     }
 
     if (hasDefaultProps) {
-      const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
+      const defaultPropsAst = buildDefaultPropsAst(componentClassName, uidl.propDefinitions)
       chunks.push({
         type: ChunkType.AST,
         fileType: FileType.JS,

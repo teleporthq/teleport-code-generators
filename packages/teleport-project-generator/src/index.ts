@@ -167,9 +167,7 @@ export class ProjectGenerator {
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
 
-      const { moduleGenerator } = this.strategy.pages
-
-      if (moduleGenerator) {
+      if (this.strategy.pages.moduleGenerator) {
         const pageModule = await createPageModule(pageUIDL, this.strategy, options)
         injectFilesToPath(rootFolder, path, pageModule.files)
       }

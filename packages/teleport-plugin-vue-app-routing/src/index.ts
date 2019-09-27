@@ -5,6 +5,7 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  UIDLPageOptions,
 } from '@teleporthq/teleport-types'
 
 interface VueRouterConfig {
@@ -51,15 +52,14 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
          so the `/component` suffix is computed below.
       */
     const pageStrategyOptions = (options.strategy && options.strategy.pages.options) || {}
-    const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
-      ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
-      : ''
+    const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
     const routesAST = routes.map((routeNode) => {
       const pageKey = routeNode.content.value.toString()
 
       const pageDefinition = routeValues.find((route) => route.value === pageKey)
-      const { componentName, navLink, fileName } = pageDefinition.pageOptions || {}
+      const defaultOptions: UIDLPageOptions = {}
+      const { componentName, navLink, fileName } = pageDefinition.pageOptions || defaultOptions
 
       dependencies[componentName] = {
         type: 'local',

@@ -36,15 +36,17 @@ export interface ComponentUIDL {
   node: UIDLElementNode
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
-  outputOptions?: {
-    componentName?: string
-    fileName?: string
-    styleFileName?: string
-    templateFileName?: string
-    moduleName?: string
-    folderPath?: string[]
-  }
+  outputOptions?: UIDLComponentOutputOptions
   seo?: UIDLComponentSEO
+}
+
+export interface UIDLComponentOutputOptions {
+  componentClassName?: string // needs to be a valid class name
+  fileName?: string // needs to be a valid file name
+  styleFileName?: string
+  templateFileName?: string
+  moduleName?: string
+  folderPath?: string[]
 }
 
 export interface UIDLComponentSEO {
