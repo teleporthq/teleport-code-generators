@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 
 import {
   GeneratedFile,
@@ -8,6 +8,9 @@ import {
   ProjectUIDL,
   UIDLConditionalNode,
   ProjectStrategy,
+  UIDLStateDefinition,
+  UIDLPageOptions,
+  UIDLComponentOutputOptions,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 
@@ -26,11 +29,17 @@ const createPageUIDL = (
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
-  const { componentName, fileName } = UIDLUtils.extractPageOptions(
+  const pageOptions = extractPageOptions(
     routeDefinition,
     pageName,
     pagesStrategyOptions.useFileNameForNavigation
   )
+
+  // Update pageOptions based on the values computed at the previous step
+  const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
+  pageDefinition.pageOptions = pageOptions
+
+  const { fileName, componentName } = pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -44,8 +53,10 @@ const createPageUIDL = (
     customTemplateFileName,
   } = pagesStrategyOptions
 
+  // a page can be: 'about-us.js' or `about-us/index.js`
   const outputOptions = createFolderForEachComponent
     ? {
+        componentName,
         fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
@@ -53,15 +64,15 @@ const createPageUIDL = (
         folderPath: [fileName],
       }
     : {
-        fileName,
-        styleFileName: fileName,
-        templateFileName: fileName,
+        componentName,
+        fileName: (customComponentFileName && customComponentFileName(fileName)) || fileName,
+        styleFileName: (customStyleFileName && customStyleFileName(fileName)) || fileName,
+        templateFileName: (customTemplateFileName && customTemplateFileName(fileName)) || fileName,
         folderPath: [],
       }
 
   // Looking into the state definition, we take the seo information for the corresponding page
   // If no title is provided for the page, the global settings title is passed as a default
-  const pageDefinition = routeDefinition.values.find((stateDef) => stateDef.value === pageName)
   const title = (pageDefinition.seo && pageDefinition.seo.title) || uidl.globals.settings.title
   const seo = {
     ...pageDefinition.seo,
@@ -81,6 +92,53 @@ const createPageUIDL = (
   }
 }
 
+/**
+ * A couple of different cases which need to be handled
+ * In case of next/nuxt generators, the file names represent the urls of the pages
+ * Also the root path needs to be represented by the index file
+ */
+export const extractPageOptions = (
+  routeDefinitions: UIDLStateDefinition,
+  routeName: string,
+  useFileNameForNavigation = false
+): UIDLPageOptions => {
+  const isHomePage = routeDefinitions.defaultValue === routeName
+  const pageDefinitions = routeDefinitions.values || []
+  const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === routeName)
+
+  // If no meta object is defined, the stateName is used
+  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) // remove space, leading numbers, etc.
+  const friendlyComponentName = StringUtils.dashCaseToUpperCamelCase(friendlyStateName) // component name in UpperCamelCase
+  const friendlyFileName = StringUtils.camelCaseToDashCase(friendlyStateName) // file name in dash-case
+
+  let pageOptions: UIDLPageOptions = {
+    // default values extracted from state name
+    fileName: friendlyFileName,
+    componentName: friendlyComponentName,
+    navLink: '/' + (isHomePage ? '' : friendlyFileName),
+  }
+
+  if (pageDefinition && pageDefinition.pageOptions) {
+    // The pageDefinition values have precedence, defaults are fallbacks
+    pageOptions = {
+      ...pageOptions,
+      ...pageDefinition.pageOptions,
+    }
+  }
+
+  // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
+  // Also, the defaultPage has to be index, overriding any other value set
+  if (useFileNameForNavigation) {
+    const fileName = pageOptions.navLink.replace('/', '')
+    pageOptions.fileName = isHomePage ? 'index' : fileName
+  }
+
+  const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
+  deduplicatePageOptionValues(pageOptions, otherPages.map((page) => page.pageOptions))
+
+  return pageOptions
+}
+
 export const prepareComponentOutputOptions = (
   components: Record<string, ComponentUIDL>,
   strategy: ProjectStrategy
@@ -89,34 +147,152 @@ export const prepareComponentOutputOptions = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const fileName = UIDLUtils.getComponentFileName(component)
-    const folderPath = UIDLUtils.getComponentPath(component)
+
+    // values coming from the input UIDL
+    const { fileName, componentClassName } = component.outputOptions || {
+      fileName: '',
+      componentClassName: '',
+    }
+
+    const friendlyName = StringUtils.removeIllegalCharacters(component.name)
+    const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
+    const friendlyComponentName =
+      componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
+    const folderPath = UIDLUtils.getComponentFolderPath(component)
+
+    const {
+      customComponentFileName,
+      customStyleFileName,
+      customTemplateFileName,
+    } = componentStrategyOptions
 
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name
     if (componentStrategyOptions.createFolderForEachComponent) {
-      const {
-        customComponentFileName,
-        customStyleFileName,
-        customTemplateFileName,
-      } = componentStrategyOptions
-
       component.outputOptions = {
-        fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
-        styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
+        componentClassName: friendlyComponentName,
+        fileName: (customComponentFileName && customComponentFileName(friendlyFileName)) || 'index',
+        styleFileName: (customStyleFileName && customStyleFileName(friendlyFileName)) || 'style',
         templateFileName:
-          (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
-        folderPath: [...folderPath, fileName],
+          (customTemplateFileName && customTemplateFileName(friendlyFileName)) || 'template',
+        folderPath: [...folderPath, friendlyFileName],
       }
     } else {
       component.outputOptions = {
-        fileName,
-        styleFileName: fileName,
-        templateFileName: fileName,
+        componentClassName: friendlyComponentName,
+        fileName:
+          (customComponentFileName && customComponentFileName(friendlyFileName)) ||
+          friendlyFileName,
+        styleFileName:
+          (customStyleFileName && customStyleFileName(friendlyFileName)) || friendlyFileName,
+        templateFileName:
+          (customTemplateFileName && customTemplateFileName(friendlyFileName)) || friendlyFileName,
         folderPath,
       }
     }
+
+    const otherComponents = Object.keys(components).filter(
+      (key) => key !== componentKey && components[key].outputOptions
+    )
+    deduplicateComponentOutputOptions(
+      component.outputOptions,
+      otherComponents.map((key) => components[key].outputOptions)
+    )
   })
+}
+
+const deduplicatePageOptionValues = (options: UIDLPageOptions, otherOptions: UIDLPageOptions[]) => {
+  let navlinkSuffix = 0
+  while (otherOptions.some((opt) => opt.navLink === appendSuffix(options.navLink, navlinkSuffix))) {
+    navlinkSuffix++
+  }
+
+  if (navlinkSuffix > 0) {
+    options.navLink = appendSuffix(options.navLink, navlinkSuffix)
+    console.warn(
+      `Potential duplication solved by appending '${navlinkSuffix}' to the navlink: ${options.navLink}`
+    )
+  }
+
+  let componentNameSuffix = 0
+  while (
+    otherOptions.some(
+      (opt) => opt.componentName === appendSuffix(options.componentName, componentNameSuffix)
+    )
+  ) {
+    componentNameSuffix++
+  }
+
+  if (componentNameSuffix > 0) {
+    options.componentName = appendSuffix(options.componentName, componentNameSuffix)
+    console.warn(
+      `Potential duplication solved by appending '${componentNameSuffix}' to the componentName: ${options.componentName}`
+    )
+  }
+
+  let fileNameSuffix = 0
+  while (
+    otherOptions.some((opt) => opt.fileName === appendSuffix(options.fileName, fileNameSuffix))
+  ) {
+    fileNameSuffix++
+  }
+
+  if (fileNameSuffix > 0) {
+    options.fileName = appendSuffix(options.fileName, fileNameSuffix)
+    console.warn(
+      `Potential duplication solved by appending '${fileNameSuffix}' to the fileName: ${options.fileName}`
+    )
+  }
+}
+
+const deduplicateComponentOutputOptions = (
+  options: UIDLComponentOutputOptions,
+  otherOptions: UIDLComponentOutputOptions[]
+) => {
+  let componentNameSuffix = 0
+  while (
+    otherOptions.some(
+      (opt) =>
+        opt.componentClassName === appendSuffix(options.componentClassName, componentNameSuffix) &&
+        equalPaths(opt.folderPath, options.folderPath)
+    )
+  ) {
+    componentNameSuffix++
+  }
+
+  if (componentNameSuffix > 0) {
+    options.componentClassName = appendSuffix(options.componentClassName, componentNameSuffix)
+    console.warn(
+      `Potential duplication solved by appending a '${componentNameSuffix}' to the component class name: ${options.componentClassName}`
+    )
+  }
+
+  let fileNameSuffix = 0
+  while (
+    otherOptions.some(
+      (opt) =>
+        opt.fileName === appendSuffix(options.fileName, fileNameSuffix) &&
+        equalPaths(opt.folderPath, options.folderPath)
+    )
+  ) {
+    fileNameSuffix++
+  }
+
+  if (fileNameSuffix > 0) {
+    options.fileName = appendSuffix(options.fileName, fileNameSuffix)
+    console.warn(
+      `Potential duplication solved by appending a '${fileNameSuffix}' to the file name: ${options.fileName}`
+    )
+  }
+}
+
+const appendSuffix = (str: string, suffix: number) => {
+  const stringSuffix = suffix === 0 ? '' : suffix.toString()
+  return str + stringSuffix
+}
+
+const equalPaths = (path1: string[], path2: string[]) => {
+  return JSON.stringify(path1) === JSON.stringify(path2)
 }
 
 export const resolveLocalDependencies = (
@@ -125,7 +301,7 @@ export const resolveLocalDependencies = (
   strategy: ProjectStrategy
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
-    const pagePath = UIDLUtils.getComponentPath(pageUIDL)
+    const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
@@ -136,7 +312,7 @@ export const resolveLocalDependencies = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const componentPath = UIDLUtils.getComponentPath(component)
+    const componentPath = UIDLUtils.getComponentFolderPath(component)
     const fromPath = strategy.components.path.concat(componentPath)
 
     UIDLUtils.traverseElements(component.node, (element) => {
@@ -158,13 +334,15 @@ const setLocalDependencyPath = (
 ) => {
   const componentKey = element.elementType
   const component = components[componentKey]
-  const componentPath = UIDLUtils.getComponentPath(component)
+  const componentPath = UIDLUtils.getComponentFolderPath(component)
+  const componentClassName = UIDLUtils.getComponentClassName(component)
 
   const toPath = toBasePath.concat(componentPath)
 
   const importFileName = UIDLUtils.getComponentFileName(component)
   const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
   element.dependency.path = `${importPath}${importFileName}`
+  element.elementType = componentClassName
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {

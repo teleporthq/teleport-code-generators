@@ -8,8 +8,18 @@ export const capitalize = (str: string): string => str[0].toUpperCase() + str.sl
 
 export const dashCaseToUpperCamelCase = (str: string) => capitalize(dashCaseToCamelCase(str))
 
-// Replaces all ocurrences of non alpha-numeric characters in the string (except _)
-export const sanitizeVariableName = (str: string): string => str.replace(/\W/g, '')
+export const removeIllegalCharacters = (str: string) => {
+  if (typeof str !== 'string') {
+    return null
+  }
+
+  return str
+    .replace(/[^a-zA-Z0-9-_]/g, '') // Remove all non-alphanumeric characters except _ and -
+    .replace(/^[0-9-_]*/, '') // Remove leading numbers
+    .replace(/\-\-+/g, '-') // Replace multiple - with single -
+    .replace(/^-+/, '') // Trim - from start of text
+    .replace(/-+$/, '') // Trim - from end of text
+}
 
 export const slugify = (str: string): string => {
   if (str == null) {

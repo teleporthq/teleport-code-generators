@@ -85,6 +85,7 @@
             "value": "index",
             "pageOptions": {
               "navLink": "/",
+              "fileName": "index",
               "componentName": "Home"
             }
           },
@@ -92,6 +93,7 @@
             "value": "about",
             "pageOptions": {
               "navLink": "/about",
+              "fileName": "about",
               "componentName": "About"
             }
           },
@@ -99,6 +101,7 @@
             "value": "contact-us",
             "pageOptions": {
               "navLink": "/here-we-are",
+              "fileName": "contact-us",
               "componentName": "Us"
             }
           }

@@ -2,10 +2,10 @@ import {
   slugify,
   addSpacesToEachLine,
   removeLastEmptyLine,
-  sanitizeVariableName,
   camelCaseToDashCase,
   dashCaseToUpperCamelCase,
   dashCaseToCamelCase,
+  removeIllegalCharacters,
 } from '../../src/utils/string-utils'
 
 describe('slugify tests', () => {
@@ -86,13 +86,21 @@ describe('removeLastEmptyLine', () => {
   })
 })
 
-describe('sanitizeVariableName', () => {
-  it('does not change a valid string', () => {
-    expect(sanitizeVariableName('ComponentName')).toBe('ComponentName')
+describe('removeIllegalCharacters', () => {
+  it('removes leading numbers', () => {
+    expect(removeIllegalCharacters('123test')).toBe('test')
   })
 
-  it('removes spaces and other characters, but keeps underscore', () => {
-    expect(sanitizeVariableName('Component_ Name-')).toBe('Component_Name')
+  it('removes spaces and other characters', () => {
+    expect(removeIllegalCharacters("test 1  \\'.te^st=2")).toBe('test1test2')
+  })
+
+  it('returns the same string for dash case', () => {
+    expect(removeIllegalCharacters('about-page')).toBe('about-page')
+  })
+
+  it('returns the same string for camel case', () => {
+    expect(removeIllegalCharacters('AboutPage')).toBe('AboutPage')
   })
 })
 
@@ -111,6 +119,10 @@ describe('camelCaseToDashCase', () => {
 
   it('ignores numbers', () => {
     expect(camelCaseToDashCase('1prim12arybutton')).toBe('1prim12arybutton')
+  })
+
+  it('ignores spaces', () => {
+    expect(camelCaseToDashCase('Primary Button')).toBe('primary button')
   })
 
   it('should revert a dash to camel case transition', () => {

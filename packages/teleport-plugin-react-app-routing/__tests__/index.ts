@@ -6,7 +6,7 @@ import {
   dynamicNode,
   definition,
 } from '@teleporthq/teleport-uidl-builders'
-import { ChunkType, ComponentStructure } from '@teleporthq/teleport-types'
+import { ChunkType, ComponentStructure, UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 describe('plugin-react-app-routing', () => {
   const plugin = createReactAppRoutingPlugin({
@@ -15,6 +15,19 @@ describe('plugin-react-app-routing', () => {
   })
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
+    const routeDefinition: UIDLStateDefinition = definition('string', 'home')
+    routeDefinition.values = [
+      { value: 'home', pageOptions: { fileName: 'home', componentName: 'Home', navLink: '/' } },
+      {
+        value: 'about',
+        pageOptions: { fileName: 'about', componentName: 'About', navLink: '/about' },
+      },
+      {
+        value: 'contact',
+        pageOptions: { fileName: 'contact', componentName: 'Contact', navLink: '/contact' },
+      },
+    ]
+
     const structure: ComponentStructure = {
       chunks: [],
       options: {},
@@ -27,7 +40,7 @@ describe('plugin-react-app-routing', () => {
         ]),
         {},
         {
-          route: definition('string', 'home'),
+          route: routeDefinition,
         }
       ),
       dependencies: {},

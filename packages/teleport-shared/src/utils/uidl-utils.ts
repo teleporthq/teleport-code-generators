@@ -1,8 +1,7 @@
 import { ASSETS_IDENTIFIER } from '../constants'
-import { camelCaseToDashCase, dashCaseToUpperCamelCase } from './string-utils'
+import { camelCaseToDashCase } from './string-utils'
 import {
   ComponentUIDL,
-  UIDLStateDefinition,
   UIDLStyleDefinitions,
   UIDLConditionalNode,
   UIDLElement,
@@ -12,50 +11,8 @@ import {
   UIDLDynamicReference,
   UIDLRepeatContent,
   UIDLRepeatMeta,
-  UIDLPageOptions,
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
-
-/**
- * A couple of different cases which need to be handled
- * In case of next/nuxt generators, the file names represent the urls of the pages
- * Also the root path needs to be represented by the index file
- */
-export const extractPageOptions = (
-  routeDefinitions: UIDLStateDefinition,
-  stateName: string,
-  useFileNameForNavigation = false
-): UIDLPageOptions => {
-  const defaultPage = routeDefinitions.defaultValue
-  const pageDefinitions = routeDefinitions.values || []
-  const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
-
-  // If no meta object is defined, the stateName is used
-  const defaultPageMetadata: UIDLPageOptions = {
-    fileName: useFileNameForNavigation && stateName === defaultPage ? 'index' : stateName,
-    componentName: dashCaseToUpperCamelCase(stateName),
-    navLink: '/' + stateName,
-  }
-
-  if (!pageDefinition || !pageDefinition.pageOptions) {
-    return defaultPageMetadata
-  }
-
-  // The pageDefinition values have precedence, defaults are fallbacks
-  const pageMetadata = {
-    ...defaultPageMetadata,
-    ...pageDefinition.pageOptions,
-  }
-
-  // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
-  // Also, the defaultPage has to be index, overriding any other value set
-  if (useFileNameForNavigation) {
-    const fileName = pageMetadata.navLink.replace('/', '')
-    pageMetadata.fileName = stateName === defaultPage ? 'index' : fileName
-  }
-
-  return pageMetadata
-}
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
   // Assuming root element starts with a UIDLElementNode
@@ -68,11 +25,9 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
 }
 
 export const getComponentFileName = (component: ComponentUIDL) => {
-  const name =
-    component.outputOptions && component.outputOptions.fileName
-      ? component.outputOptions.fileName
-      : component.name
-  return camelCaseToDashCase(name)
+  return component.outputOptions && component.outputOptions.fileName
+    ? component.outputOptions.fileName
+    : camelCaseToDashCase(getComponentClassName(component))
 }
 
 export const getStyleFileName = (component: ComponentUIDL) => {
@@ -93,8 +48,15 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
     : componentFileName
 }
 
-export const getComponentPath = (component: ComponentUIDL) =>
-  component.outputOptions ? component.outputOptions.folderPath : []
+export const getComponentFolderPath = (component: ComponentUIDL) =>
+  component.outputOptions && component.outputOptions.folderPath
+    ? component.outputOptions.folderPath
+    : []
+
+export const getComponentClassName = (component: ComponentUIDL) =>
+  component.outputOptions && component.outputOptions.componentClassName
+    ? component.outputOptions.componentClassName
+    : component.name
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'

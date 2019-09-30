@@ -12,14 +12,13 @@ import {
 import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
 import { NodeToHTML } from './types'
 import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
-import { camelCaseToDashCase } from '../../utils/string-utils'
 
 const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params, syntax) => {
   const templateSyntax = { ...DEFAULT_TEMPLATE_SYNTAX, ...syntax }
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events } = node.content
   const htmlNode = dependency
-    ? createHTMLNode(templateSyntax.customElementTagName(camelCaseToDashCase(elementType)))
+    ? createHTMLNode(templateSyntax.customElementTagName(elementType))
     : createHTMLNode(elementType)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {

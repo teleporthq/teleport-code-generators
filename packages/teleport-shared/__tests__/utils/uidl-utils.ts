@@ -5,12 +5,11 @@ import {
   transformAttributesAssignmentsToJson,
   findFirstElementNode,
   extractRoutes,
-  getComponentPath,
+  getComponentFolderPath,
   getComponentFileName,
   getStyleFileName,
   getTemplateFileName,
   getRepeatIteratorNameAndKey,
-  extractPageOptions,
   prefixAssetsPath,
   traverseNodes,
   traverseElements,
@@ -32,7 +31,6 @@ import {
   UIDLRepeatNode,
   UIDLDynamicReference,
   UIDLSlotNode,
-  UIDLStateDefinition,
   UIDLAttributeValue,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
@@ -406,11 +404,11 @@ describe('getTemplateFileName', () => {
   })
 })
 
-describe('getComponentPath', () => {
+describe('getComponentFolderPath', () => {
   const testComponent = component('MyComponent', elementNode('random'))
 
   it('returns an empty array if no meta path is provided', () => {
-    expect(getComponentPath(testComponent)).toHaveLength(0)
+    expect(getComponentFolderPath(testComponent)).toHaveLength(0)
   })
 
   it('returns the input meta path', () => {
@@ -418,7 +416,7 @@ describe('getComponentPath', () => {
       folderPath: ['one', 'two'],
     }
 
-    const path = getComponentPath(testComponent)
+    const path = getComponentFolderPath(testComponent)
     expect(path).toContain('one')
     expect(path).toContain('two')
     expect(path.length).toBe(2)
@@ -473,72 +471,6 @@ describe('getRepeatIteratorNameAndKey', () => {
     })
     expect(iteratorName).toBe('item')
     expect(iteratorKey).toBe('item.id')
-  })
-})
-
-describe('extractPageOptions', () => {
-  const routeDefinitions: UIDLStateDefinition = {
-    type: 'string',
-    defaultValue: 'home',
-    values: [
-      {
-        value: 'home',
-        pageOptions: {
-          navLink: '/',
-        },
-      },
-      {
-        value: 'about',
-        pageOptions: {
-          navLink: '/about-us',
-          componentName: 'AboutUs',
-        },
-      },
-      {
-        value: 'contact-us',
-        pageOptions: {
-          navLink: '/team',
-        },
-      },
-      {
-        value: 'no-meta',
-      },
-    ],
-  }
-
-  it('uses the state for a non-declared page', () => {
-    const result = extractPageOptions(routeDefinitions, 'non-declared')
-    expect(result.navLink).toBe('/non-declared')
-    expect(result.fileName).toBe('non-declared')
-    expect(result.componentName).toBe('NonDeclared')
-  })
-
-  it('uses the state for a page without meta', () => {
-    const result = extractPageOptions(routeDefinitions, 'no-meta')
-    expect(result.navLink).toBe('/no-meta')
-    expect(result.fileName).toBe('no-meta')
-    expect(result.componentName).toBe('NoMeta')
-  })
-
-  it('returns values from the meta with defaults from the state', () => {
-    const result = extractPageOptions(routeDefinitions, 'about')
-    expect(result.navLink).toBe('/about-us') // meta value
-    expect(result.fileName).toBe('about') // state value
-    expect(result.componentName).toBe('AboutUs') // meta value
-  })
-
-  it('converts the fileName to index', () => {
-    const result = extractPageOptions(routeDefinitions, 'home', true)
-    expect(result.navLink).toBe('/')
-    expect(result.fileName).toBe('index')
-    expect(result.componentName).toBe('Home')
-  })
-
-  it('uses the path as the fileName', () => {
-    const result = extractPageOptions(routeDefinitions, 'about', true)
-    expect(result.navLink).toBe('/about-us')
-    expect(result.fileName).toBe('about-us')
-    expect(result.componentName).toBe('AboutUs')
   })
 })
 

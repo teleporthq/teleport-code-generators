@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -74,29 +74,39 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
         {
           dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
-          const componentName = `${uidl.name}Component`
-          dependencies[componentName] = constructLocalDependency(uidl.outputOptions.fileName)
+          const componentName = UIDLUtils.getComponentClassName(uidl)
+          const componentClassName = `${componentName}Component`
+          const fileName = UIDLUtils.getComponentFileName(uidl)
+          dependencies[componentClassName] = constructLocalDependency(fileName)
 
-          routesAST = createPageRouteAST(componentName)
-          ngModuleAST = createPageModuleModuleDecorator(componentName)
+          routesAST = createPageRouteAST(componentClassName)
+          ngModuleAST = createPageModuleModuleDecorator(componentClassName)
           moduleDecoratorAST = createExportModuleAST(uidl.outputOptions.moduleName)
 
           // Acording to widely followed convention module should have .module in its name
-          uidl.outputOptions.fileName = `${uidl.outputOptions.fileName}.module`
+          uidl.outputOptions.fileName = fileName.replace('.component', '.module')
         }
         break
       case 'component':
         {
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
-          // Looping through all components and importing them into component module
-          moduleComponents.forEach(
-            (component) =>
-              (dependencies[`${component}Component`] = constructComponentDependency(
-                StringUtils.camelCaseToDashCase(component)
-              ))
-          )
 
-          ngModuleAST = createComponentModuleDecorator(moduleComponents)
+          // Looping through all components and importing them into component module
+          Object.keys(moduleComponents).forEach((componentKey) => {
+            const component = moduleComponents[componentKey]
+            const componentClassName = UIDLUtils.getComponentClassName(component)
+            const componentFileName = UIDLUtils.getComponentFileName(component)
+            const componentFolderPath = UIDLUtils.getComponentFolderPath(component)
+            dependencies[`${componentClassName}Component`] = constructComponentDependency(
+              componentFolderPath,
+              componentFileName
+            )
+          })
+
+          const componentClassNames = Object.keys(moduleComponents).map((componentKey) =>
+            UIDLUtils.getComponentClassName(moduleComponents[componentKey])
+          )
+          ngModuleAST = createComponentModuleDecorator(componentClassNames)
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
         }
         break

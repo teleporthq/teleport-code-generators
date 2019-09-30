@@ -149,7 +149,7 @@ Index variable is used but the "useIndex" meta information is false.,
 The component "Navbars" is not defined in the UIDL's component section.,
 The following components have different name than their key: Navbar,OneComponent,
 Root Node contains elements of type "static". It should contain only elements of type "conditional",
-Root Node contains a route that don't have a specified state: /about.`
+Root Node contains a route that don't have a specified state: abouts.`
       )
     })
     it('returns error if route is missing from state definitions', () => {

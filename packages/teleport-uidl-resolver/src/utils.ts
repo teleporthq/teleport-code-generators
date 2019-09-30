@@ -60,6 +60,16 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
         return
       }
 
+      if (!transitionRoute) {
+        throw new Error(
+          `Invalid route value: '${transitionState}' was specified as transitionTo attribute on element\n ${JSON.stringify(
+            element,
+            null,
+            2
+          )}`
+        )
+      }
+
       if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
         transitionAttribute.content = transitionRoute.pageOptions.navLink
       } else {
@@ -431,6 +441,7 @@ const resolveDependency = (
     // When a dependency is specified without a path, we infer it is a local import.
 
     // ex: PrimaryButton component should be written in a file called primary-button
+    // This is just a fallback for when the dependency path is not set by a project generator
     const componentName = mappedElement.elementType
     const componentFileName = StringUtils.camelCaseToDashCase(componentName)
 

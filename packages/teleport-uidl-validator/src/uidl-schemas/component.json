@@ -283,7 +283,7 @@
       "additionalProperties": false,
       "properties": {
         "additionalProperties": false,
-        "elementType": {"type": "string", "pattern": "^([a-zA-Z0-9])*$"},
+        "elementType": {"type": "string" },
         "name": {"type": "string"},
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},

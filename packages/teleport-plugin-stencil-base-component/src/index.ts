@@ -5,6 +5,7 @@ import {
   ASTBuilders,
   StringUtils,
   ASTUtils,
+  UIDLUtils,
 } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
@@ -81,15 +82,16 @@ export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginC
       jsxTagStructure.children.unshift(titleAST)
     }
 
+    const componentName = UIDLUtils.getComponentClassName(uidl)
     const exportAST = createClassDeclaration(
-      uidl.name,
+      componentName,
       propDefinitions,
       stateDefinitions,
       jsxTagStructure
     )
 
     const params = {
-      tag: `app-${StringUtils.camelCaseToDashCase(uidl.name)}`,
+      tag: `app-${StringUtils.camelCaseToDashCase(componentName)}`,
       shadow: true,
     }
 

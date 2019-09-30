@@ -36,14 +36,17 @@ export interface ComponentUIDL {
   node: UIDLElementNode
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
-  outputOptions?: {
-    fileName?: string
-    styleFileName?: string
-    templateFileName?: string
-    moduleName?: string
-    folderPath?: string[]
-  }
+  outputOptions?: UIDLComponentOutputOptions
   seo?: UIDLComponentSEO
+}
+
+export interface UIDLComponentOutputOptions {
+  componentClassName?: string // needs to be a valid class name
+  fileName?: string // needs to be a valid file name
+  styleFileName?: string
+  templateFileName?: string
+  moduleName?: string
+  folderPath?: string[]
 }
 
 export interface UIDLComponentSEO {
@@ -63,11 +66,13 @@ export interface UIDLPropDefinition {
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | any[] | object | (() => void)
-  values?: Array<{
-    value: string | number | boolean
-    pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
-    seo?: UIDLComponentSEO
-  }>
+  values?: UIDLStateValueDetails[]
+}
+
+export interface UIDLStateValueDetails {
+  value: string | number | boolean
+  pageOptions?: UIDLPageOptions // Used when the StateDefinition is used as the router
+  seo?: UIDLComponentSEO
 }
 
 export interface UIDLPageOptions {

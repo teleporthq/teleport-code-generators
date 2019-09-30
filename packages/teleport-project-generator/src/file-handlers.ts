@@ -44,12 +44,11 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
     path,
     strategy.components.path
   )
-  const moduleComponents = Object.keys(uidl.components)
 
   const options = {
     localDependenciesPrefix: componentLocalDependenciesPrefix,
     strategy,
-    moduleComponents,
+    moduleComponents: uidl.components,
   }
 
   root.outputOptions = root.outputOptions || {}
@@ -65,7 +64,6 @@ export const createPageModule = async (
   options: GeneratorOptions
 ) => {
   pageUIDL.outputOptions = pageUIDL.outputOptions || {}
-  pageUIDL.outputOptions.fileName = pageUIDL.outputOptions.folderPath[0]
   pageUIDL.outputOptions.moduleName = `${StringUtils.dashCaseToUpperCamelCase(
     pageUIDL.outputOptions.folderPath[0]
   )}Module`

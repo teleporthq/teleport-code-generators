@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 
-import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders, ParsedASTNode, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
@@ -63,9 +63,11 @@ export const generateVueComponentJS = (
     )
   }
 
+  const componentName = UIDLUtils.getComponentClassName(uidl)
+
   return t.exportDefaultDeclaration(
     t.objectExpression([
-      t.objectProperty(t.identifier('name'), t.stringLiteral(uidl.name)),
+      t.objectProperty(t.identifier('name'), t.stringLiteral(componentName)),
       ...vueObjectProperties,
     ])
   )

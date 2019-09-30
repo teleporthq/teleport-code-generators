@@ -86,7 +86,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
-  moduleComponents?: string[]
+  moduleComponents?: Record<string, ComponentUIDL>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
