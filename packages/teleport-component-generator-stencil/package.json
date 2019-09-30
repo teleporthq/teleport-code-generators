@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-stencil",
-  "version": "0.10.0-alpha.1",
+  "version": "0.10.0-alpha.2",
   "description": "Component generator customization, capable of creating Stencil components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,13 +26,13 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-plugin-stencil-base-component": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.1",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.1"
+    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-plugin-stencil-base-component": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.2",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.2"
   },
   "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
 }

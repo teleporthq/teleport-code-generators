@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-disk",
-  "version": "0.10.0-alpha.1",
+  "version": "0.10.0-alpha.2",
   "description": "Project disk publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,6 +26,6 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.10.0-alpha.1"
+    "@teleporthq/teleport-types": "^0.10.0-alpha.2"
   }
 }
