@@ -2,9 +2,11 @@ import {
   generateLocalDependenciesPrefix,
   injectFilesToPath,
   extractPageOptions,
+  prepareComponentOutputOptions,
 } from '../src/utils'
 import { UIDLStateDefinition } from '@teleporthq/teleport-types'
-import { emptyFolder, folderWithFiles } from './mocks'
+import { emptyFolder, folderWithFiles, createStrategyWithCommonGenerator } from './mocks'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 
 describe('generateLocalDependenciesPrefix', () => {
   it('works when there is a common parent', () => {
@@ -204,5 +206,94 @@ describe('extractPageOptions', () => {
     expect(result.navLink).toBe('/about-us')
     expect(result.fileName).toBe('about-us')
     expect(result.componentName).toBe('AboutUs')
+  })
+})
+
+describe('prepareComponentOutputOptions', () => {
+  it('creates all output options based on the UIDL and the default conventions', () => {
+    const mockStrategy = createStrategyWithCommonGenerator()
+    const components = {
+      NavBar: component('NavBar', elementNode('container')),
+      'Primary Button': component('Primary Button', elementNode('container')),
+      'my-card': component('my-card', elementNode('container')),
+    }
+
+    prepareComponentOutputOptions(components, mockStrategy)
+
+    expect(components.NavBar.outputOptions.fileName).toBe('nav-bar')
+    expect(components.NavBar.outputOptions.componentClassName).toBe('NavBar')
+    expect(components['Primary Button'].outputOptions.fileName).toBe('primary-button')
+    expect(components['Primary Button'].outputOptions.componentClassName).toBe('PrimaryButton')
+    expect(components['my-card'].outputOptions.fileName).toBe('my-card')
+    expect(components['my-card'].outputOptions.componentClassName).toBe('MyCard')
+  })
+
+  it('works with components created in separate folders', () => {
+    const mockStrategy = createStrategyWithCommonGenerator()
+    mockStrategy.components.options = {
+      createFolderForEachComponent: true,
+      customStyleFileName: () => 'styling',
+    }
+    const components = {
+      NavBar: component('NavBar', elementNode('container')),
+      'Primary Button': component('Primary Button', elementNode('container')),
+      'my-card': component('my-card', elementNode('container')),
+    }
+
+    prepareComponentOutputOptions(components, mockStrategy)
+
+    expect(components.NavBar.outputOptions.folderPath[0]).toBe('nav-bar')
+    expect(components.NavBar.outputOptions.fileName).toBe('index')
+    expect(components.NavBar.outputOptions.componentClassName).toBe('NavBar')
+    expect(components.NavBar.outputOptions.styleFileName).toBe('styling')
+    expect(components['Primary Button'].outputOptions.folderPath[0]).toBe('primary-button')
+    expect(components['Primary Button'].outputOptions.fileName).toBe('index')
+    expect(components['Primary Button'].outputOptions.componentClassName).toBe('PrimaryButton')
+    expect(components['Primary Button'].outputOptions.styleFileName).toBe('styling')
+    expect(components['my-card'].outputOptions.folderPath[0]).toBe('my-card')
+    expect(components['my-card'].outputOptions.fileName).toBe('index')
+    expect(components['my-card'].outputOptions.componentClassName).toBe('MyCard')
+    expect(components['my-card'].outputOptions.styleFileName).toBe('styling')
+  })
+
+  it('uses the UIDL values', () => {
+    const mockStrategy = createStrategyWithCommonGenerator()
+    mockStrategy.components.options = {
+      createFolderForEachComponent: true,
+      customStyleFileName: () => 'styling',
+    }
+    const testComponent = component('NavBar', elementNode('container'))
+    testComponent.outputOptions = {
+      fileName: 'custom-filename',
+      folderPath: ['custom-folder'],
+    }
+    const components = {
+      testComponent,
+    }
+
+    prepareComponentOutputOptions(components, mockStrategy)
+
+    expect(testComponent.outputOptions.fileName).toBe('index')
+    expect(testComponent.outputOptions.folderPath[0]).toBe('custom-folder')
+    expect(testComponent.outputOptions.folderPath[1]).toBe('custom-filename')
+  })
+
+  it('deduplicates matching names', () => {
+    const mockStrategy = createStrategyWithCommonGenerator()
+    const components = {
+      'te sT': component('te sT', elementNode('container')),
+      'Tes t': component('Tes t', elementNode('container')),
+      test: component('test', elementNode('container')),
+    }
+
+    prepareComponentOutputOptions(components, mockStrategy)
+
+    expect(components['te sT'].outputOptions.fileName).toBe('tes-t')
+    expect(components['Tes t'].outputOptions.fileName).toBe('test')
+    expect(components.test.outputOptions.fileName).toBe('test1')
+
+    expect(components['te sT'].outputOptions.componentClassName).toBe('TesT')
+    expect(components['Tes t'].outputOptions.componentClassName).toBe('Test')
+    expect(components.test.outputOptions.componentClassName).toBe('Test1')
   })
 })
