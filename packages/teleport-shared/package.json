@@ -30,5 +30,6 @@
     "@teleporthq/teleport-types": "^0.10.0-alpha.2",
     "jss": "^9.8.7",
     "jss-preset-default": "^4.5.0"
-  }
+  },
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

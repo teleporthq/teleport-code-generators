@@ -33,5 +33,6 @@
     "@teleporthq/teleport-project-generator": "^0.10.0-alpha.2",
     "@teleporthq/teleport-shared": "^0.10.0-alpha.2",
     "@teleporthq/teleport-types": "^0.10.0-alpha.2"
-  }
+  },
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
