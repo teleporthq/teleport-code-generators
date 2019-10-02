@@ -18,7 +18,11 @@ const STYLE_PROPERTIES_WITH_URL = ['background', 'backgroundImage']
 
 type ElementsLookup = Record<string, { count: number; nextKey: string }>
 
-export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping, deepMerge = false) => {
+export const mergeMappings = (
+  oldMapping: Mapping,
+  newMapping?: Mapping,
+  deepMerge = false
+): Mapping => {
   if (!newMapping) {
     return oldMapping
   }
@@ -31,6 +35,14 @@ export const mergeMappings = (oldMapping: Mapping, newMapping?: Mapping, deepMer
     elements: { ...oldMapping.elements, ...newMapping.elements },
     events: { ...oldMapping.events, ...newMapping.events },
     attributes: { ...oldMapping.attributes, ...newMapping.attributes },
+    illegalClassNames: [
+      ...(oldMapping.illegalClassNames || []),
+      ...(newMapping.illegalClassNames || []),
+    ],
+    illegalPropNames: [
+      ...(oldMapping.illegalPropNames || []),
+      ...(newMapping.illegalPropNames || []),
+    ],
   }
 }
 
@@ -123,6 +135,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Mapping the type according to the elements mapping
   originalElement.elementType = mappedElement.elementType
+
+  if (mappedElement.selfClosing) {
+    originalElement.selfClosing = mappedElement.selfClosing
+  }
 
   // Resolve dependency with the UIDL having priority
   if (originalElement.dependency || mappedElement.dependency) {
@@ -464,4 +480,27 @@ const resolveEvents = (events: UIDLEventDefinitions, eventsMapping: Record<strin
   })
 
   return resultedEvents
+}
+
+export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
+  const { illegalClassNames, illegalPropNames } = mapping
+  if (illegalClassNames.includes(uidl.outputOptions.componentClassName)) {
+    throw new Error(`Illegal component name '${uidl.outputOptions.componentClassName}'`)
+  }
+
+  if (uidl.propDefinitions) {
+    Object.keys(uidl.propDefinitions).forEach((prop) => {
+      if (illegalPropNames.includes(prop)) {
+        throw new Error(`Illegal prop key '${prop}'`)
+      }
+    })
+  }
+
+  if (uidl.stateDefinitions) {
+    Object.keys(uidl.stateDefinitions).forEach((state) => {
+      if (illegalPropNames.includes(state)) {
+        throw new Error(`Illegal state key '${state}'`)
+      }
+    })
+  }
 }

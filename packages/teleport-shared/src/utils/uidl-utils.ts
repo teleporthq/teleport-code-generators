@@ -1,5 +1,9 @@
 import { ASSETS_IDENTIFIER } from '../constants'
-import { camelCaseToDashCase } from './string-utils'
+import {
+  camelCaseToDashCase,
+  removeIllegalCharacters,
+  dashCaseToUpperCamelCase,
+} from './string-utils'
 import {
   ComponentUIDL,
   UIDLStyleDefinitions,
@@ -22,6 +26,23 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
   return rootElement.children.filter(
     (child) => child.type === 'conditional' && child.content.reference.content.id === 'route'
   ) as UIDLConditionalNode[]
+}
+
+export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
+  uidl.outputOptions = uidl.outputOptions || {}
+  const friendlyName = removeIllegalCharacters(uidl.name)
+  if (!uidl.outputOptions.fileName) {
+    uidl.outputOptions.fileName = camelCaseToDashCase(friendlyName)
+  }
+  if (!uidl.outputOptions.componentClassName) {
+    uidl.outputOptions.componentClassName = dashCaseToUpperCamelCase(friendlyName)
+  }
+
+  // failsafe for invalid UIDL samples with illegal characters as element names
+  // when used in projects, resolveLocalDependencies should handle this
+  traverseElements(uidl.node, (element) => {
+    element.elementType = removeIllegalCharacters(element.elementType)
+  })
 }
 
 export const getComponentFileName = (component: ComponentUIDL) => {

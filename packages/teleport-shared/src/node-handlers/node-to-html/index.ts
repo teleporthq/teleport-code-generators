@@ -16,13 +16,14 @@ import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
 const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params, syntax) => {
   const templateSyntax = { ...DEFAULT_TEMPLATE_SYNTAX, ...syntax }
   const { dependencies, templateLookup } = params
-  const { elementType, name, key, children, attrs, dependency, events } = node.content
+  const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
+  const tagName = elementType || 'component'
   const htmlNode = dependency
-    ? createHTMLNode(templateSyntax.customElementTagName(elementType))
-    : createHTMLNode(elementType)
+    ? createHTMLNode(templateSyntax.customElementTagName(tagName))
+    : createHTMLNode(tagName)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {
-    dependencies[elementType] = { ...dependency }
+    dependencies[tagName] = { ...dependency }
   }
 
   if (attrs) {
@@ -38,7 +39,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
     )
   }
 
-  if (children) {
+  if (!selfClosing && children) {
     children.forEach((child) => {
       const childTag = generateNode(child, params, templateSyntax)
 

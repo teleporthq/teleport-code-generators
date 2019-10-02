@@ -195,7 +195,7 @@
     "OneComponent": {
       "name": "OneComponent",
       "propDefinitions": {
-        "title": {
+        "titleValue": {
           "type": "string",
           "defaultValue": "Hello"
         },
@@ -223,7 +223,7 @@
               "type": "dynamic",
               "content": {
                 "referenceType": "prop",
-                "id": "title"
+                "id": "titleValue"
               }
             }
           },
@@ -241,7 +241,7 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "title"
+                      "id": "titleValue"
                     }
                   }
                 ]
@@ -320,7 +320,7 @@
     "ExpandableArea": {
       "name": "ExpandableArea",
       "propDefinitions": {
-        "title": {
+        "titleValue": {
           "type": "string",
           "defaultValue": "Hello"
         },
@@ -351,7 +351,7 @@
                   "type": "dynamic",
                   "content": {
                     "referenceType": "prop",
-                    "id": "title"
+                    "id": "titleValue"
                   }
                 }]
               }

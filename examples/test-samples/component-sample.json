@@ -1,7 +1,7 @@
 {
   "name": "New UIDL",
   "propDefinitions": {
-    "title": {
+    "header": {
       "type": "string",
       "defaultValue": "Hello"
     },
@@ -29,7 +29,7 @@
           "type": "dynamic",
           "content": {
             "referenceType": "prop",
-            "id": "title"
+            "id": "header"
           }
         }
       },
@@ -47,7 +47,7 @@
                 "type": "dynamic",
                 "content": {
                   "referenceType": "prop",
-                  "id": "title"
+                  "id": "header"
                 }
               },
               {

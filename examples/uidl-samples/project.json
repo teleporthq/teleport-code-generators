@@ -874,7 +874,7 @@
     "ExpandableArea": {
       "name": "ExpandableArea",
       "propDefinitions": {
-        "title": {
+        "header": {
           "type": "string",
           "defaultValue": "This whole area is clickable!"
         },
@@ -930,7 +930,7 @@
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
-                            "id": "title"
+                            "id": "header"
                           }
                         }
                       ]
