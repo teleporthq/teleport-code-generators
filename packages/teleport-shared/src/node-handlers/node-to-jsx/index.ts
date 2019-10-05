@@ -37,13 +37,14 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 ) => {
   const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
   const { dependencies, nodesLookup } = params
-  const { elementType, children, key, attrs, dependency, events } = node.content
+  const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
+  const tagName = elementType || 'component'
   const elementName =
     dependency && dependency.type === 'local' && options.customElementTag
-      ? options.customElementTag(elementType)
-      : elementType
-  const elementTag = children ? createJSXTag(elementName) : createSelfClosingJSXTag(elementName)
+      ? options.customElementTag(tagName)
+      : tagName
+  const elementTag = selfClosing ? createSelfClosingJSXTag(elementName) : createJSXTag(elementName)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
@@ -74,7 +75,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   if (dependency) {
     if (options.dependencyHandling === 'import') {
       // Make a copy to avoid reference leaking
-      dependencies[elementType] = { ...dependency }
+      dependencies[tagName] = { ...dependency }
     }
   }
 
@@ -84,7 +85,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     })
   }
 
-  if (children) {
+  if (!selfClosing && children) {
     children.forEach((child) => {
       const childTag = generateNode(child, params, options)
 

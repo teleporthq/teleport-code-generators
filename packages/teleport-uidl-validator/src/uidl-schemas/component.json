@@ -23,7 +23,18 @@
         "content": { "$ref": "#/definitions/elementNodeContent" }
       }
     },
-    "outputOptions": {"type": "object"},
+    "outputOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "componentClassName": { "type": "string", "pattern": "^[A-Z]+[a-zA-Z0-9]*$" },
+        "fileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "styleFileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "templateFileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "moduleName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "folderPath": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" } }
+      }
+    },
     "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
     "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
   },
@@ -85,9 +96,9 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                      "componentName": { "type": "string" },
-                      "navLink": { "type": "string" },
-                      "fileName": { "type": "string" }
+                      "componentName": { "type": "string", "pattern": "^[A-Z]+[a-zA-Z0-9]*$" },
+                      "navLink": { "type": "string", "pattern": "^\/[a-zA-Z0-9-_]*$" },
+                      "fileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" }
                     }
                   },
                   "seo": {
@@ -284,7 +295,7 @@
       "properties": {
         "additionalProperties": false,
         "elementType": {"type": "string" },
-        "name": {"type": "string"},
+        "name": {"type": "string", "pattern": "^[a-zA-Z]+[a-zA-Z0-9-_]*$"},
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},
         "style": {"$ref": "#/definitions/styleDefinitions"},

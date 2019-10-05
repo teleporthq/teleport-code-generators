@@ -64,37 +64,43 @@
       "elementType": "img",
       "attrs": {
         "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
-      }
+      },
+      "selfClosing": true
     },
     "textinput": {
       "elementType": "input",
       "attrs": {
         "type": { "type": "static", "content": "text" }
-      }
+      },
+      "selfClosing": true
     },
     "passwordinput": {
       "elementType": "input",
       "attrs": {
         "type":  { "type":"static", "content": "password"}
-      }
+      },
+      "selfClosing": true
     },
     "numberinput": {
       "elementType": "input",
       "attrs": {
         "type": { "type": "static", "content": "number" }
-      }
+      },
+      "selfClosing": true
     },
     "checkbox": {
       "elementType": "input",
       "attrs": {
         "type": { "type": "static", "content": "checkbox" }
-      }
+      },
+      "selfClosing": true
     },
     "radiobutton": {
       "elementType": "input",
       "attrs": {
         "type": { "type": "static", "content": "radio" }
-      }
+      },
+      "selfClosing": true
     },
     "textarea": {
       "elementType": "textarea"
@@ -199,7 +205,8 @@
       "elementType": "source",
       "attrs": {
         "src": { "type": "dynamic", "content": { "referenceType": "attr", "id": "url" } }
-      }
+      },
+      "selfClosing": true
     },
     "svg": {
       "elementType": "svg"
@@ -209,5 +216,7 @@
     }
   },
   "events": {},
-  "attributes": {}
+  "attributes": {},
+  "illegalClassNames": ["Component"],
+  "illegalPropNames": ["this", "prop", "props", "state", "window", "document"]
 }

@@ -2,6 +2,10 @@
   "elements": {
     "text": {
       "elementType": "span"
+    },
+    "image": {
+      "elementType": "img",
+      "selfClosing": true
     }
   }
 }

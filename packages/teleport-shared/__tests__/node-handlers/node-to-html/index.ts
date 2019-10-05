@@ -24,7 +24,7 @@ describe('generateHTMLTemplateSyntax', () => {
       expect(hastElement.children[0].type).toBe('element')
 
       const firstChild = hastElement.children[0] as HastNode
-      expect((firstChild.children[1] as HastText).value).toBe('{{ title }}')
+      expect((firstChild.children[1] as HastText).value).toBe('{{ header }}')
 
       const secondChild = hastElement.children[1] as HastNode
       expect(secondChild.properties['v-for']).toBe('(item, index) in items')
@@ -47,7 +47,7 @@ describe('generateHTMLTemplateSyntax', () => {
       expect(hastElement.children[0].type).toBe('element')
 
       const firstChild = hastElement.children[0] as HastNode
-      expect((firstChild.children[1] as HastText).value).toBe('[title]')
+      expect((firstChild.children[1] as HastText).value).toBe('[header]')
 
       const secondChild = hastElement.children[1] as HastNode
       expect(secondChild.properties['test-repeat']).toBe('(item, index) in items')

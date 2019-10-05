@@ -288,7 +288,7 @@ describe('resolveNavlinks', () => {
 })
 
 describe('mergeMappings', () => {
-  const oldMapping = {
+  const oldMapping: Mapping = {
     elements: {
       text: {
         elementType: 'span',
@@ -300,6 +300,8 @@ describe('mergeMappings', () => {
     },
     events: {},
     attributes: {},
+    illegalClassNames: [],
+    illegalPropNames: ['title'],
   }
 
   const newMapping = {
@@ -327,7 +329,7 @@ describe('mergeMappings', () => {
   it('merges the mappings using deepmerge if deepMerge parameter is present', () => {
     const mergedMapping = mergeMappings(oldMapping as Mapping, newMapping as Mapping, true)
 
-    const expectedMapping = {
+    const expectedMapping: Mapping = {
       elements: {
         text: {
           elementType: 'span',
@@ -342,6 +344,8 @@ describe('mergeMappings', () => {
       },
       events: {},
       attributes: {},
+      illegalClassNames: [],
+      illegalPropNames: ['title'],
     }
 
     expect(mergedMapping).toEqual(expectedMapping)
@@ -350,7 +354,7 @@ describe('mergeMappings', () => {
   it('merges the mapping using the spread operator ', () => {
     const mergedMapping = mergeMappings(oldMapping as Mapping, newMapping as Mapping)
 
-    const expectedMapping = {
+    const expectedMapping: Mapping = {
       elements: {
         text: {
           elementType: 'span',
@@ -364,6 +368,8 @@ describe('mergeMappings', () => {
       },
       events: {},
       attributes: {},
+      illegalClassNames: [],
+      illegalPropNames: ['title'],
     }
 
     expect(mergedMapping).toEqual(expectedMapping)

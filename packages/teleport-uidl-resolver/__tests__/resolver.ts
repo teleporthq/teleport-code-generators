@@ -33,6 +33,17 @@ describe('resolveElement', () => {
     expect(resolvedElement.elementType).toBe('span')
     expect(resolvedElement.attrs.dummy.content).toBe('remains here')
   })
+
+  it('maps a seflClosing tag', () => {
+    const resolver = new Resolver()
+    const imageElement = element('image', {
+      dummy: staticNode('remains here'),
+    })
+    const resolvedElement = resolver.resolveElement(imageElement, { mapping })
+    expect(resolvedElement.elementType).toBe('img')
+    expect(resolvedElement.selfClosing).toBe(true)
+    expect(resolvedElement.attrs.dummy.content).toBe('remains here')
+  })
 })
 
 describe('resolveUIDL', () => {

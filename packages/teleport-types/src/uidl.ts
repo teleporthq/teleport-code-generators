@@ -154,6 +154,7 @@ export interface UIDLElement {
   elementType: string
   name?: string
   key?: string // internal usage
+  selfClosing?: boolean
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>
@@ -212,4 +213,6 @@ export interface Mapping {
   elements?: Record<string, UIDLElement>
   events?: Record<string, string>
   attributes?: Record<string, string>
+  illegalClassNames?: string[]
+  illegalPropNames?: string[]
 }

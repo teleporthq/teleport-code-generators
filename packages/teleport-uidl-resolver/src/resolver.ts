@@ -1,5 +1,5 @@
 import * as utils from './utils'
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 
 /**
@@ -10,6 +10,9 @@ export default class Resolver {
   private mapping: Mapping = {
     elements: {},
     events: {},
+    attributes: {},
+    illegalClassNames: [],
+    illegalPropNames: [],
   }
 
   constructor(mapping?: Mapping | Mapping[]) {
@@ -24,44 +27,35 @@ export default class Resolver {
     this.mapping = utils.mergeMappings(this.mapping, mapping)
   }
 
-  public resolveUIDL(uidl: ComponentUIDL, options: GeneratorOptions = {}) {
+  public resolveUIDL(input: ComponentUIDL, options: GeneratorOptions = {}) {
     const mapping = utils.mergeMappings(this.mapping, options.mapping)
     const newOptions = {
       ...options,
       mapping,
     }
 
-    const node = UIDLUtils.cloneObject(uidl.node)
+    const uidl = UIDLUtils.cloneObject(input)
 
-    uidl.outputOptions = uidl.outputOptions || {}
-    const friendlyName = StringUtils.removeIllegalCharacters(uidl.name)
-    if (!uidl.outputOptions.fileName) {
-      uidl.outputOptions.fileName = StringUtils.camelCaseToDashCase(friendlyName)
-    }
+    UIDLUtils.setFriendlyOutputOptions(uidl)
 
-    if (!uidl.outputOptions.componentClassName) {
-      uidl.outputOptions.componentClassName = StringUtils.dashCaseToUpperCamelCase(friendlyName)
-    }
+    utils.checkForIllegalNames(uidl, mapping)
 
     if (options.projectRouteDefinition) {
-      utils.resolveNavlinks(node, options.projectRouteDefinition)
+      utils.resolveNavlinks(uidl.node, options.projectRouteDefinition)
     }
 
-    utils.resolveNode(node, newOptions)
+    utils.resolveNode(uidl.node, newOptions)
 
     const nodesLookup = {}
-    utils.createNodesLookup(node, nodesLookup)
-    utils.generateUniqueKeys(node, nodesLookup)
+    utils.createNodesLookup(uidl.node, nodesLookup)
+    utils.generateUniqueKeys(uidl.node, nodesLookup)
 
-    utils.ensureDataSourceUniqueness(node)
+    utils.ensureDataSourceUniqueness(uidl.node)
 
     // There might be urls that need to be prefixed in the metaTags of the component
     utils.resolveMetaTags(uidl, options)
 
-    return {
-      ...uidl,
-      node,
-    }
+    return uidl
   }
 
   public resolveElement(element: UIDLElement, options: GeneratorOptions = {}) {
