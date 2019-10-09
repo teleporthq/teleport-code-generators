@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-angular",
-  "version": "0.10.0-alpha.2",
+  "version": "0.10.0-alpha.3",
   "description": "Component generator customization, capable of creating Angular components",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -26,14 +26,14 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-plugin-angular-base-component": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.2",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.2"
+    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-angular-base-component": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.3"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
