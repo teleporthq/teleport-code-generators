@@ -23,7 +23,7 @@ export type PackerFactory = (
   params?: PackerFactoryParams
 ) => {
   pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
-  loadTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<void>
+  loadRemoteTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<void>
   setPublisher: <T, U>(publisher: Publisher<T, U>) => void
   setGenerator: (generator: ProjectGenerator) => void
   setAssets: (assets: AssetsDefinition) => void
@@ -51,7 +51,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     template = templateFolder
   }
 
-  const loadTemplate = async (remoteDefinition: RemoteTemplateDefinition): Promise<void> => {
+  const loadRemoteTemplate = async (remoteDefinition: RemoteTemplateDefinition): Promise<void> => {
     template = await fetchTemplate(remoteDefinition)
   }
 
@@ -90,7 +90,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     setGenerator,
     setAssets,
     setTemplate,
-    loadTemplate,
+    loadRemoteTemplate,
     pack,
   }
 }
