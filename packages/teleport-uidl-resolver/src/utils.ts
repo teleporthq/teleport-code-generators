@@ -52,6 +52,19 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
   UIDLUtils.traverseElements(uidlNode, (element) => {
     if (element.elementType === 'navlink') {
       const transitionAttribute = element.attrs.transitionTo
+      if (!transitionAttribute) {
+        // Fallback for when transitionTo is not present
+        console.warn(
+          `transitionTo was missing from element: '${element.elementType}'. Falling back to navlink: '/'`
+        )
+        element.attrs.transitionTo = {
+          type: 'static',
+          content: '/',
+        }
+
+        return
+      }
+
       if (transitionAttribute.type !== 'static') {
         throw new Error(
           `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(

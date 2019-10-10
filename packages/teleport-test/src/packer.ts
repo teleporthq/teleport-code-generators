@@ -1,12 +1,12 @@
-import projectPacker from '@teleporthq/teleport-project-packer'
+import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 
-import reactGenerator from '@teleporthq/teleport-project-generator-react'
-import nextGenerator from '@teleporthq/teleport-project-generator-next'
-import vueGenerator from '@teleporthq/teleport-project-generator-vue'
-import nuxtGenerator from '@teleporthq/teleport-project-generator-nuxt'
-import preactGenerator from '@teleporthq/teleport-project-generator-preact'
-import stencilGenerator from '@teleporthq/teleport-project-generator-stencil'
-import angularGenerator from '@teleporthq/teleport-project-generator-angular'
+import { createReactProjectGenerator } from '@teleporthq/teleport-project-generator-react'
+import { createNextProjectGenerator } from '@teleporthq/teleport-project-generator-next'
+import { createVueProjectGenerator } from '@teleporthq/teleport-project-generator-vue'
+import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generator-nuxt'
+import { createPreactProjectGenerator } from '@teleporthq/teleport-project-generator-preact'
+import { createStencilProjectGenerator } from '@teleporthq/teleport-project-generator-stencil'
+import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
@@ -27,13 +27,13 @@ import {
 import projectUIDL from '../../../examples/uidl-samples/project.json'
 
 const generators: Record<string, ProjectGenerator> = {
-  react: reactGenerator,
-  next: nextGenerator,
-  vue: vueGenerator,
-  nuxt: nuxtGenerator,
-  preact: preactGenerator,
-  stencil: stencilGenerator,
-  angular: angularGenerator,
+  react: createReactProjectGenerator(),
+  next: createNextProjectGenerator(),
+  vue: createVueProjectGenerator(),
+  nuxt: createNuxtProjectGenerator(),
+  preact: createPreactProjectGenerator(),
+  stencil: createStencilProjectGenerator(),
+  angular: createAngularProjectGenerator(),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -61,11 +61,12 @@ const packProject = async (projectType: string) => {
     token: config.token,
   }
 
-  projectPacker.setPublisher(publisher)
-  projectPacker.setGenerator(generators[projectType])
-  await projectPacker.loadRemoteTemplate(remoteTemplate)
+  const packer = createProjectPacker()
+  packer.setPublisher(publisher)
+  packer.setGenerator(generators[projectType])
+  await packer.loadRemoteTemplate(remoteTemplate)
 
-  const result = await projectPacker.pack((projectUIDL as unknown) as ProjectUIDL)
+  const result = await packer.pack((projectUIDL as unknown) as ProjectUIDL)
 
   console.info(projectType, ' - ', result)
 }
