@@ -1,9 +1,4 @@
-import {
-  component,
-  staticNode,
-  slotNode,
-  elementNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { component, staticNode, slotNode, elementNode } from '@teleporthq/teleport-uidl-builders'
 
 import { createReactComponentGenerator } from '../../src'
 

@@ -1,6 +1,11 @@
 import { buildDefaultPropsAst, buildTypesOfPropsAst } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface PropTypesConfig {
   componentChunkName?: string
@@ -9,7 +14,7 @@ interface PropTypesConfig {
   exportComponentName?: string
 }
 
-export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) => {
+export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
     defaultPropsChunkName = 'component-default-props',
@@ -19,8 +24,8 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
 
   const propTypesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { name } = uidl
 
+    const componentClassName = UIDLUtils.getComponentClassName(uidl)
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     const exportChunk = chunks.find((chunk) => chunk.name === exportComponentName)
 
@@ -39,7 +44,11 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
       (prop) => typeof uidl.propDefinitions[prop].defaultValue !== 'undefined'
     )
 
-    const typesOfPropsAst = buildTypesOfPropsAst(name, 'PropTypes', uidl.propDefinitions)
+    const typesOfPropsAst = buildTypesOfPropsAst(
+      componentClassName,
+      'PropTypes',
+      uidl.propDefinitions
+    )
 
     if (!hasDefaultProps && !typesOfPropsAst) {
       return structure
@@ -52,10 +61,10 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
     }
 
     if (hasDefaultProps) {
-      const defaultPropsAst = buildDefaultPropsAst(name, uidl.propDefinitions)
+      const defaultPropsAst = buildDefaultPropsAst(componentClassName, uidl.propDefinitions)
       chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: defaultPropsChunkName,
         linkAfter: [componentChunkName],
         content: defaultPropsAst,
@@ -64,8 +73,8 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
     }
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: typesOfPropsChunkName,
       linkAfter: [componentChunkName],
       content: typesOfPropsAst,
@@ -80,4 +89,4 @@ export const createPlugin: ComponentPluginFactory<PropTypesConfig> = (config) =>
   return propTypesPlugin
 }
 
-export default createPlugin()
+export default createPropTypesPlugin()

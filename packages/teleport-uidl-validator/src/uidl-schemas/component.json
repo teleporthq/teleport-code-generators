@@ -23,33 +23,22 @@
         "content": { "$ref": "#/definitions/elementNodeContent" }
       }
     },
-    "meta": {"type": "object"},
+    "outputOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "componentClassName": { "type": "string", "pattern": "^[A-Z]+[a-zA-Z0-9]*$" },
+        "fileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "styleFileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "templateFileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "moduleName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" },
+        "folderPath": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" } }
+      }
+    },
     "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
     "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
   },
   "definitions": {
-    "dependency": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["package", "local", "library"],
-          "examples": ["package", "local", "library"]
-        },
-        "path": {"type": "string"},
-        "version": {"type": "string", "default": "1.0.0"},
-        "meta": {
-          "type": "object", 
-          "additionalProperties": false,
-          "properties": {
-            "namedImport": {"type": "boolean", "default": false},
-            "originalName": {"type": "string"}
-          }
-        }
-      }
-    },
     "propDefinitions": {
       "type": "object",
       "patternProperties": {
@@ -103,13 +92,19 @@
                 "type": "object",
                 "properties": {
                   "value": {},
-                  "meta": { 
+                  "pageOptions": { 
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                      "componentName": { "type": "string" },
-                      "path": { "type": "string" },
-                      "fileName": { "type": "string" },
+                      "componentName": { "type": "string", "pattern": "^[A-Z]+[a-zA-Z0-9]*$" },
+                      "navLink": { "type": "string", "pattern": "^\/[a-zA-Z0-9-_]*$" },
+                      "fileName": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" }
+                    }
+                  },
+                  "seo": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
                       "title": { "type": "string" },
                       "metaTags": {
                         "type": "array",
@@ -121,15 +116,27 @@
                             }
                           }
                         }
+                      },
+                      "assets": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["type"],
+                          "properties": {
+                            "type": { "type": "string", "enum": ["link", "script", "font", "icon", "style", "canonical"] },
+                            "path": { "type": "string" },
+                            "content": { "type": "string" },
+                            "meta": { "type": "object" }
+                          }
+                        }
                       }
                     }
-                  },
-                  "transitions": { "type": "object" }
+                  }
                 }
               }
             },
-            "defaultValue": {},
-            "actions": {"type": "array"}
+            "defaultValue": {}
           }
         }
       }
@@ -287,8 +294,8 @@
       "additionalProperties": false,
       "properties": {
         "additionalProperties": false,
-        "elementType": {"type": "string", "pattern": "^([a-zA-Z0-9])*$"},
-        "name": {"type": "string"},
+        "elementType": {"type": "string" },
+        "name": {"type": "string", "pattern": "^[a-zA-Z]+[a-zA-Z0-9-_]*$"},
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},
         "style": {"$ref": "#/definitions/styleDefinitions"},

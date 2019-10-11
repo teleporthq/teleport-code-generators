@@ -4,23 +4,40 @@ import {
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
   findFirstElementNode,
-  getComponentPath,
+  createWebComponentFriendlyName,
+  extractRoutes,
+  getComponentFolderPath,
   getComponentFileName,
+  getStyleFileName,
+  getTemplateFileName,
   getRepeatIteratorNameAndKey,
+  prefixAssetsPath,
+  traverseNodes,
+  traverseElements,
+  traverseRepeats,
 } from '../../src/utils/uidl-utils'
-import { component, staticNode } from '../../src/builders/uidl-builders'
+import {
+  component,
+  staticNode,
+  elementNode,
+  dynamicNode,
+  repeatNode,
+  conditionalNode,
+  slotNode,
+} from '@teleporthq/teleport-uidl-builders'
 import {
   UIDLStyleDefinitions,
   UIDLElementNode,
   UIDLConditionalNode,
   UIDLRepeatNode,
-  UIDLStaticValue,
   UIDLDynamicReference,
   UIDLSlotNode,
+  UIDLAttributeValue,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 
-// @ts-ignore
 import uidlStyleJSON from './uidl-utils-style.json'
+import projectUIDL from '../../../../examples/test-samples/project-sample.json'
 
 describe('cleanupDynamicStyles', () => {
   const styleObject = uidlStyleJSON as UIDLStyleDefinitions
@@ -37,7 +54,7 @@ describe('cleanupDynamicStyles', () => {
 })
 
 describe('transformStringAssignmentToJson', () => {
-  const inputOutputMap = {
+  const inputOutputMap: Record<string, UIDLAttributeValue> = {
     '$props.direction': {
       type: 'dynamic',
       content: {
@@ -230,7 +247,7 @@ describe('traverses the UIDL and returns the first element node that is found', 
   })
 
   it('returns the inputElementNode when the root is a conditional element', () => {
-    const conditionalNode: UIDLConditionalNode = {
+    const node: UIDLConditionalNode = {
       type: 'conditional',
       content: {
         node: inputElementNode,
@@ -243,12 +260,12 @@ describe('traverses the UIDL and returns the first element node that is found', 
         },
       },
     }
-    const firstElmNode = findFirstElementNode(conditionalNode)
+    const firstElmNode = findFirstElementNode(node)
     expect(firstElmNode).toBe(inputElementNode)
   })
 
   it('returns the inputElementNode when the root is a repeat element', () => {
-    const repeatNode: UIDLRepeatNode = {
+    const node: UIDLRepeatNode = {
       type: 'repeat',
       content: {
         node: inputElementNode,
@@ -262,7 +279,7 @@ describe('traverses the UIDL and returns the first element node that is found', 
       },
     }
 
-    const firstElmNode = findFirstElementNode(repeatNode)
+    const firstElmNode = findFirstElementNode(node)
     expect(firstElmNode).toBe(inputElementNode)
   })
 
@@ -303,7 +320,7 @@ describe('traverses the UIDL and returns the first element node that is found', 
   })
 
   it('throws error if a dynamic is passed', () => {
-    const dynamicNode: UIDLDynamicReference = {
+    const node: UIDLDynamicReference = {
       type: 'dynamic',
       content: {
         referenceType: 'prop',
@@ -312,14 +329,14 @@ describe('traverses the UIDL and returns the first element node that is found', 
     }
 
     try {
-      findFirstElementNode(dynamicNode)
+      findFirstElementNode(node)
     } catch (e) {
       expect(e.message).toContain('UIDL does not have any element node')
     }
   })
 
   it('throws error if a static is passed', () => {
-    const slotNode: UIDLSlotNode = {
+    const node: UIDLSlotNode = {
       type: 'slot',
       content: {
         name: 'slotNode',
@@ -327,41 +344,80 @@ describe('traverses the UIDL and returns the first element node that is found', 
     }
 
     try {
-      findFirstElementNode(slotNode)
+      findFirstElementNode(node)
     } catch (e) {
       expect(e.message).toContain('UIDL does not have any element node')
     }
   })
 })
 
+describe('extractRoutes', () => {
+  const root = projectUIDL.root as ComponentUIDL
+  const result = extractRoutes(root)
+  expect(result.length).toBe(3)
+  expect(result[0].content.value).toBe('index')
+  expect(result[1].content.value).toBe('about')
+  expect(result[2].content.value).toBe('contact-us')
+})
+
 describe('getComponentFileName', () => {
-  const testComponent = component('MyComponent', staticNode('random'))
+  const testComponent = component('MyComponent', elementNode('random'))
 
   it('returns the dashcase filename', () => {
     expect(getComponentFileName(testComponent)).toBe('my-component')
   })
 
   it('meta fileName overrides', () => {
-    testComponent.meta = {
+    testComponent.outputOptions = {
       fileName: 'my-custom-name',
     }
     expect(getComponentFileName(testComponent)).toBe('my-custom-name')
   })
 })
 
-describe('getComponentPath', () => {
-  const testComponent = component('MyComponent', staticNode('random'))
+describe('getStyleFileName', () => {
+  const testComponent = component('MyComponent', elementNode('random'))
+
+  it('returns the dashcase filename', () => {
+    expect(getStyleFileName(testComponent)).toBe('my-component')
+  })
+
+  it('returns the specific style filename', () => {
+    testComponent.outputOptions = {
+      styleFileName: 'my-custom-name',
+    }
+    expect(getStyleFileName(testComponent)).toBe('my-custom-name')
+  })
+})
+
+describe('getTemplateFileName', () => {
+  const testComponent = component('MyComponent', elementNode('random'))
+
+  it('returns the dashcase filename', () => {
+    expect(getTemplateFileName(testComponent)).toBe('my-component')
+  })
+
+  it('meta fileName overrides', () => {
+    testComponent.outputOptions = {
+      templateFileName: 'my-custom-name',
+    }
+    expect(getTemplateFileName(testComponent)).toBe('my-custom-name')
+  })
+})
+
+describe('getComponentFolderPath', () => {
+  const testComponent = component('MyComponent', elementNode('random'))
 
   it('returns an empty array if no meta path is provided', () => {
-    expect(getComponentPath(testComponent)).toHaveLength(0)
+    expect(getComponentFolderPath(testComponent)).toHaveLength(0)
   })
 
   it('returns the input meta path', () => {
-    testComponent.meta = {
-      path: ['one', 'two'],
+    testComponent.outputOptions = {
+      folderPath: ['one', 'two'],
     }
 
-    const path = getComponentPath(testComponent)
+    const path = getComponentFolderPath(testComponent)
     expect(path).toContain('one')
     expect(path).toContain('two')
     expect(path.length).toBe(2)
@@ -416,5 +472,78 @@ describe('getRepeatIteratorNameAndKey', () => {
     })
     expect(iteratorName).toBe('item')
     expect(iteratorKey).toBe('item.id')
+  })
+})
+
+describe('prefixAssetsPath', () => {
+  it('returns the original string if the assets identifier is not found', () => {
+    expect(prefixAssetsPath('/static', '/no/identifier')).toBe('/no/identifier')
+  })
+
+  it('returns the concatenated path', () => {
+    expect(prefixAssetsPath('/static', '/playground_assets')).toBe('/static/playground_assets')
+  })
+
+  it('returns the concatenated path and adds a slash', () => {
+    expect(prefixAssetsPath('/static', 'playground_assets')).toBe('/static/playground_assets')
+  })
+})
+
+const nodeToTraverse = elementNode(
+  'container',
+  {},
+  [
+    staticNode('static'),
+    dynamicNode('prop', 'title'),
+    elementNode(
+      'container',
+      {
+        attr: staticNode('dummy-attr'),
+      },
+      [
+        repeatNode(elementNode('container', {}, []), dynamicNode('prop', 'items')),
+        conditionalNode(dynamicNode('state', 'visible'), elementNode('text', {}, []), true),
+        slotNode(staticNode('fallback'), 'slot-1'),
+      ]
+    ),
+  ],
+  null,
+  {
+    margin: staticNode('10px'),
+    height: dynamicNode('prop', 'height'),
+  }
+)
+
+describe('traverseNodes', () => {
+  it('counts the total number of nodes', () => {
+    let counter = 0
+    traverseNodes(nodeToTraverse, () => counter++)
+    expect(counter).toBe(15)
+  })
+})
+
+describe('traverseElements', () => {
+  it('counts the number of element nodes', () => {
+    let counter = 0
+    traverseElements(nodeToTraverse, () => counter++)
+    expect(counter).toBe(4)
+  })
+})
+
+describe('traverseRepeats', () => {
+  it('counts the number of repeat nodes', () => {
+    let counter = 0
+    traverseRepeats(nodeToTraverse, () => counter++)
+    expect(counter).toBe(1)
+  })
+})
+
+describe('createWebComponentFriendlyName', () => {
+  it('creates a dash based component', () => {
+    expect(createWebComponentFriendlyName('primaryButton')).toBe('primary-button')
+  })
+
+  it('prefixes with app-', () => {
+    expect(createWebComponentFriendlyName('Component')).toBe('app-component')
   })
 })

@@ -4,7 +4,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import reactNativeAppRoutingPlugin from '@teleporthq/teleport-plugin-reactnative-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
@@ -21,7 +21,7 @@ const createReactNativeProjectGenerator = () => {
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactNativeAppRoutingPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
-  routingComponentGenerator.addPostProcessor(prettierJS)
+  routingComponentGenerator.addPostProcessor(prettierJSX)
 
   const generator = createProjectGenerator({
     components: {

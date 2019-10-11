@@ -1,13 +1,4 @@
-import {
-  addAttributeToNode,
-  addChildNode,
-  addTextNode,
-  addBooleanAttributeToNode,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/html-utils'
-import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { slugify } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import { createHTMLNode } from '@teleporthq/teleport-shared/dist/cjs/builders/html-builders'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { HASTUtils, UIDLUtils, StringUtils, HASTBuilers } from '@teleporthq/teleport-shared'
 
 import {
   GeneratedFile,
@@ -19,8 +10,10 @@ import {
   GeneratorOptions,
   ProjectStrategy,
   EntryFileOptions,
-  CustomScriptTag,
-  CustomLinkTag,
+  CustomTag,
+  Attribute,
+  FileType,
+  ChunkType,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -43,6 +36,40 @@ export const createComponent = async (
   return strategy.components.generator.generateComponent(componentUIDL, options)
 }
 
+export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+  const { root } = uidl
+  const { path } = strategy.components
+  const { moduleGenerator } = strategy.components
+  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+    path,
+    strategy.components.path
+  )
+
+  const options = {
+    localDependenciesPrefix: componentLocalDependenciesPrefix,
+    strategy,
+    moduleComponents: uidl.components,
+  }
+
+  root.outputOptions = root.outputOptions || {}
+  root.outputOptions.fileName = 'components.module'
+
+  const { files } = await moduleGenerator.generateComponent(root, options)
+  return files[0]
+}
+
+export const createPageModule = async (
+  pageUIDL: ComponentUIDL,
+  strategy: ProjectStrategy,
+  options: GeneratorOptions
+) => {
+  pageUIDL.outputOptions = pageUIDL.outputOptions || {}
+  pageUIDL.outputOptions.moduleName = `${StringUtils.dashCaseToUpperCamelCase(
+    pageUIDL.outputOptions.folderPath[0]
+  )}Module`
+  return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
+}
+
 export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
   const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
   const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
@@ -55,8 +82,8 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     strategy,
   }
 
-  root.meta = root.meta || {}
-  root.meta.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
+  root.outputOptions = root.outputOptions || {}
+  root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
   const { files } = await routerGenerator.generateComponent(root, options)
   return files[0]
@@ -74,15 +101,13 @@ export const createEntryFile = async (
 
   const appRootOverride = (options && options.appRootOverride) || null
   const entryFileName = strategy.entry.fileName || 'index'
-  const customScriptTags = (options && options.customScriptTags) || []
-  const customLinkTags = (options && options.customLinkTags) || []
   const customHeadContent = (options && options.customHeadContent) || null
+  const customTags = (options && options.customTags) || []
   const chunks = chunkGenerationFunction(uidl, {
     assetsPrefix,
     appRootOverride,
-    customScriptTags,
-    customLinkTags,
     customHeadContent,
+    customTags,
   })
 
   const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
@@ -91,186 +116,161 @@ export const createEntryFile = async (
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const {
-    assetsPrefix = '',
-    appRootOverride,
-    customScriptTags,
-    customLinkTags,
-    customHeadContent,
-  } = options
+  const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest } = uidl.globals
 
-  const htmlNode = createHTMLNode('html')
-  const headNode = createHTMLNode('head')
-  const bodyNode = createHTMLNode('body')
+  const htmlNode = HASTBuilers.createHTMLNode('html')
+  const headNode = HASTBuilers.createHTMLNode('head')
+  const bodyNode = HASTBuilers.createHTMLNode('body')
 
-  addChildNode(htmlNode, headNode)
-  addChildNode(htmlNode, bodyNode)
+  HASTUtils.addChildNode(htmlNode, headNode)
+  HASTUtils.addChildNode(htmlNode, bodyNode)
 
   // Vue and React use a standard <div id="app"/> in the body tag.
   // Nuxt has an internal templating so requires an override
   if (appRootOverride) {
-    addTextNode(bodyNode, appRootOverride)
+    HASTUtils.addTextNode(bodyNode, appRootOverride)
   } else {
-    const appRootNode = createHTMLNode('div')
-    addAttributeToNode(appRootNode, 'id', 'app')
-    addChildNode(bodyNode, appRootNode)
+    const appRootNode = HASTBuilers.createHTMLNode('div')
+    HASTUtils.addAttributeToNode(appRootNode, 'id', 'app')
+    HASTUtils.addChildNode(bodyNode, appRootNode)
   }
 
   if (settings.language) {
-    addAttributeToNode(htmlNode, 'lang', settings.language)
+    HASTUtils.addAttributeToNode(htmlNode, 'lang', settings.language)
   }
 
   if (settings.title) {
-    const titleTag = createHTMLNode('title')
-    addTextNode(titleTag, settings.title)
-    addChildNode(headNode, titleTag)
+    const titleTag = HASTBuilers.createHTMLNode('title')
+    HASTUtils.addTextNode(titleTag, settings.title)
+    HASTUtils.addChildNode(headNode, titleTag)
   }
 
   /* For frameworks that need to inject and point out the generated build files
   or adding some script tags in head or body */
-  if (customScriptTags.length > 0) {
-    customScriptTags.forEach((tag: CustomScriptTag) => {
-      const { attributeKey, attributeValue, path, content } = tag
-      const { target } = tag || { target: 'head' }
-
-      const targetNode = target === 'body' ? bodyNode : headNode
-      const scriptTag = createHTMLNode('script')
-
-      /* For few script tags we add only values and not the key, 
-        for example defer, nomodule etc. For such behaviours we can omit 
-        attributeKey so only value is added to the tag */
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(scriptTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(scriptTag, attributeValue)
-      }
+  if (customTags.length > 0) {
+    customTags.forEach((tag: CustomTag) => {
+      const { targetTag, tagName, attributes, content } = tag
+      const targetNode = targetTag === 'head' ? headNode : bodyNode
+      const createdNode = HASTBuilers.createHTMLNode(tagName)
 
       if (content) {
-        addTextNode(scriptTag, content)
+        HASTUtils.addTextNode(createdNode, content)
       }
 
-      if (path) {
-        addAttributeToNode(scriptTag, 'src', path)
+      if (attributes && attributes.length > 0) {
+        attributes.forEach((attribute: Attribute) => {
+          const { attributeKey, attributeValue } = attribute
+          if (attributeValue) {
+            HASTUtils.addAttributeToNode(createdNode, attributeKey, attributeValue)
+          } else {
+            HASTUtils.addBooleanAttributeToNode(createdNode, attributeKey)
+          }
+        })
       }
 
-      addChildNode(targetNode, scriptTag)
-    })
-  }
-
-  if (customLinkTags.length > 0) {
-    customLinkTags.forEach((tag: CustomLinkTag) => {
-      const { path, attributeKey, attributeValue } = tag
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'href', path)
-
-      if (attributeValue) {
-        attributeKey
-          ? addAttributeToNode(linkTag, attributeKey, attributeValue)
-          : addBooleanAttributeToNode(linkTag, attributeValue)
-      }
-      addChildNode(headNode, linkTag)
+      HASTUtils.addChildNode(targetNode, createdNode)
     })
   }
 
   if (manifest) {
-    const linkTag = createHTMLNode('link')
-    addAttributeToNode(linkTag, 'rel', 'manifest')
-    addAttributeToNode(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
-    addChildNode(headNode, linkTag)
+    const linkTag = HASTBuilers.createHTMLNode('link')
+    HASTUtils.addAttributeToNode(linkTag, 'rel', 'manifest')
+    HASTUtils.addAttributeToNode(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
+    HASTUtils.addChildNode(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
-    const metaTag = createHTMLNode('meta')
+    const metaTag = HASTBuilers.createHTMLNode('meta')
     Object.keys(metaItem).forEach((key) => {
-      const prefixedURL = prefixAssetsPath(assetsPrefix, metaItem[key])
-      addAttributeToNode(metaTag, key, prefixedURL)
+      const prefixedURL = UIDLUtils.prefixAssetsPath(assetsPrefix, metaItem[key])
+      HASTUtils.addAttributeToNode(metaTag, key, prefixedURL)
     })
-    addChildNode(headNode, metaTag)
+    HASTUtils.addChildNode(headNode, metaTag)
   })
 
   assets.forEach((asset) => {
-    const assetPath = prefixAssetsPath(assetsPrefix, asset.path)
+    const assetPath = UIDLUtils.prefixAssetsPath(assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'rel', 'canonical')
-      addAttributeToNode(linkTag, 'href', assetPath)
-      addChildNode(headNode, linkTag)
+      const linkTag = HASTBuilers.createHTMLNode('link')
+      HASTUtils.addAttributeToNode(linkTag, 'rel', 'canonical')
+      HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
+      HASTUtils.addChildNode(headNode, linkTag)
     }
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = createHTMLNode('link')
-      addAttributeToNode(linkTag, 'rel', 'stylesheet')
-      addAttributeToNode(linkTag, 'href', assetPath)
-      addChildNode(headNode, linkTag)
+      const linkTag = HASTBuilers.createHTMLNode('link')
+      HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
+      HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
+      HASTUtils.addChildNode(headNode, linkTag)
     }
 
     // inline style
     if (asset.type === 'style' && asset.content) {
-      const styleTag = createHTMLNode('style')
-      addTextNode(styleTag, asset.content)
-      addChildNode(headNode, styleTag)
+      const styleTag = HASTBuilers.createHTMLNode('style')
+      HASTUtils.addTextNode(styleTag, asset.content)
+      HASTUtils.addChildNode(headNode, styleTag)
     }
 
     // script (external or inline)
     if (asset.type === 'script') {
       const scriptInBody = (asset.options && asset.options.target === 'body') || false
-      const scriptTag = createHTMLNode('script')
-      addAttributeToNode(scriptTag, 'type', 'text/javascript')
+      const scriptTag = HASTBuilers.createHTMLNode('script')
+      HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
-        addAttributeToNode(scriptTag, 'src', assetPath)
+        HASTUtils.addAttributeToNode(scriptTag, 'src', assetPath)
         if (asset.options && asset.options.defer) {
-          addBooleanAttributeToNode(scriptTag, 'defer')
+          HASTUtils.addBooleanAttributeToNode(scriptTag, 'defer')
         }
         if (asset.options && asset.options.async) {
-          addBooleanAttributeToNode(scriptTag, 'async')
+          HASTUtils.addBooleanAttributeToNode(scriptTag, 'async')
         }
       } else if (asset.content) {
-        addTextNode(scriptTag, asset.content)
+        HASTUtils.addTextNode(scriptTag, asset.content)
       }
       if (scriptInBody) {
-        addChildNode(bodyNode, scriptTag)
+        HASTUtils.addChildNode(bodyNode, scriptTag)
       } else {
-        addChildNode(headNode, scriptTag)
+        HASTUtils.addChildNode(headNode, scriptTag)
       }
     }
 
     // icon
     if (asset.type === 'icon' && assetPath) {
-      const iconTag = createHTMLNode('link')
-      addAttributeToNode(iconTag, 'rel', 'shortcut icon')
-      addAttributeToNode(iconTag, 'href', assetPath)
+      const iconTag = HASTBuilers.createHTMLNode('link')
+      HASTUtils.addAttributeToNode(iconTag, 'rel', 'shortcut icon')
+      HASTUtils.addAttributeToNode(iconTag, 'href', assetPath)
 
       if (asset.options && asset.options.iconType) {
-        addAttributeToNode(iconTag, 'type', asset.options.iconType)
+        HASTUtils.addAttributeToNode(iconTag, 'type', asset.options.iconType)
       }
       if (asset.options && asset.options.iconSizes) {
-        addAttributeToNode(iconTag, 'sizes', asset.options.iconSizes)
+        HASTUtils.addAttributeToNode(iconTag, 'sizes', asset.options.iconSizes)
       }
-      addChildNode(headNode, iconTag)
+      HASTUtils.addChildNode(headNode, iconTag)
     }
   })
 
   if (customHeadContent) {
-    addTextNode(headNode, customHeadContent)
+    HASTUtils.addTextNode(headNode, customHeadContent)
   }
 
   const chunks: Record<string, ChunkDefinition[]> = {
-    [FILE_TYPE.HTML]: [
+    [FileType.HTML]: [
       {
         name: 'doctype',
-        type: CHUNK_TYPE.STRING,
-        fileType: FILE_TYPE.HTML,
+        type: ChunkType.STRING,
+        fileType: FileType.HTML,
         content: '<!DOCTYPE html>',
         linkAfter: [],
       },
       {
         name: 'html-node',
-        type: CHUNK_TYPE.HAST,
-        fileType: FILE_TYPE.HTML,
+        type: ChunkType.HAST,
+        fileType: FileType.HTML,
         content: htmlNode,
         linkAfter: ['doctype'],
       },
@@ -292,7 +292,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
   }
 
   const icons = manifest.icons.map((icon) => {
-    const src = prefixAssetsPath(assetsPrefix || '', icon.src)
+    const src = UIDLUtils.prefixAssetsPath(assetsPrefix || '', icon.src)
     return { ...icon, src }
   })
 
@@ -304,7 +304,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
 
   return {
     name: 'manifest',
-    fileType: FILE_TYPE.JSON,
+    fileType: FileType.JSON,
     content: JSON.stringify(content, null, 2),
   }
 }
@@ -315,13 +315,13 @@ export const handlePackageJSON = (
   dependencies: Record<string, string>
 ) => {
   const inputPackageJSONFile = template.files.find(
-    (file) => file.name === 'package' && file.fileType === FILE_TYPE.JSON
+    (file) => file.name === 'package' && file.fileType === FileType.JSON
   )
 
   if (inputPackageJSONFile) {
     const packageJSONContent = JSON.parse(inputPackageJSONFile.content) as PackageJSON
 
-    packageJSONContent.name = slugify(uidl.name)
+    packageJSONContent.name = StringUtils.slugify(uidl.name)
     packageJSONContent.dependencies = {
       ...packageJSONContent.dependencies,
       ...dependencies,
@@ -331,13 +331,13 @@ export const handlePackageJSON = (
   } else {
     const content: PackageJSON = {
       ...DEFAULT_PACKAGE_JSON,
-      name: slugify(uidl.name),
+      name: StringUtils.slugify(uidl.name),
       dependencies,
     }
 
     template.files.push({
       name: 'package',
-      fileType: FILE_TYPE.JSON,
+      fileType: FileType.JSON,
       content: JSON.stringify(content, null, 2),
     })
   }

@@ -2,13 +2,10 @@ import {
   ChunkDefinition,
   ComponentStructure,
   UIDLStyleDefinitions,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import {
-  component,
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 
 export const createComponentChunk = (elementKey: string = 'container') => {
   const componentChunk: ChunkDefinition = {
@@ -28,8 +25,8 @@ export const createComponentChunk = (elementKey: string = 'container') => {
         prop: 'props.',
       },
     },
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     linkAfter: ['import-local'],
     content: {},
   }

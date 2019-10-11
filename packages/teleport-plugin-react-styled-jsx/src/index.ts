@@ -1,10 +1,4 @@
-import { addClassStringOnJSXTag } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
-import {
-  transformDynamicStyles,
-  traverseElements,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { createCSSClass } from '@teleporthq/teleport-shared/dist/cjs/builders/css-builders'
+import { ASTUtils, StringUtils, UIDLUtils, StyleBuilders } from '@teleporthq/teleport-shared'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 
@@ -12,10 +6,10 @@ interface StyledJSXConfig {
   componentChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
+export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
 
-  const reactStyledJSXChunkPlugin: ComponentPlugin = async (structure) => {
+  const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { node } = uidl
 
@@ -29,13 +23,13 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
 
     const styleJSXString: string[] = []
 
-    traverseElements(node, (element) => {
+    UIDLUtils.traverseElements(node, (element) => {
       const { style, key } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
-        const className = camelCaseToDashCase(key)
+        const className = StringUtils.camelCaseToDashCase(key)
         // Generating the string templates for the dynamic styles
-        const styleRules = transformDynamicStyles(style, (styleValue) => {
+        const styleRules = UIDLUtils.transformDynamicStyles(style, (styleValue) => {
           if (styleValue.content.referenceType === 'prop') {
             return `\$\{${propsPrefix}.${styleValue.content.id}\}`
           }
@@ -43,8 +37,8 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
             `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
           )
         })
-        styleJSXString.push(createCSSClass(className, styleRules))
-        addClassStringOnJSXTag(root, className)
+        styleJSXString.push(StyleBuilders.createCSSClass(className, styleRules))
+        ASTUtils.addClassStringOnJSXTag(root, className)
       }
     })
 
@@ -61,7 +55,7 @@ export const createPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) =>
     return structure
   }
 
-  return reactStyledJSXChunkPlugin
+  return reactStyledJSXPlugin
 }
 
-export default createPlugin()
+export default createReactStyledJSXPlugin()

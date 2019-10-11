@@ -1,11 +1,15 @@
 import * as types from '@babel/types'
-import { createPlugin } from '../src'
-import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { createVueHeadConfigPlugin } from '../src'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import {
+  ComponentStructure,
+  ChunkType,
+  FileType,
+  ChunkDefinition,
+} from '@teleporthq/teleport-types'
 
 describe('plugin-vue-head-config', () => {
-  const plugin = createPlugin()
+  const plugin = createVueHeadConfigPlugin()
 
   it('Should throw error when the chunk is supplied', async () => {
     const uidlSample = component('SimpleComponent', elementNode('container'))
@@ -29,9 +33,9 @@ describe('plugin-vue-head-config', () => {
       title: 'Test Title',
     }
 
-    const jsChunk = {
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+    const jsChunk: ChunkDefinition = {
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: 'vue-js-chunk',
       content: {
         declaration: {
@@ -75,9 +79,9 @@ describe('plugin-vue-head-config', () => {
       ],
     }
 
-    const jsChunk = {
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+    const jsChunk: ChunkDefinition = {
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: 'vue-js-chunk',
       content: {
         declaration: {
@@ -117,9 +121,9 @@ describe('plugin-vue-head-config', () => {
       ],
     }
 
-    const jsChunk = {
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+    const jsChunk: ChunkDefinition = {
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: 'vue-js-chunk',
       content: {
         declaration: {

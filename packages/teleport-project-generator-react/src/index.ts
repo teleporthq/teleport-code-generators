@@ -62,5 +62,3 @@ const createReactProjectGenerator = () => {
 }
 
 export { createReactProjectGenerator, ReactProjectMapping, ReactTemplate }
-
-export default createReactProjectGenerator()

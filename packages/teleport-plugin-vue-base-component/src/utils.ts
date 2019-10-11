@@ -1,11 +1,6 @@
 import * as types from '@babel/types'
 
-import {
-  ParsedASTNode,
-  convertValueToLiteral,
-  objectToObjectExpression,
-  createStateChangeStatement,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils, ASTBuilders, ParsedASTNode, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,
@@ -14,7 +9,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
-  return Object.keys(stateDefinitions).reduce((result, key) => {
+  return Object.keys(stateDefinitions).reduce((result: Record<string, any>, key) => {
     result[key] = stateDefinitions[key].defaultValue
     return result
   }, {})
@@ -31,7 +26,7 @@ export const generateVueComponentJS = (
 
   if (uidl.propDefinitions) {
     const props = createVuePropsDefinition(uidl.propDefinitions)
-    const propsAST = objectToObjectExpression(props)
+    const propsAST = ASTUtils.objectToObjectExpression(props)
     vueObjectProperties.push(t.objectProperty(t.identifier('props'), propsAST))
   }
 
@@ -50,7 +45,7 @@ export const generateVueComponentJS = (
   }
 
   if (Object.keys(dataObject).length > 0) {
-    const dataAST = objectToObjectExpression(dataObject)
+    const dataAST = ASTUtils.objectToObjectExpression(dataObject)
     vueObjectProperties.push(
       t.objectMethod(
         'method',
@@ -68,9 +63,11 @@ export const generateVueComponentJS = (
     )
   }
 
+  const componentName = UIDLUtils.getComponentClassName(uidl)
+
   return t.exportDefaultDeclaration(
     t.objectExpression([
-      t.objectProperty(t.identifier('name'), t.stringLiteral(uidl.name)),
+      t.objectProperty(t.identifier('name'), t.stringLiteral(componentName)),
       ...vueObjectProperties,
     ])
   )
@@ -116,7 +113,9 @@ const createVuePropsDefinition = (
     if (defaultValue !== undefined) {
       defaultPropValue =
         type === 'array' || type === 'object'
-          ? new ParsedASTNode(t.arrowFunctionExpression([], convertValueToLiteral(defaultValue)))
+          ? new ParsedASTNode(
+              t.arrowFunctionExpression([], ASTUtils.convertValueToLiteral(defaultValue))
+            )
           : defaultValue
     }
 
@@ -133,12 +132,12 @@ const createMethodsObject = (
   t = types
 ) => {
   return Object.keys(methods).map((eventKey) => {
-    const astStatements = []
+    const astStatements: types.ExpressionStatement[] = []
     methods[eventKey].map((statement) => {
       const astStatement =
         statement.type === 'propCall'
           ? createPropCallStatement(statement, propDefinitions)
-          : createStateChangeStatement(statement)
+          : ASTBuilders.createStateChangeStatement(statement)
 
       if (astStatement) {
         astStatements.push(astStatement)
@@ -171,7 +170,7 @@ export const createPropCallStatement = (
   return t.expressionStatement(
     t.callExpression(t.identifier('this.$emit'), [
       t.stringLiteral(propFunctionKey),
-      ...args.map((arg) => convertValueToLiteral(arg)),
+      ...args.map((arg) => ASTUtils.convertValueToLiteral(arg)),
     ])
   )
 }

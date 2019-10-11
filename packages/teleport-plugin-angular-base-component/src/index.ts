@@ -1,18 +1,19 @@
-import createHTMLTemplateSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-html'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLElementNode,
+  UIDLEventHandlerStatement,
+  ChunkType,
+  FileType,
 } from '@teleporthq/teleport-types'
-import { FILE_TYPE, CHUNK_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { getComponentFileName } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { ASTBuilders, UIDLUtils, createHTMLTemplateSyntax } from '@teleporthq/teleport-shared'
 
 import { generateExportAST } from './utils'
 
 import {
   DEFAULT_TS_CHUNK_AFTER,
   ANGULAR_CORE_DEPENDENCY,
+  ANGULAR_PLATFORM_BROWSER,
   DEFAULT_ANGULAR_TS_CHUNK_NAME,
   DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
   DEFAULT_ANGULAR_DECORATOR_CHUNK_NAME,
@@ -25,7 +26,9 @@ interface AngularPluginConfig {
   tsChunkAfter: string[]
 }
 
-export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config) => {
+export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginConfig> = (
+  config
+) => {
   const {
     angularTemplateChunkName = DEFAULT_ANGULAR_TEMPLATE_CHUNK_NAME,
     exportClassChunk = DEFAULT_ANGULAR_TS_CHUNK_NAME,
@@ -35,9 +38,17 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
   const angularComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { stateDefinitions = {}, propDefinitions = {} } = uidl
+    const { seo = {}, stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.Component = ANGULAR_CORE_DEPENDENCY
+
+    if (seo.title) {
+      dependencies.Title = ANGULAR_PLATFORM_BROWSER
+    }
+
+    if (seo.metaTags && seo.metaTags.length > 0) {
+      dependencies.Meta = ANGULAR_PLATFORM_BROWSER
+    }
 
     if (Object.keys(propDefinitions).length > 0) {
       dependencies.Input = ANGULAR_CORE_DEPENDENCY
@@ -45,7 +56,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
     const templateLookup: { [key: string]: any } = {}
     const dataObject: Record<string, any> = {}
-    const methodsObject: Record<string, any> = {}
+    const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
 
     const templateContent = createHTMLTemplateSyntax(
       uidl.node,
@@ -65,17 +76,18 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
         conditionalAttr: '*ngIf',
         repeatAttr: '*ngFor',
         repeatIterator: (iteratorName, iteratedCollection, useIndex) => {
-          const index = useIndex ? `; index as i` : ''
+          const index = useIndex ? `; index as index` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        customElementTagName: (value) => `app-${value}`,
+        customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
+        dependencyHandling: 'ignore',
       }
     )
 
     chunks.push({
-      type: CHUNK_TYPE.HAST,
+      type: ChunkType.HAST,
       name: angularTemplateChunkName,
-      fileType: FILE_TYPE.HTML,
+      fileType: FileType.HTML,
       meta: {
         nodesLookup: templateLookup,
       },
@@ -83,16 +95,17 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
       linkAfter: [],
     })
 
+    const componentName = UIDLUtils.getComponentClassName(uidl)
     const params = {
-      selector: 'app-root',
-      templateUrl: `${getComponentFileName(uidl)}.${FILE_TYPE.HTML}`,
+      selector: UIDLUtils.createWebComponentFriendlyName(componentName),
+      templateUrl: `${UIDLUtils.getComponentFileName(uidl)}.${FileType.HTML}`,
     }
-    const componentDecoratorAST = createComponentDecorator(params)
+    const componentDecoratorAST = ASTBuilders.createComponentDecorator(params)
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
+      type: ChunkType.AST,
       name: componentDecoratorChunkName,
-      fileType: FILE_TYPE.TS,
+      fileType: FileType.TS,
       linkAfter: tsChunkAfter,
       content: componentDecoratorAST,
     })
@@ -115,7 +128,7 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     }
 
     const exportAST = generateExportAST(
-      uidl.name,
+      uidl,
       propDefinitions,
       stateDefinitions,
       dataObject,
@@ -123,9 +136,9 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
     )
 
     chunks.push({
-      type: CHUNK_TYPE.AST,
+      type: ChunkType.AST,
       name: exportClassChunk,
-      fileType: FILE_TYPE.TS,
+      fileType: FileType.TS,
       linkAfter: tsChunkAfter,
       content: exportAST,
     })
@@ -135,4 +148,5 @@ export const createPlugin: ComponentPluginFactory<AngularPluginConfig> = (config
 
   return angularComponentPlugin
 }
-export default createPlugin()
+
+export default createAngularComponentPlugin()

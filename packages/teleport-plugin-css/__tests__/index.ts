@@ -1,15 +1,15 @@
+import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import {
-  component,
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+  ComponentStructure,
+  ChunkDefinition,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
+import { createCSSPlugin } from '../src/index'
 
 describe('plugin-css', () => {
   describe('on html template based components', () => {
-    const plugin = createPlugin({ templateChunkName: 'template' })
+    const plugin = createCSSPlugin({ templateChunkName: 'template' })
     const componentChunk: ChunkDefinition = {
       name: 'template',
       meta: {
@@ -21,8 +21,8 @@ describe('plugin-css', () => {
           },
         },
       },
-      fileType: FILE_TYPE.HTML,
-      type: CHUNK_TYPE.HAST,
+      fileType: FileType.HTML,
+      type: ChunkType.HAST,
       linkAfter: [],
       content: {},
     }
@@ -68,7 +68,7 @@ describe('plugin-css', () => {
   })
 
   describe('on jsx-based components', () => {
-    const plugin = createPlugin({
+    const plugin = createCSSPlugin({
       templateStyle: 'jsx',
       declareDependency: 'decorator',
       templateChunkName: 'jsx-component',
@@ -91,16 +91,16 @@ describe('plugin-css', () => {
           prop: 'props.',
         },
       },
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       linkAfter: ['import-local'],
       content: {},
     }
 
     const decoratorChunk: ChunkDefinition = {
       name: 'component-decorator',
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       linkAfter: ['import-local'],
       content: {
         expression: {

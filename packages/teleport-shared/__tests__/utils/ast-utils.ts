@@ -1,120 +1,257 @@
 import {
-  ParsedASTNode,
+  stringAsTemplateLiteral,
+  addSpreadAttributeToJSXTag,
+  renameJSXTag,
+  addClassStringOnJSXTag,
+  addAttributeToJSXTag,
+  addDynamicAttributeToJSXTag,
   convertValueToLiteral,
   objectToObjectExpression,
-} from '../../src/utils/ast-js-utils'
+} from '../../src/utils/ast-utils'
+import ParsedASTNode from '../../src/utils/parsed-ast'
+import { createJSXTag } from '../../src/builders/ast-builders'
+import {
+  JSXSpreadAttribute,
+  JSXIdentifier,
+  JSXAttribute,
+  StringLiteral,
+  JSXExpressionContainer,
+  Identifier,
+  NumberLiteral,
+  ObjectExpression,
+  ArrayExpression,
+  BooleanLiteral,
+  ObjectProperty,
+} from '@babel/types'
 
-describe('AST Utils ', () => {
-  describe('ParsedASTNode', () => {
-    it('should create ASTNode', () => {
-      const result = new ParsedASTNode('test')
+describe('stringAsTemplateLiteral', () => {
+  it('returns TemplateLiteral', () => {
+    const result = stringAsTemplateLiteral('randomString')
 
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('ast')
-      expect(result.ast).toBe('test')
-    })
+    expect(result.type).toBe('TemplateLiteral')
+    expect(result.quasis[0].type).toBe('TemplateElement')
   })
-  describe('convertValueToLiteral', () => {
-    it('should convert value to literal', () => {
-      const result = convertValueToLiteral('test')
+})
 
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result).toHaveProperty('value')
-      expect(result.type).toEqual('StringLiteral')
-      expect(result.value).toEqual('test')
-    })
-    it('should convert number value to numerical literal', () => {
-      const result = convertValueToLiteral(2, 'number')
+describe('addSpreadAttributeToJSXTag', () => {
+  it('runs with success', () => {
+    const tag = createJSXTag('random')
+    addSpreadAttributeToJSXTag(tag, 'randomString')
 
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result).toHaveProperty('value')
-      expect(result.type).toEqual('NumericLiteral')
-      expect(result.value).toEqual(2)
-    })
-    it('should convert boolean value to boolean literal', () => {
-      const result = convertValueToLiteral(true, 'boolean')
+    const attr = tag.openingElement.attributes[0]
+    expect(attr.type).toBe('JSXSpreadAttribute')
+    expect((attr as JSXSpreadAttribute).argument).toHaveProperty('name', 'randomString')
+  })
+})
 
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result).toHaveProperty('value')
-      expect(result.type).toEqual('BooleanLiteral')
-      expect(result.value).toEqual(true)
-    })
-    it('should convert object value to boolean literal', () => {
-      const result = convertValueToLiteral({ test: true }, 'object')
+describe('renameJSXTag', () => {
+  it('runs with success', () => {
+    const tag = createJSXTag('random')
+    renameJSXTag(tag, 'NewName')
 
+    const openTag = tag.openingElement.name as JSXIdentifier
+    const closeTag = tag.closingElement.name as JSXIdentifier
+    expect(openTag.name).toBe('NewName')
+    expect(closeTag.name).toBe('NewName')
+  })
+})
+
+describe('addClassStringOnJSXTag', () => {
+  it('adds a class on an element with no classes', () => {
+    const tag = createJSXTag('button')
+
+    addClassStringOnJSXTag(tag, 'primary')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('className')
+    expect((classAttr.value as StringLiteral).value).toBe('primary')
+  })
+
+  it('adds a class on an element with existing classes', () => {
+    const tag = createJSXTag('button')
+    addAttributeToJSXTag(tag, 'className', 'button')
+
+    addClassStringOnJSXTag(tag, 'primary')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('className')
+    expect((classAttr.value as StringLiteral).value).toBe('button primary')
+  })
+})
+
+describe('addAttributeToJSXTag', () => {
+  it('adds an attribute with no value', () => {
+    const tag = createJSXTag('button')
+
+    addAttributeToJSXTag(tag, 'disabled')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('disabled')
+    expect(classAttr.value).toBe(null)
+  })
+
+  it('adds an attribute with the selected value', () => {
+    const tag = createJSXTag('button')
+
+    addAttributeToJSXTag(tag, 'data-attr', 'random-value')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('data-attr')
+    expect((classAttr.value as StringLiteral).value).toBe('random-value')
+  })
+
+  it('adds an attribute as a JSX expression when non-string', () => {
+    const tag = createJSXTag('button')
+
+    addAttributeToJSXTag(tag, 'data-attr', 1)
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('data-attr')
+    expect(((classAttr.value as JSXExpressionContainer).expression as NumberLiteral).value).toBe(1)
+  })
+})
+
+describe('addDynamicAttributeToJSXTag', () => {
+  it('adds the dynamic JSX expression on the opening tag', () => {
+    const tag = createJSXTag('button')
+
+    addDynamicAttributeToJSXTag(tag, 'dynamicValue', 'title')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const dynamicAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(dynamicAttr.value.type).toBe('JSXExpressionContainer')
+    expect(((dynamicAttr.value as JSXExpressionContainer).expression as Identifier).name).toBe(
+      'title'
+    )
+  })
+
+  it('adds the dynamic JSX expression on the opening tag with prefix', () => {
+    const tag = createJSXTag('button')
+
+    addDynamicAttributeToJSXTag(tag, 'dynamicValue', 'title', 'props')
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const dynamicAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(dynamicAttr.value.type).toBe('JSXExpressionContainer')
+    expect((dynamicAttr.value as JSXExpressionContainer).expression.type).toBe('MemberExpression')
+  })
+})
+
+describe('ParsedASTNode', () => {
+  it('should create ASTNode', () => {
+    const result = new ParsedASTNode('test')
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('ast')
+    expect(result.ast).toBe('test')
+  })
+})
+describe('convertValueToLiteral', () => {
+  it('should convert value to literal', () => {
+    const result = convertValueToLiteral('test') as StringLiteral
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result).toHaveProperty('value')
+    expect(result.type).toEqual('StringLiteral')
+    expect(result.value).toEqual('test')
+  })
+  it('should convert number value to numerical literal', () => {
+    const result = convertValueToLiteral(2, 'number') as NumberLiteral
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result).toHaveProperty('value')
+    expect(result.type).toEqual('NumericLiteral')
+    expect(result.value).toEqual(2)
+  })
+  it('should convert boolean value to boolean literal', () => {
+    const result = convertValueToLiteral(true, 'boolean') as BooleanLiteral
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result).toHaveProperty('value')
+    expect(result.type).toEqual('BooleanLiteral')
+    expect(result.value).toEqual(true)
+  })
+  it('should convert object value to boolean literal', () => {
+    const result = convertValueToLiteral({ test: true }, 'object') as ObjectExpression
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result).toHaveProperty('properties')
+    expect(result.type).toEqual('ObjectExpression')
+    expect(result.properties.length).toEqual(1)
+    const property = result.properties[0] as ObjectProperty
+    expect(property).toHaveProperty('key')
+    expect(property.key.type).toBe('StringLiteral')
+    expect(property.key.value).toBe('test')
+    expect(property).toHaveProperty('value')
+    expect(property.value.type).toBe('BooleanLiteral')
+    expect((property.value as BooleanLiteral).value).toBe(true)
+  })
+  it('should convert array value to literals', () => {
+    const testArray = ['test', 'testAgain', 'andAgain']
+    const result = convertValueToLiteral(testArray) as ArrayExpression
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result.type).toBe('ArrayExpression')
+    expect(result).toHaveProperty('elements')
+    expect(result.elements.length).toEqual(testArray.length)
+  })
+  it('should convert identifier value to literal', () => {
+    const result = convertValueToLiteral(String)
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result.type).toBe('Identifier')
+  })
+  it('returns a null literal for null or undefined', () => {
+    expect(convertValueToLiteral(null).type).toBe('NullLiteral')
+    expect(convertValueToLiteral(undefined).type).toBe('NullLiteral')
+  })
+})
+
+describe('objectToObjectExpression', () => {
+  it('should transform object to object expression', () => {
+    const objTest = {
+      stringKey: 'test',
+      booleanKey: true,
+      numberKey: 2,
+      arrayKey: ['test', 'testAgain'],
+      objectKey: {
+        identifierKey: String,
+      },
+    }
+    const result = objectToObjectExpression(objTest)
+
+    expect(typeof result).toBe('object')
+    expect(result).toHaveProperty('type')
+    expect(result).toHaveProperty('properties')
+    expect(result.properties.length).toEqual(Object.keys(objTest).length)
+    expect(result.properties.length).toEqual(Object.keys(objTest).length)
+  })
+  const objectTest: Record<string, any> = {
+    arrayKey: { key: Array },
+    numberKey: { key: Number },
+    stringKey: { key: String },
+    booleanKey: { key: Boolean },
+    objectKey: { key: Object },
+    astKey: { key: new ParsedASTNode('') },
+  }
+  Object.keys(objectTest).map((key) => {
+    it(`should transform ${key} object to object expression`, () => {
+      const result = objectToObjectExpression(objectTest[key])
       expect(typeof result).toBe('object')
       expect(result).toHaveProperty('type')
       expect(result).toHaveProperty('properties')
       expect(result.type).toEqual('ObjectExpression')
-      expect(result.properties.length).toEqual(1)
-      expect(result.properties[0]).toHaveProperty('key')
-      expect(result.properties[0].key.type).toBe('StringLiteral')
-      expect(result.properties[0].key.value).toBe('test')
-      expect(result.properties[0]).toHaveProperty('value')
-      expect(result.properties[0].value.type).toBe('BooleanLiteral')
-      expect(result.properties[0].value.value).toBe(true)
-    })
-    it('should convert array value to literals', () => {
-      const testArray = ['test', 'testAgain', 'andAgain']
-      const result = convertValueToLiteral(testArray)
-
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result.type).toBe('ArrayExpression')
-      expect(result).toHaveProperty('elements')
-      expect(result.elements.length).toEqual(testArray.length)
-    })
-    it('should convert identifier value to literal', () => {
-      const result = convertValueToLiteral(String)
-
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result.type).toBe('Identifier')
-    })
-    it('returns a null literal for null or undefined', () => {
-      expect(convertValueToLiteral(null).type).toBe('NullLiteral')
-      expect(convertValueToLiteral(undefined).type).toBe('NullLiteral')
-    })
-  })
-
-  describe('objectToObjectExpression', () => {
-    it('should transform object to object expression', () => {
-      const objTest = {
-        stringKey: 'test',
-        booleanKey: true,
-        numberKey: 2,
-        arrayKey: ['test', 'testAgain'],
-        objectKey: {
-          identifierKey: String,
-        },
-      }
-      const result = objectToObjectExpression(objTest)
-
-      expect(typeof result).toBe('object')
-      expect(result).toHaveProperty('type')
-      expect(result).toHaveProperty('properties')
-      expect(result.properties.length).toEqual(Object.keys(objTest).length)
-      expect(result.properties.length).toEqual(Object.keys(objTest).length)
-    })
-    const objectTest = {
-      arrayKey: { key: Array },
-      numberKey: { key: Number },
-      stringKey: { key: String },
-      booleanKey: { key: Boolean },
-      objectKey: { key: Object },
-      astKey: { key: new ParsedASTNode('') },
-    }
-    Object.keys(objectTest).map((key) => {
-      it(`should transform ${key} object to object expression`, () => {
-        const result = objectToObjectExpression(objectTest[key])
-        expect(typeof result).toBe('object')
-        expect(result).toHaveProperty('type')
-        expect(result).toHaveProperty('properties')
-        expect(result.type).toEqual('ObjectExpression')
-      })
     })
   })
 })

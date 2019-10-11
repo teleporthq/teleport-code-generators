@@ -1,11 +1,15 @@
-import { component, elementNode } from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import {
+  ComponentStructure,
+  ChunkDefinition,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
+import { createReactStyledComponentsPlugin } from '../src/index'
 import { createElementWithStyle } from './mocks'
 
 describe('Testing the functionality for StyledComponents', () => {
-  const plugin = createPlugin()
+  const plugin = createReactStyledComponentsPlugin()
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {
@@ -22,8 +26,8 @@ describe('Testing the functionality for StyledComponents', () => {
         prop: 'props.',
       },
     },
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     linkAfter: ['import-local'],
     content: {},
   }
@@ -84,7 +88,7 @@ describe('Testing the functionality for StyledComponents', () => {
   })
 
   it('Generates the reactnative dependency path and removes unneeded dependencies', async () => {
-    const reactNativePlugin = createPlugin({ componentLibrary: 'reactnative' })
+    const reactNativePlugin = createReactStyledComponentsPlugin({ componentLibrary: 'reactnative' })
 
     const elementWithStyle = createElementWithStyle()
     const uidlSample = component('StyledComponents', elementWithStyle)

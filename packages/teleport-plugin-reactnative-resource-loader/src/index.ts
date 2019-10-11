@@ -1,7 +1,6 @@
 import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { traverseElements } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { ASSETS_IDENTIFIER } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import { setResourceURIObject, setResourceRequireCall } from './utils'
 
 interface StyledComponentsConfig {
@@ -22,7 +21,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
 
-    traverseElements(uidl.node, (element) => {
+    UIDLUtils.traverseElements(uidl.node, (element) => {
       if (element.elementType !== 'Image' || !(element.attrs && element.attrs.source)) {
         return
       }
@@ -39,7 +38,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
 
       if (sourceAttr.type === 'static') {
         const sourcePath = sourceAttr.content.toString()
-        if (sourcePath.includes(ASSETS_IDENTIFIER)) {
+        if (sourcePath.includes(Constants.ASSETS_IDENTIFIER)) {
           // Assuming the components are generated next to the assets folder
           setResourceRequireCall(sourceAttrAST, `..${sourcePath}`)
         } else {

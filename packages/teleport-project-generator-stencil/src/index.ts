@@ -1,21 +1,20 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
-import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
+import { createPrettierJSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
+import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 
 import stencilAppRouting from '@teleporthq/teleport-plugin-stencil-app-routing'
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { Mapping } from '@teleporthq/teleport-types'
+import { Mapping, FileType } from '@teleporthq/teleport-types'
 
 import StencilProjectMapping from './stencil-mapping.json'
 import StencilTemplate from './project-template'
 
 const createStencilProjectGenerator = () => {
-  const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
-  const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
+  const prettierJS = createPrettierJSPostProcessor({ fileType: FileType.TSX })
+  const importStatementsPlugin = createImportPlugin({ fileType: FileType.TSX })
 
   const stencilComponentGenerator = createStencilComponentGenerator()
   stencilComponentGenerator.addMapping(StencilProjectMapping as Mapping)
@@ -26,6 +25,7 @@ const createStencilProjectGenerator = () => {
   routingComponentGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
+  const prettierHTML = createPrettierHTMLPostProcessor()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const generator = createProjectGenerator({
@@ -54,15 +54,31 @@ const createStencilProjectGenerator = () => {
       fileName: 'index',
       options: {
         appRootOverride: `<app-root></app-root>`,
-        customScriptTags: [
-          { attributeKey: 'type', attributeValue: 'module', path: '/build/app.esm.js' },
+        customTags: [
           {
-            attributeValue: 'nomodule',
-            path: '/buid/app.js',
+            tagName: 'script',
+            targetTag: 'head',
+            attributes: [
+              { attributeKey: 'type', attributeValue: 'module' },
+              { attributeKey: 'src', attributeValue: '/build/app.esm.js' },
+            ],
           },
-        ],
-        customLinkTags: [
-          { attributeKey: 'rel', attributeValue: 'stylesheet', path: '/build/app.css' },
+          {
+            tagName: 'script',
+            targetTag: 'head',
+            attributes: [
+              { attributeKey: 'nomodule' },
+              { attributeKey: 'src', attributeValue: '/buid/app.js' },
+            ],
+          },
+          {
+            tagName: 'link',
+            targetTag: 'head',
+            attributes: [
+              { attributeKey: 'rel', attributeValue: 'stylesheet' },
+              { attributeKey: 'href', attributeValue: '/build/app.css' },
+            ],
+          },
         ],
       },
     },
@@ -76,5 +92,3 @@ const createStencilProjectGenerator = () => {
 }
 
 export { createStencilProjectGenerator, StencilProjectMapping, StencilTemplate }
-
-export default createStencilProjectGenerator()

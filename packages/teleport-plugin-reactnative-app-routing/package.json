@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-reactnative-app-routing",
-  "version": "0.10.0-alpha.0",
+  "version": "0.10.0-alpha.3",
   "description": "A plugin for handling the routing file of a React Native project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -8,6 +8,7 @@
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -25,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.0",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.3",
     "@babel/types": "^7.5.5"
   }
 }

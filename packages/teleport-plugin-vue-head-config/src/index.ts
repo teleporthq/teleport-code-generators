@@ -1,16 +1,16 @@
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import { ComponentPluginFactory, ComponentPlugin, UIDLMetaTag } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
-import { objectToObjectExpression } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
+import { ASTUtils } from '@teleporthq/teleport-shared'
 
 interface VueMetaPluginConfig {
   vueJSChunkName?: string
   metaObjectKey?: string
 }
 
-export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config) => {
+export const createVueHeadConfigPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config) => {
   const { vueJSChunkName = 'vue-js-chunk', metaObjectKey = 'head' } = config || {}
 
-  const propTypesPlugin: ComponentPlugin = async (structure) => {
+  const vueHeadConfigPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
 
     const componentChunk = chunks.find((chunk) => chunk.name === vueJSChunkName)
@@ -20,7 +20,7 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
 
     const headObject: {
       title?: string
-      meta?: Array<Record<string, string>>
+      meta?: UIDLMetaTag[]
       link?: Array<Record<string, string>>
     } = {}
 
@@ -44,14 +44,17 @@ export const createPlugin: ComponentPluginFactory<VueMetaPluginConfig> = (config
     if (Object.keys(headObject).length > 0) {
       const exportObjectAST = componentChunk.content.declaration as types.ObjectExpression
       exportObjectAST.properties.push(
-        types.objectProperty(types.identifier(metaObjectKey), objectToObjectExpression(headObject))
+        types.objectProperty(
+          types.identifier(metaObjectKey),
+          ASTUtils.objectToObjectExpression(headObject)
+        )
       )
     }
 
     return structure
   }
 
-  return propTypesPlugin
+  return vueHeadConfigPlugin
 }
 
-export default createPlugin()
+export default createVueHeadConfigPlugin()

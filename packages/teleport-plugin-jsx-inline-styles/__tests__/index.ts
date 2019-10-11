@@ -1,14 +1,14 @@
+import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import {
-  component,
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+  ComponentStructure,
+  ChunkDefinition,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
+import { createInlineStylesPlugin } from '../src/index'
 
 describe('plugin-jsx-inline-styles', () => {
-  const plugin = createPlugin()
+  const plugin = createInlineStylesPlugin()
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {
@@ -26,8 +26,8 @@ describe('plugin-jsx-inline-styles', () => {
         prop: 'props.',
       },
     },
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     linkAfter: ['import-local'],
     content: {},
   }

@@ -1,8 +1,11 @@
 import { ASSETS_IDENTIFIER } from '../constants'
-import { camelCaseToDashCase } from './string-utils'
+import {
+  camelCaseToDashCase,
+  removeIllegalCharacters,
+  dashCaseToUpperCamelCase,
+} from './string-utils'
 import {
   ComponentUIDL,
-  UIDLStateDefinition,
   UIDLStyleDefinitions,
   UIDLConditionalNode,
   UIDLElement,
@@ -12,51 +15,8 @@ import {
   UIDLDynamicReference,
   UIDLRepeatContent,
   UIDLRepeatMeta,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
-
-/**
- * A couple of different cases which need to be handled
- * In case of next/nuxt generators, the file names represent the urls of the pages
- * Also the root path needs to be represented by the index file
- */
-export const extractPageMetadata = (
-  routeDefinitions: UIDLStateDefinition,
-  stateName: string,
-  options: {
-    usePathAsFileName?: boolean
-    convertDefaultToIndex?: boolean
-  } = {
-    usePathAsFileName: false,
-    convertDefaultToIndex: false,
-  }
-): { fileName: string; componentName: string; path: string } => {
-  const defaultPage = routeDefinitions.defaultValue
-  const pageDefinitions = routeDefinitions.values || []
-  const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === stateName)
-
-  // If not meta object is defined, the stateName is used
-  if (!pageDefinition || !pageDefinition.meta) {
-    return {
-      fileName: options.convertDefaultToIndex && stateName === defaultPage ? 'index' : stateName,
-      componentName: stateName,
-      path: '/' + stateName,
-    }
-  }
-
-  // In case the path is used as the url (next, nuxt), we override the filename from the path
-  const fileNameFromMeta = options.usePathAsFileName
-    ? pageDefinition.meta.path && pageDefinition.meta.path.slice(1)
-    : pageDefinition.meta.fileName
-
-  return {
-    fileName:
-      options.convertDefaultToIndex && stateName === defaultPage
-        ? 'index'
-        : fileNameFromMeta || stateName,
-    componentName: pageDefinition.meta.componentName || stateName,
-    path: pageDefinition.meta.path || '/' + stateName,
-  }
-}
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
   // Assuming root element starts with a UIDLElementNode
@@ -68,17 +28,45 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
   ) as UIDLConditionalNode[]
 }
 
+export const createWebComponentFriendlyName = (componentName: string) => {
+  const dashCaseName = camelCaseToDashCase(componentName)
+  if (dashCaseName.includes('-')) {
+    return dashCaseName
+  }
+
+  return `app-${dashCaseName}`
+}
+
+export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
+  uidl.outputOptions = uidl.outputOptions || {}
+  const defaultComponentName = 'AppComponent'
+  const friendlyName = removeIllegalCharacters(uidl.name) || defaultComponentName
+  if (!uidl.outputOptions.fileName) {
+    uidl.outputOptions.fileName = camelCaseToDashCase(friendlyName)
+  }
+  if (!uidl.outputOptions.componentClassName) {
+    uidl.outputOptions.componentClassName = dashCaseToUpperCamelCase(friendlyName)
+  }
+
+  // failsafe for invalid UIDL samples with illegal characters as element names
+  // when used in projects, resolveLocalDependencies should handle this
+  traverseElements(uidl.node, (element) => {
+    element.elementType = removeIllegalCharacters(element.elementType)
+  })
+}
+
 export const getComponentFileName = (component: ComponentUIDL) => {
-  const name = component.meta && component.meta.fileName ? component.meta.fileName : component.name
-  return camelCaseToDashCase(name)
+  return component.outputOptions && component.outputOptions.fileName
+    ? component.outputOptions.fileName
+    : camelCaseToDashCase(getComponentClassName(component))
 }
 
 export const getStyleFileName = (component: ComponentUIDL) => {
   const componentFileName = getComponentFileName(component)
 
   // If component meta style file name is not set, we default to the component file name
-  return component.meta && component.meta.styleFileName
-    ? component.meta.styleFileName
+  return component.outputOptions && component.outputOptions.styleFileName
+    ? component.outputOptions.styleFileName
     : componentFileName
 }
 
@@ -86,13 +74,20 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
   const componentFileName = getComponentFileName(component)
 
   // If component meta style file name is not set, we default to the component file name
-  return component.meta && component.meta.templateFileName
-    ? component.meta.templateFileName
+  return component.outputOptions && component.outputOptions.templateFileName
+    ? component.outputOptions.templateFileName
     : componentFileName
 }
 
-export const getComponentPath = (component: ComponentUIDL) =>
-  component.meta ? component.meta.path : []
+export const getComponentFolderPath = (component: ComponentUIDL) =>
+  component.outputOptions && component.outputOptions.folderPath
+    ? component.outputOptions.folderPath
+    : []
+
+export const getComponentClassName = (component: ComponentUIDL) =>
+  component.outputOptions && component.outputOptions.componentClassName
+    ? component.outputOptions.componentClassName
+    : component.name
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'
@@ -359,8 +354,8 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
-  transform: (value: UIDLDynamicReference, key?: string) => unknown
-) => {
+  transform: (value: UIDLDynamicReference, key?: string) => any
+): Record<string, any> => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]
 
@@ -526,7 +521,7 @@ export const transformAttributesAssignmentsToJson = (
   return newStyleObject
 }
 
-export const findFirstElementNode = (node: UIDLNode) => {
+export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
   switch (node.type) {
     case 'element':
       return node

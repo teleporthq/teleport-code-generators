@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '../../utils/ast-js-utils'
+import { convertValueToLiteral } from '../../utils/ast-utils'
 import { capitalize } from '../../utils/string-utils'
 import {
   UIDLPropDefinition,
@@ -143,7 +143,7 @@ export const createDynamicValueExpression = (
   options: JSXGenerationOptions,
   t = types
 ) => {
-  const refType = identifier.content.referenceType
+  const refType = identifier.content.referenceType as 'prop' | 'state' | 'local'
   const prefix = options.dynamicReferencePrefixMap[refType] || ''
   return prefix === ''
     ? t.identifier(identifier.content.id)

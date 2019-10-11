@@ -9,7 +9,11 @@ export const isNodeProcess = (): boolean => {
   )
 }
 
-export const writeZipToDisk = (zipFolderPath: string, content: Buffer, zipName: string): void => {
+export const writeZipToDisk = (
+  zipFolderPath: string,
+  content: Buffer | Blob,
+  zipName: string
+): void => {
   const fs = require('fs')
   const path = require('path')
 
@@ -24,7 +28,7 @@ export const writeZipToDisk = (zipFolderPath: string, content: Buffer, zipName: 
   writeStream.end()
 }
 
-export const generateProjectZip = async (project: GeneratedFolder): Promise<Buffer> => {
+export const generateProjectZip = async (project: GeneratedFolder): Promise<Buffer | Blob> => {
   let zip = new JSZip()
   zip = writeFolderToZip(project, zip, true)
   const zipType = isNodeProcess() ? 'nodebuffer' : 'blob'

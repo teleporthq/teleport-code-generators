@@ -83,22 +83,22 @@
         "values": [
           {
             "value": "index",
-            "meta": {
-              "path": "/",
+            "pageOptions": {
+              "navLink": "/",
               "componentName": "Home"
             }
           },
           {
             "value": "about",
-            "meta": {
-              "path": "/about",
+            "pageOptions": {
+              "navLink": "/about",
               "componentName": "About"
             }
           },
           {
             "value": "contact-us",
-            "meta": {
-              "path": "/here-we-are",
+            "pageOptions": {
+              "navLink": "/here-we-are",
               "componentName": "Us"
             }
           }
@@ -192,7 +192,7 @@
     "OneComponent": {
       "name": "OneComponent",
       "propDefinitions": {
-        "title": {
+        "header": {
           "type": "string",
           "defaultValue": "Hello"
         },
@@ -220,7 +220,7 @@
               "type": "dynamic",
               "content": {
                 "referenceType": "prop",
-                "id": "title"
+                "id": "header"
               }
             }
           },
@@ -238,7 +238,7 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "title"
+                      "id": "header"
                     }
                   }
                 ]

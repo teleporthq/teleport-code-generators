@@ -1,18 +1,12 @@
 import * as types from '@babel/types'
-import {
-  component,
-  elementNode,
-  dynamicNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
+import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { ComponentStructure, FileType } from '@teleporthq/teleport-types'
+import { createCSSModulesPlugin } from '../src/index'
 import { createComponentChunk, setupPluginStructure } from './mocks'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 describe('plugin-css-modules', () => {
   it('generates no chunk if no styles exist', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const uidlSample = component('CSSModules', elementNode('container'))
     const structure: ComponentStructure = {
       uidl: uidlSample,
@@ -27,13 +21,13 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure()
     const { chunks } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup.container
@@ -45,13 +39,13 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className between brackets', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -63,13 +57,13 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className in camel case', async () => {
-    const plugin = createPlugin({ camelCaseClassNames: true })
+    const plugin = createCSSModulesPlugin({ camelCaseClassNames: true })
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -81,13 +75,13 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the class attribute', async () => {
-    const plugin = createPlugin({ classAttributeName: 'class' })
+    const plugin = createCSSModulesPlugin({ classAttributeName: 'class' })
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
 
     const nodeReference = chunks[0].meta.nodesLookup['list-container']
@@ -98,19 +92,21 @@ describe('plugin-css-modules', () => {
     expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
   })
 
-  it('generates a string chunk of type CSSMODULE', async () => {
-    const plugin = createPlugin({ moduleExtension: true })
+  it('generates a string chunk of type CSS', async () => {
+    const plugin = createCSSModulesPlugin({ moduleExtension: true })
     const structure = setupPluginStructure('list-container')
-    const { chunks } = await plugin(structure)
+    const { chunks, dependencies } = await plugin(structure)
 
     expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSSMODULE)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('height: 100px;')
+    expect(structure.uidl.outputOptions.styleFileName).toContain('.module')
+    expect(dependencies.styles.path).toContain('.module.css')
   })
 
   it('inlines dynamic style and does not generate a new chunk if no static styles are present', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('container', {
       height: dynamicNode('prop', 'height'),
     })
@@ -132,7 +128,7 @@ describe('plugin-css-modules', () => {
   })
 
   it('inlines dynamic style and generates a new chunk with the static styles', async () => {
-    const plugin = createPlugin()
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('container', {
       height: dynamicNode('prop', 'height'),
       width: staticNode('auto'),
@@ -142,7 +138,7 @@ describe('plugin-css-modules', () => {
     expect(chunks.length).toBe(2)
 
     expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FILE_TYPE.CSS)
+    expect(chunks[1].fileType).toBe(FileType.CSS)
     expect(chunks[1].content).toContain('width: auto;')
 
     const nodeReference = chunks[0].meta.nodesLookup.container

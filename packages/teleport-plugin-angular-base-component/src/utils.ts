@@ -1,24 +1,24 @@
 import * as types from '@babel/types'
+import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
-  convertValueToLiteral,
-  getTSAnnotationForType,
-  createStateChangeStatement,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-js-utils'
-import {
+  UIDLMetaTag,
+  ComponentUIDL,
+  UIDLComponentSEO,
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
-  componentName: string,
+  uidl: ComponentUIDL,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   dataObject: Record<string, any>,
   methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
-  let angularMethodsAST = []
+  const componentName = UIDLUtils.getComponentClassName(uidl)
+  let angularMethodsAST: types.ClassMethod[] = []
   if (Object.keys(methodsObject).length > 0) {
     angularMethodsAST = createMethodsObject(methodsObject, propDefinitions)
   }
@@ -41,8 +41,8 @@ export const generateExportAST = (
     }
     return t.classProperty(
       t.identifier(propKey),
-      convertValueToLiteral(propDefinitions[propKey].defaultValue),
-      t.tsTypeAnnotation(getTSAnnotationForType(propDefinitions[propKey].type)),
+      ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(propDefinitions[propKey].type)),
       [t.decorator(t.callExpression(t.identifier('Input'), []))]
     )
   })
@@ -50,38 +50,88 @@ export const generateExportAST = (
   const propertyDecleration = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(
       t.identifier(stateKey),
-      convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
-      t.tsTypeAnnotation(getTSAnnotationForType(stateDefinitions[stateKey].type))
+      ASTUtils.convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDefinitions[stateKey].type))
     )
   )
 
   const dataDeclaration = Object.keys(dataObject).map((dataKey) => {
     return t.classProperty(
       t.identifier(dataKey),
-      convertValueToLiteral(dataObject[dataKey]),
-      t.tsTypeAnnotation(getTSAnnotationForType(typeof dataObject[dataKey]))
+      ASTUtils.convertValueToLiteral(dataObject[dataKey]),
+      t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(typeof dataObject[dataKey]))
     )
   })
 
-  const classBodyAST = () => {
+  const classBodyAST = (componentUIDL: ComponentUIDL) => {
     return t.classBody([
       ...propDeclaration,
       ...propertyDecleration,
       ...dataDeclaration,
-      constructorAST(),
+      constructorAST(componentUIDL.seo),
       ...angularMethodsAST,
     ])
   }
 
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(componentName), null, classBodyAST()),
+    t.classDeclaration(t.identifier(`${componentName}Component`), null, classBodyAST(uidl)),
     [],
     null
   )
 }
 
-const constructorAST = (t = types) => {
-  return t.classMethod('constructor', t.identifier('constructor'), [], t.blockStatement([]))
+const constructorAST = (seo: UIDLComponentSEO, t = types) => {
+  const params = []
+  const blockStatements = []
+  if (seo) {
+    const { title, metaTags } = seo
+
+    if (title) {
+      params.push(t.identifier(`private title: Title`))
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('title')),
+              t.identifier('setTitle')
+            ),
+            [t.stringLiteral(title)]
+          )
+        )
+      )
+    }
+
+    if (metaTags && metaTags.length > 0) {
+      params.push(t.identifier(`private meta: Meta`))
+
+      blockStatements.push(
+        t.expressionStatement(
+          t.callExpression(
+            t.memberExpression(
+              t.memberExpression(t.thisExpression(), t.identifier('meta')),
+              t.identifier('addTags')
+            ),
+            [t.arrayExpression(constructMetaTagAST(metaTags))]
+          )
+        )
+      )
+    }
+  }
+
+  return t.classMethod(
+    'constructor',
+    t.identifier('constructor'),
+    params,
+    t.blockStatement(blockStatements)
+  )
+}
+
+const constructMetaTagAST = (metaTags: UIDLMetaTag[]) => {
+  const metaTagsAST: types.ObjectExpression[] = []
+  metaTags.forEach((tag: UIDLMetaTag) => {
+    metaTagsAST.push(ASTUtils.objectToObjectExpression(tag))
+  })
+  return metaTagsAST
 }
 
 const createMethodsObject = (
@@ -90,12 +140,12 @@ const createMethodsObject = (
   t = types
 ) => {
   return Object.keys(methods).map((eventKey) => {
-    const astStatements = []
+    const astStatements: types.ExpressionStatement[] = []
     methods[eventKey].map((statement) => {
       const astStatement =
         statement.type === 'propCall'
           ? createPropCallStatement(statement, propDefinitions)
-          : createStateChangeStatement(statement)
+          : ASTBuilders.createStateChangeStatement(statement)
 
       if (astStatement) {
         astStatements.push(astStatement)

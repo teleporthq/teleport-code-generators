@@ -1,8 +1,17 @@
 import { createClassDeclaration } from './utils'
-import { createComponentDecorator } from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  createJSXSyntax,
+  JSXGenerationOptions,
+  ASTBuilders,
+  ASTUtils,
+  UIDLUtils,
+} from '@teleporthq/teleport-shared'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -10,8 +19,6 @@ import {
   DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
   STENCIL_CORE_DEPENDENCY,
 } from './constants'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
 
 interface StencilPluginConfig {
   componentChunkName: string
@@ -19,7 +26,9 @@ interface StencilPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config) => {
+export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginConfig> = (
+  config
+) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     componentDecoratorChunkName = DEFAULT_COMPONENT_DECORATOR_CHUNK_NAME,
@@ -61,27 +70,35 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
       dependencyHandling: 'ignore',
       stateHandling: 'mutation',
       slotHandling: 'native',
-      customElementTag: (name: string) => `app-${camelCaseToDashCase(name)}`,
+      customElementTag: (name: string) => UIDLUtils.createWebComponentFriendlyName(name),
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
+
+    if (uidl.seo && uidl.seo.title) {
+      const titleAST = ASTBuilders.createSelfClosingJSXTag('stencil-route-title')
+      ASTUtils.addAttributeToJSXTag(titleAST, 'pageTitle', uidl.seo.title)
+      jsxTagStructure.children.unshift(titleAST)
+    }
+
+    const componentName = UIDLUtils.getComponentClassName(uidl)
     const exportAST = createClassDeclaration(
-      uidl.name,
+      componentName,
       propDefinitions,
       stateDefinitions,
       jsxTagStructure
     )
 
     const params = {
-      tag: `app-${camelCaseToDashCase(uidl.name)}`,
+      tag: UIDLUtils.createWebComponentFriendlyName(componentName),
       shadow: true,
     }
 
-    const decoratorAST = createComponentDecorator(params)
+    const decoratorAST = ASTBuilders.createComponentDecorator(params)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       name: componentDecoratorChunkName,
       meta: {
         nodesLookup,
@@ -91,8 +108,8 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
     })
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.TSX,
+      type: ChunkType.AST,
+      fileType: FileType.TSX,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -108,4 +125,4 @@ export const createPlugin: ComponentPluginFactory<StencilPluginConfig> = (config
   return stencilComponentPlugin
 }
 
-export default createPlugin()
+export default createStencilComponentPlugin()

@@ -1,9 +1,17 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
 import { createPureComponent } from './utils'
-import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
+import {
+  createJSXSyntax,
+  JSXGenerationOptions,
+  ASTBuilders,
+  UIDLUtils,
+} from '@teleporthq/teleport-shared'
 
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -12,8 +20,6 @@ import {
   REACT_LIBRARY_DEPENDENCY,
   USE_STATE_DEPENDENCY,
 } from './constants'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface ReactPluginConfig {
   componentChunkName: string
@@ -21,7 +27,7 @@ interface ReactPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
+export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
@@ -62,11 +68,12 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
 
-    const pureComponent = createPureComponent(uidl.name, stateDefinitions, jsxTagStructure)
+    const componentName = UIDLUtils.getComponentClassName(uidl)
+    const pureComponent = createPureComponent(componentName, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -77,10 +84,10 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
     })
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: exportChunkName,
-      content: createDefaultExport(uidl.name),
+      content: ASTBuilders.createDefaultExport(componentName),
       linkAfter: [componentChunkName],
     })
 
@@ -90,4 +97,4 @@ export const createPlugin: ComponentPluginFactory<ReactPluginConfig> = (config) 
   return reactComponentPlugin
 }
 
-export default createPlugin()
+export default createReactComponentPlugin()

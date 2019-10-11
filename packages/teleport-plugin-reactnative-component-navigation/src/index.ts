@@ -1,11 +1,6 @@
 import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { traverseElements } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  findAttributeByName,
-  removeAttributeByName,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
+import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -24,7 +19,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
-    traverseElements(uidl.node, (element) => {
+    UIDLUtils.traverseElements(uidl.node, (element) => {
       if (
         element.elementType !== 'TouchableWithoutFeedback' ||
         !(element.attrs && element.attrs.transitionTo)
@@ -34,7 +29,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
       }
 
       const jsxElement = jsxNodesLookup[element.key]
-      const transitionToAttr = findAttributeByName(jsxElement, 'transitionTo')
+      const transitionToAttr = ASTUtils.findAttributeByName(jsxElement, 'transitionTo')
 
       // screen name can be a static string or a dynamic value
       const screenNameAST =
@@ -42,7 +37,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
           ? (transitionToAttr.value.expression as types.MemberExpression)
           : (transitionToAttr.value as types.StringLiteral)
 
-      removeAttributeByName(jsxElement, 'transitionTo')
+      ASTUtils.removeAttributeByName(jsxElement, 'transitionTo')
 
       jsxElement.openingElement.attributes.push(
         types.jsxAttribute(
@@ -68,7 +63,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
             return child
           }
 
-          return createJSXTag('Text', [child])
+          return ASTBuilders.createJSXTag('Text', [child])
         })
       }
     })

@@ -34,7 +34,7 @@ const assetsData = {
 describe('teleport generic project packer', () => {
   it('creates a new instance of generic packer', () => {
     const packer = createProjectPacker()
-    expect(packer.loadTemplate).toBeDefined()
+    expect(packer.loadRemoteTemplate).toBeDefined()
     expect(packer.pack).toBeDefined()
     expect(packer.setAssets).toBeDefined()
     expect(packer.setGenerator).toBeDefined()

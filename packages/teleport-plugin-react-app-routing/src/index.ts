@@ -1,21 +1,17 @@
-import {
-  createSelfClosingJSXTag,
-  createFunctionCall,
-  createFunctionalComponent,
-  createDefaultExport,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  extractPageMetadata,
-  extractRoutes,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   registerReactRouterDeps,
   registerPreactRouterDeps,
   constructRouteJSX,
   createRouteRouterTag,
 } from './utils'
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+  UIDLPageOptions,
+} from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string
@@ -24,7 +20,9 @@ interface AppRoutingComponentConfig {
   flavor: 'preact' | 'react'
 }
 
-export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
+export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
+  config
+) => {
   const {
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
@@ -32,7 +30,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     flavor = 'react',
   } = config || {}
 
-  const reactAppRoutingComponentPlugin: ComponentPlugin = async (structure) => {
+  const reactAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
 
     if (flavor === 'preact') {
@@ -43,17 +41,17 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
 
     const { stateDefinitions = {} } = uidl
 
-    const routes = extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
+      const routeValues = stateDefinitions.route.values || []
 
-      const { fileName: pageName, componentName, path } = extractPageMetadata(
-        stateDefinitions.route,
-        routeKey.toString()
-      )
+      const pageDefinition = routeValues.find((route) => route.value === routeKey)
+      const defaultOptions: UIDLPageOptions = {}
+      const { fileName, componentName, navLink } = pageDefinition.pageOptions || defaultOptions
 
       /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
@@ -63,49 +61,47 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
          so the `/component` suffix is computed below.
       */
       const pageStrategyOptions = (strategy && strategy.pages.options) || {}
-      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent
-        ? '/' + (pageStrategyOptions.customComponentFileName || 'index')
-        : ''
+      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${pageName}${pageComponentSuffix}`,
+        path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
       }
 
-      return constructRouteJSX(flavor, componentName, path)
+      return constructRouteJSX(flavor, componentName, navLink)
     })
 
     const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
 
-    const pureComponent = createFunctionalComponent(uidl.name, rootRouterTag)
+    const pureComponent = ASTBuilders.createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: componentChunkName,
       content: pureComponent,
       linkAfter: [importChunkName],
     })
 
     if (flavor === 'preact') {
-      const exportJSXApp = createDefaultExport('App')
+      const exportJSXApp = ASTBuilders.createDefaultExport('App')
 
       structure.chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: domRenderChunkName,
         content: exportJSXApp,
         linkAfter: [componentChunkName],
       })
     } else {
-      const reactDomBind = createFunctionCall('ReactDOM.render', [
-        createSelfClosingJSXTag(uidl.name),
-        createFunctionCall('document.getElementById', ['app']),
+      const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
+        ASTBuilders.createSelfClosingJSXTag(uidl.name),
+        ASTBuilders.createFunctionCall('document.getElementById', ['app']),
       ])
 
       structure.chunks.push({
-        type: CHUNK_TYPE.AST,
-        fileType: FILE_TYPE.JS,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
         name: domRenderChunkName,
         content: reactDomBind,
         linkAfter: [componentChunkName],
@@ -115,7 +111,7 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
     return structure
   }
 
-  return reactAppRoutingComponentPlugin
+  return reactAppRoutingPlugin
 }
 
-export default createPlugin()
+export default createReactAppRoutingPlugin()

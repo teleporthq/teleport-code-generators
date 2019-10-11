@@ -45,19 +45,18 @@ describe('Generic Project Generator', () => {
       expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
       expect(componentsGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
+        expect.objectContaining({
           assetsPrefix: '/test/static',
-          projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
-        }
+        })
       )
       expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
       expect(routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: 'index',
         },
       }
@@ -104,7 +103,7 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
 
-      const uidl = projectUIDL as ProjectUIDL
+      const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -135,7 +134,7 @@ describe('Generic Project Generator', () => {
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: strategy.router.fileName,
         },
       }
@@ -154,8 +153,8 @@ describe('Generic Project Generator', () => {
     const strategy = createStrategyWithCommonGenerator()
     strategy.components.options = {
       createFolderForEachComponent: true,
-      customComponentFileName: 'component',
-      customStyleFileName: 'style',
+      customComponentFileName: (name) => 'component',
+      customStyleFileName: (name) => 'style',
     }
 
     const generator = createProjectGenerator(strategy)
@@ -166,7 +165,7 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
 
-      const uidl = projectUIDL as ProjectUIDL
+      const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -186,7 +185,7 @@ describe('Generic Project Generator', () => {
 
       const routerUIDL = {
         ...uidl.root,
-        meta: {
+        outputOptions: {
           fileName: 'index',
         },
       }
@@ -242,34 +241,32 @@ describe('Generic Project Generator', () => {
       generator.updatePagesStrategy({
         options: {
           createFolderForEachComponent: true,
-          convertDefaultToIndex: false,
         },
       })
 
       const strategy = generator.getStrategy()
 
       expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
-      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
     })
 
     it('overrides existing options', () => {
       const initialStrategy = createStrategyWithCommonGenerator()
       initialStrategy.pages.options = {
-        convertDefaultToIndex: true,
+        useFileNameForNavigation: true,
       }
       const generator = createProjectGenerator(initialStrategy)
 
       generator.updatePagesStrategy({
         options: {
           createFolderForEachComponent: true,
-          convertDefaultToIndex: false,
+          useFileNameForNavigation: false,
         },
       })
 
       const strategy = generator.getStrategy()
 
       expect(strategy.pages.options.createFolderForEachComponent).toBe(true)
-      expect(strategy.pages.options.convertDefaultToIndex).toBe(false)
+      expect(strategy.pages.options.useFileNameForNavigation).toBe(false)
     })
   })
 })

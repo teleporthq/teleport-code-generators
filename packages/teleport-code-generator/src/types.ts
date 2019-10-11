@@ -21,7 +21,7 @@ interface GithubOptions {
 
 export interface PackerOptions {
   projectType?: ProjectType
-  publisher?: string
+  publisher?: PublisherType
   publishOptions?: GithubOptions | PublisherOptions
   assets?: AssetInfo[]
 }
@@ -50,6 +50,7 @@ export enum ProjectType {
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   REACTNATIVE = 'React Native',
+  ANGULAR = 'Angular',
 }
 
 export enum ComponentType {

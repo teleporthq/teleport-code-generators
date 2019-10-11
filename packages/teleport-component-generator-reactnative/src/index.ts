@@ -1,5 +1,5 @@
 import reactComponentPlugin from '@teleporthq/teleport-plugin-react-base-component'
-import { createPlugin as createStyledComponentsPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
+import { createReactStyledComponentsPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
 import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
 import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -19,7 +19,7 @@ enum ReactNativeStyleVariation {
   StyledComponents = 'Styled Components',
 }
 
-const styledComponentsPlugin = createStyledComponentsPlugin({
+const styledComponentsPlugin = createReactStyledComponentsPlugin({
   componentLibrary: 'reactnative',
 })
 

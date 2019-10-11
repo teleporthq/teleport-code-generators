@@ -28,8 +28,7 @@ const createNuxtProjectGenerator = () => {
       generator: vuePageGenerator,
       path: ['pages'],
       options: {
-        usePathAsFileName: true,
-        convertDefaultToIndex: true,
+        useFileNameForNavigation: true,
       },
     },
     entry: {
@@ -50,5 +49,3 @@ const createNuxtProjectGenerator = () => {
 }
 
 export { createNuxtProjectGenerator, NuxtMapping, NuxtTemplate }
-
-export default createNuxtProjectGenerator()

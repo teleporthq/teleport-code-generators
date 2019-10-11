@@ -1,25 +1,16 @@
 import stencilComponentPlugin from '@teleporthq/teleport-plugin-stencil-base-component'
-import { createPlugin as createCSSPlugin } from '@teleporthq/teleport-plugin-css'
-import { createPlugin as createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { createPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
+import { createPrettierJSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import {
   createComponentGenerator,
   GeneratorFactoryParams,
 } from '@teleporthq/teleport-component-generator'
 
-import { ComponentGenerator } from '@teleporthq/teleport-types'
+import { ComponentGenerator, FileType } from '@teleporthq/teleport-types'
 
 import StencilMapping from './stencil-mapping.json'
-
-const importStatementsPlugin = createImportPlugin({ fileType: FILE_TYPE.TSX })
-const stencilStylePlugin = createCSSPlugin({
-  declareDependency: 'decorator',
-  templateStyle: 'jsx',
-  templateChunkName: 'jsx-component',
-})
-const prettierJS = createPostProcessor({ fileType: FILE_TYPE.TSX })
 
 const createStencilComponentGenerator = ({
   mappings = [],
@@ -27,6 +18,14 @@ const createStencilComponentGenerator = ({
   postprocessors = [],
 }: GeneratorFactoryParams = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
+
+  const importStatementsPlugin = createImportPlugin({ fileType: FileType.TSX })
+  const stencilStylePlugin = createCSSPlugin({
+    declareDependency: 'decorator',
+    templateStyle: 'jsx',
+    templateChunkName: 'jsx-component',
+  })
+  const prettierJS = createPrettierJSPostProcessor({ fileType: FileType.TSX })
 
   generator.addMapping(StencilMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
@@ -43,5 +42,3 @@ const createStencilComponentGenerator = ({
 }
 
 export { createStencilComponentGenerator, StencilMapping }
-
-export default createStencilComponentGenerator()

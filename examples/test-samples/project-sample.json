@@ -83,22 +83,25 @@
         "values": [
           {
             "value": "index",
-            "meta": {
-              "path": "/",
+            "pageOptions": {
+              "navLink": "/",
+              "fileName": "index",
               "componentName": "Home"
             }
           },
           {
             "value": "about",
-            "meta": {
-              "path": "/about",
+            "pageOptions": {
+              "navLink": "/about",
+              "fileName": "about",
               "componentName": "About"
             }
           },
           {
             "value": "contact-us",
-            "meta": {
-              "path": "/here-we-are",
+            "pageOptions": {
+              "navLink": "/here-we-are",
+              "fileName": "contact-us",
               "componentName": "Us"
             }
           }
@@ -192,7 +195,7 @@
     "OneComponent": {
       "name": "OneComponent",
       "propDefinitions": {
-        "title": {
+        "titleValue": {
           "type": "string",
           "defaultValue": "Hello"
         },
@@ -220,7 +223,7 @@
               "type": "dynamic",
               "content": {
                 "referenceType": "prop",
-                "id": "title"
+                "id": "titleValue"
               }
             }
           },
@@ -238,7 +241,7 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "prop",
-                      "id": "title"
+                      "id": "titleValue"
                     }
                   }
                 ]
@@ -317,7 +320,7 @@
     "ExpandableArea": {
       "name": "ExpandableArea",
       "propDefinitions": {
-        "title": {
+        "titleValue": {
           "type": "string",
           "defaultValue": "Hello"
         },
@@ -348,7 +351,7 @@
                   "type": "dynamic",
                   "content": {
                     "referenceType": "prop",
-                    "id": "title"
+                    "id": "titleValue"
                   }
                 }]
               }

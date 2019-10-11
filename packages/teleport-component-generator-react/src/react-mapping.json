@@ -35,5 +35,6 @@
     "readonly": "readOnly",
     "class": "className",
     "contenteditable": "contentEditable"
-  } 
+  },
+  "illegalClassNames": ["React", "Fragment", "ReactDOM", "PropTypes"]
 }

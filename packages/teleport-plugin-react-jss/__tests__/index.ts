@@ -1,14 +1,17 @@
+import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import {
-  component,
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
-import { ComponentStructure, ChunkDefinition } from '@teleporthq/teleport-types'
-import { createPlugin } from '../src/index'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+  ComponentStructure,
+  ChunkDefinition,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
+import { createReactJSSPlugin } from '../src/index'
 
 describe('plugin-react-jss', () => {
-  const plugin = createPlugin({ styleChunkName: 'jss-chunk', exportChunkName: 'export-chunk' })
+  const plugin = createReactJSSPlugin({
+    styleChunkName: 'jss-chunk',
+    exportChunkName: 'export-chunk',
+  })
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {
@@ -26,8 +29,8 @@ describe('plugin-react-jss', () => {
         prop: 'props.',
       },
     },
-    type: CHUNK_TYPE.AST,
-    fileType: FILE_TYPE.JS,
+    type: ChunkType.AST,
+    fileType: FileType.JS,
     linkAfter: ['import-local'],
     content: {},
   }
@@ -68,9 +71,9 @@ describe('plugin-react-jss', () => {
     expect(injectSheet.path).toBe('react-jss')
 
     expect(chunks.length).toBe(3)
-    expect(chunks[1].type).toBe(CHUNK_TYPE.AST)
+    expect(chunks[1].type).toBe(ChunkType.AST)
     expect(chunks[1].name).toBe('jss-chunk')
-    expect(chunks[2].type).toBe(CHUNK_TYPE.AST)
+    expect(chunks[2].type).toBe(ChunkType.AST)
     expect(chunks[2].name).toBe('export-chunk')
   })
 })

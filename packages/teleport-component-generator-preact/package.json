@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-preact",
-  "version": "0.10.0-alpha.0",
+  "version": "0.10.0-alpha.3",
   "description": "Component generator customization, capable of creating Preact components with CSS-Modules styling",
   "author": "teleportHQ",
   "license": "MIT",
@@ -8,6 +8,7 @@
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -25,15 +26,15 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-css-modules": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-plugin-preact-base-component": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.0",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.0"
+    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-css": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-css-modules": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-plugin-preact-base-component": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.3",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.3"
   },
-  "gitHead": "7985998cf94f97c5b61cc61416c5a22fca50abbc"
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

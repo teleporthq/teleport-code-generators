@@ -16,3 +16,12 @@ export const ANGULAR_CORE_DEPENDENCY: UIDLDependency = {
     namedImport: true,
   },
 }
+
+export const ANGULAR_PLATFORM_BROWSER: UIDLDependency = {
+  type: 'library',
+  path: '@angular/platform-browser',
+  version: '8.1.0',
+  meta: {
+    namedImport: true,
+  },
+}

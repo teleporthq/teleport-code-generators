@@ -25,5 +25,7 @@
     "readonly": "readOnly",
     "class": "className",
     "contenteditable": "contentEditable"
-  }
+  },
+  "illegalClassNames": ["Prop", "State"],
+  "illegalPropNames": ["title"]
 }

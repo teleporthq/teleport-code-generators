@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
-import { convertValueToLiteral } from '../utils/ast-js-utils'
-import { ImportIdentifier } from '@teleporthq/teleport-types'
+import { convertValueToLiteral, objectToObjectExpression } from '../utils/ast-utils'
+import { ImportIdentifier, UIDLEventHandlerStatement } from '@teleporthq/teleport-types'
 
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
   const declarator = t.variableDeclarator(t.identifier(constName), asignment)
@@ -141,4 +141,27 @@ export const createFunctionalComponent = (
   const component = t.variableDeclaration('const', [declarator])
 
   return component
+}
+
+export const createComponentDecorator = (params: Record<string, any>, t = types) => {
+  return t.decorator(
+    t.callExpression(t.identifier('Component'), [objectToObjectExpression(params)])
+  )
+}
+
+export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
+  const { modifies, newState } = statement
+
+  const rightOperand =
+    newState === '$toggle'
+      ? t.unaryExpression('!', t.memberExpression(t.identifier('this'), t.identifier(modifies)))
+      : convertValueToLiteral(newState)
+
+  return t.expressionStatement(
+    t.assignmentExpression(
+      '=',
+      t.memberExpression(t.identifier('this'), t.identifier(modifies)),
+      rightOperand
+    )
+  )
 }

@@ -1,34 +1,38 @@
 import * as types from '@babel/types'
-import { createJSXTag } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-import {
-  addChildJSXTag,
-  addAttributeToJSXTag,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/ast-jsx-utils'
-import { extractPageMetadata } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
-import { camelCaseToDashCase } from '@teleporthq/teleport-shared/dist/cjs/utils/string-utils'
+import { ASTBuilders, ASTUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
-export const createClassDecleration = (routes, routeDefinitions, t = types) => {
-  const stencilRouterTag = createJSXTag('stencil-router')
-  const stencilRouteSwitchTag = createJSXTag('stencil-route-switch')
-  addChildJSXTag(stencilRouterTag, stencilRouteSwitchTag)
+export const createClassDeclaration = (
+  routes: UIDLConditionalNode[],
+  routeDefinitions: UIDLStateDefinition,
+  t = types
+) => {
+  const stencilRouterTag = ASTBuilders.createJSXTag('stencil-router')
+  const stencilRouteSwitchTag = ASTBuilders.createJSXTag('stencil-route-switch')
+  ASTUtils.addChildJSXTag(stencilRouterTag, stencilRouteSwitchTag)
 
   routes.forEach((routeNode) => {
     const pageKey = routeNode.content.value.toString()
-    const { componentName, path } = extractPageMetadata(routeDefinitions, pageKey)
+    const pageDefinition = routeDefinitions.values.find((route) => route.value === pageKey)
+    const { componentName, navLink } = pageDefinition.pageOptions
 
-    const stencilRouteTag = createJSXTag('stencil-route')
-    addAttributeToJSXTag(stencilRouteTag, 'url', path)
-    if (path === '/') {
-      addAttributeToJSXTag(stencilRouteTag, 'exact', true)
+    const stencilRouteTag = ASTBuilders.createJSXTag('stencil-route')
+    ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    if (navLink === '/') {
+      ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'exact', true)
     }
-    addAttributeToJSXTag(stencilRouteTag, 'component', `app-${camelCaseToDashCase(componentName)}`)
-    addChildJSXTag(stencilRouteSwitchTag, stencilRouteTag)
+    ASTUtils.addAttributeToJSXTag(
+      stencilRouteTag,
+      'component',
+      UIDLUtils.createWebComponentFriendlyName(componentName)
+    )
+    ASTUtils.addChildJSXTag(stencilRouteSwitchTag, stencilRouteTag)
   })
 
-  const mainTag = createJSXTag('main')
-  addChildJSXTag(mainTag, stencilRouterTag)
-  const divTag = createJSXTag('div')
-  addChildJSXTag(divTag, mainTag)
+  const mainTag = ASTBuilders.createJSXTag('main')
+  ASTUtils.addChildJSXTag(mainTag, stencilRouterTag)
+  const divTag = ASTBuilders.createJSXTag('div')
+  ASTUtils.addChildJSXTag(divTag, mainTag)
 
   const returnAST = divTag as types.JSXElement
 

@@ -1,11 +1,6 @@
 import { createComponentGenerator } from '../src/index'
-import {
-  elementNode,
-  element,
-  component,
-} from '../../teleport-shared/dist/cjs/builders/uidl-builders'
-import { ChunkDefinition } from '@teleporthq/teleport-types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
+import { elementNode, element, component } from '@teleporthq/teleport-uidl-builders'
+import { ChunkDefinition, ChunkType, FileType, ComponentPlugin } from '@teleporthq/teleport-types'
 
 describe('component generator', () => {
   it('creates a new instance of the generator', () => {
@@ -52,14 +47,14 @@ describe('component generator', () => {
 
       let pluginCalls = 0
       // dummy plugins
-      const plugin1 = (structure) => {
+      const plugin1: ComponentPlugin = (structure) => {
         pluginCalls++
-        return structure
+        return Promise.resolve(structure)
       }
 
-      const plugin2 = (structure) => {
+      const plugin2: ComponentPlugin = (structure) => {
         pluginCalls++
-        return structure
+        return Promise.resolve(structure)
       }
 
       generator.addPlugin(plugin1)
@@ -77,8 +72,8 @@ describe('component generator', () => {
       const codeChunks: Record<string, ChunkDefinition[]> = {
         js: [
           {
-            type: CHUNK_TYPE.STRING,
-            fileType: FILE_TYPE.JS,
+            type: ChunkType.STRING,
+            fileType: FileType.JS,
             name: 'chunk',
             content: 'import lib from "lib"',
             linkAfter: [],

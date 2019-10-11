@@ -1,9 +1,17 @@
-import { createDefaultExport } from '@teleporthq/teleport-shared/dist/cjs/builders/ast-builders'
-
 import { createClassComponent, createPureComponent } from './utils'
-import createJSXSyntax from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx'
+import {
+  createJSXSyntax,
+  JSXGenerationOptions,
+  ASTBuilders,
+  UIDLUtils,
+} from '@teleporthq/teleport-shared'
 
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  ChunkType,
+  FileType,
+} from '@teleporthq/teleport-types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -11,8 +19,6 @@ import {
   DEFAULT_IMPORT_CHUNK_NAME,
   PREACT_COMPONENT_DEPENDENCY,
 } from './constants'
-import { JSXGenerationOptions } from '@teleporthq/teleport-shared/dist/cjs/node-handlers/node-to-jsx/types'
-import { CHUNK_TYPE, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 
 interface PreactPluginConfig {
   componentChunkName: string
@@ -20,14 +26,14 @@ interface PreactPluginConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config) => {
+export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginConfig> = (config) => {
   const {
     componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME,
     exportChunkName = DEFAULT_EXPORT_CHUNK_NAME,
     importChunkName = DEFAULT_IMPORT_CHUNK_NAME,
   } = config || {}
 
-  const reactComponentPlugin: ComponentPlugin = async (structure) => {
+  const preactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
@@ -61,13 +67,14 @@ export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config)
       dependencies.Component = PREACT_COMPONENT_DEPENDENCY
     }
 
+    const componentName = UIDLUtils.getComponentClassName(uidl)
     const preactComponent = usePureComponent
-      ? createPureComponent(uidl.name, propDefinitions, jsxTagStructure)
-      : createClassComponent(uidl.name, propDefinitions, stateDefinitions, jsxTagStructure)
+      ? createPureComponent(componentName, propDefinitions, jsxTagStructure)
+      : createClassComponent(componentName, propDefinitions, stateDefinitions, jsxTagStructure)
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: componentChunkName,
       meta: {
         nodesLookup,
@@ -78,17 +85,17 @@ export const createPlugin: ComponentPluginFactory<PreactPluginConfig> = (config)
     })
 
     structure.chunks.push({
-      type: CHUNK_TYPE.AST,
-      fileType: FILE_TYPE.JS,
+      type: ChunkType.AST,
+      fileType: FileType.JS,
       name: exportChunkName,
-      content: createDefaultExport(uidl.name),
+      content: ASTBuilders.createDefaultExport(componentName),
       linkAfter: [componentChunkName],
     })
 
     return structure
   }
 
-  return reactComponentPlugin
+  return preactComponentPlugin
 }
 
-export default createPlugin()
+export default createPreactComponentPlugin()

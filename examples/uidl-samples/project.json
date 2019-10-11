@@ -51,9 +51,9 @@
         "values": [
           {
             "value": "home",
-            "meta": {
-              "path": "/",
-              "componentName": "HomeScreen"
+            "pageOptions": {
+              "navLink": "/",
+              "componentName": "Home"
             },
             "seo": {
               "title": "Home Screen"
@@ -61,10 +61,6 @@
           },
           {
             "value": "team",
-            "meta": {
-              "path": "/team",
-              "componentName": "TeamScreen"
-            },
             "seo": {
               "title": "About Screen",
               "metaTags": [
@@ -81,9 +77,9 @@
           },
           {
             "value": "contact-us",
-            "meta": {
-              "path": "/contact-us",
-              "componentName": "ContactScreen"
+            "pageOptions": {
+              "navLink": "/about-us",
+              "componentName": "ContactPage"
             },
             "seo": {
               "assets": [
@@ -888,7 +884,7 @@
     "ExpandableArea": {
       "name": "ExpandableArea",
       "propDefinitions": {
-        "title": {
+        "header": {
           "type": "string",
           "defaultValue": "This whole area is clickable!"
         },
@@ -944,7 +940,7 @@
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
-                            "id": "title"
+                            "id": "header"
                           }
                         }
                       ]

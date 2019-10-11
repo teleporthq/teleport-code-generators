@@ -1,25 +1,26 @@
 import { format } from 'prettier/standalone'
 
 import parserBabylon from 'prettier/parser-babylon'
-import parserPostCSS from 'prettier/parser-postcss'
 
-import { PRETTIER_CONFIG, FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
-import { PostProcessor, PrettierFormatOptions } from '@teleporthq/teleport-types'
+import { Constants } from '@teleporthq/teleport-shared'
+import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'
 
 interface PostProcessorFactoryOptions {
   fileType?: string
   formatOptions?: PrettierFormatOptions
 }
 
-export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
-  const fileType = options.fileType || FILE_TYPE.JS
-  const formatOptions = { ...PRETTIER_CONFIG, ...options.formatOptions }
+export const createPrettierJSPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
+  const fileType = options.fileType || FileType.JS
+  const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
+
+  const plugins = [parserBabylon]
 
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,
-        plugins: [parserBabylon, parserPostCSS],
+        plugins,
         parser: 'babel',
       })
     } else {
@@ -32,4 +33,4 @@ export const createPostProcessor = (options: PostProcessorFactoryOptions = {}) =
   return processor
 }
 
-export default createPostProcessor()
+export default createPrettierJSPostProcessor()

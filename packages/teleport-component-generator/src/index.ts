@@ -1,15 +1,10 @@
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+import { Resolver, HTMLMapping } from '@teleporthq/teleport-uidl-resolver'
 import AssemblyLine from './assembly-line'
 import Builder from './builder'
-import Resolver from './resolver'
 
-import {
-  getComponentFileName,
-  getStyleFileName,
-  getTemplateFileName,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
-import { FILE_TYPE } from '@teleporthq/teleport-shared/dist/cjs/constants'
 import {
   ChunkDefinition,
   ComponentGenerator,
@@ -17,10 +12,9 @@ import {
   ComponentPlugin,
   PostProcessor,
   Mapping,
+  FileType,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
-
-import HtmlMapping from './html-mapping.json'
 
 interface GeneratorFactoryParams {
   mappings?: Mapping[]
@@ -34,7 +28,7 @@ const createComponentGenerator = ({
   postprocessors = [],
 }: GeneratorFactoryParams = {}): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([HtmlMapping as Mapping, ...mappings])
+  const resolver = new Resolver([HTMLMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
   const processors: PostProcessor[] = postprocessors
@@ -75,9 +69,9 @@ const createComponentGenerator = ({
       codeChunks = processor(codeChunks)
     })
 
-    const fileName = getComponentFileName(resolvedUIDL)
-    const styleFileName = getStyleFileName(resolvedUIDL)
-    const templateFileName = getTemplateFileName(resolvedUIDL)
+    const fileName = UIDLUtils.getComponentFileName(resolvedUIDL)
+    const styleFileName = UIDLUtils.getStyleFileName(resolvedUIDL)
+    const templateFileName = UIDLUtils.getTemplateFileName(resolvedUIDL)
     const files = fileBundler(codeChunks, fileName, styleFileName, templateFileName)
 
     return {
@@ -119,9 +113,7 @@ const createComponentGenerator = ({
   }
 }
 
-export { createComponentGenerator, HtmlMapping, GeneratorFactoryParams }
-
-export default createComponentGenerator()
+export { createComponentGenerator, GeneratorFactoryParams }
 
 const fileBundler = (
   codeChunks: Record<string, string>,
@@ -146,11 +138,11 @@ const getFileName = (
   styleFileName: string,
   templateFileName: string
 ) => {
-  if (fileType === FILE_TYPE.CSS || fileType === FILE_TYPE.CSSMODULE) {
+  if (fileType === FileType.CSS) {
     return styleFileName || fileName
   }
 
-  if (fileType === FILE_TYPE.HTML) {
+  if (fileType === FileType.HTML) {
     return templateFileName || fileName
   }
 

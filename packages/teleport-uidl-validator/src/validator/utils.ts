@@ -1,8 +1,5 @@
-import {
-  traverseNodes,
-  traverseRepeats,
-  traverseElements,
-} from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
+import Ajv from 'ajv'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
 
@@ -24,10 +21,10 @@ export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
 // If index is used, "useIndex" must be declared in "meta"
 // If custom local variable is used, it's name must be specified inside "meta" as "iteratorName"
 export const checkForLocalVariables = (input: ComponentUIDL) => {
-  const errors = []
+  const errors: string[] = []
 
-  traverseRepeats(input.node, (repeatContent) => {
-    traverseNodes(repeatContent.node, (childNode) => {
+  UIDLUtils.traverseRepeats(input.node, (repeatContent) => {
+    UIDLUtils.traverseNodes(repeatContent.node, (childNode) => {
       if (childNode.type === 'dynamic' && childNode.content.referenceType === 'local') {
         if (childNode.content.id === 'index') {
           if (!repeatContent.meta.useIndex) {
@@ -67,11 +64,11 @@ export const checkDynamicDefinitions = (input: any) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
 
-  const usedPropKeys = []
-  const usedstateKeys = []
-  const errors = []
+  const usedPropKeys: string[] = []
+  const usedStateKeys: string[] = []
+  const errors: string[] = []
 
-  traverseNodes(input.node, (node) => {
+  UIDLUtils.traverseNodes(input.node, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
@@ -93,7 +90,7 @@ export const checkDynamicDefinitions = (input: any) => {
       // for member expression we check the root
       // if value has no `.` it will be checked as it is
       const dynamicIdRoot = node.content.id.split('.')[0]
-      usedstateKeys.push(dynamicIdRoot)
+      usedStateKeys.push(dynamicIdRoot)
     }
   })
 
@@ -104,7 +101,7 @@ export const checkDynamicDefinitions = (input: any) => {
     )
 
   stateKeys
-    .filter((x) => !usedstateKeys.includes(x))
+    .filter((x) => !usedStateKeys.includes(x))
     .forEach((diff) =>
       console.warn(`"${diff}" is defined in stateDefinitions but it is not used in the UIDL.`)
     )
@@ -139,10 +136,10 @@ export const checkRouteDefinition = (input: ProjectUIDL) => {
 // All referenced components inside of the projectUIDL should be defined
 // in the component section
 export const checkComponentExistence = (input: ProjectUIDL) => {
-  const errors = []
+  const errors: string[] = []
   const components = Object.keys(input.components)
 
-  traverseElements(input.root.node, (element) => {
+  UIDLUtils.traverseElements(input.root.node, (element) => {
     if (
       element.dependency &&
       element.dependency.type === 'local' &&
@@ -180,30 +177,37 @@ export const checkComponentNaming = (input: ProjectUIDL) => {
 // The "root" node should contain only elements of type "conditional"
 export const checkRootComponent = (input: ProjectUIDL) => {
   const errors = []
-  const routeNaming = []
+  const routeNaming: string[] = []
   const rootNode = input.root.node.content as UIDLElement
   rootNode.children.forEach((child) => {
     if (child.type !== 'conditional') {
       const errorMsg = `\nRoot Node contains elements of type "${child.type}". It should contain only elements of type "conditional"`
       errors.push(errorMsg)
     } else {
-      routeNaming.push(child.content.value)
+      routeNaming.push(child.content.value.toString())
     }
   })
 
-  input.root.stateDefinitions.route.values
-    .filter((route) => !routeNaming.includes(route.value))
-    .forEach((route) => {
-      const errorMsg = `\nRoot Node contains routes that don't have corresponding components. Check the "value" for the following routes: ${route.meta.path}.`
-      errors.push(errorMsg)
-    })
+  const routeValues = input.root.stateDefinitions.route.values
+  if (!routeValues || routeValues.length <= 0) {
+    errors.push(
+      '\nThe `route` state definition from the root node does not contain the possible route values'
+    )
+  } else {
+    input.root.stateDefinitions.route.values
+      .filter((route) => !routeNaming.includes(route.value.toString()))
+      .forEach((route) => {
+        const errorMsg = `\nRoot Node contains a route that don't have a specified state: ${route.value}.`
+        errors.push(errorMsg)
+      })
+  }
 
   return errors
 }
 
 // The errors should be displayed in a human-readeable way
-export const formatErrors = (errors: any) => {
-  const listOfErrors = []
+export const formatErrors = (errors: Ajv.ErrorObject[]) => {
+  const listOfErrors: string[] = []
   errors.forEach((error) => {
     const message =
       error.keyword === 'type'

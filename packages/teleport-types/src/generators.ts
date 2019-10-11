@@ -7,6 +7,22 @@ import {
   UIDLStateDefinition,
 } from './uidl'
 
+export enum FileType {
+  CSS = 'css',
+  HTML = 'html',
+  JS = 'js',
+  JSON = 'json',
+  VUE = 'vue',
+  TS = 'ts',
+  TSX = 'tsx',
+}
+
+export enum ChunkType {
+  AST = 'ast',
+  HAST = 'hast',
+  STRING = 'string',
+}
+
 export type ChunkContent = string | any | any[]
 
 /**
@@ -15,9 +31,9 @@ export type ChunkContent = string | any | any[]
  * chunk and a style chunk
  */
 export interface ChunkDefinition {
-  type: string
+  type: ChunkType
   name: string
-  fileType: string
+  fileType: FileType
   meta?: any
   content: ChunkContent
   linkAfter: string[]
@@ -37,7 +53,7 @@ export interface ComponentStructure {
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
 export interface ComponentDefaultPluginParams {
-  fileType: string
+  fileType: FileType
 }
 
 export type ComponentPluginFactory<T> = (
@@ -70,6 +86,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
+  moduleComponents?: Record<string, ComponentUIDL>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -108,11 +125,13 @@ export interface ProjectGenerator {
 export interface ProjectStrategy {
   components: {
     generator: ComponentGenerator
+    moduleGenerator?: ComponentGenerator
     path: string[]
     options?: ProjectStrategyComponentOptions
   }
   pages: {
     generator: ComponentGenerator
+    moduleGenerator?: ComponentGenerator
     path: string[]
     options?: ProjectStrategyPageOptions
   }
@@ -131,8 +150,7 @@ export interface ProjectStrategy {
     ) => Record<string, ChunkDefinition[]>
     options?: {
       appRootOverride?: string
-      customScriptTags?: CustomScriptTag[]
-      customLinkTags?: CustomLinkTag[]
+      customTags?: CustomTag[]
       customHeadContent?: string
     }
   }
@@ -142,38 +160,34 @@ export interface ProjectStrategy {
   }
 }
 
+export interface CustomTag {
+  tagName: string
+  targetTag: string
+  content?: string
+  attributes?: Attribute[]
+}
+
+export interface Attribute {
+  attributeKey: string
+  attributeValue?: string
+}
+
 export interface ProjectStrategyComponentOptions {
   createFolderForEachComponent?: boolean
-  customComponentFileName?: string // only used when createFolderForEachComponent is true
-  customStyleFileName?: string
-  customTemplateFileName?: string
+  customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+  customStyleFileName?: (name?: string) => string
+  customTemplateFileName?: (name?: string) => string
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
-  usePathAsFileName?: boolean
-  convertDefaultToIndex?: boolean
-}
-
-export interface CustomLinkTag {
-  path?: string
-  attributeKey?: string
-  attributeValue?: string
+  useFileNameForNavigation?: boolean
 }
 
 export interface EntryFileOptions {
   assetsPrefix?: string
   appRootOverride?: string
-  customScriptTags?: CustomScriptTag[]
-  customLinkTags?: CustomLinkTag[]
+  customTags?: CustomTag[]
   customHeadContent: string
-}
-
-export interface CustomScriptTag {
-  path?: string
-  target?: string
-  content?: string
-  attributeKey?: string
-  attributeValue?: string
 }
 
 export interface GeneratedFolder {
@@ -220,7 +234,7 @@ export interface AssetsDefinition {
 export interface AssetInfo {
   data: string
   name: string
-  type: string
+  type?: string
 }
 
 export interface RemoteTemplateDefinition {

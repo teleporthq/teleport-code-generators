@@ -56,4 +56,4 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
   }
 }
 
-export default createGithubGateway()
+export { GithubFile, RepositoryIdentity, GithubCommitMeta }

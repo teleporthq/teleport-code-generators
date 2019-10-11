@@ -109,5 +109,3 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     publish,
   }
 }
-
-export default createGithubPublisher()
