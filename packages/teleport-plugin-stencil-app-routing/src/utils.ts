@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { ASTBuilders, ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (
@@ -24,7 +24,7 @@ export const createClassDeclaration = (
     ASTUtils.addAttributeToJSXTag(
       stencilRouteTag,
       'component',
-      `app-${StringUtils.camelCaseToDashCase(componentName)}`
+      UIDLUtils.createWebComponentFriendlyName(componentName)
     )
     ASTUtils.addChildJSXTag(stencilRouteSwitchTag, stencilRouteTag)
   })

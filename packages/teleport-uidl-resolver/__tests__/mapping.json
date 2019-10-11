@@ -7,5 +7,7 @@
       "elementType": "img",
       "selfClosing": true
     }
-  }
+  },
+  "illegalClassNames": ["", "Component"],
+  "illegalPropNames": ["", "this", "prop", "props", "state", "window", "document"]
 }

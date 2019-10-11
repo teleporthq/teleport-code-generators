@@ -498,7 +498,10 @@ const resolveEvents = (events: UIDLEventDefinitions, eventsMapping: Record<strin
 export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
   const { illegalClassNames, illegalPropNames } = mapping
   if (illegalClassNames.includes(uidl.outputOptions.componentClassName)) {
-    throw new Error(`Illegal component name '${uidl.outputOptions.componentClassName}'`)
+    console.warn(
+      `Illegal component name '${uidl.outputOptions.componentClassName}'. Appending 'App' in front of it`
+    )
+    uidl.outputOptions.componentClassName = `App${uidl.outputOptions.componentClassName}`
   }
 
   if (uidl.propDefinitions) {

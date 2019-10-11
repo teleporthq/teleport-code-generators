@@ -217,6 +217,6 @@
   },
   "events": {},
   "attributes": {},
-  "illegalClassNames": ["Component"],
-  "illegalPropNames": ["this", "prop", "props", "state", "window", "document"]
+  "illegalClassNames": ["", "Component"],
+  "illegalPropNames": ["", "this", "prop", "props", "state", "window", "document"]
 }

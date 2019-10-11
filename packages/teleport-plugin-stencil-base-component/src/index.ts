@@ -71,7 +71,7 @@ export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginC
       dependencyHandling: 'ignore',
       stateHandling: 'mutation',
       slotHandling: 'native',
-      customElementTag: (name: string) => `app-${StringUtils.camelCaseToDashCase(name)}`,
+      customElementTag: (name: string) => UIDLUtils.createWebComponentFriendlyName(name),
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
@@ -91,7 +91,7 @@ export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginC
     )
 
     const params = {
-      tag: `app-${StringUtils.camelCaseToDashCase(componentName)}`,
+      tag: UIDLUtils.createWebComponentFriendlyName(componentName),
       shadow: true,
     }
 

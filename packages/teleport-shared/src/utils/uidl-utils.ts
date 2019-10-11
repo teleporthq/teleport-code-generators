@@ -28,9 +28,19 @@ export const extractRoutes = (rootComponent: ComponentUIDL) => {
   ) as UIDLConditionalNode[]
 }
 
+export const createWebComponentFriendlyName = (componentName: string) => {
+  const dashCaseName = camelCaseToDashCase(componentName)
+  if (dashCaseName.includes('-')) {
+    return dashCaseName
+  }
+
+  return `app-${dashCaseName}`
+}
+
 export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   uidl.outputOptions = uidl.outputOptions || {}
-  const friendlyName = removeIllegalCharacters(uidl.name)
+  const defaultComponentName = 'AppComponent'
+  const friendlyName = removeIllegalCharacters(uidl.name) || defaultComponentName
   if (!uidl.outputOptions.fileName) {
     uidl.outputOptions.fileName = camelCaseToDashCase(friendlyName)
   }

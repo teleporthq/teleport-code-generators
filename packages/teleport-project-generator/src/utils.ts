@@ -107,7 +107,8 @@ export const extractPageOptions = (
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === routeName)
 
   // If no meta object is defined, the stateName is used
-  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) // remove space, leading numbers, etc.
+  const defaultPageName = 'AppPage'
+  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) || defaultPageName // remove space, leading numbers, etc.
   const friendlyComponentName = StringUtils.dashCaseToUpperCamelCase(friendlyStateName) // component name in UpperCamelCase
   const friendlyFileName = StringUtils.camelCaseToDashCase(friendlyStateName) // file name in dash-case
 
@@ -154,7 +155,8 @@ export const prepareComponentOutputOptions = (
       componentClassName: '',
     }
 
-    const friendlyName = StringUtils.removeIllegalCharacters(component.name)
+    const defaultComponentName = 'AppComponent'
+    const friendlyName = StringUtils.removeIllegalCharacters(component.name) || defaultComponentName
     const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
     const friendlyComponentName =
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton

@@ -3,6 +3,8 @@ import {
   repeatNode,
   elementNode,
   dynamicNode,
+  component,
+  definition,
 } from '@teleporthq/teleport-uidl-builders'
 import {
   generateUniqueKeys,
@@ -11,6 +13,7 @@ import {
   resolveNavlinks,
   ensureDataSourceUniqueness,
   mergeMappings,
+  checkForIllegalNames,
 } from '../src/utils'
 import {
   UIDLElement,
@@ -19,6 +22,7 @@ import {
   UIDLRepeatNode,
   Mapping,
 } from '@teleporthq/teleport-types'
+import mapping from './mapping.json'
 
 describe('generateUniqueKeys', () => {
   it('adds name and key to node', async () => {
@@ -373,5 +377,45 @@ describe('mergeMappings', () => {
     }
 
     expect(mergedMapping).toEqual(expectedMapping)
+  })
+})
+
+describe('checkForIllegalNames', () => {
+  const comp = component(
+    'Component',
+    elementNode('container'),
+    {
+      'my-title': definition('string', 'test'),
+    },
+    {
+      isVisible: definition('boolean', false),
+    }
+  )
+
+  comp.outputOptions = {
+    componentClassName: 'Component',
+    fileName: 'component',
+  }
+
+  it('checks component name', () => {
+    checkForIllegalNames(comp, mapping)
+    expect(comp.outputOptions.componentClassName).toBe('AppComponent')
+  })
+
+  it('handles empty string', () => {
+    comp.outputOptions = {
+      componentClassName: '',
+      fileName: 'component',
+    }
+
+    checkForIllegalNames(comp, mapping)
+
+    expect(comp.outputOptions.componentClassName).toBe('App')
+  })
+
+  it('throws error for invaid prop', () => {
+    comp.propDefinitions.this = definition('string', '')
+
+    expect(() => checkForIllegalNames(comp, mapping)).toThrowError()
   })
 })

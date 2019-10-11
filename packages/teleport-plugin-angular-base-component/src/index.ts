@@ -84,7 +84,7 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
           const index = useIndex ? `; index as index` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        customElementTagName: (value) => `app-${StringUtils.camelCaseToDashCase(value)}`,
+        customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'ignore',
       }
     )
@@ -102,7 +102,7 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
 
     const componentName = UIDLUtils.getComponentClassName(uidl)
     const params = {
-      selector: `app-${StringUtils.camelCaseToDashCase(componentName)}`,
+      selector: UIDLUtils.createWebComponentFriendlyName(componentName),
       templateUrl: `${UIDLUtils.getComponentFileName(uidl)}.${FileType.HTML}`,
     }
     const componentDecoratorAST = ASTBuilders.createComponentDecorator(params)

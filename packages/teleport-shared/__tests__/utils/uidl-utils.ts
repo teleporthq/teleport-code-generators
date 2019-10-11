@@ -4,6 +4,7 @@ import {
   transformStylesAssignmentsToJson,
   transformAttributesAssignmentsToJson,
   findFirstElementNode,
+  createWebComponentFriendlyName,
   extractRoutes,
   getComponentFolderPath,
   getComponentFileName,
@@ -534,5 +535,15 @@ describe('traverseRepeats', () => {
     let counter = 0
     traverseRepeats(nodeToTraverse, () => counter++)
     expect(counter).toBe(1)
+  })
+})
+
+describe('createWebComponentFriendlyName', () => {
+  it('creates a dash based component', () => {
+    expect(createWebComponentFriendlyName('primaryButton')).toBe('primary-button')
+  })
+
+  it('prefixes with app-', () => {
+    expect(createWebComponentFriendlyName('Component')).toBe('app-component')
   })
 })
