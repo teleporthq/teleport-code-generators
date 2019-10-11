@@ -3,7 +3,6 @@ import {
   createJSXSyntax,
   JSXGenerationOptions,
   ASTBuilders,
-  StringUtils,
   ASTUtils,
   UIDLUtils,
 } from '@teleporthq/teleport-shared'
