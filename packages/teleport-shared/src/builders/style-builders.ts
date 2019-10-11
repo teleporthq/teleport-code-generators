@@ -13,7 +13,7 @@ export const createCSSClass = (className: string, styleObject: Record<string, st
         [`.${className}`]: styleObject,
       },
       {
-        generateClassName: () => className,
+        generateId: () => className,
       }
     )
     .toString()
