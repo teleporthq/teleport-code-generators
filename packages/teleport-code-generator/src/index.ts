@@ -78,7 +78,6 @@ const projectGeneratorFactories = {
   [ProjectType.PREACT]: createPreactProjectGenerator,
   [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  [ProjectType.PREACT_CODESANDBOX]: createPreactProjectGenerator,
 }
 
 const templates = {
@@ -89,7 +88,6 @@ const templates = {
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
-  [ProjectType.PREACT_CODESANDBOX]: PreactCodesandBoxTemplate,
 }
 
 const projectPublisherFactories = {
@@ -113,7 +111,11 @@ const packProject = async (
   const packer = createProjectPacker()
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
-  const projectTemplate = templates[projectType]
+  const projectTemplate =
+    ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
+      ? PreactCodesandBoxTemplate
+      : templates[projectType]
+
   const publisherFactory = projectPublisherFactories[publisher]
 
   if (!projectGeneratorFactory) {
@@ -125,11 +127,11 @@ const packProject = async (
   }
 
   const projectPublisher = publisherFactory(publishOptions)
-
   packer.setAssets({
     assets,
     path: [Constants.ASSETS_IDENTIFIER],
   })
+
   packer.setGenerator(projectGeneratorFactory())
   packer.setTemplate(projectTemplate)
   packer.setPublisher(projectPublisher)

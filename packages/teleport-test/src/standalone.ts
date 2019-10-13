@@ -14,7 +14,7 @@ const projectUIDL = (projectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
-  publisher: PublisherType.CODESANDBOX,
+  publisher: PublisherType.DISK,
   publishOptions: {
     outputPath: 'dist',
   },
@@ -49,11 +49,6 @@ const run = async () => {
     console.info(ProjectType.PREACT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.ANGULAR })
     console.info(ProjectType.ANGULAR, '-', result.payload)
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.PREACT_CODESANDBOX,
-    })
-    console.info(ProjectType.PREACT_CODESANDBOX, '-', result.payload)
   } catch (e) {
     console.info(e)
   }
