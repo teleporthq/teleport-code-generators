@@ -17,6 +17,7 @@ import {
 } from '@teleporthq/teleport-project-generator-nuxt'
 import {
   PreactTemplate,
+  PreactCodesandBoxTemplate,
   createPreactProjectGenerator,
 } from '@teleporthq/teleport-project-generator-preact'
 import {
@@ -77,6 +78,7 @@ const projectGeneratorFactories = {
   [ProjectType.PREACT]: createPreactProjectGenerator,
   [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
+  [ProjectType.PREACT_CODESANDBOX]: createPreactProjectGenerator,
 }
 
 const templates = {
@@ -87,6 +89,7 @@ const templates = {
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
+  [ProjectType.PREACT_CODESANDBOX]: PreactCodesandBoxTemplate,
 }
 
 const projectPublisherFactories = {

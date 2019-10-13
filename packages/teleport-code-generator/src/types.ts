@@ -49,6 +49,7 @@ export enum ProjectType {
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
+  PREACT_CODESANDBOX = 'PreactCodesandbox',
 }
 
 export enum ComponentType {
