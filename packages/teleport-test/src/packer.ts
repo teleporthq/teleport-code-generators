@@ -9,6 +9,7 @@ import { createStencilProjectGenerator } from '@teleporthq/teleport-project-gene
 import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
 import { createReactNativeProjectGenerator } from '@teleporthq/teleport-project-generator-reactnative'
 import { createGridsomeProjectGenerator } from '@teleporthq/teleport-project-generator-gridsome'
+import { createGatsbyProjectGenerator } from '@teleporthq/teleport-project-generator-gatsby'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
@@ -27,6 +28,7 @@ import {
   ANGULAR_GITHUB_PROJECT,
   PREACT_CODESANDBOX_PROJECT,
   GRIDSOME_GITHUB_PROJECT,
+  GATSBY_GITHUB_PROJECT,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -42,6 +44,7 @@ const generators: Record<string, ProjectGenerator> = {
   reactnative: createReactNativeProjectGenerator(),
   preactCodesandbox: createPreactProjectGenerator(),
   gridsome: createGridsomeProjectGenerator(),
+  gatsby: createGatsbyProjectGenerator(),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -59,6 +62,7 @@ const templates: Record<string, RemoteTemplateDefinition> = {
   angular: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, ANGULAR_GITHUB_PROJECT),
   preactCodesandbox: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_CODESANDBOX_PROJECT),
   gridsome: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GRIDSOME_GITHUB_PROJECT),
+  gatsby: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GATSBY_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -94,6 +98,7 @@ const run = async () => {
     await packProject('angular')
     await packProject('preactCodesandbox')
     await packProject('gridsome')
+    await packProject('gatsby')
   } catch (e) {
     console.info(e)
   }

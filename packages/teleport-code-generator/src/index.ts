@@ -47,6 +47,9 @@ import {
   createGridsomeProjectGenerator,
   GridsomeTemplate,
 } from '@teleporthq/teleport-project-generator-gridsome'
+  createGatsbyProjectGenerator,
+  GatsbyTemplate,
+} from '@teleporthq/teleport-project-generator-gatsby'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -81,6 +84,7 @@ const projectGeneratorFactories = {
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
   [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
   [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
 }
 
 const templates = {
@@ -93,6 +97,7 @@ const templates = {
   [ProjectType.REACTNATIVE]: ReactNativeTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
+  [ProjectType.GATSBY]: GatsbyTemplate,
 }
 
 const projectPublisherFactories = {
