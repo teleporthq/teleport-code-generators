@@ -2,16 +2,16 @@ import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
 
-interface StyledComponentsConfig {
+interface ReactNativeNavigationPluginConfig {
   componentChunkName: string
-  importChunkName?: string
-  componentLibrary?: 'react' | 'reactnative'
 }
 
-export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (config) => {
+export const createReactNativeNavigationPlugin: ComponentPluginFactory<
+  ReactNativeNavigationPluginConfig
+> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
 
-  const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
+  const reactNativeNavigationPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl } = structure
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -71,7 +71,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     return structure
   }
 
-  return reactStyledComponentsPlugin
+  return reactNativeNavigationPlugin
 }
 
-export default createPlugin()
+export default createReactNativeNavigationPlugin()

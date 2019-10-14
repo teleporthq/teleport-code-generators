@@ -3,16 +3,16 @@ import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-ty
 import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import { setResourceURIObject, setResourceRequireCall } from './utils'
 
-interface StyledComponentsConfig {
+interface ReactNativeResourceLoaderPlugin {
   componentChunkName: string
-  importChunkName?: string
-  componentLibrary?: 'react' | 'reactnative'
 }
 
-export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (config) => {
+export const createReactNativeResourcePlugin: ComponentPluginFactory<
+  ReactNativeResourceLoaderPlugin
+> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
 
-  const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
+  const reactNativeResourcePlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -52,7 +52,7 @@ export const createPlugin: ComponentPluginFactory<StyledComponentsConfig> = (con
     return structure
   }
 
-  return reactStyledComponentsPlugin
+  return reactNativeResourcePlugin
 }
 
-export default createPlugin()
+export default createReactNativeResourcePlugin()
