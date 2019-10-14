@@ -28,6 +28,10 @@ import {
   createAngularProjectGenerator,
   AngularTemplate,
 } from '@teleporthq/teleport-project-generator-angular'
+import {
+  createGatsbyProjectGenerator,
+  GatsbyTemplate,
+} from '@teleporthq/teleport-project-generator-gatsby'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -78,6 +82,7 @@ const projectGeneratorFactories = {
   [ProjectType.PREACT]: createPreactProjectGenerator,
   [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
 }
 
 const templates = {
@@ -88,6 +93,7 @@ const templates = {
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
+  [ProjectType.GATSBY]: GatsbyTemplate,
 }
 
 const projectPublisherFactories = {
