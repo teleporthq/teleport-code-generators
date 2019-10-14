@@ -1,6 +1,4 @@
-// @ts-ignore
 import uidlSampleJSON from '../../../examples/test-samples/component-sample.json'
-
 import { createReactNativeComponentGenerator } from '../src'
 import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
 

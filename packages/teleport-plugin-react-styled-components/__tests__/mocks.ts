@@ -1,7 +1,4 @@
-import {
-  elementNode,
-  staticNode,
-} from '@teleporthq/teleport-shared/dist/cjs/builders/uidl-builders'
+import { staticNode, elementNode } from '@teleporthq/teleport-uidl-builders'
 
 export const createElementWithStyle = () => {
   const style = {

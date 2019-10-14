@@ -3,9 +3,9 @@ import template from './template-definition.json'
 import { createReactNativeProjectGenerator } from '../../src'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
-const projectUIDL = uidlSample as ProjectUIDL
+const projectUIDL = (uidlSample as unknown) as ProjectUIDL
 
-describe('React Project Generator', () => {
+describe('ReactNative Project Generator', () => {
   const generator = createReactNativeProjectGenerator()
 
   it('runs without crashing', async () => {
@@ -18,7 +18,7 @@ describe('React Project Generator', () => {
 
     const srcFolder = outputFolder.subFolders[0]
 
-    expect(srcFolder.files[0].name).toBe('app')
+    expect(srcFolder.files[0].name).toBe('App')
     expect(srcFolder.files[0].fileType).toBe('js')
     expect(srcFolder.subFolders[0].name).toBe('components')
     expect(srcFolder.subFolders[0].files.length).toBe(4)
