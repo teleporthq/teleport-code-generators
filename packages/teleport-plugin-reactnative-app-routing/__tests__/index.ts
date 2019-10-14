@@ -1,4 +1,4 @@
-import { createPlugin } from '../src/index'
+import { createReactAppRoutingComponentPlugin } from '../src/index'
 import {
   component,
   elementNode,
@@ -9,7 +9,7 @@ import {
 import { ChunkType, ComponentStructure, UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 describe('plugin-reactnative-app-routing', () => {
-  const plugin = createPlugin()
+  const plugin = createReactAppRoutingComponentPlugin()
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
     const routeDefinition: UIDLStateDefinition = definition('string', 'home')

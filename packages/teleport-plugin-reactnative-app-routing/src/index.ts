@@ -14,7 +14,9 @@ interface AppRoutingComponentConfig {
   importChunkName: string
 }
 
-export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (config) => {
+export const createReactAppRoutingComponentPlugin: ComponentPluginFactory<
+  AppRoutingComponentConfig
+> = (config) => {
   const { importChunkName = 'import-local', componentChunkName = 'app-router-component' } =
     config || {}
 
@@ -99,4 +101,4 @@ export const createPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
   return reactAppRoutingComponentPlugin
 }
 
-export default createPlugin()
+export default createReactAppRoutingComponentPlugin()
