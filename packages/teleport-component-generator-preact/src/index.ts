@@ -37,6 +37,7 @@ const createPreactComponentGenerator = (
       templateChunkName: 'jsx-component',
       templateStyle: 'jsx',
       declareDependency: 'import',
+      forceScoping: true,
     }),
   }
   const stylePlugin = stylePlugins[variation]

@@ -20,8 +20,9 @@ interface CSSPluginConfig {
   chunkName: string
   templateChunkName: string
   componentDecoratorChunkName: string
-  inlineStyleAttributeKey: string
-  classAttributeName: string
+  inlineStyleAttributeKey: string // style vs :style vs ...
+  classAttributeName: string // class vs className
+  forceScoping: boolean // class names get the component name prefix
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
 }
@@ -35,6 +36,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     classAttributeName = 'class',
     templateStyle = 'html',
     declareDependency = 'none',
+    forceScoping = false,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
@@ -67,7 +69,12 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       const root = templateLookup[key]
 
       if (Object.keys(staticStyles).length > 0) {
-        const className = StringUtils.camelCaseToDashCase(key)
+        const elementClassName = StringUtils.camelCaseToDashCase(key)
+        const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
+        const className = forceScoping // when the framework doesn't provide automating scoping for classNames
+          ? `${componentFileName}-${elementClassName}`
+          : elementClassName
+
         jssStylesArray.push(
           StyleBuilders.createCSSClass(className, StyleUtils.getContentOfStyleObject(staticStyles))
         )

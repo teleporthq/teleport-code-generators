@@ -37,6 +37,7 @@ const createReactComponentGenerator = (
     templateStyle: 'jsx',
     declareDependency: 'import',
     classAttributeName: 'className',
+    forceScoping: true,
   })
 
   const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
