@@ -114,6 +114,25 @@ export const createEntryFile = async (
   return entryFile
 }
 
+export const createFrameworkConifg = async (
+  template: GeneratedFolder,
+  strategy: ProjectStrategy
+) => {
+  const { fileName, fileType, configFunction, styleVariation } = strategy.framework.config
+
+  const inputConfigFile = template.files.find(
+    (file) => file.name === fileName && file.fileType === fileType
+  )
+  if (inputConfigFile && inputConfigFile.content) {
+    const chunks = configFunction(inputConfigFile, styleVariation)
+
+    const [configFile] = strategy.framework.config.generator.linkCodeChunks(chunks, fileName)
+    return configFile
+  } else {
+    throw new Error('Config file not Found')
+  }
+}
+
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options

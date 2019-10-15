@@ -14,6 +14,7 @@ import {
   createEntryFile,
   createComponentModule,
   createPageModule,
+  createFrameworkConifg,
 } from './file-handlers'
 
 import { DEFAULT_TEMPLATE } from './constants'
@@ -190,6 +191,19 @@ export class ProjectGenerator {
     if (this.strategy.components.moduleGenerator) {
       const componentsModuleFile = await createComponentModule(uidl, this.strategy)
       injectFilesToPath(rootFolder, this.strategy.components.path, [componentsModuleFile])
+    }
+
+    if (this.strategy.framework && this.strategy.framework.config) {
+      if (this.strategy.framework.config.styleVariation === 'Styled Components') {
+        const styledDependnecies = {
+          'gatsby-plugin-styled-components': '^3.0.0',
+          'babel-plugin-styled-components': '^1.10.6',
+          'styled-components': '^4.4.0',
+        }
+        collectedDependencies = { ...collectedDependencies, ...styledDependnecies }
+      }
+      const frameworkCofig = await createFrameworkConifg(rootFolder, this.strategy)
+      injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [frameworkCofig])
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support

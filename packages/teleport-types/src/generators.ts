@@ -158,6 +158,19 @@ export interface ProjectStrategy {
     prefix?: string
     path: string[]
   }
+  framework?: {
+    config?: {
+      generator: ComponentGenerator
+      fileName: string
+      fileType: string
+      configPath: string[]
+      styleVariation: string
+      configFunction?: (
+        inputConfig: GeneratedFile,
+        style: string
+      ) => Record<string, ChunkDefinition[]>
+    }
+  }
 }
 
 export interface CustomTag {

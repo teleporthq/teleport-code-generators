@@ -4,10 +4,13 @@ import {
   ChunkDefinition,
   FileType,
   ChunkType,
+  GeneratedFile,
 } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
+import { parse } from '@babel/parser'
 import * as types from '@babel/types'
+import traverse from '@babel/traverse'
 
 export const createCustomHTMLEntryFile = (
   uidl: ProjectUIDL,
@@ -196,4 +199,33 @@ const createObjectpropertyAST = (
     t.identifier(attributeName),
     t.memberExpression(t.identifier(prefix), t.identifier(attributeType))
   )
+}
+
+export const handleConfigFunction = (inputConfig: GeneratedFile, style: string, t = types) => {
+  const parsedAST = parse(inputConfig.content)
+
+  if (style === 'Styled Components') {
+    traverse(parsedAST, {
+      ArrayExpression: (path) => {
+        if (path.node) {
+          path.node.elements.push(t.stringLiteral('gatsby-plugin-styled-components'))
+          return
+        }
+      },
+    })
+  }
+
+  const chunks: Record<string, ChunkDefinition[]> = {
+    [FileType.JS]: [
+      {
+        name: 'config-chunk',
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        content: [parsedAST],
+        linkAfter: [],
+      },
+    ],
+  }
+
+  return chunks
 }
