@@ -17,6 +17,7 @@ import {
 } from '@teleporthq/teleport-project-generator-nuxt'
 import {
   PreactTemplate,
+  PreactCodesandBoxTemplate,
   createPreactProjectGenerator,
 } from '@teleporthq/teleport-project-generator-preact'
 import {
@@ -110,7 +111,11 @@ const packProject = async (
   const packer = createProjectPacker()
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
-  const projectTemplate = templates[projectType]
+  const projectTemplate =
+    ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
+      ? PreactCodesandBoxTemplate
+      : templates[projectType]
+
   const publisherFactory = projectPublisherFactories[publisher]
 
   if (!projectGeneratorFactory) {
@@ -122,11 +127,11 @@ const packProject = async (
   }
 
   const projectPublisher = publisherFactory(publishOptions)
-
   packer.setAssets({
     assets,
     path: [Constants.ASSETS_IDENTIFIER],
   })
+
   packer.setGenerator(projectGeneratorFactory())
   packer.setTemplate(projectTemplate)
   packer.setPublisher(projectPublisher)

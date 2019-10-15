@@ -22,6 +22,7 @@ import {
   PREACT_GITHUB_PROJECT,
   STENCIL_GITHUB_PROJECT,
   ANGULAR_GITHUB_PROJECT,
+  PREACT_CODESANDBOX_PROJECT,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -34,6 +35,7 @@ const generators: Record<string, ProjectGenerator> = {
   preact: createPreactProjectGenerator(),
   stencil: createStencilProjectGenerator(),
   angular: createAngularProjectGenerator(),
+  preactCodesandbox: createPreactProjectGenerator(),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -48,6 +50,7 @@ const templates: Record<string, RemoteTemplateDefinition> = {
   preact: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
   stencil: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, STENCIL_GITHUB_PROJECT),
   angular: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, ANGULAR_GITHUB_PROJECT),
+  preactCodesandbox: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_CODESANDBOX_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -80,6 +83,7 @@ const run = async () => {
     await packProject('preact')
     await packProject('stencil')
     await packProject('angular')
+    await packProject('preactCodesandbox')
   } catch (e) {
     console.info(e)
   }

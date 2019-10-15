@@ -1,5 +1,5 @@
 export default {
-  name: 'teleport-project-preact',
+  name: 'teleport-project-preact-codesandbox',
   files: [
     {
       name: 'package',
@@ -35,26 +35,12 @@ export default {
   },
   "dependencies": {
     "preact": "^8.2.6",
-    "preact-compat": "3.19.0",
     "preact-router": "^2.5.7",
+    "preact-compat": "3.19.0",
     "react-helmet": "^5.2.1"
   }
 }`,
       fileType: 'json',
-    },
-    {
-      name: '.babelrc',
-      content: `
-{
-  "env": {
-    "test": {
-      "presets": [
-        ["preact-cli/babel", { "modules": "commonjs" }]
-      ]
-    }
-  }
-}`,
-      fileType: '',
     },
   ],
   subFolders: [
@@ -64,9 +50,11 @@ export default {
         {
           name: 'index',
           content: `
+import { render } from "preact";
 import App from "./components/app";
 
-export default App;`,
+render(<App />, document.body);
+`,
           fileType: 'js',
         },
       ],
