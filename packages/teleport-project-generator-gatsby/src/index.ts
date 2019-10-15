@@ -53,7 +53,7 @@ const createGatsbyProjectGenerator = () => {
     },
     static: {
       prefix: '',
-      path: ['public'],
+      path: ['src', 'images'],
     },
   })
 
