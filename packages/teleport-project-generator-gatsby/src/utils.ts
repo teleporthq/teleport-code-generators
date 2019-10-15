@@ -5,7 +5,7 @@ import {
   FileType,
   ChunkType,
 } from '@teleporthq/teleport-types'
-import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 import * as types from '@babel/types'
 
@@ -21,7 +21,7 @@ export const createCustomHTMLEntryFile = (
     t.functionDeclaration(
       t.identifier('HTML'),
       [t.identifier('props')],
-      t.blockStatement([t.returnStatement(generateHTMLNode(uidl))])
+      t.blockStatement([t.returnStatement(generateHTMLNode(uidl, options))])
     )
   )
 
@@ -61,11 +61,31 @@ const createImportAST = (specifier: string, target: string, t = types) => {
   )
 }
 
-const generateHTMLNode = (uidl: ProjectUIDL, t = types) => {
+const generateHTMLNode = (uidl: ProjectUIDL, options: EntryFileOptions, t = types) => {
+  const { settings, meta, assets } = uidl.globals
+
   const htmlNode = ASTBuilders.createJSXTag('html')
   const headNode = ASTBuilders.createJSXTag('head')
   const bodyNode = ASTBuilders.createJSXTag('body')
   const noScriptNode = ASTBuilders.createJSXTag('noscript')
+
+  const charSetMetaTag = ASTBuilders.createSelfClosingJSXTag('meta')
+  ASTUtils.addAttributeToJSXTag(charSetMetaTag, 'charSet', 'utf-8')
+  ASTUtils.addChildJSXTag(headNode, charSetMetaTag)
+
+  const httpMetaTag = ASTBuilders.createSelfClosingJSXTag('meta')
+  ASTUtils.addAttributeToJSXTag(httpMetaTag, 'httpEquiv', 'x-ua-compatible')
+  ASTUtils.addAttributeToJSXTag(httpMetaTag, 'content', 'ie=edge')
+  ASTUtils.addChildJSXTag(headNode, httpMetaTag)
+
+  const viewPortMeta = ASTBuilders.createSelfClosingJSXTag('meta')
+  ASTUtils.addAttributeToJSXTag(viewPortMeta, 'name', 'viewport')
+  ASTUtils.addAttributeToJSXTag(
+    viewPortMeta,
+    'content',
+    'width=device-width, initial-scale=1, shrink-to-fit=no'
+  )
+  ASTUtils.addChildJSXTag(headNode, viewPortMeta)
 
   addJSXExpressionContainer(bodyNode, 'props', 'preBodyComponents')
 
@@ -78,8 +98,22 @@ const generateHTMLNode = (uidl: ProjectUIDL, t = types) => {
   addSpreadAttributes(bodyNode, 'props', 'bodyAttributes')
   addJSXExpressionContainer(headNode, 'props', 'headComponents')
 
-  const bodyDiv = ASTBuilders.createJSXTag('div')
-  bodyDiv.openingElement.selfClosing = true
+  if (settings.language) {
+    ASTUtils.addAttributeToJSXTag(htmlNode, 'lang', settings.language)
+  }
+
+  ASTBuilders.appendAssetsAST(assets, options, headNode, bodyNode)
+
+  meta.forEach((metaItem) => {
+    const metaTag = ASTBuilders.createJSXTag('meta')
+    Object.keys(metaItem).forEach((key) => {
+      const metaValue = UIDLUtils.prefixAssetsPath(options.assetsPrefix, metaItem[key])
+      ASTUtils.addAttributeToJSXTag(metaTag, key, metaValue)
+    })
+    ASTUtils.addChildJSXTag(headNode, metaTag)
+  })
+
+  const bodyDiv = ASTBuilders.createSelfClosingJSXTag('div')
   ASTUtils.addAttributeToJSXTag(bodyDiv, 'id', '___gatsby')
   bodyDiv.openingElement.attributes.push(
     t.jsxAttribute(
