@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
-import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   UIDLMetaTag,
   ComponentUIDL,

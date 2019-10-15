@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { ASTUtils, ParsedASTNode } from '@teleporthq/teleport-shared'
+import { ASTUtils, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 import { UIDLPropDefinition } from '@teleporthq/teleport-types'
 
 export const buildDefaultPropsAst = (

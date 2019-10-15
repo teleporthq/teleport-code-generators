@@ -1,11 +1,11 @@
 import { createClassDeclaration } from './utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
   JSXGenerationOptions,
   ASTBuilders,
   ASTUtils,
-  UIDLUtils,
-} from '@teleporthq/teleport-shared'
+} from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
   ComponentPlugin,

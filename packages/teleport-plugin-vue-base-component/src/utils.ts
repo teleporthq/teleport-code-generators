@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 
-import { ASTUtils, ASTBuilders, ParsedASTNode, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 import {
   UIDLPropDefinition,
   UIDLStateDefinition,

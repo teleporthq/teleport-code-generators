@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 
 export const generateStyledJSXTag = (content: string): types.JSXElement => {
   const templateLiteral = ASTUtils.stringAsTemplateLiteral(content)

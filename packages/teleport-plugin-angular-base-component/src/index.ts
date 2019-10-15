@@ -6,7 +6,8 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { ASTBuilders, UIDLUtils, createHTMLTemplateSyntax } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, createHTMLTemplateSyntax } from '@teleporthq/teleport-plugin-common'
 
 import { generateExportAST } from './utils'
 

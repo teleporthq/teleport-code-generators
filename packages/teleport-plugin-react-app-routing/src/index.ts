@@ -1,4 +1,5 @@
-import { ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   registerReactRouterDeps,
   registerPreactRouterDeps,

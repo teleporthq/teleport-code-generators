@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 
-import { ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStateDefinition } from '@teleporthq/teleport-types'
 
 export const createPureComponent = (

@@ -1,8 +1,5 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import {
-  createReactComponentGenerator,
-  ReactStyleVariation,
-} from '@teleporthq/teleport-component-generator-react'
+import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
@@ -11,7 +8,7 @@ import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import { Mapping } from '@teleporthq/teleport-types'
+import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'

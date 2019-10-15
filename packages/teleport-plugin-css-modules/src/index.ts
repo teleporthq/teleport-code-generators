@@ -1,10 +1,5 @@
-import {
-  StringUtils,
-  ASTUtils,
-  UIDLUtils,
-  StyleBuilders,
-  StyleUtils,
-} from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { StyleUtils, StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 import {
   ComponentPluginFactory,

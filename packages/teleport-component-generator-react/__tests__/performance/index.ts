@@ -1,12 +1,10 @@
-// @ts-ignore
 import componentUIDLJSON from '../../../../examples/test-samples/component-sample.json'
-// @ts-ignore
 import bigUIDL from './big-sample.json'
 
-import { createReactComponentGenerator, ReactStyleVariation } from '../../src'
+import { createReactComponentGenerator } from '../../src'
 
 import { performance } from 'perf_hooks'
-import { ComponentUIDL, UIDLElement } from '@teleporthq/teleport-types'
+import { ComponentUIDL, UIDLElement, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 const componentUIDL = componentUIDLJSON as ComponentUIDL
 

@@ -1,15 +1,12 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import {
-  createPreactComponentGenerator,
-  PreactStyleVariation,
-} from '@teleporthq/teleport-component-generator-preact'
+import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import { Mapping } from '@teleporthq/teleport-types'
+import { Mapping, PreactStyleVariation } from '@teleporthq/teleport-types'
 
 import PreactTemplate from './project-template'
 import PreactCodesandBoxTemplate from './project-template-codesandbox'

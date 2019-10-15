@@ -11,13 +11,14 @@ import ComponentWithNestedSinglePropRef from './component-with-nested-single-pro
 // @ts-ignore-next-line
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
-import { createReactComponentGenerator, ReactStyleVariation } from '../../src'
+import { createReactComponentGenerator } from '../../src'
 import {
   ComponentUIDL,
   GeneratedFile,
   UIDLPropDefinition,
   UIDLStyleDefinitions,
   FileType,
+  ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import { staticNode, dynamicNode, component, elementNode } from '@teleporthq/teleport-uidl-builders'
 

@@ -1,4 +1,4 @@
-import { ASTBuilders } from '@teleporthq/teleport-shared'
+import { ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
   ComponentPlugin,

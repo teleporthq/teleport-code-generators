@@ -266,3 +266,77 @@ export interface PrettierFormatOptions {
   rangeStart?: number
   rangeEnd?: number
 }
+
+// Generation and packing interfaces (previously in teleport-code-generator)
+
+interface PublisherOptions {
+  accessToken?: string
+  projectName?: string
+  outputPath?: string
+  createProjectFolder?: boolean // used only by the disk publisher
+}
+
+interface GithubOptions {
+  authMeta?: ServiceAuth
+  repositoryOwner?: string
+  repository?: string
+  masterBranch?: string
+  commitBranch?: string
+  commitMessage?: string
+}
+
+export interface PackerOptions {
+  projectType?: ProjectType
+  publisher?: PublisherType
+  publishOptions?: GithubOptions | PublisherOptions
+  assets?: AssetInfo[]
+}
+
+export interface GenerateOptions {
+  componentType?: ComponentType
+  styleVariation?: StyleVariation
+}
+
+export enum PreactStyleVariation {
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
+}
+
+export enum ReactStyleVariation {
+  InlineStyles = 'Inline Styles',
+  CSSModules = 'CSS Modules',
+  CSS = 'CSS',
+  StyledComponents = 'Styled Components',
+  StyledJSX = 'Styled JSX',
+  ReactJSS = 'React JSS',
+}
+
+export enum PublisherType {
+  DISK = 'Disk',
+  ZIP = 'Zip',
+  NOW = 'Now',
+  NETLIFY = 'Netlify',
+  GITHUB = 'Github',
+  CODESANDBOX = 'CodeSandbox',
+}
+
+export enum ProjectType {
+  REACT = 'React',
+  NEXT = 'Next',
+  VUE = 'Vue',
+  NUXT = 'Nuxt',
+  PREACT = 'Preact',
+  STENCIL = 'Stencil',
+  ANGULAR = 'Angular',
+}
+
+export enum ComponentType {
+  REACT = 'React',
+  VUE = 'Vue',
+  PREACT = 'Preact',
+  STENCIL = 'Stencil',
+  ANGULAR = 'Angular',
+}
+
+export type StyleVariation = ReactStyleVariation | PreactStyleVariation

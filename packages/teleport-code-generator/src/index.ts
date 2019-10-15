@@ -1,4 +1,15 @@
-import { PublisherResponse, ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-types'
+import {
+  PublisherResponse,
+  ProjectUIDL,
+  ComponentUIDL,
+  PackerOptions,
+  GenerateOptions,
+  PublisherType,
+  ProjectType,
+  ComponentType,
+  StyleVariation,
+  ReactStyleVariation,
+} from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -36,31 +47,11 @@ import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codesandbox'
 
-import {
-  createReactComponentGenerator,
-  ReactStyleVariation,
-} from '@teleporthq/teleport-component-generator-react'
-import {
-  createPreactComponentGenerator,
-  PreactStyleVariation,
-} from '@teleporthq/teleport-component-generator-preact'
+import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
-
-import {
-  PackerOptions,
-  GenerateOptions,
-  PublisherType,
-  ProjectType,
-  ComponentType,
-  StyleVariation,
-} from './types'
-
-const ComponentStyleVariations = {
-  [ComponentType.REACT]: ReactStyleVariation,
-  [ComponentType.PREACT]: PreactStyleVariation,
-}
 
 const componentGeneratorFactories = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -99,7 +90,7 @@ const projectPublisherFactories = {
   [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
 }
 
-const packProject = async (
+export const packProject = async (
   projectUIDL: ProjectUIDL,
   {
     projectType = ProjectType.NEXT,
@@ -139,7 +130,7 @@ const packProject = async (
   return packer.pack(projectUIDL)
 }
 
-const generateComponent = async (
+export const generateComponent = async (
   componentUIDL: ComponentUIDL,
   {
     componentType = ComponentType.REACT,
@@ -148,19 +139,6 @@ const generateComponent = async (
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   return generator.generateComponent(componentUIDL)
-}
-
-export {
-  packProject,
-  generateComponent,
-  ProjectType,
-  PublisherType,
-  ComponentType,
-  StyleVariation,
-  ComponentStyleVariations,
-  ReactStyleVariation,
-  PreactStyleVariation,
-  PackerOptions,
 }
 
 const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {

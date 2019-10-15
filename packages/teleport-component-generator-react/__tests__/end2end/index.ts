@@ -3,8 +3,8 @@ import uidlSampleJSON from '../../../../examples/test-samples/component-sample.j
 // @ts-ignore
 import invalidUidlSampleJSON from '../../../../examples/test-samples/component-invalid-sample.json'
 
-import { createReactComponentGenerator, ReactStyleVariation } from '../../src'
-import { ComponentUIDL, GeneratedFile } from '@teleporthq/teleport-types'
+import { createReactComponentGenerator } from '../../src'
+import { ComponentUIDL, GeneratedFile, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL

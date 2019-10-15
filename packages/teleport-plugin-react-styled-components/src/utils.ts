@@ -1,5 +1,6 @@
 import * as t from '@babel/types'
-import { ASTUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (
