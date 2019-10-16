@@ -118,7 +118,7 @@ const packProject = async (
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
   const projectTemplate =
-    ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
+    projectType === ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
       ? PreactCodesandBoxTemplate
       : templates[projectType]
 
