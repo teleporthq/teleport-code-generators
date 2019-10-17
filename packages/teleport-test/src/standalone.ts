@@ -1,12 +1,7 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import {
-  packProject,
-  PublisherType,
-  ProjectType,
-  PackerOptions,
-} from '@teleporthq/teleport-code-generator'
-import { ProjectUIDL } from '@teleporthq/teleport-types'
+import { packProject } from '@teleporthq/teleport-code-generator'
+import { ProjectUIDL, PackerOptions, ProjectType, PublisherType } from '@teleporthq/teleport-types'
 
 import projectJSON from '../../../examples/uidl-samples/project.json'
 
@@ -14,7 +9,7 @@ const projectUIDL = (projectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
-  publisher: PublisherType.DISK,
+  publisher: PublisherType.CODESANDBOX,
   publishOptions: {
     outputPath: 'dist',
   },
@@ -49,6 +44,8 @@ const run = async () => {
     console.info(ProjectType.PREACT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.ANGULAR })
     console.info(ProjectType.ANGULAR, '-', result.payload)
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
+    console.info(ProjectType.GRIDSOME, '-', result.payload)
   } catch (e) {
     console.info(e)
   }
