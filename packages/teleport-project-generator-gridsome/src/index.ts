@@ -7,8 +7,8 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
-import GridsomeTemplate from './project-template'
-import GridsomeProjectMappng from './vue-project-mapping.json'
+import GridsomeTemplate from './gridsome-project-template'
+import GridsomeProjectMappng from './gridsome-project-mapping.json'
 
 const createGridsomeProjectGenerator = () => {
   const vueComponentGenerator = createVueComponentGenerator()
