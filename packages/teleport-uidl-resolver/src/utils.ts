@@ -11,6 +11,7 @@ import {
   UIDLStateDefinition,
   GeneratorOptions,
   ComponentUIDL,
+  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -139,6 +140,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     attributes: attributesMapping,
   } = mapping
   const originalElement = element
+  const originalElementType = originalElement.elementType
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
   }
@@ -203,6 +205,19 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   if (mappedElement.children) {
     originalElement.children = resolveChildren(mappedElement.children, originalElement.children)
+
+    // Solves an edge case for next.js by passing the styles from the <Link> tag to the <a> tag
+    const anchorChild = originalElement.children.find(
+      (child) => child.type === 'element' && child.content.elementType === 'a'
+    ) as UIDLElementNode
+
+    // only do it if there's a child <a> tag and the original element is a navlink
+    const shouldPassStylesToAnchor =
+      originalElement.style && originalElementType === 'navlink' && anchorChild
+    if (shouldPassStylesToAnchor) {
+      anchorChild.content.style = UIDLUtils.cloneObject(originalElement.style)
+      originalElement.style = {}
+    }
   }
 }
 
