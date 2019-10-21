@@ -1,10 +1,3 @@
 {
-  "elements": {
-    "navlink": {
-      "elementType": "router-link",
-      "attrs": {
-        "to": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
-      }
-    }
-  }
+"elements": {}
 }
