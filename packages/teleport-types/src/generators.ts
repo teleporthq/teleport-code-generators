@@ -329,6 +329,7 @@ export enum ProjectType {
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
+  GRIDSOME = 'Gridsome',
 }
 
 export enum ComponentType {

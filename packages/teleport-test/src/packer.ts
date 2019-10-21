@@ -7,6 +7,7 @@ import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generat
 import { createPreactProjectGenerator } from '@teleporthq/teleport-project-generator-preact'
 import { createStencilProjectGenerator } from '@teleporthq/teleport-project-generator-stencil'
 import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
+import { createGridsomeProjectGenerator } from '@teleporthq/teleport-project-generator-gridsome'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
@@ -23,6 +24,7 @@ import {
   STENCIL_GITHUB_PROJECT,
   ANGULAR_GITHUB_PROJECT,
   PREACT_CODESANDBOX_PROJECT,
+  GRIDSOME_GITHUB_PROJECT,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -36,6 +38,7 @@ const generators: Record<string, ProjectGenerator> = {
   stencil: createStencilProjectGenerator(),
   angular: createAngularProjectGenerator(),
   preactCodesandbox: createPreactProjectGenerator(),
+  gridsome: createGridsomeProjectGenerator(),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -51,6 +54,7 @@ const templates: Record<string, RemoteTemplateDefinition> = {
   stencil: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, STENCIL_GITHUB_PROJECT),
   angular: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, ANGULAR_GITHUB_PROJECT),
   preactCodesandbox: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_CODESANDBOX_PROJECT),
+  gridsome: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GRIDSOME_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -84,6 +88,7 @@ const run = async () => {
     await packProject('stencil')
     await packProject('angular')
     await packProject('preactCodesandbox')
+    await packProject('gridsome')
   } catch (e) {
     console.info(e)
   }
