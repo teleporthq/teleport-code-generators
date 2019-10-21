@@ -14,10 +14,6 @@
           "type": "element",
           "content": {
             "elementType": "a",
-            "style": {
-              "color": { "type": "static", "content": "inherit" },
-              "text-decoration": { "type": "static", "content": "inherit" }
-            },
             "name": "link",
             "children": [
               { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } }
