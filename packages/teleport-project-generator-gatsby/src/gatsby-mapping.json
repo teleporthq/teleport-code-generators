@@ -5,7 +5,6 @@
       "dependency": {
         "type": "library",
         "path": "gatsby",
-        "version": "^2.15.36",
         "meta": {
           "namedImport": true
         }

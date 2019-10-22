@@ -1,6 +1,6 @@
 # teleport-project-generator-gatsby
 
-Project generator using React and React-Router, on top of a standard webpack config.
+Project generator using React on top of gatsby default template.
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 

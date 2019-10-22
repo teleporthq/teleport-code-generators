@@ -1,8 +1,6 @@
 // @ts-ignore
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
-// @ts-ignore
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
-// @ts-ignore
 import template from './template-definition.json'
 import { createGatsbyProjectGenerator } from '../../src'
 import { FileType } from '@teleporthq/teleport-types'
