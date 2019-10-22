@@ -47,6 +47,7 @@ import {
   createGridsomeProjectGenerator,
   GridsomeTemplate,
 } from '@teleporthq/teleport-project-generator-gridsome'
+import {
   createGatsbyProjectGenerator,
   GatsbyTemplate,
 } from '@teleporthq/teleport-project-generator-gatsby'

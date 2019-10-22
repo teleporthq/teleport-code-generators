@@ -2,16 +2,16 @@ import * as types from '@babel/types'
 import {
   convertValueToLiteral,
   objectToObjectExpression,
-  addChildJSXTag,
   addAttributeToJSXTag,
+  addChildJSXTag,
 } from '../utils/ast-utils'
 import {
   ImportIdentifier,
   UIDLEventHandlerStatement,
-  UIDLGlobalAsset,
   EntryFileOptions,
+  UIDLGlobalAsset,
 } from '@teleporthq/teleport-types'
-import { prefixAssetsPath } from '../utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
   const declarator = t.variableDeclarator(t.identifier(constName), asignment)
@@ -184,7 +184,7 @@ export const appendAssetsAST = (
   bodyNode: types.JSXElement
 ) => {
   assets.forEach((asset) => {
-    const assetPath = prefixAssetsPath(options.assetsPrefix, asset.path)
+    const assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
