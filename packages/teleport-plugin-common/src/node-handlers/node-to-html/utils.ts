@@ -1,5 +1,5 @@
 import * as hastUtils from '../../utils/hast-utils'
-import { capitalize, dashCaseToUpperCamelCase } from '../../utils/string-utils'
+import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLConditionalExpression,
   UIDLConditionalNode,
@@ -29,7 +29,7 @@ export const handleAttribute = (
       if (Array.isArray(attrValue.content)) {
         // This handles the cases when arrays are sent as props or passed as attributes
         // The array will be placed on the dataObject and the data reference is placed on the node
-        const dataObjectIdentifier = `${elementName}${capitalize(attrKey)}`
+        const dataObjectIdentifier = `${elementName}${StringUtils.capitalize(attrKey)}`
         dataObject[dataObjectIdentifier] = attrValue.content
         hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, dataObjectIdentifier)
       } else if (typeof attrValue.content === 'boolean') {
@@ -78,9 +78,9 @@ export const handleEvent = (
       )
     }
   } else {
-    const methodName = `handle${dashCaseToUpperCamelCase(elementName)}${dashCaseToUpperCamelCase(
-      eventKey
-    )}`
+    const methodName = `handle${StringUtils.dashCaseToUpperCamelCase(
+      elementName
+    )}${StringUtils.dashCaseToUpperCamelCase(eventKey)}`
     const eventNameBiding = templateSyntax.eventHandlersBindingMode
       ? templateSyntax.eventHandlersBindingMode(methodName)
       : methodName

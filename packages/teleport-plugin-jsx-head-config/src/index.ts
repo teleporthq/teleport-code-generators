@@ -1,5 +1,5 @@
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 
 interface JSXHeadPluginConfig {

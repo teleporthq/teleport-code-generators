@@ -1,4 +1,15 @@
-import { PublisherResponse, ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-types'
+import {
+  PublisherResponse,
+  ProjectUIDL,
+  ComponentUIDL,
+  PackerOptions,
+  GenerateOptions,
+  PublisherType,
+  ProjectType,
+  ComponentType,
+  StyleVariation,
+  ReactStyleVariation,
+} from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -17,6 +28,7 @@ import {
 } from '@teleporthq/teleport-project-generator-nuxt'
 import {
   PreactTemplate,
+  PreactCodesandBoxTemplate,
   createPreactProjectGenerator,
 } from '@teleporthq/teleport-project-generator-preact'
 import {
@@ -31,6 +43,10 @@ import {
   createAngularProjectGenerator,
   AngularTemplate,
 } from '@teleporthq/teleport-project-generator-angular'
+import {
+  createGridsomeProjectGenerator,
+  GridsomeTemplate,
+} from '@teleporthq/teleport-project-generator-gridsome'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -39,36 +55,12 @@ import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codesandbox'
 
-import {
-  createReactComponentGenerator,
-  ReactStyleVariation,
-} from '@teleporthq/teleport-component-generator-react'
-import {
-  createPreactComponentGenerator,
-  PreactStyleVariation,
-} from '@teleporthq/teleport-component-generator-preact'
+import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
-import {
-  createReactNativeComponentGenerator,
-  ReactNativeStyleVariation,
-} from '@teleporthq/teleport-component-generator-reactnative'
-
-import {
-  PackerOptions,
-  GenerateOptions,
-  PublisherType,
-  ProjectType,
-  ComponentType,
-  StyleVariation,
-} from './types'
-
-const ComponentStyleVariations = {
-  [ComponentType.REACT]: ReactStyleVariation,
-  [ComponentType.PREACT]: PreactStyleVariation,
-  [ComponentType.REACTNATIVE]: ReactNativeStyleVariation,
-}
+import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 
 const componentGeneratorFactories = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -88,6 +80,7 @@ const projectGeneratorFactories = {
   [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
   [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
+  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
 }
 
 const templates = {
@@ -99,6 +92,7 @@ const templates = {
   [ProjectType.STENCIL]: StencilTemplate,
   [ProjectType.REACTNATIVE]: ReactNativeTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
+  [ProjectType.GRIDSOME]: GridsomeTemplate,
 }
 
 const projectPublisherFactories = {
@@ -110,7 +104,7 @@ const projectPublisherFactories = {
   [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
 }
 
-const packProject = async (
+export const packProject = async (
   projectUIDL: ProjectUIDL,
   {
     projectType = ProjectType.NEXT,
@@ -122,7 +116,11 @@ const packProject = async (
   const packer = createProjectPacker()
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
-  const projectTemplate = templates[projectType]
+  const projectTemplate =
+    projectType === ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
+      ? PreactCodesandBoxTemplate
+      : templates[projectType]
+
   const publisherFactory = projectPublisherFactories[publisher]
 
   if (!projectGeneratorFactory) {
@@ -134,11 +132,11 @@ const packProject = async (
   }
 
   const projectPublisher = publisherFactory(publishOptions)
-
   packer.setAssets({
     assets,
     path: [Constants.ASSETS_IDENTIFIER],
   })
+
   packer.setGenerator(projectGeneratorFactory())
   packer.setTemplate(projectTemplate)
   packer.setPublisher(projectPublisher)
@@ -146,7 +144,7 @@ const packProject = async (
   return packer.pack(projectUIDL)
 }
 
-const generateComponent = async (
+export const generateComponent = async (
   componentUIDL: ComponentUIDL,
   {
     componentType = ComponentType.REACT,
@@ -155,19 +153,6 @@ const generateComponent = async (
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   return generator.generateComponent(componentUIDL)
-}
-
-export {
-  packProject,
-  generateComponent,
-  ProjectType,
-  PublisherType,
-  ComponentType,
-  StyleVariation,
-  ComponentStyleVariations,
-  ReactStyleVariation,
-  PreactStyleVariation,
-  PackerOptions,
 }
 
 const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {

@@ -1,4 +1,5 @@
-import { HASTUtils, UIDLUtils, StringUtils, HASTBuilers } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { HASTUtils, HASTBuilers } from '@teleporthq/teleport-plugin-common'
 
 import {
   GeneratedFile,

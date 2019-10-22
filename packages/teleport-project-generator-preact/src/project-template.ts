@@ -35,6 +35,7 @@ export default {
   },
   "dependencies": {
     "preact": "^8.2.6",
+    "preact-compat": "3.19.0",
     "preact-router": "^2.5.7",
     "react-helmet": "^5.2.1"
   }

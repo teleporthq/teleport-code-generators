@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
-import { ASTBuilders, ASTUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (

@@ -7,7 +7,8 @@ import {
   ComponentPlugin,
   UIDLDependency,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string

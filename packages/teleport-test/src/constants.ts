@@ -15,3 +15,7 @@ export const PREACT_GITHUB_PROJECT = 'teleport-project-template-preact'
 export const STENCIL_GITHUB_PROJECT = 'teleport-project-template-stencil'
 
 export const ANGULAR_GITHUB_PROJECT = 'teleport-project-template-angular'
+
+export const PREACT_CODESANDBOX_PROJECT = 'teleport-project-template-preact-codesandbox'
+
+export const GRIDSOME_GITHUB_PROJECT = 'teleport-project-template-gridsome'

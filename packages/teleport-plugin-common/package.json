@@ -1,0 +1,36 @@
+{
+  "name": "@teleporthq/teleport-plugin-common",
+  "version": "0.10.0-alpha.4",
+  "description": "Common building and modelating functions for ASTs and HASTs",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run build:cjs & npm run build:esm",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.4",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.4",
+    "jss": "^10.0.0",
+    "jss-preset-default": "^10.0.0"
+  },
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
+}

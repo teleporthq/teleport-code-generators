@@ -8,6 +8,7 @@ import { createPreactProjectGenerator } from '@teleporthq/teleport-project-gener
 import { createStencilProjectGenerator } from '@teleporthq/teleport-project-generator-stencil'
 import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
 import { createReactNativeProjectGenerator } from '@teleporthq/teleport-project-generator-reactnative'
+import { createGridsomeProjectGenerator } from '@teleporthq/teleport-project-generator-gridsome'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
@@ -24,6 +25,8 @@ import {
   PREACT_GITHUB_PROJECT,
   STENCIL_GITHUB_PROJECT,
   ANGULAR_GITHUB_PROJECT,
+  PREACT_CODESANDBOX_PROJECT,
+  GRIDSOME_GITHUB_PROJECT,
 } from './constants'
 
 import projectUIDL from '../../../examples/uidl-samples/project.json'
@@ -37,6 +40,8 @@ const generators: Record<string, ProjectGenerator> = {
   stencil: createStencilProjectGenerator(),
   angular: createAngularProjectGenerator(),
   reactnative: createReactNativeProjectGenerator(),
+  preactCodesandbox: createPreactProjectGenerator(),
+  gridsome: createGridsomeProjectGenerator(),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -52,6 +57,8 @@ const templates: Record<string, RemoteTemplateDefinition> = {
   preact: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_GITHUB_PROJECT),
   stencil: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, STENCIL_GITHUB_PROJECT),
   angular: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, ANGULAR_GITHUB_PROJECT),
+  preactCodesandbox: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_CODESANDBOX_PROJECT),
+  gridsome: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GRIDSOME_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
@@ -77,14 +84,16 @@ const packProject = async (projectType: string) => {
 
 const run = async () => {
   try {
-    // await packProject('react')
-    // await packProject('next')
-    // await packProject('vue')
-    // await packProject('nuxt')
-    // await packProject('preact')
-    // await packProject('stencil')
-    // await packProject('angular')
+    await packProject('react')
     await packProject('reactnative')
+    await packProject('next')
+    await packProject('vue')
+    await packProject('nuxt')
+    await packProject('preact')
+    await packProject('stencil')
+    await packProject('angular')
+    await packProject('preactCodesandbox')
+    await packProject('gridsome')
   } catch (e) {
     console.info(e)
   }

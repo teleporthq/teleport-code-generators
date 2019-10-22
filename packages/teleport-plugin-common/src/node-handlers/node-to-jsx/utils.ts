@@ -1,7 +1,7 @@
 import * as types from '@babel/types'
 
 import { convertValueToLiteral } from '../../utils/ast-utils'
-import { capitalize } from '../../utils/string-utils'
+import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
   UIDLAttributeValue,
@@ -122,7 +122,7 @@ const createStateChangeStatement = (
   switch (options.stateHandling) {
     case 'hooks':
       return t.expressionStatement(
-        t.callExpression(t.identifier(`set${capitalize(stateKey)}`), [newStateValue])
+        t.callExpression(t.identifier(`set${StringUtils.capitalize(stateKey)}`), [newStateValue])
       )
     case 'function':
       return t.expressionStatement(

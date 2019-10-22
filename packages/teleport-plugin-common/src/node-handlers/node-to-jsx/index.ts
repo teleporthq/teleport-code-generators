@@ -20,7 +20,7 @@ import {
   getRepeatSourceIdentifier,
 } from './utils'
 
-import { getRepeatIteratorNameAndKey } from '../../utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   addChildJSXText,
   addChildJSXTag,
@@ -149,7 +149,7 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
 
   const contentAST = generateElementNode(repeatContent, params, options)
 
-  const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
+  const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey(meta)
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
   addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)

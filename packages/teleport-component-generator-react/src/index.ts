@@ -17,16 +17,7 @@ import {
 
 import ReactMapping from './react-mapping.json'
 
-import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
-
-enum ReactStyleVariation {
-  InlineStyles = 'Inline Styles',
-  CSSModules = 'CSS Modules',
-  CSS = 'CSS',
-  StyledComponents = 'Styled Components',
-  StyledJSX = 'Styled JSX',
-  ReactJSS = 'React JSS',
-}
+import { ComponentGenerator, Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 const createReactComponentGenerator = (
   variation = ReactStyleVariation.CSSModules,
@@ -37,6 +28,7 @@ const createReactComponentGenerator = (
     templateStyle: 'jsx',
     declareDependency: 'import',
     classAttributeName: 'className',
+    forceScoping: true,
   })
 
   const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })

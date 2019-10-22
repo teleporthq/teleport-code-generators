@@ -1,4 +1,5 @@
-import { ASTUtils, StringUtils, UIDLUtils, StyleBuilders } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 

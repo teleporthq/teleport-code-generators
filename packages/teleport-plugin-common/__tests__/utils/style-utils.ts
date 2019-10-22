@@ -46,7 +46,7 @@ describe('JSS Utils ', () => {
       },
     }
     try {
-      const result = getContentOfStyleObject(styleValue)
+      getContentOfStyleObject(styleValue)
     } catch (e) {
       expect(e.message).toBe(
         `getContentOfStyleKey received unsupported ${JSON.stringify(

@@ -23,6 +23,7 @@ const createVueComponentGenerator = ({
   const generator = createComponentGenerator()
   const vueStylePlugin = createCSSPlugin({
     inlineStyleAttributeKey: ':style',
+    forceScoping: true,
   })
 
   generator.addMapping(VueMapping)

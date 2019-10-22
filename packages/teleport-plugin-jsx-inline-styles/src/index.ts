@@ -1,4 +1,5 @@
-import { ASTUtils, StyleBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 
 interface InlineStyleConfig {

@@ -2,18 +2,18 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 
 import projectJson from '../../../examples/test-samples/project-sample.json'
-import { ProjectUIDL } from '@teleporthq/teleport-types'
-
 import {
-  packProject,
-  generateComponent,
+  ProjectUIDL,
+  GenerateOptions,
+  ComponentType,
   PackerOptions,
   PublisherType,
   ProjectType,
-} from '../src/index'
-import { GenerateOptions, ComponentType } from '../src/types'
-import { ReactStyleVariation } from '@teleporthq/teleport-component-generator-react'
-import { PreactStyleVariation } from '@teleporthq/teleport-component-generator-preact'
+  ReactStyleVariation,
+  PreactStyleVariation,
+} from '@teleporthq/teleport-types'
+
+import { packProject, generateComponent } from '../src/index'
 
 const reactProjectPath = join(__dirname, 'react')
 const nextProjectPath = join(__dirname, 'next')

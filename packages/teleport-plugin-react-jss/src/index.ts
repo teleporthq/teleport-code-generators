@@ -1,10 +1,6 @@
-import {
-  ASTUtils,
-  ASTBuilders,
-  StringUtils,
-  UIDLUtils,
-  ParsedASTNode,
-} from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+
+import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 
 import {
   ComponentPluginFactory,

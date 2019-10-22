@@ -1,6 +1,6 @@
 import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
-import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-shared'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types.JSXElement[]) => {
   const routerTag = ASTBuilders.createJSXTag('Router')

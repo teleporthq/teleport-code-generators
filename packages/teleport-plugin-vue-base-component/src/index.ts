@@ -5,7 +5,7 @@ import {
   FileType,
   ChunkType,
 } from '@teleporthq/teleport-types'
-import { createHTMLTemplateSyntax } from '@teleporthq/teleport-shared'
+import { createHTMLTemplateSyntax } from '@teleporthq/teleport-plugin-common'
 
 import {
   DEFAULT_VUE_TEMPLATE_CHUNK_NAME,

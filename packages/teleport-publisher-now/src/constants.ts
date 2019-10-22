@@ -1,6 +1,6 @@
 export const DEPLOY_URL = 'https://api.zeit.co/v9/now/deployments'
 
-export const NEXT_CONFIG = {
+export const NOW_CONFIG = {
   version: 2,
   public: true,
 }

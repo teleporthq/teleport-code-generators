@@ -1,6 +1,6 @@
 import * as hastUtils from '../../utils/hast-utils'
 import { createHTMLNode } from '../../builders/hast-builders'
-import { getRepeatIteratorNameAndKey } from '../../utils/uidl-utils'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLRepeatNode,
   UIDLConditionalNode,
@@ -99,7 +99,7 @@ const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, 
     params.dataObject[dataObjectIdentifier] = dataSource.content
   }
 
-  const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey(meta)
+  const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey(meta)
   const repeatIterator = templateSyntax.repeatIterator(
     iteratorName,
     dataObjectIdentifier,

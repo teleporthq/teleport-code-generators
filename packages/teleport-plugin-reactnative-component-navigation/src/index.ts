@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
-import { ASTUtils, ASTBuilders, UIDLUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface ReactNativeNavigationPluginConfig {
   componentChunkName: string

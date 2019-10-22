@@ -6,7 +6,8 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { generateStyledComponent, countPropReferences, removeUnusedDependencies } from './utils'
-import { UIDLUtils, StringUtils, ASTUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface StyledComponentsConfig {
   componentChunkName: string
