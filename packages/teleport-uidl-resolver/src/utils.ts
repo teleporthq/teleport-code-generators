@@ -77,26 +77,21 @@ export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateD
       }
 
       const transitionState = transitionAttribute.content.toString()
-      const transitionRoute = routesDefinition.values.find(
-        (route) => route.value === transitionState
-      )
-
       if (transitionState.startsWith('/')) {
         // attribute was explicitly set as a custom navlink
         return
       }
 
+      const transitionRoute = routesDefinition.values.find(
+        (route) => route.value === transitionState
+      )
+
       if (!transitionRoute) {
-        throw new Error(
-          `Invalid route value: '${transitionState}' was specified as transitionTo attribute on element\n ${JSON.stringify(
-            element,
-            null,
-            2
-          )}`
-        )
+        transitionAttribute.content = '/'
+        return
       }
 
-      if (transitionRoute && transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
+      if (transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
         transitionAttribute.content = transitionRoute.pageOptions.navLink
       } else {
         transitionAttribute.content = `/${transitionState}`

@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch'
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
-import { NEXT_CONFIG, DEPLOY_URL, NOW_LINK_PREFIX } from './constants'
+import { NOW_CONFIG, DEPLOY_URL, NOW_LINK_PREFIX } from './constants'
 
 interface ProjectFolderInfo {
   folder: GeneratedFolder
@@ -27,7 +27,7 @@ export const generateProjectFiles = (project: GeneratedFolder): NowFiles => {
   })
 
   return {
-    ...NEXT_CONFIG,
+    ...NOW_CONFIG,
     files,
     name: project.name,
   }

@@ -286,8 +286,8 @@ describe('resolveNavlinks', () => {
       transitionTo: staticNode('non-existing-state'),
     })
 
-    expect(() => resolveNavlinks(navlink, routeDef)).toThrow()
-    expect(navlink.content.attrs.transitionTo.content).toBe('non-existing-state')
+    resolveNavlinks(navlink, routeDef)
+    expect(navlink.content.attrs.transitionTo.content).toBe('/')
   })
 })
 
@@ -413,7 +413,7 @@ describe('checkForIllegalNames', () => {
     expect(comp.outputOptions.componentClassName).toBe('App')
   })
 
-  it('throws error for invaid prop', () => {
+  it('throws error for invalid prop', () => {
     comp.propDefinitions.this = definition('string', '')
 
     expect(() => checkForIllegalNames(comp, mapping)).toThrowError()
