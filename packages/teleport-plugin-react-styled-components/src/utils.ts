@@ -1,7 +1,7 @@
 import * as t from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLStyleValue } from '@teleporthq/teleport-types'
+import { UIDLStyleValue, UIDLDependency } from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (
   name: string,
@@ -48,4 +48,23 @@ export const countPropReferences = (
     }
   })
   return timesReferred
+}
+
+export const removeUnusedDependencies = (
+  dependencies: Record<string, UIDLDependency>,
+  jsxNodesLookup: Record<string, t.JSXElement>
+) => {
+  Object.keys(dependencies).forEach((depKey) => {
+    const dependency = dependencies[depKey]
+    if (dependency.type === 'library' && dependency.path === 'react-native') {
+      const dependencyIsStillNeeded = Object.keys(jsxNodesLookup).some((elementKey) => {
+        const jsxNode = jsxNodesLookup[elementKey]
+        return (jsxNode.openingElement.name as t.JSXIdentifier).name === depKey
+      })
+
+      if (!dependencyIsStillNeeded) {
+        delete dependencies[depKey]
+      }
+    }
+  })
 }

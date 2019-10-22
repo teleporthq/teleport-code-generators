@@ -1,22 +1,28 @@
+import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { generateStyledComponent, countPropReferences } from './utils'
+import { generateStyledComponent, countPropReferences, removeUnusedDependencies } from './utils'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface StyledComponentsConfig {
   componentChunkName: string
   importChunkName?: string
+  componentLibrary?: 'react' | 'reactnative'
 }
 
 export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledComponentsConfig> = (
   config
 ) => {
-  const { componentChunkName = 'jsx-component', importChunkName = 'import-local' } = config || {}
+  const {
+    componentChunkName = 'jsx-component',
+    importChunkName = 'import-local',
+    componentLibrary = 'react',
+  } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
@@ -26,16 +32,21 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       return structure
     }
 
-    const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap: Record<string, any> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style, key, elementType } = element
+      let { style } = element
+      const { key, elementType } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
         const className = `${StringUtils.dashCaseToUpperCamelCase(key)}`
         const timesReferred = countPropReferences(style, 0)
+
+        if (componentLibrary === 'reactnative') {
+          style = UIDLUtils.cleanupNestedStyles(style)
+        }
 
         jssStyleMap[className] = UIDLUtils.transformDynamicStyles(
           style,
@@ -55,7 +66,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                   return `\$\{props => props.${styleValue.content.id}\}`
               }
             }
-
             throw new Error(
               `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
             )
@@ -79,12 +89,19 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       }
     })
 
-    if (Object.keys(jssStyleMap).length > 0) {
-      dependencies.styled = {
-        type: 'library',
-        path: 'styled-components',
-        version: '4.2.0',
-      }
+    if (Object.keys(jssStyleMap).length === 0) {
+      return structure
+    }
+
+    dependencies.styled = {
+      type: 'library',
+      path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
+      version: '4.2.0',
+    }
+
+    // React Native elements are imported from styled-components/native, so direct dependency to `react-native` is removed
+    if (componentLibrary === 'reactnative') {
+      removeUnusedDependencies(dependencies, jsxNodesLookup)
     }
 
     return structure

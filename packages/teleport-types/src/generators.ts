@@ -140,7 +140,7 @@ export interface ProjectStrategy {
     path: string[]
     fileName?: string
   }
-  entry: {
+  entry?: {
     generator: ComponentGenerator
     path: string[]
     fileName?: string
@@ -323,6 +323,7 @@ export enum PublisherType {
 
 export enum ProjectType {
   REACT = 'React',
+  REACTNATIVE = 'ReactNative',
   NEXT = 'Next',
   VUE = 'Vue',
   NUXT = 'Nuxt',
@@ -334,6 +335,7 @@ export enum ProjectType {
 
 export enum ComponentType {
   REACT = 'React',
+  REACTNATIVE = 'ReactNative',
   VUE = 'Vue',
   PREACT = 'Preact',
   STENCIL = 'Stencil',

@@ -36,6 +36,10 @@ import {
   StencilTemplate,
 } from '@teleporthq/teleport-project-generator-stencil'
 import {
+  createReactNativeProjectGenerator,
+  ReactNativeTemplate,
+} from '@teleporthq/teleport-project-generator-reactnative'
+import {
   createAngularProjectGenerator,
   AngularTemplate,
 } from '@teleporthq/teleport-project-generator-angular'
@@ -56,6 +60,7 @@ import { createPreactComponentGenerator } from '@teleporthq/teleport-component-g
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
+import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 
 const componentGeneratorFactories = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -63,6 +68,7 @@ const componentGeneratorFactories = {
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
   [ComponentType.VUE]: createVueComponentGenerator,
   [ComponentType.STENCIL]: createStencilComponentGenerator,
+  [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
 }
 
 const projectGeneratorFactories = {
@@ -73,6 +79,7 @@ const projectGeneratorFactories = {
   [ProjectType.PREACT]: createPreactProjectGenerator,
   [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
+  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
   [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
 }
 
@@ -83,6 +90,7 @@ const templates = {
   [ProjectType.NUXT]: NuxtTemplate,
   [ProjectType.PREACT]: PreactTemplate,
   [ProjectType.STENCIL]: StencilTemplate,
+  [ProjectType.REACTNATIVE]: ReactNativeTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
 }

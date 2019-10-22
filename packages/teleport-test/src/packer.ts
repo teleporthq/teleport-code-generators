@@ -7,6 +7,7 @@ import { createNuxtProjectGenerator } from '@teleporthq/teleport-project-generat
 import { createPreactProjectGenerator } from '@teleporthq/teleport-project-generator-preact'
 import { createStencilProjectGenerator } from '@teleporthq/teleport-project-generator-stencil'
 import { createAngularProjectGenerator } from '@teleporthq/teleport-project-generator-angular'
+import { createReactNativeProjectGenerator } from '@teleporthq/teleport-project-generator-reactnative'
 import { createGridsomeProjectGenerator } from '@teleporthq/teleport-project-generator-gridsome'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -17,6 +18,7 @@ import config from '../config.json'
 import {
   GITHUB_TEMPLATE_OWNER,
   REACT_GITHUB_PROJECT,
+  REACTNATIVE_GITHUB_PROJECT,
   NEXT_GITHUB_PROJECT,
   VUE_GITHUB_PROJECT,
   NUXT_GITHUB_PROJECT,
@@ -37,6 +39,7 @@ const generators: Record<string, ProjectGenerator> = {
   preact: createPreactProjectGenerator(),
   stencil: createStencilProjectGenerator(),
   angular: createAngularProjectGenerator(),
+  reactnative: createReactNativeProjectGenerator(),
   preactCodesandbox: createPreactProjectGenerator(),
   gridsome: createGridsomeProjectGenerator(),
 }
@@ -47,6 +50,7 @@ const getGithubRemoteDefinition = (username: string, repo: string): RemoteTempla
 
 const templates: Record<string, RemoteTemplateDefinition> = {
   react: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACT_GITHUB_PROJECT),
+  reactnative: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, REACTNATIVE_GITHUB_PROJECT),
   next: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NEXT_GITHUB_PROJECT),
   vue: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, VUE_GITHUB_PROJECT),
   nuxt: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, NUXT_GITHUB_PROJECT),
@@ -81,6 +85,7 @@ const packProject = async (projectType: string) => {
 const run = async () => {
   try {
     await packProject('react')
+    await packProject('reactnative')
     await packProject('next')
     await packProject('vue')
     await packProject('nuxt')

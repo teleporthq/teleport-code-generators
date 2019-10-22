@@ -245,3 +245,17 @@ export const getTSAnnotationForType = (type: any, t = types) => {
       return t.tsUnknownKeyword()
   }
 }
+
+export const findAttributeByName = (jsxTag: types.JSXElement, attrName: string) => {
+  return jsxTag.openingElement.attributes.find(
+    (attr) => attr.type === 'JSXAttribute' && attr.name.name === attrName
+  ) as types.JSXAttribute
+}
+
+export const removeAttributeByName = (jsxTag: types.JSXElement, attrName: string) => {
+  jsxTag.openingElement.attributes = jsxTag.openingElement.attributes.filter(
+    (attr) =>
+      attr.type === 'JSXSpreadAttribute' ||
+      (attr.type === 'JSXAttribute' && attr.name.name !== attrName)
+  )
+}

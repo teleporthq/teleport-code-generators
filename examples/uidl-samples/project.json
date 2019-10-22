@@ -56,13 +56,13 @@
               "componentName": "Home"
             },
             "seo": {
-              "title": "Home Page"
+              "title": "Home Screen"
             }
           },
           {
             "value": "team",
             "seo": {
-              "title": "About Page",
+              "title": "About Screen",
               "metaTags": [
                 { "name": "description", "content": "What is this about?" },
                 { "name": "keywords", "content": "prea bun, prea ca la tara" },
@@ -713,6 +713,16 @@
             "font-size": "18px"
           },
           "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "name": "form-banner",
+                "attrs": {
+                  "url": "/playground_assets/some-banner.png"
+                }
+              }
+            },
             {
               "type": "element",
               "content": {

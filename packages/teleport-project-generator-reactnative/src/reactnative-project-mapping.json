@@ -1,0 +1,14 @@
+{
+  "elements": {
+    "navlink": {
+      "elementType": "TouchableWithoutFeedback",
+      "dependency": {
+        "type": "library",
+        "path": "react-native-gesture-handler",
+        "meta": {
+          "namedImport": true
+        }
+      }
+    }
+  }
+}
