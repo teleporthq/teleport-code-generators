@@ -39,7 +39,9 @@ describe('plugin-css-modules', () => {
   })
 
   it('generates a string chunk out of the styles and adds the className between brackets', async () => {
-    const plugin = createCSSModulesPlugin()
+    const plugin = createCSSModulesPlugin({
+      camelCaseClassNames: false,
+    })
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -89,7 +91,7 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('class')
-    expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
+    expect(classNameAttr.value.expression.name).toBe('styles.listContainer')
   })
 
   it('generates a string chunk of type CSS', async () => {

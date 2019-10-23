@@ -312,6 +312,11 @@ export enum ReactStyleVariation {
   ReactJSS = 'React JSS',
 }
 
+export enum ReactNativeStyleVariation {
+  InlineStyles = 'Inline Styles',
+  StyledComponents = 'Styled Components',
+}
+
 export enum PublisherType {
   DISK = 'Disk',
   ZIP = 'Zip',
@@ -343,4 +348,4 @@ export enum ComponentType {
   ANGULAR = 'Angular',
 }
 
-export type StyleVariation = ReactStyleVariation | PreactStyleVariation
+export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation

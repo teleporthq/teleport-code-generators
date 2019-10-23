@@ -168,7 +168,11 @@ const createComponentGenerator = (componentType: ComponentType, styleVariation: 
     throw new Error(`Invalid ComponentType: ${componentType}`)
   }
 
-  if (componentType === ComponentType.REACT || componentType === ComponentType.PREACT) {
+  if (
+    componentType === ComponentType.REACT ||
+    componentType === ComponentType.PREACT ||
+    componentType === ComponentType.REACTNATIVE
+  ) {
     // @ts-ignore
     return generatorFactory(styleVariation)
   }

@@ -12,12 +12,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import ReactNativeMapping from './react-native-mapping.json'
 
-import { ComponentGenerator, Mapping } from '@teleporthq/teleport-types'
-
-enum ReactNativeStyleVariation {
-  InlineStyles = 'Inline Styles',
-  StyledComponents = 'Styled Components',
-}
+import { ComponentGenerator, Mapping, ReactNativeStyleVariation } from '@teleporthq/teleport-types'
 
 const styledComponentsPlugin = createReactStyledComponentsPlugin({
   componentLibrary: 'reactnative',
