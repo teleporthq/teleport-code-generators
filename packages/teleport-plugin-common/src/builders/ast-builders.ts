@@ -1,6 +1,17 @@
 import * as types from '@babel/types'
-import { convertValueToLiteral, objectToObjectExpression } from '../utils/ast-utils'
-import { ImportIdentifier, UIDLEventHandlerStatement } from '@teleporthq/teleport-types'
+import {
+  convertValueToLiteral,
+  objectToObjectExpression,
+  addAttributeToJSXTag,
+  addChildJSXTag,
+} from '../utils/ast-utils'
+import {
+  ImportIdentifier,
+  UIDLEventHandlerStatement,
+  EntryFileOptions,
+  UIDLGlobalAsset,
+} from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
   const declarator = t.variableDeclarator(t.identifier(constName), asignment)
@@ -164,4 +175,80 @@ export const createStateChangeStatement = (statement: UIDLEventHandlerStatement,
       rightOperand
     )
   )
+}
+
+export const appendAssetsAST = (
+  assets: UIDLGlobalAsset[],
+  options: EntryFileOptions,
+  headNode: types.JSXElement,
+  bodyNode: types.JSXElement
+) => {
+  assets.forEach((asset) => {
+    const assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+
+    // link canonical for SEO
+    if (asset.type === 'canonical' && assetPath) {
+      const linkTag = createJSXTag('link')
+      addAttributeToJSXTag(linkTag, 'rel', 'canonical')
+      addAttributeToJSXTag(linkTag, 'href', assetPath)
+      addChildJSXTag(headNode, linkTag)
+    }
+
+    // link stylesheet (external css, font)
+    if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
+      const linkTag = createJSXTag('link')
+      addAttributeToJSXTag(linkTag, 'rel', 'stylesheet')
+      addAttributeToJSXTag(linkTag, 'href', assetPath)
+      addChildJSXTag(headNode, linkTag)
+    }
+
+    // inline style
+    if (asset.type === 'style' && asset.content) {
+      const styleTag = createJSXTag('style')
+      addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
+      addChildJSXTag(headNode, styleTag)
+    }
+
+    // script (external or inline)
+    if (asset.type === 'script') {
+      const scriptTag = createJSXTag('script')
+      addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
+      if (assetPath) {
+        addAttributeToJSXTag(scriptTag, 'src', assetPath)
+        if (asset.options && asset.options.defer) {
+          addAttributeToJSXTag(scriptTag, 'defer', true)
+        }
+        if (asset.options && asset.options.async) {
+          addAttributeToJSXTag(scriptTag, 'async', true)
+        }
+      } else if (asset.content) {
+        addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', {
+          __html: asset.content,
+        })
+      }
+
+      if (asset.options && asset.options.target === 'body') {
+        addChildJSXTag(bodyNode, scriptTag)
+      } else {
+        addChildJSXTag(headNode, scriptTag)
+      }
+    }
+
+    // icon
+    if (asset.type === 'icon' && assetPath) {
+      const iconTag = createJSXTag('link')
+      addAttributeToJSXTag(iconTag, 'rel', 'shortcut icon')
+      addAttributeToJSXTag(iconTag, 'href', assetPath)
+
+      if (asset.options && asset.options.iconType) {
+        addAttributeToJSXTag(iconTag, 'type', asset.options.iconType)
+      }
+      if (asset.options && asset.options.iconSizes) {
+        addAttributeToJSXTag(iconTag, 'sizes', asset.options.iconSizes)
+      }
+
+      addChildJSXTag(headNode, iconTag)
+    }
+  })
+  return { headNode, bodyNode }
 }

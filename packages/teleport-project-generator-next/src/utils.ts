@@ -48,73 +48,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     ASTUtils.addChildJSXTag(headNode, metaTag)
   })
 
-  assets.forEach((asset) => {
-    const assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
-
-    // link canonical for SEO
-    if (asset.type === 'canonical' && assetPath) {
-      const linkTag = ASTBuilders.createJSXTag('link')
-      ASTUtils.addAttributeToJSXTag(linkTag, 'rel', 'canonical')
-      ASTUtils.addAttributeToJSXTag(linkTag, 'href', assetPath)
-      ASTUtils.addChildJSXTag(headNode, linkTag)
-    }
-
-    // link stylesheet (external css, font)
-    if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = ASTBuilders.createJSXTag('link')
-      ASTUtils.addAttributeToJSXTag(linkTag, 'rel', 'stylesheet')
-      ASTUtils.addAttributeToJSXTag(linkTag, 'href', assetPath)
-      ASTUtils.addChildJSXTag(headNode, linkTag)
-    }
-
-    // inline style
-    if (asset.type === 'style' && asset.content) {
-      const styleTag = ASTBuilders.createJSXTag('style')
-      ASTUtils.addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
-      ASTUtils.addChildJSXTag(headNode, styleTag)
-    }
-
-    // script (external or inline)
-    if (asset.type === 'script') {
-      const scriptTag = ASTBuilders.createJSXTag('script')
-      ASTUtils.addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
-      if (assetPath) {
-        ASTUtils.addAttributeToJSXTag(scriptTag, 'src', assetPath)
-        if (asset.options && asset.options.defer) {
-          ASTUtils.addAttributeToJSXTag(scriptTag, 'defer', true)
-        }
-        if (asset.options && asset.options.async) {
-          ASTUtils.addAttributeToJSXTag(scriptTag, 'async', true)
-        }
-      } else if (asset.content) {
-        ASTUtils.addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', {
-          __html: asset.content,
-        })
-      }
-
-      if (asset.options && asset.options.target === 'body') {
-        ASTUtils.addChildJSXTag(bodyNode, scriptTag)
-      } else {
-        ASTUtils.addChildJSXTag(headNode, scriptTag)
-      }
-    }
-
-    // icon
-    if (asset.type === 'icon' && assetPath) {
-      const iconTag = ASTBuilders.createJSXTag('link')
-      ASTUtils.addAttributeToJSXTag(iconTag, 'rel', 'shortcut icon')
-      ASTUtils.addAttributeToJSXTag(iconTag, 'href', assetPath)
-
-      if (asset.options && asset.options.iconType) {
-        ASTUtils.addAttributeToJSXTag(iconTag, 'type', asset.options.iconType)
-      }
-      if (asset.options && asset.options.iconSizes) {
-        ASTUtils.addAttributeToJSXTag(iconTag, 'sizes', asset.options.iconSizes)
-      }
-
-      ASTUtils.addChildJSXTag(headNode, iconTag)
-    }
-  })
+  ASTBuilders.appendAssetsAST(assets, options, htmlNode, bodyNode)
 
   // Create AST representation of the class CustomDocument extends Document
   // https://github.com/zeit/next.js#custom-document

@@ -19,3 +19,5 @@ export const ANGULAR_GITHUB_PROJECT = 'teleport-project-template-angular'
 export const PREACT_CODESANDBOX_PROJECT = 'teleport-project-template-preact-codesandbox'
 
 export const GRIDSOME_GITHUB_PROJECT = 'teleport-project-template-gridsome'
+
+export const GATSBY_GITHUB_PROJECT = 'teleport-project-template-gatsby'

@@ -1,0 +1,17 @@
+{
+  "elements": {
+    "navlink": {
+      "elementType": "Link",
+      "dependency": {
+        "type": "library",
+        "path": "gatsby",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "attrs": {
+        "to":{ "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }
+      }
+    }
+  }
+}

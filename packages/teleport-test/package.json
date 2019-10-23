@@ -34,6 +34,7 @@
     "@teleporthq/teleport-project-generator-stencil": "^0.10.0-alpha.4",
     "@teleporthq/teleport-project-generator-vue": "^0.10.0-alpha.4",
     "@teleporthq/teleport-project-generator-gridsome": "^0.10.0-alpha.4",
+    "@teleporthq/teleport-project-generator-gatsby": "^0.10.0-alpha.4",
     "@teleporthq/teleport-project-packer": "^0.10.0-alpha.4",
     "@teleporthq/teleport-publisher-codesandbox": "^0.10.0-alpha.4",
     "@teleporthq/teleport-publisher-disk": "^0.10.0-alpha.4",
