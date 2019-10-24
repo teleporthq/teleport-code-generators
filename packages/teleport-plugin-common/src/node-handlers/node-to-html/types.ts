@@ -20,8 +20,13 @@ export interface HTMLTemplateSyntax {
   conditionalAttr?: string
   repeatAttr?: string
   repeatIterator?: (iteratorName: string, iteratedCollection: string, useIndex: boolean) => string
-  customElementTagName?: (value: string) => string
+  customElementTagName?: (value: string) => CustomComponent
   dependencyHandling?: 'import' | 'ignore'
+}
+
+export interface CustomComponent {
+  tagName: string
+  importName: string
 }
 
 export type NodeToHTML<NodeType, ReturnType> = (

@@ -10,7 +10,7 @@ import {
   HastNode,
 } from '@teleporthq/teleport-types'
 import { createConditionalStatement, handleAttribute, handleEvent } from './utils'
-import { NodeToHTML } from './types'
+import { NodeToHTML, CustomComponent } from './types'
 import { DEFAULT_TEMPLATE_SYNTAX } from './constants'
 
 const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params, syntax) => {
@@ -18,12 +18,17 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
   const tagName = elementType || 'component'
-  const htmlNode = dependency
-    ? createHTMLNode(templateSyntax.customElementTagName(tagName))
-    : createHTMLNode(tagName)
+  let customNames: CustomComponent
+
+  if (templateSyntax.customElementTagName) {
+    customNames = templateSyntax.customElementTagName(tagName)
+  }
+
+  const htmlNode = dependency ? createHTMLNode(customNames.tagName) : createHTMLNode(tagName)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {
-    dependencies[tagName] = { ...dependency }
+    const dependencyName = customNames.importName ? customNames.importName : tagName
+    dependencies[dependencyName] = { ...dependency }
   }
 
   if (attrs) {

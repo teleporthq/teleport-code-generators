@@ -13,6 +13,8 @@ export const DEFAULT_TEMPLATE_SYNTAX: HTMLTemplateSyntax = {
     const iterator = useIndex ? `(${iteratorName}, index)` : iteratorName
     return `${iterator} in ${iteratedCollection}`
   },
-  customElementTagName: (value) => value,
+  customElementTagName: (value) => {
+    return { tagName: value, importName: value }
+  },
   dependencyHandling: 'import',
 }

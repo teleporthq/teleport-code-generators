@@ -37,6 +37,15 @@ export const createWebComponentFriendlyName = (componentName: string) => {
   return `app-${dashCaseName}`
 }
 
+export const createWebComponentFriendlyImportName = (componentName: string) => {
+  const dashCaseName = camelCaseToDashCase(componentName)
+  if (dashCaseName.includes('-')) {
+    return componentName
+  }
+
+  return `App${componentName}`
+}
+
 export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   uidl.outputOptions = uidl.outputOptions || {}
   const defaultComponentName = 'AppComponent'

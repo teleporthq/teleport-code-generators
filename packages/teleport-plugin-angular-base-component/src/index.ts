@@ -80,7 +80,12 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
           const index = useIndex ? `; index as index` : ''
           return `let ${iteratorName} of ${iteratedCollection}${index}`
         },
-        customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
+        customElementTagName: (value) => {
+          return {
+            tagName: UIDLUtils.createWebComponentFriendlyName(value),
+            importName: value,
+          }
+        },
         dependencyHandling: 'ignore',
       }
     )
