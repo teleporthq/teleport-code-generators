@@ -1,8 +1,5 @@
 import { createNowPublisher } from '../src'
-
-import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from '../src/errors'
-
-// @ts-ignore
+import { NO_PROJECT_UIDL } from '../src/errors'
 import project from './project-files.json'
 
 const token = 'deploy-token'
@@ -40,22 +37,5 @@ describe('teleport publisher now', () => {
     const { success, payload } = await publisher.publish()
     expect(success).toBeFalsy()
     expect(payload).toBe(NO_PROJECT_UIDL)
-  })
-
-  it('should fail if not deploy token is provided', async () => {
-    const publisher = createNowPublisher()
-    publisher.setProject(project)
-
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_ACCESS_TOKEN)
-  })
-
-  it('should fail if deploy token is provided', async () => {
-    const publisher = createNowPublisher()
-
-    const { success, payload } = await publisher.publish({ project, accessToken: token })
-    expect(success).toBeFalsy()
-    expect(payload).toBe('Not authorized')
   })
 })

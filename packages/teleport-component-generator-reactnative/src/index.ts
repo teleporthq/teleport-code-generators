@@ -6,7 +6,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import resourceLoaderPlugin from '@teleporthq/teleport-plugin-reactnative-resource-loader'
 import navigationPlugin from '@teleporthq/teleport-plugin-reactnative-component-navigation'
 
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
@@ -28,7 +28,7 @@ const createReactNativeComponentGenerator = (
   mapping: Mapping = {}
 ): ComponentGenerator => {
   const generator = createComponentGenerator()
-  const stylePlugin = stylePlugins[variation] || styledComponentsPlugin
+  const stylePlugin = stylePlugins[variation] || inlineStylesPlugin
 
   generator.addMapping(ReactNativeMapping as Mapping)
   generator.addMapping(mapping)
@@ -40,7 +40,7 @@ const createReactNativeComponentGenerator = (
   generator.addPlugin(navigationPlugin)
   generator.addPlugin(importStatementsPlugin)
 
-  generator.addPostProcessor(prettierJS)
+  generator.addPostProcessor(prettierJSX)
 
   const originalGeneratorFn = generator.generateComponent
 

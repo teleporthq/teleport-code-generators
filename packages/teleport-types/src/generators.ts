@@ -328,7 +328,6 @@ export enum PublisherType {
 
 export enum ProjectType {
   REACT = 'React',
-  REACTNATIVE = 'ReactNative',
   NEXT = 'Next',
   VUE = 'Vue',
   NUXT = 'Nuxt',
@@ -337,15 +336,25 @@ export enum ProjectType {
   ANGULAR = 'Angular',
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
+  REACTNATIVE = 'React Native',
 }
 
 export enum ComponentType {
   REACT = 'React',
-  REACTNATIVE = 'ReactNative',
   VUE = 'Vue',
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
+  REACTNATIVE = 'React Native',
+}
+
+export const DefaultStyleVariation: Record<ComponentType, StyleVariation> = {
+  [ComponentType.REACT]: ReactStyleVariation.CSSModules,
+  [ComponentType.PREACT]: PreactStyleVariation.CSSModules,
+  [ComponentType.REACTNATIVE]: ReactNativeStyleVariation.StyledComponents,
+  [ComponentType.VUE]: null,
+  [ComponentType.STENCIL]: null,
+  [ComponentType.ANGULAR]: null,
 }
 
 export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation

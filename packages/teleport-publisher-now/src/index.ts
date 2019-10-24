@@ -4,8 +4,8 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
 } from '@teleporthq/teleport-types'
-import { NO_PROJECT_UIDL, NO_ACCESS_TOKEN } from './errors'
-import { publishToNow, generateProjectFiles } from './utils'
+import { NO_PROJECT_UIDL } from './errors'
+import { generateProjectFiles, publishToNow, checkDeploymentStatus } from './utils'
 
 export interface NowFactoryParams extends PublisherFactoryParams {
   accessToken: string
@@ -42,16 +42,19 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     }
 
     const nowAccessToken = options.accessToken || accessToken
-    if (!nowAccessToken) {
-      return { success: false, payload: NO_ACCESS_TOKEN }
-    }
 
     try {
       const projectFiles = generateProjectFiles(projectToPublish)
-      const nowUrl = await publishToNow(projectFiles, nowAccessToken)
-      return { success: true, payload: nowUrl }
+      const deploymentURL = await publishToNow(projectFiles, nowAccessToken)
+
+      // If the user did not provide the now token, we are using the teleport one so we wait for the deployment
+      if (!nowAccessToken) {
+        await checkDeploymentStatus(deploymentURL)
+      }
+
+      return { success: true, payload: 'https://' + deploymentURL }
     } catch (error) {
-      return { success: false, payload: error.message }
+      return { success: false, payload: error }
     }
   }
 

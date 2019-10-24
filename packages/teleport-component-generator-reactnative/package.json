@@ -34,7 +34,7 @@
     "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.10.0-alpha.4",
     "@teleporthq/teleport-plugin-reactnative-resource-loader": "^0.10.0-alpha.4",
     "@teleporthq/teleport-plugin-reactnative-component-navigation": "^0.10.0-alpha.4",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.4",
+    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.0-alpha.4",
     "@teleporthq/teleport-shared": "^0.10.0-alpha.4",
     "@teleporthq/teleport-types": "^0.10.0-alpha.4"
   }

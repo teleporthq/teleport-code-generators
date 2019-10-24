@@ -33,21 +33,21 @@
       {
         "type": "style",
         "path": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css",
-        "meta": {
+        "options": {
           "target": "body"
         }
       }, 
       {
         "type": "script",
         "path": "https://www.googletagmanager.com/gtm.js",
-        "meta": {
+        "options": {
           "defer": true
         }
       },
       {
         "type": "script",
         "content": "console.log(\"inline script\")",
-        "meta": {
+        "options": {
           "target": "body"
         }
       },
@@ -62,9 +62,9 @@
       {
         "type": "icon",
         "path": "/playground_assets/favicon-32x32.png",
-        "meta": {
-          "type": "image/png",
-          "sizes": "32x32"
+        "options": {
+          "iconType": "image/png",
+          "iconSizes": "32x32"
         }
       }
     ],

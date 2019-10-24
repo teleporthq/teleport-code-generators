@@ -18,9 +18,9 @@
       {
         "type": "icon",
         "path": "/playground_assets/favicon-32x32.png",
-        "meta": {
-          "type": "image/png",
-          "sizes": "32x32"
+        "options": {
+          "iconType": "image/png",
+          "iconSizes": "32x32"
         }
       }
     ],
