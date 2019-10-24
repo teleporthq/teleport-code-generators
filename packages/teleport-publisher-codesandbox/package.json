@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-codesandbox",
-  "version": "0.10.0-alpha.4",
+  "version": "0.10.0-alpha.5",
   "description": "Send your generated project to codesandbox",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-publisher-zip": "^0.10.0-alpha.4",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.4",
+    "@teleporthq/teleport-publisher-zip": "^0.10.0-alpha.5",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.5",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
