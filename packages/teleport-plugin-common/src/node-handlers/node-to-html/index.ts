@@ -27,7 +27,10 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const htmlNode = dependency ? createHTMLNode(customNames.tagName) : createHTMLNode(tagName)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {
-    const dependencyName = customNames.importName ? customNames.importName : tagName
+    const dependencyName =
+      dependency && dependency.type === 'local' && customNames.importName
+        ? customNames.importName
+        : tagName
     dependencies[dependencyName] = { ...dependency }
   }
 
