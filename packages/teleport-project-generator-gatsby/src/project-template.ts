@@ -14,7 +14,6 @@ export default {
   "dependencies": {
     "gatsby": "^2.15.36",
     "gatsby-image": "^2.2.27",
-    "gatsby-plugin-manifest": "^2.2.21",
     "gatsby-plugin-offline": "^3.0.14",
     "gatsby-plugin-react-helmet": "^3.1.11",
     "gatsby-plugin-sharp": "^2.2.29",
@@ -63,26 +62,12 @@ export default {
       resolve: 'gatsby-source-filesystem',
       options: {
         name: 'images',
-        path: ${String('`${__dirname}/src/images`')}
+        path: ${String('`${__dirname}/static/playground_assets`')}
       },
     },
     'gatsby-transformer-sharp',
-    'gatsby-plugin-sharp',
-    {
-      resolve: 'gatsby-plugin-manifest',
-      options: {
-        name: 'gatsby-starter-default',
-        short_name: 'starter',
-        start_url: '/',
-        background_color: '#663399',
-        theme_color: '#663399',
-        display: 'minimal-ui',
-      },
-    },
-    // this (optional) plugin enables Progressive Web App + Offline functionality
-    // To learn more, visit: https://gatsby.dev/offline
-    // 'gatsby-plugin-offline',
-  ],
+    'gatsby-plugin-sharp'
+    ],
 }`,
     },
     {

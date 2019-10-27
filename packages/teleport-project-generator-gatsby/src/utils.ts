@@ -70,6 +70,13 @@ const generateHTMLNode = (uidl: ProjectUIDL, options: EntryFileOptions, t = type
   const bodyNode = ASTBuilders.createJSXTag('body')
   const noScriptNode = ASTBuilders.createJSXTag('noscript')
 
+  if (uidl.globals.manifest) {
+    const manifestTag = ASTBuilders.createJSXTag('link')
+    ASTUtils.addAttributeToJSXTag(manifestTag, 'rel', 'manifest')
+    ASTUtils.addAttributeToJSXTag(manifestTag, 'href', '/manifest.json')
+    ASTUtils.addChildJSXTag(headNode, manifestTag)
+  }
+
   const charSetMetaTag = ASTBuilders.createSelfClosingJSXTag('meta')
   ASTUtils.addAttributeToJSXTag(charSetMetaTag, 'charSet', 'utf-8')
   ASTUtils.addChildJSXTag(headNode, charSetMetaTag)
