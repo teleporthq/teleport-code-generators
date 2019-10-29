@@ -3,7 +3,7 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import template from './template-definition.json'
 import { createGatsbyProjectGenerator } from '../../src'
-import { FileType } from '@teleporthq/teleport-types'
+import { FileType, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 describe('Gatsby Project Generator', () => {
   const generator = createGatsbyProjectGenerator()
@@ -30,6 +30,15 @@ describe('Gatsby Project Generator', () => {
 
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
+
+    await expect(result).rejects.toThrow(Error)
+  })
+
+  it('throws error when conifg file is not found with custom framework config', async () => {
+    const generatorGatsbyStyledComponents = createGatsbyProjectGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
+    const result = generatorGatsbyStyledComponents.generateProject(invalidUidlSample, template)
 
     await expect(result).rejects.toThrow(Error)
   })

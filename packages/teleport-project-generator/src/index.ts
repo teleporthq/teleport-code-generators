@@ -16,7 +16,7 @@ import {
   createPageModule,
 } from './file-handlers'
 
-import { DEFAULT_TEMPLATE } from './constants'
+import { DEFAULT_TEMPLATE, STYLED_DEPENDENCIES } from './constants'
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -30,7 +30,9 @@ import {
   ProjectStrategyComponentOptions,
   ComponentGenerator,
   ProjectStrategyPageOptions,
+  ReactStyleVariation,
 } from '@teleporthq/teleport-types'
+
 import MagicString from 'magic-string'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
@@ -193,29 +195,28 @@ export class ProjectGenerator {
       injectFilesToPath(rootFolder, this.strategy.components.path, [componentsModuleFile])
     }
 
+    // Handling framework specific changes to the project
     const { framework } = this.strategy
 
     if (framework && framework.config) {
-      const { fileName, fileType } = framework.config
-      const configFile = template.files.find(
-        (file) => file.name === fileName && file.fileType === fileType
-      )
+      const { fileName, fileType, styleVariation } = framework.config
+      if (styleVariation === ReactStyleVariation.StyledComponents) {
+        const configFile = template.files.find(
+          (file) => file.name === fileName && file.fileType === fileType
+        )
 
-      if (framework.config.styleVariation === 'Styled Components') {
+        if (!configFile || !configFile.content) {
+          throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
+        }
+
         const parsedFile = configFile.content.replace('/n', '//n')
         const magic = new MagicString(parsedFile)
         magic.appendRight(parsedFile.length - 4, `'gatsby-plugin-styled-components'`)
         configFile.content = magic.toString()
 
-        const styledDependnecies = {
-          'gatsby-plugin-styled-components': '^3.0.0',
-          'babel-plugin-styled-components': '^1.10.6',
-          'styled-components': '^4.4.0',
-        }
-        collectedDependencies = { ...collectedDependencies, ...styledDependnecies }
+        collectedDependencies = { ...collectedDependencies, ...STYLED_DEPENDENCIES }
+        injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [configFile])
       }
-
-      injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [configFile])
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support

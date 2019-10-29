@@ -3,23 +3,27 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import reactBasePlugin from '@teleporthq/teleport-plugin-react-base-component'
+import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import reactProptypes from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 
-import { Mapping, ComponentPlugin, FileType, ReactStyleVariation } from '@teleporthq/teleport-types'
+import { Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
 
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
 import { createCustomHTMLEntryFile } from './utils'
 
+const cssModulesPlugin = createCSSModulesPlugin({
+  moduleExtension: true,
+  camelCaseClassNames: true,
+})
+
 const createGatsbyProjectGenerator = () => {
   const reactComponentGenerator = createCustomReactComponentGenerator()
   const reactPagesGenerator = createCustomReactComponentGenerator([headConfigPlugin])
-  const variation = ReactStyleVariation.StyledComponents
-  reactComponentGenerator.addMapping(GatsbyProjectMapping as Mapping)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
@@ -50,14 +54,6 @@ const createGatsbyProjectGenerator = () => {
     static: {
       prefix: '',
       path: ['static'],
-    },
-    framework: {
-      config: {
-        fileName: 'gatsby-config',
-        fileType: FileType.JS,
-        configPath: [''],
-        styleVariation: variation,
-      },
     },
   })
 
