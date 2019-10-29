@@ -159,6 +159,14 @@ export interface ProjectStrategy {
     prefix?: string
     path: string[]
   }
+  framework?: {
+    config?: {
+      fileName: string
+      fileType: string
+      configPath: string[]
+      styleVariation: string
+    }
+  }
 }
 
 export interface CustomTag {

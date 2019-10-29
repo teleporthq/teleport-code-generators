@@ -31,6 +31,7 @@ import {
   ComponentGenerator,
   ProjectStrategyPageOptions,
 } from '@teleporthq/teleport-types'
+import MagicString from 'magic-string'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -190,6 +191,31 @@ export class ProjectGenerator {
     if (this.strategy.components.moduleGenerator) {
       const componentsModuleFile = await createComponentModule(uidl, this.strategy)
       injectFilesToPath(rootFolder, this.strategy.components.path, [componentsModuleFile])
+    }
+
+    const { framework } = this.strategy
+
+    if (framework && framework.config) {
+      const { fileName, fileType } = framework.config
+      const configFile = template.files.find(
+        (file) => file.name === fileName && file.fileType === fileType
+      )
+
+      if (framework.config.styleVariation === 'Styled Components') {
+        const parsedFile = configFile.content.replace('/n', '//n')
+        const magic = new MagicString(parsedFile)
+        magic.appendRight(parsedFile.length - 4, `'gatsby-plugin-styled-components'`)
+        configFile.content = magic.toString()
+
+        const styledDependnecies = {
+          'gatsby-plugin-styled-components': '^3.0.0',
+          'babel-plugin-styled-components': '^1.10.6',
+          'styled-components': '^4.4.0',
+        }
+        collectedDependencies = { ...collectedDependencies, ...styledDependnecies }
+      }
+
+      injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [configFile])
     }
 
     // Global settings are transformed into the root html file and the manifest file for PWA support
