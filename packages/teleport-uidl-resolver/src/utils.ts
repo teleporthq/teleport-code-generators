@@ -125,6 +125,15 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
       resolveRepeat(node.content, parentNode)
     }
   })
+
+  // For now this is only used by react-native that adds some ignore flags in the mapping for certain elements.
+  UIDLUtils.removeChildNodes(uidlNode, (node) => {
+    if (node.type === 'element' && node.content.ignore) {
+      return true // elements mapped with ignore will be removed
+    }
+
+    return false
+  })
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -145,6 +154,14 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Mapping the type according to the elements mapping
   originalElement.elementType = mappedElement.elementType
+
+  if (originalElementType === 'navlink' && !options.skipNavlinkResolver) {
+    resolveNavlink(originalElement, options)
+  }
+
+  if (mappedElement.ignore) {
+    originalElement.ignore = mappedElement.ignore
+  }
 
   if (mappedElement.selfClosing) {
     originalElement.selfClosing = mappedElement.selfClosing
@@ -213,6 +230,61 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       anchorChild.content.style = UIDLUtils.cloneObject(originalElement.style)
       originalElement.style = {}
     }
+  }
+}
+
+const resolveNavlink = (element: UIDLElement, options: GeneratorOptions) => {
+  const transitionAttribute = element.attrs && element.attrs.transitionTo
+  if (!transitionAttribute) {
+    // Fallback for when transitionTo is not present
+    element.attrs = element.attrs || {}
+    element.attrs.transitionTo = {
+      type: 'static',
+      content: '/',
+    }
+
+    return
+  }
+
+  if (transitionAttribute.type !== 'static') {
+    throw new Error(
+      `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
+        transitionAttribute,
+        null,
+        2
+      )}`
+    )
+  }
+
+  const transitionState = transitionAttribute.content.toString()
+  if (transitionState.startsWith('/')) {
+    // attribute was explicitly set as a custom navlink
+    return
+  }
+
+  const friendlyURL = StringUtils.camelCaseToDashCase(
+    StringUtils.removeIllegalCharacters(transitionState)
+  )
+
+  const transitionRoute = options.projectRouteDefinition
+    ? options.projectRouteDefinition.values.find((route) => route.value === transitionState)
+    : null
+
+  if (!transitionRoute) {
+    transitionAttribute.content = `/${friendlyURL}`
+    console.warn(
+      `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
+    )
+    return
+  }
+
+  if (transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
+    transitionAttribute.content = transitionRoute.pageOptions.navLink
+  } else {
+    transitionAttribute.content = `/${friendlyURL}`
+    console.warn(
+      `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
+    )
   }
 }
 

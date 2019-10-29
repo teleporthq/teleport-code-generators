@@ -16,12 +16,17 @@ import { Constants } from '@teleporthq/teleport-shared'
 import {
   ReactTemplate,
   createReactProjectGenerator,
+  ReactProjectMapping,
 } from '@teleporthq/teleport-project-generator-react'
 import {
   createNextProjectGenerator,
   NextTemplate,
 } from '@teleporthq/teleport-project-generator-next'
-import { VueTemplate, createVueProjectGenerator } from '@teleporthq/teleport-project-generator-vue'
+import {
+  VueTemplate,
+  createVueProjectGenerator,
+  VueProjectMapping,
+} from '@teleporthq/teleport-project-generator-vue'
 import {
   NuxtTemplate,
   createNuxtProjectGenerator,
@@ -30,18 +35,22 @@ import {
   PreactTemplate,
   PreactCodesandBoxTemplate,
   createPreactProjectGenerator,
+  PreactProjectMapping,
 } from '@teleporthq/teleport-project-generator-preact'
 import {
   createStencilProjectGenerator,
   StencilTemplate,
+  StencilProjectMapping,
 } from '@teleporthq/teleport-project-generator-stencil'
 import {
   createReactNativeProjectGenerator,
   ReactNativeTemplate,
+  ReactNativeProjectMapping,
 } from '@teleporthq/teleport-project-generator-reactnative'
 import {
   createAngularProjectGenerator,
   AngularTemplate,
+  AngularProjectMapping,
 } from '@teleporthq/teleport-project-generator-angular'
 import {
   createGridsomeProjectGenerator,
@@ -73,6 +82,15 @@ const componentGeneratorFactories = {
   [ComponentType.VUE]: createVueComponentGenerator,
   [ComponentType.STENCIL]: createStencilComponentGenerator,
   [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
+}
+
+const componentGeneratorProjectMappings = {
+  [ComponentType.REACT]: ReactProjectMapping,
+  [ComponentType.PREACT]: PreactProjectMapping,
+  [ComponentType.ANGULAR]: AngularProjectMapping,
+  [ComponentType.VUE]: VueProjectMapping,
+  [ComponentType.STENCIL]: StencilProjectMapping,
+  [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
 }
 
 const projectGeneratorFactories = {
@@ -158,6 +176,8 @@ export const generateComponent = async (
   }: GenerateOptions = {}
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
+  const projectMapping = componentGeneratorProjectMappings[componentType]
+  generator.addMapping(projectMapping)
   return generator.generateComponent(componentUIDL)
 }
 

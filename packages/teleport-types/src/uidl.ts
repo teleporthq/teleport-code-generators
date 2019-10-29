@@ -155,6 +155,7 @@ export interface UIDLElement {
   name?: string
   key?: string // internal usage
   selfClosing?: boolean
+  ignore?: boolean
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>

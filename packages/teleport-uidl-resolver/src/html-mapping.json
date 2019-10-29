@@ -111,12 +111,11 @@
         "href": {
           "type": "dynamic",
           "content": { "referenceType": "attr", "id": "url" }
-        },
-        "target": {
-          "type": "static",
-          "content": "_blank"
         }
       }
+    },
+    "navlink": {
+      "elementType": "a"
     },
     "button": {
       "elementType": "button"
@@ -181,18 +180,10 @@
       }]
     },
     "video": {
-      "elementType": "video",
-      "children": [
-        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
-        { "type": "static", "content": "This browser does not support the video formats given" }
-      ]
+      "elementType": "video"
     },
     "audio": {
-      "elementType": "audio",
-      "children": [
-        { "type": "dynamic", "content": { "referenceType": "children", "id": "children" } },
-        { "type": "static", "content": "This browser does not support the audio formats given" }
-      ]
+      "elementType": "audio"
     },
     "picture": {
       "elementType": "picture",

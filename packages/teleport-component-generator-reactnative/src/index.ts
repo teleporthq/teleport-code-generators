@@ -14,8 +14,15 @@ import ReactNativeMapping from './react-native-mapping.json'
 
 import { ComponentGenerator, Mapping, ReactNativeStyleVariation } from '@teleporthq/teleport-types'
 
+// This extracts Text, View, Image as illegal element names
+const rnMapping = ReactNativeMapping as Mapping
+const illegalElementNames = Object.keys(rnMapping.elements).map(
+  (key) => rnMapping.elements[key].elementType
+)
+
 const styledComponentsPlugin = createReactStyledComponentsPlugin({
   componentLibrary: 'reactnative',
+  illegalComponentNames: [...ReactNativeMapping.illegalClassNames, ...illegalElementNames],
 })
 
 const stylePlugins = {
@@ -44,11 +51,11 @@ const createReactNativeComponentGenerator = (
 
   const originalGeneratorFn = generator.generateComponent
 
-  // Until we figure out a better way to skip the resolve navlink functionality, we remove the route definitions
+  // Until we figure out a better way to skip the resolve navlink functionality
   generator.generateComponent = (uidl, options) =>
     originalGeneratorFn(uidl, {
       ...options,
-      projectRouteDefinition: null,
+      skipNavlinkResolver: true,
     })
 
   return generator
