@@ -535,3 +535,39 @@ export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
       return findFirstElementNode(childNode)
   }
 }
+
+export const removeChildNodes = (
+  node: UIDLNode,
+  criteria: (element: UIDLNode) => boolean
+): void => {
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children = node.content.children.filter((child) => !criteria(child))
+      }
+      break
+
+    case 'repeat':
+      removeChildNodes(node.content.node, criteria)
+      break
+
+    case 'conditional':
+      removeChildNodes(node.content.node, criteria)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        removeChildNodes(node.content.fallback, criteria)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+      break
+
+    default:
+      throw new Error(
+        `removeChildNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
+  }
+}

@@ -40,10 +40,6 @@ export default class Resolver {
 
     utils.checkForIllegalNames(uidl, mapping)
 
-    if (options.projectRouteDefinition) {
-      utils.resolveNavlinks(uidl.node, options.projectRouteDefinition)
-    }
-
     utils.resolveNode(uidl.node, newOptions)
 
     const nodesLookup = {}

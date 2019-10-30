@@ -13,6 +13,7 @@ interface StyledComponentsConfig {
   componentChunkName: string
   importChunkName?: string
   componentLibrary?: 'react' | 'reactnative'
+  illegalComponentNames?: string[]
 }
 
 export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledComponentsConfig> = (
@@ -22,6 +23,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     componentChunkName = 'jsx-component',
     importChunkName = 'import-local',
     componentLibrary = 'react',
+    illegalComponentNames = [],
   } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
@@ -41,7 +43,12 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const { key, elementType } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
-        const className = `${StringUtils.dashCaseToUpperCamelCase(key)}`
+        let className = `${StringUtils.dashCaseToUpperCamelCase(key)}`
+        // Styled components might create an element that clashes with native element (Text, View, Image, etc.)
+        if (illegalComponentNames.includes(className)) {
+          className = `Styled${className}`
+        }
+
         const timesReferred = countPropReferences(style, 0)
 
         if (componentLibrary === 'reactnative') {
