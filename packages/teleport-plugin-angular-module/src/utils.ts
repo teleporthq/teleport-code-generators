@@ -107,7 +107,7 @@ export const createRoutesAST = (
   stateDefinitions: Record<string, UIDLStateDefinition>,
   t = types
 ) => {
-  // TODO: Need to generate type annotation for routes variable, currently babel throwing erro
+  // TODO: Need to generate type annotation for routes variable, currently babel throwing error
   const routesObject = routes.map((conditionalNode) => {
     const { value: routeKey } = conditionalNode.content
     const pageDefinition = stateDefinitions.route.values.find((route) => route.value === routeKey)
@@ -117,10 +117,25 @@ export const createRoutesAST = (
       t.objectProperty(t.identifier('path'), t.stringLiteral(navLink.replace('/', ''))),
       t.objectProperty(
         t.identifier('loadChildren'),
-        t.stringLiteral(
-          `./pages/${fileName}/${fileName}.module#${StringUtils.dashCaseToUpperCamelCase(
-            `${fileName}-module`
-          )}`
+        t.arrowFunctionExpression(
+          [],
+          t.callExpression(
+            t.memberExpression(
+              t.callExpression(t.identifier('import'), [
+                t.stringLiteral(`./pages/${fileName}/${fileName}.module`),
+              ]),
+              t.identifier('then')
+            ),
+            [
+              t.arrowFunctionExpression(
+                [t.identifier('m')],
+                t.memberExpression(
+                  t.identifier('m'),
+                  t.identifier(`${StringUtils.dashCaseToUpperCamelCase(fileName)}Module`)
+                )
+              ),
+            ]
+          )
         )
       ),
     ])
