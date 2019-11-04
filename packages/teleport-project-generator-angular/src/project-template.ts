@@ -27,7 +27,8 @@ export default {
     "@angular/router": "~8.2.3",
     "rxjs": "~6.4.0",
     "tslib": "^1.10.0",
-    "zone.js": "~0.9.1"
+    "zone.js": "~0.9.1",
+    "core-js": "^3.0.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.803.0",
@@ -400,6 +401,7 @@ Thumbs.db`,
         {
           name: 'main',
           content: `
+import './polyfills'
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
@@ -476,6 +478,7 @@ platformBrowserDynamic().bootstrapModule(AppModule)
 /***************************************************************************************************
  * Zone JS is required by default for Angular itself.
  */
+import 'core-js/features/reflect';
 import 'zone.js/dist/zone';  // Included with Angular CLI.
 
 
