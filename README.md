@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/master/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.9 - Beta!</h2>
+<h2 align="center">Code Generators v0.10 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -55,6 +55,7 @@ npm install @teleporthq/teleport-component-generator-vue
 npm install @teleporthq/teleport-component-generator-angular
 npm install @teleporthq/teleport-component-generator-stencil
 npm install @teleporthq/teleport-component-generator-preact
+npm install @teleporthq/teleport-component-generator-reactnative
 ```
 or using yarn:
 ```bash
@@ -63,6 +64,7 @@ yarn add @teleporthq/teleport-component-generator-vue
 yarn add @teleporthq/teleport-component-generator-angular
 yarn add @teleporthq/teleport-component-generator-stencil
 yarn add @teleporthq/teleport-component-generator-preact
+yarn add @teleporthq/teleport-component-generator-reactnative
 ```
 
 For generating a simple component, you have to start from a **component UIDL**:
@@ -147,9 +149,9 @@ In the docs, you'll find a complete guide on how to [build your custom component
 * `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
 * `teleport-component-generator-vue` - generating standard `.vue` files
 * `teleport-component-generator-angular` - generates `.ts`, `.html` and `.css` files
-* `teleport-component-generator-stencil` - generates `.tsx` files and standard `.css` files
 * `teleport-component-generator-preact` - similar to `react`, with a bunch of styling options
-* `teleport-component-generator-react-native` - (coming soon)
+* `teleport-component-generator-stencil` - (experimental) - generates `.tsx` files and standard `.css` files
+* `teleport-component-generator-react-native` - (experimental)
 * `teleport-component-generator-svelte` - (coming soon)
 
 #### Capabilities
@@ -175,9 +177,11 @@ Check the official guides on [how to use an existing project generator](https://
 * `teleport-project-generator-vue` - with a structure starting from the `vue-cli`
 * `teleport-project-generator-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
 * `teleport-project-generator-preact` - based on the [preact-cli](https://github.com/preactjs/preact-cli)
-* `teleport-project-generator-react-native` (coming soon)
-* `teleport-project-generator-angular` (coming soon)
-* `teleport-project-generator-gatsby` (coming soon)
+* `teleport-project-generator-angular` - based on the `angular-cli`
+* `teleport-project-generator-gatsby`
+* `teleport-project-generator-gridsome`
+* `teleport-project-generator-stencil` (experimental)
+* `teleport-project-generator-react-native` (experimental)
 * `teleport-project-generator-static` (coming soon)
 
 #### Capabilities
@@ -193,10 +197,11 @@ Once a generator created the code for the components and pages, the **project pa
 
 #### Publishers
 * `teleport-publisher-now`
-* `teleport-publisher-netlify`
 * `teleport-publisher-github`
+* `teleport-publisher-codesandbox`
 * `teleport-publisher-zip`
 * `teleport-publisher-disk`
+* `teleport-publisher-netlify` (coming soon)
 
 ### Further Reading
 A few useful links to get you up to speed with the entire **teleport** ecosystem:
