@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-reactnative-resource-loader",
-  "version": "0.10.0-alpha.5",
+  "version": "0.10.0-alpha.6",
   "description": "A plugin for solving the assets/resources used inside a react native component",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.5",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.5"
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.6"
   }
 }

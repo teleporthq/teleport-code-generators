@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator",
-  "version": "0.10.0-alpha.5",
+  "version": "0.10.0-alpha.6",
   "description": "Generic project generator that requires a specific strategy to run on custom configurations",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,11 +26,11 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-common": "^0.10.0-alpha.5",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.5",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.5",
-    "@teleporthq/teleport-uidl-builders": "^0.10.0-alpha.5",
-    "@teleporthq/teleport-uidl-validator": "^0.10.0-alpha.5"
+    "@teleporthq/teleport-plugin-common": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-shared": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-types": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-uidl-builders": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-uidl-validator": "^0.10.0-alpha.6"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
