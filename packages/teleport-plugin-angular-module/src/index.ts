@@ -49,7 +49,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
     const { uidl, dependencies, chunks, options } = structure
     const { stateDefinitions = {} } = uidl
 
-    const { moduleComponents } = options
+    const { components } = options
 
     let routesAST: types.VariableDeclaration
     let ngModuleAST: types.Decorator
@@ -92,8 +92,8 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
 
           // Looping through all components and importing them into component module
-          Object.keys(moduleComponents).forEach((componentKey) => {
-            const component = moduleComponents[componentKey]
+          Object.keys(components).forEach((componentKey) => {
+            const component = components[componentKey]
             const componentClassName = UIDLUtils.getComponentClassName(component)
             const componentFileName = UIDLUtils.getComponentFileName(component)
             const componentFolderPath = UIDLUtils.getComponentFolderPath(component)
@@ -103,8 +103,8 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
             )
           })
 
-          const componentClassNames = Object.keys(moduleComponents).map((componentKey) =>
-            UIDLUtils.getComponentClassName(moduleComponents[componentKey])
+          const componentClassNames = Object.keys(components).map((componentKey) =>
+            UIDLUtils.getComponentClassName(components[componentKey])
           )
           ngModuleAST = createComponentModuleDecorator(componentClassNames)
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')

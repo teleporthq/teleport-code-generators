@@ -87,7 +87,7 @@ export interface GeneratorOptions {
   skipNavlinkResolver?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
-  moduleComponents?: Record<string, ComponentUIDL>
+  components?: Record<string, ComponentUIDL>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -130,7 +130,7 @@ export interface ProjectStrategy {
     path: string[]
     options?: ProjectStrategyComponentOptions
   }
-  pages: {
+  pages?: {
     generator: ComponentGenerator
     moduleGenerator?: ComponentGenerator
     path: string[]
@@ -178,6 +178,7 @@ export interface ProjectStrategyComponentOptions {
   customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
   customStyleFileName?: (name?: string) => string
   customTemplateFileName?: (name?: string) => string
+  exportAllComponents?: ComponentGenerator
 }
 
 export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
@@ -338,6 +339,7 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React Native',
+  SLIDES = 'Slides',
 }
 
 export enum ComponentType {

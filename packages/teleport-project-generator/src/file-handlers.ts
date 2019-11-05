@@ -49,13 +49,33 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
   const options = {
     localDependenciesPrefix: componentLocalDependenciesPrefix,
     strategy,
-    moduleComponents: uidl.components,
+    components: uidl.components,
   }
 
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = 'components.module'
 
   const { files } = await moduleGenerator.generateComponent(root, options)
+  return files[0]
+}
+
+export const createExportComponentsAST = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+  const generator = strategy.components.options.exportAllComponents
+  const { path } = strategy.components
+  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+    path,
+    strategy.components.path
+  )
+  const options = {
+    localDependenciesPrefix: componentLocalDependenciesPrefix,
+    strategy,
+    components: uidl.components,
+  }
+
+  uidl.root.outputOptions = uidl.root.outputOptions || {}
+  uidl.root.outputOptions.fileName = 'index'
+
+  const { files } = await generator.generateComponent(uidl.root, options)
   return files[0]
 }
 

@@ -14,6 +14,7 @@ import {
   createEntryFile,
   createComponentModule,
   createPageModule,
+  createExportComponentsAST,
 } from './file-handlers'
 
 import { DEFAULT_TEMPLATE } from './constants'
@@ -131,14 +132,18 @@ export class ProjectGenerator {
 
     const { components = {}, root } = uidl
 
+    let pageUIDLs: any
+
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
-    const pageUIDLs = createPageUIDLs(uidl, this.strategy)
+    if (this.strategy.pages) {
+      pageUIDLs = createPageUIDLs(uidl, this.strategy)
 
-    // Set the filename and folder path for each component based on the strategy
-    prepareComponentOutputOptions(components, this.strategy)
+      // Set the filename and folder path for each component based on the strategy
+      prepareComponentOutputOptions(components, this.strategy)
 
-    // Set the local dependency paths based on the relative paths between files
-    resolveLocalDependencies(pageUIDLs, components, this.strategy)
+      // Set the local dependency paths based on the relative paths between files
+      resolveLocalDependencies(pageUIDLs, components, this.strategy)
+    }
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
@@ -156,20 +161,22 @@ export class ProjectGenerator {
       skipValidation: true,
     }
 
-    // Handling pages
-    for (const pageUIDL of pageUIDLs) {
-      const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
+    if (this.strategy.pages) {
+      // Handling pages
+      for (const pageUIDL of pageUIDLs) {
+        const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
 
-      // Pages might be generated inside subfolders in the main pages folder
-      const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
-      const path = this.strategy.pages.path.concat(relativePath)
+        // Pages might be generated inside subfolders in the main pages folder
+        const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+        const path = this.strategy.pages.path.concat(relativePath)
 
-      injectFilesToPath(rootFolder, path, files)
-      collectedDependencies = { ...collectedDependencies, ...dependencies }
+        injectFilesToPath(rootFolder, path, files)
+        collectedDependencies = { ...collectedDependencies, ...dependencies }
 
-      if (this.strategy.pages.moduleGenerator) {
-        const pageModule = await createPageModule(pageUIDL, this.strategy, options)
-        injectFilesToPath(rootFolder, path, pageModule.files)
+        if (this.strategy.pages.moduleGenerator) {
+          const pageModule = await createPageModule(pageUIDL, this.strategy, options)
+          injectFilesToPath(rootFolder, path, pageModule.files)
+        }
       }
     }
 
@@ -184,6 +191,14 @@ export class ProjectGenerator {
 
       injectFilesToPath(rootFolder, path, files)
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    // Generating index file for exporting all components
+    if (this.strategy.components.options && this.strategy.components.options.exportAllComponents) {
+      const exportFile = await createExportComponentsAST(uidl, this.strategy)
+      const path = this.strategy.components.path
+
+      injectFilesToPath(rootFolder, path, [exportFile])
     }
 
     // Handling module generation for components
