@@ -1,14 +1,14 @@
-# teleport-project-generator-react
+# @teleporthq/teleport-slides-generator
 
-Project generator using React and React-Router, on top of a standard create-react-app structure.
+Treats every component as a single slide and exports them with a template which can be used for sideshows
 
 > This package is part of the [teleport ecosystem](https://github.com/teleporthq/teleport-code-generators). For a complete guide, check out the [official documentation](https://docs.teleporthq.io/).
 
 ## Install
 ```bash
-npm install @teleporthq/teleport-project-generator-react
+npm install @teleporthq/@teleporthq/teleport-slides-generator
 ```
 or
 ```bash
-yarn add @teleporthq/teleport-project-generator-react
+yarn add @teleporthq/@teleporthq/teleport-slides-generator
 ```
