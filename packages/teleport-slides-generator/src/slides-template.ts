@@ -1,3 +1,4 @@
+// tslint:disable
 export default {
   name: 'teleport-slides-react',
   files: [

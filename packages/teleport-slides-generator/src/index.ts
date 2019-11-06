@@ -9,7 +9,7 @@ import { ReactStyleVariation } from '@teleporthq/teleport-types'
 
 import SlidesTemplate from './slides-template'
 
-const slidesGenerator = () => {
+const createSlidesGenerator = () => {
   const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
 
   const exportComponentsGenerator = createComponentGenerator()
@@ -33,4 +33,4 @@ const slidesGenerator = () => {
   return generator
 }
 
-export { slidesGenerator, SlidesTemplate }
+export { createSlidesGenerator, SlidesTemplate }

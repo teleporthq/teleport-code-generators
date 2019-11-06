@@ -60,7 +60,7 @@ import {
   createGatsbyProjectGenerator,
   GatsbyTemplate,
 } from '@teleporthq/teleport-project-generator-gatsby'
-import { slidesGenerator, SlidesTemplate } from '@teleporthq/teleport-slides-generator'
+import { createSlidesGenerator, SlidesTemplate } from '@teleporthq/teleport-slides-generator'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
@@ -105,7 +105,7 @@ const projectGeneratorFactories = {
   [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
   [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
   [ProjectType.GATSBY]: createGatsbyProjectGenerator,
-  [ProjectType.SLIDES]: slidesGenerator,
+  [ProjectType.SLIDES]: createSlidesGenerator,
 }
 
 const templates = {

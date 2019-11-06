@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.10.0-alpha.6",
+    "@teleporthq/teleport-slides-generator": "^0.10.0-alpha.6",
     "@teleporthq/teleport-project-generator-angular": "^0.10.0-alpha.6",
     "@teleporthq/teleport-project-generator-gatsby": "^0.10.0-alpha.6",
     "@teleporthq/teleport-project-generator-gridsome": "^0.10.0-alpha.6",

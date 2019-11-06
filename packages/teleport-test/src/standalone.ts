@@ -54,7 +54,7 @@ const run = async () => {
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GATSBY })
     console.info(ProjectType.GATSBY, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.SLIDES })
-    console.info('Slides', result.payload)
+    console.info(ProjectType.SLIDES, result.payload)
   } catch (e) {
     console.info(e)
   }

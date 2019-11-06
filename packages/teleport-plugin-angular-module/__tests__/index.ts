@@ -30,7 +30,7 @@ describe('Testing the functionality for Angular Modules', () => {
     const componentPlugin = createAngularModulePlugin({ moduleType: 'component' })
     const structure: ComponentStructure = {
       uidl: componentUIDL,
-      options: { moduleComponents: { OneComponent: componentUIDL } },
+      options: { components: { OneComponent: componentUIDL } },
       chunks: [],
       dependencies: {},
     }
