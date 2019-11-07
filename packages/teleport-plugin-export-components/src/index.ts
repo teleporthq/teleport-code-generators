@@ -26,6 +26,10 @@ export const createExportComponentsPlugin: ComponentPluginFactory<ComponentsExpo
     const { components } = options
     let importsAST = []
 
+    if (Object.keys(components).length === 0) {
+      throw new Error('No Components Found while running, teleport-plugin-export-components')
+    }
+
     importsAST = Object.keys(components).map((component) => {
       return t.importDeclaration(
         [t.importDefaultSpecifier(t.identifier(StringUtils.capitalize(component)))],
