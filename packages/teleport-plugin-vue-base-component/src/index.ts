@@ -6,6 +6,7 @@ import {
   ChunkType,
 } from '@teleporthq/teleport-types'
 import { createHTMLTemplateSyntax } from '@teleporthq/teleport-plugin-common'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import {
   DEFAULT_VUE_TEMPLATE_CHUNK_NAME,
@@ -52,7 +53,8 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
           const iterator = useIndex ? `(${iteratorName}, index)` : iteratorName
           return `${iterator} in ${iteratedCollection}`
         },
-        customElementTagName: (value) => value,
+        customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
+        dependencyHandling: 'import',
       }
     )
 

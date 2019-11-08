@@ -1,6 +1,6 @@
 import * as hastUtils from '../../utils/hast-utils'
 import { createHTMLNode } from '../../builders/hast-builders'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLRepeatNode,
   UIDLConditionalNode,
@@ -18,12 +18,13 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
   const tagName = elementType || 'component'
-  const htmlNode = dependency
-    ? createHTMLNode(templateSyntax.customElementTagName(tagName))
-    : createHTMLNode(tagName)
+  const safeTagName = dependency ? templateSyntax.customElementTagName(tagName) : tagName
+
+  const htmlNode = createHTMLNode(safeTagName)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {
-    dependencies[tagName] = { ...dependency }
+    const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
+    dependencies[safeImportName] = { ...dependency }
   }
 
   if (attrs) {

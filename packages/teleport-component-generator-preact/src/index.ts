@@ -25,7 +25,6 @@ const createPreactComponentGenerator = (
     [PreactStyleVariation.CSSModules]: createCSSModulesPlugin({
       classAttributeName: 'class',
       moduleExtension: false,
-      camelCaseClassNames: false,
     }),
     [PreactStyleVariation.CSS]: createCSSPlugin({
       templateChunkName: 'jsx-component',

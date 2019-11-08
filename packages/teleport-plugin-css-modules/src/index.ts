@@ -21,7 +21,7 @@ const defaultConfigProps = {
   componentChunkName: 'jsx-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  camelCaseClassNames: true,
+  camelCaseClassNames: false,
   moduleExtension: false,
   classAttributeName: 'className',
 }
