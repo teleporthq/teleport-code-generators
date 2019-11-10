@@ -272,8 +272,8 @@ export interface PrettierFormatOptions {
 
 interface PublisherOptions {
   accessToken?: string
-  projectName?: string
   outputPath?: string
+  projectSlug?: string
   createProjectFolder?: boolean // used only by the disk publisher
 }
 
@@ -337,7 +337,7 @@ export enum ProjectType {
   ANGULAR = 'Angular',
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
-  REACTNATIVE = 'React Native',
+  REACTNATIVE = 'React-Native',
 }
 
 export enum ComponentType {
@@ -346,7 +346,7 @@ export enum ComponentType {
   PREACT = 'Preact',
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  REACTNATIVE = 'React Native',
+  REACTNATIVE = 'React-Native',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation> = {
@@ -359,3 +359,15 @@ export const DefaultStyleVariation: Record<ComponentType, StyleVariation> = {
 }
 
 export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation
+
+// The last two types are used by the teleport-code-generator package
+
+export type PackProjectFunction = (
+  projectUIDL: ProjectUIDL,
+  options: PackerOptions
+) => Promise<PublisherResponse<any>>
+
+export type GenerateComponentFunction = (
+  componentUIDL: ComponentUIDL,
+  options: GenerateOptions
+) => Promise<CompiledComponent>

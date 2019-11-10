@@ -8,7 +8,7 @@ import {
   RemoteTemplateDefinition,
 } from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
-import { NO_GENERATOR_PROVIDED, NO_PUBLISHER_PROVIDED } from './errors'
+import { NO_GENERATOR_PROVIDED } from './errors'
 import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
@@ -64,9 +64,6 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
     }
 
     const packPublisher = packParams.publisher || publisher
-    if (!packPublisher) {
-      return { success: false, payload: NO_PUBLISHER_PROVIDED }
-    }
 
     const packAssets = packParams.assets || assets
     let templateFolder = packParams.template || template
@@ -82,7 +79,15 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 
-    return packPublisher.publish({ project })
+    if (packPublisher) {
+      return packPublisher.publish({ project })
+    }
+
+    // If no publisher is provided, return the generated project
+    return {
+      success: true,
+      payload: project,
+    }
   }
 
   return {

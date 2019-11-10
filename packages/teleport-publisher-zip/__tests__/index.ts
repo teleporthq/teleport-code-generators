@@ -61,7 +61,7 @@ describe('teleport publisher zip', () => {
     const publisher = createZipPublisher({ project, outputPath: projectPath })
     const zipName = 'zip-name'
 
-    const { success, payload } = await publisher.publish({ projectName: zipName })
+    const { success, payload } = await publisher.publish({ projectSlug: zipName })
     expect(success).toBeTruthy()
 
     const zipPath = join(projectPath, `${zipName}.zip`)

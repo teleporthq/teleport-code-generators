@@ -82,7 +82,15 @@ export default class GithubInstance {
       repositoryIdentity,
       commitMessage = DEFAULT_COMMIT_MESSAGE,
     } = commitMeta
-    const { username, repo, ref = DEFAULT_REF } = repositoryIdentity
+    const { repo, ref = DEFAULT_REF } = repositoryIdentity
+
+    // Step -1: Make a separate request for the username if it is not provided
+    let username = repositoryIdentity.username
+    if (!username) {
+      const user = await this.githubApi.getUser()
+      const profile = await user.getProfile()
+      username = profile.data.login
+    }
 
     // Step 0: Create repository if it does not exist
     await this.ensureRepoExists(username, repo)
