@@ -58,9 +58,6 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     }
 
     const repoOwner = findRepositoryOwner(auth, options)
-    // if (!repoOwner) {
-    //   return { success: false, payload: NO_REPO_OWNER }
-    // }
 
     const masterBranchName = options.masterBranch || masterBranch
     const master = masterBranchName ? masterBranch : 'master'
