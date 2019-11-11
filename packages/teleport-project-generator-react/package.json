@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-react",
-  "version": "0.10.0-alpha.6",
+  "version": "0.10.0",
   "description": "Project generator using React and React-Router, on top of a standard create-react-app structure",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,17 +26,17 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-component-generator-react": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-plugin-jsx-head-config": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-plugin-react-app-routing": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-project-generator": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-shared": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-types": "^0.10.0-alpha.6",
-    "@teleporthq/teleport-uidl-validator": "^0.10.0-alpha.6"
+    "@teleporthq/teleport-component-generator": "^0.10.0",
+    "@teleporthq/teleport-component-generator-react": "^0.10.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.0",
+    "@teleporthq/teleport-plugin-jsx-head-config": "^0.10.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.10.0",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.0",
+    "@teleporthq/teleport-project-generator": "^0.10.0",
+    "@teleporthq/teleport-shared": "^0.10.0",
+    "@teleporthq/teleport-types": "^0.10.0",
+    "@teleporthq/teleport-uidl-validator": "^0.10.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
