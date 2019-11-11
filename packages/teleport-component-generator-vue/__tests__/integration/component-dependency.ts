@@ -118,11 +118,7 @@ describe('Component with dependency ', () => {
     it('renders code with named import ', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-<<<<<<< HEAD
-          dependencySample('write', 'library', 'fs', '', {
-=======
           dependencySample('Card', 'library', 'material', '', {
->>>>>>> 2c5e2b3d92faeec73e28b78412270ba8627912e5
             namedImport: true,
           })
         )
