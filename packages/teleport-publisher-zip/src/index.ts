@@ -11,7 +11,7 @@ declare type ZipPublisherResponse = string | Buffer | Blob
 
 export interface ZipFactoryParams extends PublisherFactoryParams {
   outputPath?: string
-  projectName?: string
+  projectSlug?: string
 }
 
 export interface ZipPublisher extends Publisher<ZipFactoryParams, ZipPublisherResponse> {
@@ -40,7 +40,7 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
       return { success: false, payload: NO_PROJECT_UIDL }
     }
 
-    const zipName = options.projectName || params.projectName || projectToPublish.name
+    const zipName = options.projectSlug || params.projectSlug || projectToPublish.name
 
     try {
       const zipContent = await generateProjectZip(projectToPublish)

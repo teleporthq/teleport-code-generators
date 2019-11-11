@@ -3,7 +3,7 @@ import { GeneratedFolder, PublisherFactory, ServiceAuth } from '@teleporthq/tele
 import { publishToGithub, generateProjectFiles } from './utils'
 import { GithubFactoryParams, GithubPublisher, GithubPublishMeta } from './types'
 
-import { NO_PROJECT_UIDL, NO_REPO, NO_AUTH, NO_REPO_OWNER } from './errors'
+import { NO_PROJECT_UIDL, NO_REPO, NO_AUTH } from './errors'
 
 export const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublisher> = (
   params: GithubFactoryParams = {}
@@ -58,9 +58,6 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     }
 
     const repoOwner = findRepositoryOwner(auth, options)
-    if (!repoOwner) {
-      return { success: false, payload: NO_REPO_OWNER }
-    }
 
     const masterBranchName = options.masterBranch || masterBranch
     const master = masterBranchName ? masterBranch : 'master'

@@ -51,7 +51,13 @@ export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   // failsafe for invalid UIDL samples with illegal characters as element names
   // when used in projects, resolveLocalDependencies should handle this
   traverseElements(uidl.node, (element) => {
-    element.elementType = removeIllegalCharacters(element.elementType)
+    if (element.dependency) {
+      element.elementType = dashCaseToUpperCamelCase(
+        removeIllegalCharacters(element.elementType) || defaultComponentName
+      )
+    } else {
+      element.elementType = removeIllegalCharacters(element.elementType)
+    }
   })
 }
 

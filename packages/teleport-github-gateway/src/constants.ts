@@ -2,7 +2,7 @@ export const DEFAULT_REF = 'master'
 
 export const DEFAULT_COMMIT_BRANCH = 'master'
 
-export const DEFAULT_COMMIT_MESSAGE = 'Commit made using TeleportHQ'
+export const DEFAULT_COMMIT_MESSAGE = 'Commit made using teleportHQ'
 
 export const DEFAULT_PATH = ''
 

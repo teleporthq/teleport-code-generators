@@ -1,6 +1,6 @@
 import { createGithubPublisher } from '../src'
 
-import { NO_PROJECT_UIDL, NO_AUTH, NO_REPO, NO_REPO_OWNER } from '../src/errors'
+import { NO_PROJECT_UIDL, NO_AUTH, NO_REPO } from '../src/errors'
 
 import project from './project-files.json'
 import githubFiles from './github-files-content.json'
@@ -105,18 +105,6 @@ describe('teleport publisher github', () => {
     const { success, payload } = await publisher.publish()
     expect(success).toBeFalsy()
     expect(payload).toBe(NO_REPO)
-  })
-
-  it('should fail if no repository owner is provided', async () => {
-    const publisher = createGithubPublisher({
-      authMeta: { token: 'dummy-invalid-token' },
-    })
-    publisher.setProject(project)
-    publisher.setRepository('test')
-
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_REPO_OWNER)
   })
 
   it('should generate github project files from generated folder', () => {
