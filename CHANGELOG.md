@@ -1,3 +1,140 @@
+## v0.10.0-alpha.6 (2019-11-05)
+
+#### :electric_plug: React Generators
+* `teleport-project-generator-gatsby`
+  * [#398](https://github.com/teleporthq/teleport-code-generators/pull/398) feat(gatsby-proj): support for custom manifest in gatsby ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Angular Generators
+* `teleport-project-generator-angular`
+  * [#402](https://github.com/teleporthq/teleport-code-generators/pull/402) refactor(project-template): updating angular project-template ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-plugin-angular-module`
+  * [#401](https://github.com/teleporthq/teleport-code-generators/pull/401) refactor(module-angular): switching to modern syntax for lazy loading ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+  * [#400](https://github.com/teleporthq/teleport-code-generators/pull/400) fix: mapping sync with playground ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 2
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.10.0-alpha.5 (2019-10-24)
+
+#### :electric_plug: React Generators
+  * [#384](https://github.com/teleporthq/teleport-code-generators/pull/384) feat(proj-gen-gatsby): support for project generators using gatsby ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Vue Generators
+* `teleport-project-generator-gridsome`
+  * [#391](https://github.com/teleporthq/teleport-code-generators/pull/391) fix(gridsome-mapping): adding mappings for gridsome ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-code-generator`, `teleport-project-generator-gridsome`, `teleport-test`, `teleport-types`
+  * [#388](https://github.com/teleporthq/teleport-code-generators/pull/388) feat(gridsome): generating projects based on gridsome ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Preact Generators
+* `teleport-code-generator`
+  * [#387](https://github.com/teleporthq/teleport-code-generators/pull/387) fix(code-generator): fixed bug for picking preact template by default ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+  * [#354](https://github.com/teleporthq/teleport-code-generators/pull/354) WIP: feat(reactnative): project generator initial structure ([@alexnm](https://github.com/alexnm))
+
+#### :bug: Bug Fix
+* `teleport-project-generator-next`, `teleport-uidl-resolver`
+  * [#389](https://github.com/teleporthq/teleport-code-generators/pull/389) fix: custom mapping logic for navlinks and <a> tags ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 2
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.10.0-alpha.4 (2019-10-15)
+
+#### :rocket: New Features
+* `teleport-component-generator-preact`, `teleport-component-generator-react`, `teleport-component-generator-vue`, `teleport-plugin-css`
+  * [#385](https://github.com/teleporthq/teleport-code-generators/pull/385) fix: forced scoping added for css plugin and set on vue, react, preact ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Preact Generators
+* `teleport-code-generator`, `teleport-project-generator-preact`, `teleport-test`
+  * [#382](https://github.com/teleporthq/teleport-code-generators/pull/382) feat(teleport-component-generator): added template for preact codesan… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Balaj Marius ([@balajmarius](https://github.com/balajmarius))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.10.0-alpha.3 (2019-10-09)
+
+#### :bug: Bug Fix
+* `teleport-component-generator-react`, `teleport-component-generator-stencil`, `teleport-shared`, `teleport-types`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#379](https://github.com/teleporthq/teleport-code-generators/pull/379) feat: string blacklists on mappings and regex validation for some strings in the UIDL ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 1
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+
+
+## v0.10.0-alpha.2 (2019-09-30)
+
+#### :electric_plug: Stencil Generators
+* `teleport-plugin-stencil-base-component`
+  * [#371](https://github.com/teleporthq/teleport-code-generators/pull/371) feat(stencil-base): changing title tag for stencil dynamically ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 2
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.10.0-alpha.1 (2019-09-23)
+
+#### :electric_plug: Angular Generators
+* `teleport-plugin-angular-base-component`, `teleport-plugin-vue-head-config`, `teleport-postprocessor-prettier-js`, `teleport-types`
+  * [#365](https://github.com/teleporthq/teleport-code-generators/pull/365) feat(angular-base): changing title for tab dynamically ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-plugin-angular-base-component`, `teleport-plugin-angular-module`, `teleport-project-generator-angular`
+  * [#361](https://github.com/teleporthq/teleport-code-generators/pull/361) tests(angular-module): adding test cases for Angular module generator ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+  * [#357](https://github.com/teleporthq/teleport-code-generators/pull/357) feat(angular-module-gen): Project Generator for Angular using default angular-cli template ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :fire: Refactoring
+  * [#366](https://github.com/teleporthq/teleport-code-generators/pull/366) Refactor/shared imports ([@alexnm](https://github.com/alexnm))
+  * [#362](https://github.com/teleporthq/teleport-code-generators/pull/362) refactor: rename some fields and simplify logic for routing and paths ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Utwo ([@Utwo](https://github.com/Utwo))
+
+
+## v0.10.0-alpha.0 (2019-09-05)
+
+#### :rocket: New Features
+  * [#356](https://github.com/teleporthq/teleport-code-generators/pull/356) feat/355 playground packer integration ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Angular Generators
+* `teleport-component-generator-angular`, `teleport-component-generator-vue`, `teleport-plugin-angular-base-component`, `teleport-plugin-vue-base-component`, `teleport-shared`
+  * [#351](https://github.com/teleporthq/teleport-code-generators/pull/351) fix(angular-base): Handling multiple statements in event handlers ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Preact Generators
+* `teleport-project-generator-preact`, `teleport-project-generator-stencil`, `teleport-project-generator`, `teleport-types`
+  * [#348](https://github.com/teleporthq/teleport-code-generators/pull/348) fix(preact-generator): Picking a inbuilt index template and injecting custom tags ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :package: Project Packer
+* `teleport-code-generator`, `teleport-publisher-codesandbox`, `teleport-test`
+  * [#358](https://github.com/teleporthq/teleport-code-generators/pull/358) feat(publisher): codesandbox integration added ([@alexnm](https://github.com/alexnm))
+
+#### :earth_asia: Core
+  * [#353](https://github.com/teleporthq/teleport-code-generators/pull/353) refactor(seo): handling default title and canonical link ([@alexnm](https://github.com/alexnm))
+  * [#346](https://github.com/teleporthq/teleport-code-generators/pull/346) feat(meta): added two plugins to handle jsx and vue-meta values per page ([@alexnm](https://github.com/alexnm))
+  * [#344](https://github.com/teleporthq/teleport-code-generators/pull/344) Feat/root node restricted to type element ([@alexnm](https://github.com/alexnm))
+
+#### :bug: Bug Fix
+* `teleport-component-generator-angular`, `teleport-component-generator-vue`, `teleport-plugin-angular-base-component`, `teleport-plugin-vue-base-component`, `teleport-shared`
+  * [#351](https://github.com/teleporthq/teleport-code-generators/pull/351) fix(angular-base): Handling multiple statements in event handlers ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-plugin-stencil-app-routing`
+  * [#347](https://github.com/teleporthq/teleport-code-generators/pull/347) refactor(stencil-app-routing): casting dependencies to UIDLDependency… ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-component-generator-preact`, `teleport-plugin-angular-base-component`, `teleport-plugin-vue-base-component`, `teleport-shared`, `teleport-types`, `teleport-uidl-validator`
+  * [#343](https://github.com/teleporthq/teleport-code-generators/pull/343) refactor: small fixes ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 2
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
 ## v0.9.0 (2019-08-13)
 
 #### :electric_plug: Angular Generators
