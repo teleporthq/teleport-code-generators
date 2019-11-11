@@ -118,13 +118,13 @@ describe('Component with dependency ', () => {
     it('renders code with named import ', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('write', 'library', 'fs', '', {
+          dependencySample('Card', 'library', 'material', '', {
             namedImport: true,
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { write } from 'fs'")
+      expect(code).toContain("import { Card } from 'material'")
     })
   })
 })

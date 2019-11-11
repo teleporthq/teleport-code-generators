@@ -274,6 +274,7 @@ interface PublisherOptions {
   accessToken?: string
   outputPath?: string
   projectSlug?: string
+  domainAlias?: string // used by the now publisher
   createProjectFolder?: boolean // used only by the disk publisher
 }
 

@@ -11,6 +11,7 @@ import { NowPayload } from './types'
 export interface NowFactoryParams extends PublisherFactoryParams {
   accessToken: string
   projectSlug: string
+  domainAlias?: string
 }
 
 export interface NowPublisher extends Publisher<NowFactoryParams, string> {
@@ -46,12 +47,14 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
 
     const nowAccessToken = options.accessToken || accessToken
     const projectSlug = options.projectSlug || params.projectSlug
+    const domainAlias = options.domainAlias || params.domainAlias
 
     if (!nowAccessToken) {
       return { success: false, payload: NO_TOKEN }
     }
 
     try {
+      const productionAlias = domainAlias ? `${projectSlug}.${domainAlias}` : null
       const nowPayload: NowPayload = {
         files: generateProjectFiles(projectToPublish),
         name: projectSlug,
@@ -59,12 +62,19 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
         version: 2,
         target: 'production',
       }
+
+      // send the production alias if it exists
+      if (productionAlias) {
+        nowPayload.alias = [productionAlias]
+      }
+
       const deploymentURL = await createDeployment(nowPayload, nowAccessToken)
 
       // Makes requests to the deployment URL until the deployment is ready
       await checkDeploymentStatus(deploymentURL)
 
-      return { success: true, payload: 'https://' + deploymentURL }
+      // If productionAlias is empty, the deploymentURL is the fallback
+      return { success: true, payload: 'https://' + (productionAlias || deploymentURL) }
     } catch (error) {
       return { success: false, payload: error }
     }

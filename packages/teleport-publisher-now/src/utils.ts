@@ -68,7 +68,7 @@ export const createDeployment = async (payload: NowPayload, token: string): Prom
 
 export const checkDeploymentStatus = async (deploymentURL: string) => {
   await new Promise((resolve, reject) => {
-    let retries = 12
+    let retries = 60
 
     const clearHook = setInterval(async () => {
       retries = retries - 1
