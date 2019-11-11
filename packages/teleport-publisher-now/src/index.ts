@@ -4,11 +4,14 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
 } from '@teleporthq/teleport-types'
-import { NO_PROJECT_UIDL } from './errors'
-import { generateProjectFiles, publishToNow, checkDeploymentStatus } from './utils'
+import { NO_PROJECT_UIDL, NO_TOKEN } from './errors'
+import { generateProjectFiles, createDeployment, checkDeploymentStatus } from './utils'
+import { NowPayload } from './types'
 
 export interface NowFactoryParams extends PublisherFactoryParams {
   accessToken: string
+  projectSlug: string
+  domainAlias?: string
 }
 
 export interface NowPublisher extends Publisher<NowFactoryParams, string> {
@@ -18,6 +21,7 @@ export interface NowPublisher extends Publisher<NowFactoryParams, string> {
 
 const defaultPublisherParams: NowFactoryParams = {
   accessToken: null,
+  projectSlug: 'teleport',
 }
 
 export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
@@ -42,17 +46,35 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     }
 
     const nowAccessToken = options.accessToken || accessToken
+    const projectSlug = options.projectSlug || params.projectSlug
+    const domainAlias = options.domainAlias || params.domainAlias
+
+    if (!nowAccessToken) {
+      return { success: false, payload: NO_TOKEN }
+    }
 
     try {
-      const projectFiles = generateProjectFiles(projectToPublish)
-      const deploymentURL = await publishToNow(projectFiles, nowAccessToken)
-
-      // If the user did not provide the now token, we are using the teleport one so we wait for the deployment
-      if (!nowAccessToken) {
-        await checkDeploymentStatus(deploymentURL)
+      const productionAlias = domainAlias ? `${projectSlug}.${domainAlias}` : null
+      const nowPayload: NowPayload = {
+        files: generateProjectFiles(projectToPublish),
+        name: projectSlug,
+        public: true,
+        version: 2,
+        target: 'production',
       }
 
-      return { success: true, payload: 'https://' + deploymentURL }
+      // send the production alias if it exists
+      if (productionAlias) {
+        nowPayload.alias = [productionAlias]
+      }
+
+      const deploymentURL = await createDeployment(nowPayload, nowAccessToken)
+
+      // Makes requests to the deployment URL until the deployment is ready
+      await checkDeploymentStatus(deploymentURL)
+
+      // If productionAlias is empty, the deploymentURL is the fallback
+      return { success: true, payload: 'https://' + (productionAlias || deploymentURL) }
     } catch (error) {
       return { success: false, payload: error }
     }

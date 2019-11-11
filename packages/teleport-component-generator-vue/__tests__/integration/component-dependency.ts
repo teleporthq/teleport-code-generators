@@ -38,39 +38,39 @@ describe('Component with dependency ', () => {
     it('renders code with imported package', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'package', 'react-datepicker', '', {
+          dependencySample('VueDatepicker', 'package', 'vue-datepicker', '', {
             namedImport: false,
           })
         )
       )
       const code = result.files[0].content
 
-      expect(code).toContain("import ReactDatepicker from 'react-datepicker'")
+      expect(code).toContain("import VueDatepicker from 'vue-datepicker'")
     })
 
     it('renders code with named import ', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'package', 'react-datepicker', '', {
+          dependencySample('VueDatepicker', 'package', 'vue-datepicker', '', {
             namedImport: true,
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { ReactDatepicker } from 'react-datepicker'")
+      expect(code).toContain("import { VueDatepicker } from 'vue-datepicker'")
     })
 
     it('renders code with original name', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('Router', 'package', 'react-router', '', {
+          dependencySample('VuePicker', 'package', 'vue-datepicker', '', {
             namedImport: true,
-            originalName: 'BrowserRouter',
+            originalName: 'VueDatePicker',
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { BrowserRouter as Router } from 'react-router'")
+      expect(code).toContain("import { VueDatePicker as VuePicker } from 'vue-datepicker'")
     })
   })
 
@@ -78,39 +78,39 @@ describe('Component with dependency ', () => {
     it('renders code with imported package', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'local', '../react-datepicker', '', {
+          dependencySample('VueDatepicker', 'local', '../vue-datepicker', '', {
             namedImport: false,
           })
         )
       )
       const code = result.files[0].content
 
-      expect(code).toContain("import ReactDatepicker from '../react-datepicker'")
+      expect(code).toContain("import VueDatepicker from '../vue-datepicker'")
     })
 
     it('renders code with named import ', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('ReactDatepicker', 'local', '../react-datepicker', '', {
+          dependencySample('VueDatepicker', 'local', '../vue-datepicker', '', {
             namedImport: true,
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { ReactDatepicker } from '../react-datepicker'")
+      expect(code).toContain("import { VueDatepicker } from '../vue-datepicker'")
     })
 
     it('renders code with original name', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('Router', 'local', 'react-router', '', {
+          dependencySample('VuePicker', 'local', 'vue-datepicker', '', {
             namedImport: true,
-            originalName: 'BrowserRouter',
+            originalName: 'VueDatepicker',
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { BrowserRouter as Router } from 'react-router'")
+      expect(code).toContain("import { VueDatepicker as VuePicker } from 'vue-datepicker'")
     })
   })
 
@@ -118,13 +118,13 @@ describe('Component with dependency ', () => {
     it('renders code with named import ', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(
-          dependencySample('write', 'local', 'fs', '', {
+          dependencySample('Card', 'library', 'material', '', {
             namedImport: true,
           })
         )
       )
       const code = result.files[0].content
-      expect(code).toContain("import { write } from 'fs'")
+      expect(code).toContain("import { Card } from 'material'")
     })
   })
 })

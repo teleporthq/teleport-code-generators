@@ -18,13 +18,22 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
   const tagName = elementType || 'component'
-  const safeTagName = dependency ? templateSyntax.customElementTagName(tagName) : tagName
+  const safeTagName =
+    dependency && dependency.type === 'local'
+      ? templateSyntax.customElementTagName(tagName)
+      : tagName
 
   const htmlNode = createHTMLNode(safeTagName)
 
   if (dependency && templateSyntax.dependencyHandling === 'import') {
-    const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
-    dependencies[safeImportName] = { ...dependency }
+    if (dependency.type !== 'local') {
+      // library and package dependencies are assumed to be safe
+      dependencies[tagName] = { ...dependency }
+    } else {
+      // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
+      const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
+      dependencies[safeImportName] = { ...dependency }
+    }
   }
 
   if (attrs) {

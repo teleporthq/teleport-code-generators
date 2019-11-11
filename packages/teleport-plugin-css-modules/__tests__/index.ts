@@ -55,7 +55,7 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
+    expect(classNameAttr.value.expression.name).toBe('styles.listContainer')
   })
 
   it('generates a string chunk out of the styles and adds the className in camel case', async () => {
@@ -73,7 +73,7 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe('styles.listContainer')
+    expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
   })
 
   it('generates a string chunk out of the styles and adds the class attribute', async () => {

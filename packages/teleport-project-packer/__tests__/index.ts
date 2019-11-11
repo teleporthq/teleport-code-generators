@@ -15,7 +15,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 import { createProjectPacker } from '../src'
-import { NO_GENERATOR_PROVIDED, NO_PUBLISHER_PROVIDED } from '../src/errors'
+import { NO_GENERATOR_PROVIDED } from '../src/errors'
 import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -57,7 +57,7 @@ describe('teleport generic project packer', () => {
   it('should fail to pack if no generator function is provided', async () => {
     const packer = createProjectPacker()
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
+    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL, {
       template: templateDefinition,
       remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
     })
@@ -65,15 +65,16 @@ describe('teleport generic project packer', () => {
     expect(payload).toBe(NO_GENERATOR_PROVIDED)
   })
 
-  it('should fail to pack if no publisher is provider', async () => {
+  it('should return the project folder if no publisher is specified', async () => {
     const packer = createProjectPacker({
       generator: dummyGenerator,
       template: templateDefinition,
     })
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_PUBLISHER_PROVIDED)
+    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL)
+    expect(success).toBeTruthy()
+
+    expect(payload)
   })
 
   it('should pack if all required data is provided', async () => {
@@ -85,7 +86,7 @@ describe('teleport generic project packer', () => {
       assets: assetsData,
     })
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL)
+    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL)
     expect(success).toBeTruthy()
 
     const { project } = payload
@@ -111,7 +112,7 @@ describe('teleport generic project packer', () => {
       assets: assetsData,
     })
 
-    const { success, payload } = await packer.pack(projectJson as ProjectUIDL, {
+    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL, {
       template: templateDefinition,
     })
     expect(success).toBeTruthy()

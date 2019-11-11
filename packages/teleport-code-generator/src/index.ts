@@ -1,9 +1,7 @@
 import {
-  PublisherResponse,
-  ProjectUIDL,
+  PackProjectFunction,
+  GenerateComponentFunction,
   ComponentUIDL,
-  PackerOptions,
-  GenerateOptions,
   PublisherType,
   ProjectType,
   ComponentType,
@@ -128,15 +126,10 @@ const projectPublisherFactories = {
   [PublisherType.CODESANDBOX]: createCodesandboxPublisher,
 }
 
-export const packProject = async (
-  projectUIDL: ProjectUIDL,
-  {
-    projectType = ProjectType.NEXT,
-    publisher = PublisherType.ZIP,
-    publishOptions = {},
-    assets = [],
-  }: PackerOptions = {}
-): Promise<PublisherResponse<any>> => {
+export const packProject: PackProjectFunction = async (
+  projectUIDL,
+  { projectType = ProjectType.NEXT, publisher, publishOptions = {}, assets = [] } = {}
+) => {
   const packer = createProjectPacker()
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
@@ -145,17 +138,14 @@ export const packProject = async (
       ? PreactCodesandBoxTemplate
       : templates[projectType]
 
-  const publisherFactory = projectPublisherFactories[publisher]
-
   if (!projectGeneratorFactory) {
     throw new Error(`Invalid ProjectType: ${projectType}`)
   }
 
-  if (!publisherFactory) {
+  if (publisher && !projectPublisherFactories[publisher]) {
     throw new Error(`Invalid PublisherType: ${publisher}`)
   }
 
-  const projectPublisher = publisherFactory(publishOptions)
   packer.setAssets({
     assets,
     path: [Constants.ASSETS_IDENTIFIER],
@@ -163,17 +153,20 @@ export const packProject = async (
 
   packer.setGenerator(projectGeneratorFactory())
   packer.setTemplate(projectTemplate)
-  packer.setPublisher(projectPublisher)
+
+  // If no publisher is provided, the packer will return the generated project
+  if (publisher) {
+    const publisherFactory = projectPublisherFactories[publisher]
+    const projectPublisher = publisherFactory(publishOptions)
+    packer.setPublisher(projectPublisher)
+  }
 
   return packer.pack(projectUIDL)
 }
 
-export const generateComponent = async (
+export const generateComponent: GenerateComponentFunction = async (
   componentUIDL: ComponentUIDL,
-  {
-    componentType = ComponentType.REACT,
-    styleVariation = ReactStyleVariation.CSSModules,
-  }: GenerateOptions = {}
+  { componentType = ComponentType.REACT, styleVariation = ReactStyleVariation.CSSModules } = {}
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]

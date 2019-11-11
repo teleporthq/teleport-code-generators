@@ -5,7 +5,7 @@ import {
   PublisherFactory,
   Publisher,
 } from '@teleporthq/teleport-types'
-import { BASE_URL } from './constants'
+import { BASE_URL, BASE_SANDBOX_URL } from './constants'
 import { convertToCodesandboxStructure } from './utils'
 
 export const createCodesandboxPublisher: PublisherFactory<
@@ -36,7 +36,7 @@ export const createCodesandboxPublisher: PublisherFactory<
 
       const result = await response.json()
 
-      return { success: true, payload: result.sandbox_id }
+      return { success: true, payload: `${BASE_SANDBOX_URL}${result.sandbox_id}` }
     } catch (error) {
       return { success: false, payload: error.message }
     }

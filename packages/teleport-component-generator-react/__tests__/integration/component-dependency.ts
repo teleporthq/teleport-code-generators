@@ -157,14 +157,14 @@ describe('Component with dependency ', () => {
     it('renders code with named import ', async () => {
       const result = await generator.generateComponent(
         uidl(
-          dependencySample('write', 'library', 'fs', '', {
+          dependencySample('Card', 'library', 'react-material', '', {
             namedImport: true,
           })
         )
       )
       const jsFile = findFileByType(result.files, JS_FILE)
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain("import { write } from 'fs'")
+      expect(jsFile.content).toContain("import { Card } from 'react-material'")
     })
   })
 })

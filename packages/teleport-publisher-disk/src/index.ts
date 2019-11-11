@@ -10,7 +10,7 @@ import { NO_PROJECT_UIDL } from './errors'
 
 export interface DiskFactoryParams extends PublisherFactoryParams {
   outputPath?: string
-  projectName?: string
+  projectSlug?: string
   createProjectFolder?: boolean
 }
 
@@ -45,11 +45,11 @@ export const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublis
     }
 
     const projectOutputPath = options.outputPath || outputPath
-    const overrideProjectName = options.projectName || params.projectName
+    const overrideProjectSlug = options.projectSlug || params.projectSlug
     const createProjectFolder = options.createProjectFolder || params.createProjectFolder
 
-    if (overrideProjectName) {
-      projectToPublish.name = overrideProjectName
+    if (overrideProjectSlug) {
+      projectToPublish.name = overrideProjectSlug
     }
 
     try {
