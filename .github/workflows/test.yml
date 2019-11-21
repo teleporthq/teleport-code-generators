@@ -1,11 +1,11 @@
-name: Test
+name: Run tests
 
 on: push
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: node:13-alpine
+    container: node:13-slim
     steps:
       - uses: actions/checkout@v1
       - name: Install, build and test
