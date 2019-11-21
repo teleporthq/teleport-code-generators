@@ -5,7 +5,7 @@ on: push
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: node:13-slim
+    container: node:13
     steps:
       - uses: actions/checkout@v1
       - name: Install, build and test
