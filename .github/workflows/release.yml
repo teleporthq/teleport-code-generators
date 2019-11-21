@@ -1,0 +1,21 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    container: node:13-alpine
+    needs: test
+    steps:
+      - uses: actions/checkout@v1
+      - name: Publish
+        run: |
+          yarn
+          yarn run build
+          yarn run publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

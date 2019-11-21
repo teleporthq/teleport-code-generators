@@ -1,0 +1,19 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: node:13-alpine
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install, build and test
+        run: |
+          - yarn
+          - yarn run lint
+          - yarn run build
+          - yarn run test:coverage
+          - yarn run upload:coverage
+        env:
+          CI: "true"
