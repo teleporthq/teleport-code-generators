@@ -8,17 +8,14 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # container: node:13-slim
     needs: test
     steps:
       - uses: actions/checkout@v1
-      - name: Publish
-        uses: actions/setup-node@v1
+      - uses: actions/setup-node@v1
         with:
           node-version: '13.x'
-      - run: |
-          yarn
-          yarn run build
-          yarn run publish
+      - run: yarn
+      - run: yarn run build
+      - run: yarn run publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
