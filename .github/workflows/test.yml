@@ -5,9 +5,10 @@ on: push
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: docker://node:13-slim
+    container: docker://node:13-alpine
     steps:
       - uses: actions/checkout@v1
+      - run: apk add --no-cache git
       - run: yarn
       - run: yarn run lint
       - run: yarn run build
