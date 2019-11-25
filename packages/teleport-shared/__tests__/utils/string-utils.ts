@@ -6,6 +6,7 @@ import {
   dashCaseToUpperCamelCase,
   dashCaseToCamelCase,
   removeIllegalCharacters,
+  encode,
 } from '../../src/utils/string-utils'
 
 describe('slugify tests', () => {
@@ -171,5 +172,11 @@ describe('dashCaseToCamelCase', () => {
 
   it('doesn`t change a upper camel case to lower camel case', () => {
     expect(dashCaseToCamelCase('PrimaryButton')).toBe('PrimaryButton')
+  })
+})
+
+describe('encode', () => {
+  it('works', () => {
+    expect(encode('<p>test</p>')).toBe('&lt;p&gt;test&lt;/p&gt;')
   })
 })

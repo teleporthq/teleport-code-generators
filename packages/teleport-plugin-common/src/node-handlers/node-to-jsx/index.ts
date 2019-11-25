@@ -20,7 +20,7 @@ import {
   getRepeatSourceIdentifier,
 } from './utils'
 
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   addChildJSXText,
   addChildJSXTag,
@@ -108,7 +108,7 @@ export default generateElementNode
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
   switch (node.type) {
     case 'static':
-      return node.content.toString()
+      return StringUtils.encode(node.content.toString())
 
     case 'dynamic':
       return createDynamicValueExpression(node, options)

@@ -46,3 +46,22 @@ export const addSpacesToEachLine = (spaces: string, str: string) => {
 export const removeLastEmptyLine = (str: string) => {
   return str.replace(/\n$/g, '')
 }
+
+const encodingMap: Record<string, string> = {
+  '&': '&amp;',
+  '>': '&gt;',
+  '<': '&lt;',
+  '"': '&quot;',
+  '{': '&#123;',
+  '}': '&#125;',
+}
+
+export const encode = (str: string) => {
+  return str
+    .split('')
+    .map((char) => {
+      const encodedChar = encodingMap[char]
+      return encodedChar ? encodedChar : char
+    })
+    .join('')
+}
