@@ -22,7 +22,7 @@
 
 <p align="center">
   <a target="_blank" href="https://www.npmjs.com/package/@teleporthq/teleport-component-generator"><img src="https://img.shields.io/npm/v/@teleporthq/teleport-component-generator.svg" /></a>
-  <a target="_blank" href="https://travis-ci.com/teleporthq/teleport-code-generators"><img src="https://travis-ci.com/teleporthq/teleport-code-generators.svg?branch=master" /></a>
+  <a target="_blank" href="https://github.com/teleporthq/teleport-code-generators/actions/new"><img src="https://github.com/teleporthq/teleport-code-generators/workflows/publish/badge.svg" /></a>
   <a target="_blank" href="https://codecov.io/gh/teleporthq/teleport-code-generators"><img src="https://codecov.io/gh/teleporthq/teleport-code-generators/branch/master/graph/badge.svg" /></a>
   <a target="_blank" href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" /></a>
   <img src="https://img.shields.io/npm/l/@teleporthq/teleport-code-generators.svg" />
