@@ -35,7 +35,11 @@ export const handleAttribute = (
       } else if (typeof attrValue.content === 'boolean') {
         hastUtils.addBooleanAttributeToNode(htmlNode, attrKey)
       } else if (typeof attrValue.content === 'string') {
-        hastUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
+        hastUtils.addAttributeToNode(
+          htmlNode,
+          attrKey,
+          StringUtils.encode(attrValue.content.toString())
+        )
       } else {
         // For numbers and values that are passed to components and maintain their type
         hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.toString())

@@ -70,7 +70,7 @@ export default generateElementNode
 const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
   switch (node.type) {
     case 'static':
-      return node.content.toString()
+      return StringUtils.encode(node.content.toString())
 
     case 'dynamic':
       return templateSyntax.interpolation(node.content.id)

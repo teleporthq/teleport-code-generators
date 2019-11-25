@@ -1,5 +1,6 @@
 import * as types from '@babel/types'
 import ParsedASTNode from './parsed-ast'
+import { StringUtils } from '@teleporthq/teleport-shared'
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -113,7 +114,7 @@ const getProperAttributeValueAssignment = (value: any, t = types) => {
   }
 
   if (typeof value === 'string') {
-    return t.stringLiteral(value)
+    return t.stringLiteral(StringUtils.encode(value))
   }
 
   return t.jsxExpressionContainer(convertValueToLiteral(value))
