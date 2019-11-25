@@ -60,7 +60,7 @@ export const createDeployment = async (payload: NowPayload, token: string): Prom
 
   const result = await response.json()
   if (result.error) {
-    throw new Error(result.error.message)
+    throw new Error(JSON.stringify(result.error))
   }
 
   return result.url

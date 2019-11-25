@@ -90,10 +90,20 @@ export const getComponentFolderPath = (component: ComponentUIDL) =>
     ? component.outputOptions.folderPath
     : []
 
-export const getComponentClassName = (component: ComponentUIDL) =>
-  component.outputOptions && component.outputOptions.componentClassName
-    ? component.outputOptions.componentClassName
-    : component.name
+export const getComponentClassName = (component: ComponentUIDL) => {
+  const componentName =
+    component.outputOptions && component.outputOptions.componentClassName
+      ? component.outputOptions.componentClassName
+      : component.name
+
+  // Failsafe for angular modules and other places where component names are computed without passing through mapping
+  // "Component" will not exist when generating a component because the resolver checks for illegal class names
+  if (componentName === 'Component') {
+    return 'AppComponent'
+  }
+
+  return componentName
+}
 
 export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   const iteratorName = meta.iteratorName || 'item'
