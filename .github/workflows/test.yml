@@ -5,7 +5,7 @@ on: push
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: docker://node:13-alpine
+    container: docker://node:13-slim
     steps:
       - uses: actions/checkout@v1
       - run: yarn

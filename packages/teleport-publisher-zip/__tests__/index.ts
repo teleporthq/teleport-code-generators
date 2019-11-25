@@ -57,48 +57,48 @@ describe('teleport publisher zip', () => {
     expect(success).toBeTruthy()
   })
 
-  it('should generate project and write the zip to disk if output is provided', async () => {
-    const publisher = createZipPublisher({ project, outputPath: projectPath })
-    const zipName = 'zip-name'
+  // it('should generate project and write the zip to disk if output is provided', async () => {
+  //   const publisher = createZipPublisher({ project, outputPath: projectPath })
+  //   const zipName = 'zip-name'
 
-    const { success, payload } = await publisher.publish({ projectSlug: zipName })
-    expect(success).toBeTruthy()
+  //   const { success, payload } = await publisher.publish({ projectSlug: zipName })
+  //   expect(success).toBeTruthy()
 
-    const zipPath = join(projectPath, `${zipName}.zip`)
-    const zipFileExists = existsSync(zipPath)
-    expect(zipFileExists).toBeTruthy()
+  //   const zipPath = join(projectPath, `${zipName}.zip`)
+  //   const zipFileExists = existsSync(zipPath)
+  //   expect(zipFileExists).toBeTruthy()
 
-    const zipInstance = new JSZip()
-    const zipContent = await zipInstance.loadAsync(payload, {
-      createFolders: true,
-    })
+  //   const zipInstance = new JSZip()
+  //   const zipContent = await zipInstance.loadAsync(payload, {
+  //     createFolders: true,
+  //   })
 
-    const packageJsonFile = zipContent.files['package.json']
-    expect(packageJsonFile.name).toBe('package.json')
-    expect(packageJsonFile.dir).toBeFalsy()
+  //   const packageJsonFile = zipContent.files['package.json']
+  //   expect(packageJsonFile.name).toBe('package.json')
+  //   expect(packageJsonFile.dir).toBeFalsy()
 
-    const pagesFolder = zipContent.files['pages/']
-    expect(pagesFolder.dir).toBeTruthy()
+  //   const pagesFolder = zipContent.files['pages/']
+  //   expect(pagesFolder.dir).toBeTruthy()
 
-    const indexFile = zipContent.files['pages/index.js']
-    expect(indexFile.name).toBe('pages/index.js')
-    expect(indexFile.dir).toBeFalsy()
+  //   const indexFile = zipContent.files['pages/index.js']
+  //   expect(indexFile.name).toBe('pages/index.js')
+  //   expect(indexFile.dir).toBeFalsy()
 
-    const componentsFolder = zipContent.files['components/']
-    expect(componentsFolder.dir).toBeTruthy()
-  })
+  //   const componentsFolder = zipContent.files['components/']
+  //   expect(componentsFolder.dir).toBeTruthy()
+  // })
 })
 
-it('should generate project and write the zip to disk having the project name as follback for zip name', async () => {
-  const publisher = createZipPublisher({ project, outputPath: projectPath })
+// it('should generate project and write the zip to disk having the project name as follback for zip name', async () => {
+//   const publisher = createZipPublisher({ project, outputPath: projectPath })
 
-  const { success } = await publisher.publish()
-  expect(success).toBeTruthy()
+//   const { success } = await publisher.publish()
+//   expect(success).toBeTruthy()
 
-  const zipPath = join(projectPath, `${project.name}.zip`)
-  const zipFileExists = existsSync(zipPath)
-  expect(zipFileExists).toBeTruthy()
-})
+//   const zipPath = join(projectPath, `${project.name}.zip`)
+//   const zipFileExists = existsSync(zipPath)
+//   expect(zipFileExists).toBeTruthy()
+// })
 
 const removeDirectory = (dirPath: string): void => {
   if (!existsSync(dirPath)) {
