@@ -7,6 +7,8 @@ import {
   ComponentType,
   StyleVariation,
   ReactStyleVariation,
+  InvalidProjectTypeError,
+  InvalidPublisherTypeError,
 } from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
@@ -128,7 +130,7 @@ const projectPublisherFactories = {
 
 export const packProject: PackProjectFunction = async (
   projectUIDL,
-  { projectType = ProjectType.NEXT, publisher, publishOptions = {}, assets = [] } = {}
+  { projectType, publisher, publishOptions = {}, assets = [] }
 ) => {
   const packer = createProjectPacker()
 
@@ -139,11 +141,11 @@ export const packProject: PackProjectFunction = async (
       : templates[projectType]
 
   if (!projectGeneratorFactory) {
-    throw new Error(`Invalid ProjectType: ${projectType}`)
+    throw new InvalidProjectTypeError(projectType)
   }
 
   if (publisher && !projectPublisherFactories[publisher]) {
-    throw new Error(`Invalid PublisherType: ${publisher}`)
+    throw new InvalidPublisherTypeError(publisher)
   }
 
   packer.setAssets({

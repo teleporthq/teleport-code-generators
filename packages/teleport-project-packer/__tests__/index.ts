@@ -14,8 +14,7 @@ import {
   GeneratedFile,
 } from '@teleporthq/teleport-types'
 
-import { createProjectPacker } from '../src'
-import { NO_GENERATOR_PROVIDED } from '../src/errors'
+import { createProjectPacker, PackerFactoryParams } from '../src'
 import { DEFAULT_TEMPLATE } from '../src/constants'
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -56,13 +55,13 @@ describe('teleport generic project packer', () => {
 
   it('should fail to pack if no generator function is provided', async () => {
     const packer = createProjectPacker()
-
-    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL, {
+    const uidl = (projectJson as unknown) as ProjectUIDL
+    const options: PackerFactoryParams = {
       template: templateDefinition,
       remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
-    })
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_GENERATOR_PROVIDED)
+    }
+
+    await expect(packer.pack(uidl, options)).rejects.toThrow(Error)
   })
 
   it('should return the project folder if no publisher is specified', async () => {

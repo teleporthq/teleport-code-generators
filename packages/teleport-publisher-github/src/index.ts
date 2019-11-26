@@ -1,9 +1,17 @@
-import { GeneratedFolder, PublisherFactory, ServiceAuth } from '@teleporthq/teleport-types'
+import {
+  GeneratedFolder,
+  PublisherFactory,
+  ServiceAuth,
+  MissingProjectUIDLError,
+  GithubMissingAuthError,
+  GithubMissingRepoError,
+  GithubInvalidTokenError,
+  GithubUnexpectedError,
+  GithubServerError,
+} from '@teleporthq/teleport-types'
 
 import { publishToGithub, generateProjectFiles } from './utils'
 import { GithubFactoryParams, GithubPublisher, GithubPublishMeta } from './types'
-
-import { NO_PROJECT_UIDL, NO_REPO, NO_AUTH } from './errors'
 
 export const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublisher> = (
   params: GithubFactoryParams = {}
@@ -44,17 +52,17 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
   const publish = async (options: GithubFactoryParams = {}) => {
     const projectToPublish = options.project || project
     if (!projectToPublish) {
-      return { success: false, payload: NO_PROJECT_UIDL }
+      throw new MissingProjectUIDLError()
     }
 
     const auth = options.authMeta || authMeta
     if (!auth) {
-      return { success: false, payload: NO_AUTH }
+      throw new GithubMissingAuthError()
     }
 
     const repo = options.repository || repository
     if (!repo) {
-      return { success: false, payload: NO_REPO }
+      throw new GithubMissingRepoError()
     }
 
     const repoOwner = findRepositoryOwner(auth, options)
@@ -64,22 +72,31 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     const commitBranchName = options.commitBranch || commitBranch
     const commitMsg = options.commitMessage || commitMessage
 
+    const githubPublishMeta: GithubPublishMeta = {
+      authMeta: auth,
+      masterBranch: master,
+      commitBranch: commitBranchName ? commitBranchName : master,
+      commitMessage: commitMsg,
+      repository: repo,
+      repositoryOwner: repoOwner,
+    }
+
+    const projectFiles = generateProjectFiles({ folder: projectToPublish, ignoreFolder: true })
+
     try {
-      const githubPublishMeta: GithubPublishMeta = {
-        authMeta: auth,
-        masterBranch: master,
-        commitBranch: commitBranchName ? commitBranchName : master,
-        commitMessage: commitMsg,
-        repository: repo,
-        repositoryOwner: repoOwner,
-      }
-
-      const projectFiles = generateProjectFiles({ folder: projectToPublish, ignoreFolder: true })
-
       const result = await publishToGithub(projectFiles, githubPublishMeta)
       return { success: true, payload: result }
-    } catch (error) {
-      return { success: false, payload: error.message }
+    } catch (err) {
+      // A bit hacky here, the github library we are using is failing with a TypeError when the service is down
+      if (err instanceof TypeError) {
+        throw new GithubServerError()
+      }
+
+      if (err.response.status === 401 && err.response.statusText === 'Unauthorized') {
+        throw new GithubInvalidTokenError()
+      }
+
+      throw new GithubUnexpectedError(err)
     }
   }
 

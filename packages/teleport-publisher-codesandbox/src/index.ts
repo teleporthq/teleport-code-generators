@@ -4,6 +4,10 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
   Publisher,
+  MissingProjectUIDLError,
+  CodeSandboxProjectTooBigError,
+  CodeSandboxServerError,
+  CodeSandboxUnexpectedError,
 } from '@teleporthq/teleport-types'
 import { BASE_URL, BASE_SANDBOX_URL } from './constants'
 import { convertToCodesandboxStructure } from './utils'
@@ -22,24 +26,40 @@ export const createCodesandboxPublisher: PublisherFactory<
   const publish = async (options: PublisherFactoryParams = {}) => {
     const folder = options.project || project
 
+    if (!folder) {
+      throw new MissingProjectUIDLError()
+    }
+
     const flatProject = convertToCodesandboxStructure(folder)
 
-    try {
-      const response = await fetch(`${BASE_URL}?json=1`, {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        body: JSON.stringify({ files: flatProject }),
-      })
+    const response = await fetch(`${BASE_URL}?json=1`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+      body: JSON.stringify({ files: flatProject }),
+    })
 
-      const result = await response.json()
-
-      return { success: true, payload: `${BASE_SANDBOX_URL}${result.sandbox_id}` }
-    } catch (error) {
-      return { success: false, payload: error.message }
+    if (response.status >= 500) {
+      throw new CodeSandboxServerError()
     }
+
+    const result = await response.json()
+
+    if (response.status === 200 && result.sandbox_id) {
+      return { success: true, payload: `${BASE_SANDBOX_URL}${result.sandbox_id}` }
+    }
+
+    if (
+      response.status === 422 &&
+      Array.isArray(result.errors.detail) &&
+      result.errors.detail.includes('request entity too large')
+    ) {
+      throw new CodeSandboxProjectTooBigError()
+    }
+
+    throw new CodeSandboxUnexpectedError(result.errors)
   }
 
   return {

@@ -3,10 +3,6 @@ import { existsSync, readdirSync, unlinkSync, rmdirSync, statSync } from 'fs'
 import JSZip from 'jszip'
 
 import { createZipPublisher } from '../src'
-
-import { NO_PROJECT_UIDL } from '../src/errors'
-
-// @ts-ignore
 import project from './project-files.json'
 
 const projectPath = join(__dirname, 'disk-project')
@@ -45,9 +41,7 @@ describe('teleport publisher zip', () => {
   it('should fail if no project is provided', async () => {
     const publisher = createZipPublisher()
 
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_PROJECT_UIDL)
+    await expect(publisher.publish()).rejects.toThrow(Error)
   })
 
   it('should generate project', async () => {

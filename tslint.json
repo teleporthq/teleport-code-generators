@@ -10,6 +10,7 @@
     "no-submodule-imports": false,
     "interface-name": [true, "never-prefix"],
     "object-literal-sort-keys": false,
-    "no-console": [true, "log", "error"]
+    "no-console": [true, "log", "error"],
+    "max-classes-per-file": false
   }
 }

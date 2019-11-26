@@ -1,5 +1,4 @@
 import { createNowPublisher } from '../src'
-import { NO_PROJECT_UIDL } from '../src/errors'
 import project from './project-files.json'
 
 const token = 'deploy-token'
@@ -34,8 +33,6 @@ describe('teleport publisher now', () => {
     const publisher = createNowPublisher()
     publisher.setAccessToken(token)
 
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_PROJECT_UIDL)
+    await expect(publisher.publish()).rejects.toThrow(Error)
   })
 })
