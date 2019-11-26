@@ -28,7 +28,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { node } = uidl
+    const { node, name } = uidl
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
@@ -43,9 +43,14 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const { key, elementType } = element
       if (style && Object.keys(style).length > 0) {
         const root = jsxNodesLookup[key]
-        let className = `${StringUtils.dashCaseToUpperCamelCase(key)}`
+        let className = StringUtils.dashCaseToUpperCamelCase(key)
+
         // Styled components might create an element that clashes with native element (Text, View, Image, etc.)
-        if (illegalComponentNames.includes(className)) {
+        if (
+          illegalComponentNames.includes(className) ||
+          StringUtils.dashCaseToUpperCamelCase(key) === name ||
+          Object.keys(dependencies).includes(className)
+        ) {
           className = `Styled${className}`
         }
 
