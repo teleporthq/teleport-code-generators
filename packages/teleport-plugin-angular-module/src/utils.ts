@@ -38,7 +38,7 @@ export const createPageModuleModuleDecorator = (componentName: string, t = types
 export const createComponentModuleDecorator = (componentNames?: string[], t = types) => {
   const componentsList =
     componentNames && componentNames.length > 0
-      ? componentNames.map((componentName) => t.identifier(`${componentName}Component`))
+      ? componentNames.map((componentName) => t.identifier(componentName))
       : []
 
   const declerations: types.ObjectProperty = t.objectProperty(

@@ -47,7 +47,7 @@ describe('Testing the functionality for Angular Modules', () => {
   it('Should add Angular dependencies for page module', async () => {
     const componentUIDL = projectUIDL.components.OneComponent as ComponentUIDL
     componentUIDL.outputOptions = componentUIDL.outputOptions || {}
-    componentUIDL.name = 'One'
+    componentUIDL.name = 'OneComponent'
     componentUIDL.outputOptions.fileName = 'OneComponent'
     componentUIDL.outputOptions.moduleName = 'OneComponentModule'
 

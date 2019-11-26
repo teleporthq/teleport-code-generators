@@ -75,12 +75,11 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
           const componentName = UIDLUtils.getComponentClassName(uidl)
-          const componentClassName = `${componentName}Component`
           const fileName = UIDLUtils.getComponentFileName(uidl)
-          dependencies[componentClassName] = constructLocalDependency(fileName)
+          dependencies[componentName] = constructLocalDependency(fileName)
 
-          routesAST = createPageRouteAST(componentClassName)
-          ngModuleAST = createPageModuleModuleDecorator(componentClassName)
+          routesAST = createPageRouteAST(componentName)
+          ngModuleAST = createPageModuleModuleDecorator(componentName)
           moduleDecoratorAST = createExportModuleAST(uidl.outputOptions.moduleName)
 
           // Acording to widely followed convention module should have .module in its name
@@ -97,7 +96,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
             const componentClassName = UIDLUtils.getComponentClassName(component)
             const componentFileName = UIDLUtils.getComponentFileName(component)
             const componentFolderPath = UIDLUtils.getComponentFolderPath(component)
-            dependencies[`${componentClassName}Component`] = constructComponentDependency(
+            dependencies[componentClassName] = constructComponentDependency(
               componentFolderPath,
               componentFileName
             )
