@@ -30,14 +30,14 @@ export default {
     "eslint-config-synacor": "^2.0.2",
     "identity-obj-proxy": "^3.0.0",
     "per-env": "^1.0.2",
-    "preact-cli": "^2.1.0",
+    "preact-cli": "^3.0.0-rc.6",
     "preact-render-spy": "^1.2.1"
   },
   "dependencies": {
-    "preact": "^8.2.6",
-    "preact-compat": "3.19.0",
-    "preact-router": "^2.5.7",
-    "react-helmet": "^5.2.1"
+    "preact": "^10.0.5",
+    "preact-router": "^3.1.0",
+    "react-helmet": "^5.2.1",
+    "preact-render-to-string": "^5.1.0"
   }
 }`,
       fileType: 'json',
