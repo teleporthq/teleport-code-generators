@@ -1,7 +1,16 @@
 import fetch from 'cross-fetch'
-import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
+import {
+  GeneratedFolder,
+  GeneratedFile,
+  NowServerError,
+  NowInvalidTokenError,
+  NowUnexpectedError,
+  NowDeploymentError,
+  NowDeploymentTimeoutError,
+  NowRateLimiterError,
+  NowProjectTooBigError,
+} from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, NowFile, NowPayload } from './types'
-import { GENERIC_ERROR } from './errors'
 
 const CREATE_DEPLOY_URL = 'https://api.zeit.co/v10/now/deployments'
 const CHECK_DEPLOY_BASE_URL = 'https://api.zeit.co/v10/now/deployments/get?url='
@@ -58,16 +67,30 @@ export const createDeployment = async (payload: NowPayload, token: string): Prom
     body: JSON.stringify(payload),
   })
 
+  if (response.status >= 500) {
+    throw new NowServerError()
+  }
+
   const result = await response.json()
   if (result.error) {
-    throw new Error(JSON.stringify(result.error))
+    switch (result.error.code) {
+      case 'forbidden':
+        throw new NowInvalidTokenError()
+      // TODO: needs validation / checking
+      case 'rate_limited':
+        throw new NowRateLimiterError()
+      case 'payload_too_large':
+        throw new NowProjectTooBigError()
+      default:
+        throw new NowUnexpectedError(result.error)
+    }
   }
 
   return result.url
 }
 
 export const checkDeploymentStatus = async (deploymentURL: string) => {
-  await new Promise((resolve, reject) => {
+  await new Promise((resolve) => {
     let retries = 60
 
     const clearHook = setInterval(async () => {
@@ -81,12 +104,12 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
 
       if (readyState === 'ERROR') {
         clearInterval(clearHook)
-        reject(GENERIC_ERROR)
+        throw new NowDeploymentError()
       }
 
       if (retries <= 0) {
         clearInterval(clearHook)
-        reject(GENERIC_ERROR)
+        throw new NowDeploymentTimeoutError()
       }
     }, 5000)
   })

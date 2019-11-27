@@ -2,7 +2,12 @@ import Ajv from 'ajv'
 import componentSchema from '../uidl-schemas/component.json'
 import projectSchema from '../uidl-schemas/project.json'
 
-import { ProjectUIDL, ComponentUIDL } from '@teleporthq/teleport-types'
+import {
+  ProjectUIDL,
+  ComponentUIDL,
+  ProjectValidationError,
+  ComponentValidationError,
+} from '@teleporthq/teleport-types'
 import * as utils from './utils'
 
 interface ValidationResult {
@@ -27,8 +32,8 @@ export default class Validator {
     const valid = this.componentValidator(input)
 
     if (!valid && this.componentValidator.errors) {
-      const errors = utils.formatErrors(this.componentValidator.errors)
-      return { valid: false, errorMsg: errors }
+      const errorMsg = utils.formatErrors(this.componentValidator.errors)
+      throw new ComponentValidationError(errorMsg)
     }
 
     return { valid: true, errorMsg: '' }
@@ -38,7 +43,8 @@ export default class Validator {
     const valid = this.projectValidator(input)
 
     if (!valid && this.projectValidator.errors) {
-      return { valid: false, errorMsg: utils.formatErrors(this.projectValidator.errors) }
+      const errorMessage = utils.formatErrors(this.projectValidator.errors)
+      throw new ProjectValidationError(errorMessage)
     }
 
     return { valid: true, errorMsg: '' }
@@ -52,10 +58,9 @@ export default class Validator {
     const errors = [...errorsInDefinitions, ...errorsWithLocalVariables]
 
     if (errors.length > 0) {
-      return {
-        valid: false,
-        errorMsg: `\nUIDL Component Content Validation Error. Please check the following: \n${errors}`,
-      }
+      throw new ComponentValidationError(
+        `UIDL Component Content Validation Error. Please check the following: \n${errors}`
+      )
     }
 
     return { valid: true, errorMsg: '' }
@@ -80,10 +85,9 @@ export default class Validator {
     }
 
     if (allErrors.length > 0) {
-      return {
-        valid: false,
-        errorMsg: `\nUIDL Project Content Validation Error. Please check the following: ${allErrors}`,
-      }
+      throw new ProjectValidationError(
+        `UIDL Project Content Validation Error. Please check the following: ${allErrors}`
+      )
     }
 
     return { valid: true, errorMsg: '' }

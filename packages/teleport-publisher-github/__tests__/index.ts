@@ -1,7 +1,5 @@
 import { createGithubPublisher } from '../src'
 
-import { NO_PROJECT_UIDL, NO_AUTH, NO_REPO } from '../src/errors'
-
 import project from './project-files.json'
 import githubFiles from './github-files-content.json'
 import { generateProjectFiles } from '../src/utils'
@@ -82,18 +80,14 @@ describe('teleport publisher github', () => {
   it('should fail if no project is provided', async () => {
     const publisher = createGithubPublisher()
 
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_PROJECT_UIDL)
+    await expect(publisher.publish()).rejects.toThrow(Error)
   })
 
   it('should fail if no auth data is provided', async () => {
     const publisher = createGithubPublisher()
     publisher.setProject(project)
 
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_AUTH)
+    await expect(publisher.publish()).rejects.toThrow(Error)
   })
 
   it('should fail if no repository is provided', async () => {
@@ -102,9 +96,7 @@ describe('teleport publisher github', () => {
     })
     publisher.setProject(project)
 
-    const { success, payload } = await publisher.publish()
-    expect(success).toBeFalsy()
-    expect(payload).toBe(NO_REPO)
+    await expect(publisher.publish()).rejects.toThrow(Error)
   })
 
   it('should generate github project files from generated folder', () => {

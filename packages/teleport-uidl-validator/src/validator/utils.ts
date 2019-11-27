@@ -216,5 +216,5 @@ export const formatErrors = (errors: Ajv.ErrorObject[]) => {
     listOfErrors.push(message)
   })
 
-  return `\nUIDL Format Validation Error. Please check the following: ${listOfErrors}`
+  return `UIDL Format Validation Error. Please check the following: ${listOfErrors}`
 }

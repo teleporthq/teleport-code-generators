@@ -6,9 +6,9 @@ import {
   ProjectUIDL,
   GeneratedFolder,
   RemoteTemplateDefinition,
+  MissingProjectGeneratorError,
 } from '@teleporthq/teleport-types'
 import { injectAssetsToProject, fetchTemplate } from './utils'
-import { NO_GENERATOR_PROVIDED } from './errors'
 import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
@@ -60,7 +60,7 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
 
     const packGenerator = packParams.generator || generator
     if (!packGenerator) {
-      return { success: false, payload: NO_GENERATOR_PROVIDED }
+      throw new MissingProjectGeneratorError()
     }
 
     const packPublisher = packParams.publisher || publisher

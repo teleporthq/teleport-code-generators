@@ -3,10 +3,11 @@ import {
   Publisher,
   PublisherFactoryParams,
   PublisherFactory,
+  MissingProjectUIDLError,
+  DiskUnexpectedError,
 } from '@teleporthq/teleport-types'
 
 import { writeFolder } from './utils'
-import { NO_PROJECT_UIDL } from './errors'
 
 export interface DiskFactoryParams extends PublisherFactoryParams {
   outputPath?: string
@@ -41,7 +42,7 @@ export const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublis
   const publish = async (options: DiskFactoryParams = {}) => {
     const projectToPublish = options.project || project
     if (!projectToPublish) {
-      return { success: false, payload: NO_PROJECT_UIDL }
+      throw new MissingProjectUIDLError()
     }
 
     const projectOutputPath = options.outputPath || outputPath
@@ -56,7 +57,7 @@ export const createDiskPublisher: PublisherFactory<DiskFactoryParams, DiskPublis
       await writeFolder(projectToPublish, projectOutputPath, createProjectFolder)
       return { success: true, payload: projectOutputPath }
     } catch (error) {
-      return { success: false, payload: error }
+      throw new DiskUnexpectedError(error)
     }
   }
 

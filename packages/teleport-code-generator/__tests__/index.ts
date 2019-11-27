@@ -167,11 +167,13 @@ describe('code generator', () => {
   })
 
   it('throws an error when given an invalid ProjectType', async () => {
+    // @ts-ignore
     const result = packProject(projectUIDL, { projectType: 'random' })
     await expect(result).rejects.toThrow(Error)
   })
 
   it('throws an error when given an invalid Publisher', async () => {
+    // @ts-ignore
     const result = packProject(projectUIDL, { publisher: 'random' })
     await expect(result).rejects.toThrow(Error)
   })

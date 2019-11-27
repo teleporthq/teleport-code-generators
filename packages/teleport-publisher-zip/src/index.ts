@@ -3,8 +3,9 @@ import {
   PublisherFactoryParams,
   PublisherFactory,
   Publisher,
+  MissingProjectUIDLError,
+  ZipUnexpectedError,
 } from '@teleporthq/teleport-types'
-import { NO_PROJECT_UIDL } from './errors'
 import { isNodeProcess, writeZipToDisk, generateProjectZip } from './utils'
 
 declare type ZipPublisherResponse = string | Buffer | Blob
@@ -37,7 +38,7 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
   const publish = async (options: ZipFactoryParams = {}) => {
     const projectToPublish = options.project || project
     if (!projectToPublish) {
-      return { success: false, payload: NO_PROJECT_UIDL }
+      throw new MissingProjectUIDLError()
     }
 
     const zipName = options.projectSlug || params.projectSlug || projectToPublish.name
@@ -52,7 +53,7 @@ export const createZipPublisher: PublisherFactory<ZipFactoryParams, ZipPublisher
       }
       return { success: true, payload: zipContent }
     } catch (error) {
-      return { success: false, payload: error }
+      throw new ZipUnexpectedError(error)
     }
   }
 
