@@ -1,3 +1,25 @@
+## v0.10.1 (2019-11-27)
+
+#### :rocket: New Features
+  * [#417](https://github.com/teleporthq/teleport-code-generators/pull/417) feat: publishers throw relevant errors ([@alexnm](https://github.com/alexnm))
+  * [#413](https://github.com/teleporthq/teleport-code-generators/pull/413) new function for html encoding ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Angular Generators
+  * [#414](https://github.com/teleporthq/teleport-code-generators/pull/414) fix: name cleanup and dependency import in module fix ([@alexnm](https://github.com/alexnm))
+
+#### :electric_plug: Preact Generators
+* `teleport-project-generator-preact`
+  * [#416](https://github.com/teleporthq/teleport-code-generators/pull/416) chore(project-template): upgrading preact to preactX ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :nail_care: Style Flavours
+* `teleport-plugin-react-styled-components`
+  * [#415](https://github.com/teleporthq/teleport-code-generators/pull/415) fix(styled-comp): appending prefix when name clashes  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Utwo ([@Utwo](https://github.com/Utwo))
+
 ## v0.10.0-alpha.6 (2019-11-05)
 
 #### :electric_plug: React Generators
