@@ -11,6 +11,8 @@ export { ASTBuilders, StyleBuilders, HASTBuilers, ASTUtils, StyleUtils, HASTUtil
 
 export { default as createHTMLTemplateSyntax } from './node-handlers/node-to-html'
 export { default as createJSXSyntax } from './node-handlers/node-to-jsx'
+export { default as createLitHTMLTemplateSyntax } from './node-handlers/node-to-lit-html'
 
 export * from './node-handlers/node-to-html/types'
 export * from './node-handlers/node-to-jsx/types'
+export * from './node-handlers/node-to-lit-html/types'
