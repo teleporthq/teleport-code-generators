@@ -250,5 +250,4 @@ export const appendAssetsAST = (
       addChildJSXTag(headNode, iconTag)
     }
   })
-  return { headNode, bodyNode }
 }

@@ -48,7 +48,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     ASTUtils.addChildJSXTag(headNode, metaTag)
   })
 
-  ASTBuilders.appendAssetsAST(assets, options, htmlNode, bodyNode)
+  ASTBuilders.appendAssetsAST(assets, options, headNode, bodyNode)
 
   // Create AST representation of the class CustomDocument extends Document
   // https://github.com/zeit/next.js#custom-document

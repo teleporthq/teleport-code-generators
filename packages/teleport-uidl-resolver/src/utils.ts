@@ -272,20 +272,13 @@ const resolveNavlink = (element: UIDLElement, options: GeneratorOptions) => {
 
   if (!transitionRoute) {
     transitionAttribute.content = `/${friendlyURL}`
-    console.warn(
-      `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
-    )
     return
   }
 
-  if (transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
-    transitionAttribute.content = transitionRoute.pageOptions.navLink
-  } else {
-    transitionAttribute.content = `/${friendlyURL}`
-    console.warn(
-      `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
-    )
-  }
+  transitionAttribute.content =
+    transitionRoute.pageOptions && transitionRoute.pageOptions.navLink
+      ? transitionRoute.pageOptions.navLink
+      : `/${friendlyURL}`
 }
 
 export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {

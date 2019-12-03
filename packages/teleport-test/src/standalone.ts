@@ -10,6 +10,7 @@ const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
   publisher: PublisherType.DISK,
+  projectType: ProjectType.REACT,
   publishOptions: {
     outputPath: 'dist',
   },
