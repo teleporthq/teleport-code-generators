@@ -6,8 +6,9 @@ import { createElementTag } from './utils'
 
 const generateElementNode: NodeToLitHTML<UIDLElementNode> = (node, params) => {
   const { dependencies } = params
-  const { elementType, dependency, children } = node.content
+  const { elementType, dependency, children, attrs } = node.content
   const tagName = elementType || 'component'
+  let attributes = ''
 
   if (dependency) {
     if (dependency.type !== 'local') {
@@ -29,7 +30,22 @@ const generateElementNode: NodeToLitHTML<UIDLElementNode> = (node, params) => {
     })
   }
 
-  const templateTag = createElementTag(tagName, childTags)
+  if (attrs) {
+    Object.keys(attrs).forEach((attribute) => {
+      const { type, content } = attrs[attribute]
+      if (type === 'static') {
+        attributes = `${attributes} .${attribute}=${content}`
+      }
+
+      if (type === 'dynamic') {
+        // @ts-ignore
+        const { id } = content
+        attributes = `${attributes} .${attribute}=${String('${this.')}${id}}`
+      }
+    })
+  }
+
+  const templateTag = createElementTag(tagName, childTags, attributes)
   return templateTag
 }
 
@@ -47,9 +63,16 @@ export const generateNode = (node: any, params: any) => {
     case 'element':
       return generateElementNode(node, params)
 
+    case 'conditional':
+      return generateConditionalNode(node, params)
+
     default:
       throw new Error(
         `generateNode encountered a node of unsupported type: ${JSON.stringify(node, null, 2)}`
       )
   }
+}
+
+const generateConditionalNode = (node: any, params: any) => {
+  return ''
 }

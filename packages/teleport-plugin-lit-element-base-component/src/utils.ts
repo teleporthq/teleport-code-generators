@@ -24,7 +24,7 @@ export const createClassDeclaration = (
       t.identifier(stateKey),
       ASTUtils.convertValueToLiteral(stateDefinitions[stateKey].defaultValue),
       t.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(stateDefinitions[stateKey].type)),
-      [t.decorator(t.callExpression(t.identifier('State'), []))]
+      [t.decorator(t.callExpression(t.identifier('property'), []))]
     )
   )
 
