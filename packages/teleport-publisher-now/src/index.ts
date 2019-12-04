@@ -13,6 +13,7 @@ export interface NowFactoryParams extends PublisherFactoryParams {
   accessToken: string
   projectSlug: string
   domainAlias?: string
+  teamId?: string
 }
 
 export interface NowPublisher extends Publisher<NowFactoryParams, string> {
@@ -49,6 +50,7 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     const nowAccessToken = options.accessToken || accessToken
     const projectSlug = options.projectSlug || params.projectSlug
     const domainAlias = options.domainAlias || params.domainAlias
+    const teamId = options.teamId || params.teamId
 
     if (!nowAccessToken) {
       throw new NowMissingTokenError()
@@ -68,7 +70,7 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
       nowPayload.alias = [productionAlias]
     }
 
-    const deploymentURL = await createDeployment(nowPayload, nowAccessToken)
+    const deploymentURL = await createDeployment(nowPayload, nowAccessToken, teamId)
 
     // Makes requests to the deployment URL until the deployment is ready
     await checkDeploymentStatus(deploymentURL)

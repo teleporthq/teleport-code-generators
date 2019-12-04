@@ -57,8 +57,14 @@ const destructureProjectFiles = (folderInfo: ProjectFolderInfo): NowFile[] => {
   return files
 }
 
-export const createDeployment = async (payload: NowPayload, token: string): Promise<string> => {
-  const response = await fetch(CREATE_DEPLOY_URL, {
+export const createDeployment = async (
+  payload: NowPayload,
+  token: string,
+  teamId?: string
+): Promise<string> => {
+  const nowDeployURL = teamId ? `${CREATE_DEPLOY_URL}?teamId=${teamId}` : CREATE_DEPLOY_URL
+
+  const response = await fetch(nowDeployURL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
