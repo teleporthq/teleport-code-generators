@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-code-generator",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "A standalone version of the teleport ecosystem with all the project and component generators installed",
   "author": "teleportHQ",
   "license": "MIT",
@@ -47,7 +47,7 @@
     "@teleporthq/teleport-publisher-disk": "^0.10.1",
     "@teleporthq/teleport-publisher-github": "^0.10.1",
     "@teleporthq/teleport-publisher-netlify": "^0.10.1",
-    "@teleporthq/teleport-publisher-now": "^0.10.1",
+    "@teleporthq/teleport-publisher-now": "^0.10.3",
     "@teleporthq/teleport-publisher-zip": "^0.10.1",
     "@teleporthq/teleport-shared": "^0.10.1",
     "@teleporthq/teleport-types": "^0.10.1"

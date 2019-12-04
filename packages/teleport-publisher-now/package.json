@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-now",
-  "version": "0.10.1",
+  "version": "0.10.3",
   "description": "Publishes a generated folder structure to now",
   "author": "teleportHQ",
   "license": "MIT",
