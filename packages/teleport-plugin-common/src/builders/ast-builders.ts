@@ -160,6 +160,12 @@ export const createComponentDecorator = (params: Record<string, any>, t = types)
   )
 }
 
+export const createCustomElementDecorator = (componentName: string, t = types) => {
+  return t.decorator(
+    t.callExpression(t.identifier('customElement'), [t.stringLiteral(componentName)])
+  )
+}
+
 export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
   const { modifies, newState } = statement
 

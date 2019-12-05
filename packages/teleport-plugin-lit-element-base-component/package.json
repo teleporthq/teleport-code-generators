@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-component-generator",
-  "version": "0.10.2",
-  "description": "Bare-bone component generator on top of which you can add plugins, mappings and post processing functions",
+  "name": "@teleporthq/teleport-plugin-lit-element-base-component",
+  "version": "0.10.3",
+  "description": "A plugin for handling the skeleton/baseline of a LitElement component",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -26,15 +26,9 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@babel/generator": "^7.5.5",
     "@babel/types": "^7.5.5",
-    "@babel/core": "^7.5.5",
-    "babel-plugin-transform-jsx-lit-html":"git+https://github.com/JayaKrishnaNamburu/babel-jsx-lit-html",
-    "@starptech/prettyhtml-hast-to-html": "^0.10.0",
+    "@teleporthq/teleport-plugin-common": "^0.10.1",
     "@teleporthq/teleport-shared": "^0.10.1",
-    "@teleporthq/teleport-types": "^0.10.1",
-    "@teleporthq/teleport-uidl-resolver": "^0.10.2",
-    "@teleporthq/teleport-uidl-validator": "^0.10.1"
-  },
-  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
+    "@teleporthq/teleport-types": "^0.10.1"
+  }
 }

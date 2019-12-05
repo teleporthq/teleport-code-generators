@@ -1,4 +1,5 @@
-import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
+import { generator as babelCodeGenerator } from './generators/js-ast-to-lit-code'
+// import { generator as babelCodeGenerator } from './generators/js-ast-to-code'
 import { generator as htmlGenerator } from './generators/html-to-string'
 import {
   ChunkDefinition,
