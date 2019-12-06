@@ -54,6 +54,7 @@ const encodingMap: Record<string, string> = {
   '"': '&quot;',
   '{': '&#123;',
   '}': '&#125;',
+  "'": '&apos;',
 }
 
 export const encode = (str: string) => {

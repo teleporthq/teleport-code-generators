@@ -361,7 +361,8 @@ export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
-    const nodeOcurrence = lookup[element.name]
+    // Element name is stored as a lower case string in the lookup
+    const nodeOcurrence = lookup[element.name.toLowerCase()]
 
     if (nodeOcurrence.count === 1) {
       // If the name ocurrence is unique we use it as it is
@@ -391,7 +392,8 @@ const generateNextIncrementalKey = (currentKey: string): string => {
 
 export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseElements(node, (element) => {
-    const elementName = element.name
+    // Element name is stored as a lower case string in the lookup
+    const elementName = element.name.toLowerCase()
     if (!lookup[elementName]) {
       lookup[elementName] = {
         count: 0,
