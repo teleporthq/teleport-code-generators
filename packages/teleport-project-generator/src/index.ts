@@ -211,7 +211,7 @@ export class ProjectGenerator {
 
         const parsedFile = configFile.content.replace('/n', '//n')
         const magic = new MagicString(parsedFile)
-        magic.appendRight(parsedFile.length - 4, `'gatsby-plugin-styled-components'`)
+        magic.appendRight(parsedFile.length - 5, `'gatsby-plugin-styled-components'`)
         configFile.content = magic.toString()
 
         collectedDependencies = { ...collectedDependencies, ...STYLED_DEPENDENCIES }
