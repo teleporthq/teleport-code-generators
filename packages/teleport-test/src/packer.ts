@@ -12,7 +12,12 @@ import { createGridsomeProjectGenerator } from '@teleporthq/teleport-project-gen
 import { createGatsbyProjectGenerator } from '@teleporthq/teleport-project-generator-gatsby'
 
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { RemoteTemplateDefinition, ProjectUIDL, ProjectGenerator } from '@teleporthq/teleport-types'
+import {
+  RemoteTemplateDefinition,
+  ProjectUIDL,
+  ProjectGenerator,
+  ReactStyleVariation,
+} from '@teleporthq/teleport-types'
 
 import config from '../config.json'
 
@@ -45,6 +50,9 @@ const generators: Record<string, ProjectGenerator> = {
   preactCodesandbox: createPreactProjectGenerator(),
   gridsome: createGridsomeProjectGenerator(),
   gatsby: createGatsbyProjectGenerator(),
+  gatsbyStyledComponents: createGatsbyProjectGenerator({
+    variation: ReactStyleVariation.StyledComponents,
+  }),
 }
 
 const getGithubRemoteDefinition = (username: string, repo: string): RemoteTemplateDefinition => {
@@ -63,6 +71,7 @@ const templates: Record<string, RemoteTemplateDefinition> = {
   preactCodesandbox: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, PREACT_CODESANDBOX_PROJECT),
   gridsome: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GRIDSOME_GITHUB_PROJECT),
   gatsby: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GATSBY_GITHUB_PROJECT),
+  gatsbyStyledComponents: getGithubRemoteDefinition(GITHUB_TEMPLATE_OWNER, GATSBY_GITHUB_PROJECT),
 }
 
 const publisher = createDiskPublisher({
