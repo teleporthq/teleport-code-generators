@@ -107,6 +107,8 @@ export default generateElementNode
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
   switch (node.type) {
+    case 'raw':
+      return generateHTMLInjectNode(node.content.toString())
     case 'static':
       return StringUtils.encode(node.content.toString())
 
@@ -138,6 +140,26 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
         )}`
       )
   }
+}
+
+const generateHTMLInjectNode = (value: string, t = types) => {
+  return t.jsxElement(
+    t.jsxOpeningElement(
+      t.jsxIdentifier('div'),
+      [
+        t.jsxAttribute(
+          t.jsxIdentifier('dangerouslySetInnerHTML'),
+          t.jsxExpressionContainer(
+            t.objectExpression([t.objectProperty(t.identifier('__html'), t.stringLiteral(value))])
+          )
+        ),
+      ],
+      true
+    ),
+    null,
+    [],
+    true
+  )
 }
 
 const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer> = (

@@ -83,6 +83,7 @@ const createVuePropsDefinition = (
     const { type, defaultValue, isRequired } = uidlPropDefinitions[name]
     switch (type) {
       case 'string':
+      case 'raw':
         mappedType = String
         break
       case 'number':

@@ -139,6 +139,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
     case 'dynamic':
     case 'static':
+    case 'raw':
       return (node as unknown) as UIDLNode
 
     default:
