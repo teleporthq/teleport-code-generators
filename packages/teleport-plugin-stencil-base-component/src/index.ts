@@ -1,4 +1,4 @@
-import { createClassDeclaration } from './utils'
+import { createClassDeclaration, createDOMInjectionNode } from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
@@ -71,6 +71,7 @@ export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginC
       stateHandling: 'mutation',
       slotHandling: 'native',
       customElementTag: (name: string) => UIDLUtils.createWebComponentFriendlyName(name),
+      domHTMLInjection: (content: string) => createDOMInjectionNode(content),
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)

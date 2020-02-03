@@ -69,6 +69,8 @@ export default generateElementNode
 
 const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
   switch (node.type) {
+    case 'raw':
+      return generateRawHTMLNode(node, params, templateSyntax)
     case 'static':
       return StringUtils.encode(node.content.toString())
 
@@ -96,6 +98,15 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, tem
         )}`
       )
   }
+}
+
+const generateRawHTMLNode: NodeToHTML<UIDLNode, HastNode> = (node, params, templateSyntax) => {
+  const attrKey = templateSyntax.domHTMLInjection ? templateSyntax.domHTMLInjection : 'innerHTML'
+  const htmlNode = createHTMLNode('span')
+  const dataObjName = `${node.type}${StringUtils.generateRandomString()}`
+  hastUtils.addAttributeToNode(htmlNode, attrKey, dataObjName)
+  params.dataObject[dataObjName] = node.content.toString()
+  return htmlNode
 }
 
 const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, templateSyntax) => {

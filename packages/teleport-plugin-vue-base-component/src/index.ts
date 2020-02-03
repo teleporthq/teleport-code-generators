@@ -55,6 +55,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
         },
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'import',
+        domHTMLInjection: `v-html`,
       }
     )
 

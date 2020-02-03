@@ -82,6 +82,7 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
         },
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'ignore',
+        domHTMLInjection: `[innerHTML]`,
       }
     )
 

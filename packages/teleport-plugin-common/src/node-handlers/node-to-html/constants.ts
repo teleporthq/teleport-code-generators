@@ -15,4 +15,5 @@ export const DEFAULT_TEMPLATE_SYNTAX: HTMLTemplateSyntax = {
   },
   customElementTagName: (value) => value,
   dependencyHandling: 'import',
+  domHTMLInjection: 'innerHTML',
 }

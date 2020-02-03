@@ -47,6 +47,7 @@ export interface JSXGenerationOptions {
   */
   slotHandling?: 'native' | 'props'
   customElementTag?: (name: string) => string
+  domHTMLInjection?: (content: string) => types.JSXElement
 }
 
 export type NodeToJSX<NodeType, ReturnType> = (
