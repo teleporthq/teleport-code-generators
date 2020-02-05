@@ -98,7 +98,7 @@ export interface UIDLStaticValue {
 
 export interface UIDLRawValue {
   type: 'raw'
-  content: 'string' | number | boolean | any[]
+  content: string
 }
 
 export interface UIDLSlotNode {

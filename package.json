@@ -15,6 +15,7 @@
     "watch": "node scripts/watcher.js",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
+    "test:watch": "jest --watch",
     "test:coverage": "npm run test -- --coverage --no-cache",
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
