@@ -107,6 +107,10 @@ export default generateElementNode
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
   switch (node.type) {
+    case 'raw':
+      return options.domHTMLInjection
+        ? options.domHTMLInjection(node.content.toString())
+        : node.content.toString()
     case 'static':
       return StringUtils.encode(node.content.toString())
 

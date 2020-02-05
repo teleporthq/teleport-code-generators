@@ -176,6 +176,7 @@ export const traverseNodes = (
 
     case 'static':
     case 'dynamic':
+    case 'raw':
       break
 
     default:
@@ -229,6 +230,7 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
     case 'static':
     case 'dynamic':
+    case 'raw':
       break
 
     default:
@@ -267,6 +269,7 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     case 'static':
     case 'dynamic':
+    case 'raw':
       break
 
     default:

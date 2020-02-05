@@ -42,3 +42,16 @@ export const createClassDeclaration = (
   const classDeclaration = t.classDeclaration(t.identifier(name), null, classBody, [])
   return t.exportNamedDeclaration(classDeclaration, [])
 }
+
+export const createDOMInjectionNode = (content: string, t = types) => {
+  return t.jsxElement(
+    t.jsxOpeningElement(
+      t.jsxIdentifier('span'),
+      [t.jsxAttribute(t.jsxIdentifier('innerHTML'), t.stringLiteral(content))],
+      true
+    ),
+    null,
+    [],
+    true
+  )
+}

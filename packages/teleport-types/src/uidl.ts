@@ -96,6 +96,11 @@ export interface UIDLStaticValue {
   content: string | number | boolean | any[] // any[] for data sources
 }
 
+export interface UIDLRawValue {
+  type: 'raw'
+  content: string
+}
+
 export interface UIDLSlotNode {
   type: 'slot'
   content: {
@@ -166,6 +171,7 @@ export interface UIDLElement {
 export type UIDLNode =
   | UIDLDynamicReference
   | UIDLStaticValue
+  | UIDLRawValue
   | UIDLRepeatNode
   | UIDLElementNode
   | UIDLConditionalNode

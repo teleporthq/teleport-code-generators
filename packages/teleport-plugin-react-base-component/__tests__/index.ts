@@ -1,6 +1,6 @@
 import { createReactComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
-import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
+import { ComponentStructure, ChunkType, FileType } from '@teleporthq/teleport-types'
 
 describe('plugin-react-base-component', () => {
   const plugin = createReactComponentPlugin({
@@ -65,5 +65,21 @@ describe('plugin-react-base-component', () => {
     // Dependencies
     expect(result.dependencies.React).toBeDefined()
     expect(result.dependencies.useState).toBeDefined()
+  })
+
+  it('add DOM injection node to the jsx', async () => {
+    const structure: ComponentStructure = {
+      chunks: [],
+      options: {},
+      uidl: component('<h1>Heading</h2>', elementNode('raw')),
+      dependencies: {},
+    }
+    const result = await plugin(structure)
+
+    expect(result.chunks.length).toBe(2)
+    expect(result.chunks[1].type).toBe(ChunkType.AST)
+    expect(result.chunks[0].fileType).toBe(FileType.JS)
+    expect(result.chunks[0].name).toBe('component-chunk')
+    expect(result.chunks[0].content).toBeDefined()
   })
 })

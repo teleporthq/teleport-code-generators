@@ -10,7 +10,13 @@ import {
   UIDLEventDefinitions,
   UIDLPropDefinition,
 } from '@teleporthq/teleport-types'
-import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import {
+  component,
+  elementNode,
+  dynamicNode,
+  staticNode,
+  rawNode,
+} from '@teleporthq/teleport-uidl-builders'
 
 const uidlSample = uidlSampleJSON as ComponentUIDL
 const invalidUidlSample = invalidUidlSampleJSON as ComponentUIDL
@@ -112,5 +118,23 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
     expect(tsFile.content).toContain(`onClose: EventEmitter<any> = new EventEmitter()`)
     expect(tsFile.content).toContain(`this.onClose.emit()`)
     expect(htmlFile.content).toContain(`(click)="handleButtonClick()"`)
+  })
+})
+
+describe('Parses raw node and adds then', () => {
+  const generator = createAngularComponentGenerator()
+
+  it('Adds DOM injection node to the html', async () => {
+    const uidl: ComponentUIDL = component(
+      'RawNode',
+      elementNode('container', {}, [rawNode('<h1>Heading</h1>')])
+    )
+    const result = await generator.generateComponent(uidl)
+    const tsFile = findFileByType(result.files, TS_FILE)
+    const htmlFile = findFileByType(result.files, HTML_FILE)
+
+    expect(result.files.length).toBe(2)
+    expect(tsFile.content).toContain('<h1>Heading</h1>')
+    expect(htmlFile.content).toContain('[innerHTML]')
   })
 })

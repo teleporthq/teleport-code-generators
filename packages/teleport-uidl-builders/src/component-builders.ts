@@ -14,6 +14,7 @@ import {
   UIDLConditionalNode,
   UIDLDynamicReference,
   UIDLEventDefinitions,
+  UIDLRawValue,
 } from '@teleporthq/teleport-types'
 
 export const component = (
@@ -156,5 +157,12 @@ export const repeatNode = (
       dataSource,
       meta,
     },
+  }
+}
+
+export const rawNode = (content: string): UIDLRawValue => {
+  return {
+    type: 'raw',
+    content,
   }
 }
