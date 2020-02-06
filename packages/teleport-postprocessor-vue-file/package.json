@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-vue-file",
-  "version": "0.10.1",
+  "version": "0.10.4",
   "description": "A post-processing function that concatenates html/js/css code chunks into a single code chunk of type vue",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.10.1",
-    "@teleporthq/teleport-types": "^0.10.1"
+    "@teleporthq/teleport-shared": "^0.10.4",
+    "@teleporthq/teleport-types": "^0.10.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
