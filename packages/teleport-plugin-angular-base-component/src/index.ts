@@ -55,8 +55,8 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
       dependencies.Input = ANGULAR_CORE_DEPENDENCY
     }
 
-    const templateLookup: { [key: string]: any } = {}
-    const dataObject: Record<string, any> = {}
+    const templateLookup: { [key: string]: unknown } = {}
+    const dataObject: Record<string, unknown> = {}
     const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
 
     const templateContent = createHTMLTemplateSyntax(

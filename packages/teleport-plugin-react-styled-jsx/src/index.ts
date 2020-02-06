@@ -2,6 +2,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
+import * as types from '@babel/types'
 
 interface StyledJSXConfig {
   componentChunkName: string
@@ -19,7 +20,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       return structure
     }
 
-    const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
+    // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     const styleJSXString: string[] = []

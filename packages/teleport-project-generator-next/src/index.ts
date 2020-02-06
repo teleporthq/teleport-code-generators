@@ -47,8 +47,8 @@ const createNextProjectGenerator = () => {
       chunkGenerationFunction: createDocumentFileChunks,
     },
     static: {
-      prefix: '/static',
-      path: ['static'],
+      prefix: '',
+      path: ['public'],
     },
   })
 

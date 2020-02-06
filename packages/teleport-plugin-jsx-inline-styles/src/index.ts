@@ -20,7 +20,9 @@ export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig>
       const { style, key } = element
 
       if (style && Object.keys(style).length > 0) {
+        // @ts-ignore
         const jsxASTTag = componentChunk.meta.nodesLookup[key]
+        // @ts-ignore
         const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
         if (!jsxASTTag) {
           return

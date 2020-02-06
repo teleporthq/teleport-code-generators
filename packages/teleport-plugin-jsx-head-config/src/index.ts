@@ -63,6 +63,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       const headConfigTag = ASTBuilders.createJSXTag(configTagIdentifier, headASTTags)
 
       const rootKey = uidl.node.content.key
+      // @ts-ignore
       const rootElement = componentChunk.meta.nodesLookup[rootKey] as types.JSXElement
 
       // Head config added as the first child of the root element

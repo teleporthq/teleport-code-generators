@@ -10,7 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDefinition>) => {
-  return Object.keys(stateDefinitions).reduce((result: Record<string, any>, key) => {
+  return Object.keys(stateDefinitions).reduce((result: Record<string, unknown>, key) => {
     result[key] = stateDefinitions[key].defaultValue
     return result
   }, {})
@@ -19,7 +19,7 @@ export const extractStateObject = (stateDefinitions: Record<string, UIDLStateDef
 export const generateVueComponentJS = (
   uidl: ComponentUIDL,
   componentDependencies: string[],
-  dataObject: Record<string, any>,
+  dataObject: Record<string, unknown>,
   methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
@@ -78,6 +78,7 @@ const createVuePropsDefinition = (
   uidlPropDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {
+  // tslint:disable-next-line no-any
   return Object.keys(uidlPropDefinitions).reduce((acc: { [key: string]: any }, name) => {
     let mappedType
     const { type, defaultValue, isRequired } = uidlPropDefinitions[name]

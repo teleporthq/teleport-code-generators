@@ -90,7 +90,8 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
           [],
           t.blockStatement([t.returnStatement(htmlNode)])
         ),
-      ])
+      ]),
+      null
     ),
     t.exportDefaultDeclaration(t.identifier('CustomDocument')),
   ])

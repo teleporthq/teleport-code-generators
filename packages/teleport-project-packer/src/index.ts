@@ -12,7 +12,7 @@ import { injectAssetsToProject, fetchTemplate } from './utils'
 import { DEFAULT_TEMPLATE } from './constants'
 
 export interface PackerFactoryParams {
-  publisher?: Publisher<any, any>
+  publisher?: Publisher<unknown, unknown>
   generator?: ProjectGenerator
   template?: GeneratedFolder
   remoteTemplateDefinition?: RemoteTemplateDefinition
@@ -22,7 +22,10 @@ export interface PackerFactoryParams {
 export type PackerFactory = (
   params?: PackerFactoryParams
 ) => {
-  pack: (projectUIDL?: ProjectUIDL, params?: PackerFactoryParams) => Promise<PublisherResponse<any>>
+  pack: (
+    projectUIDL?: ProjectUIDL,
+    params?: PackerFactoryParams
+  ) => Promise<PublisherResponse<unknown>>
   loadRemoteTemplate: (remoteTemplateDefinition: RemoteTemplateDefinition) => Promise<void>
   setPublisher: <T, U>(publisher: Publisher<T, U>) => void
   setGenerator: (generator: ProjectGenerator) => void

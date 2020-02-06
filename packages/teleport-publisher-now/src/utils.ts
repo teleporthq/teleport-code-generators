@@ -1,7 +1,7 @@
 import fetch from 'cross-fetch'
 import {
   GeneratedFolder,
-  GeneratedFile,
+  NowDeployResponse,
   NowServerError,
   NowInvalidTokenError,
   NowUnexpectedError,
@@ -13,55 +13,112 @@ import {
 import { ProjectFolderInfo, NowFile, NowPayload } from './types'
 
 const CREATE_DEPLOY_URL = 'https://api.zeit.co/v10/now/deployments'
+const UPLOAD_FILES_URL = 'https://api.zeit.co/v10/now/files'
 const CHECK_DEPLOY_BASE_URL = 'https://api.zeit.co/v10/now/deployments/get?url='
 
 type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
 
-export const generateProjectFiles = (project: GeneratedFolder): NowFile[] => {
-  return destructureProjectFiles({
-    folder: project,
-    ignoreFolder: true,
-  })
+export const generateProjectFiles = async (
+  project: GeneratedFolder,
+  token: string,
+  individualUpload: boolean
+): Promise<NowFile[]> => {
+  return destructureProjectFiles(
+    {
+      folder: project,
+      ignoreFolder: true,
+    },
+    token,
+    individualUpload
+  )
 }
 
-const destructureProjectFiles = (folderInfo: ProjectFolderInfo): NowFile[] => {
+const destructureProjectFiles = async (
+  folderInfo: ProjectFolderInfo,
+  token: string,
+  individualUpload: boolean
+): Promise<NowFile[]> => {
   const { folder, prefix = '', files = [], ignoreFolder = false } = folderInfo
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
 
-  folder.files.forEach((file: GeneratedFile) => {
+  for (const file of folder.files) {
     const fileName = file.fileType
       ? `${folderToPutFileTo}${file.name}.${file.fileType}`
       : `${folderToPutFileTo}${file.name}`
 
-    const nowFile: NowFile = {
+    if (individualUpload && file.contentEncoding !== 'base64') {
+      // All non-images are uploaded separately
+      const { digest, fileSize } = await uploadFile(file.content, token)
+      const nowFile: NowFile = {
+        file: fileName,
+        sha: digest,
+        size: fileSize,
+      }
+
+      files.push(nowFile)
+      continue
+    }
+
+    files.push({
       file: fileName,
       data: file.content,
-    }
+      encoding: file.contentEncoding,
+    })
+  }
 
-    if (file.contentEncoding) {
-      nowFile.encoding = file.contentEncoding
-    }
-
-    files.push(nowFile)
-  })
-
-  folder.subFolders.forEach((subfolder: GeneratedFolder) => {
-    const subfolderInfo: ProjectFolderInfo = {
-      files,
-      folder: subfolder,
-      prefix: folderToPutFileTo,
-    }
-    destructureProjectFiles(subfolderInfo)
-  })
+  for (const subFolder of folder.subFolders) {
+    await destructureProjectFiles(
+      {
+        files,
+        folder: subFolder,
+        prefix: folderToPutFileTo,
+      },
+      token,
+      individualUpload
+    )
+  }
 
   return files
+}
+
+export const uploadFile = async (
+  content: string,
+  token: string
+): Promise<{ digest: string; fileSize: number; result: unknown }> => {
+  const enc = new TextEncoder()
+
+  const fileData = enc.encode(content)
+  const digest = await crypto.subtle.digest('SHA-1', fileData)
+  const hashArray = Array.from(new Uint8Array(digest))
+  const stringSHA = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  const response = await fetch(UPLOAD_FILES_URL, {
+    method: 'POST',
+    headers: {
+      'x-now-digest': stringSHA,
+      Authorization: `Bearer ${token}`,
+    },
+    body: content,
+  })
+
+  if (response.status >= 500) {
+    throw new NowServerError()
+  }
+
+  const result = await response.json()
+
+  return {
+    digest: stringSHA,
+    fileSize: hashArray.length,
+    result,
+  }
 }
 
 export const createDeployment = async (
   payload: NowPayload,
   token: string,
   teamId?: string
-): Promise<string> => {
+): Promise<NowDeployResponse> => {
   const nowDeployURL = teamId ? `${CREATE_DEPLOY_URL}?teamId=${teamId}` : CREATE_DEPLOY_URL
 
   const response = await fetch(nowDeployURL, {
@@ -92,11 +149,14 @@ export const createDeployment = async (
     }
   }
 
-  return result.url
+  return {
+    url: result.url,
+    alias: result.alias,
+  }
 }
 
 export const checkDeploymentStatus = async (deploymentURL: string) => {
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
     let retries = 60
 
     const clearHook = setInterval(async () => {
@@ -110,12 +170,12 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
 
       if (readyState === 'ERROR') {
         clearInterval(clearHook)
-        throw new NowDeploymentError()
+        reject(new NowDeploymentError())
       }
 
       if (retries <= 0) {
         clearInterval(clearHook)
-        throw new NowDeploymentTimeoutError()
+        reject(new NowDeploymentTimeoutError())
       }
     }, 5000)
   })

@@ -26,7 +26,7 @@ export default class AssemblyLine {
     const structure = initialStructure
 
     const finalStructure: ComponentStructure = await this.plugins.reduce(
-      async (previousPluginOperation: Promise<any>, plugin) => {
+      async (previousPluginOperation: Promise<ComponentStructure>, plugin) => {
         const modifiedStructure = await previousPluginOperation
         return plugin(modifiedStructure)
       },

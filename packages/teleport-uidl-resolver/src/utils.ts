@@ -484,6 +484,8 @@ const prefixAssetURLs = (
         acc[styleKey] = styleValue
         acc[styleKey].content = prefixAssetURLs(styleValue.content, assetsPrefix)
         return acc
+      default:
+        throw new Error(`Invalid styleValue type '${styleValue}'`)
     }
 
     return acc

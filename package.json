@@ -40,12 +40,12 @@
   "homepage": "https://teleporthq.io/",
   "devDependencies": {
     "@types/babel-types": "^7.0.7",
-    "@types/jest": "^24.0.18",
-    "@types/jss": "^9.5.8",
-    "@types/jszip": "^3.1.6",
-    "@types/prettier": "^1.18.2",
-    "@types/rimraf": "^2.0.2",
-    "all-contributors-cli": "^6.8.1",
+    "@types/jest": "^25.1.1",
+    "@types/jss": "^10.0.0",
+    "@types/jszip": "^3.1.7",
+    "@types/prettier": "^1.19.0",
+    "@types/rimraf": "^2.0.3",
+    "all-contributors-cli": "^6.13.0",
     "chalk": "^2.4.2",
     "chokidar": "^3.0.2",
     "codecov": "^3.5.0",
@@ -55,13 +55,13 @@
     "jest": "^24.9.0",
     "lerna": "^3.16.4",
     "lerna-changelog": "^0.8.2",
-    "pretty-quick": "^1.11.1",
+    "pretty-quick": "^2.0.1",
     "rimraf": "^3.0.0",
-    "ts-jest": "^24.0.2",
-    "ts-node": "^8.3.0",
-    "tslint": "^5.19.0",
+    "ts-jest": "^25.2.0",
+    "ts-node": "^8.6.2",
+    "tslint": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.7.5"
   },
   "config": {
     "commitizen": {

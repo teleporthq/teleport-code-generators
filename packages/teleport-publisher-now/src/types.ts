@@ -9,7 +9,9 @@ export interface ProjectFolderInfo {
 
 export interface NowFile {
   file: string
-  data: Blob | string
+  data?: Blob | string
+  sha?: string
+  size?: number
   encoding?: string
 }
 

@@ -35,8 +35,9 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
+    // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
-    const jssStyleMap: Record<string, any> = {}
+    const jssStyleMap: Record<string, unknown> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
       let { style } = element
@@ -95,7 +96,11 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           fileType: FileType.JS,
           name: className,
           linkAfter: [importChunkName],
-          content: generateStyledComponent(className, elementType, jssStyleMap[className]),
+          content: generateStyledComponent(
+            className,
+            elementType,
+            jssStyleMap[className] as Record<string, unknown>
+          ),
         }
         chunks.push(code)
       }

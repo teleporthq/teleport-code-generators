@@ -15,9 +15,9 @@ interface AppRoutingComponentConfig {
   importChunkName: string
 }
 
-export const createReactAppRoutingComponentPlugin: ComponentPluginFactory<
-  AppRoutingComponentConfig
-> = (config) => {
+export const createReactAppRoutingComponentPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
+  config
+) => {
   const { importChunkName = 'import-local', componentChunkName = 'app-router-component' } =
     config || {}
 
@@ -78,11 +78,13 @@ export const createReactAppRoutingComponentPlugin: ComponentPluginFactory<
     const navigatorOptions = { initialRouteName: 'Home' }
     const routerAST = ASTBuilders.createConstAssignment(
       'MainNavigator',
+      // @ts-ignore
       ASTBuilders.createFunctionCall('createStackNavigator', [navigatorObject, navigatorOptions])
     )
 
     const appDeclaration = ASTBuilders.createConstAssignment(
       'App',
+      // @ts-ignore
       ASTBuilders.createFunctionCall('createAppContainer', [types.identifier('MainNavigator')])
     )
 

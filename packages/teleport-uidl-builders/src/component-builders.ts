@@ -33,7 +33,7 @@ export const component = (
 
 export const definition = (
   type: string,
-  defaultValue: string | number | boolean | any[] | object
+  defaultValue: string | number | boolean | unknown[] | object
 ) => {
   return {
     type,
@@ -148,7 +148,7 @@ export const conditionalNode = (
 export const repeatNode = (
   node: UIDLElementNode,
   dataSource: UIDLAttributeValue,
-  meta?: Record<string, any>
+  meta?: Record<string, unknown>
 ): UIDLRepeatNode => {
   return {
     type: 'repeat',

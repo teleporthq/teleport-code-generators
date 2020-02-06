@@ -12,6 +12,7 @@ export const buildDefaultPropsAst = (
   }
 
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
+    // tslint:disable-next-line no-any
     (acc: any, key) => {
       const { defaultValue } = propDefinitions[key]
       if (typeof defaultValue !== 'undefined') {
@@ -50,6 +51,7 @@ export const buildTypesOfPropsAst = (
   }
 
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
+    // tslint:disable-next-line no-any
     (acc: any, key) => {
       const { type, isRequired } = propDefinitions[key]
       const astProp = t.memberExpression(t.identifier(propTypesNames), t.identifier(type))

@@ -96,7 +96,7 @@ export const createRootModuleDecorator = (t = types) => {
 
 export const createExportModuleAST = (moduleName: string, t = types) => {
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(moduleName), null, t.classBody([])),
+    t.classDeclaration(t.identifier(moduleName), null, t.classBody([]), null),
     [],
     null
   )

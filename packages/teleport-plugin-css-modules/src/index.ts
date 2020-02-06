@@ -1,6 +1,6 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
-
+import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -51,7 +51,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     }
 
     const cssClasses: string[] = []
-    const astNodesLookup = componentChunk.meta.nodesLookup || {}
+    const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
+    // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
@@ -67,6 +68,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           cssClasses.push(
             StyleBuilders.createCSSClass(
               className,
+              // @ts-ignore
               StyleUtils.getContentOfStyleObject(staticStyles)
             )
           )
@@ -78,7 +80,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               ? `styles.${jsFriendlyClassName}`
               : `styles['${className}']`
 
-          ASTUtils.addDynamicAttributeToJSXTag(root, classAttributeName, classReferenceIdentifier)
+          ASTUtils.addDynamicAttributeToJSXTag(
+            root as types.JSXElement,
+            classAttributeName,
+            classReferenceIdentifier
+          )
         }
 
         if (Object.keys(dynamicStyles).length) {
@@ -90,7 +96,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
           // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
           if (Object.keys(inlineStyles).length > 0) {
-            ASTUtils.addAttributeToJSXTag(root, 'style', inlineStyles)
+            ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', inlineStyles)
           }
         }
       }

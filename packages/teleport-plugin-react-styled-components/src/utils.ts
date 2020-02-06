@@ -6,7 +6,7 @@ import { UIDLStyleValue, UIDLDependency } from '@teleporthq/teleport-types'
 export const generateStyledComponent = (
   name: string,
   type: string,
-  styles: Record<string, any>
+  styles: Record<string, unknown>
 ) => {
   return t.variableDeclaration('const', [
     t.variableDeclarator(
@@ -19,7 +19,7 @@ export const generateStyledComponent = (
   ])
 }
 
-const mapStyles = (styles: Record<string, any>) => {
+const mapStyles = (styles: Record<string, unknown>) => {
   let style = ''
   Object.keys(styles).forEach((item) => {
     if (typeof styles[item] === 'string') {
@@ -28,7 +28,7 @@ const mapStyles = (styles: Record<string, any>) => {
     } else {
       style = `${style}
       ${item} {
-        ${mapStyles(styles[item])}
+        ${mapStyles(styles[item] as Record<string, unknown>)}
       };`
     }
   })

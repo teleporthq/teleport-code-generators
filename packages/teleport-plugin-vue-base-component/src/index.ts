@@ -4,6 +4,7 @@ import {
   ComponentPlugin,
   FileType,
   ChunkType,
+  UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
 import { createHTMLTemplateSyntax } from '@teleporthq/teleport-plugin-common'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
@@ -30,9 +31,9 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
   const vueComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
 
-    const templateLookup: { [key: string]: any } = {}
-    const dataObject: Record<string, any> = {}
-    const methodsObject: Record<string, any> = {}
+    const templateLookup: { [key: string]: unknown } = {}
+    const dataObject: Record<string, unknown> = {}
+    const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
 
     const templateContent = createHTMLTemplateSyntax(
       uidl.node,

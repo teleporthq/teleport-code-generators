@@ -23,7 +23,7 @@ export enum ChunkType {
   STRING = 'string',
 }
 
-export type ChunkContent = string | any | any[]
+export type ChunkContent = string | unknown
 
 /**
  * React could have one or more JS chunks, nothing else.
@@ -34,7 +34,7 @@ export interface ChunkDefinition {
   type: ChunkType
   name: string
   fileType: FileType
-  meta?: any
+  meta?: Record<string, unknown>
   content: ChunkContent
   linkAfter: string[]
 }
@@ -231,6 +231,11 @@ export interface PublisherResponse<T> {
   payload?: T
 }
 
+export interface NowDeployResponse {
+  url: string
+  alias: string[]
+}
+
 /**
  * Interfaces used in the packers
  */
@@ -295,10 +300,17 @@ interface GithubOptions {
   commitMessage?: string
 }
 
+interface NowOptions {
+  accessToken?: string
+  projectSlug?: string
+  domainAlias?: string // used by the now publisher
+  individualUpload?: boolean
+}
+
 export interface PackerOptions {
   projectType: ProjectType
   publisher?: PublisherType
-  publishOptions?: GithubOptions | PublisherOptions
+  publishOptions?: GithubOptions | NowOptions | PublisherOptions
   assets?: AssetInfo[]
 }
 
@@ -374,7 +386,7 @@ export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactN
 export type PackProjectFunction = (
   projectUIDL: ProjectUIDL,
   options: PackerOptions
-) => Promise<PublisherResponse<any>>
+) => Promise<PublisherResponse<unknown>>
 
 export type GenerateComponentFunction = (
   componentUIDL: ComponentUIDL,

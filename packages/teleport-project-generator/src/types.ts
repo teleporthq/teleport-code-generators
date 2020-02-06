@@ -7,5 +7,5 @@ export interface PackageJSON {
   license?: string
   scripts?: Record<string, string>
   dependencies?: Record<string, string>
-  [key: string]: any
+  [key: string]: unknown
 }

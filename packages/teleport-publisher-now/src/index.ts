@@ -1,33 +1,44 @@
 import {
   GeneratedFolder,
+  PublisherFactory,
   Publisher,
   PublisherFactoryParams,
-  PublisherFactory,
+  NowDeployResponse,
   MissingProjectUIDLError,
   NowMissingTokenError,
 } from '@teleporthq/teleport-types'
 import { generateProjectFiles, createDeployment, checkDeploymentStatus } from './utils'
 import { NowPayload } from './types'
 
-export interface NowFactoryParams extends PublisherFactoryParams {
+const defaultPublisherParams: NowPublisherParams = {
+  accessToken: null,
+  projectSlug: 'teleport',
+  version: 2,
+  public: true,
+  target: 'production',
+  alias: [],
+  individualUpload: false,
+}
+
+export interface NowPublisherParams extends PublisherFactoryParams {
   accessToken: string
   projectSlug: string
   domainAlias?: string
   teamId?: string
+  version?: number
+  public?: boolean
+  target?: string
+  alias?: string[]
+  individualUpload?: boolean
 }
 
-export interface NowPublisher extends Publisher<NowFactoryParams, string> {
+export interface NowPublisher extends Publisher<NowPublisherParams, NowDeployResponse> {
   getAccessToken: () => string
   setAccessToken: (token: string) => void
 }
 
-const defaultPublisherParams: NowFactoryParams = {
-  accessToken: null,
-  projectSlug: 'teleport',
-}
-
-export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher> = (
-  params: NowFactoryParams = defaultPublisherParams
+export const createNowPublisher: PublisherFactory<NowPublisherParams, NowPublisher> = (
+  params: NowPublisherParams = defaultPublisherParams
 ): NowPublisher => {
   let { project, accessToken } = params
 
@@ -41,42 +52,54 @@ export const createNowPublisher: PublisherFactory<NowFactoryParams, NowPublisher
     accessToken = token
   }
 
-  const publish = async (options: NowFactoryParams = defaultPublisherParams) => {
+  const publish = async (options?: NowPublisherParams) => {
+    const publishOptions = {
+      ...defaultPublisherParams,
+      ...params,
+      ...options,
+    }
+
     const projectToPublish = options.project || project
     if (!projectToPublish) {
       throw new MissingProjectUIDLError()
     }
 
-    const nowAccessToken = options.accessToken || accessToken
-    const projectSlug = options.projectSlug || params.projectSlug
-    const domainAlias = options.domainAlias || params.domainAlias
-    const teamId = options.teamId || params.teamId
+    const {
+      projectSlug,
+      domainAlias,
+      teamId,
+      accessToken: nowAccessToken,
+      public: publicDeploy,
+      version,
+      target,
+      alias,
+      individualUpload,
+    } = publishOptions
 
     if (!nowAccessToken) {
       throw new NowMissingTokenError()
     }
 
-    const productionAlias = domainAlias ? `${projectSlug}.${domainAlias}` : null
+    const files = await generateProjectFiles(projectToPublish, nowAccessToken, individualUpload)
+
     const nowPayload: NowPayload = {
-      files: generateProjectFiles(projectToPublish),
-      name: projectSlug,
-      public: true,
-      version: 2,
-      target: 'production',
+      files,
+      name: projectSlug.toLowerCase(), // to avoid any now error
+      version,
+      public: publicDeploy,
+      target,
     }
 
-    // send the production alias if it exists
-    if (productionAlias) {
-      nowPayload.alias = [productionAlias]
-    }
+    nowPayload.alias = alias.length === 0 && domainAlias ? [`${projectSlug}.${domainAlias}`] : alias
 
-    const deploymentURL = await createDeployment(nowPayload, nowAccessToken, teamId)
+    const deploymentResult = await createDeployment(nowPayload, nowAccessToken, teamId)
 
     // Makes requests to the deployment URL until the deployment is ready
-    await checkDeploymentStatus(deploymentURL)
+    await checkDeploymentStatus(deploymentResult.url)
 
     // If productionAlias is empty, the deploymentURL is the fallback
-    return { success: true, payload: 'https://' + (productionAlias || deploymentURL) }
+    // TODO: return all links from now
+    return { success: true, payload: deploymentResult }
   }
 
   return {

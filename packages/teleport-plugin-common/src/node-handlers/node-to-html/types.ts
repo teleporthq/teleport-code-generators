@@ -5,8 +5,10 @@ import {
 } from '@teleporthq/teleport-types'
 
 export interface HTMLTemplateGenerationParams {
+  // tslint:disable-next-line no-any
   templateLookup: Record<string, any>
   dependencies: Record<string, UIDLDependency>
+  // tslint:disable-next-line no-any
   dataObject: Record<string, any>
   methodsObject: Record<string, UIDLEventHandlerStatement[]>
 }

@@ -41,8 +41,8 @@
     "@teleporthq/teleport-types": "^0.10.1"
   },
   "devDependencies": {
-    "ts-node": "^8.3.0",
-    "typescript": "^3.5.3",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5",
     "webpack": "^4.40.2",
     "webpack-bundle-analyzer": "^3.5.1",
     "webpack-cli": "^3.3.9"

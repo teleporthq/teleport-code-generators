@@ -37,13 +37,15 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       return structure
     }
 
+    // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jsxNodesLookup = componentChunk.meta.nodesLookup
-    const jssStyleMap: Record<string, any> = {}
+    const jssStyleMap: Record<string, unknown> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key } = element
       if (style && Object.keys(style).length > 0) {
+        // @ts-ignore
         const root = jsxNodesLookup[key]
         const className = StringUtils.camelCaseToDashCase(key)
         jssStyleMap[className] = UIDLUtils.transformDynamicStyles(style, (styleValue) => {

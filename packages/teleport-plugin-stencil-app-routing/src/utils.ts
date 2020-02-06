@@ -47,7 +47,7 @@ export const createClassDeclaration = (
   ])
 
   const exportClass = t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier('AppRoot'), null, classBodyAST),
+    t.classDeclaration(t.identifier('AppRoot'), null, classBodyAST, null),
     [],
     null
   )

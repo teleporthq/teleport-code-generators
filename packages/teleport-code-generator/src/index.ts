@@ -160,6 +160,7 @@ export const packProject: PackProjectFunction = async (
   if (publisher) {
     const publisherFactory = projectPublisherFactories[publisher]
     const projectPublisher = publisherFactory(publishOptions)
+    // @ts-ignore
     packer.setPublisher(projectPublisher)
   }
 

@@ -28,7 +28,7 @@
   "dependencies": {
     "@teleporthq/teleport-shared": "^0.10.1",
     "@teleporthq/teleport-types": "^0.10.1",
-    "prettier": "^1.18.2"
+    "prettier": "^1.19.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

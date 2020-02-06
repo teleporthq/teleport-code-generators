@@ -1,7 +1,7 @@
 import Ajv from 'ajv'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
-import { ProjectUIDL, UIDLElement, ComponentUIDL } from '@teleporthq/teleport-types'
+import { ProjectUIDL, UIDLElement, ComponentUIDL, UIDLNode } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
@@ -60,7 +60,7 @@ const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) 
 // All referenced props and states should be previously defined in the
 // "propDefinitions" and "stateDefinitions" sections
 // If props or states are defined and not used, a warning witll be displayed
-export const checkDynamicDefinitions = (input: any) => {
+export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
 
@@ -68,7 +68,7 @@ export const checkDynamicDefinitions = (input: any) => {
   const usedStateKeys: string[] = []
   const errors: string[] = []
 
-  UIDLUtils.traverseNodes(input.node, (node) => {
+  UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`

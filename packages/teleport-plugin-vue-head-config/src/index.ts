@@ -42,6 +42,7 @@ export const createVueHeadConfigPlugin: ComponentPluginFactory<VueMetaPluginConf
     }
 
     if (Object.keys(headObject).length > 0) {
+      // @ts-ignore
       const exportObjectAST = componentChunk.content.declaration as types.ObjectExpression
       exportObjectAST.properties.push(
         types.objectProperty(

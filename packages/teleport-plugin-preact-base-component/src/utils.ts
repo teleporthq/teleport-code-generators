@@ -46,7 +46,8 @@ export const createClassComponent = (
   const classDeclaration = t.classDeclaration(
     t.identifier(name),
     t.identifier('Component'),
-    classBody
+    classBody,
+    null
   )
 
   return classDeclaration

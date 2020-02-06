@@ -13,6 +13,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
+// tslint:disable-next-line no-any
 export const createConstAssignment = (constName: string, asignment: any = null, t = types) => {
   const declarator = t.variableDeclarator(t.identifier(constName), asignment)
   const constAssignment = t.variableDeclaration('const', [declarator])
@@ -47,6 +48,7 @@ export const createGenericImportStatement = (
   // Only one of the imports can be the default one so this is a fail safe for invalid UIDL data
   const defaultImport = imports.find((imp) => !imp.namedImport) // only one import can be default
   const importJustPath = imports.some((imp) => imp.importJustPath)
+  // tslint:disable-next-line no-any
   let importASTs: any[] = []
   if (importJustPath) {
     // Just the import path will be present, eg: import './styles.css'
@@ -107,6 +109,7 @@ export const createJSXExpresionContainer = (expression: types.Expression, t = ty
   return t.jsxExpressionContainer(expression)
 }
 
+// tslint:disable-next-line no-any
 export const createFunctionCall = (functionName: string, args: any[] = [], t = types) => {
   const convertedArgs = args.map((value) => {
     // skip objects which are already in AST format
@@ -119,6 +122,7 @@ export const createFunctionCall = (functionName: string, args: any[] = [], t = t
   return t.callExpression(t.identifier(functionName), convertedArgs)
 }
 
+// tslint:disable-next-line no-any
 const objectIsASTType = (obj: any) => {
   if (typeof obj !== 'object') {
     return false
@@ -154,7 +158,7 @@ export const createFunctionalComponent = (
   return component
 }
 
-export const createComponentDecorator = (params: Record<string, any>, t = types) => {
+export const createComponentDecorator = (params: Record<string, unknown>, t = types) => {
   return t.decorator(
     t.callExpression(t.identifier('Component'), [objectToObjectExpression(params)])
   )

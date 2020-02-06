@@ -95,8 +95,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
         linkAfter: [componentChunkName],
       })
     } else {
+      // @ts-ignore
       const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
         ASTBuilders.createSelfClosingJSXTag(uidl.name),
+        // @ts-ignore
         ASTBuilders.createFunctionCall('document.getElementById', ['app']),
       ])
 

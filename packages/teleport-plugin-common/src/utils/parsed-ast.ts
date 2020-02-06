@@ -4,9 +4,9 @@
  * Proptypes.String.isRequired to be handled by the function.
  */
 export default class ParsedASTNode {
-  public ast: any
+  public ast: unknown
 
-  constructor(ast: any) {
+  constructor(ast: unknown) {
     this.ast = ast
   }
 }

@@ -88,7 +88,7 @@ ${str}
 export const addAttributeToJSXTag = (
   jsxNode: types.JSXElement,
   attrName: string,
-  attrValue?: any,
+  attrValue?: boolean | unknown,
   t = types
 ) => {
   const nameOfAttribute = t.jsxIdentifier(attrName)
@@ -108,7 +108,7 @@ export const addAttributeToJSXTag = (
  * node must be a AST node element of type JSXElement (babel-types) or
  * equivalent
  */
-const getProperAttributeValueAssignment = (value: any, t = types) => {
+const getProperAttributeValueAssignment = (value: string | unknown, t = types) => {
   if (!value) {
     return null
   }
@@ -147,14 +147,17 @@ export const renameJSXTag = (jsxTag: types.JSXElement, newName: string, t = type
   }
 }
 
-export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = types) => {
-  const props = Object.keys(objectMap).reduce((acc: any[], key) => {
+export const objectToObjectExpression = (
+  objectMap: { [key: string]: ParsedASTNode | unknown },
+  t = types
+) => {
+  const props = Object.keys(objectMap).reduce((acc: unknown[], key) => {
     const keyIdentifier = t.stringLiteral(key)
     const value = objectMap[key]
-    let computedLiteralValue: any = null
+    let computedLiteralValue = null
 
     if (value instanceof ParsedASTNode || value.constructor.name === 'ParsedASTNode') {
-      computedLiteralValue = value.ast
+      computedLiteralValue = (value as ParsedASTNode).ast
     } else if (typeof value === 'boolean') {
       computedLiteralValue = t.booleanLiteral(value)
     } else if (typeof value === 'string') {
@@ -168,7 +171,7 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
     } else if (value === Object) {
       computedLiteralValue = t.identifier('Object')
     } else if (typeof value === 'object') {
-      computedLiteralValue = objectToObjectExpression(value, t)
+      computedLiteralValue = objectToObjectExpression(value as Record<string, unknown>, t)
     } else if (value === String) {
       computedLiteralValue = t.identifier('String')
     } else if (value === Number) {
@@ -178,13 +181,16 @@ export const objectToObjectExpression = (objectMap: { [key: string]: any }, t = 
     }
 
     if (computedLiteralValue) {
+      // @ts-ignore
       acc.push(t.objectProperty(keyIdentifier, computedLiteralValue))
     }
 
     return acc
   }, [])
 
-  const objectExpression = t.objectExpression(props)
+  const objectExpression = t.objectExpression(
+    props as Array<types.ObjectMethod | types.ObjectProperty | types.SpreadElement>
+  )
   return objectExpression
 }
 
@@ -198,6 +204,7 @@ type ExpressionLiteral =
   | types.NullLiteral
 
 export const convertValueToLiteral = (
+  // tslint:disable-next-line no-any
   value: any,
   explicitType: string = '',
   t = types
@@ -228,12 +235,14 @@ export const convertValueToLiteral = (
 export const addPropertyToASTObject = (
   obj: types.ObjectExpression,
   key: string,
+  // tslint:disable-next-line no-any
   value: any,
   t = types
 ) => {
   obj.properties.push(t.objectProperty(t.identifier(key), convertValueToLiteral(value)))
 }
 
+// tslint:disable-next-line no-any
 export const getTSAnnotationForType = (type: any, t = types) => {
   switch (type) {
     case 'string':

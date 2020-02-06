@@ -71,8 +71,8 @@ export default class Builder {
     return resultingString.join('\n')
   }
 
-  public generateByType(type: string, content: any): string {
-    if (!content && !content.length) {
+  public generateByType(type: string, content: unknown): string {
+    if (!content) {
       return ''
     }
     if (Array.isArray(content)) {

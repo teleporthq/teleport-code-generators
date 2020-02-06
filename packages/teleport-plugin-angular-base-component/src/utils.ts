@@ -14,7 +14,7 @@ export const generateExportAST = (
   uidl: ComponentUIDL,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  dataObject: Record<string, any>,
+  dataObject: Record<string, unknown>,
   methodsObject: Record<string, UIDLEventHandlerStatement[]>,
   t = types
 ) => {
@@ -75,7 +75,7 @@ export const generateExportAST = (
   }
 
   return t.exportNamedDeclaration(
-    t.classDeclaration(t.identifier(componentName), null, classBodyAST(uidl)),
+    t.classDeclaration(t.identifier(componentName), null, classBodyAST(uidl), null),
     [],
     null
   )

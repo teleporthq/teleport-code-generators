@@ -373,7 +373,9 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
+  // tslint:disable-next-line no-any
   transform: (value: UIDLDynamicReference, key?: string) => any
+  // tslint:disable-next-line no-any
 ): Record<string, any> => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]
@@ -505,9 +507,9 @@ export const transformAttributesAssignmentsToJson = (
     const entityType = typeof attributeContent
 
     if (['string', 'number'].indexOf(entityType) !== -1) {
-      acc[key] = transformStringAssignmentToJson(attributeContent as
-        | string
-        | number) as UIDLAttributeValue
+      acc[key] = transformStringAssignmentToJson(
+        attributeContent as string | number
+      ) as UIDLAttributeValue
       return acc
     }
 
@@ -552,6 +554,8 @@ export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
     case 'repeat':
       const childNode = node.content.node
       return findFirstElementNode(childNode)
+    default:
+      throw new Error(`Invalid node type '${node}'`)
   }
 }
 

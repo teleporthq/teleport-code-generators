@@ -1,13 +1,11 @@
 import { UIDLDependency, ChunkDefinition } from '@teleporthq/teleport-types'
 
-export const extractExternalDependencies = (
-  dependencies: Record<string, UIDLDependency>
-): Record<string, string> => {
+export const extractExternalDependencies = (dependencies: Record<string, UIDLDependency>) => {
   return Object.keys(dependencies)
     .filter((key) => {
       return dependencies[key].type === 'package'
     })
-    .reduce((acc: any, key) => {
+    .reduce((acc: Record<string, string>, key) => {
       const depInfo = dependencies[key]
       if (depInfo.path) {
         acc[depInfo.path] = depInfo.version

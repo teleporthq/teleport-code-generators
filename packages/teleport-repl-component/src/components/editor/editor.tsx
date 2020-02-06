@@ -17,8 +17,11 @@ export class Editor {
   @State() public selectedCSSFlavour: string
   @State() public selectedFramework: 'vue' | 'react' = 'react'
   @State() public showCssFile: boolean = false
+  // tslint:disable-next-line
   private jsonEditor: any
+  // tslint:disable-next-line
   private javascriptEditor: any
+  // tslint:disable-next-line
   private cssEditor: any
 
   public componentDidLoad() {

@@ -59,13 +59,13 @@ export type UIDLMetaTag = Record<string, string>
 
 export interface UIDLPropDefinition {
   type: string
-  defaultValue?: string | number | boolean | any[] | object | (() => void)
+  defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
 }
 
 export interface UIDLStateDefinition {
   type: string
-  defaultValue: string | number | boolean | any[] | object | (() => void)
+  defaultValue: string | number | boolean | unknown[] | object | (() => void)
   values?: UIDLStateValueDetails[]
 }
 
@@ -93,7 +93,7 @@ export interface UIDLDynamicReference {
 
 export interface UIDLStaticValue {
   type: 'static'
-  content: string | number | boolean | any[] // any[] for data sources
+  content: string | number | boolean | unknown[] // unknown[] for data sources
 }
 
 export interface UIDLRawValue {

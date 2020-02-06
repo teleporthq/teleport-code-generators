@@ -28,7 +28,7 @@ export default class Validator {
     this.projectValidator = ajv.compile(projectSchema)
   }
 
-  public validateComponentSchema(input: any): ValidationResult {
+  public validateComponentSchema(input: unknown): ValidationResult {
     const valid = this.componentValidator(input)
 
     if (!valid && this.componentValidator.errors) {
@@ -51,7 +51,9 @@ export default class Validator {
   }
 
   public validateComponentContent(input: ComponentUIDL): ValidationResult {
-    const errorsInDefinitions = utils.checkDynamicDefinitions(input)
+    const errorsInDefinitions = utils.checkDynamicDefinitions(
+      (input as unknown) as Record<string, unknown>
+    )
     const errorsWithLocalVariables = utils.checkForLocalVariables(input)
 
     utils.checkForDuplicateDefinitions(input)

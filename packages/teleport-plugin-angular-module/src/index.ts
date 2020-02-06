@@ -109,6 +109,8 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
         }
         break
+      default:
+        throw new Error(`Invalid module type '${moduleType}'`)
     }
 
     // Routes will be present for only pages and root

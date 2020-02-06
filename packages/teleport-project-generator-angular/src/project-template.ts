@@ -39,7 +39,7 @@ export default {
     "codelyzer": "^5.0.0",
     "ts-node": "~7.0.0",
     "tslint": "~5.15.0",
-    "typescript": "~3.5.3"
+    "typescript": "^3.7.5"
   }
 }`,
       fileType: 'json',

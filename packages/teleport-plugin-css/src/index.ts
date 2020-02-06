@@ -1,6 +1,6 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
-
+import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -8,6 +8,7 @@ import {
   UIDLStyleDefinitions,
   ChunkType,
   FileType,
+  HastNode,
 } from '@teleporthq/teleport-types'
 
 interface CSSPluginConfig {
@@ -43,11 +44,15 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       (chunk) => chunk.name === componentDecoratorChunkName
     )
 
-    const templateLookup = templateChunk.meta.nodesLookup
+    const templateLookup = templateChunk.meta.nodesLookup as Record<
+      string,
+      HastNode | types.JSXElement
+    >
 
     // Only JSX based chunks have dynamicRefPrefix (eg: this.props. or props.)
+    // @ts-ignore
     const propsPrefix: string = templateChunk.meta.dynamicRefPrefix
-      ? templateChunk.meta.dynamicRefPrefix.prop
+      ? (templateChunk.meta.dynamicRefPrefix as Record<string, unknown>).prop
       : ''
 
     const jssStylesArray: string[] = []
@@ -70,13 +75,14 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
           : elementClassName
 
         jssStylesArray.push(
+          // @ts-ignore
           StyleBuilders.createCSSClass(className, StyleUtils.getContentOfStyleObject(staticStyles))
         )
 
         if (templateStyle === 'html') {
-          HASTUtils.addClassToNode(root, className)
+          HASTUtils.addClassToNode(root as HastNode, className)
         } else {
-          ASTUtils.addClassStringOnJSXTag(root, className, classAttributeName)
+          ASTUtils.addClassStringOnJSXTag(root as types.JSXElement, className, classAttributeName)
         }
       }
 
@@ -88,13 +94,21 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
           if (templateStyle === 'html') {
             // simple string expression
             const inlineStyles = createDynamicInlineStyle(rootStyles)
-            HASTUtils.addAttributeToNode(root, inlineStyleAttributeKey, `{${inlineStyles}}`)
+            HASTUtils.addAttributeToNode(
+              root as HastNode,
+              inlineStyleAttributeKey,
+              `{${inlineStyles}}`
+            )
           } else {
             // jsx object expression
             const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
               StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
             )
-            ASTUtils.addAttributeToJSXTag(root, inlineStyleAttributeKey, inlineStyles)
+            ASTUtils.addAttributeToJSXTag(
+              root as types.JSXElement,
+              inlineStyleAttributeKey,
+              inlineStyles
+            )
           }
         }
       }
@@ -118,6 +132,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
       if (declareDependency === 'decorator' && componentDecoratorChunk) {
         const decoratorAST = componentDecoratorChunk.content
+        // @ts-ignore
         const decoratorParam = decoratorAST.expression.arguments[0]
         ASTUtils.addPropertyToASTObject(decoratorParam, 'styleUrls', [
           `${cssFileName}.${FileType.CSS}`,

@@ -55,7 +55,7 @@ export const addEventHandlerToTag = (
 
     expressionContent =
       expression.type === 'CallExpression' && expression.arguments.length === 0
-        ? expression.callee
+        ? (expression.callee as types.ArrowFunctionExpression | types.Expression)
         : t.arrowFunctionExpression([], expression)
   } else {
     expressionContent = t.arrowFunctionExpression([], t.blockStatement(eventHandlerASTStatements))
