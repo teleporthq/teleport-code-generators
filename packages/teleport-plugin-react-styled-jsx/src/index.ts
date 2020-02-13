@@ -1,5 +1,5 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 import * as types from '@babel/types'
@@ -53,7 +53,22 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
-    const rootJSXNode = jsxNodesLookup[uidl.node.content.key]
+    let rootJSXNode = jsxNodesLookup[uidl.node.content.key]
+    if (rootJSXNode.selfClosing) {
+      const selfClosingTag = rootJSXNode
+      rootJSXNode = ASTBuilders.createJSXTag('')
+      rootJSXNode.children.push(selfClosingTag)
+
+      // fetching the AST parent of the root JSXNode
+      // We need to replace the root node which is self-closing (eg: <img> <input>) with a fragment <>
+      // The fragment will be the parent of both the old root JSXNode and the style tag
+      const componentAST = componentChunk.content as types.VariableDeclaration
+      const arrowFnExpr = componentAST.declarations[0].init as types.ArrowFunctionExpression
+      const bodyStatement = arrowFnExpr.body as types.BlockStatement
+      const returnStatement = bodyStatement.body[0] as types.ReturnStatement
+      returnStatement.argument = rootJSXNode
+    }
+
     rootJSXNode.children.push(jsxASTNodeReference)
     return structure
   }
