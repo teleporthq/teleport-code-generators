@@ -33,7 +33,7 @@ We are not far from the **first official version** of the code generators, but m
 
 <h2 id="what">🤔 What is this?</h2>
 
-The **code generators** are a part of the **teleportHQ** ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog/we-believe-in-AI-powered-code-generation/).
+The **code generators** are a part of the **teleportHQ** ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-a-i-powered-code-generation).
 
 The code generators are used by the online **visual editor** (coming soon), a platform that lets you build applications via a familiar design tool interface. The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
 
