@@ -21,7 +21,8 @@
   "scripts": {
     "packer": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
     "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
-    "bundle": "webpack --config webpack.config.js"
+    "bundle": "webpack --config webpack.config.js",
+    "benchmark": "node --expose-gc ./src/bench.js"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.10.4",
