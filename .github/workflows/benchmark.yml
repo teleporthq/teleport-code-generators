@@ -1,0 +1,14 @@
+name: Run Benchmark
+
+on: pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: docker://node:13-alpine
+    steps:
+      - uses: actions/checkout@v1
+			- uses: JayaKrishnaNamburu/behchmark@development
+				with:
+					secret-token: "${{ secrets.BENCHMARK_TOKEN }}"
+			- run: apk add --no-cache git 
