@@ -11,6 +11,10 @@ export interface UIDLGlobalProjectValues {
     title: string
     language: string
   }
+  customCode?: {
+    head?: string
+    body?: string
+  }
   meta: Array<Record<string, string>>
   assets: UIDLGlobalAsset[]
   manifest?: WebManifest
