@@ -260,11 +260,11 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   }
 
   if (customCode?.head) {
-    HASTUtils.addTextNode(headNode, customCode?.head)
+    HASTUtils.addTextNode(headNode, customCode.head)
   }
 
   if (customCode?.body) {
-    HASTUtils.addTextNode(bodyNode, customCode?.body)
+    HASTUtils.addTextNode(bodyNode, customCode.body)
   }
 
   const chunks: Record<string, ChunkDefinition[]> = {
