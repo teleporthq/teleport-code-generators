@@ -21,8 +21,8 @@
     "commitizen": "git-cz",
     "add-contributor": "all-contributors add",
     "changelog": "lerna-changelog",
-    "version": "lerna version --no-git-tag-version",
-    "publish": "lerna publish from-package --yes",
+    "version": "lerna version",
+    "publish": "lerna publish from-package",
     "local:publish": "lerna exec -- npm publish --registry http://localhost:4873",
     "local:unpublish": "lerna exec -- npm unpublish -f --registry http://localhost:4873"
   },
