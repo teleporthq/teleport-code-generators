@@ -63,7 +63,7 @@ const createImportAST = (specifier: string, target: string, t = types) => {
 }
 
 const generateHTMLNode = (uidl: ProjectUIDL, options: EntryFileOptions, t = types) => {
-  const { settings, meta, assets } = uidl.globals
+  const { settings, meta, assets, customCode } = uidl.globals
 
   const htmlNode = ASTBuilders.createJSXTag('html')
   const headNode = ASTBuilders.createJSXTag('head')
@@ -148,6 +148,23 @@ const generateHTMLNode = (uidl: ProjectUIDL, options: EntryFileOptions, t = type
   ASTUtils.addChildJSXTag(bodyNode, bodyDiv)
 
   addJSXExpressionContainer(bodyNode, 'props', 'postBodyComponents')
+
+  if (customCode?.head) {
+    // This is a workaround for inserting <style> <script> <link> etc. directly in <head>
+    // It inserts <noscript></noscript> content <noscript></noscript>
+    // The first tag (closing) is closing the root <noscript>
+    // The second tag (opening) is for the root closing </noscript>
+    const innerHTML = `</noscript>${customCode.head}<noscript>`
+    const noScript = ASTBuilders.createJSXTag('noscript')
+    ASTUtils.addAttributeToJSXTag(noScript, 'dangerouslySetInnerHTML', { __html: innerHTML })
+    ASTUtils.addChildJSXTag(headNode, noScript)
+  }
+
+  if (customCode?.body) {
+    const divNode = ASTBuilders.createJSXTag('div')
+    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', { __html: customCode.body })
+    ASTUtils.addChildJSXTag(bodyNode, divNode)
+  }
 
   ASTUtils.addChildJSXTag(htmlNode, headNode)
   ASTUtils.addChildJSXTag(htmlNode, bodyNode)

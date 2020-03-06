@@ -118,7 +118,7 @@ export const createEntryFile = async (
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
 const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
-  const { settings, meta, assets, manifest } = uidl.globals
+  const { settings, meta, assets, manifest, customCode } = uidl.globals
 
   const htmlNode = HASTBuilers.createHTMLNode('html')
   const headNode = HASTBuilers.createHTMLNode('head')
@@ -257,6 +257,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
   if (customHeadContent) {
     HASTUtils.addTextNode(headNode, customHeadContent)
+  }
+
+  if (customCode?.head) {
+    HASTUtils.addTextNode(headNode, customCode.head)
+  }
+
+  if (customCode?.body) {
+    HASTUtils.addTextNode(bodyNode, customCode.body)
   }
 
   const chunks: Record<string, ChunkDefinition[]> = {

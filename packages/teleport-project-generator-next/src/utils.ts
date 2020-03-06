@@ -12,7 +12,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
-  const { settings, meta, assets, manifest } = uidl.globals
+  const { settings, meta, assets, manifest, customCode } = uidl.globals
 
   const htmlNode = ASTBuilders.createJSXTag('html')
   const headNode = ASTBuilders.createJSXTag('Head')
@@ -49,6 +49,23 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   })
 
   ASTBuilders.appendAssetsAST(assets, options, headNode, bodyNode)
+
+  if (customCode?.head) {
+    // This is a workaround for inserting <style> <script> <link> etc. directly in <head>
+    // It inserts <noscript></noscript> content <noscript></noscript>
+    // The first tag (closing) is closing the root <noscript>
+    // The second tag (opening) is for the root closing </noscript>
+    const innerHTML = `</noscript>${customCode.head}<noscript>`
+    const noScript = ASTBuilders.createJSXTag('noscript')
+    ASTUtils.addAttributeToJSXTag(noScript, 'dangerouslySetInnerHTML', { __html: innerHTML })
+    ASTUtils.addChildJSXTag(headNode, noScript)
+  }
+
+  if (customCode?.body) {
+    const divNode = ASTBuilders.createJSXTag('div')
+    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', { __html: customCode.body })
+    ASTUtils.addChildJSXTag(bodyNode, divNode)
+  }
 
   // Create AST representation of the class CustomDocument extends Document
   // https://github.com/zeit/next.js#custom-document
