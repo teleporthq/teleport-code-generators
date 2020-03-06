@@ -237,6 +237,7 @@ describe('objectToObjectExpression', () => {
     expect(result.properties.length).toEqual(Object.keys(objTest).length)
     expect(result.properties.length).toEqual(Object.keys(objTest).length)
   })
+  // tslint:disable-next-line:no-any
   const objectTest: Record<string, any> = {
     arrayKey: { key: Array },
     numberKey: { key: Number },

@@ -48,7 +48,9 @@ describe('cleanupDynamicStyles', () => {
     expect(cleanedStyle.padding).toBeUndefined()
     expect(cleanedStyle.margin.content).toBe('20px')
     const nestedStyle = (cleanedStyle[':hover'] as unknown) as UIDLStyleDefinitions
+    // tslint:disable-next-line:no-any
     expect((nestedStyle.content as Record<string, any>).padding).toBeUndefined()
+    // tslint:disable-next-line:no-any
     expect((nestedStyle.content as Record<string, any>).margin.content).toBe('10px')
   })
 })
