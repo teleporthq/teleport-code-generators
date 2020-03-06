@@ -55,7 +55,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
     // It inserts <noscript></noscript> content <noscript></noscript>
     // The first tag (closing) is closing the root <noscript>
     // The second tag (opening) is for the root closing </noscript>
-    const innerHTML = `</noscript>${customCode?.head}<noscript>`
+    const innerHTML = `</noscript>${customCode.head}<noscript>`
     const noScript = ASTBuilders.createJSXTag('noscript')
     ASTUtils.addAttributeToJSXTag(noScript, 'dangerouslySetInnerHTML', { __html: innerHTML })
     ASTUtils.addChildJSXTag(headNode, noScript)
@@ -63,7 +63,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
 
   if (customCode?.body) {
     const divNode = ASTBuilders.createJSXTag('div')
-    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', { __html: customCode?.body })
+    ASTUtils.addAttributeToJSXTag(divNode, 'dangerouslySetInnerHTML', { __html: customCode.body })
     ASTUtils.addChildJSXTag(bodyNode, divNode)
   }
 
