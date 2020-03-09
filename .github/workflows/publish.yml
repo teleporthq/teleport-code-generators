@@ -1,25 +1,26 @@
-name: Pipeline
+name: Publish
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+    - '**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+        with:
+          ref: ${GITHUB_REF:11}
       - uses: actions/setup-node@v1
         with:
           node-version: "13.x"
       - run: yarn
       - run: yarn run lint
       - run: yarn run build
-      - run: yarn run test:coverage
-      - run: yarn run upload:coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - run: yarn run test
 
       - name: Publish to npm
-        if: startsWith(github.ref, 'refs/tags/v')
         run: yarn run publish --yes
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
