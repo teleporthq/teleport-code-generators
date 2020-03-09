@@ -6,7 +6,7 @@ on:
       - '**'
 
 jobs:
-  CI_Workflow:
+  test:
     runs-on: ubuntu-latest
 
     steps:
