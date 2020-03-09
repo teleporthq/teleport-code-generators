@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-packer",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "description": "Bare-bone project packer that accepts any project generator and publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-github-gateway": "^0.10.4",
-    "@teleporthq/teleport-types": "^0.10.4",
+    "@teleporthq/teleport-github-gateway": "^0.10.5",
+    "@teleporthq/teleport-types": "^0.10.5",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
