@@ -4,3 +4,5 @@
 **/*.js
 **/*.svg
 **/*.yml
+
+packages/teleport-repl-component/src/components.d.ts
