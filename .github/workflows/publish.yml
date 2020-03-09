@@ -10,8 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Git Identity
+        run: |
+          git config --global user.name '@utwo'
+          git config --global user.email 'utwo@users.noreply.github.com'
+          git remote set-url origin https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Prepare repository
         run: git checkout "${GITHUB_REF:11}"
+
       - uses: actions/setup-node@v1
         with:
           node-version: "13.x"
