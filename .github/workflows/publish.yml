@@ -2,8 +2,8 @@ name: Publish
 
 on:
   push:
-    tags:
-      - '**'
+    branches:
+      - 'master'
 
 jobs:
   publish:
@@ -20,7 +20,10 @@ jobs:
       - run: yarn
       - run: yarn run lint
       - run: yarn run build
-      - run: yarn run test
+      - run: yarn run test:coverage
+      - run: yarn run upload:coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Publish to npm
         run: yarn run publish --yes
