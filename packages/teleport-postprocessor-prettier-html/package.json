@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-html",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "description": "A post-processing function that formats html code chunks using prettier and the prettier-html plugin",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.10.6",
-    "@teleporthq/teleport-types": "^0.10.6",
+    "@teleporthq/teleport-shared": "^0.10.7",
+    "@teleporthq/teleport-types": "^0.10.7",
     "prettier": "^1.19.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

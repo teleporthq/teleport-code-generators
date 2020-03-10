@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-react",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "description": "Component generator customization, capable of creating React components with a number of different style flavors",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,19 +26,19 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.6",
-    "@teleporthq/teleport-plugin-css": "^0.10.6",
-    "@teleporthq/teleport-plugin-css-modules": "^0.10.6",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.6",
-    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.10.6",
-    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.10.6",
-    "@teleporthq/teleport-plugin-react-base-component": "^0.10.6",
-    "@teleporthq/teleport-plugin-react-jss": "^0.10.6",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.10.6",
-    "@teleporthq/teleport-plugin-react-styled-jsx": "^0.10.6",
-    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.6",
-    "@teleporthq/teleport-shared": "^0.10.6",
-    "@teleporthq/teleport-types": "^0.10.6"
+    "@teleporthq/teleport-component-generator": "^0.10.7",
+    "@teleporthq/teleport-plugin-css": "^0.10.7",
+    "@teleporthq/teleport-plugin-css-modules": "^0.10.7",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.7",
+    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.10.7",
+    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.10.7",
+    "@teleporthq/teleport-plugin-react-base-component": "^0.10.7",
+    "@teleporthq/teleport-plugin-react-jss": "^0.10.7",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.10.7",
+    "@teleporthq/teleport-plugin-react-styled-jsx": "^0.10.7",
+    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.7",
+    "@teleporthq/teleport-shared": "^0.10.7",
+    "@teleporthq/teleport-types": "^0.10.7"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
