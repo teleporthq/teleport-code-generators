@@ -19,8 +19,8 @@
     "access": "public"
   },
   "scripts": {
-    "packer": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
-    "standalone": "TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
+    "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
+    "standalone": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
     "bundle": "webpack --config webpack.config.js"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "@teleporthq/teleport-types": "^0.10.7"
   },
   "devDependencies": {
+    "cross-env": "^7.0.2",
     "ts-node": "^8.6.2",
     "typescript": "^3.7.5",
     "webpack": "^4.40.2",
