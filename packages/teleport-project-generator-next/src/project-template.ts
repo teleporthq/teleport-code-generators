@@ -18,9 +18,9 @@ export default {
   "author": "TeleportHQ",
   "license": "MIT",
   "dependencies": {
-    "next": "^9.0.2",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "next": "^9.3.1",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0"
   }
 }`,
       fileType: 'json',
