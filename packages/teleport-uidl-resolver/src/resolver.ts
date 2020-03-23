@@ -40,6 +40,7 @@ export default class Resolver {
 
     utils.checkForIllegalNames(uidl, mapping)
 
+    utils.resolveAbilities(uidl.node, { componentReference: uidl })
     utils.resolveNode(uidl.node, newOptions)
 
     const nodesLookup = {}

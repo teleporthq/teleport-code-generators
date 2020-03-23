@@ -163,13 +163,16 @@ export interface UIDLElement {
   elementType: string
   name?: string
   key?: string // internal usage
-  selfClosing?: boolean
-  ignore?: boolean
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>
   events?: UIDLEventDefinitions
+  abilities?: {
+    link?: UIDLLinkDefinition
+  }
   children?: UIDLNode[]
+  selfClosing?: boolean
+  ignore?: boolean
 }
 
 export type UIDLNode =
@@ -188,6 +191,23 @@ export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
 export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
+
+export type UIDLLinkURLDefinition = {
+  type: 'url'
+  options: { url: UIDLAttributeValue; newTab: boolean }
+}
+export type UIDLLinkPageDefinition = { type: 'navlink'; options: { routeName: string } }
+export type UIDLLinkMailDefinition = {
+  type: 'mail'
+  options: { mail: string; subject?: string }
+}
+export type UIDLLinkPhoneDefinition = { type: 'phone'; options: { phone: string } }
+
+export type UIDLLinkDefinition =
+  | UIDLLinkURLDefinition
+  | UIDLLinkPageDefinition
+  | UIDLLinkMailDefinition
+  | UIDLLinkPhoneDefinition
 
 export interface UIDLEventHandlerStatement {
   type: string

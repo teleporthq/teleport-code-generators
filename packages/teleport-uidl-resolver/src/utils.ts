@@ -8,10 +8,10 @@ import {
   UIDLRepeatContent,
   UIDLAttributeValue,
   Mapping,
-  UIDLStateDefinition,
   GeneratorOptions,
   ComponentUIDL,
   UIDLElementNode,
+  UIDLLinkDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -47,60 +47,127 @@ export const mergeMappings = (
   }
 }
 
-// Finds all the navlink elements and converts the content of the transitionTo attribute
-// to the actual route value that is defined in the project UIDL, in the routing definition
-export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateDefinition) => {
-  UIDLUtils.traverseElements(uidlNode, (element) => {
-    if (element.elementType === 'navlink') {
-      const transitionAttribute = element.attrs.transitionTo
-      if (!transitionAttribute) {
-        // Fallback for when transitionTo is not present
-        console.warn(
-          `transitionTo was missing from element: '${element.elementType}'. Falling back to navlink: '/'`
-        )
-        element.attrs.transitionTo = {
-          type: 'static',
-          content: '/',
-        }
+export interface ResolveAbilitiesParams {
+  componentReference: ComponentUIDL
+  parentNode?: UIDLElementNode
+  positionInParent?: number
+  linkInParent?: boolean
+}
 
-        return
-      }
+export const resolveAbilities = (node: UIDLElementNode, params: ResolveAbilitiesParams) => {
+  const { componentReference, parentNode, positionInParent, linkInParent } = params
+  const { abilities, children } = node.content
+  const linkInNode = !!abilities?.link
 
-      if (transitionAttribute.type !== 'static') {
-        throw new Error(
-          `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
-            transitionAttribute,
-            null,
-            2
-          )}`
-        )
-      }
-
-      const transitionState = transitionAttribute.content.toString()
-      if (transitionState.startsWith('/')) {
-        // attribute was explicitly set as a custom navlink
-        return
-      }
-
-      const transitionRoute = routesDefinition.values.find(
-        (route) => route.value === transitionState
-      )
-
-      if (!transitionRoute) {
-        transitionAttribute.content = '/'
-        return
-      }
-
-      if (transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
-        transitionAttribute.content = transitionRoute.pageOptions.navLink
-      } else {
-        transitionAttribute.content = `/${transitionState}`
-        console.warn(
-          `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
-        )
-      }
+  children?.forEach((child, index) => {
+    if (child.type === 'element') {
+      resolveAbilities(child, {
+        componentReference,
+        parentNode: node,
+        positionInParent: index,
+        linkInParent: linkInParent || linkInNode,
+      })
     }
   })
+
+  if (abilities?.link) {
+    if (linkInParent) {
+      console.warn('parent node has a link capability, nesting links is illegal')
+      return
+    }
+
+    resolveLink(node, {
+      componentReference,
+      parentNode,
+      positionInParent,
+    })
+  }
+}
+
+export const resolveLink = (node: UIDLElementNode, params: ResolveAbilitiesParams) => {
+  const { parentNode, positionInParent, componentReference } = params
+
+  const linkNode = createLinkNode(node.content.abilities.link)
+
+  linkNode.content.children.push(node)
+
+  if (!parentNode) {
+    componentReference.node = linkNode
+  } else {
+    parentNode.content?.children.splice(positionInParent, 1, linkNode)
+  }
+}
+
+export const createLinkNode = (link: UIDLLinkDefinition): UIDLElementNode => {
+  switch (link.type) {
+    case 'url': {
+      return {
+        type: 'element',
+        content: {
+          elementType: 'link',
+          attrs: {
+            url: link.options.url,
+            ...(link.options.newTab
+              ? {
+                  target: {
+                    type: 'static',
+                    content: '_blank',
+                  },
+                }
+              : {}),
+          },
+          children: [],
+        },
+      }
+    }
+
+    case 'navlink': {
+      return {
+        type: 'element',
+        content: {
+          elementType: 'navlink',
+          attrs: {
+            transitionTo: { type: 'static', content: link.options.routeName },
+          },
+          children: [],
+        },
+      }
+    }
+
+    case 'mail': {
+      const mailUrl = `mailto:${link.options.mail}${
+        link.options.subject ? '?subject=' + link.options.subject : ''
+      }`
+      return {
+        type: 'element',
+        content: {
+          elementType: 'link',
+          attrs: {
+            url: { type: 'static', content: mailUrl },
+          },
+          children: [],
+        },
+      }
+    }
+
+    case 'phone': {
+      return {
+        type: 'element',
+        content: {
+          elementType: 'link',
+          attrs: {
+            url: { type: 'static', content: `tel:${link.options.phone}` },
+          },
+          children: [],
+        },
+      }
+    }
+
+    default:
+      throw new Error(
+        `createLinkNode called with invalid link type '${(link as UIDLLinkDefinition).type}'`
+      )
+  }
 }
 
 export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) => {

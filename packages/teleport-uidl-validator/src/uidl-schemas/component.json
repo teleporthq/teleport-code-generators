@@ -299,6 +299,7 @@
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},
         "style": {"$ref": "#/definitions/styleDefinitions"},
+        "abilities": {},
         "attrs": {
           "type": "object",
            "patternProperties": {

@@ -13,7 +13,7 @@
       },
       {
         "type": "style",
-        "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;}"
+        "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;} a{color:inherit; text-decoration: none}"
       },
       {
         "type": "icon",
@@ -159,7 +159,7 @@
                               {
                                 "type": "element",
                                 "content": {
-                                  "elementType": "link",
+                                  "elementType": "text",
                                   "style": {
                                     "color": "white",
                                     "backgroundColor": "#822cec",
@@ -168,8 +168,14 @@
                                     "margin": "auto",
                                     "text-decoration": "none"
                                   },
-                                  "attrs": {
-                                    "url": "https://docs.teleporthq.io/guides/getting-started.html"
+                                  "abilities": {
+                                    "link": {
+                                      "type": "url",
+                                      "options": {
+                                        "url": "https://docs.teleporthq.io/guides/getting-started.html",
+                                        "newTab": true
+                                      }
+                                    }
                                   },
                                   "children": ["Get Started →"]
                                 }
@@ -406,9 +412,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "home"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "options": {
+                                "routeName": "home"
+                              }
+                            }
                           },
                           "children": ["Home"]
                         }
@@ -440,9 +451,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "team"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "options": {
+                                "routeName": "team"
+                              }
+                            }
                           },
                           "children": ["Team"]
                         }
@@ -474,9 +490,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "contact-us"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "options": {
+                                "routeName": "contact-us"
+                              }
+                            }
                           },
                           "children": ["Contact Us"]
                         }
@@ -522,11 +543,20 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "abilities": {
+            "link": {
+              "type": "url",
+              "options": {
+                "url": "https://teleporthq.io"
+              }
+            }
+          },
           "style": {
             "width": "300px",
             "border": "1px solid #ccc",
             "padding": "10px",
-            "margin": "5px"
+            "margin": "5px",
+            "color": "inherit"
           },
           "children": [
             {
@@ -535,6 +565,15 @@
                 "elementType": "image",
                 "attrs": {
                   "url": "$props.url"
+                },
+                "abilities": {
+                  "link": {
+                    "type": "url",
+                    "options": {
+                      "url": "$props.link",
+                      "newTab": true
+                    }
+                  }
                 },
                 "style": {
                   "display": "block",
@@ -597,10 +636,19 @@
                   {
                     "type": "element",
                     "content": {
-                      "elementType": "link",
+                      "elementType": "text",
                       "style": {
                         "text-decoration": "none",
                         "color": "#822cec"
+                      },
+                      "abilities": {
+                        "link": {
+                          "type": "mail",
+                          "options": {
+                            "mail": "mail@teleporthq.io",
+                            "subject": "Hello! is it me you're looking for?"
+                          }
+                        }
                       },
                       "attrs": {
                         "url": {
