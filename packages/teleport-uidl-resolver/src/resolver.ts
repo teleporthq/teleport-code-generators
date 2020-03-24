@@ -1,6 +1,7 @@
 import * as utils from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
+import { resolveAbilities } from './resolvers/abilities'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -40,7 +41,8 @@ export default class Resolver {
 
     utils.checkForIllegalNames(uidl, mapping)
 
-    utils.resolveAbilities(uidl.node, { componentReference: uidl })
+    resolveAbilities(uidl, newOptions)
+
     utils.resolveNode(uidl.node, newOptions)
 
     const nodesLookup = {}
@@ -50,7 +52,7 @@ export default class Resolver {
     utils.ensureDataSourceUniqueness(uidl.node)
 
     // There might be urls that need to be prefixed in the metaTags of the component
-    utils.resolveMetaTags(uidl, options)
+    utils.resolveMetaTags(uidl, newOptions)
 
     return uidl
   }

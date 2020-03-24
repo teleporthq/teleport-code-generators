@@ -11,7 +11,6 @@ import {
   GeneratorOptions,
   ComponentUIDL,
   UIDLElementNode,
-  UIDLLinkDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -44,129 +43,6 @@ export const mergeMappings = (
       ...(oldMapping.illegalPropNames || []),
       ...(newMapping.illegalPropNames || []),
     ],
-  }
-}
-
-export interface ResolveAbilitiesParams {
-  componentReference: ComponentUIDL
-  parentNode?: UIDLElementNode
-  positionInParent?: number
-  linkInParent?: boolean
-}
-
-export const resolveAbilities = (node: UIDLElementNode, params: ResolveAbilitiesParams) => {
-  const { componentReference, parentNode, positionInParent, linkInParent } = params
-  const { abilities, children } = node.content
-  const linkInNode = !!abilities?.link
-
-  children?.forEach((child, index) => {
-    if (child.type === 'element') {
-      resolveAbilities(child, {
-        componentReference,
-        parentNode: node,
-        positionInParent: index,
-        linkInParent: linkInParent || linkInNode,
-      })
-    }
-  })
-
-  if (abilities?.link) {
-    if (linkInParent) {
-      console.warn('parent node has a link capability, nesting links is illegal')
-      return
-    }
-
-    resolveLink(node, {
-      componentReference,
-      parentNode,
-      positionInParent,
-    })
-  }
-}
-
-export const resolveLink = (node: UIDLElementNode, params: ResolveAbilitiesParams) => {
-  const { parentNode, positionInParent, componentReference } = params
-
-  const linkNode = createLinkNode(node.content.abilities.link)
-
-  linkNode.content.children.push(node)
-
-  if (!parentNode) {
-    componentReference.node = linkNode
-  } else {
-    parentNode.content?.children.splice(positionInParent, 1, linkNode)
-  }
-}
-
-export const createLinkNode = (link: UIDLLinkDefinition): UIDLElementNode => {
-  switch (link.type) {
-    case 'url': {
-      return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: link.options.url,
-            ...(link.options.newTab
-              ? {
-                  target: {
-                    type: 'static',
-                    content: '_blank',
-                  },
-                }
-              : {}),
-          },
-          children: [],
-        },
-      }
-    }
-
-    case 'navlink': {
-      return {
-        type: 'element',
-        content: {
-          elementType: 'navlink',
-          attrs: {
-            transitionTo: { type: 'static', content: link.options.routeName },
-          },
-          children: [],
-        },
-      }
-    }
-
-    case 'mail': {
-      const mailUrl = `mailto:${link.options.mail}${
-        link.options.subject ? '?subject=' + link.options.subject : ''
-      }`
-      return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: { type: 'static', content: mailUrl },
-          },
-          children: [],
-        },
-      }
-    }
-
-    case 'phone': {
-      return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: { type: 'static', content: `tel:${link.options.phone}` },
-          },
-          children: [],
-        },
-      }
-    }
-
-    default:
-      throw new Error(
-        `createLinkNode called with invalid link type '${(link as UIDLLinkDefinition).type}'`
-      )
   }
 }
 
@@ -221,10 +97,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Mapping the type according to the elements mapping
   originalElement.elementType = mappedElement.elementType
-
-  if (originalElementType === 'navlink' && !options.skipNavlinkResolver) {
-    resolveNavlink(originalElement, options)
-  }
 
   if (mappedElement.ignore) {
     originalElement.ignore = mappedElement.ignore
@@ -298,54 +170,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       originalElement.style = {}
     }
   }
-}
-
-const resolveNavlink = (element: UIDLElement, options: GeneratorOptions) => {
-  const transitionAttribute = element.attrs && element.attrs.transitionTo
-  if (!transitionAttribute) {
-    // Fallback for when transitionTo is not present
-    element.attrs = element.attrs || {}
-    element.attrs.transitionTo = {
-      type: 'static',
-      content: '/',
-    }
-
-    return
-  }
-
-  if (transitionAttribute.type !== 'static') {
-    throw new Error(
-      `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
-        transitionAttribute,
-        null,
-        2
-      )}`
-    )
-  }
-
-  const transitionState = transitionAttribute.content.toString()
-  if (transitionState.startsWith('/')) {
-    // attribute was explicitly set as a custom navlink
-    return
-  }
-
-  const friendlyURL = StringUtils.camelCaseToDashCase(
-    StringUtils.removeIllegalCharacters(transitionState)
-  )
-
-  const transitionRoute = options.projectRouteDefinition
-    ? options.projectRouteDefinition.values.find((route) => route.value === transitionState)
-    : null
-
-  if (!transitionRoute) {
-    transitionAttribute.content = `/${friendlyURL}`
-    return
-  }
-
-  transitionAttribute.content =
-    transitionRoute.pageOptions && transitionRoute.pageOptions.navLink
-      ? transitionRoute.pageOptions.navLink
-      : `/${friendlyURL}`
 }
 
 export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {
