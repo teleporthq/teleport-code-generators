@@ -555,9 +555,6 @@
               "type": "element",
               "content": {
                 "elementType": "image",
-                "attrs": {
-                  "url": "$props.url"
-                },
                 "abilities": {
                   "link": {
                     "type": "url",
@@ -639,15 +636,6 @@
                           "options": {
                             "mail": "mail@teleporthq.io",
                             "body": "Hello! is it me you're looking for?"
-                          }
-                        }
-                      },
-                      "attrs": {
-                        "url": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "link"
                           }
                         }
                       },

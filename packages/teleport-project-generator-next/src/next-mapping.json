@@ -3,8 +3,8 @@
     "navlink": {
       "elementType": "Link",
       "dependency": {
-          "type": "library",
-          "path": "next/link"
+        "type": "library",
+        "path": "next/link"
       },
       "attrs": {
         "href": { "type": "dynamic", "content": { "referenceType": "attr", "id": "transitionTo" } }

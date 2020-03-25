@@ -111,8 +111,14 @@
       }
     },
     "link": {
-      "elementType": "null",
-      "ignore": true
+      "elementType": "Text",
+      "dependency": {
+        "type": "library",
+        "path": "react-native",
+        "meta": {
+          "namedImport": true
+        }
+      }
     },
     "video": {
       "elementType": "null",

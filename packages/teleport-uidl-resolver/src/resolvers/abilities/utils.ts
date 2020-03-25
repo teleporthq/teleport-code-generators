@@ -37,6 +37,7 @@ export const insertLinks = (
     }
 
     const linkNode = createLinkNode(abilities.link, options)
+    // console.log('link node inserted', JSON.stringify(linkNode, null, 2))
 
     linkNode.content.children.push(node)
     return linkNode
@@ -62,6 +63,10 @@ export const createLinkNode = (
                   target: {
                     type: 'static',
                     content: '_blank',
+                  },
+                  rel: {
+                    type: 'static',
+                    content: 'noreferrer noopener',
                   },
                 }
               : {}),

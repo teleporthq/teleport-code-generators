@@ -566,8 +566,13 @@ export const removeChildNodes = (
   switch (node.type) {
     case 'element':
       if (node.content.children) {
+        // filter this level children
         node.content.children = node.content.children.filter((child) => !criteria(child))
+
+        // call function recursively for remaining children
+        node.content.children.forEach((child) => removeChildNodes(child, criteria))
       }
+
       break
 
     case 'repeat':

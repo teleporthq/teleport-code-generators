@@ -43,7 +43,10 @@ export default class Resolver {
 
     resolveAbilities(uidl, newOptions)
 
+    // TODO: Rename into apply mappings
     utils.resolveNode(uidl.node, newOptions)
+
+    utils.removeIgnoredNodes(uidl.node)
 
     const nodesLookup = {}
     utils.createNodesLookup(uidl.node, nodesLookup)
