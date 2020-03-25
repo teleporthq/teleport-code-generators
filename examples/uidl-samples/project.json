@@ -78,7 +78,7 @@
           {
             "value": "contact-us",
             "pageOptions": {
-              "navLink": "/about-us",
+              "navLink": "/about-us-custom-link",
               "componentName": "ContactPage"
             },
             "seo": {
@@ -543,14 +543,6 @@
         "type": "element",
         "content": {
           "elementType": "container",
-          "abilities": {
-            "link": {
-              "type": "url",
-              "options": {
-                "url": "https://teleporthq.io"
-              }
-            }
-          },
           "style": {
             "width": "300px",
             "border": "1px solid #ccc",
@@ -646,7 +638,7 @@
                           "type": "mail",
                           "options": {
                             "mail": "mail@teleporthq.io",
-                            "subject": "Hello! is it me you're looking for?"
+                            "body": "Hello! is it me you're looking for?"
                           }
                         }
                       },

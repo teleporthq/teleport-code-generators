@@ -196,16 +196,16 @@ export type UIDLLinkURLDefinition = {
   type: 'url'
   options: { url: UIDLAttributeValue; newTab: boolean }
 }
-export type UIDLLinkPageDefinition = { type: 'navlink'; options: { routeName: string } }
+export type UIDLNavLinkDefinition = { type: 'navlink'; options: { routeName: string } }
 export type UIDLLinkMailDefinition = {
   type: 'mail'
-  options: { mail: string; subject?: string }
+  options: { mail: string; subject?: string; body?: string }
 }
 export type UIDLLinkPhoneDefinition = { type: 'phone'; options: { phone: string } }
 
 export type UIDLLinkDefinition =
   | UIDLLinkURLDefinition
-  | UIDLLinkPageDefinition
+  | UIDLNavLinkDefinition
   | UIDLLinkMailDefinition
   | UIDLLinkPhoneDefinition
 

@@ -88,9 +88,11 @@ export const createLinkNode = (
     }
 
     case 'mail': {
-      const mailUrl = `mailto:${link.options.mail}${
-        link.options.subject ? '?subject=' + link.options.subject : ''
-      }`
+      let mailUrl = `mailto:${link.options.mail}?subject=${link.options.subject ?? ''}`
+      if (link.options.body) {
+        mailUrl = mailUrl + `&body=${link.options.body}`
+      }
+
       return {
         type: 'element',
         content: {
