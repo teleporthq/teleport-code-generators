@@ -595,6 +595,7 @@ export const removeChildNodes = (
 
     case 'static':
     case 'dynamic':
+    case 'raw':
       break
 
     default:
