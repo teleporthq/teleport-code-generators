@@ -3,6 +3,7 @@ import {
   UIDLNavLinkDefinition,
   UIDLLinkPhoneDefinition,
   UIDLLinkMailDefinition,
+  UIDLLinkSectionDefinition,
 } from '@teleporthq/teleport-types'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 
@@ -25,6 +26,13 @@ export const phoneMockedDefinition = (): UIDLLinkPhoneDefinition => ({
   type: 'phone',
   options: {
     phone: '091837864834',
+  },
+})
+
+export const sectionMockedDefinition = (): UIDLLinkSectionDefinition => ({
+  type: 'section',
+  options: {
+    id: 'contact',
   },
 })
 

@@ -170,10 +170,9 @@
                                   },
                                   "abilities": {
                                     "link": {
-                                      "type": "url",
+                                      "type": "section",
                                       "options": {
-                                        "url": "https://docs.teleporthq.io/guides/getting-started.html",
-                                        "newTab": true
+                                        "id": "test"
                                       }
                                     }
                                   },
@@ -517,10 +516,6 @@
         "name": {
           "type": "string",
           "defaultValue": "John Doe"
-        },
-        "url": {
-          "type": "string",
-          "defaultValue": "http://lorempixel.com/150/150/"
         },
         "flag": {
           "type": "string",

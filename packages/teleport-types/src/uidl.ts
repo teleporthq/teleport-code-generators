@@ -196,6 +196,8 @@ export type UIDLLinkURLDefinition = {
   type: 'url'
   options: { url: UIDLAttributeValue; newTab: boolean }
 }
+
+export type UIDLLinkSectionDefinition = { type: 'section'; options: { id: string } }
 export type UIDLNavLinkDefinition = { type: 'navlink'; options: { routeName: string } }
 export type UIDLLinkMailDefinition = {
   type: 'mail'
@@ -205,6 +207,7 @@ export type UIDLLinkPhoneDefinition = { type: 'phone'; options: { phone: string 
 
 export type UIDLLinkDefinition =
   | UIDLLinkURLDefinition
+  | UIDLLinkSectionDefinition
   | UIDLNavLinkDefinition
   | UIDLLinkMailDefinition
   | UIDLLinkPhoneDefinition

@@ -76,6 +76,22 @@ export const createLinkNode = (
       }
     }
 
+    case 'section': {
+      return {
+        type: 'element',
+        content: {
+          elementType: 'link',
+          attrs: {
+            url: {
+              type: 'static',
+              content: `#${link.options.id}`,
+            },
+          },
+          children: [],
+        },
+      }
+    }
+
     case 'navlink': {
       return {
         type: 'element',

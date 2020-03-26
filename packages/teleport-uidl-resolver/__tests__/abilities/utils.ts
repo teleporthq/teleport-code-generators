@@ -5,6 +5,7 @@ import {
   navlinkMockedDefinition,
   phoneMockedDefinition,
   mailMockedDefinition,
+  sectionMockedDefinition,
 } from './mocks'
 import { UIDLElementNode, UIDLLinkURLDefinition } from '@teleporthq/teleport-types'
 
@@ -113,5 +114,13 @@ describe('createLink', () => {
     expect(result.content.attrs.url.content).toBe(
       `mailto:${link.options.mail}?subject=${link.options.subject}&body=${link.options.body}`
     )
+  })
+
+  it('creates a section link', () => {
+    const link = sectionMockedDefinition()
+    const result = createLinkNode(link, {})
+
+    expect(result.content.elementType).toBe('link')
+    expect(result.content.attrs.url.content).toBe(`#${link.options.id}`)
   })
 })
