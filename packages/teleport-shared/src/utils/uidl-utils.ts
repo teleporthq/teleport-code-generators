@@ -140,7 +140,7 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
-      const { attrs, children, style } = node.content
+      const { attrs, children, style, abilities } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
           traverseNodes(attrs[attrKey], fn, node)
@@ -149,6 +149,10 @@ export const traverseNodes = (
 
       if (style) {
         traverseStyleObject(style, fn, node)
+      }
+
+      if (abilities?.link?.type === 'url') {
+        traverseNodes(abilities?.link?.options?.url, fn, node)
       }
 
       if (children) {
