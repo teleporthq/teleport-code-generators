@@ -84,9 +84,9 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       // @ts-ignore
       if (elementContent.abilities?.link) {
         // @ts-ignore
-        const { options, type } = elementContent.abilities?.link
-        if (type === 'url' && typeof options.url === 'string') {
-          options.url = UIDLUtils.transformStringAssignmentToJson(options.url)
+        const { content, type } = elementContent.abilities?.link
+        if (type === 'url' && typeof content.url === 'string') {
+          content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
         }
       }
 

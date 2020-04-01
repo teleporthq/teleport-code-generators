@@ -1,5 +1,5 @@
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { GeneratorOptions, UIDLLinkDefinition, UIDLElementNode } from '@teleporthq/teleport-types'
+import { GeneratorOptions, UIDLLinkNode, UIDLElementNode } from '@teleporthq/teleport-types'
 
 export const insertLinks = (
   node: UIDLElementNode,
@@ -46,10 +46,7 @@ export const insertLinks = (
   return node
 }
 
-export const createLinkNode = (
-  link: UIDLLinkDefinition,
-  options: GeneratorOptions
-): UIDLElementNode => {
+export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): UIDLElementNode => {
   switch (link.type) {
     case 'url': {
       return {
@@ -57,8 +54,8 @@ export const createLinkNode = (
         content: {
           elementType: 'link',
           attrs: {
-            url: link.options.url,
-            ...(link.options.newTab
+            url: link.content.url,
+            ...(link.content.newTab
               ? {
                   target: {
                     type: 'static',
@@ -84,7 +81,7 @@ export const createLinkNode = (
           attrs: {
             url: {
               type: 'static',
-              content: `#${link.options.id}`,
+              content: `#${link.content.id}`,
             },
           },
           children: [],
@@ -100,7 +97,7 @@ export const createLinkNode = (
           attrs: {
             transitionTo: {
               type: 'static',
-              content: resolveNavlink(link.options.routeName, options),
+              content: resolveNavlink(link.content.routeName, options),
             },
           },
           children: [],
@@ -109,9 +106,9 @@ export const createLinkNode = (
     }
 
     case 'mail': {
-      let mailUrl = `mailto:${link.options.mail}?subject=${link.options.subject ?? ''}`
-      if (link.options.body) {
-        mailUrl = mailUrl + `&body=${link.options.body}`
+      let mailUrl = `mailto:${link.content.mail}?subject=${link.content.subject ?? ''}`
+      if (link.content.body) {
+        mailUrl = mailUrl + `&body=${link.content.body}`
       }
 
       return {
@@ -132,7 +129,7 @@ export const createLinkNode = (
         content: {
           elementType: 'link',
           attrs: {
-            url: { type: 'static', content: `tel:${link.options.phone}` },
+            url: { type: 'static', content: `tel:${link.content.phone}` },
           },
           children: [],
         },
@@ -141,7 +138,7 @@ export const createLinkNode = (
 
     default:
       throw new Error(
-        `createLinkNode called with invalid link type '${(link as UIDLLinkDefinition).type}'`
+        `createLinkNode called with invalid link type '${(link as UIDLLinkNode).type}'`
       )
   }
 }

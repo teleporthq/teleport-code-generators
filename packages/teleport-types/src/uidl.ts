@@ -168,7 +168,8 @@ export interface UIDLElement {
   attrs?: Record<string, UIDLAttributeValue>
   events?: UIDLEventDefinitions
   abilities?: {
-    link?: UIDLLinkDefinition
+    link?: UIDLLinkNode
+    // In the future more element abilities can be added here
   }
   children?: UIDLNode[]
   selfClosing?: boolean
@@ -192,25 +193,42 @@ export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
 export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
 
-export type UIDLLinkURLDefinition = {
+export interface UIDLURLLinkNode {
   type: 'url'
-  options: { url: UIDLAttributeValue; newTab: boolean }
+  content: {
+    url: UIDLAttributeValue
+    newTab: boolean
+  }
 }
 
-export type UIDLLinkSectionDefinition = { type: 'section'; options: { id: string } }
-export type UIDLNavLinkDefinition = { type: 'navlink'; options: { routeName: string } }
-export type UIDLLinkMailDefinition = {
+export interface UIDLSectionLinkNode {
+  type: 'section'
+  content: { id: string }
+}
+
+export interface UIDLNavLinkNode {
+  type: 'navlink'
+  content: { routeName: string }
+}
+export interface UIDLMailLinkNode {
   type: 'mail'
-  options: { mail: string; subject?: string; body?: string }
+  content: {
+    mail: string
+    subject?: string
+    body?: string
+  }
 }
-export type UIDLLinkPhoneDefinition = { type: 'phone'; options: { phone: string } }
+export interface UIDLPhoneLinkNode {
+  type: 'phone'
+  content: { phone: string }
+}
 
-export type UIDLLinkDefinition =
-  | UIDLLinkURLDefinition
-  | UIDLLinkSectionDefinition
-  | UIDLNavLinkDefinition
-  | UIDLLinkMailDefinition
-  | UIDLLinkPhoneDefinition
+export type UIDLLinkNode =
+  | UIDLURLLinkNode
+  | UIDLSectionLinkNode
+  | UIDLNavLinkNode
+  | UIDLMailLinkNode
+  | UIDLPhoneLinkNode
 
 export interface UIDLEventHandlerStatement {
   type: string

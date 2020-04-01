@@ -7,17 +7,17 @@ import {
   mailMockedDefinition,
   sectionMockedDefinition,
 } from './mocks'
-import { UIDLElementNode, UIDLLinkURLDefinition } from '@teleporthq/teleport-types'
+import { UIDLElementNode, UIDLURLLinkNode } from '@teleporthq/teleport-types'
 
 describe('insertLink', () => {
   it('wraps a simple element', () => {
     const node = elementNode('container')
-    const link = urlMockedDefinition() as UIDLLinkURLDefinition
+    const link = urlMockedDefinition() as UIDLURLLinkNode
     node.content.abilities = { link }
 
     const result = insertLinks(node, {}, false)
     expect(result.content.elementType).toBe('link')
-    expect(result.content.attrs.url.content).toBe(link.options.url.content)
+    expect(result.content.attrs.url.content).toBe(link.content.url.content)
   })
 
   it('replaces a child', () => {
@@ -29,14 +29,14 @@ describe('insertLink', () => {
 
     const secondChild = node.content.children[1] as UIDLElementNode
 
-    const link = urlMockedDefinition() as UIDLLinkURLDefinition
+    const link = urlMockedDefinition() as UIDLURLLinkNode
     secondChild.content.abilities = { link }
 
     const result = insertLinks(node, {}, false)
     const secondChildAfterInsertLinks = result.content.children[1] as UIDLElementNode
 
     expect(secondChildAfterInsertLinks.content.elementType).toBe('link')
-    expect(secondChildAfterInsertLinks.content.attrs.url.content).toBe(link.options.url.content)
+    expect(secondChildAfterInsertLinks.content.attrs.url.content).toBe(link.content.url.content)
   })
 
   it('works with a navlink without page settings', () => {

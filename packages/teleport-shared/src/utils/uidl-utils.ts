@@ -152,7 +152,7 @@ export const traverseNodes = (
       }
 
       if (abilities?.link?.type === 'url') {
-        traverseNodes(abilities?.link?.options?.url, fn, node)
+        traverseNodes(abilities?.link?.content?.url, fn, node)
       }
 
       if (children) {

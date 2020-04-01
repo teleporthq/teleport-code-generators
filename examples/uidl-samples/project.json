@@ -171,7 +171,7 @@
                                   "abilities": {
                                     "link": {
                                       "type": "section",
-                                      "options": {
+                                      "content": {
                                         "id": "test"
                                       }
                                     }
@@ -415,7 +415,7 @@
                           "abilities": {
                             "link": {
                               "type": "navlink",
-                              "options": {
+                              "content": {
                                 "routeName": "home"
                               }
                             }
@@ -454,7 +454,7 @@
                           "abilities": {
                             "link": {
                               "type": "navlink",
-                              "options": {
+                              "content": {
                                 "routeName": "team"
                               }
                             }
@@ -493,7 +493,7 @@
                           "abilities": {
                             "link": {
                               "type": "navlink",
-                              "options": {
+                              "content": {
                                 "routeName": "contact-us"
                               }
                             }
@@ -553,7 +553,7 @@
                 "abilities": {
                   "link": {
                     "type": "url",
-                    "options": {
+                    "content": {
                       "url": "$props.link",
                       "newTab": true
                     }
@@ -628,7 +628,7 @@
                       "abilities": {
                         "link": {
                           "type": "mail",
-                          "options": {
+                          "content": {
                             "mail": "mail@teleporthq.io",
                             "body": "Hello! is it me you're looking for?"
                           }
