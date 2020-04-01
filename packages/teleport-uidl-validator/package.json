@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-validator",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "description": "A module that offers validation and parsing for non-standard UIDL structures",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.10.7",
-    "@teleporthq/teleport-types": "^0.10.7",
+    "@teleporthq/teleport-shared": "^0.10.8",
+    "@teleporthq/teleport-types": "^0.10.8",
     "ajv": "^6.10.2"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
