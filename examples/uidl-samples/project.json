@@ -13,7 +13,7 @@
       },
       {
         "type": "style",
-        "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;}"
+        "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;} a{color:inherit; text-decoration: none}"
       },
       {
         "type": "icon",
@@ -78,7 +78,7 @@
           {
             "value": "contact-us",
             "pageOptions": {
-              "navLink": "/about-us",
+              "navLink": "/about-us-custom-link",
               "componentName": "ContactPage"
             },
             "seo": {
@@ -159,7 +159,7 @@
                               {
                                 "type": "element",
                                 "content": {
-                                  "elementType": "link",
+                                  "elementType": "text",
                                   "style": {
                                     "color": "white",
                                     "backgroundColor": "#822cec",
@@ -168,8 +168,13 @@
                                     "margin": "auto",
                                     "text-decoration": "none"
                                   },
-                                  "attrs": {
-                                    "url": "https://docs.teleporthq.io/guides/getting-started.html"
+                                  "abilities": {
+                                    "link": {
+                                      "type": "section",
+                                      "content": {
+                                        "id": "test"
+                                      }
+                                    }
                                   },
                                   "children": ["Get Started →"]
                                 }
@@ -406,9 +411,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "home"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "content": {
+                                "routeName": "home"
+                              }
+                            }
                           },
                           "children": ["Home"]
                         }
@@ -440,9 +450,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "team"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "content": {
+                                "routeName": "team"
+                              }
+                            }
                           },
                           "children": ["Team"]
                         }
@@ -474,9 +489,14 @@
                       "children": [{
                         "type": "element",
                         "content": {
-                          "elementType": "navlink",
-                          "attrs": {
-                            "transitionTo": "contact-us"
+                          "elementType": "text",
+                          "abilities": {
+                            "link": {
+                              "type": "navlink",
+                              "content": {
+                                "routeName": "contact-us"
+                              }
+                            }
                           },
                           "children": ["Contact Us"]
                         }
@@ -496,10 +516,6 @@
         "name": {
           "type": "string",
           "defaultValue": "John Doe"
-        },
-        "url": {
-          "type": "string",
-          "defaultValue": "http://lorempixel.com/150/150/"
         },
         "flag": {
           "type": "string",
@@ -526,15 +542,22 @@
             "width": "300px",
             "border": "1px solid #ccc",
             "padding": "10px",
-            "margin": "5px"
+            "margin": "5px",
+            "color": "inherit"
           },
           "children": [
             {
               "type": "element",
               "content": {
                 "elementType": "image",
-                "attrs": {
-                  "url": "$props.url"
+                "abilities": {
+                  "link": {
+                    "type": "url",
+                    "content": {
+                      "url": "$props.link",
+                      "newTab": true
+                    }
+                  }
                 },
                 "style": {
                   "display": "block",
@@ -597,17 +620,17 @@
                   {
                     "type": "element",
                     "content": {
-                      "elementType": "link",
+                      "elementType": "text",
                       "style": {
                         "text-decoration": "none",
                         "color": "#822cec"
                       },
-                      "attrs": {
-                        "url": {
-                          "type": "dynamic",
+                      "abilities": {
+                        "link": {
+                          "type": "mail",
                           "content": {
-                            "referenceType": "prop",
-                            "id": "link"
+                            "mail": "mail@teleporthq.io",
+                            "body": "Hello! is it me you're looking for?"
                           }
                         }
                       },

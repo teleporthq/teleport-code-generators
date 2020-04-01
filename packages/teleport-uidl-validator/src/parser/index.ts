@@ -52,10 +52,9 @@ export const parseProjectJSON = (
   if (result.components) {
     result.components = Object.keys(result.components).reduce(
       (parsedComponnets: Record<string, ComponentUIDL>, key) => {
-        parsedComponnets[key] = parseComponentJSON((result.components[key] as unknown) as Record<
-          string,
-          unknown
-        >)
+        parsedComponnets[key] = parseComponentJSON(
+          (result.components[key] as unknown) as Record<string, unknown>
+        )
         return parsedComponnets
       },
       {}
@@ -82,6 +81,15 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         )
       }
 
+      // @ts-ignore
+      if (elementContent.abilities?.link) {
+        // @ts-ignore
+        const { content, type } = elementContent.abilities?.link
+        if (type === 'url' && typeof content.url === 'string') {
+          content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
+        }
+      }
+
       if (Array.isArray(elementContent.children)) {
         elementContent.children = elementContent.children.map((child) => {
           if (typeof child === 'string') {
@@ -98,8 +106,9 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const conditionalNode = (node as unknown) as UIDLConditionalNode
       const { reference } = conditionalNode.content
 
-      conditionalNode.content.node = parseComponentNode((conditionalNode.content
-        .node as unknown) as Record<string, unknown>)
+      conditionalNode.content.node = parseComponentNode(
+        (conditionalNode.content.node as unknown) as Record<string, unknown>
+      )
 
       if (typeof reference === 'string') {
         conditionalNode.content.reference = UIDLUtils.transformStringAssignmentToJson(
@@ -113,10 +122,9 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const repeatNode = (node as unknown) as UIDLRepeatNode
       const { dataSource } = repeatNode.content
 
-      repeatNode.content.node = parseComponentNode((repeatNode.content.node as unknown) as Record<
-        string,
-        unknown
-      >) as UIDLElementNode
+      repeatNode.content.node = parseComponentNode(
+        (repeatNode.content.node as unknown) as Record<string, unknown>
+      ) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
         repeatNode.content.dataSource = UIDLUtils.transformStringAssignmentToJson(dataSource)
@@ -128,11 +136,9 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const slotNode = (node as unknown) as UIDLSlotNode
 
       if (slotNode.content.fallback) {
-        slotNode.content.fallback = parseComponentNode((slotNode.content
-          .fallback as unknown) as Record<string, unknown>) as
-          | UIDLElementNode
-          | UIDLStaticValue
-          | UIDLDynamicReference
+        slotNode.content.fallback = parseComponentNode(
+          (slotNode.content.fallback as unknown) as Record<string, unknown>
+        ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
       }
 
       return slotNode

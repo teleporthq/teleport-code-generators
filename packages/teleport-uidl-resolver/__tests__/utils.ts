@@ -10,18 +10,11 @@ import {
   generateUniqueKeys,
   createNodesLookup,
   resolveChildren,
-  resolveNavlinks,
   ensureDataSourceUniqueness,
   mergeMappings,
   checkForIllegalNames,
 } from '../src/utils'
-import {
-  UIDLElement,
-  UIDLNode,
-  UIDLStateDefinition,
-  UIDLRepeatNode,
-  Mapping,
-} from '@teleporthq/teleport-types'
+import { UIDLElement, UIDLNode, UIDLRepeatNode, Mapping } from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
 
 describe('generateUniqueKeys', () => {
@@ -232,62 +225,6 @@ describe('resolveChildren', () => {
     expect(innerChildren[2].content).toBe('remains here')
     expect(innerChildren[3].content).toBe('original-text')
     expect(innerChildren[4].content).toBe('other-original-text')
-  })
-})
-
-describe('resolveNavlinks', () => {
-  const routeDef: UIDLStateDefinition = {
-    type: 'string',
-    defaultValue: 'home-link',
-    values: [
-      {
-        value: 'home-link',
-        pageOptions: {
-          navLink: '/home',
-        },
-      },
-    ],
-  }
-
-  it('replaces the transitionTo attribute content', () => {
-    const navlink = elementNode('navlink', {
-      transitionTo: staticNode('home-link'),
-    })
-
-    const uidlNode = elementNode('container', {}, [elementNode('div', {}, [navlink])])
-
-    resolveNavlinks(uidlNode, routeDef)
-    expect(navlink.content.attrs.transitionTo.content).toBe('/home')
-  })
-
-  it('does not change an attribute which starts with /', () => {
-    const navlink = elementNode('navlink', {
-      transitionTo: staticNode('/home-link'),
-    })
-
-    const uidlNode = elementNode('container', {}, [elementNode('div', {}, [navlink])])
-
-    resolveNavlinks(uidlNode, routeDef)
-    expect(navlink.content.attrs.transitionTo.content).toBe('/home-link')
-  })
-
-  it('throws an error for dynamic attributes', () => {
-    const navlink = elementNode('navlink', {
-      transitionTo: dynamicNode('prop', 'path'),
-    })
-
-    expect(() => resolveNavlinks(navlink, routeDef)).toThrow(
-      "Navlink does not support dynamic 'transitionTo' attributes"
-    )
-  })
-
-  it('throws an error if no route is present', () => {
-    const navlink = elementNode('navlink', {
-      transitionTo: staticNode('non-existing-state'),
-    })
-
-    resolveNavlinks(navlink, routeDef)
-    expect(navlink.content.attrs.transitionTo.content).toBe('/')
   })
 })
 

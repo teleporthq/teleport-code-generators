@@ -111,10 +111,6 @@
         "href": {
           "type": "dynamic",
           "content": { "referenceType": "attr", "id": "url" }
-        },
-        "rel": {
-          "type": "static",
-          "content": "noreferrer noopener"
         }
       }
     },

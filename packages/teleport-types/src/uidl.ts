@@ -163,13 +163,17 @@ export interface UIDLElement {
   elementType: string
   name?: string
   key?: string // internal usage
-  selfClosing?: boolean
-  ignore?: boolean
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
   attrs?: Record<string, UIDLAttributeValue>
   events?: UIDLEventDefinitions
+  abilities?: {
+    link?: UIDLLinkNode
+    // In the future more element abilities can be added here
+  }
   children?: UIDLNode[]
+  selfClosing?: boolean
+  ignore?: boolean
 }
 
 export type UIDLNode =
@@ -188,6 +192,43 @@ export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
 export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
+
+export interface UIDLURLLinkNode {
+  type: 'url'
+  content: {
+    url: UIDLAttributeValue
+    newTab: boolean
+  }
+}
+
+export interface UIDLSectionLinkNode {
+  type: 'section'
+  content: { id: string }
+}
+
+export interface UIDLNavLinkNode {
+  type: 'navlink'
+  content: { routeName: string }
+}
+export interface UIDLMailLinkNode {
+  type: 'mail'
+  content: {
+    mail: string
+    subject?: string
+    body?: string
+  }
+}
+export interface UIDLPhoneLinkNode {
+  type: 'phone'
+  content: { phone: string }
+}
+
+export type UIDLLinkNode =
+  | UIDLURLLinkNode
+  | UIDLSectionLinkNode
+  | UIDLNavLinkNode
+  | UIDLMailLinkNode
+  | UIDLPhoneLinkNode
 
 export interface UIDLEventHandlerStatement {
   type: string

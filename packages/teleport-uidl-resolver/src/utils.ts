@@ -8,10 +8,8 @@ import {
   UIDLRepeatContent,
   UIDLAttributeValue,
   Mapping,
-  UIDLStateDefinition,
   GeneratorOptions,
   ComponentUIDL,
-  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -47,62 +45,6 @@ export const mergeMappings = (
   }
 }
 
-// Finds all the navlink elements and converts the content of the transitionTo attribute
-// to the actual route value that is defined in the project UIDL, in the routing definition
-export const resolveNavlinks = (uidlNode: UIDLNode, routesDefinition: UIDLStateDefinition) => {
-  UIDLUtils.traverseElements(uidlNode, (element) => {
-    if (element.elementType === 'navlink') {
-      const transitionAttribute = element.attrs.transitionTo
-      if (!transitionAttribute) {
-        // Fallback for when transitionTo is not present
-        console.warn(
-          `transitionTo was missing from element: '${element.elementType}'. Falling back to navlink: '/'`
-        )
-        element.attrs.transitionTo = {
-          type: 'static',
-          content: '/',
-        }
-
-        return
-      }
-
-      if (transitionAttribute.type !== 'static') {
-        throw new Error(
-          `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
-            transitionAttribute,
-            null,
-            2
-          )}`
-        )
-      }
-
-      const transitionState = transitionAttribute.content.toString()
-      if (transitionState.startsWith('/')) {
-        // attribute was explicitly set as a custom navlink
-        return
-      }
-
-      const transitionRoute = routesDefinition.values.find(
-        (route) => route.value === transitionState
-      )
-
-      if (!transitionRoute) {
-        transitionAttribute.content = '/'
-        return
-      }
-
-      if (transitionRoute.pageOptions && transitionRoute.pageOptions.navLink) {
-        transitionAttribute.content = transitionRoute.pageOptions.navLink
-      } else {
-        transitionAttribute.content = `/${transitionState}`
-        console.warn(
-          `No navlink was defined for router state: '${transitionState}'. Falling back to '${transitionAttribute.content}'`
-        )
-      }
-    }
-  })
-}
-
 export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) => {
   if (!uidl.seo || !uidl.seo.metaTags || !options.assetsPrefix) {
     return
@@ -112,6 +54,17 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
     Object.keys(tag).forEach((key) => {
       tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key])
     })
+  })
+}
+
+export const removeIgnoredNodes = (uidlNode: UIDLNode) => {
+  // For now this is only used by react-native that adds some ignore flags in the mapping for certain elements.
+  UIDLUtils.removeChildNodes(uidlNode, (node) => {
+    if (node.type === 'element' && node.content.ignore) {
+      return true // elements mapped with ignore will be removed
+    }
+
+    return false
   })
 }
 
@@ -125,15 +78,6 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
       resolveRepeat(node.content, parentNode)
     }
   })
-
-  // For now this is only used by react-native that adds some ignore flags in the mapping for certain elements.
-  UIDLUtils.removeChildNodes(uidlNode, (node) => {
-    if (node.type === 'element' && node.content.ignore) {
-      return true // elements mapped with ignore will be removed
-    }
-
-    return false
-  })
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -144,7 +88,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     attributes: attributesMapping,
   } = mapping
   const originalElement = element
-  const originalElementType = originalElement.elementType
   const mappedElement = elementsMapping[originalElement.elementType] || {
     elementType: originalElement.elementType, // identity mapping
   }
@@ -154,10 +97,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Mapping the type according to the elements mapping
   originalElement.elementType = mappedElement.elementType
-
-  if (originalElementType === 'navlink' && !options.skipNavlinkResolver) {
-    resolveNavlink(originalElement, options)
-  }
 
   if (mappedElement.ignore) {
     originalElement.ignore = mappedElement.ignore
@@ -217,68 +156,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   if (mappedElement.children) {
     originalElement.children = resolveChildren(mappedElement.children, originalElement.children)
-
-    // Solves an edge case for next.js by passing the styles from the <Link> tag to the <a> tag
-    const anchorChild = originalElement.children.find(
-      (child) => child.type === 'element' && child.content.elementType === 'a'
-    ) as UIDLElementNode
-
-    // only do it if there's a child <a> tag and the original element is a navlink
-    const shouldPassStylesToAnchor =
-      originalElement.style && originalElementType === 'navlink' && anchorChild
-    if (shouldPassStylesToAnchor) {
-      anchorChild.content.style = UIDLUtils.cloneObject(originalElement.style)
-      originalElement.style = {}
-    }
   }
-}
-
-const resolveNavlink = (element: UIDLElement, options: GeneratorOptions) => {
-  const transitionAttribute = element.attrs && element.attrs.transitionTo
-  if (!transitionAttribute) {
-    // Fallback for when transitionTo is not present
-    element.attrs = element.attrs || {}
-    element.attrs.transitionTo = {
-      type: 'static',
-      content: '/',
-    }
-
-    return
-  }
-
-  if (transitionAttribute.type !== 'static') {
-    throw new Error(
-      `Navlink does not support dynamic 'transitionTo' attributes\n ${JSON.stringify(
-        transitionAttribute,
-        null,
-        2
-      )}`
-    )
-  }
-
-  const transitionState = transitionAttribute.content.toString()
-  if (transitionState.startsWith('/')) {
-    // attribute was explicitly set as a custom navlink
-    return
-  }
-
-  const friendlyURL = StringUtils.camelCaseToDashCase(
-    StringUtils.removeIllegalCharacters(transitionState)
-  )
-
-  const transitionRoute = options.projectRouteDefinition
-    ? options.projectRouteDefinition.values.find((route) => route.value === transitionState)
-    : null
-
-  if (!transitionRoute) {
-    transitionAttribute.content = `/${friendlyURL}`
-    return
-  }
-
-  transitionAttribute.content =
-    transitionRoute.pageOptions && transitionRoute.pageOptions.navLink
-      ? transitionRoute.pageOptions.navLink
-      : `/${friendlyURL}`
 }
 
 export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UIDLNode[] = []) => {

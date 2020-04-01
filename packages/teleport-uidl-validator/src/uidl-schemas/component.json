@@ -299,6 +299,12 @@
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},
         "style": {"$ref": "#/definitions/styleDefinitions"},
+        "abilities": {
+          "type": "object",
+          "properties": {
+            "link": {"$ref": "#/definitions/linkDefinition"}
+          }
+        },
         "attrs": {
           "type": "object",
            "patternProperties": {
@@ -363,6 +369,13 @@
           "enum": ["nested-style"]
         },
         "content":{"$ref": "#/definitions/styleDefinitions"}
+      }
+    },
+    "linkDefinition": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["url", "section", "navlink", "mail", "phone"] },
+        "content": { "type": "object" }
       }
     },
     "eventDefinitions":{

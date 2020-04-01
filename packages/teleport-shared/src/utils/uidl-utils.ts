@@ -140,7 +140,7 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
-      const { attrs, children, style } = node.content
+      const { attrs, children, style, abilities } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
           traverseNodes(attrs[attrKey], fn, node)
@@ -149,6 +149,10 @@ export const traverseNodes = (
 
       if (style) {
         traverseStyleObject(style, fn, node)
+      }
+
+      if (abilities?.link?.type === 'url') {
+        traverseNodes(abilities?.link?.content?.url, fn, node)
       }
 
       if (children) {
@@ -566,8 +570,13 @@ export const removeChildNodes = (
   switch (node.type) {
     case 'element':
       if (node.content.children) {
+        // filter this level children
         node.content.children = node.content.children.filter((child) => !criteria(child))
+
+        // call function recursively for remaining children
+        node.content.children.forEach((child) => removeChildNodes(child, criteria))
       }
+
       break
 
     case 'repeat':
@@ -586,6 +595,7 @@ export const removeChildNodes = (
 
     case 'static':
     case 'dynamic':
+    case 'raw':
       break
 
     default:
