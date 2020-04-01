@@ -203,7 +203,7 @@ export interface UIDLURLLinkNode {
 
 export interface UIDLSectionLinkNode {
   type: 'section'
-  content: { id: string }
+  content: { section: string }
 }
 
 export interface UIDLNavLinkNode {

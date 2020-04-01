@@ -81,7 +81,7 @@ export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): U
           attrs: {
             url: {
               type: 'static',
-              content: `#${link.content.id}`,
+              content: `#${link.content.section}`,
             },
           },
           children: [],

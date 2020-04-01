@@ -32,7 +32,7 @@ export const phoneMockedDefinition = (): UIDLPhoneLinkNode => ({
 export const sectionMockedDefinition = (): UIDLSectionLinkNode => ({
   type: 'section',
   content: {
-    id: 'contact',
+    section: 'contact',
   },
 })
 

@@ -121,6 +121,6 @@ describe('createLink', () => {
     const result = createLinkNode(link, {})
 
     expect(result.content.elementType).toBe('link')
-    expect(result.content.attrs.url.content).toBe(`#${link.content.id}`)
+    expect(result.content.attrs.url.content).toBe(`#${link.content.section}`)
   })
 })
