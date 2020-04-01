@@ -56,7 +56,7 @@ describe('insertLink', () => {
 
     expect(secondChildAfterInsertLinks.content.elementType).toBe('navlink')
     expect(secondChildAfterInsertLinks.content.attrs.transitionTo.content).toBe(
-      `/${navlink.options.routeName}`
+      `/${navlink.content.routeName}`
     )
   })
 
@@ -103,7 +103,7 @@ describe('createLink', () => {
     const result = createLinkNode(link, {})
 
     expect(result.content.elementType).toBe('link')
-    expect(result.content.attrs.url.content).toBe(`tel:${link.options.phone}`)
+    expect(result.content.attrs.url.content).toBe(`tel:${link.content.phone}`)
   })
 
   it('creates a mail link', () => {
@@ -112,7 +112,7 @@ describe('createLink', () => {
 
     expect(result.content.elementType).toBe('link')
     expect(result.content.attrs.url.content).toBe(
-      `mailto:${link.options.mail}?subject=${link.options.subject}&body=${link.options.body}`
+      `mailto:${link.content.mail}?subject=${link.content.subject}&body=${link.content.body}`
     )
   })
 
@@ -121,6 +121,6 @@ describe('createLink', () => {
     const result = createLinkNode(link, {})
 
     expect(result.content.elementType).toBe('link')
-    expect(result.content.attrs.url.content).toBe(`#${link.options.id}`)
+    expect(result.content.attrs.url.content).toBe(`#${link.content.id}`)
   })
 })

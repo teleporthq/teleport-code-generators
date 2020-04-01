@@ -1,44 +1,44 @@
 import {
-  UIDLLinkDefinition,
-  UIDLNavLinkDefinition,
-  UIDLLinkPhoneDefinition,
-  UIDLLinkMailDefinition,
-  UIDLLinkSectionDefinition,
+  UIDLNavLinkNode,
+  UIDLURLLinkNode,
+  UIDLMailLinkNode,
+  UIDLPhoneLinkNode,
+  UIDLSectionLinkNode,
 } from '@teleporthq/teleport-types'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 
-export const urlMockedDefinition = (openInNewTab: boolean = false): UIDLLinkDefinition => ({
+export const urlMockedDefinition = (openInNewTab: boolean = false): UIDLURLLinkNode => ({
   type: 'url',
-  options: {
+  content: {
     url: staticNode('https://teleporthq.io'),
     newTab: openInNewTab,
   },
 })
 
-export const navlinkMockedDefinition = (): UIDLNavLinkDefinition => ({
+export const navlinkMockedDefinition = (): UIDLNavLinkNode => ({
   type: 'navlink',
-  options: {
+  content: {
     routeName: 'home',
   },
 })
 
-export const phoneMockedDefinition = (): UIDLLinkPhoneDefinition => ({
+export const phoneMockedDefinition = (): UIDLPhoneLinkNode => ({
   type: 'phone',
-  options: {
+  content: {
     phone: '091837864834',
   },
 })
 
-export const sectionMockedDefinition = (): UIDLLinkSectionDefinition => ({
+export const sectionMockedDefinition = (): UIDLSectionLinkNode => ({
   type: 'section',
-  options: {
+  content: {
     id: 'contact',
   },
 })
 
-export const mailMockedDefinition = (): UIDLLinkMailDefinition => ({
+export const mailMockedDefinition = (): UIDLMailLinkNode => ({
   type: 'mail',
-  options: {
+  content: {
     mail: 'test@teleporthq.io',
     subject: 'Hello',
     body: "Is it me you're looking for?",
