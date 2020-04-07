@@ -54,20 +54,19 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
     let rootJSXNode = jsxNodesLookup[uidl.node.content.key]
-    if (rootJSXNode.selfClosing) {
-      const selfClosingTag = rootJSXNode
-      rootJSXNode = ASTBuilders.createJSXTag('')
-      rootJSXNode.children.push(selfClosingTag)
 
-      // fetching the AST parent of the root JSXNode
-      // We need to replace the root node which is self-closing (eg: <img> <input>) with a fragment <>
-      // The fragment will be the parent of both the old root JSXNode and the style tag
-      const componentAST = componentChunk.content as types.VariableDeclaration
-      const arrowFnExpr = componentAST.declarations[0].init as types.ArrowFunctionExpression
-      const bodyStatement = arrowFnExpr.body as types.BlockStatement
-      const returnStatement = bodyStatement.body[0] as types.ReturnStatement
-      returnStatement.argument = rootJSXNode
-    }
+    const originalRootNode = rootJSXNode
+    rootJSXNode = ASTBuilders.createJSXTag('')
+    rootJSXNode.children.push(originalRootNode)
+
+    // fetching the AST parent of the root JSXNode
+    // We need to replace the root node with a fragment <>
+    // The fragment will be the parent of both the old root JSXNode and the style tag
+    const componentAST = componentChunk.content as types.VariableDeclaration
+    const arrowFnExpr = componentAST.declarations[0].init as types.ArrowFunctionExpression
+    const bodyStatement = arrowFnExpr.body as types.BlockStatement
+    const returnStatement = bodyStatement.body[0] as types.ReturnStatement
+    returnStatement.argument = rootJSXNode
 
     rootJSXNode.children.push(jsxASTNodeReference)
     return structure
