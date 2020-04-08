@@ -1,6 +1,6 @@
 import { format } from 'prettier/standalone'
 
-import parserBabylon from 'prettier/parser-babylon'
+import parserBabel from 'prettier/parser-babel'
 import parserPostCSS from 'prettier/parser-postcss'
 
 import { Constants } from '@teleporthq/teleport-shared'
@@ -15,7 +15,7 @@ export const createPrettierJSXPostProcessor = (options: PostProcessorFactoryOpti
   const fileType = options.fileType || FileType.JS
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
 
-  const plugins = [parserBabylon, parserPostCSS]
+  const plugins = [parserBabel, parserPostCSS]
 
   const processor: PostProcessor = (codeChunks) => {
     if (codeChunks[fileType]) {
