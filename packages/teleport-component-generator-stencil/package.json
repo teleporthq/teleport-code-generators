@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-stencil",
-  "version": "0.10.8",
+  "version": "0.10.10",
   "description": "Component generator customization, capable of creating Stencil components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "@teleporthq/teleport-plugin-css": "^0.10.8",
     "@teleporthq/teleport-plugin-import-statements": "^0.10.8",
     "@teleporthq/teleport-plugin-stencil-base-component": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.8",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.10",
     "@teleporthq/teleport-shared": "^0.10.8",
     "@teleporthq/teleport-types": "^0.10.8"
   },

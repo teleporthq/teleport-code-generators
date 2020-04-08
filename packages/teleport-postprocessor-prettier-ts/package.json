@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-ts",
-  "version": "0.10.8",
+  "version": "0.10.10",
   "description": "A post-processing function that formats ts code chunks using prettier and the ts parser",
   "author": "teleportHQ",
   "license": "MIT",

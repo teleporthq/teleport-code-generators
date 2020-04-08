@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-angular",
-  "version": "0.10.8",
+  "version": "0.10.10",
   "description": "Component generator customization, capable of creating Angular components",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -30,8 +30,8 @@
     "@teleporthq/teleport-plugin-angular-base-component": "^0.10.8",
     "@teleporthq/teleport-plugin-css": "^0.10.8",
     "@teleporthq/teleport-plugin-import-statements": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.10.8",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.10",
+    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.10.10",
     "@teleporthq/teleport-shared": "^0.10.8",
     "@teleporthq/teleport-types": "^0.10.8"
   },

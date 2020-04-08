@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-js",
-  "version": "0.10.8",
+  "version": "0.10.10",
   "description": "A post-processing function that formats js code chunks using prettier and the babylon parser",
   "author": "teleportHQ",
   "license": "MIT",

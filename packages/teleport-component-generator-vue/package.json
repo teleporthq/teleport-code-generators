@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-vue",
-  "version": "0.10.8",
+  "version": "0.10.10",
   "description": "Component generator customization, capable of creating Vue components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -31,8 +31,8 @@
     "@teleporthq/teleport-plugin-import-statements": "^0.10.8",
     "@teleporthq/teleport-plugin-vue-app-routing": "^0.10.8",
     "@teleporthq/teleport-plugin-vue-base-component": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.8",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.10.10",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.10.10",
     "@teleporthq/teleport-postprocessor-vue-file": "^0.10.8",
     "@teleporthq/teleport-shared": "^0.10.8",
     "@teleporthq/teleport-types": "^0.10.8"
