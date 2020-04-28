@@ -2,7 +2,6 @@ import { createGithubGateway } from '@teleporthq/teleport-github-gateway'
 
 import {
   AssetsDefinition,
-  AssetInfo,
   GeneratedFolder,
   GeneratedFile,
   RemoteTemplateDefinition,
@@ -25,17 +24,9 @@ export const injectAssetsToProject = async (
 
   const { assets, path = [] } = assetsData
 
-  assets.forEach((asset: AssetInfo) => {
-    const { data, name, type } = asset
-    const file: GeneratedFile = {
-      name,
-      content: data,
-      contentEncoding: 'base64',
-      fileType: type,
-    }
-
+  assets.forEach((asset: GeneratedFile) => {
     const filePath = [...assetsRootPath, ...path]
-    project = injectFileInGeneratedFolder(project, file, filePath)
+    project = injectFileInGeneratedFolder(project, asset, filePath)
   })
 
   return project
