@@ -1,30 +1,36 @@
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { GeneratorOptions, UIDLLinkNode, UIDLElementNode } from '@teleporthq/teleport-types'
+import {
+  GeneratorOptions,
+  UIDLLinkNode,
+  UIDLElementNode,
+  UIDLAttributeValue,
+} from '@teleporthq/teleport-types'
 
 export const insertLinks = (
   node: UIDLElementNode,
   options: GeneratorOptions,
-  linkInParent: boolean = false
+  linkInParent: boolean = false,
+  parentNode?: UIDLElementNode
 ): UIDLElementNode => {
-  const { abilities, children } = node.content
+  const { abilities, children, elementType } = node.content
   const linkInNode = linkInParent || !!abilities?.link
 
   // TODO: think of a way to reuse the traversal that modifies the tree
   node.content.children = children?.map((child) => {
     if (child.type === 'element') {
-      return insertLinks(child, options, linkInNode)
+      return insertLinks(child, options, linkInNode, node)
     }
 
     if (child.type === 'repeat') {
-      child.content.node = insertLinks(child.content.node, options, linkInNode)
+      child.content.node = insertLinks(child.content.node, options, linkInNode, node)
     }
 
     if (child.type === 'conditional' && child.content.node.type === 'element') {
-      child.content.node = insertLinks(child.content.node, options, linkInNode)
+      child.content.node = insertLinks(child.content.node, options, linkInNode, node)
     }
 
     if (child.type === 'slot' && child.content.fallback?.type === 'element') {
-      child.content.fallback = insertLinks(child.content.fallback, options, linkInNode)
+      child.content.fallback = insertLinks(child.content.fallback, options, linkInNode, node)
     }
 
     return child
@@ -36,10 +42,27 @@ export const insertLinks = (
       return node
     }
 
-    const linkNode = createLinkNode(abilities.link, options)
-    // console.log('link node inserted', JSON.stringify(linkNode, null, 2))
+    // a text node (span) on which we added a link gets transformed into an <a> to keep
+    if (elementType === 'text') {
+      node.content.elementType = getLinkElementType(abilities.link)
+      node.content.attrs = createLinkAttributes(abilities.link, options)
 
+      return node
+    }
+
+    const linkNode = createLinkNode(abilities.link, options)
     linkNode.content.children.push(node)
+
+    if (
+      node.content.style?.display?.content === 'inline' &&
+      parentNode?.content.style?.display?.content === 'flex'
+    ) {
+      linkNode.content.style = {
+        ...linkNode.content.style,
+        display: { type: 'static', content: 'inline-flex' },
+      }
+    }
+
     return linkNode
   }
 
@@ -47,60 +70,57 @@ export const insertLinks = (
 }
 
 export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): UIDLElementNode => {
+  return {
+    type: 'element',
+    content: {
+      elementType: getLinkElementType(link),
+      attrs: createLinkAttributes(link, options),
+      children: [],
+    },
+  }
+}
+
+const getLinkElementType = (link: UIDLLinkNode): string => {
+  return link.type === 'navlink' ? 'navlink' : 'link'
+}
+
+const createLinkAttributes = (
+  link: UIDLLinkNode,
+  options: GeneratorOptions
+): Record<string, UIDLAttributeValue> => {
   switch (link.type) {
     case 'url': {
       return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: link.content.url,
-            ...(link.content.newTab
-              ? {
-                  target: {
-                    type: 'static',
-                    content: '_blank',
-                  },
-                  rel: {
-                    type: 'static',
-                    content: 'noreferrer noopener',
-                  },
-                }
-              : {}),
-          },
-          children: [],
-        },
+        url: link.content.url,
+        ...(link.content.newTab
+          ? {
+              target: {
+                type: 'static',
+                content: '_blank',
+              },
+              rel: {
+                type: 'static',
+                content: 'noreferrer noopener',
+              },
+            }
+          : {}),
       }
     }
 
     case 'section': {
       return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: {
-              type: 'static',
-              content: `#${link.content.section}`,
-            },
-          },
-          children: [],
+        url: {
+          type: 'static',
+          content: `#${link.content.section}`,
         },
       }
     }
 
     case 'navlink': {
       return {
-        type: 'element',
-        content: {
-          elementType: 'navlink',
-          attrs: {
-            transitionTo: {
-              type: 'static',
-              content: resolveNavlink(link.content.routeName, options),
-            },
-          },
-          children: [],
+        transitionTo: {
+          type: 'static',
+          content: resolveNavlink(link.content.routeName, options),
         },
       }
     }
@@ -112,27 +132,13 @@ export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): U
       }
 
       return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: { type: 'static', content: mailUrl },
-          },
-          children: [],
-        },
+        url: { type: 'static', content: mailUrl },
       }
     }
 
     case 'phone': {
       return {
-        type: 'element',
-        content: {
-          elementType: 'link',
-          attrs: {
-            url: { type: 'static', content: `tel:${link.content.phone}` },
-          },
-          children: [],
-        },
+        url: { type: 'static', content: `tel:${link.content.phone}` },
       }
     }
 
