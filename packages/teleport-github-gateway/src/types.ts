@@ -1,4 +1,4 @@
-import { ServiceAuth, GeneratedFolder } from '@teleporthq/teleport-types'
+import { ServiceAuth, GeneratedFolder, FileEncoding } from '@teleporthq/teleport-types'
 import GithubInstance from './github-instance'
 
 export type GithubGatewayFactory = (auth?: ServiceAuth) => GithubGateway
@@ -33,7 +33,7 @@ export interface GithubFile {
   content: string
   name: string
   path?: string
-  encoding?: string
+  encoding?: FileEncoding
   type?: string
   url?: string
   git_url?: string
@@ -46,7 +46,7 @@ export interface GithubFileMeta {
   path: string
   mode: string
   type: string
-  encoding?: string
+  encoding?: FileEncoding
 }
 
 export interface NewRepository {

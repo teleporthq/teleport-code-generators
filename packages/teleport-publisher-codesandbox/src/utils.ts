@@ -24,8 +24,7 @@ interface CodesandboxFile {
 
 const getCodeSandboxFile = (file: GeneratedFile): CodesandboxFile => {
   return {
-    content: file.content, // file.contentEncoding === 'base64' ? atob(file.content) : file.content,
-    isBinary: false,
-    // isBinary: !!(file.contentEncoding === 'base64'),
+    content: file.content,
+    isBinary: file.location === 'remote',
   }
 }

@@ -205,11 +205,15 @@ export interface GeneratedFolder {
   subFolders: GeneratedFolder[]
 }
 
+export type FileLocation = 'remote' | 'project'
+export type FileEncoding = 'base64' | 'utf8' | 'binary'
+
 export interface GeneratedFile {
   name: string
   content: string
+  contentEncoding?: FileEncoding
   fileType?: string
-  contentEncoding?: string
+  location?: FileLocation
 }
 
 /**
@@ -241,14 +245,8 @@ export interface NowDeployResponse {
  */
 
 export interface AssetsDefinition {
-  assets: AssetInfo[]
+  assets: GeneratedFile[]
   path?: string[]
-}
-
-export interface AssetInfo {
-  data: string
-  name: string
-  type?: string
 }
 
 export interface RemoteTemplateDefinition {
@@ -311,7 +309,7 @@ export interface PackerOptions {
   projectType: ProjectType
   publisher?: PublisherType
   publishOptions?: GithubOptions | NowOptions | PublisherOptions
-  assets?: AssetInfo[]
+  assets?: GeneratedFile[]
 }
 
 export interface GenerateOptions {

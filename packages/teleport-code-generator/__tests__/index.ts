@@ -27,9 +27,9 @@ const base64File = new Buffer(assetFile).toString('base64')
 
 const assets = [
   {
-    data: base64File,
+    content: base64File,
     name: 'asset',
-    type: 'png',
+    fileType: 'png',
   },
 ]
 

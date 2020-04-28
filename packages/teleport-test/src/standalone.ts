@@ -16,14 +16,14 @@ const packerOptions: PackerOptions = {
   },
   assets: [
     {
-      type: 'png',
+      fileType: 'png',
       name: 'icons-192',
-      data: base64File,
+      content: base64File,
     },
     {
-      type: 'png',
+      fileType: 'png',
       name: 'icons-512',
-      data: base64File,
+      content: base64File,
     },
   ],
 }

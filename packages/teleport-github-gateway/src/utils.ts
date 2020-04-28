@@ -1,5 +1,10 @@
 import fetch from 'cross-fetch'
-import { GeneratedFolder, GeneratedFile, ServiceAuth } from '@teleporthq/teleport-types'
+import {
+  GeneratedFolder,
+  GeneratedFile,
+  ServiceAuth,
+  FileEncoding,
+} from '@teleporthq/teleport-types'
 import { GithubFile, FilesFetcherMeta, GithubCreateResponse } from './types'
 
 import { DEFAULT_REF, GITHUB_API_BASE_URL, FILE_EXTENTIONS_TO_DECODE } from './constants'
@@ -76,7 +81,7 @@ const getFileContent = async (
   const githubFileMetadata = { ...userRepositoryIdentity, ref, path }
   const { data } = await githubInstance.getRepoContent(githubFileMetadata)
 
-  let { content, encoding = 'base64' } = data as GithubFile
+  let { content, encoding } = data as GithubFile
 
   const splittedName = name.split('.')
   const fileType = splittedName.pop()
@@ -95,7 +100,7 @@ const getFileContent = async (
   }
 }
 
-const fileMustBeDecoded = (fileType: string, encoding: string): boolean => {
+const fileMustBeDecoded = (fileType: string, encoding: FileEncoding): boolean => {
   return encoding === 'base64' && FILE_EXTENTIONS_TO_DECODE.indexOf(fileType) !== -1
 }
 
