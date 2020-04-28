@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-reactnative",
-  "version": "0.10.10",
+  "version": "0.10.11",
   "description": "Project generator using React Native and Navigator",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,13 +26,13 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.10.8",
-    "@teleporthq/teleport-component-generator-reactnative": "^0.10.10",
-    "@teleporthq/teleport-plugin-import-statements": "^0.10.8",
-    "@teleporthq/teleport-plugin-reactnative-app-routing": "^0.10.8",
-    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.10",
-    "@teleporthq/teleport-project-generator": "^0.10.8",
-    "@teleporthq/teleport-shared": "^0.10.8",
-    "@teleporthq/teleport-types": "^0.10.8"
+    "@teleporthq/teleport-component-generator": "^0.10.11",
+    "@teleporthq/teleport-component-generator-reactnative": "^0.10.11",
+    "@teleporthq/teleport-plugin-import-statements": "^0.10.11",
+    "@teleporthq/teleport-plugin-reactnative-app-routing": "^0.10.11",
+    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.10.11",
+    "@teleporthq/teleport-project-generator": "^0.10.11",
+    "@teleporthq/teleport-shared": "^0.10.11",
+    "@teleporthq/teleport-types": "^0.10.11"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-github",
-  "version": "0.10.8",
+  "version": "0.10.11",
   "description": "Project github publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-github-gateway": "^0.10.8",
-    "@teleporthq/teleport-types": "^0.10.8"
+    "@teleporthq/teleport-github-gateway": "^0.10.11",
+    "@teleporthq/teleport-types": "^0.10.11"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
