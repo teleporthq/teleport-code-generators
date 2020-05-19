@@ -35,6 +35,7 @@
         "folderPath": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9-_.]*$" } }
       }
     },
+    "styleSetDefinitions": { "$ref": "#/definitions/styleSetDefinitions"},
     "stateDefinitions":  { "$ref": "#/definitions/stateDefinitions" },
     "propDefinitions": { "$ref": "#/definitions/propDefinitions" }
   },
@@ -76,6 +77,30 @@
           }
         }
       }
+    },
+    "styleSetDefinitions": {
+      "type": "object",
+        "patternProperties": {
+          ".*": {
+            "type": "object",
+            "required": ["id", "name", "type", "content"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string", "enum": ["reusable-project-style-map"]
+              },
+              "content": {
+                "$ref": "#/definitions/styleValue" 
+              }
+            }
+          }
+        }
     },
     "stateDefinitions": {
       "type": "object",
@@ -300,6 +325,7 @@
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},
         "style": {"$ref": "#/definitions/styleDefinitions"},
+        "referencedStyles": { "$ref": "#/definitions/referencedStyleDefinitions"},
         "abilities": {
           "type": "object",
           "properties": {
@@ -344,32 +370,73 @@
         ".*": { "oneOf": [
           { "$ref": "#/definitions/styleValue" },
           { "type": "string" },
-          { "type": "number" },
-          { 
-            "type": "object",
-            "patternProperties": {
-              ".*": {"$ref": "#/definitions/styleDefinitions"}
-            }
-          }
+          { "type": "number" }
         ] }
       }
     },
     "styleValue": {
-      "type": "object",
-      "oneOf": [
-        {"$ref":"#/definitions/attributeValue"},
-        {"$ref":"#/definitions/nestedStyleDeclaration"}
-      ]
+      "$ref":"#/definitions/attributeValue"
     },
-    "nestedStyleDeclaration": {
+    "referencedStyleDefinitions": {
+      "$ref": "#/definitions/inlineStyleReferences"
+    },
+    "inlineStyleReferences": {
       "type": "object",
-      "required": ["type", "content"],
-      "properties":{
-        "type": {
-          "type": "string",
-          "enum": ["nested-style"]
-        },
-        "content":{"$ref": "#/definitions/styleDefinitions"}
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["type", "content"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {"type": "string", "enum": ["style-map"]},
+            "id": {"type": "string"},
+            "content": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mapType": {"type": "string", "enum": ["inlined"]},
+                "conditions": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/styleMediaQueriesDefinition"},
+                        {"$ref": "#/definitions/styleStateConditionDefinition"}
+                    ]
+                  }
+                },
+                "styles": {
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "$ref": "#/definitions/styleDefinitions"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "styleStateConditionDefinition": {
+      "type": "object",
+      "required": ["conditionType", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "conditionType": {"type": "string", "enum": ["element-state"]},
+        "content": {"type": "string", "enum": ["hover", "focus", "active", "disabled"]}
+      }
+    },
+    "styleMediaQueriesDefinition": {
+      "type": "object",
+      "required": ["conditionType", "maxWidth"],
+      "additionalProperties": false,
+      "properties": {
+        "conditionType": { "type": "string", "enum": ["screen-size"]},
+        "maxWidth": { "type": "number"},
+        "maxHeight": {"type": "number"},
+        "minWidth": {"type": "number"},
+        "minHeight": {"type": "number"}
       }
     },
     "linkDefinition": {

@@ -213,6 +213,10 @@ export const formatErrors = (errors: Ajv.ErrorObject[]) => {
       error.keyword === 'type'
         ? `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
         : `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
+
+    if (error.data === 'nested-style') {
+      listOfErrors.push(`\n - 'nested-style' is not supported, please check ${error.dataPath}`)
+    }
     listOfErrors.push(message)
   })
 
