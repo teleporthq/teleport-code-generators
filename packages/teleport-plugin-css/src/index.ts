@@ -36,7 +36,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-
     const { node } = uidl
 
     const templateChunk = chunks.find((chunk) => chunk.name === templateChunkName)
@@ -58,9 +57,9 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     const jssStylesArray: string[] = []
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style, key } = element
+      const { style, key, referencedStyles } = element
 
-      if (!style) {
+      if (!style && !referencedStyles) {
         return
       }
 
@@ -111,6 +110,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             )
           }
         }
+      }
+
+      if (Object.keys(referencedStyles).length > 0) {
+        // TODO: handle referenced styles here
       }
     })
 

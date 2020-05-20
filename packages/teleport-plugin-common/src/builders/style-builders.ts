@@ -19,6 +19,43 @@ export const createCSSClass = (className: string, styleObject: Record<string, st
     .toString()
 }
 
+export const createCSSClassWithSelector = (
+  className: string,
+  selector: string,
+  styleObject: Record<string, string | number>
+) => {
+  return jss
+    .createStyleSheet(
+      {
+        [`.${className}`]: {
+          [selector]: styleObject,
+        },
+      },
+      {
+        generateId: () => className,
+      }
+    )
+    .toString()
+}
+
+export const createCSSClassWithMediaQuery = (
+  className: string,
+  mediaOffset: string,
+  styleObject: Record<string, string | number>
+) => {
+  return jss
+    .createRule(
+      `@media(${mediaOffset})`,
+      {
+        [`.${className}`]: styleObject,
+      },
+      {
+        generateId: () => className,
+      }
+    )
+    .toString()
+}
+
 export const createDynamicStyleExpression = (
   styleValue: UIDLDynamicReference,
   propsPrefix: string = '',

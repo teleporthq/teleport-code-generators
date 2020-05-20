@@ -6,6 +6,7 @@ import {
   ComponentPlugin,
   FileType,
   ChunkType,
+  UIDLElementNodeReferencedStyledNode,
 } from '@teleporthq/teleport-types'
 
 interface CSSModulesConfig {
@@ -56,15 +57,71 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
-      const { style, key } = element
+      const { style, key, referencedStyles } = element
+
+      if (!style && !referencedStyles) {
+        return
+      }
+
+      const className = StringUtils.camelCaseToDashCase(key)
+      const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
+
+      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
+        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferencedStyledNode) => {
+          switch (styleRef.content.mapType) {
+            case 'inlined': {
+              const condition = styleRef.content.conditions[0]
+              if (
+                !condition ||
+                !styleRef.content.styles ||
+                Object.keys(styleRef.content.styles).length === 0
+              ) {
+                return
+              }
+
+              if (condition.conditionType === 'screen-size') {
+                cssClasses.push(
+                  StyleBuilders.createCSSClassWithMediaQuery(
+                    className,
+                    `max-width: ${condition.maxWidth}px`,
+                    // @ts-ignore
+                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
+                  )
+                )
+                return
+              }
+
+              if (condition.conditionType === 'element-state') {
+                cssClasses.push(
+                  StyleBuilders.createCSSClassWithSelector(
+                    className,
+                    `&:${condition.content}`,
+                    // @ts-ignore
+                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
+                  )
+                )
+                return
+              }
+
+              return
+            }
+            case 'project-referenced': {
+              return
+            }
+            default: {
+              throw new Error(
+                `We support only project-referenced or inlined, received ${styleRef.content}`
+              )
+            }
+          }
+        })
+      }
+
       if (style) {
         const root = astNodesLookup[key]
         const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
 
         if (Object.keys(staticStyles).length > 0) {
-          const className = StringUtils.camelCaseToDashCase(key)
-          const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
-
           cssClasses.push(
             StyleBuilders.createCSSClass(
               className,
