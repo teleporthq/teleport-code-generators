@@ -96,7 +96,26 @@
                 "type": "string", "enum": ["reusable-project-style-map"]
               },
               "content": {
-                "$ref": "#/definitions/styleValue" 
+                "patternProperties": {
+                  ".*": {
+                    "oneOf": [
+                      {"type": "string"},
+                      {"type": "number"},
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["static"]},
+                          "content": {
+                            "oneOf": [
+                              {"type": "string"},
+                              {"type":"number"}
+                            ]
+                          }
+                        }
+                      }
+                    ] 
+                  }
+                }
               }
             }
           }
@@ -378,9 +397,6 @@
       "$ref":"#/definitions/attributeValue"
     },
     "referencedStyleDefinitions": {
-      "$ref": "#/definitions/inlineStyleReferences"
-    },
-    "inlineStyleReferences": {
       "type": "object",
       "patternProperties": {
         ".*": {
@@ -392,27 +408,59 @@
             "id": {"type": "string"},
             "content": {
               "type": "object",
-              "additionalProperties": false,
               "properties": {
-                "mapType": {"type": "string", "enum": ["inlined"]},
-                "conditions": {
-                  "type": "array",
-                  "items": {
-                    "oneOf": [
-                        {"$ref": "#/definitions/styleMediaQueriesDefinition"},
-                        {"$ref": "#/definitions/styleStateConditionDefinition"}
-                    ]
+                "mapType": {"type": "string", "enum": ["inlined", "project-referenced"]}
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "mapType": { "const": "inlined"}
+                    }
+                  },
+                  "then": {
+                    "required": ["styles"],
+                    "properties": {
+                      "conditions": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                              {"$ref": "#/definitions/styleMediaQueriesDefinition"},
+                              {"$ref": "#/definitions/styleStateConditionDefinition"}
+                          ]
+                        }
+                      },
+                      "styles": {
+                        "$ref": "#/definitions/styleDefinitions"
+                      }
+                    }
                   }
                 },
-                "styles": {
-                  "type": "object",
-                  "patternProperties": {
-                    ".*": {
-                      "$ref": "#/definitions/styleDefinitions"
+                {
+                  "if": {
+                    "properties": {
+                      "mapType": { "const": "project-referenced"}
+                    }
+                  },
+                  "then": {
+                    "required": ["referenceId"],
+                    "properties": {
+                      "conditions": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                              {"$ref": "#/definitions/styleMediaQueriesDefinition"},
+                              {"$ref": "#/definitions/styleStateConditionDefinition"}
+                          ]
+                        }
+                      },
+                      "referenceId": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
-              }
+              ]
             }
           }
         }

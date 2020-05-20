@@ -1,7 +1,13 @@
 import Ajv from 'ajv'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
-import { ProjectUIDL, UIDLElement, ComponentUIDL, UIDLNode } from '@teleporthq/teleport-types'
+import {
+  ProjectUIDL,
+  UIDLElement,
+  ComponentUIDL,
+  UIDLNode,
+  UIDLStyleSetDefnition,
+} from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
@@ -171,6 +177,24 @@ export const checkComponentNaming = (input: ProjectUIDL) => {
     errors.push(errorMsg)
   }
 
+  return errors
+}
+
+export const checkProjectStyleSet = (input: ProjectUIDL) => {
+  const errors: string[] = []
+  const styleSet = input.root.styleSetDefinitions
+  Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefnition) => {
+    const { content } = styleSetObj
+    Object.values(content).forEach((styleContent) => {
+      if (
+        styleContent.type !== 'static' &&
+        typeof styleContent !== 'string' &&
+        typeof styleContent !== 'number'
+      ) {
+        errors.push('We support only static values in project-style sheet')
+      }
+    })
+  })
   return errors
 }
 

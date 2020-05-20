@@ -43,8 +43,6 @@ export const countPropReferences = (
     const styleAttr = style[item]
     if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
       timesReferred++
-    } else if (styleAttr.type === 'nested-style') {
-      timesReferred = countPropReferences(styleAttr.content, timesReferred)
     }
   })
   return timesReferred

@@ -72,7 +72,7 @@ export interface UIDLStyleSetDefnition {
   id: string
   name: string
   type: 'reusable-project-style-map'
-  content: Record<string, UIDLStaticValue>
+  content: UIDLStaticValue
 }
 
 export interface UIDLStateDefinition {
@@ -180,6 +180,7 @@ export interface UIDLElement {
     link?: UIDLLinkNode
     // In the future more element abilities can be added here
   }
+  referencedStyles?: Record<string, UIDLElementNodeReferencedStyledNode>
   children?: UIDLNode[]
   selfClosing?: boolean
   ignore?: boolean
@@ -196,7 +197,7 @@ export type UIDLNode =
 
 export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
 
-export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
+export type UIDLStyleValue = UIDLAttributeValue
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
@@ -277,3 +278,44 @@ export interface Mapping {
   illegalClassNames?: string[]
   illegalPropNames?: string[]
 }
+
+export type UIDLElementNodeReferencedStyledNode =
+  | UIDLElementNodeProjectReferencedStyle
+  | UIDLElementNodeInlineReferencedStyle
+
+export type UIDLProjectReferencedStyleID = string
+export interface UIDLElementNodeProjectReferencedStyle {
+  id: string
+  type: 'style-map'
+  content: {
+    mapType: 'project-referenced'
+    conditions?: UIDLStyleConditions[]
+    referenceId: UIDLProjectReferencedStyleID
+  }
+}
+export interface UIDLElementNodeInlineReferencedStyle {
+  id: string
+  type: 'style-map'
+  content: {
+    mapType: 'inlined'
+    conditions?: UIDLStyleConditions[]
+    styles: UIDLStyleDefinitions
+  }
+}
+
+export type UIDLStyleConditions = UIDLStyleMediaQueryScreenSizeCondition | UIDLStyleStateCondition
+
+export interface UIDLStyleMediaQueryScreenSizeCondition {
+  conditionType: 'screen-size'
+  minHeight?: number
+  maxHeight?: number
+  minWidth?: number
+  maxWidth?: number
+}
+
+export interface UIDLStyleStateCondition {
+  conditionType: 'element-state'
+  content: UIDLElementStyleStates
+}
+
+export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'

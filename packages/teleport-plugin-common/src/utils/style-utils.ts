@@ -4,8 +4,6 @@ const getContentOfStyleKey = (styleValue: UIDLStyleValue) => {
   switch (styleValue.type) {
     case 'static':
       return styleValue.content
-    case 'nested-style':
-      return getContentOfStyleObject(styleValue.content)
     default:
       throw new Error(
         `getContentOfStyleKey received unsupported ${JSON.stringify(

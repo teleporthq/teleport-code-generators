@@ -73,6 +73,7 @@ export default class Validator {
     let allErrors = errorsOnRouteNode
 
     if (errorsOnRouteNode.length === 0) {
+      const errorsInStyleSet = utils.checkProjectStyleSet(input)
       const errorsInRootComponent = utils.checkRootComponent(input)
 
       const errorsWithComponentNaming = utils.checkComponentNaming(input)
@@ -83,6 +84,7 @@ export default class Validator {
         ...errorsWtihComponentExistence,
         ...errorsWithComponentNaming,
         ...errorsInRootComponent,
+        ...errorsInStyleSet,
       ]
     }
 
