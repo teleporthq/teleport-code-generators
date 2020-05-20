@@ -72,7 +72,7 @@ export interface UIDLStyleSetDefnition {
   id: string
   name: string
   type: 'reusable-project-style-map'
-  content: Record<string, UIDLStaticValue>
+  content: UIDLStaticValue
 }
 
 export interface UIDLStateDefinition {
