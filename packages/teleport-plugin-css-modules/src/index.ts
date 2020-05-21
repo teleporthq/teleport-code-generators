@@ -92,7 +92,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   )
                 )
               }
-
               if (condition.conditionType === 'element-state') {
                 cssClasses.push(
                   StyleBuilders.createCSSClassWithSelector(

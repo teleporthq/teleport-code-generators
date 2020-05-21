@@ -16,8 +16,6 @@ import {
   UIDLRepeatContent,
   UIDLRepeatMeta,
   UIDLElementNode,
-  UIDLElementNodeReferencedStyledNode,
-  UIDLElementNodeInlineReferencedStyle,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
