@@ -165,10 +165,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
           }
         }
       }
-
-      if (Object.keys(referencedStyles).length > 0) {
-        // TODO: handle referenced styles here
-      }
     })
 
     if (jssStylesArray.length > 0) {
