@@ -7,9 +7,9 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-
 import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
+import { styleSheetGenerator } from './utils'
 import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'
 
@@ -38,6 +38,14 @@ const createReactProjectGenerator = () => {
     pages: {
       generator: reactPagesGenerator,
       path: ['src', 'views'],
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      path: ['src'],
+      fileName: 'index',
+      options: {
+        variation: ReactStyleVariation.CSSModules,
+      },
     },
     router: {
       generator: routingComponentGenerator,

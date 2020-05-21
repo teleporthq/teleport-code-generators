@@ -52,6 +52,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     }
 
     const cssClasses: string[] = []
+    let appendClassName: boolean = false
     const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
@@ -87,8 +88,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     StyleUtils.getContentOfStyleObject(styleRef.content.styles)
                   )
                 )
-                return
               }
+
               if (condition.conditionType === 'element-state') {
                 cssClasses.push(
                   StyleBuilders.createCSSClassWithSelector(
@@ -98,8 +99,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     StyleUtils.getContentOfStyleObject(styleRef.content.styles)
                   )
                 )
-                return
               }
+
+              appendClassName = true
+
               return
             }
             case 'project-referenced': {
@@ -126,7 +129,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               StyleUtils.getContentOfStyleObject(staticStyles)
             )
           )
+          appendClassName = true
+        }
 
+        if (appendClassName) {
           // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
           const classNameIsJSFriendly = className === jsFriendlyClassName
           const classReferenceIdentifier =

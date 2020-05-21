@@ -133,6 +133,7 @@ export class ProjectGenerator {
     }
 
     const { components = {}, root } = uidl
+    const { styleSetDefinitions: projectstyleSetDefinitions = {} } = root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -157,6 +158,7 @@ export class ProjectGenerator {
       projectRouteDefinition: root.stateDefinitions.route,
       mapping,
       skipValidation: true,
+      projectstyleSetDefinitions,
     }
 
     // Handling pages
@@ -174,6 +176,11 @@ export class ProjectGenerator {
         const pageModule = await createPageModule(pageUIDL, this.strategy, options)
         injectFilesToPath(rootFolder, path, pageModule.files)
       }
+    }
+
+    if (this.strategy.projectStyleSheet) {
+      this.strategy.projectStyleSheet.generator(projectstyleSetDefinitions)
+      // TODO: Generate project style sheet and then take path from strategy
     }
 
     // Handling components

@@ -5,6 +5,7 @@ import {
   Mapping,
   UIDLElement,
   UIDLStateDefinition,
+  UIDLStyleSetDefnition,
 } from './uidl'
 
 export enum FileType {
@@ -88,6 +89,7 @@ export interface GeneratorOptions {
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
+  projectstyleSetDefinitions?: Record<string, UIDLStyleSetDefnition>
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -135,6 +137,14 @@ export interface ProjectStrategy {
     moduleGenerator?: ComponentGenerator
     path: string[]
     options?: ProjectStrategyPageOptions
+  }
+  projectStyleSheet?: {
+    generator: (sheet: Record<string, UIDLStyleSetDefnition>) => void
+    path: string[]
+    fileName: string
+    options: {
+      variation: string
+    }
   }
   router?: {
     generator: ComponentGenerator

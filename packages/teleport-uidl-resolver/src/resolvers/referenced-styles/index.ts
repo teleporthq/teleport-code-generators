@@ -56,7 +56,6 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
     return {}
   }
   const allMediaRelatedStyles: UIDLReferencedStyles = {}
-  // @ts-ignore
   const list: UIDLReferencedStyles = Object.values(styles).reduce(
     (acc: UIDLReferencedStyles, styleRef: UIDLelementNodeReferenceStyles) => {
       if (styleRef.content.conditions?.[0].conditionType === 'screen-size') {

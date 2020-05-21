@@ -2,6 +2,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
+  UIDLelementNodeReferenceStyles,
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLDynamicReference,
@@ -55,29 +56,81 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       : ''
 
     const jssStylesArray: string[] = []
-
     UIDLUtils.traverseElements(node, (element) => {
+      let appendClassName: boolean = false
       const { style, key, referencedStyles } = element
+
+      const elementClassName = StringUtils.camelCaseToDashCase(key)
+      const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
+      const className = forceScoping // when the framework doesn't provide automating scoping for classNames
+        ? `${componentFileName}-${elementClassName}`
+        : elementClassName
 
       if (!style && !referencedStyles) {
         return
+      }
+
+      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
+        Object.values(referencedStyles).forEach((styleRef: UIDLelementNodeReferenceStyles) => {
+          switch (styleRef.content.mapType) {
+            case 'inlined': {
+              const condition = styleRef.content.conditions[0]
+              if (
+                !condition ||
+                !styleRef.content.styles ||
+                Object.keys(styleRef.content.styles).length === 0
+              ) {
+                return
+              }
+              if (condition.conditionType === 'screen-size') {
+                jssStylesArray.push(
+                  StyleBuilders.createCSSClassWithMediaQuery(
+                    className,
+                    `max-width: ${condition.maxWidth}px`,
+                    // @ts-ignore
+                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
+                  )
+                )
+              }
+
+              if (condition.conditionType === 'element-state') {
+                jssStylesArray.push(
+                  StyleBuilders.createCSSClassWithSelector(
+                    className,
+                    `&:${condition.content}`,
+                    // @ts-ignore
+                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
+                  )
+                )
+              }
+
+              appendClassName = true
+              return
+            }
+            case 'project-referenced': {
+              return
+            }
+            default: {
+              throw new Error(
+                `We support only project-referenced or inlined, received ${styleRef.content}`
+              )
+            }
+          }
+        })
       }
 
       const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
       const root = templateLookup[key]
 
       if (Object.keys(staticStyles).length > 0) {
-        const elementClassName = StringUtils.camelCaseToDashCase(key)
-        const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
-        const className = forceScoping // when the framework doesn't provide automating scoping for classNames
-          ? `${componentFileName}-${elementClassName}`
-          : elementClassName
-
         jssStylesArray.push(
           // @ts-ignore
           StyleBuilders.createCSSClass(className, StyleUtils.getContentOfStyleObject(staticStyles))
         )
+        appendClassName = true
+      }
 
+      if (appendClassName) {
         if (templateStyle === 'html') {
           HASTUtils.addClassToNode(root as HastNode, className)
         } else {
@@ -110,10 +163,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             )
           }
         }
-      }
-
-      if (Object.keys(referencedStyles).length > 0) {
-        // TODO: handle referenced styles here
       }
     })
 
