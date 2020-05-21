@@ -180,7 +180,7 @@ export interface UIDLElement {
     link?: UIDLLinkNode
     // In the future more element abilities can be added here
   }
-  referencedStyles?: Record<string, UIDLElementNodeReferencedStyledNode>
+  referencedStyles?: UIDLReferencedStyles
   children?: UIDLNode[]
   selfClosing?: boolean
   ignore?: boolean
@@ -279,7 +279,9 @@ export interface Mapping {
   illegalPropNames?: string[]
 }
 
-export type UIDLElementNodeReferencedStyledNode =
+export type UIDLReferencedStyles = Record<string, UIDLelementNodeReferenceStyles>
+
+export type UIDLelementNodeReferenceStyles =
   | UIDLElementNodeProjectReferencedStyle
   | UIDLElementNodeInlineReferencedStyle
 

@@ -16,8 +16,6 @@ import {
   UIDLRepeatContent,
   UIDLRepeatMeta,
   UIDLElementNode,
-  UIDLElementNodeReferencedStyledNode,
-  UIDLElementNodeInlineReferencedStyle,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -150,11 +148,9 @@ export const traverseNodes = (
       }
 
       if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferencedStyledNode) => {
-          const { mapType } = styleRef.content
-          if (mapType === 'inlined') {
-            const { content } = styleRef as UIDLElementNodeInlineReferencedStyle
-            traverseStyleObject(content.styles)
+        Object.values(referencedStyles).forEach((styleRef) => {
+          if (styleRef.content.mapType === 'inlined') {
+            traverseStyleObject(styleRef.content.styles)
           }
         })
       }

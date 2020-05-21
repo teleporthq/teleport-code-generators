@@ -6,7 +6,7 @@ import {
   ComponentPlugin,
   FileType,
   ChunkType,
-  UIDLElementNodeReferencedStyledNode,
+  UIDLelementNodeReferenceStyles,
 } from '@teleporthq/teleport-types'
 
 interface CSSModulesConfig {
@@ -67,7 +67,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
 
       if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferencedStyledNode) => {
+        Object.values(referencedStyles).forEach((styleRef: UIDLelementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
               const condition = styleRef.content.conditions[0]
@@ -78,7 +78,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               ) {
                 return
               }
-
               if (condition.conditionType === 'screen-size') {
                 cssClasses.push(
                   StyleBuilders.createCSSClassWithMediaQuery(
@@ -90,7 +89,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 )
                 return
               }
-
               if (condition.conditionType === 'element-state') {
                 cssClasses.push(
                   StyleBuilders.createCSSClassWithSelector(
@@ -102,7 +100,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 )
                 return
               }
-
               return
             }
             case 'project-referenced': {
