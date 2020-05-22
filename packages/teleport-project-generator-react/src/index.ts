@@ -15,10 +15,12 @@ import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+  const reactComponentGenerator = createReactComponentGenerator(
+    ReactStyleVariation.StyledComponents
+  )
   reactComponentGenerator.addMapping(ReactProjectMapping as Mapping)
 
-  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
+  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents, {
     plugins: [headConfigPlugin],
     mappings: [ReactProjectMapping as Mapping],
   })
