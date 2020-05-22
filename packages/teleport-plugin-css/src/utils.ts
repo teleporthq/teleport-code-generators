@@ -1,9 +1,9 @@
 import { UIDLStyleSetDefnition, ChunkType, FileType } from '@teleporthq/teleport-types'
 import { StyleUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 
-export const generateCSSModulesFileFromJSON = (
+export const generateCSSFileFromJSON = (
   styleSheet: Record<string, UIDLStyleSetDefnition>,
-  fileName: string
+  fileName?: string
 ) => {
   const cssMap: string[] = []
   if (!styleSheet) {
@@ -20,7 +20,7 @@ export const generateCSSModulesFileFromJSON = (
     )
   })
   return {
-    name: `${fileName}.module`,
+    name: fileName,
     type: ChunkType.STRING,
     fileType: FileType.CSS,
     content: cssMap.join('\n'),

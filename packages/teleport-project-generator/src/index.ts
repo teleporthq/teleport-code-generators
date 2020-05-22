@@ -160,7 +160,12 @@ export class ProjectGenerator {
       projectRouteDefinition: root.stateDefinitions.route,
       mapping,
       skipValidation: true,
-      projectstyleSetDefinitions,
+    }
+
+    if (this.strategy.projectStyleSheet?.generator) {
+      const { generator, fileName, path } = this.strategy.projectStyleSheet
+      const file = generator(styleSetDefinitions, fileName)
+      injectFilesToPath(rootFolder, path, [file])
     }
 
     if (this.strategy.projectStyleSheet?.generator) {
@@ -195,11 +200,6 @@ export class ProjectGenerator {
         const pageModule = await createPageModule(pageUIDL, this.strategy, options)
         injectFilesToPath(rootFolder, path, pageModule.files)
       }
-    }
-
-    if (this.strategy.projectStyleSheet) {
-      this.strategy.projectStyleSheet.generator(projectstyleSetDefinitions)
-      // TODO: Generate project style sheet and then take path from strategy
     }
 
     // Handling components

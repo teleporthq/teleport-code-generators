@@ -43,7 +43,7 @@ const createReactProjectGenerator = () => {
     },
     pages: {
       generator: reactPagesGenerator,
-      path: ['src', 'views'],
+      path: ['src', 'views', 'testingFolder'],
     },
     projectStyleSheet: {
       generator: styleSheetGenerator,
