@@ -163,9 +163,10 @@ export class ProjectGenerator {
     }
 
     if (this.strategy.projectStyleSheet?.generator) {
-      const { generator, fileName, path } = this.strategy.projectStyleSheet
-      const file = generator(styleSetDefinitions, fileName)
-      injectFilesToPath(rootFolder, path, [file])
+      const { generator, path, fileName } = this.strategy.projectStyleSheet
+      const { files } = await generator.generateComponent(uidl.root)
+      injectFilesToPath(rootFolder, path, [{ ...files[0], name: fileName }])
+      // TODO: Investigate why the name is missing
     }
 
     // Handling pages

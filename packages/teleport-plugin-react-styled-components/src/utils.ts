@@ -19,6 +19,14 @@ export const generateStyledComponent = (
   ])
 }
 
+export const generateExportableStyledComponent = (
+  name: string,
+  type: string,
+  styles: Record<string, unknown>
+) => {
+  return t.exportNamedDeclaration(generateStyledComponent(name, type, styles))
+}
+
 const mapStyles = (styles: Record<string, unknown>) => {
   let style = ''
   Object.keys(styles).forEach((item) => {

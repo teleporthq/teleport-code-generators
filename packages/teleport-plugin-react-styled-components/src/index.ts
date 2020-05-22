@@ -5,9 +5,10 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { generateStyledComponent, countPropReferences, removeUnusedDependencies } from './utils'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { generateStyledComponent, countPropReferences, removeUnusedDependencies } from './utils'
+import { createStyleSheetPlugin } from './style-sheet'
 
 interface StyledComponentsConfig {
   componentChunkName: string
@@ -126,5 +127,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
   return reactStyledComponentsPlugin
 }
+
+export { createStyleSheetPlugin }
 
 export default createReactStyledComponentsPlugin()

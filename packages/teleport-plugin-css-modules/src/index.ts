@@ -8,7 +8,7 @@ import {
   ChunkType,
   UIDLelementNodeReferenceStyles,
 } from '@teleporthq/teleport-types'
-import { generateCSSModulesFileFromJSON } from './utils'
+import { createStyleSheetPlugin } from './style-sheet'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -200,7 +200,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const fileName = `${options.projectStyleSet.fileName}.module`
       dependencies[`projectStyles`] = {
         type: 'local',
-        path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`, // TODO: calculate the relative path from the sheet level
+        path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,
+        // TODO: calculate the relative path from the sheet level
       }
     }
 
@@ -218,6 +219,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
   return cssModulesPlugin
 }
 
-export { generateCSSModulesFileFromJSON }
+export { createStyleSheetPlugin }
 
 export default createCSSModulesPlugin()

@@ -143,12 +143,9 @@ export interface ProjectStrategy {
     options?: ProjectStrategyPageOptions
   }
   projectStyleSheet?: {
-    generator: (sheet: Record<string, UIDLStyleSetDefnition>, fileName?: string) => GeneratedFile
+    generator: ComponentGenerator
     path: string[]
     fileName: string
-    options: {
-      variation: string
-    }
   }
   router?: {
     generator: ComponentGenerator

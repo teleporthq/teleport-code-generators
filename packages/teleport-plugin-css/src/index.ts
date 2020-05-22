@@ -11,7 +11,7 @@ import {
   FileType,
   HastNode,
 } from '@teleporthq/teleport-types'
-import { generateCSSFileFromJSON } from './utils'
+import { createStyleSheetPlugin } from './style-sheet'
 
 interface CSSPluginConfig {
   chunkName: string
@@ -210,7 +210,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
   return cssPlugin
 }
 
-export { generateCSSFileFromJSON }
+export { createStyleSheetPlugin }
 
 export default createCSSPlugin()
 

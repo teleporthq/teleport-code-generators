@@ -9,16 +9,18 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
-import { generateCSSModulesFileFromJSON } from '@teleporthq/teleport-plugin-css-modules'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
 
 import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+  const reactComponentGenerator = createReactComponentGenerator(
+    ReactStyleVariation.StyledComponents
+  )
   reactComponentGenerator.addMapping(ReactProjectMapping as Mapping)
 
-  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
+  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents, {
     plugins: [headConfigPlugin],
     mappings: [ReactProjectMapping as Mapping],
   })
@@ -27,6 +29,11 @@ const createReactProjectGenerator = () => {
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
   routingComponentGenerator.addPlugin(importStatementsPlugin)
   routingComponentGenerator.addPostProcessor(prettierJS)
+
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  styleSheetGenerator.addPlugin(importStatementsPlugin)
+  styleSheetGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
@@ -41,12 +48,9 @@ const createReactProjectGenerator = () => {
       path: ['src', 'views', 'testingFolder'],
     },
     projectStyleSheet: {
-      generator: generateCSSModulesFileFromJSON,
+      generator: styleSheetGenerator,
+      fileName: 'style',
       path: ['src'],
-      fileName: 'index',
-      options: {
-        variation: ReactStyleVariation.CSSModules,
-      },
     },
     router: {
       generator: routingComponentGenerator,
