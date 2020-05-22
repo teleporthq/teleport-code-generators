@@ -16,6 +16,8 @@ import {
   createPageModule,
 } from './file-handlers'
 
+import PathResolver from 'path'
+
 import { DEFAULT_TEMPLATE, STYLED_DEPENDENCIES } from './constants'
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
@@ -133,7 +135,7 @@ export class ProjectGenerator {
     }
 
     const { components = {}, root } = uidl
-    const { styleSetDefinitions: projectstyleSetDefinitions = {} } = root
+    const { styleSetDefinitions } = root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -158,12 +160,28 @@ export class ProjectGenerator {
       projectRouteDefinition: root.stateDefinitions.route,
       mapping,
       skipValidation: true,
-      projectstyleSetDefinitions,
+    }
+
+    if (this.strategy.projectStyleSheet?.generator) {
+      const { generator, fileName, path } = this.strategy.projectStyleSheet
+      const file = generator(styleSetDefinitions, fileName)
+      injectFilesToPath(rootFolder, path, [file])
     }
 
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
-      const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
+      const relativePathForProjectStyleSheet = PathResolver.relative(
+        this.strategy.pages.path.join('/'),
+        this.strategy.projectStyleSheet.path.join('/')
+      )
+      const { files, dependencies } = await createPage(pageUIDL, this.strategy, {
+        ...options,
+        projectStyleSet: {
+          styleSetDefinitions,
+          fileName: this.strategy.projectStyleSheet.fileName,
+          path: relativePathForProjectStyleSheet,
+        },
+      })
 
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
@@ -178,15 +196,21 @@ export class ProjectGenerator {
       }
     }
 
-    if (this.strategy.projectStyleSheet) {
-      this.strategy.projectStyleSheet.generator(projectstyleSetDefinitions)
-      // TODO: Generate project style sheet and then take path from strategy
-    }
-
     // Handling components
     for (const componentName of Object.keys(components)) {
+      const relativePathForProjectStyleSheet = PathResolver.resolve(
+        this.strategy.components.path.join('/'),
+        this.strategy.projectStyleSheet.path.join('/')
+      )
       const componentUIDL = components[componentName]
-      const { files, dependencies } = await createComponent(componentUIDL, this.strategy, options)
+      const { files, dependencies } = await createComponent(componentUIDL, this.strategy, {
+        ...options,
+        projectStyleSet: {
+          styleSetDefinitions,
+          fileName: this.strategy.projectStyleSheet.fileName,
+          path: relativePathForProjectStyleSheet,
+        },
+      })
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)

@@ -89,7 +89,11 @@ export interface GeneratorOptions {
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
-  projectstyleSetDefinitions?: Record<string, UIDLStyleSetDefnition>
+  projectStyleSet?: {
+    styleSetDefinitions: Record<string, UIDLStyleSetDefnition>
+    fileName: string
+    path: string
+  }
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -139,7 +143,7 @@ export interface ProjectStrategy {
     options?: ProjectStrategyPageOptions
   }
   projectStyleSheet?: {
-    generator: (sheet: Record<string, UIDLStyleSetDefnition>) => void
+    generator: (sheet: Record<string, UIDLStyleSetDefnition>, fileName?: string) => GeneratedFile
     path: string[]
     fileName: string
     options: {

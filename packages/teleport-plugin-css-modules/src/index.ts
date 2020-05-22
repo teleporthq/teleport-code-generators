@@ -8,6 +8,7 @@ import {
   ChunkType,
   UIDLelementNodeReferenceStyles,
 } from '@teleporthq/teleport-types'
+import { generateCSSModulesFileFromJSON } from './utils'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -41,8 +42,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
   }
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, dependencies } = structure
-
+    const { uidl, chunks, dependencies, options } = structure
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
 
     if (!componentChunk) {
@@ -53,6 +53,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     const cssClasses: string[] = []
     let appendClassName: boolean = false
+    let isProjectStyleReferred: boolean = false
     const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
@@ -106,6 +107,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               return
             }
             case 'project-referenced': {
+              const { content } = styleRef
+              if (content.referenceId && !content?.conditions) {
+                isProjectStyleReferred = true
+                // TODO: just refered the style from the style sheet
+              }
               return
             }
             default: {
@@ -190,6 +196,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       path: `./${cssFileName}.${FileType.CSS}`,
     }
 
+    if (isProjectStyleReferred) {
+      const fileName = `${options.projectStyleSet.fileName}.module`
+      dependencies[`projectStyles`] = {
+        type: 'local',
+        path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`, // TODO: calculate the relative path from the sheet level
+      }
+    }
+
     structure.chunks.push({
       name: styleChunkName,
       type: ChunkType.STRING,
@@ -203,5 +217,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   return cssModulesPlugin
 }
+
+export { generateCSSModulesFileFromJSON }
 
 export default createCSSModulesPlugin()
