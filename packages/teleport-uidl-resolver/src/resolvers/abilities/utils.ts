@@ -12,7 +12,7 @@ export const insertLinks = (
   linkInParent: boolean = false,
   parentNode?: UIDLElementNode
 ): UIDLElementNode => {
-  const { abilities, children, elementType } = node.content
+  const { abilities, children, elementType, semanticType } = node.content
   const linkInNode = linkInParent || !!abilities?.link
 
   // TODO: think of a way to reuse the traversal that modifies the tree
@@ -42,8 +42,9 @@ export const insertLinks = (
       return node
     }
 
-    // a text node (span) on which we added a link gets transformed into an <a> to keep
-    if (elementType === 'text') {
+    // a text node (span) on which we added a link gets transformed into an <a>
+    // the rest of the text elements get wrapped with an <a> tag
+    if (elementType === 'text' && semanticType === 'span') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.attrs = createLinkAttributes(abilities.link, options)
 

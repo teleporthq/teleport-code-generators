@@ -6,59 +6,8 @@
     "group": {
       "elementType": "div"
     },
-    "main": {
-      "elementType": "main"
-    },
-    "header": {
-      "elementType": "header"
-    },
-    "nav": {
-      "elementType": "nav"
-    },
-    "section": {
-      "elementType": "section"
-    },
-    "article": {
-      "elementType": "article"
-    },
-    "aside": {
-      "elementType": "aside"
-    },
-    "footer": {
-      "elementType": "footer"
-    },
     "text": {
       "elementType": "span"
-    },
-    "textblock": {
-      "elementType": "p"
-    },
-    "strongtext": {
-      "elementType": "strong"
-    },
-    "formattedtext": {
-      "elementType": "pre"
-    },
-    "label": {
-      "elementType": "label"
-    },
-    "heading1": {
-      "elementType": "h1"
-    },
-    "heading2": {
-      "elementType": "h2"
-    },
-    "heading3": {
-      "elementType": "h3"
-    },
-    "heading4": {
-      "elementType": "h4"
-    },
-    "heading5": {
-      "elementType": "h5"
-    },
-    "heading6": {
-      "elementType": "h6"
     },
     "image": {
       "elementType": "img",
@@ -199,7 +148,7 @@
       },
       "selfClosing": true
     },
-    "svg": {
+    "icon": {
       "elementType": "svg"
     },
     "separator": {

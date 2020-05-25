@@ -161,6 +161,7 @@ export interface UIDLElementNode {
 
 export interface UIDLElement {
   elementType: string
+  semanticType?: string
   name?: string
   key?: string // internal usage
   dependency?: UIDLDependency
