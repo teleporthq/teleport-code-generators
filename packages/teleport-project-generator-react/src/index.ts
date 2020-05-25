@@ -9,18 +9,16 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
-import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
 
 import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator(
-    ReactStyleVariation.StyledComponents
-  )
+  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
   reactComponentGenerator.addMapping(ReactProjectMapping as Mapping)
 
-  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents, {
+  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
     plugins: [headConfigPlugin],
     mappings: [ReactProjectMapping as Mapping],
   })
@@ -45,7 +43,7 @@ const createReactProjectGenerator = () => {
     },
     pages: {
       generator: reactPagesGenerator,
-      path: ['src', 'views', 'testingFolder'],
+      path: ['src', 'views'],
     },
     projectStyleSheet: {
       generator: styleSheetGenerator,

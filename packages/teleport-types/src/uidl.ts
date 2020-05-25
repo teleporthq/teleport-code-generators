@@ -197,7 +197,7 @@ export type UIDLNode =
 
 export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
 
-export type UIDLStyleValue = UIDLAttributeValue
+export type UIDLStyleValue = UIDLAttributeValue | string
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 

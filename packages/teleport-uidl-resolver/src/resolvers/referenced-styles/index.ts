@@ -33,7 +33,7 @@ const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
     }
   }
 
-  node.content.children.map((child) => {
+  node.content?.children?.map((child) => {
     if (child.type === 'element') {
       sortReferencedStylesOnElement(child)
     }

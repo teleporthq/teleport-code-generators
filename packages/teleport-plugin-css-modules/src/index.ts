@@ -43,6 +43,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
+    const { projectStyleSet } = options
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
 
     if (!componentChunk) {
@@ -52,13 +53,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     }
 
     const cssClasses: string[] = []
-    let appendClassName: boolean = false
     let isProjectStyleReferred: boolean = false
     const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
+      let appendClassName: boolean = false
+      const classNamesToAppend: string[] = []
       const { style, key, referencedStyles } = element
 
       if (!style && !referencedStyles) {
@@ -103,14 +105,19 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               }
 
               appendClassName = true
-
               return
             }
             case 'project-referenced': {
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
-                // TODO: just refered the style from the style sheet
+                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                if (!referencedStyles) {
+                  throw new Error(
+                    `Style that is being used for reference is missing - ${content.referenceId}`
+                  )
+                }
+                classNamesToAppend.push(referedStyle.name)
               }
               return
             }
@@ -145,12 +152,15 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             camelCaseClassNames || classNameIsJSFriendly
               ? `styles.${jsFriendlyClassName}`
               : `styles['${className}']`
+          classNamesToAppend.push(classReferenceIdentifier)
 
-          ASTUtils.addDynamicAttributeToJSXTag(
-            root as types.JSXElement,
-            classAttributeName,
-            classReferenceIdentifier
-          )
+          if (classNamesToAppend.length === 1) {
+            ASTUtils.addDynamicAttributeToJSXTag(
+              root as types.JSXElement,
+              classAttributeName,
+              classReferenceIdentifier
+            )
+          }
         }
 
         if (Object.keys(dynamicStyles).length) {
@@ -201,7 +211,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       dependencies[`projectStyles`] = {
         type: 'local',
         path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,
-        // TODO: calculate the relative path from the sheet level
       }
     }
 

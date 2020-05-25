@@ -1,13 +1,10 @@
-import Ajv from 'ajv'
-import componentSchema from '../uidl-schemas/component.json'
-import projectSchema from '../uidl-schemas/project.json'
-
 import {
   ProjectUIDL,
   ComponentUIDL,
   ProjectValidationError,
   ComponentValidationError,
 } from '@teleporthq/teleport-types'
+import componentValidator from './component-validator'
 import * as utils from './utils'
 
 interface ValidationResult {
@@ -16,34 +13,24 @@ interface ValidationResult {
 }
 
 export default class Validator {
-  private componentValidator: Ajv.ValidateFunction
-  private projectValidator: Ajv.ValidateFunction
-
-  constructor() {
-    const ajv = new Ajv({
-      allErrors: true,
-      verbose: true,
-    })
-    this.componentValidator = ajv.compile(componentSchema)
-    this.projectValidator = ajv.compile(projectSchema)
-  }
-
   public validateComponentSchema(input: unknown): ValidationResult {
-    const valid = this.componentValidator(input)
+    const valid = componentValidator.runWithException(input)
 
-    if (!valid && this.componentValidator.errors) {
-      const errorMsg = utils.formatErrors(this.componentValidator.errors)
+    // TODO: replace this with the errors coming from the validator
+    if (!valid) {
+      const errorMsg = utils.formatErrors([])
       throw new ComponentValidationError(errorMsg)
     }
 
     return { valid: true, errorMsg: '' }
   }
 
+  // @ts-ignore
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
-    const valid = this.projectValidator(input)
+    const valid = true
 
-    if (!valid && this.projectValidator.errors) {
-      const errorMessage = utils.formatErrors(this.projectValidator.errors)
+    if (!valid) {
+      const errorMessage = utils.formatErrors([])
       throw new ProjectValidationError(errorMessage)
     }
 

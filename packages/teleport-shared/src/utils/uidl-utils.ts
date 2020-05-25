@@ -201,6 +201,7 @@ export const traverseNodes = (
 const traverseStyleObject = (style: UIDLStyleDefinitions) => {
   Object.keys(style).forEach((styleKey) => {
     const styleValue = style[styleKey]
+    // TODO: cross-check the support for the strings as content for styles
     if (styleValue.type !== 'static' && styleValue.type !== 'dynamic') {
       throw new Error(`We support only 'static' and 'dynamic' content for styles`)
     }
