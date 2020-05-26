@@ -295,6 +295,7 @@
       "properties": {
         "additionalProperties": false,
         "elementType": {"type": "string" },
+        "semanticType": {"type": "string" },
         "name": {"type": "string", "pattern": "^[a-zA-Z]+[a-zA-Z0-9-_]*$"},
         "key": {"type": "string"},
         "dependency": {"$ref": "#/definitions/componentDependency"},

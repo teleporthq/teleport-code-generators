@@ -97,8 +97,9 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Setting up the name of the node based on the type, if it is not supplied
   originalElement.name = originalElement.name || originalElement.elementType
 
-  // Mapping the type according to the elements mapping
-  originalElement.elementType = mappedElement.elementType
+  // Mapping the type from the semantic type of the mapping
+  // Semantic type has precedence as it is dictated by the user
+  originalElement.elementType = originalElement.semanticType || mappedElement.elementType
 
   if (mappedElement.ignore) {
     originalElement.ignore = mappedElement.ignore
