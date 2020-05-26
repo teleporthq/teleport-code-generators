@@ -1,4 +1,3 @@
-import Ajv from 'ajv'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import {
@@ -230,7 +229,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
 }
 
 // The errors should be displayed in a human-readeable way
-export const formatErrors = (errors: Ajv.ErrorObject[]) => {
+export const formatErrors = (errors: any[]) => {
   const listOfErrors: string[] = []
   errors.forEach((error) => {
     const message =

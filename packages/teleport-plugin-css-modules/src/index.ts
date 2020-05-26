@@ -6,7 +6,7 @@ import {
   ComponentPlugin,
   FileType,
   ChunkType,
-  UIDLelementNodeReferenceStyles,
+  UIDLElementNodeReferenceStyles,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 
@@ -71,7 +71,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
 
       if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef: UIDLelementNodeReferenceStyles) => {
+        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
               const condition = styleRef.content.conditions[0]

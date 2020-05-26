@@ -279,9 +279,9 @@ export interface Mapping {
   illegalPropNames?: string[]
 }
 
-export type UIDLReferencedStyles = Record<string, UIDLelementNodeReferenceStyles>
+export type UIDLReferencedStyles = Record<string, UIDLElementNodeReferenceStyles>
 
-export type UIDLelementNodeReferenceStyles =
+export type UIDLElementNodeReferenceStyles =
   | UIDLElementNodeProjectReferencedStyle
   | UIDLElementNodeInlineReferencedStyle
 

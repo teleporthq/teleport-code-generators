@@ -2,7 +2,7 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
-  UIDLelementNodeReferenceStyles,
+  UIDLElementNodeReferenceStyles,
   ComponentPluginFactory,
   ComponentPlugin,
   UIDLDynamicReference,
@@ -72,7 +72,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       }
 
       if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef: UIDLelementNodeReferenceStyles) => {
+        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
               const condition = styleRef.content.conditions[0]

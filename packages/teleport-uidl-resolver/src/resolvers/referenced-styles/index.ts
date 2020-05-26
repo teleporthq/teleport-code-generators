@@ -4,7 +4,7 @@ import {
   UIDLElementNodeProjectReferencedStyle,
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
-  UIDLelementNodeReferenceStyles,
+  UIDLElementNodeReferenceStyles,
 } from '@teleporthq/teleport-types'
 
 export const resolveReferencedStyle = (input: ComponentUIDL) => {
@@ -57,7 +57,7 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
   }
   const allMediaRelatedStyles: UIDLReferencedStyles = {}
   const list: UIDLReferencedStyles = Object.values(styles).reduce(
-    (acc: UIDLReferencedStyles, styleRef: UIDLelementNodeReferenceStyles) => {
+    (acc: UIDLReferencedStyles, styleRef: UIDLElementNodeReferenceStyles) => {
       if (styleRef.content.conditions?.[0].conditionType === 'screen-size') {
         allMediaRelatedStyles[styleRef.id] = styleRef
       } else {
@@ -74,7 +74,7 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
       (a, b) => a.content.conditions?.[0].maxWidth - b.content.conditions?.[0].maxWidth
     )
     .reverse()
-    .reduce((acc: UIDLReferencedStyles, item: UIDLelementNodeReferenceStyles) => {
+    .reduce((acc: UIDLReferencedStyles, item: UIDLElementNodeReferenceStyles) => {
       acc[item.id] = item
       return acc
     }, {})

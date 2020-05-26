@@ -10,7 +10,7 @@ import {
   boolean,
 } from '@mojotech/json-type-validation'
 import { UIDLGlobalProjectValues, UIDLGlobalAsset, WebManifest } from '@teleporthq/teleport-types'
-import componentUIDLValudator from './component-validator'
+import componentUIDLValudator from './component-decoder'
 import { VProjectUIDL } from './types'
 
 const globalAssetsValidator: Decoder<UIDLGlobalAsset> = object({
