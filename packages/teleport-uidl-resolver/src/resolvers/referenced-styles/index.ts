@@ -20,6 +20,10 @@ const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
     Object.values(referencedStyles).forEach((styleRef) => {
       const { content, id } = styleRef
       if (content.mapType === 'project-referenced') {
+        if (content?.conditions) {
+          throw new Error('We currently support only basic refernce from the project-style sheet')
+          // TODO: Update the discussion summary here
+        }
         projectReferencedStyles[id] = styleRef as UIDLElementNodeProjectReferencedStyle
       }
 

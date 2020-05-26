@@ -15,26 +15,23 @@ interface ValidationResult {
 
 export default class Validator {
   public validateComponentSchema(input: unknown): ValidationResult {
-    const valid = componentValidator.run(input)
-
-    if (valid.ok) {
+    try {
+      componentValidator.runWithException(input)
       return { valid: true, errorMsg: '' }
+    } catch (e) {
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(errorMsg)
     }
-    // TODO: change the format for error messages to display
-    const errorMsg = utils.formatErrors([])
-    throw new ComponentValidationError(errorMsg)
   }
 
-  // @ts-ignore
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
-    const valid = projectUIDLValidator.runWithException(input)
-
-    if (!valid) {
-      const errorMessage = utils.formatErrors([])
-      throw new ProjectValidationError(errorMessage)
+    try {
+      projectUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '' }
+    } catch (e) {
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(errorMsg)
     }
-
-    return { valid: true, errorMsg: '' }
   }
 
   public validateComponentContent(input: ComponentUIDL): ValidationResult {

@@ -38,7 +38,7 @@ export interface VUIDLRepeatNode
     {
       content: {
         node: VUIDLElementNode
-        dataSource: UIDLAttributeValue
+        dataSource?: UIDLAttributeValue
         meta?: UIDLRepeatMeta
       }
     }
@@ -56,14 +56,18 @@ export type VUIDLNode =
 export interface VUIDLElement
   extends Modify<
     UIDLElement,
-    { children?: VUIDLNode[]; style?: Record<string, UIDLAttributeValue | string> }
+    {
+      children?: VUIDLNode[]
+      style?: Record<string, UIDLAttributeValue | string | number>
+      attrs?: Record<string, UIDLAttributeValue | string | number>
+    }
   > {}
 
 export interface VUIDLStyleSetDefnition
   extends Modify<
     UIDLStyleSetDefnition,
     {
-      content: Record<string, UIDLStaticValue> | Record<string, string>
+      content: Record<string, UIDLStaticValue | string>
     }
   > {}
 

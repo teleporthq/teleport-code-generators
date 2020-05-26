@@ -229,17 +229,10 @@ export const checkRootComponent = (input: ProjectUIDL) => {
 }
 
 // The errors should be displayed in a human-readeable way
-export const formatErrors = (errors: any[]) => {
+export const formatErrors = (errors: Array<{ kind: string; at: string; message: string }>) => {
   const listOfErrors: string[] = []
   errors.forEach((error) => {
-    const message =
-      error.keyword === 'type'
-        ? `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
-        : `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
-
-    if (error.data === 'nested-style') {
-      listOfErrors.push(`\n - 'nested-style' is not supported, please check ${error.dataPath}`)
-    }
+    const message = `\n - Path ${error.at}: \n ${error.message}. \n is a ${typeof error.kind}`
     listOfErrors.push(message)
   })
 

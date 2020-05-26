@@ -67,14 +67,14 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
 
 export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   type: constant('static'),
-  content: union(string(), number(), boolean()),
+  content: union(string(), number(), boolean(), array()),
 })
 
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
   id: string(),
   name: string(),
   type: constant('reusable-project-style-map'),
-  content: union(dict(staticValueDecoder), dict(string())),
+  content: dict(union(staticValueDecoder, string())),
 })
 
 // TODO: Implement decoder for () => void
@@ -137,11 +137,13 @@ export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object(
 export const dependencyDecoder: Decoder<UIDLDependency> = object({
   type: union(constant('library'), constant('package'), constant('local')),
   path: string(),
-  version: string(),
-  meta: object({
-    namedImport: boolean(),
-    origialName: string(),
-  }),
+  version: optional(string()),
+  meta: optional(
+    object({
+      namedImport: boolean(),
+      origialName: string(),
+    })
+  ),
 })
 
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
@@ -157,8 +159,8 @@ export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = 
   type: string(),
   modifies: string(),
   newState: union(string(), number(), boolean()),
-  calls: string(),
-  args: array(union(string(), number(), boolean())),
+  calls: optional(string()),
+  args: optional(array(union(string(), number(), boolean()))),
 })
 
 export const urlLinkNodeDecoder: Decoder<UIDLURLLinkNode> = object({
@@ -268,8 +270,8 @@ export const element: Decoder<VUIDLElement> = object({
   name: optional(string()),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
-  style: optional(union(styleDefinitionsDecoder, dict(string()))),
-  attrributes: optional(dict(attributeValueDecoder)),
+  style: optional(dict(union(attributeValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
   events: optional(dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
@@ -287,7 +289,7 @@ export const element: Decoder<VUIDLElement> = object({
 export const slotNodeDecoder: Decoder<VUIDLSlotNode> = object({
   type: constant('slot'),
   content: object({
-    name: string(),
+    name: optional(string()),
     fallback: optional(union(staticValueDecoder, dynamicValueDecoder)),
   }),
 })
@@ -296,7 +298,7 @@ export const repeatNodeDecoder: Decoder<VUIDLRepeatNode> = object({
   type: constant('repeat'),
   content: object({
     node: lazy(() => elementNodeDecoder),
-    dataSource: attributeValueDecoder,
+    dataSource: optional(attributeValueDecoder),
     meta: optional(
       object({
         useIndex: optional(boolean()),
