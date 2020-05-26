@@ -5,6 +5,7 @@ import {
   ComponentValidationError,
 } from '@teleporthq/teleport-types'
 import componentValidator from './component-validator'
+import projectUIDLValidator from './project-validator'
 import * as utils from './utils'
 
 interface ValidationResult {
@@ -14,6 +15,8 @@ interface ValidationResult {
 
 export default class Validator {
   public validateComponentSchema(input: unknown): ValidationResult {
+    // Run with exception throws exception
+    // Run alone will not throw error, just validates and leaves for us
     const valid = componentValidator.runWithException(input)
 
     // TODO: replace this with the errors coming from the validator
@@ -27,7 +30,7 @@ export default class Validator {
 
   // @ts-ignore
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
-    const valid = true
+    const valid = projectUIDLValidator.runWithException(input)
 
     if (!valid) {
       const errorMessage = utils.formatErrors([])

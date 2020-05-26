@@ -12,7 +12,6 @@ import {
   array,
 } from '@mojotech/json-type-validation'
 import {
-  UIDLStyleSetDefnition,
   UIDLStaticValue,
   ReferenceType,
   UIDLDynamicReference,
@@ -21,14 +20,13 @@ import {
   UIDLStateValueDetails,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
-  UIDLElementNode,
-  UIDLElement,
   UIDLDependency,
   UIDLStyleDefinitions,
   UIDLStyleValue,
   UIDLAttributeValue,
-  ComponentUIDL,
+  UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
+import { VUIDLElementNode, VComponentUIDL, VUIDLElement, VUIDLStyleSetDefnition } from './types'
 
 const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -51,13 +49,14 @@ const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   content: union(string(), number(), boolean()),
 })
 
-const styleSetDefinitionDecoder: Decoder<UIDLStyleSetDefnition> = object({
+const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
   id: string(),
   name: string(),
   type: constant('reusable-project-style-map'),
-  content: staticValueDecoder,
+  content: union(dict(staticValueDecoder), dict(string())),
 })
 
+// TODO: Implement decoder for () => void
 const stateOrPropDefinitionDecoder = union(
   string(),
   number(),
@@ -65,12 +64,6 @@ const stateOrPropDefinitionDecoder = union(
   array(union(string(), number(), object())),
   object()
 )
-
-const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
-  type: string(),
-  defaultValue: optional(stateOrPropDefinitionDecoder),
-  isRequired: optional(boolean()),
-})
 
 const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   componentName: optional(string()),
@@ -83,8 +76,30 @@ const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
   pageoptions: optional(pageOptionsDecoder),
 })
 
+const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
+  type: union(
+    constant('string'),
+    constant('boolean'),
+    constant('number'),
+    constant('array'),
+    constant('func'),
+    constant('object'),
+    constant('children')
+  ),
+  defaultValue: optional(stateOrPropDefinitionDecoder),
+  isRequired: optional(boolean()),
+})
+
 const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
-  type: string(),
+  type: union(
+    constant('string'),
+    constant('boolean'),
+    constant('number'),
+    constant('array'),
+    constant('func'),
+    constant('object'),
+    constant('children')
+  ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   values: optional(array(stateValueDetailsDecoder)),
 })
@@ -115,24 +130,35 @@ const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder
 )
-const styleValueDecoder: Decoder<UIDLStyleValue> = union(attributeValueDecoder, string())
+
+const styleValueDecoder: Decoder<UIDLStyleValue> = attributeValueDecoder
 
 const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(styleValueDecoder)
 
-export const element: Decoder<UIDLElement> = object({
+const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = object({
+  type: string(),
+  modifies: optional(string()),
+  newState: optional(union(string(), number(), boolean())),
+  calls: optional(string()),
+  args: optional(array(union(string(), number(), boolean()))),
+})
+
+export const element: Decoder<VUIDLElement> = object({
   elementType: string(),
   name: optional(string()),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
-  style: optional(styleDefinitionsDecoder),
+  style: optional(union(styleDefinitionsDecoder, dict(string()))),
+  attrributes: optional(dict(attributeValueDecoder)),
+  events: optional(dict(array(eventHandlerStatementDecoder))),
 })
 
-export const elementNodeDecoder: Decoder<UIDLElementNode> = object({
+export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   type: constant('element'),
   content: element,
 })
 
-const componentUIDLValudator: Decoder<ComponentUIDL> = object({
+const componentUIDLValudator: Decoder<VComponentUIDL> = object({
   id: optional(string()),
   name: withDefault('MyComponent', string()),
   node: elementNodeDecoder,
