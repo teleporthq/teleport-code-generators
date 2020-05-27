@@ -135,7 +135,7 @@ export class ProjectGenerator {
     }
 
     const { components = {}, root } = uidl
-    const { styleSetDefinitions } = root
+    const { styleSetDefinitions = {} } = root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -162,13 +162,7 @@ export class ProjectGenerator {
       skipValidation: true,
     }
 
-    if (this.strategy.projectStyleSheet?.generator) {
-      const { generator, path } = this.strategy.projectStyleSheet
-      const { files } = await generator.generateComponent(uidl.root)
-      injectFilesToPath(rootFolder, path, files)
-    }
-
-    if (this.strategy.projectStyleSheet?.generator) {
+    if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { generator, path } = this.strategy.projectStyleSheet
       const { files } = await generator.generateComponent(uidl.root)
       injectFilesToPath(rootFolder, path, files)
@@ -176,19 +170,23 @@ export class ProjectGenerator {
 
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
-      // TODO breaks when there is not project style sheet
-      const relativePathForProjectStyleSheet = PathResolver.relative(
-        this.strategy.pages.path.join('/'),
-        this.strategy.projectStyleSheet.path.join('/')
-      )
-      const { files, dependencies } = await createPage(pageUIDL, this.strategy, {
-        ...options,
-        projectStyleSet: {
-          styleSetDefinitions,
-          fileName: this.strategy.projectStyleSheet.fileName,
-          path: relativePathForProjectStyleSheet,
-        },
-      })
+      let pageOptions = options
+      if (Object.keys(styleSetDefinitions).length > 0) {
+        const relativePathForProjectStyleSheet = PathResolver.relative(
+          this.strategy.pages.path.join('/'),
+          this.strategy.projectStyleSheet.path.join('/')
+        )
+        pageOptions = {
+          ...options,
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet.fileName,
+            path: relativePathForProjectStyleSheet,
+          },
+        }
+      }
+
+      const { files, dependencies } = await createPage(pageUIDL, this.strategy, pageOptions)
 
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
@@ -205,19 +203,28 @@ export class ProjectGenerator {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
-      const relativePathForProjectStyleSheet = PathResolver.resolve(
-        this.strategy.components.path.join('/'),
-        this.strategy.projectStyleSheet.path.join('/')
-      )
+      let componentOptions = options
+      if (Object.keys(styleSetDefinitions).length > 0) {
+        const relativePathForProjectStyleSheet = PathResolver.relative(
+          this.strategy.pages.path.join('/'),
+          this.strategy.projectStyleSheet.path.join('/')
+        )
+        componentOptions = {
+          ...options,
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet.fileName,
+            path: relativePathForProjectStyleSheet,
+          },
+        }
+      }
+
       const componentUIDL = components[componentName]
-      const { files, dependencies } = await createComponent(componentUIDL, this.strategy, {
-        ...options,
-        projectStyleSet: {
-          styleSetDefinitions,
-          fileName: this.strategy.projectStyleSheet.fileName,
-          path: relativePathForProjectStyleSheet,
-        },
-      })
+      const { files, dependencies } = await createComponent(
+        componentUIDL,
+        this.strategy,
+        componentOptions
+      )
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
