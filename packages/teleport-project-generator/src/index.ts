@@ -122,13 +122,17 @@ export class ProjectGenerator {
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     mapping: Mapping = {}
   ): Promise<GeneratedFolder> {
+    let cleanedUIDL = input
     // Validating and parsing the UIDL
     const schemaValidationResult = this.validator.validateProjectSchema(input)
-    if (!schemaValidationResult.valid) {
+    const { valid, projectUIDL } = schemaValidationResult
+    if (valid && projectUIDL) {
+      cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
+    } else {
       throw new Error(schemaValidationResult.errorMsg)
     }
 
-    const uidl = Parser.parseProjectJSON(input)
+    const uidl = Parser.parseProjectJSON(cleanedUIDL)
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)

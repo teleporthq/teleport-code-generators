@@ -145,7 +145,7 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('object'),
     constant('children')
   ),
-  defaultValue: optional(stateOrPropDefinitionDecoder),
+  defaultValue: stateOrPropDefinitionDecoder,
   isRequired: optional(boolean()),
 })
 
@@ -159,7 +159,7 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('object'),
     constant('children')
   ),
-  defaultValue: optional(stateOrPropDefinitionDecoder),
+  defaultValue: stateOrPropDefinitionDecoder,
   values: optional(array(stateValueDetailsDecoder)),
 })
 
@@ -195,9 +195,9 @@ export const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(style
 
 export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = object({
   type: string(),
-  modifies: string(),
-  newState: union(string(), number(), boolean()),
   calls: optional(string()),
+  modifies: optional(string()),
+  newState: optional(union(string(), number(), boolean())),
   args: optional(array(union(string(), number(), boolean()))),
 })
 

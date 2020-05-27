@@ -5,18 +5,21 @@ import {
   ComponentValidationError,
 } from '@teleporthq/teleport-types'
 import { componentUIDLValidator, projectUIDLValidator } from '../decoders'
+import { VComponentUIDL, VProjectUIDL } from '../decoders/types'
 import * as utils from './utils'
 
 interface ValidationResult {
   valid: boolean
   errorMsg: string
+  componentUIDL?: VComponentUIDL
+  projectUIDL?: VProjectUIDL
 }
 
 export default class Validator {
   public validateComponentSchema(input: unknown): ValidationResult {
     try {
-      componentUIDLValidator.runWithException(input)
-      return { valid: true, errorMsg: '' }
+      const cleanedUIDL = componentUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
       throw new ComponentValidationError(errorMsg)
@@ -25,8 +28,8 @@ export default class Validator {
 
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      projectUIDLValidator.runWithException(input)
-      return { valid: true, errorMsg: '' }
+      const cleanedUIDL = projectUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '', projectUIDL: cleanedUIDL }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
       throw new ComponentValidationError(errorMsg)
