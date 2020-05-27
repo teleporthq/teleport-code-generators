@@ -11,7 +11,6 @@ import {
   array,
   lazy,
 } from '@mojotech/json-type-validation'
-
 import {
   UIDLStaticValue,
   ReferenceType,
@@ -26,8 +25,6 @@ import {
   UIDLStyleValue,
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
-  UIDLURLLinkNode,
-  UIDLSectionLinkNode,
   UIDLNavLinkNode,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
@@ -37,7 +34,8 @@ import {
   UIDLStyleMediaQueryScreenSizeCondition,
   UIDLStyleConditions,
   UIDLElementNodeProjectReferencedStyle,
-  UIDLElementNodeInlineReferencedStyle,
+  UIDLComponentSEO,
+  UIDLGlobalAsset,
 } from '@teleporthq/teleport-types'
 import {
   VUIDLStyleSetDefnition,
@@ -47,7 +45,19 @@ import {
   VUIDLRepeatNode,
   VUIDLElementNode,
   VUIDLNode,
+  VUIDLElementNodeInlineReferencedStyle,
+  VUIDLSectionLinkNode,
+  VUIDLLinkNode,
+  VUIDLURLLinkNode,
 } from './types'
+import { CustomCombinators } from './custom-combinators'
+
+const {
+  isValidComponentName,
+  isValidFileName,
+  isValidElementName,
+  isValidNavLink,
+} = CustomCombinators
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -87,14 +97,42 @@ export const stateOrPropDefinitionDecoder = union(
 )
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(string()),
-  navLink: optional(string()),
-  fileName: optional(string()),
+  componentName: optional((isValidComponentName() as unknown) as Decoder<string>),
+  navLink: optional((isValidNavLink() as unknown) as Decoder<string>),
+  fileName: optional((isValidFileName() as unknown) as Decoder<string>),
+})
+
+export const globalAssetsValidator: Decoder<UIDLGlobalAsset> = object({
+  type: union(
+    constant('script'),
+    constant('style'),
+    constant('font'),
+    constant('canonical'),
+    constant('icon')
+  ),
+  path: optional(string()),
+  content: optional(string()),
+  options: optional(
+    object({
+      async: optional(boolean()),
+      defer: optional(boolean()),
+      target: optional(string()),
+      iconType: optional(string()),
+      iconSizes: optional(string()),
+    })
+  ),
+})
+
+export const componentSeoDecoder: Decoder<UIDLComponentSEO> = object({
+  title: optional(string()),
+  metaTags: optional(array(dict(string()))),
+  assets: optional(array(globalAssetsValidator)),
 })
 
 export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
-  pageoptions: optional(pageOptionsDecoder),
+  pageOptions: optional(pageOptionsDecoder),
+  seo: optional(componentSeoDecoder),
 })
 
 export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
@@ -126,17 +164,17 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
-  componentClassName: optional(string()),
-  fileName: optional(string()),
-  styleFileName: optional(string()),
-  templateFileName: optional(string()),
-  moduleName: optional(string()),
-  folderPath: optional(array(string())),
+  componentClassName: optional((isValidComponentName() as unknown) as Decoder<string>),
+  fileName: optional((isValidFileName() as unknown) as Decoder<string>),
+  styleFileName: optional((isValidFileName() as unknown) as Decoder<string>),
+  templateFileName: optional((isValidFileName() as unknown) as Decoder<string>),
+  moduleName: optional((isValidFileName() as unknown) as Decoder<string>),
+  folderPath: optional(array((isValidFileName() as unknown) as Decoder<string>)),
 })
 
 export const dependencyDecoder: Decoder<UIDLDependency> = object({
   type: union(constant('library'), constant('package'), constant('local')),
-  path: string(),
+  path: optional(string()),
   version: optional(string()),
   meta: optional(
     object({
@@ -163,19 +201,17 @@ export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = 
   args: optional(array(union(string(), number(), boolean()))),
 })
 
-export const urlLinkNodeDecoder: Decoder<UIDLURLLinkNode> = object({
+export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   type: constant('url'),
   content: object({
-    url: attributeValueDecoder,
+    url: union(attributeValueDecoder, string()),
     newTab: boolean(),
   }),
 })
 
-export const sectionLinkNodeDecoder: Decoder<UIDLSectionLinkNode> = object({
+export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
-  content: object({
-    section: string(),
-  }),
+  content: optional(dict(string())),
 })
 
 export const navLinkNodeDecoder: Decoder<UIDLNavLinkNode> = object({
@@ -188,9 +224,9 @@ export const navLinkNodeDecoder: Decoder<UIDLNavLinkNode> = object({
 export const uidlMailLinkNodeDecoder: Decoder<UIDLMailLinkNode> = object({
   type: constant('mail'),
   content: object({
-    mail: string(),
-    subject: string(),
-    body: string(),
+    mail: optional(string()),
+    subject: optional(string()),
+    body: optional(string()),
   }),
 })
 
@@ -201,7 +237,7 @@ export const phoneLinkNodeDecoder: Decoder<UIDLPhoneLinkNode> = object({
   }),
 })
 
-export const uidlLinkNodeDecoder = union(
+export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   urlLinkNodeDecoder,
   sectionLinkNodeDecoder,
   navLinkNodeDecoder,
@@ -254,20 +290,20 @@ export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectRefere
 )
 
 // TODO: Add suppport for accepting styles, in flat structure under content
-export const elementInlineReferencedStyle: Decoder<UIDLElementNodeInlineReferencedStyle> = object({
+export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferencedStyle> = object({
   id: string(),
   type: constant('style-map'),
   content: object({
     mapType: constant('inlined'),
     conditions: optional(array(styleConditionsDecoder)),
-    styles: styleDefinitionsDecoder,
+    styles: optional(dict(union(staticValueDecoder, string(), number()))),
   }),
 })
 
 export const element: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
-  name: optional(string()),
+  name: optional((isValidElementName() as unknown) as Decoder<string>),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),

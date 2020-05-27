@@ -49,6 +49,14 @@ export const parseProjectJSON = (
   }
 
   result.root = parseComponentJSON(root, { noClone: true })
+
+  if (result.root?.styleSetDefinitions) {
+    const { styleSetDefinitions } = root
+    Object.values(styleSetDefinitions).forEach((styleRef) => {
+      styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
+    })
+  }
+
   if (result.components) {
     result.components = Object.keys(result.components).reduce(
       (parsedComponnets: Record<string, ComponentUIDL>, key) => {
@@ -68,6 +76,26 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   switch (((node as unknown) as UIDLNode).type) {
     case 'element':
       const elementContent = node.content as Record<string, unknown>
+
+      if (elementContent?.referencedStyles) {
+        Object.values(elementContent.referencedStyles).forEach((styleRef) => {
+          const { content } = styleRef
+          if (content.mapType === 'inlined') {
+            content.styles = UIDLUtils.transformStylesAssignmentsToJson(
+              content.styles as Record<string, string>
+            )
+          }
+
+          if (
+            content.mapType === 'project-referenced' &&
+            content?.conditions &&
+            styleRef.content?.conditions.length > 0
+          ) {
+            // TODO: throw the error here and update the discussion details
+            throw new Error('We currently support only basic refernce from the project-style sheet')
+          }
+        })
+      }
 
       if (elementContent.style) {
         elementContent.style = UIDLUtils.transformStylesAssignmentsToJson(

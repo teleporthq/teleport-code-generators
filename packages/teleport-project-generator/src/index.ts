@@ -176,6 +176,7 @@ export class ProjectGenerator {
 
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
+      // TODO breaks when there is not project style sheet
       const relativePathForProjectStyleSheet = PathResolver.relative(
         this.strategy.pages.path.join('/'),
         this.strategy.projectStyleSheet.path.join('/')

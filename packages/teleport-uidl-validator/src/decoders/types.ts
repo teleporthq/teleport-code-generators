@@ -13,6 +13,14 @@ import {
   UIDLConditionalNode,
   UIDLRepeatMeta,
   UIDLConditionalExpression,
+  UIDLElementNodeInlineReferencedStyle,
+  UIDLStyleConditions,
+  UIDLElementNodeProjectReferencedStyle,
+  UIDLSectionLinkNode,
+  UIDLURLLinkNode,
+  UIDLNavLinkNode,
+  UIDLMailLinkNode,
+  UIDLPhoneLinkNode,
 } from '@teleporthq/teleport-types'
 
 type Modify<T, R> = Omit<T, keyof R> & R
@@ -57,9 +65,28 @@ export interface VUIDLElement
   extends Modify<
     UIDLElement,
     {
+      abilities?: {
+        link?: VUIDLLinkNode
+      }
       children?: VUIDLNode[]
       style?: Record<string, UIDLAttributeValue | string | number>
       attrs?: Record<string, UIDLAttributeValue | string | number>
+      referencedStyles: Record<
+        string,
+        UIDLElementNodeProjectReferencedStyle | VUIDLElementNodeInlineReferencedStyle
+      >
+    }
+  > {}
+
+export interface VUIDLElementNodeInlineReferencedStyle
+  extends Modify<
+    UIDLElementNodeInlineReferencedStyle,
+    {
+      content: {
+        mapType: 'inlined'
+        conditions?: UIDLStyleConditions[]
+        styles: Record<string, UIDLStaticValue | string | number>
+      }
     }
   > {}
 
@@ -96,3 +123,29 @@ export interface VUIDLSlotNode
       }
     }
   > {}
+
+export interface VUIDLSectionLinkNode
+  extends Modify<
+    UIDLSectionLinkNode,
+    {
+      content: Record<string, string>
+    }
+  > {}
+
+export interface VUIDLURLLinkNode
+  extends Modify<
+    UIDLURLLinkNode,
+    {
+      content: {
+        url: UIDLAttributeValue | string
+        newTab: boolean
+      }
+    }
+  > {}
+
+export type VUIDLLinkNode =
+  | VUIDLURLLinkNode
+  | VUIDLSectionLinkNode
+  | UIDLNavLinkNode
+  | UIDLMailLinkNode
+  | UIDLPhoneLinkNode

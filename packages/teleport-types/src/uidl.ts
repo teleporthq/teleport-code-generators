@@ -301,7 +301,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
   content: {
     mapType: 'inlined'
     conditions?: UIDLStyleConditions[]
-    styles: UIDLStyleDefinitions
+    styles: Record<string, UIDLStaticValue>
   }
 }
 

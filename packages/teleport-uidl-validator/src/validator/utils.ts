@@ -182,18 +182,20 @@ export const checkComponentNaming = (input: ProjectUIDL) => {
 export const checkProjectStyleSet = (input: ProjectUIDL) => {
   const errors: string[] = []
   const styleSet = input.root.styleSetDefinitions
-  Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefnition) => {
-    const { content } = styleSetObj
-    Object.values(content).forEach((styleContent) => {
-      if (
-        styleContent.type !== 'static' &&
-        typeof styleContent !== 'string' &&
-        typeof styleContent !== 'number'
-      ) {
-        errors.push('We support only static values in project-style sheet')
-      }
+  if (styleSet) {
+    Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefnition) => {
+      const { content } = styleSetObj
+      Object.values(content).forEach((styleContent) => {
+        if (
+          styleContent.type !== 'static' &&
+          typeof styleContent !== 'string' &&
+          typeof styleContent !== 'number'
+        ) {
+          errors.push('We support only static values in project-style sheet')
+        }
+      })
     })
-  })
+  }
   return errors
 }
 
@@ -232,7 +234,7 @@ export const checkRootComponent = (input: ProjectUIDL) => {
 export const formatErrors = (errors: Array<{ kind: string; at: string; message: string }>) => {
   const listOfErrors: string[] = []
   errors.forEach((error) => {
-    const message = `\n - Path ${error.at}: \n ${error.message}. \n is a ${typeof error.kind}`
+    const message = `\n - Path ${error.at}: ${error.message}. \n is a ${error.kind} \n`
     listOfErrors.push(message)
   })
 

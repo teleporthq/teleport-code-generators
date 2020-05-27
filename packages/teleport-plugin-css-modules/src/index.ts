@@ -70,6 +70,53 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const className = StringUtils.camelCaseToDashCase(key)
       const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
 
+      if (style) {
+        const root = astNodesLookup[key]
+        const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
+
+        if (Object.keys(staticStyles).length > 0) {
+          cssClasses.push(
+            StyleBuilders.createCSSClass(
+              className,
+              // @ts-ignore
+              StyleUtils.getContentOfStyleObject(staticStyles)
+            )
+          )
+          appendClassName = true
+        }
+
+        if (appendClassName) {
+          // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
+          const classNameIsJSFriendly = className === jsFriendlyClassName
+          const classReferenceIdentifier =
+            camelCaseClassNames || classNameIsJSFriendly
+              ? `styles.${jsFriendlyClassName}`
+              : `styles['${className}']`
+          classNamesToAppend.push(classReferenceIdentifier)
+
+          if (classNamesToAppend.length === 1) {
+            ASTUtils.addDynamicAttributeToJSXTag(
+              root as types.JSXElement,
+              classAttributeName,
+              classReferenceIdentifier
+            )
+          }
+        }
+
+        if (Object.keys(dynamicStyles).length) {
+          const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
+
+          const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+            StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
+          )
+
+          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
+          if (Object.keys(inlineStyles).length > 0) {
+            ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', inlineStyles)
+          }
+        }
+      }
+
       if (referencedStyles && Object.keys(referencedStyles).length > 0) {
         Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
@@ -117,6 +164,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
+                // TODO: append this to the front of the array
                 classNamesToAppend.push(referedStyle.name)
               }
               return
@@ -128,53 +176,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             }
           }
         })
-      }
-
-      if (style) {
-        const root = astNodesLookup[key]
-        const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
-
-        if (Object.keys(staticStyles).length > 0) {
-          cssClasses.push(
-            StyleBuilders.createCSSClass(
-              className,
-              // @ts-ignore
-              StyleUtils.getContentOfStyleObject(staticStyles)
-            )
-          )
-          appendClassName = true
-        }
-
-        if (appendClassName) {
-          // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
-          const classNameIsJSFriendly = className === jsFriendlyClassName
-          const classReferenceIdentifier =
-            camelCaseClassNames || classNameIsJSFriendly
-              ? `styles.${jsFriendlyClassName}`
-              : `styles['${className}']`
-          classNamesToAppend.push(classReferenceIdentifier)
-
-          if (classNamesToAppend.length === 1) {
-            ASTUtils.addDynamicAttributeToJSXTag(
-              root as types.JSXElement,
-              classAttributeName,
-              classReferenceIdentifier
-            )
-          }
-        }
-
-        if (Object.keys(dynamicStyles).length) {
-          const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
-
-          const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
-            StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
-          )
-
-          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
-          if (Object.keys(inlineStyles).length > 0) {
-            ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', inlineStyles)
-          }
-        }
       }
     })
 

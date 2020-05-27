@@ -1,38 +1,8 @@
-import {
-  Decoder,
-  object,
-  optional,
-  string,
-  dict,
-  array,
-  constant,
-  union,
-  boolean,
-} from '@mojotech/json-type-validation'
-import { UIDLGlobalProjectValues, UIDLGlobalAsset, WebManifest } from '@teleporthq/teleport-types'
+import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
+import { UIDLGlobalProjectValues, WebManifest } from '@teleporthq/teleport-types'
+import { globalAssetsValidator } from './utils'
 import componentUIDLValudator from './component-decoder'
 import { VProjectUIDL } from './types'
-
-const globalAssetsValidator: Decoder<UIDLGlobalAsset> = object({
-  type: union(
-    constant('script'),
-    constant('style'),
-    constant('font'),
-    constant('canonical'),
-    constant('icon')
-  ),
-  path: optional(string()),
-  content: optional(string()),
-  options: optional(
-    object({
-      async: optional(boolean()),
-      defer: optional(boolean()),
-      target: optional(string()),
-      iconType: optional(string()),
-      iconSizes: optional(string()),
-    })
-  ),
-})
 
 const webManifestDecoder: Decoder<WebManifest> = object({
   short_name: optional(string()),
