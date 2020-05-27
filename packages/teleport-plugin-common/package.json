@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-common",
-  "version": "0.10.11",
+  "version": "0.11.0",
   "description": "Common building and modelating functions for ASTs and HASTs",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.10.11",
-    "@teleporthq/teleport-types": "^0.10.11",
+    "@teleporthq/teleport-shared": "^0.11.0",
+    "@teleporthq/teleport-types": "^0.11.0",
     "jss": "^10.0.0",
     "jss-preset-default": "^10.0.0"
   },
