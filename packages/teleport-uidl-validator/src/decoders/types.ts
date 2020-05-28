@@ -84,8 +84,8 @@ export interface VUIDLElementNodeInlineReferencedStyle
     {
       content: {
         mapType: 'inlined'
-        conditions?: UIDLStyleConditions[]
-        styles: Record<string, UIDLStaticValue | string | number>
+        conditions: UIDLStyleConditions[]
+        styles: Record<string, UIDLAttributeValue | string | number>
       }
     }
   > {}

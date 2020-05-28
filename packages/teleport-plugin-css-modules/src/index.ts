@@ -7,6 +7,7 @@ import {
   FileType,
   ChunkType,
   UIDLElementNodeReferenceStyles,
+  UIDLStyleMediaQueryScreenSizeCondition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 
@@ -54,6 +55,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     const cssClasses: string[] = []
     let isProjectStyleReferred: boolean = false
+    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const projectStylesReferenceOffset = `projectStyles`
     const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
@@ -70,8 +73,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const className = StringUtils.camelCaseToDashCase(key)
       const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
 
+      const classNameIsJSFriendly = className === jsFriendlyClassName
+      const classReferenceIdentifier =
+        camelCaseClassNames || classNameIsJSFriendly
+          ? `styles.${jsFriendlyClassName}`
+          : `styles['${className}']`
+      const root = astNodesLookup[key]
+
       if (style) {
-        const root = astNodesLookup[key]
         const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
 
         if (Object.keys(staticStyles).length > 0) {
@@ -85,28 +94,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           appendClassName = true
         }
 
-        if (appendClassName) {
-          // When the className is equal to the jsFriendlyClassName, it can be safely addressed with `styles.<className>`
-          const classNameIsJSFriendly = className === jsFriendlyClassName
-          const classReferenceIdentifier =
-            camelCaseClassNames || classNameIsJSFriendly
-              ? `styles.${jsFriendlyClassName}`
-              : `styles['${className}']`
-          classNamesToAppend.push(classReferenceIdentifier)
-
-          if (classNamesToAppend.length === 1) {
-            ASTUtils.addDynamicAttributeToJSXTag(
-              root as types.JSXElement,
-              classAttributeName,
-              classReferenceIdentifier
-            )
-          }
-        }
-
         if (Object.keys(dynamicStyles).length) {
-          const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
-
-          const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+          const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
             StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
@@ -121,37 +110,34 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
-              const condition = styleRef.content.conditions[0]
-              if (
-                !condition ||
-                !styleRef.content.styles ||
-                Object.keys(styleRef.content.styles).length === 0
-              ) {
-                return
-              }
-              if (condition.conditionType === 'screen-size') {
-                cssClasses.push(
-                  StyleBuilders.createCSSClassWithMediaQuery(
-                    className,
-                    `max-width: ${condition.maxWidth}px`,
-                    // @ts-ignore
-                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
-                  )
-                )
-              }
+              // We can't set dynamic styles for conditions in css-modules, they need be directly applied in the node.
+              const { staticStyles } = UIDLUtils.splitDynamicAndStaticStyles(
+                styleRef.content.styles
+              )
+              if (Object.keys(staticStyles).length > 0) {
+                const condition = styleRef.content.conditions[0]
+                const { conditionType } = condition
+                if (conditionType === 'screen-size') {
+                  const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
+                  mediaStylesMap[maxWidth] = {
+                    ...mediaStylesMap[maxWidth],
+                    [className]: StyleUtils.getContentOfStyleObject(staticStyles),
+                  }
+                }
 
-              if (condition.conditionType === 'element-state') {
-                cssClasses.push(
-                  StyleBuilders.createCSSClassWithSelector(
-                    className,
-                    `&:${condition.content}`,
-                    // @ts-ignore
-                    StyleUtils.getContentOfStyleObject(styleRef.content.styles)
+                if (condition.conditionType === 'element-state') {
+                  cssClasses.push(
+                    StyleBuilders.createCSSClassWithSelector(
+                      className,
+                      `&:${condition.content}`,
+                      // @ts-ignore
+                      StyleUtils.getContentOfStyleObject(staticStyles)
+                    )
                   )
-                )
-              }
+                }
 
-              appendClassName = true
+                appendClassName = true
+              }
               return
             }
             case 'project-referenced': {
@@ -164,8 +150,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
-                // TODO: append this to the front of the array
-                classNamesToAppend.push(referedStyle.name)
+                classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
               }
               return
             }
@@ -177,8 +162,40 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           }
         })
       }
+
+      if (appendClassName) {
+        classNamesToAppend.push(classReferenceIdentifier)
+      }
+
+      if (classNamesToAppend?.length > 1) {
+        ASTUtils.addMultipleDynamicAttributesToJSXTag(
+          root as types.JSXElement,
+          classAttributeName,
+          classNamesToAppend
+        )
+      } else {
+        ASTUtils.addDynamicAttributeToJSXTag(
+          root as types.JSXElement,
+          classAttributeName,
+          classNamesToAppend[0]
+        )
+      }
     })
 
+    if (Object.keys(mediaStylesMap).length > 0) {
+      Object.keys(mediaStylesMap)
+        .sort((a: string, b: string) => Number(a) - Number(b))
+        .reverse()
+        .forEach((mediaOffset: string) => {
+          cssClasses.push(
+            StyleBuilders.createCSSClassWithMediaQuery(
+              `max-width: ${mediaOffset}px`,
+              // @ts-ignore
+              mediaStylesMap[mediaOffset]
+            )
+          )
+        })
+    }
     /**
      * If no classes were added, we don't need to import anything or to alter any code
      */
@@ -209,7 +226,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     if (isProjectStyleReferred) {
       const fileName = `${options.projectStyleSet.fileName}.module`
-      dependencies[`projectStyles`] = {
+      dependencies[projectStylesReferenceOffset] = {
         type: 'local',
         path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,
       }

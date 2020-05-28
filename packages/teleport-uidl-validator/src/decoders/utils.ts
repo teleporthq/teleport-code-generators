@@ -289,14 +289,13 @@ export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectRefere
   }
 )
 
-// TODO: Add suppport for accepting styles, in flat structure under content
 export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferencedStyle> = object({
   id: string(),
   type: constant('style-map'),
   content: object({
     mapType: constant('inlined'),
-    conditions: optional(array(styleConditionsDecoder)),
-    styles: optional(dict(union(staticValueDecoder, string(), number()))),
+    conditions: array(styleConditionsDecoder),
+    styles: optional(dict(union(attributeValueDecoder, string(), number()))),
   }),
 })
 

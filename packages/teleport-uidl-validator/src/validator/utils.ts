@@ -191,7 +191,13 @@ export const checkProjectStyleSet = (input: ProjectUIDL) => {
           typeof styleContent !== 'string' &&
           typeof styleContent !== 'number'
         ) {
-          errors.push('We support only static values in project-style sheet')
+          /* We don't currently support dynamic nodes in project-style sheet
+          Since, these are just used as reference styles on any other nodes.
+           Any logic related to styles should be directly applied on the node. Validators
+           take care of this, but good to cross-check with content too if the they skip Validation */
+          errors.push(
+            `Project Style sheet / styleSetDefinitions only support styles with static content, received ${styleContent}`
+          )
         }
       })
     })

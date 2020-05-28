@@ -86,13 +86,15 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
             )
           }
 
-          if (
-            content.mapType === 'project-referenced' &&
-            content?.conditions &&
-            styleRef.content?.conditions.length > 0
-          ) {
-            // TODO: throw the error here and update the discussion details
-            throw new Error('We currently support only basic refernce from the project-style sheet')
+          if (content.mapType === 'project-referenced' && content?.conditions?.length > 0) {
+            throw new Error(`
+              We currently don't support conditions for "referencedStyles" which are
+              "project-referenced". Because we need a solution to conditionally apply on the nodes
+              with the condition they are being used.
+
+              Eg: If a reference styles is used only for hover, we should be applying the style
+              on hover of the node which is using it by pulling from project-style sheet.
+            `)
           }
         })
       }

@@ -39,20 +39,13 @@ export const createCSSClassWithSelector = (
 }
 
 export const createCSSClassWithMediaQuery = (
-  className: string,
   mediaOffset: string,
   styleObject: Record<string, string | number>
 ) => {
   return jss
-    .createRule(
-      `@media(${mediaOffset})`,
-      {
-        [`.${className}`]: styleObject,
-      },
-      {
-        generateId: () => className,
-      }
-    )
+    .createRule(`@media(${mediaOffset})`, styleObject, {
+      generateId: (data) => data.key,
+    })
     .toString()
 }
 

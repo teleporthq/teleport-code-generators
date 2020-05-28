@@ -300,8 +300,8 @@ export interface UIDLElementNodeInlineReferencedStyle {
   type: 'style-map'
   content: {
     mapType: 'inlined'
-    conditions?: UIDLStyleConditions[]
-    styles: Record<string, UIDLStaticValue>
+    conditions: UIDLStyleConditions[]
+    styles: Record<string, UIDLAttributeValue>
   }
 }
 
