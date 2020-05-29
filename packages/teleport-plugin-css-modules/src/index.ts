@@ -141,16 +141,20 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               return
             }
             case 'project-referenced': {
-              const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                isProjectStyleReferred = true
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                if (!referencedStyles) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
+              /* The check is to make sure that projectStyleSet is defined from
+              the project-generator. If it is not found, the reference is ignored */
+              if (projectStyleSet?.styleSetDefinitions) {
+                const { content } = styleRef
+                if (content.referenceId && !content?.conditions) {
+                  isProjectStyleReferred = true
+                  const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                  if (!referencedStyles) {
+                    throw new Error(
+                      `Style that is being used for reference is missing - ${content.referenceId}`
+                    )
+                  }
+                  classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
                 }
-                classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
               }
               return
             }

@@ -9,7 +9,9 @@ import {
   EntryFileOptions,
   FileType,
   ChunkType,
+  FrameWorkConfigOptions,
 } from '@teleporthq/teleport-types'
+// import MagicString from 'magic-string'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest, customCode } = uidl.globals
@@ -112,4 +114,62 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
     ),
     t.exportDefaultDeclaration(t.identifier('CustomDocument')),
   ])
+}
+
+export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
+  const path = options.globalStyles?.path === '' ? '.' : options.globalStyles.path
+
+  const impiortChunkContent = t.importDeclaration(
+    [],
+    t.stringLiteral(`${path}/${options.globalStyles.sheetName}.css`)
+  )
+
+  const contentChunkContent = t.exportDefaultDeclaration(
+    t.functionDeclaration(
+      t.identifier('MyApp'),
+      [
+        t.objectPattern([
+          t.objectProperty(t.identifier('Component'), t.identifier('Component')),
+          t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
+        ]),
+      ],
+      t.blockStatement([
+        t.returnStatement(
+          t.jsxElement(
+            t.jsxOpeningElement(
+              t.jsxIdentifier('Component'),
+              [t.jsxSpreadAttribute(t.identifier('pageProps'))],
+              true
+            ),
+            null,
+            [],
+            true
+          )
+        ),
+      ])
+    )
+  )
+
+  const importContentChunk: ChunkDefinition = {
+    type: ChunkType.AST,
+    name: 'import-js-chunk',
+    fileType: FileType.JS,
+    content: impiortChunkContent,
+    linkAfter: [],
+  }
+
+  const contentChunk: ChunkDefinition = {
+    type: ChunkType.AST,
+    name: 'app-js-chunk',
+    fileType: FileType.JS,
+    content: contentChunkContent,
+    linkAfter: ['import-js-chunk'],
+  }
+
+  return {
+    chunks: {
+      [FileType.JS]: [importContentChunk, contentChunk],
+    },
+    dependencies: options.dependencies,
+  }
 }

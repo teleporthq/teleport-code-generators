@@ -53,6 +53,7 @@ const createVueProjectGenerator = () => {
       generator: styleSheetGenerator,
       fileName: 'index',
       path: ['src'],
+      importFile: true,
     },
     router: {
       generator: vueRouterGenerator,

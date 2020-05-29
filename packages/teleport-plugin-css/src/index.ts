@@ -236,7 +236,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         ])
       }
 
-      if (isProjectStyleReferred && declareDependency !== 'decorator') {
+      if (isProjectStyleReferred && projectStyleSet?.importFile) {
         dependencies[projectStyleSet.fileName] = {
           type: 'local',
           path: `${projectStyleSet.path}/${projectStyleSet.fileName}.${FileType.CSS}`,

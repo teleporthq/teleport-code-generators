@@ -93,6 +93,7 @@ export interface GeneratorOptions {
     styleSetDefinitions: Record<string, UIDLStyleSetDefnition>
     fileName: string
     path: string
+    importFile?: boolean
   }
 }
 
@@ -146,6 +147,7 @@ export interface ProjectStrategy {
     generator: ComponentGenerator
     path: string[]
     fileName: string
+    importFile?: boolean
   }
   router?: {
     generator: ComponentGenerator
@@ -175,8 +177,25 @@ export interface ProjectStrategy {
       fileName: string
       fileType: string
       configPath: string[]
-      styleVariation: string
+      styleVariation?: string
+      generator?: ComponentGenerator
+      configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
     }
+  }
+}
+
+export interface ConfigGeneratorResult {
+  chunks: Record<string, ChunkDefinition[]>
+  dependencies: Record<string, string>
+}
+
+export interface FrameWorkConfigOptions {
+  fileName: string
+  fileType: string
+  dependencies: Record<string, string>
+  globalStyles?: {
+    path: string
+    sheetName: string
   }
 }
 

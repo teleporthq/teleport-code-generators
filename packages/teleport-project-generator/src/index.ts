@@ -33,6 +33,7 @@ import {
   ComponentGenerator,
   ProjectStrategyPageOptions,
   ReactStyleVariation,
+  ConfigGeneratorResult,
 } from '@teleporthq/teleport-types'
 
 import MagicString from 'magic-string'
@@ -176,7 +177,7 @@ export class ProjectGenerator {
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
       let pageOptions = options
-      if (Object.keys(styleSetDefinitions).length > 0) {
+      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet = PathResolver.relative(
           this.strategy.pages.path.join('/'),
           this.strategy.projectStyleSheet.path.join('/')
@@ -187,6 +188,7 @@ export class ProjectGenerator {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
             path: relativePathForProjectStyleSheet,
+            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
           },
         }
       }
@@ -209,7 +211,7 @@ export class ProjectGenerator {
     // Handling components
     for (const componentName of Object.keys(components)) {
       let componentOptions = options
-      if (Object.keys(styleSetDefinitions).length > 0) {
+      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet = PathResolver.relative(
           this.strategy.pages.path.join('/'),
           this.strategy.projectStyleSheet.path.join('/')
@@ -220,6 +222,7 @@ export class ProjectGenerator {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
             path: relativePathForProjectStyleSheet,
+            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
           },
         }
       }
@@ -249,7 +252,38 @@ export class ProjectGenerator {
     const { framework } = this.strategy
 
     if (framework && framework.config) {
-      const { fileName, fileType, styleVariation } = framework.config
+      const {
+        fileName,
+        fileType,
+        styleVariation,
+        configContentGenerator,
+        generator,
+      } = framework.config
+
+      if (configContentGenerator && generator) {
+        const result: ConfigGeneratorResult = configContentGenerator({
+          fileName,
+          fileType,
+          globalStyles: {
+            path: PathResolver.relative(
+              this.strategy.projectStyleSheet.path.join('/'),
+              framework.config.configPath.join('/')
+            ),
+            sheetName: this.strategy.projectStyleSheet
+              ? this.strategy.projectStyleSheet.fileName
+              : '',
+          },
+          dependencies: collectedDependencies,
+        })
+        collectedDependencies = result.dependencies
+        const files = framework.config.generator.linkCodeChunks(
+          result.chunks,
+          framework.config.fileName
+        )
+
+        injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, files)
+      }
+
       if (styleVariation === ReactStyleVariation.StyledComponents) {
         const configFile = template.files.find(
           (file) => file.name === fileName && file.fileType === fileType

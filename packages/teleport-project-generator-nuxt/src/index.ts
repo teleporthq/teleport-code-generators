@@ -3,8 +3,10 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import vueHeadConfigPlugin from '@teleporthq/teleport-plugin-vue-head-config'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
-import { Mapping } from '@teleporthq/teleport-types'
+import { Mapping, FileType } from '@teleporthq/teleport-types'
+import { configContentGenerator } from './utils'
 
 import NuxtMapping from './nuxt-mapping.json'
 import NuxtTemplate from './project-template'
@@ -25,6 +27,9 @@ const createNuxtProjectGenerator = () => {
       fileName: 'style',
     })
   )
+
+  const configGenerator = createComponentGenerator()
+  configGenerator.addPostProcessor(prettierJS)
 
   const generator = createProjectGenerator({
     components: {
@@ -50,6 +55,16 @@ const createNuxtProjectGenerator = () => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: [''],
+    },
+    framework: {
+      config: {
+        generator: configGenerator,
+        configContentGenerator,
+        fileName: 'nuxt.config',
+        fileType: FileType.JS,
+        configPath: [''],
+        styleVariation: 'css',
+      },
     },
     static: {
       prefix: '',
