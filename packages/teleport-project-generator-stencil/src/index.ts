@@ -4,7 +4,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createPrettierJSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
-
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import stencilAppRouting from '@teleporthq/teleport-plugin-stencil-app-routing'
 
 import { Mapping, FileType } from '@teleporthq/teleport-types'
@@ -28,6 +28,13 @@ const createStencilProjectGenerator = () => {
   const prettierHTML = createPrettierHTMLPostProcessor()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
+
   const generator = createProjectGenerator({
     components: {
       generator: stencilComponentGenerator,
@@ -42,6 +49,11 @@ const createStencilProjectGenerator = () => {
       options: {
         createFolderForEachComponent: true,
       },
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: ['src'],
     },
     router: {
       generator: routingComponentGenerator,

@@ -15,10 +15,10 @@ import ReactProjectMapping from './react-project-mapping.json'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSS)
   reactComponentGenerator.addMapping(ReactProjectMapping as Mapping)
 
-  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
+  const reactPagesGenerator = createReactComponentGenerator(ReactStyleVariation.CSS, {
     plugins: [headConfigPlugin],
     mappings: [ReactProjectMapping as Mapping],
   })
@@ -29,7 +29,11 @@ const createReactProjectGenerator = () => {
   routingComponentGenerator.addPostProcessor(prettierJS)
 
   const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)

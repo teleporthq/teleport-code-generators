@@ -31,8 +31,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       )
     })
 
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.styleFileName = fileName
+
     chunks.push({
-      name: `${fileName}.module`,
+      name: fileName,
       type: ChunkType.STRING,
       fileType: FileType.CSS,
       content: cssMap.join('\n'),

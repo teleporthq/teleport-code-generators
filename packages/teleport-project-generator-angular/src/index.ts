@@ -6,6 +6,7 @@ import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postproces
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { Mapping, FileType } from '@teleporthq/teleport-types'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 
 import { CUSTOM_BODY_CONTENT } from './constants'
 import AngularProjectMapping from './angular-mapping.json'
@@ -42,6 +43,13 @@ const createAngularProjectGenerator = () => {
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(createPrettierHTMLPostProcessor())
 
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'styles',
+    })
+  )
+
   const generator = createProjectGenerator({
     components: {
       generator: angularComponentGenerator,
@@ -64,6 +72,11 @@ const createAngularProjectGenerator = () => {
         customStyleFileName: (name: string) => `${name}.component`,
         customTemplateFileName: (name: string) => `${name}.component`,
       },
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'styles',
+      path: ['src'],
     },
     router: {
       generator: angularRootModuleGenerator,

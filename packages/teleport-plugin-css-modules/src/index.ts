@@ -173,7 +173,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           classAttributeName,
           classNamesToAppend
         )
-      } else {
+      } else if (classNamesToAppend.length === 1) {
         ASTUtils.addDynamicAttributeToJSXTag(
           root as types.JSXElement,
           classAttributeName,

@@ -3,7 +3,7 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import vueHeadConfigPlugin from '@teleporthq/teleport-plugin-vue-head-config'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { Mapping } from '@teleporthq/teleport-types'
 
 import NuxtMapping from './nuxt-mapping.json'
@@ -18,6 +18,13 @@ const createNuxtProjectGenerator = () => {
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
+
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
 
   const generator = createProjectGenerator({
     components: {
@@ -38,6 +45,11 @@ const createNuxtProjectGenerator = () => {
       options: {
         appRootOverride: '{{APP}}',
       },
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: [''],
     },
     static: {
       prefix: '',

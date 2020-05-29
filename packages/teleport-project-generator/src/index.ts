@@ -166,6 +166,7 @@ export class ProjectGenerator {
       skipValidation: true,
     }
 
+    // Handling project style sheet
     if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { generator, path } = this.strategy.projectStyleSheet
       const { files } = await generator.generateComponent(uidl.root)

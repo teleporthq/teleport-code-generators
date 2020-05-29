@@ -94,7 +94,7 @@ export interface VUIDLStyleSetDefnition
   extends Modify<
     UIDLStyleSetDefnition,
     {
-      content: Record<string, UIDLStaticValue | string>
+      content: Record<string, UIDLStaticValue | string | number>
     }
   > {}
 

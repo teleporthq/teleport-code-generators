@@ -84,7 +84,7 @@ export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object
   id: string(),
   name: string(),
   type: constant('reusable-project-style-map'),
-  content: dict(union(staticValueDecoder, string())),
+  content: dict(union(staticValueDecoder, string(), number())),
 })
 
 // TODO: Implement decoder for () => void
