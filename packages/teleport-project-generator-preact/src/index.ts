@@ -28,6 +28,7 @@ const createPreactProjectGenerator = () => {
   styleSheetGenerator.addPlugin(
     createStyleSheetPlugin({
       fileName: 'style',
+      omitModuleextension: true,
     })
   )
 
@@ -83,7 +84,7 @@ const createPreactProjectGenerator = () => {
     projectStyleSheet: {
       generator: styleSheetGenerator,
       fileName: 'style',
-      path: ['src'],
+      path: ['src', 'routes'],
       importFile: true,
     },
     static: {

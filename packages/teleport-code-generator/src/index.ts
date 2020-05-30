@@ -173,6 +173,7 @@ export const generateComponent: GenerateComponentFunction = async (
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]
+  // @ts-ignore
   generator.addMapping(projectMapping)
   return generator.generateComponent(componentUIDL)
 }

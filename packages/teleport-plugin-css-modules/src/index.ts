@@ -229,7 +229,9 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     }
 
     if (isProjectStyleReferred) {
-      const fileName = `${options.projectStyleSet.fileName}.module`
+      const fileName = moduleExtension
+        ? `${options.projectStyleSet.fileName}.module`
+        : options.projectStyleSet.fileName
       dependencies[projectStylesReferenceOffset] = {
         type: 'local',
         path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,

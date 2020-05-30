@@ -8,10 +8,14 @@ import {
 
 interface StyleSheetPlugin {
   fileName?: string
+  omitModuleextension?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName } = config || { fileName: 'style' }
+  const { fileName, omitModuleextension } = config || {
+    fileName: 'style',
+    omitModuleextension: false,
+  }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { styleSetDefinitions } = uidl
@@ -31,11 +35,13 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       )
     })
 
+    const sheeName = omitModuleextension ? fileName : `${fileName}.module`
+
     uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.styleFileName = `${fileName}.module`
+    uidl.outputOptions.styleFileName = sheeName
 
     chunks.push({
-      name: `${fileName}`,
+      name: fileName,
       type: ChunkType.STRING,
       fileType: FileType.CSS,
       content: cssMap.join('\n'),
