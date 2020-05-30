@@ -177,9 +177,14 @@ export class ProjectGenerator {
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
       let pageOptions = options
+      const pagesPath = this.strategy.pages.path
       if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet = PathResolver.relative(
-          this.strategy.pages.path.join('/'),
+          /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+          this.strategy.pages.options?.createFolderForEachComponent
+            ? [...pagesPath, pageUIDL.name].join('/')
+            : pagesPath.join('/'),
           this.strategy.projectStyleSheet.path.join('/')
         )
         pageOptions = {
@@ -211,9 +216,14 @@ export class ProjectGenerator {
     // Handling components
     for (const componentName of Object.keys(components)) {
       let componentOptions = options
+      const componentsPath = this.strategy.components.path
       if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet = PathResolver.relative(
-          this.strategy.pages.path.join('/'),
+          /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+          this.strategy.components.options?.createFolderForEachComponent
+            ? [...componentsPath, componentName].join('/')
+            : componentsPath.join('/'),
           this.strategy.projectStyleSheet.path.join('/')
         )
         componentOptions = {
