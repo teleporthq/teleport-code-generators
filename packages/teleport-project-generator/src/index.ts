@@ -171,6 +171,7 @@ export class ProjectGenerator {
     if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { generator, path } = this.strategy.projectStyleSheet
       const { files } = await generator.generateComponent(uidl.root)
+
       injectFilesToPath(rootFolder, path, files)
     }
 

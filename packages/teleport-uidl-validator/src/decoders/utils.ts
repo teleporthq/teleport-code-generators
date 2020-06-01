@@ -179,7 +179,7 @@ export const dependencyDecoder: Decoder<UIDLDependency> = object({
   meta: optional(
     object({
       namedImport: boolean(),
-      origialName: string(),
+      origialName: optional(string()),
     })
   ),
 })

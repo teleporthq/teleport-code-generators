@@ -29,11 +29,9 @@ const createReactProjectGenerator = () => {
   routingComponentGenerator.addPostProcessor(prettierJS)
 
   const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
+  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  styleSheetGenerator.addPlugin(importStatementsPlugin)
+  styleSheetGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
