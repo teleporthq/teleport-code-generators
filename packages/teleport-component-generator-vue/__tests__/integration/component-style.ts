@@ -25,7 +25,7 @@ describe('Vue styles in Component Generator', () => {
       expect(vueFile.content).toContain('config.height')
     })
 
-    it('should support nested styles', async () => {
+    it('should not support nested styles', async () => {
       // @ts-ignore
       const result = generator.generateComponent(ComponentWithNestedStyles)
       await expect(result).rejects.toThrow(Error)

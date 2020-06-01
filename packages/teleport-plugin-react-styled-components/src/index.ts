@@ -55,11 +55,14 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         return
       }
 
-      if (style && Object.keys(style).length > 0) {
-        const root = jsxNodesLookup[key]
-        let className = StringUtils.dashCaseToUpperCamelCase(key)
-        const projectReferencedClassNames: string[] = []
+      const root = jsxNodesLookup[key]
+      let className = StringUtils.dashCaseToUpperCamelCase(key)
+      const projectReferencedClassNames: string[] = []
 
+      let timesReferred = countPropReferences(style, 0)
+      timesReferred = countPropRefernecesFromReferencedStyles(referencedStyles, timesReferred)
+
+      if (style && Object.keys(style).length > 0) {
         /* Styled components might create an element that
         clashes with native element (Text, View, Image, etc.) */
 
@@ -71,25 +74,24 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           className = `Styled${className}`
         }
 
-        let timesReferred = countPropReferences(style, 0)
-        timesReferred = countPropRefernecesFromReferencedStyles(referencedStyles, timesReferred)
-
         if (componentLibrary === 'reactnative') {
           style = UIDLUtils.cleanupNestedStyles(style)
-          Object.values(referencedStyles).forEach((styleRef) => {
-            if (styleRef.content.mapType === 'inlined') {
-              referencedStyles[styleRef.id] = {
-                ...referencedStyles[styleRef.id],
-                content: {
-                  ...referencedStyles[styleRef.id].content,
-                  // @ts-ignore
-                  styles: UIDLUtils.cleanupNestedStyles(styleRef.content.styles),
-                },
-                /* We are doing a check at the top to make sure we
-                are doing this only for inlined styles. Some typescipt error, can be ignored */
+          if (referencedStyles && Object.keys(referencedStyles).length > 0) {
+            Object.values(referencedStyles).forEach((styleRef) => {
+              if (styleRef.content.mapType === 'inlined') {
+                referencedStyles[styleRef.id] = {
+                  ...referencedStyles[styleRef.id],
+                  content: {
+                    ...referencedStyles[styleRef.id].content,
+                    // @ts-ignore
+                    styles: UIDLUtils.cleanupNestedStyles(styleRef.content.styles),
+                  },
+                  /* We are doing a check at the top to make sure we
+                  are doing this only for inlined styles. Some typescipt error, can be ignored */
+                }
               }
-            }
-          })
+            })
+          }
         }
 
         jssStyleMap[className] = generatePropReferencesSyntax(
@@ -98,93 +100,93 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           root,
           propsPrefix
         )
-
-        if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
-          Object.values(referencedStyles).forEach((styleRef) => {
-            switch (styleRef.content?.mapType) {
-              case 'inlined': {
-                const { conditions } = styleRef.content
-                const [condition] = conditions
-                if (condition.conditionType === 'screen-size') {
-                  jssStyleMap[className] = {
-                    ...(jssStyleMap[className] as Record<string, string>),
-                    [`@media(max-width: ${condition.maxWidth}px)`]: generatePropReferencesSyntax(
-                      styleRef.content.styles,
-                      timesReferred,
-                      root,
-                      propsPrefix
-                    ),
-                  }
-                }
-
-                if (condition.conditionType === 'element-state') {
-                  jssStyleMap[className] = {
-                    ...(jssStyleMap[className] as Record<string, string>),
-                    [`&:${condition.content}`]: generatePropReferencesSyntax(
-                      styleRef.content.styles,
-                      timesReferred,
-                      root,
-                      propsPrefix
-                    ),
-                  }
-                }
-
-                return
-              }
-              case 'project-referenced': {
-                /* The check is to make sure that projectStyleSet is defined from
-              the project-generator. If it is not found, the reference is ignored */
-                if (projectStyleSet?.styleSetDefinitions) {
-                  const { content } = styleRef
-                  if (content.referenceId && !content?.conditions) {
-                    const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                    if (!referencedStyles) {
-                      throw new Error(
-                        `Style that is being used for reference is missing - ${content.referenceId}`
-                      )
-                    }
-                    const styleName = StringUtils.dashCaseToUpperCamelCase(referedStyle.name)
-                    projectReferencedClassNames.push(styleName)
-                    dependencies[styleName] = {
-                      type: 'local',
-                      path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
-                      meta: {
-                        namedImport: true,
-                      },
-                    }
-                  }
-                }
-                return
-              }
-              default: {
-                throw new Error(`
-                  We support only inlined and project-referenced styles as of now, received ${styleRef.content}
-                `)
-              }
-            }
-          })
-        }
-
-        if (timesReferred > 1) {
-          ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
-        }
-
-        ASTUtils.renameJSXTag(root, className)
-
-        const code = {
-          type: ChunkType.AST,
-          fileType: FileType.JS,
-          name: className,
-          linkAfter: [importChunkName],
-          content: generateStyledComponent(
-            className,
-            elementType,
-            jssStyleMap[className] as Record<string, unknown>,
-            projectReferencedClassNames
-          ),
-        }
-        chunks.push(code)
       }
+
+      if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
+        Object.values(referencedStyles).forEach((styleRef) => {
+          switch (styleRef.content?.mapType) {
+            case 'inlined': {
+              const { conditions } = styleRef.content
+              const [condition] = conditions
+              if (condition.conditionType === 'screen-size') {
+                jssStyleMap[className] = {
+                  ...(jssStyleMap[className] as Record<string, string>),
+                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropReferencesSyntax(
+                    styleRef.content.styles,
+                    timesReferred,
+                    root,
+                    propsPrefix
+                  ),
+                }
+              }
+
+              if (condition.conditionType === 'element-state') {
+                jssStyleMap[className] = {
+                  ...(jssStyleMap[className] as Record<string, string>),
+                  [`&:${condition.content}`]: generatePropReferencesSyntax(
+                    styleRef.content.styles,
+                    timesReferred,
+                    root,
+                    propsPrefix
+                  ),
+                }
+              }
+
+              return
+            }
+            case 'project-referenced': {
+              /* The check is to make sure that projectStyleSet is defined from
+            the project-generator. If it is not found, the reference is ignored */
+              if (projectStyleSet?.styleSetDefinitions) {
+                const { content } = styleRef
+                if (content.referenceId && !content?.conditions) {
+                  const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                  if (!referencedStyles) {
+                    throw new Error(
+                      `Style that is being used for reference is missing - ${content.referenceId}`
+                    )
+                  }
+                  const styleName = StringUtils.dashCaseToUpperCamelCase(referedStyle.name)
+                  projectReferencedClassNames.push(styleName)
+                  dependencies[styleName] = {
+                    type: 'local',
+                    path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+                    meta: {
+                      namedImport: true,
+                    },
+                  }
+                }
+              }
+              return
+            }
+            default: {
+              throw new Error(`
+                We support only inlined and project-referenced styles as of now, received ${styleRef.content}
+              `)
+            }
+          }
+        })
+      }
+
+      if (timesReferred > 1) {
+        ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
+      }
+
+      ASTUtils.renameJSXTag(root, className)
+
+      const code = {
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        name: className,
+        linkAfter: [importChunkName],
+        content: generateStyledComponent(
+          className,
+          elementType,
+          jssStyleMap[className] as Record<string, unknown>,
+          projectReferencedClassNames
+        ),
+      }
+      chunks.push(code)
     })
 
     if (Object.keys(jssStyleMap).length === 0) {
