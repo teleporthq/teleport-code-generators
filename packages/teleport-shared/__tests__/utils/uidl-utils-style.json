@@ -6,18 +6,5 @@
       "referenceType": "props",
       "id": "padding"
     }
-  },
-  ":hover": {
-    "type": "nested-style",
-    "content": {
-      "margin": { "type": "static", "content": "10px"},
-      "padding": {
-        "type": "dynamic",
-        "content": {
-          "referenceType": "props",
-          "id": "hoverPadding"
-        }
-      }
-    }
   }
 }

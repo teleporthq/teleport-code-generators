@@ -86,7 +86,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
             )
           }
 
-          if (content.mapType === 'project-referenced' && content?.conditions?.length > 0) {
+          if (content.mapType === 'project-referenced' && content?.conditions) {
             throw new Error(`
               We currently don't support conditions for "referencedStyles" which are
               "project-referenced". Because we need a solution to conditionally apply on the nodes

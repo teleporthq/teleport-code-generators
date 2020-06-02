@@ -59,11 +59,16 @@ describe('Vue Component Validator', () => {
     expect(vueFile.content).toContain('<template>')
     expect(result.dependencies).toBeDefined()
   })
-  it('throws error when invalid UIDL sample is used', async () => {
-    const result = generator.generateComponent(invalidUidlSample)
 
-    await expect(result).rejects.toThrow(Error)
+  it('Decoders remove the additational fields and use the uidl', async () => {
+    const result = await generator.generateComponent(invalidUidlSample)
+    const vueFile = findFileByType(result.files, VUE_FILE)
+
+    expect(vueFile).toBeDefined()
+    expect(vueFile.content).toContain('<template>')
+    expect(result.dependencies).toBeDefined()
   })
+
   it('works when validation step is skiped', async () => {
     const options = { skipValidation: true }
     const result = await generator.generateComponent(invalidUidlSample, options)

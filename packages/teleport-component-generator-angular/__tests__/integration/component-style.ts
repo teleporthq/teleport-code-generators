@@ -57,19 +57,8 @@ describe('Styles in Angular Component Generator', () => {
   })
 
   it('Generates nested styles in css', async () => {
-    const result = await generator.generateComponent(ComponentWithNestedStyle as ComponentUIDL)
-    const tsFile = findFileByType(result.files, TS_FILE)
-    const htmlFile = findFileByType(result.files, HTML_FILE)
-    const cssFile = findFileByType(result.files, CSS_FILE)
+    const result = generator.generateComponent(ComponentWithNestedStyle as ComponentUIDL)
 
-    expect(result.files.length).toBe(3)
-    expect(htmlFile).toBeDefined()
-    expect(cssFile).toBeDefined()
-    expect(tsFile).toBeDefined()
-    expect(cssFile.content).toContain(`@media (max-width: 835px) {`)
-    expect(cssFile.content).toContain(`align-self: inherit;`)
-    expect(tsFile.content).toContain(`direction: string = 'row'`)
-    expect(htmlFile.content).toContain(`class="container"`)
-    expect(htmlFile.content).toContain(`[ngStyle]="{flexDirection: direction}"`)
+    await expect(result).rejects.toThrow()
   })
 })

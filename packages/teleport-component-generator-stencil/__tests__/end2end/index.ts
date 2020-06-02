@@ -43,9 +43,15 @@ describe('Stencil Component Validator', () => {
     expect(result.dependencies).toBeDefined()
   })
 
-  it('throws error when invalid UIDL sample is used', async () => {
-    const result = generator.generateComponent(invalidUidlSample)
-    await expect(result).rejects.toThrow(Error)
+  it('Decoders remove additational fields and uses the uidl', async () => {
+    const result = await generator.generateComponent(invalidUidlSample)
+
+    const jsFile = findFileByType(result.files, TSX_FILE)
+
+    expect(jsFile).toBeDefined()
+    expect(result.files.length).toBe(1)
+    expect(jsFile.content).toContain('import { Component, h, Prop, State }')
+    expect(result.dependencies).toBeDefined()
   })
 
   it('works when validation step is skiped', async () => {

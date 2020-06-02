@@ -67,7 +67,7 @@ describe('Component with dependency ', () => {
       expect(jsFile.content).toContain("import { ReactDatepicker } from 'react-datepicker'")
     })
 
-    it('fails to render if dependency option is not known', async () => {
+    it('Throws error if dependency option is not known during validation', async () => {
       const result = await generator.generateComponent(
         uidl(
           dependencySample('ReactDatepicker', 'package', 'react-datepicker', '', {
@@ -86,7 +86,10 @@ describe('Component with dependency ', () => {
           dependencySample('ReactDatepicker', 'test', 'react-datepicker', '', {
             namedImport: true,
           })
-        )
+        ),
+        {
+          skipValidation: true,
+        }
       )
       const jsFile = findFileByType(result.files, JS_FILE)
       expect(jsFile).toBeDefined()

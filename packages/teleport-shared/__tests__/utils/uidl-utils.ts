@@ -47,11 +47,6 @@ describe('cleanupDynamicStyles', () => {
     const cleanedStyle = (cleanupDynamicStyles(styleObject) as unknown) as UIDLStyleDefinitions
     expect(cleanedStyle.padding).toBeUndefined()
     expect(cleanedStyle.margin.content).toBe('20px')
-    const nestedStyle = (cleanedStyle[':hover'] as unknown) as UIDLStyleDefinitions
-    // tslint:disable-next-line:no-any
-    expect((nestedStyle.content as Record<string, any>).padding).toBeUndefined()
-    // tslint:disable-next-line:no-any
-    expect((nestedStyle.content as Record<string, any>).margin.content).toBe('10px')
   })
 })
 
@@ -145,28 +140,7 @@ describe('transformStylesAssignmentsToJson', () => {
     expect(transformStylesAssignmentsToJson(inputStyle)).toEqual(expectedStyle)
   })
 
-  it('transforms nested styles to new json', () => {
-    const nestedStyle = {
-      '@media(max-widht:300px)': {
-        flex: '1 1 row',
-        width: '$props.size',
-      },
-    }
-
-    const expectedStyle = {
-      '@media(max-widht:300px)': {
-        type: 'nested-style',
-        content: {
-          flex: { type: 'static', content: '1 1 row' },
-          width: { type: 'dynamic', content: { referenceType: 'prop', id: 'size' } },
-        },
-      },
-    }
-
-    expect(transformStylesAssignmentsToJson(nestedStyle)).toEqual(expectedStyle)
-  })
-
-  it('transforms mixed styles to new json', () => {
+  it('Nested styles are not supported', () => {
     const nestedStyle = {
       '@media(max-widht:300px)': {
         flex: '1 1 row',
@@ -188,30 +162,7 @@ describe('transformStylesAssignmentsToJson', () => {
       },
     }
 
-    const expectedStyle = {
-      '@media(max-widht:300px)': {
-        type: 'nested-style',
-        content: {
-          flex: { type: 'static', content: '1 1 row' },
-          width: { type: 'dynamic', content: { referenceType: 'prop', id: 'size' } },
-          parsedValue: {
-            type: 'static',
-            content: 'parsed',
-          },
-        },
-      },
-
-      '@media(min-widht:300px)': {
-        type: 'nested-style',
-        content: {
-          flex: { type: 'static', content: '1 1 row' },
-          width: { type: 'dynamic', content: { referenceType: 'prop', id: 'size' } },
-          heght: { type: 'dynamic', content: { referenceType: 'prop', id: 'size' } },
-        },
-      },
-    }
-
-    expect(transformStylesAssignmentsToJson(nestedStyle)).toEqual(expectedStyle)
+    expect(transformStylesAssignmentsToJson(nestedStyle)).toEqual({})
   })
 })
 
@@ -520,7 +471,7 @@ describe('traverseNodes', () => {
   it('counts the total number of nodes', () => {
     let counter = 0
     traverseNodes(nodeToTraverse, () => counter++)
-    expect(counter).toBe(15)
+    expect(counter).toBe(13)
   })
 })
 

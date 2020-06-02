@@ -117,10 +117,12 @@ export interface VUIDLSlotNode
   extends Modify<
     UIDLSlotNode,
     {
-      content: {
-        name?: string
-        fallback?: VUIDLElementNode | UIDLStaticValue | UIDLDynamicReference
-      }
+      content:
+        | {
+            name?: string
+            fallback?: VUIDLElementNode | UIDLStaticValue | UIDLDynamicReference
+          }
+        | {}
     }
   > {}
 

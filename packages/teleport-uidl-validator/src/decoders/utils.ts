@@ -178,8 +178,8 @@ export const dependencyDecoder: Decoder<UIDLDependency> = object({
   version: optional(string()),
   meta: optional(
     object({
-      namedImport: boolean(),
-      origialName: optional(string()),
+      namedImport: optional(boolean()),
+      originalName: optional(string()),
     })
   ),
 })
@@ -323,10 +323,19 @@ export const element: Decoder<VUIDLElement> = object({
 
 export const slotNodeDecoder: Decoder<VUIDLSlotNode> = object({
   type: constant('slot'),
-  content: object({
-    name: optional(string()),
-    fallback: optional(union(staticValueDecoder, dynamicValueDecoder)),
-  }),
+  content: union(
+    object({
+      name: optional(string()),
+      fallback: optional(
+        union(
+          staticValueDecoder,
+          dynamicValueDecoder,
+          lazy(() => elementNodeDecoder)
+        )
+      ),
+    }),
+    object({})
+  ),
 })
 
 export const repeatNodeDecoder: Decoder<VUIDLRepeatNode> = object({

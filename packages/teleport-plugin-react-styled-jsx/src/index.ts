@@ -47,6 +47,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       const classNamesToAppend: string[] = []
       const { style, key, referencedStyles } = element
 
+      if (!style && !referencedStyles) {
+        return
+      }
+
       const root = jsxNodesLookup[key]
       const className = StringUtils.camelCaseToDashCase(key)
 
