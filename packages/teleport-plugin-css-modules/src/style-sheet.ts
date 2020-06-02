@@ -20,9 +20,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     const { uidl, chunks } = structure
     const { styleSetDefinitions } = uidl
 
-    if (!styleSetDefinitions) {
+    if (!styleSetDefinitions || Object.keys(styleSetDefinitions).length === 0) {
       return
     }
+
     const cssMap: string[] = []
     Object.values(styleSetDefinitions).forEach((style) => {
       const { name, content } = style
