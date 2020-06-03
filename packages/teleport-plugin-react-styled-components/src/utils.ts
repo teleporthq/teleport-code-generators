@@ -47,17 +47,19 @@ export const generateExportablCSSInterpolate = (name: string, styles: Record<str
 
 const mapStyles = (styles: Record<string, unknown>) => {
   let style = ''
-  Object.keys(styles).forEach((item) => {
-    if (typeof styles[item] === 'string' || typeof styles[item] === 'number') {
-      style = `${style}
-      ${StringUtils.camelCaseToDashCase(item)}: ${styles[item]};`
-    } else {
-      style = `${style}
-      ${item} {
-        ${mapStyles(styles[item] as Record<string, unknown>)}
-      };`
-    }
-  })
+  if (styles && Object.keys(styles).length > 0) {
+    Object.keys(styles).forEach((item) => {
+      if (typeof styles[item] === 'string' || typeof styles[item] === 'number') {
+        style = `${style}
+        ${StringUtils.camelCaseToDashCase(item)}: ${styles[item]};`
+      } else {
+        style = `${style}
+        ${item} {
+          ${mapStyles(styles[item] as Record<string, unknown>)}
+        };`
+      }
+    })
+  }
   return style
 }
 

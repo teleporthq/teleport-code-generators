@@ -90,6 +90,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               return
             }
             case 'project-referenced': {
+              if (!projectStyleSet) {
+                throw new Error(
+                  `Project Style Sheet is missing, but the node is referring to it ${element}`
+                )
+              }
+
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
@@ -111,11 +117,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
       if (appendClassName) {
         classNamesToAppend.push(className)
-        if (classNamesToAppend.length > 1) {
-          ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend.join(' '))
-        } else if (classNamesToAppend.length === 1) {
-          ASTUtils.addClassStringOnJSXTag(root, className)
-        }
+      }
+
+      if (classNamesToAppend.length > 1) {
+        ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend.join(' '))
+      } else if (classNamesToAppend.length === 1) {
+        ASTUtils.addClassStringOnJSXTag(root, className)
       }
     })
 

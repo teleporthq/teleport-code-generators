@@ -160,18 +160,22 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               return
             }
             case 'project-referenced': {
-              if (projectStyleSet?.styleSetDefinitions) {
-                const { content } = styleRef
-                if (content.referenceId && !content?.conditions) {
-                  isProjectStyleReferred = true
-                  const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                  if (!referencedStyles) {
-                    throw new Error(
-                      `Style that is being used for reference is missing - ${content.referenceId}`
-                    )
-                  }
-                  classNamesToAppend.push(referedStyle.name)
+              if (!projectStyleSet) {
+                throw new Error(
+                  `Project Style Sheet is missing, but the node is referring to it ${element}`
+                )
+              }
+
+              const { content } = styleRef
+              if (content.referenceId && !content?.conditions) {
+                isProjectStyleReferred = true
+                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                if (!referencedStyles) {
+                  throw new Error(
+                    `Style that is being used for reference is missing - ${content.referenceId}`
+                  )
                 }
+                classNamesToAppend.push(referedStyle.name)
               }
               return
             }
@@ -186,6 +190,9 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
       if (appendClassName) {
         classNamesToAppend.push(className)
+      }
+
+      if (classNamesToAppend?.length > 0) {
         if (templateStyle === 'html') {
           HASTUtils.addClassToNode(root as HastNode, classNamesToAppend.join(' '))
         } else {
@@ -213,6 +220,16 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         })
     }
 
+    if (isProjectStyleReferred && projectStyleSet.importFile) {
+      dependencies[projectStyleSet.fileName] = {
+        type: 'local',
+        path: `${projectStyleSet.path}/${projectStyleSet.fileName}.${FileType.CSS}`,
+        meta: {
+          importJustPath: true,
+        },
+      }
+    }
+
     if (jssStylesArray.length > 0) {
       chunks.push({
         type: ChunkType.STRING,
@@ -236,16 +253,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         ASTUtils.addPropertyToASTObject(decoratorParam, 'styleUrls', [
           `${cssFileName}.${FileType.CSS}`,
         ])
-      }
-
-      if (isProjectStyleReferred && projectStyleSet?.importFile) {
-        dependencies[projectStyleSet.fileName] = {
-          type: 'local',
-          path: `${projectStyleSet.path}/${projectStyleSet.fileName}.${FileType.CSS}`,
-          meta: {
-            importJustPath: true,
-          },
-        }
       }
 
       if (declareDependency === 'import') {

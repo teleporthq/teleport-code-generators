@@ -141,20 +141,22 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               return
             }
             case 'project-referenced': {
-              /* The check is to make sure that projectStyleSet is defined from
-              the project-generator. If it is not found, the reference is ignored */
-              if (projectStyleSet?.styleSetDefinitions) {
-                const { content } = styleRef
-                if (content.referenceId && !content?.conditions) {
-                  isProjectStyleReferred = true
-                  const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                  if (!referencedStyles) {
-                    throw new Error(
-                      `Style that is being used for reference is missing - ${content.referenceId}`
-                    )
-                  }
-                  classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
+              if (!projectStyleSet) {
+                throw new Error(
+                  `Project Style Sheet is missing, but the node is referring to it ${element}`
+                )
+              }
+
+              const { content } = styleRef
+              if (content.referenceId && !content?.conditions) {
+                isProjectStyleReferred = true
+                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                if (!referencedStyles) {
+                  throw new Error(
+                    `Style that is being used for reference is missing - ${content.referenceId}`
+                  )
                 }
+                classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
               }
               return
             }
@@ -203,7 +205,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     /**
      * If no classes were added, we don't need to import anything or to alter any code
      */
-    if (!cssClasses.length) {
+    if (!cssClasses.length && !isProjectStyleReferred) {
       return structure
     }
 
@@ -223,9 +225,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       uidl.outputOptions.styleFileName = cssFileName
     }
 
-    dependencies[styleObjectImportName] = {
-      type: 'local',
-      path: `./${cssFileName}.${FileType.CSS}`,
+    if (cssClasses.length > 0) {
+      dependencies[styleObjectImportName] = {
+        type: 'local',
+        path: `./${cssFileName}.${FileType.CSS}`,
+      }
     }
 
     if (isProjectStyleReferred) {

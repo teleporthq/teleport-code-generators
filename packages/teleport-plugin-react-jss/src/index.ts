@@ -84,21 +84,25 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               return
             }
             case 'project-referenced': {
-              if (projectStyleSet?.styleSetDefinitions) {
-                const { content } = styleRef
-                if (content.referenceId && !content?.conditions) {
-                  const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                  if (!referencedStyles) {
-                    throw new Error(
-                      `Style that is being used for reference is missing - ${content.referenceId}`
-                    )
-                  }
-                  classNamesToAppend.push(
-                    `projectStyles['${StringUtils.dashCaseToCamelCase(referedStyle.name)}']`
+              if (!projectStyleSet) {
+                throw new Error(
+                  `Project Style Sheet is missing, but the node is referring to it ${element}`
+                )
+              }
+
+              const { content } = styleRef
+              if (content.referenceId && !content?.conditions) {
+                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                if (!referencedStyles) {
+                  throw new Error(
+                    `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
-                isProjectReferenced = true
+                classNamesToAppend.push(
+                  `projectStyles['${StringUtils.dashCaseToCamelCase(referedStyle.name)}']`
+                )
               }
+              isProjectReferenced = true
               return
             }
             default: {
@@ -112,15 +116,12 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
       if (appendClassname) {
         classNamesToAppend.push(`${propsPrefix}.classes['${className}']`)
-        if (classNamesToAppend.length > 1) {
-          ASTUtils.addMultipleDynamicAttributesToJSXTag(
-            root,
-            classAttributeName,
-            classNamesToAppend
-          )
-        } else if (classNamesToAppend.length === 1) {
-          ASTUtils.addDynamicAttributeToJSXTag(root, classAttributeName, classNamesToAppend[0])
-        }
+      }
+
+      if (classNamesToAppend.length > 1) {
+        ASTUtils.addMultipleDynamicAttributesToJSXTag(root, classAttributeName, classNamesToAppend)
+      } else if (classNamesToAppend.length === 1) {
+        ASTUtils.addDynamicAttributeToJSXTag(root, classAttributeName, classNamesToAppend[0])
       }
     })
 

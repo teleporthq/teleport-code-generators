@@ -5,10 +5,6 @@ import ComponentWithInvalidStateStyles from './component-with-invalid-state-styl
 // @ts-ignore-next-line
 import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
 // @ts-ignore-next-line
-import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple-prop-ref-styles.json'
-// @ts-ignore-next-line
-import ComponentWithNestedSinglePropRef from './component-with-nested-single-prop-ref-styles.json'
-// @ts-ignore-next-line
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
 import { createReactComponentGenerator } from '../../src'

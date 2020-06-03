@@ -68,8 +68,7 @@ export const element = (
   referencedStyles?: UIDLReferencedStyles
 ) => {
   const elementObj: UIDLElement = {
-    elementType: 'component',
-    semanticType: elementType,
+    elementType,
     name: elementType,
     children,
   }
@@ -83,6 +82,8 @@ export const element = (
   }
 
   if (dependency) {
+    elementObj.elementType = 'component'
+    elementObj.semanticType = elementType
     elementObj.dependency = dependency
   }
 
