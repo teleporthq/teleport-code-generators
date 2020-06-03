@@ -67,7 +67,8 @@ export const element = (
 ) => {
   if (dependency) {
     return {
-      elementType,
+      elementType: 'component',
+      semanticType: elementType,
       name: elementType,
       dependency,
       attrs,
@@ -78,6 +79,7 @@ export const element = (
   }
   return {
     elementType,
+    // TODO: Handle semantic type in the element builder as well
     name: elementType,
     attrs,
     style,

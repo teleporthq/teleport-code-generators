@@ -52,11 +52,11 @@ export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   // when used in projects, resolveLocalDependencies should handle this
   traverseElements(uidl.node, (element) => {
     if (element.dependency) {
-      element.elementType = dashCaseToUpperCamelCase(
-        removeIllegalCharacters(element.elementType) || defaultComponentName
+      element.semanticType = dashCaseToUpperCamelCase(
+        removeIllegalCharacters(element.semanticType) || defaultComponentName
       )
     } else {
-      element.elementType = removeIllegalCharacters(element.elementType)
+      element.semanticType = removeIllegalCharacters(element.semanticType)
     }
   })
 }

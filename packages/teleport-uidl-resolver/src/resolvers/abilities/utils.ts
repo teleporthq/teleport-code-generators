@@ -12,6 +12,7 @@ export const insertLinks = (
   linkInParent: boolean = false,
   parentNode?: UIDLElementNode
 ): UIDLElementNode => {
+  // TODO_NOW
   const { abilities, children, elementType, semanticType } = node.content
   const linkInNode = linkInParent || !!abilities?.link
 
@@ -46,6 +47,7 @@ export const insertLinks = (
     // the rest of the text elements get wrapped with an <a> tag
     if (elementType === 'text' && semanticType === 'span') {
       node.content.elementType = getLinkElementType(abilities.link)
+      node.content.semanticType = ''
       node.content.attrs = createLinkAttributes(abilities.link, options)
 
       return node

@@ -143,9 +143,9 @@ export const checkComponentExistence = (input: ProjectUIDL) => {
     if (
       element.dependency &&
       element.dependency.type === 'local' &&
-      !components.includes(element.elementType)
+      !components.includes(element.semanticType)
     ) {
-      const errorMsg = `\nThe component "${element.elementType}" is not defined in the UIDL's component section.`
+      const errorMsg = `\nThe component "${element.semanticType}" is not defined in the UIDL's component section.`
       errors.push(errorMsg)
     }
   })

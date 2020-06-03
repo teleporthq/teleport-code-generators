@@ -63,7 +63,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -107,7 +108,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -150,7 +152,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -163,7 +166,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "OneComponent",
+                        "elementType": "component",
+                        "semanticType": "OneComponent",
                         "dependency": {
                           "type": "local"
                         }
@@ -579,7 +583,8 @@
                 "node": {
                   "type": "element",
                   "content": {
-                    "elementType": "ModalWindow",
+                    "elementType": "component",
+                    "semanticType": "ModalWindow",
                     "name": "window",
                     "dependency": {
                       "type": "local"

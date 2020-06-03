@@ -135,7 +135,10 @@ export const extractPageOptions = (
   }
 
   const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
-  deduplicatePageOptionValues(pageOptions, otherPages.map((page) => page.pageOptions))
+  deduplicatePageOptionValues(
+    pageOptions,
+    otherPages.map((page) => page.pageOptions)
+  )
 
   return pageOptions
 }
@@ -334,7 +337,7 @@ const setLocalDependencyPath = (
   fromPath: string[],
   toBasePath: string[]
 ) => {
-  const componentKey = element.elementType
+  const componentKey = element.semanticType || element.elementType
   const component = components[componentKey]
   const componentPath = UIDLUtils.getComponentFolderPath(component)
   const componentClassName = UIDLUtils.getComponentClassName(component)
@@ -344,7 +347,8 @@ const setLocalDependencyPath = (
   const importFileName = UIDLUtils.getComponentFileName(component)
   const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
   element.dependency.path = `${importPath}${importFileName}`
-  element.elementType = componentClassName
+  element.elementType = 'component'
+  element.semanticType = componentClassName
 }
 
 export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
