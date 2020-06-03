@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-builders",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "A set of functions used for constructing UIDL structures",
   "author": "teleportHQ",
   "license": "MIT",
