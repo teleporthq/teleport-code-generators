@@ -79,6 +79,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                   [`&:${condition.content}`]: generatePropSyntax(styleRef.content.styles),
                 }
               }
+
               appendClassname = true
               return
             }

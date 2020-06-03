@@ -65,12 +65,15 @@ export const countPropReferences = (
   style: Record<string, UIDLStyleValue>,
   timesReferred: number
 ) => {
-  Object.keys(style).map((item) => {
-    const styleAttr = style[item]
-    if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
-      timesReferred++
-    }
-  })
+  if (style && Object.keys(style).length > 0) {
+    Object.keys(style).map((item) => {
+      const styleAttr = style[item]
+      if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
+        timesReferred++
+      }
+    })
+    return timesReferred
+  }
   return timesReferred
 }
 
