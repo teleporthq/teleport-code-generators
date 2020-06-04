@@ -62,8 +62,7 @@ const createNuxtProjectGenerator = () => {
         configContentGenerator,
         fileName: 'nuxt.config',
         fileType: FileType.JS,
-        configPath: [''],
-        styleVariation: 'css',
+        path: [''],
       },
     },
     static: {

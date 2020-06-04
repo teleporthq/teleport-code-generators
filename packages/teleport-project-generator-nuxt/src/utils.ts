@@ -10,7 +10,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
   const content = types.exportDefaultDeclaration(
     t.objectExpression([
       t.objectProperty(
-        t.identifier('css'),
+        t.identifier(FileType.CSS),
         t.arrayExpression([
           t.templateLiteral(
             [

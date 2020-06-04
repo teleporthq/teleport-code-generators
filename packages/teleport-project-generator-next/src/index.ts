@@ -56,7 +56,6 @@ const createNextProjectGenerator = () => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: ['pages'],
-      importFile: true,
     },
     entry: {
       generator: documentFileGenerator,
@@ -68,7 +67,7 @@ const createNextProjectGenerator = () => {
       config: {
         fileName: `_app`,
         fileType: FileType.JS,
-        configPath: ['pages'],
+        path: ['pages'],
         generator: configGenerator,
         configContentGenerator,
       },

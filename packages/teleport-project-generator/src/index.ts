@@ -18,7 +18,7 @@ import {
 
 import PathResolver from 'path'
 
-import { DEFAULT_TEMPLATE, STYLED_DEPENDENCIES } from './constants'
+import { DEFAULT_TEMPLATE } from './constants'
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -32,11 +32,8 @@ import {
   ProjectStrategyComponentOptions,
   ComponentGenerator,
   ProjectStrategyPageOptions,
-  ReactStyleVariation,
   ConfigGeneratorResult,
 } from '@teleporthq/teleport-types'
-
-import MagicString from 'magic-string'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -262,14 +259,22 @@ export class ProjectGenerator {
     // Handling framework specific changes to the project
     const { framework } = this.strategy
 
-    if (framework && framework.config) {
-      const {
+    // Can be used for replacing a couple of strings
+    if (framework?.replace) {
+      const { fileName, fileType } = framework.replace
+      const result = framework.replace.replaceFile(
+        template,
+        collectedDependencies,
         fileName,
-        fileType,
-        styleVariation,
-        configContentGenerator,
-        generator,
-      } = framework.config
+        fileType
+      )
+      collectedDependencies = result.dependencies
+      injectFilesToPath(rootFolder, this.strategy.framework.replace.path, [result.file])
+    }
+
+    // If we want to generate a completly new file
+    if (framework?.config) {
+      const { fileName, fileType, configContentGenerator, generator } = framework.config
 
       if (configContentGenerator && generator) {
         const result: ConfigGeneratorResult = configContentGenerator({
@@ -277,8 +282,8 @@ export class ProjectGenerator {
           fileType,
           globalStyles: {
             path: PathResolver.relative(
-              this.strategy.projectStyleSheet.path.join('/'),
-              framework.config.configPath.join('/')
+              framework.config.path.join('/'),
+              this.strategy.projectStyleSheet.path.join('/')
             ),
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
@@ -292,25 +297,7 @@ export class ProjectGenerator {
           framework.config.fileName
         )
 
-        injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, files)
-      }
-
-      if (styleVariation === ReactStyleVariation.StyledComponents) {
-        const configFile = template.files.find(
-          (file) => file.name === fileName && file.fileType === fileType
-        )
-
-        if (!configFile || !configFile.content) {
-          throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
-        }
-
-        const parsedFile = configFile.content.replace('/n', '//n')
-        const magic = new MagicString(parsedFile)
-        magic.appendRight(parsedFile.length - 5, `'gatsby-plugin-styled-components'`)
-        configFile.content = magic.toString()
-
-        collectedDependencies = { ...collectedDependencies, ...STYLED_DEPENDENCIES }
-        injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [configFile])
+        injectFilesToPath(rootFolder, this.strategy.framework.config.path, files)
       }
     }
 

@@ -176,10 +176,20 @@ export interface ProjectStrategy {
     config?: {
       fileName: string
       fileType: string
-      configPath: string[]
-      styleVariation?: string
+      path: string[]
       generator?: ComponentGenerator
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
+    }
+    replace?: {
+      fileName: string
+      fileType: string
+      path: string[]
+      replaceFile: (
+        files: GeneratedFolder,
+        dependencies: Record<string, string>,
+        fileName: string,
+        fileType: string
+      ) => { file: GeneratedFile; dependencies: Record<string, string> }
     }
   }
 }

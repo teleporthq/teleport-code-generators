@@ -129,7 +129,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "container",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -430,7 +431,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -439,7 +441,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "PersonList",
+                        "elementType": "component",
+                        "semanticType": "PersonList",
                         "dependency": {
                           "type": "local"
                         }
@@ -469,7 +472,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -478,7 +482,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "ContactForm",
+                        "elementType": "component",
+                        "semanticType": "ContactForm",
                         "dependency": {
                           "type": "local"
                         }
@@ -837,7 +842,8 @@
                 "node": {
                   "type": "element",
                   "content": {
-                    "elementType": "PersonSpotlight",
+                    "elementType": "component",
+                    "semanticType": "PersonSpotlight",
                     "dependency": {
                       "type": "local",
                       "path": "./person-spotlight"

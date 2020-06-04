@@ -85,7 +85,6 @@ const createPreactProjectGenerator = () => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: ['src', 'routes'],
-      importFile: true,
     },
     static: {
       prefix: '/assets',

@@ -30,8 +30,6 @@ const createReactProjectGenerator = () => {
 
   const styleSheetGenerator = createComponentGenerator()
   styleSheetGenerator.addPlugin(createStyleSheetPlugin())
-  styleSheetGenerator.addPlugin(importStatementsPlugin)
-  styleSheetGenerator.addPostProcessor(prettierJS)
 
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
@@ -49,7 +47,6 @@ const createReactProjectGenerator = () => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: ['src'],
-      importFile: true,
     },
     router: {
       generator: routingComponentGenerator,
