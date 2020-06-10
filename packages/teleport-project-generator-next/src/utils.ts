@@ -119,7 +119,7 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
   const path = options.globalStyles?.path === '' ? '.' : options.globalStyles.path
 
-  const impiortChunkContent = t.importDeclaration(
+  const importChunkContent = t.importDeclaration(
     [],
     t.stringLiteral(`${path}/${options.globalStyles.sheetName}.css`)
   )
@@ -154,7 +154,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     type: ChunkType.AST,
     name: 'import-js-chunk',
     fileType: FileType.JS,
-    content: impiortChunkContent,
+    content: importChunkContent,
     linkAfter: [],
   }
 

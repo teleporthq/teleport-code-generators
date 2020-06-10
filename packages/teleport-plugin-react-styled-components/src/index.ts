@@ -48,7 +48,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     const jssStyleMap: Record<string, unknown> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
-      let { style } = element
+      const { style } = element
       const { key, elementType, referencedStyles } = element
 
       if (!style && !referencedStyles) {
@@ -75,7 +75,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         }
 
         if (componentLibrary === 'reactnative') {
-          style = UIDLUtils.cleanupNestedStyles(style)
           if (referencedStyles && Object.keys(referencedStyles).length > 0) {
             Object.values(referencedStyles).forEach((styleRef) => {
               if (styleRef.content.mapType === 'inlined') {
@@ -84,7 +83,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                   content: {
                     ...referencedStyles[styleRef.id].content,
                     // @ts-ignore
-                    styles: UIDLUtils.cleanupNestedStyles(styleRef.content.styles),
+                    styles: styleRef.content.styles,
                   },
                   /* We are doing a check at the top to make sure we
                   are doing this only for inlined styles. Some typescipt error, can be ignored */

@@ -97,13 +97,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         }
 
         if (Object.keys(dynamicStyles).length > 0) {
-          const rootStyles = UIDLUtils.cleanupNestedStyles(dynamicStyles)
+          /* If dynamic styles are on nested-styles they are unfortunately lost, 
+          since inline style does not support that */
 
-          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
-          if (Object.keys(rootStyles).length > 0) {
+          if (Object.keys(dynamicStyles).length > 0) {
             if (templateStyle === 'html') {
               // simple string expression
-              const inlineStyles = createDynamicInlineStyle(rootStyles)
+              const inlineStyles = createDynamicInlineStyle(dynamicStyles)
               HASTUtils.addAttributeToNode(
                 root as HastNode,
                 inlineStyleAttributeKey,
@@ -111,7 +111,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               )
             } else {
               // jsx object expression
-              const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+              const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
                 StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
               )
               ASTUtils.addAttributeToJSXTag(

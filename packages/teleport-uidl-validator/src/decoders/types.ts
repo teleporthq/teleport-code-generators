@@ -4,7 +4,7 @@ import {
   UIDLAttributeValue,
   ComponentUIDL,
   UIDLStaticValue,
-  UIDLStyleSetDefnition,
+  UIDLStyleSetDefinition,
   ProjectUIDL,
   UIDLSlotNode,
   UIDLDynamicReference,
@@ -92,7 +92,7 @@ export interface VUIDLElementNodeInlineReferencedStyle
 
 export interface VUIDLStyleSetDefnition
   extends Modify<
-    UIDLStyleSetDefnition,
+    UIDLStyleSetDefinition,
     {
       content: Record<string, UIDLStaticValue | string | number>
     }

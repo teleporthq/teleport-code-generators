@@ -5,7 +5,7 @@ import {
   Mapping,
   UIDLElement,
   UIDLStateDefinition,
-  UIDLStyleSetDefnition,
+  UIDLStyleSetDefinition,
 } from './uidl'
 
 export enum FileType {
@@ -90,7 +90,7 @@ export interface GeneratorOptions {
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
   projectStyleSet?: {
-    styleSetDefinitions: Record<string, UIDLStyleSetDefnition>
+    styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
     fileName: string
     path: string
     importFile?: boolean

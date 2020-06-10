@@ -12,16 +12,16 @@ export const generateStyledComponent = (
   name: string,
   type: string,
   styles: Record<string, unknown>,
-  projectRefernecedStyles?: string[]
+  projectReferencedStyles?: string[]
 ) => {
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.identifier(name),
       t.taggedTemplateExpression(
         t.memberExpression(t.identifier('styled'), t.identifier(type)),
-        projectRefernecedStyles?.length > 0
+        projectReferencedStyles?.length > 0
           ? ASTUtils.stringAsTemplateLiteral(
-              `${projectRefernecedStyles.map((item) => `\$\{${item}\};`)} ${mapStyles(styles)}`
+              `${projectReferencedStyles.map((item) => `\$\{${item}\};`)} ${mapStyles(styles)}`
             )
           : ASTUtils.stringAsTemplateLiteral(mapStyles(styles))
       )

@@ -1,3 +1,10 @@
+/*
+  Referenced styles contains both media queries and pseudo styles,
+  we need to sort out the media queries. So, we generate them as desktop irst approach
+  In this resolver, we parse through these styles on all the nodes and sort them.
+  All the media-queries that are inlined are sorted in descending order.
+*/
+
 import {
   UIDLElementNode,
   ComponentUIDL,

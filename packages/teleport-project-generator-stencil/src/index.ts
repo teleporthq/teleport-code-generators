@@ -8,7 +8,7 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import stencilAppRouting from '@teleporthq/teleport-plugin-stencil-app-routing'
 
 import { Mapping, FileType } from '@teleporthq/teleport-types'
-
+import { appendToConfigFile } from './utils'
 import StencilProjectMapping from './stencil-mapping.json'
 import StencilTemplate from './project-template'
 
@@ -97,6 +97,14 @@ const createStencilProjectGenerator = () => {
     static: {
       prefix: '/assets',
       path: ['src', 'assets'],
+    },
+    framework: {
+      replace: {
+        fileName: 'stencil.config',
+        fileType: FileType.TS,
+        path: [''],
+        replaceFile: appendToConfigFile,
+      },
     },
   })
 

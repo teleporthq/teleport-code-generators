@@ -323,16 +323,6 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
   return responsePayload
 }
 
-// TODO add tests
-// return only the root level styles, ignoring any :hover or @media keys which can be nested structures
-export const cleanupNestedStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
-  return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {
-    const styleValue = style[styleKey]
-    resultedStyles[styleKey] = styleValue
-    return resultedStyles
-  }, {})
-}
-
 // removes all the dynamic styles from the style object, including the nested structures
 export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
   return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {

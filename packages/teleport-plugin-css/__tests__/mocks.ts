@@ -4,10 +4,10 @@ import {
   ComponentStructure,
   ChunkType,
   FileType,
-  UIDLStyleSetDefnition,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 
-export const styleSetDefinitions: Record<string, UIDLStyleSetDefnition> = {
+export const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
   '5ecfa1233b8e50f60ea2b64d': {
     id: '5ecfa1233b8e50f60ea2b64d',
     name: 'primaryButton',

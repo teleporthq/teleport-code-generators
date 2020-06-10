@@ -5,7 +5,7 @@ import {
   UIDLElement,
   ComponentUIDL,
   UIDLNode,
-  UIDLStyleSetDefnition,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -183,7 +183,7 @@ export const checkProjectStyleSet = (input: ProjectUIDL) => {
   const errors: string[] = []
   const styleSet = input.root.styleSetDefinitions
   if (styleSet) {
-    Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefnition) => {
+    Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefinition) => {
       const { content } = styleSetObj
       Object.values(content).forEach((styleContent) => {
         if (

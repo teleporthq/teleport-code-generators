@@ -38,7 +38,7 @@ export interface ComponentUIDL {
   $schema?: string
   name: string
   node: UIDLElementNode
-  styleSetDefinitions?: Record<string, UIDLStyleSetDefnition>
+  styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
@@ -68,7 +68,7 @@ export interface UIDLPropDefinition {
   isRequired?: boolean
 }
 
-export interface UIDLStyleSetDefnition {
+export interface UIDLStyleSetDefinition {
   id: string
   name: string
   type: 'reusable-project-style-map'
