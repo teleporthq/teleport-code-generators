@@ -118,58 +118,62 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
 
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
   const path = options.globalStyles?.path === '' ? '.' : options.globalStyles.path
-
-  const importChunkContent = t.importDeclaration(
-    [],
-    t.stringLiteral(`${path}/${options.globalStyles.sheetName}.css`)
-  )
-
-  const contentChunkContent = t.exportDefaultDeclaration(
-    t.functionDeclaration(
-      t.identifier('MyApp'),
-      [
-        t.objectPattern([
-          t.objectProperty(t.identifier('Component'), t.identifier('Component')),
-          t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
-        ]),
-      ],
-      t.blockStatement([
-        t.returnStatement(
-          t.jsxElement(
-            t.jsxOpeningElement(
-              t.jsxIdentifier('Component'),
-              [t.jsxSpreadAttribute(t.identifier('pageProps'))],
-              true
-            ),
-            null,
-            [],
-            true
-          )
-        ),
-      ])
-    )
-  )
-
-  const importContentChunk: ChunkDefinition = {
-    type: ChunkType.AST,
-    name: 'import-js-chunk',
-    fileType: FileType.JS,
-    content: importChunkContent,
-    linkAfter: [],
-  }
-
-  const contentChunk: ChunkDefinition = {
-    type: ChunkType.AST,
-    name: 'app-js-chunk',
-    fileType: FileType.JS,
-    content: contentChunkContent,
-    linkAfter: ['import-js-chunk'],
-  }
-
-  return {
-    chunks: {
-      [FileType.JS]: [importContentChunk, contentChunk],
-    },
+  const chunks: ChunkDefinition[] = []
+  const result = {
+    chunks: {},
     dependencies: options.dependencies,
   }
+
+  if (options.globalStyles?.isGlobalStylesDependent) {
+    const contentChunkContent = t.exportDefaultDeclaration(
+      t.functionDeclaration(
+        t.identifier('MyApp'),
+        [
+          t.objectPattern([
+            t.objectProperty(t.identifier('Component'), t.identifier('Component')),
+            t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
+          ]),
+        ],
+        t.blockStatement([
+          t.returnStatement(
+            t.jsxElement(
+              t.jsxOpeningElement(
+                t.jsxIdentifier('Component'),
+                [t.jsxSpreadAttribute(t.identifier('pageProps'))],
+                true
+              ),
+              null,
+              [],
+              true
+            )
+          ),
+        ])
+      )
+    )
+
+    chunks.push({
+      type: ChunkType.AST,
+      name: 'import-js-chunk',
+      fileType: FileType.JS,
+      content: t.importDeclaration(
+        [],
+        t.stringLiteral(`${path}/${options.globalStyles.sheetName}.css`)
+      ),
+      linkAfter: [],
+    })
+
+    chunks.push({
+      type: ChunkType.AST,
+      name: 'app-js-chunk',
+      fileType: FileType.JS,
+      content: contentChunkContent,
+      linkAfter: ['import-js-chunk'],
+    })
+
+    result.chunks = {
+      [FileType.JS]: chunks,
+    }
+  }
+
+  return result
 }

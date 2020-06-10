@@ -179,11 +179,13 @@ export interface ProjectStrategy {
       path: string[]
       generator?: ComponentGenerator
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
+      isGlobalStylesDependent?: boolean
     }
     replace?: {
       fileName: string
       fileType: string
       path: string[]
+      isGlobalStylesDependent?: boolean
       replaceFile: (
         files: GeneratedFolder,
         dependencies: Record<string, string>,
@@ -206,6 +208,7 @@ export interface FrameWorkConfigOptions {
   globalStyles?: {
     path: string
     sheetName: string
+    isGlobalStylesDependent?: boolean
   }
 }
 

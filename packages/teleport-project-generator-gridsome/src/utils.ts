@@ -25,7 +25,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     )
   )
 
-  if (options.globalStyles) {
+  if (options.globalStyles && options.globalStyles?.isGlobalStylesDependent) {
     content.unshift(
       t.importDeclaration(
         [],

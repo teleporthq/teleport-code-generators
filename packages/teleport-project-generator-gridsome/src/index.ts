@@ -59,6 +59,7 @@ const createGridsomeProjectGenerator = () => {
         fileName: 'main',
         fileType: FileType.JS,
         path: ['src'],
+        isGlobalStylesDependent: true,
       },
     },
     entry: {

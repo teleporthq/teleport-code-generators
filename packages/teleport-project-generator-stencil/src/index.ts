@@ -104,6 +104,7 @@ const createStencilProjectGenerator = () => {
         fileType: FileType.TS,
         path: [''],
         replaceFile: appendToConfigFile,
+        isGlobalStylesDependent: true,
       },
     },
   })

@@ -70,6 +70,7 @@ const createNextProjectGenerator = () => {
         path: ['pages'],
         generator: configGenerator,
         configContentGenerator,
+        isGlobalStylesDependent: true,
       },
     },
     static: {

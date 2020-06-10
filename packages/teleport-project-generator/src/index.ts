@@ -261,15 +261,21 @@ export class ProjectGenerator {
 
     // Can be used for replacing a couple of strings
     if (framework?.replace) {
-      const { fileName, fileType } = framework.replace
-      const result = framework.replace.replaceFile(
-        template,
-        collectedDependencies,
-        fileName,
-        fileType
-      )
-      collectedDependencies = result.dependencies
-      injectFilesToPath(rootFolder, this.strategy.framework.replace.path, [result.file])
+      const shouldAddChanges =
+        Boolean(
+          framework.replace?.isGlobalStylesDependent && Object.keys(styleSetDefinitions).length > 0
+        ) || !framework.replace?.isGlobalStylesDependent
+      if (shouldAddChanges) {
+        const { fileName, fileType } = framework.replace
+        const result = framework.replace.replaceFile(
+          template,
+          collectedDependencies,
+          fileName,
+          fileType
+        )
+        collectedDependencies = result.dependencies
+        injectFilesToPath(rootFolder, this.strategy.framework.replace.path, [result.file])
+      }
     }
 
     // If we want to generate a completly new file
@@ -288,16 +294,23 @@ export class ProjectGenerator {
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
               : '',
+            isGlobalStylesDependent: Boolean(
+              framework.config?.isGlobalStylesDependent &&
+                Object.keys(styleSetDefinitions).length > 0
+            ),
           },
           dependencies: collectedDependencies,
         })
         collectedDependencies = result.dependencies
-        const files = framework.config.generator.linkCodeChunks(
-          result.chunks,
-          framework.config.fileName
-        )
 
-        injectFilesToPath(rootFolder, this.strategy.framework.config.path, files)
+        if (Object.keys(result?.chunks).length > 0) {
+          const files = framework.config.generator.linkCodeChunks(
+            result.chunks,
+            framework.config.fileName
+          )
+
+          injectFilesToPath(rootFolder, this.strategy.framework.config.path, files)
+        }
       }
     }
 

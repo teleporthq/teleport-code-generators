@@ -63,6 +63,7 @@ const createNuxtProjectGenerator = () => {
         fileName: 'nuxt.config',
         fileType: FileType.JS,
         path: [''],
+        isGlobalStylesDependent: true,
       },
     },
     static: {

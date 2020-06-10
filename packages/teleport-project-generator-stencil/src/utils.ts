@@ -18,7 +18,7 @@ export const appendToConfigFile = (
   const parsedFile = configFile.content.replace('/n', '//n')
 
   const magic = new MagicString(parsedFile)
-  magic.appendRight(parsedFile.length - 200, `,globalStyle: 'src/style.css'`)
+  magic.appendRight(parsedFile.length - 200, `globalStyle: 'src/style.css',`)
   configFile.content = magic.toString()
 
   return {
