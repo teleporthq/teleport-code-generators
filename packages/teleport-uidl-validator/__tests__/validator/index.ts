@@ -38,21 +38,16 @@ describe('Validate UIDL', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponentSchema(uidl)
+
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
+      expect(typeof validationResult.componentUIDL).toBe('object')
     })
+
     it('returns customized errors', () => {
       const validator = new Validator()
       expect(() => validator.validateComponentSchema(invalidComponentUidlSample)).toThrow(Error)
-
-      //       expect(validationResult.errorMsg).toBe(
-      //         `\nUIDL Format Validation Error. Please check the following:
-      //  - Path .stateDefinitions['isVisible']: should NOT have additional properties. {"additionalProperty":"test"},
-      //  - Path .stateDefinitions['test']: should have required property 'defaultValue'. {\"missingProperty\":\"defaultValue\"},
-      //  - Path .stateDefinitions['test']: should NOT have additional properties. {\"additionalProperty\":\"defaultValues\"},
-      //  - Path .propDefinitions['test']: should NOT have additional properties. {"additionalProperty":"defaultValues"}`
-      //       )
     })
   })
 
@@ -60,13 +55,29 @@ describe('Validate UIDL', () => {
     it('returns object with valid=true and errorMSG="" if everything is ok', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponentContent(uidl)
+
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
     })
+
     it('throws error if prop and state is used but not defined in propDefinitions', () => {
       const validator = new Validator()
+      // @ts-ignore
+      expect(() => validator.validateComponentContent(invalidComponentUidlSample)).toThrow(Error)
 
+      //       expect(validationResult.errorMsg).toBe(
+      //         `\nUIDL Component Content Validation Error. Please check the following:
+      // "titles" is used but not defined. Please add it in propDefinitions,
+      // "isVisibles" is used but not defined. Please add it in stateDefinitions,
+      // Index variable is used but the "useIndex" meta information is false.,
+      // "item" is used in the "repeat" structure but the iterator name has this value: "item-test"`
+      //       )
+    })
+
+    it('throws error if prop and state is used but not defined in propDefinitions', () => {
+      const validator = new Validator()
+      // @ts-ignore
       expect(() => validator.validateComponentContent(invalidComponentUidlSample)).toThrow(Error)
 
       //       expect(validationResult.errorMsg).toBe(
@@ -99,46 +110,46 @@ describe('Validate UIDL', () => {
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
+      expect(typeof validationResult.projectUIDL).toBe('object')
     })
+
     it('returns customized error', () => {
       const validator = new Validator()
-
       expect(() => validator.validateProjectSchema(invalidProjectUidlSample)).toThrow(Error)
 
-      //       expect(validationResult.errorMsg).toBe(
-      //         `\nUIDL Format Validation Error. Please check the following:
-      //  - Path : should have required property 'name'. {"missingProperty":"name"},
-      //  - Path .globals.settings: should NOT have additional properties. {"additionalProperty":"key"},
-      //  - Path .globals.settings.language: should be string. Received number`
-      //       )
+      //   expect(validationResult.errorMsg).toBe(
+      //     `\nUIDL Format Validation Error. Please check the following:
+      //  - Path input: the key 'name' is required but was not present.
+      //    is a DecoderError`
+      //   )
     })
+
     it('supports older UIDL version and returns customized error', () => {
       const validator = new Validator()
-
       expect(() => validator.validateProjectSchema(oldInvalidProjectUidlSample)).toThrow(Error)
 
-      //       expect(validationResult.errorMsg).toBe(
-      //         `\nUIDL Format Validation Error. Please check the following:
-      //  - Path : should have required property 'name'. {"missingProperty":"name"},
-      //  - Path .globals.settings: should NOT have additional properties. {"additionalProperty":"key"},
-      //  - Path .globals.settings.language: should be string. Received number,
-      //  - Path .globals.assets[1].type: should be equal to one of the allowed values. {"allowedValues":["link","script","font","icon","style","canonical"]}`
-      //       )
+      // expect(validationResult.errorMsg).toBe(
+      //   `\nUIDL Format Validation Error. Please check the following:
+      //         - Path input: the key 'name' is required but was not present.
+      //         is a DecoderError`
+      // )
     })
   })
 
   describe('Project UIDL Content', () => {
     it('returns object with valid=true and errorMsg="" if uidl content is valid', () => {
       const validator = new Validator()
+      // @ts-ignore
       const validationResult = validator.validateProjectContent(projectUidlSample)
 
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
     })
+
     it('returns customized error if content is not properly defined', () => {
       const validator = new Validator()
-
+      // @ts-ignore
       expect(() => validator.validateProjectContent(invalidProjectUidlSample)).toThrow(Error)
 
       //       expect(validationResult.errorMsg).toEqual(
@@ -149,9 +160,10 @@ describe('Validate UIDL', () => {
       // Root Node contains a route that don't have a specified state: abouts.`
       //       )
     })
+
     it('returns error if route is missing from state definitions', () => {
       const validator = new Validator()
-
+      // @ts-ignore
       expect(() => validator.validateProjectContent(noRouteProjectUidlSample)).toThrow(Error)
 
       // expect(validationResult.errorMsg).toEqual(

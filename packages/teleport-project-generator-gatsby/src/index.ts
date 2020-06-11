@@ -3,19 +3,31 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import reactBasePlugin from '@teleporthq/teleport-plugin-react-base-component'
-import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
-import { createReactStyledComponentsPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
+import {
+  createCSSModulesPlugin,
+  createStyleSheetPlugin,
+} from '@teleporthq/teleport-plugin-css-modules'
+import {
+  createReactStyledComponentsPlugin,
+  createStyleSheetPlugin as createStyledComponentsStyleSheetPlugin,
+} from '@teleporthq/teleport-plugin-react-styled-components'
 import reactProptypes from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 
-import { Mapping, ComponentPlugin, FileType, ReactStyleVariation } from '@teleporthq/teleport-types'
+import {
+  Mapping,
+  ComponentPlugin,
+  FileType,
+  ReactStyleVariation,
+  ProjectStrategy,
+} from '@teleporthq/teleport-types'
 
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
-import { createCustomHTMLEntryFile } from './utils'
+import { createCustomHTMLEntryFile, appendToConfigFile } from './utils'
 
 const cssModulesPlugin = createCSSModulesPlugin({
   moduleExtension: true,
@@ -29,7 +41,7 @@ interface GatsbyProjectConfig {
 
 const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
   const variation =
-    config && config.variation && config.variation === ReactStyleVariation.StyledComponents
+    config && config?.variation === ReactStyleVariation.StyledComponents
       ? ReactStyleVariation.StyledComponents
       : ReactStyleVariation.CSSModules
   const reactComponentGenerator = createCustomReactComponentGenerator(variation)
@@ -43,7 +55,16 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierJS)
 
-  const generator = createProjectGenerator({
+  const styleSheetGenerator = createComponentGenerator()
+  if (config?.variation && config.variation === ReactStyleVariation.StyledComponents) {
+    styleSheetGenerator.addPlugin(createStyledComponentsStyleSheetPlugin())
+    styleSheetGenerator.addPlugin(importStatementsPlugin)
+    styleSheetGenerator.addPostProcessor(prettierJS)
+  } else {
+    styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  }
+
+  const strategy: ProjectStrategy = {
     components: {
       generator: reactComponentGenerator,
       path: ['src', 'components'],
@@ -65,15 +86,25 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
       prefix: '',
       path: ['static'],
     },
-    framework: {
-      config: {
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: ['src'],
+    },
+  }
+
+  if (variation === ReactStyleVariation.StyledComponents) {
+    strategy.framework = {
+      replace: {
         fileName: 'gatsby-config',
         fileType: FileType.JS,
-        configPath: [''],
-        styleVariation: variation,
+        path: [''],
+        replaceFile: appendToConfigFile,
       },
-    },
-  })
+    }
+  }
+
+  const generator = createProjectGenerator(strategy)
 
   return generator
 }

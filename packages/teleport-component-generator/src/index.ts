@@ -37,14 +37,17 @@ const createComponentGenerator = ({
     input: Record<string, unknown>,
     options: GeneratorOptions = {}
   ): Promise<CompiledComponent> => {
+    let cleanedUIDL = input
     if (!options.skipValidation) {
       const schemaValidationResult = validator.validateComponentSchema(input)
-      if (!schemaValidationResult.valid) {
+      const { componentUIDL, valid } = schemaValidationResult
+      if (valid && componentUIDL) {
+        cleanedUIDL = (componentUIDL as unknown) as Record<string, unknown>
+      } else {
         throw new Error(schemaValidationResult.errorMsg)
       }
     }
-
-    const uidl = Parser.parseComponentJSON(input)
+    const uidl = Parser.parseComponentJSON(cleanedUIDL)
 
     const contentValidationResult = validator.validateComponentContent(uidl)
     if (!contentValidationResult.valid) {

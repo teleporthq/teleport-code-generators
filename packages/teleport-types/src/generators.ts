@@ -5,6 +5,7 @@ import {
   Mapping,
   UIDLElement,
   UIDLStateDefinition,
+  UIDLStyleSetDefinition,
 } from './uidl'
 
 export enum FileType {
@@ -88,6 +89,12 @@ export interface GeneratorOptions {
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
+  projectStyleSet?: {
+    styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
+    fileName: string
+    path: string
+    importFile?: boolean
+  }
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -136,6 +143,12 @@ export interface ProjectStrategy {
     path: string[]
     options?: ProjectStrategyPageOptions
   }
+  projectStyleSheet?: {
+    generator: ComponentGenerator
+    path: string[]
+    fileName: string
+    importFile?: boolean
+  }
   router?: {
     generator: ComponentGenerator
     path: string[]
@@ -163,9 +176,39 @@ export interface ProjectStrategy {
     config?: {
       fileName: string
       fileType: string
-      configPath: string[]
-      styleVariation: string
+      path: string[]
+      generator?: ComponentGenerator
+      configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
+      isGlobalStylesDependent?: boolean
     }
+    replace?: {
+      fileName: string
+      fileType: string
+      path: string[]
+      isGlobalStylesDependent?: boolean
+      replaceFile: (
+        files: GeneratedFolder,
+        dependencies: Record<string, string>,
+        fileName: string,
+        fileType: string
+      ) => { file: GeneratedFile; dependencies: Record<string, string> }
+    }
+  }
+}
+
+export interface ConfigGeneratorResult {
+  chunks: Record<string, ChunkDefinition[]>
+  dependencies: Record<string, string>
+}
+
+export interface FrameWorkConfigOptions {
+  fileName: string
+  fileType: string
+  dependencies: Record<string, string>
+  globalStyles?: {
+    path: string
+    sheetName: string
+    isGlobalStylesDependent?: boolean
   }
 }
 

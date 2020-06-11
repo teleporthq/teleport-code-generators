@@ -5,10 +5,6 @@ import ComponentWithInvalidStateStyles from './component-with-invalid-state-styl
 // @ts-ignore-next-line
 import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
 // @ts-ignore-next-line
-import ComponentWithNestedMultiplePropRef from './component-with-nested-multiple-prop-ref-styles.json'
-// @ts-ignore-next-line
-import ComponentWithNestedSinglePropRef from './component-with-nested-single-prop-ref-styles.json'
-// @ts-ignore-next-line
 import ComponentWithStateReference from './component-with-valid-state-reference.json'
 
 import { createReactComponentGenerator } from '../../src'
@@ -117,21 +113,6 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain(`align-self: center`)
     })
 
-    it('should support nested styles in styledjsx', async () => {
-      const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
-      const result = await styledJSXGenerator.generateComponent(
-        ComponentWithNestedStyles as ComponentUIDL
-      )
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('flex-direction: ${props.direction}')
-      expect(jsFile.content).toContain(`align-self: center`)
-      expect(jsFile.content).toContain('@media (max-width: 640px) {')
-      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
-    })
-
     it('should throw error when a state is being refered in generated StyledJSX ', async () => {
       const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
       try {
@@ -223,72 +204,6 @@ describe('React Styles in Component', () => {
       expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
       // tslint:disable-next-line:no-invalid-template-strings
       expect(jsFile.content).toContain('border-color: ${(props) => props.borderColor}')
-    })
-
-    it('should support object props in styled-components', async () => {
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
-      const result = await styledComponentsGenerator.generateComponent(ComponentWithValidStyle)
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain(`align-self: center`)
-    })
-
-    it('should support nested styles in styled-components with single prop', async () => {
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
-      const result = await styledComponentsGenerator.generateComponent(
-        ComponentWithNestedStyles as ComponentUIDL
-      )
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('flex-direction: ${(props) => props.flexDirection}')
-      expect(jsFile.content).toContain(`align-self: center`)
-      expect(jsFile.content).toContain('@media (max-width: 640px) {')
-      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
-    })
-
-    it('should support nested styles in styled-components with multiple prop refs', async () => {
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
-      const result = await styledComponentsGenerator.generateComponent(
-        ComponentWithNestedMultiplePropRef as ComponentUIDL
-      )
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('flex-direction: ${(props) => props.direction}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('height: ${(props) => props.config.height}')
-      expect(jsFile.content).toContain(`align-self: center`)
-      expect(jsFile.content).toContain('@media (max-width: 640px) {')
-      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
-    })
-
-    it('should support nested styles in styled-components with single prop  ref', async () => {
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
-      const result = await styledComponentsGenerator.generateComponent(
-        ComponentWithNestedSinglePropRef as ComponentUIDL
-      )
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain(`align-self: center`)
-      expect(jsFile.content).toContain('<Container alignSelf={props.direction}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('align-self: ${(props) => props.alignSelf}')
-      expect(jsFile.content).toContain('@media (max-width: 835px) {')
-      expect(jsFile.content).toContain('@media (max-width: 640px) {')
-      expect(jsFile.content).toContain(`@media (max-width: 634px) {`)
     })
 
     it('should inject props only once for styled components', async () => {

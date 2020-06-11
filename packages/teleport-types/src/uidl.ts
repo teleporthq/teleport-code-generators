@@ -38,6 +38,7 @@ export interface ComponentUIDL {
   $schema?: string
   name: string
   node: UIDLElementNode
+  styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
@@ -65,6 +66,13 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+}
+
+export interface UIDLStyleSetDefinition {
+  id: string
+  name: string
+  type: 'reusable-project-style-map'
+  content: Record<string, UIDLStaticValue>
 }
 
 export interface UIDLStateDefinition {
@@ -172,6 +180,7 @@ export interface UIDLElement {
     link?: UIDLLinkNode
     // In the future more element abilities can be added here
   }
+  referencedStyles?: UIDLReferencedStyles
   children?: UIDLNode[]
   selfClosing?: boolean
   ignore?: boolean
@@ -188,7 +197,7 @@ export type UIDLNode =
 
 export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
 
-export type UIDLStyleValue = UIDLAttributeValue | UIDLNestedStyleDeclaration
+export type UIDLStyleValue = UIDLAttributeValue
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
@@ -269,3 +278,46 @@ export interface Mapping {
   illegalClassNames?: string[]
   illegalPropNames?: string[]
 }
+
+export type UIDLReferencedStyles = Record<string, UIDLElementNodeReferenceStyles>
+
+export type UIDLElementNodeReferenceStyles =
+  | UIDLElementNodeProjectReferencedStyle
+  | UIDLElementNodeInlineReferencedStyle
+
+export type UIDLProjectReferencedStyleID = string
+export interface UIDLElementNodeProjectReferencedStyle {
+  id: string
+  type: 'style-map'
+  content: {
+    mapType: 'project-referenced'
+    conditions?: UIDLStyleConditions[]
+    referenceId: UIDLProjectReferencedStyleID
+  }
+}
+export interface UIDLElementNodeInlineReferencedStyle {
+  id: string
+  type: 'style-map'
+  content: {
+    mapType: 'inlined'
+    conditions: UIDLStyleConditions[]
+    styles: Record<string, UIDLAttributeValue>
+  }
+}
+
+export type UIDLStyleConditions = UIDLStyleMediaQueryScreenSizeCondition | UIDLStyleStateCondition
+
+export interface UIDLStyleMediaQueryScreenSizeCondition {
+  conditionType: 'screen-size'
+  minHeight?: number
+  maxHeight?: number
+  minWidth?: number
+  maxWidth?: number
+}
+
+export interface UIDLStyleStateCondition {
+  conditionType: 'element-state'
+  content: UIDLElementStyleStates
+}
+
+export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'

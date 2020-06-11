@@ -374,10 +374,6 @@ const prefixAssetURLs = (
           acc[styleKey] = styleValue
         }
         return acc
-      case 'nested-style':
-        acc[styleKey] = styleValue
-        acc[styleKey].content = prefixAssetURLs(styleValue.content, assetsPrefix)
-        return acc
       default:
         throw new Error(`Invalid styleValue type '${styleValue}'`)
     }

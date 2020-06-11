@@ -16,7 +16,9 @@ import {
   createPageModule,
 } from './file-handlers'
 
-import { DEFAULT_TEMPLATE, STYLED_DEPENDENCIES } from './constants'
+import PathResolver from 'path'
+
+import { DEFAULT_TEMPLATE } from './constants'
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -30,10 +32,8 @@ import {
   ProjectStrategyComponentOptions,
   ComponentGenerator,
   ProjectStrategyPageOptions,
-  ReactStyleVariation,
+  ConfigGeneratorResult,
 } from '@teleporthq/teleport-types'
-
-import MagicString from 'magic-string'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -120,19 +120,24 @@ export class ProjectGenerator {
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     mapping: Mapping = {}
   ): Promise<GeneratedFolder> {
+    let cleanedUIDL = input
     // Validating and parsing the UIDL
     const schemaValidationResult = this.validator.validateProjectSchema(input)
-    if (!schemaValidationResult.valid) {
+    const { valid, projectUIDL } = schemaValidationResult
+    if (valid && projectUIDL) {
+      cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
+    } else {
       throw new Error(schemaValidationResult.errorMsg)
     }
 
-    const uidl = Parser.parseProjectJSON(input)
+    const uidl = Parser.parseProjectJSON(cleanedUIDL)
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
 
     const { components = {}, root } = uidl
+    const { styleSetDefinitions = {} } = root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -159,9 +164,39 @@ export class ProjectGenerator {
       skipValidation: true,
     }
 
+    // Handling project style sheet
+    if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
+      const { generator, path } = this.strategy.projectStyleSheet
+      const { files } = await generator.generateComponent(uidl.root)
+
+      injectFilesToPath(rootFolder, path, files)
+    }
+
     // Handling pages
     for (const pageUIDL of pageUIDLs) {
-      const { files, dependencies } = await createPage(pageUIDL, this.strategy, options)
+      let pageOptions = options
+      const pagesPath = this.strategy.pages.path
+      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
+        const relativePathForProjectStyleSheet = PathResolver.relative(
+          /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+          this.strategy.pages.options?.createFolderForEachComponent
+            ? [...pagesPath, pageUIDL.name].join('/')
+            : pagesPath.join('/'),
+          this.strategy.projectStyleSheet.path.join('/')
+        )
+        pageOptions = {
+          ...options,
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet.fileName,
+            path: relativePathForProjectStyleSheet,
+            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
+          },
+        }
+      }
+
+      const { files, dependencies } = await createPage(pageUIDL, this.strategy, pageOptions)
 
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
@@ -178,8 +213,34 @@ export class ProjectGenerator {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
+      let componentOptions = options
+      const componentsPath = this.strategy.components.path
+      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
+        const relativePathForProjectStyleSheet = PathResolver.relative(
+          /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+          this.strategy.components.options?.createFolderForEachComponent
+            ? [...componentsPath, componentName].join('/')
+            : componentsPath.join('/'),
+          this.strategy.projectStyleSheet.path.join('/')
+        )
+        componentOptions = {
+          ...options,
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet.fileName,
+            path: relativePathForProjectStyleSheet,
+            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
+          },
+        }
+      }
+
       const componentUIDL = components[componentName]
-      const { files, dependencies } = await createComponent(componentUIDL, this.strategy, options)
+      const { files, dependencies } = await createComponent(
+        componentUIDL,
+        this.strategy,
+        componentOptions
+      )
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
@@ -198,24 +259,58 @@ export class ProjectGenerator {
     // Handling framework specific changes to the project
     const { framework } = this.strategy
 
-    if (framework && framework.config) {
-      const { fileName, fileType, styleVariation } = framework.config
-      if (styleVariation === ReactStyleVariation.StyledComponents) {
-        const configFile = template.files.find(
-          (file) => file.name === fileName && file.fileType === fileType
+    // Can be used for replacing a couple of strings
+    if (framework?.replace) {
+      const shouldAddChanges =
+        Boolean(
+          framework.replace?.isGlobalStylesDependent && Object.keys(styleSetDefinitions).length > 0
+        ) || !framework.replace?.isGlobalStylesDependent
+      if (shouldAddChanges) {
+        const { fileName, fileType } = framework.replace
+        const result = framework.replace.replaceFile(
+          template,
+          collectedDependencies,
+          fileName,
+          fileType
         )
+        collectedDependencies = result.dependencies
+        injectFilesToPath(rootFolder, this.strategy.framework.replace.path, [result.file])
+      }
+    }
 
-        if (!configFile || !configFile.content) {
-          throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
+    // If we want to generate a completly new file
+    if (framework?.config) {
+      const { fileName, fileType, configContentGenerator, generator } = framework.config
+
+      if (configContentGenerator && generator) {
+        const result: ConfigGeneratorResult = configContentGenerator({
+          fileName,
+          fileType,
+          globalStyles: {
+            path: PathResolver.relative(
+              framework.config.path.join('/'),
+              this.strategy.projectStyleSheet.path.join('/')
+            ),
+            sheetName: this.strategy.projectStyleSheet
+              ? this.strategy.projectStyleSheet.fileName
+              : '',
+            isGlobalStylesDependent: Boolean(
+              framework.config?.isGlobalStylesDependent &&
+                Object.keys(styleSetDefinitions).length > 0
+            ),
+          },
+          dependencies: collectedDependencies,
+        })
+        collectedDependencies = result.dependencies
+
+        if (Object.keys(result?.chunks).length > 0) {
+          const files = framework.config.generator.linkCodeChunks(
+            result.chunks,
+            framework.config.fileName
+          )
+
+          injectFilesToPath(rootFolder, this.strategy.framework.config.path, files)
         }
-
-        const parsedFile = configFile.content.replace('/n', '//n')
-        const magic = new MagicString(parsedFile)
-        magic.appendRight(parsedFile.length - 5, `'gatsby-plugin-styled-components'`)
-        configFile.content = magic.toString()
-
-        collectedDependencies = { ...collectedDependencies, ...STYLED_DEPENDENCIES }
-        injectFilesToPath(rootFolder, this.strategy.framework.config.configPath, [configFile])
       }
     }
 

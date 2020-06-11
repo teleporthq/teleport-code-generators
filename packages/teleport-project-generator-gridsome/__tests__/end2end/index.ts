@@ -17,8 +17,8 @@ describe('Gridsome Project Generator', () => {
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
-    expect(srcFolder.files[0].name).toBe('index')
-    expect(srcFolder.files[0].fileType).toBe('html')
+    expect(srcFolder.files[0].name).toBe('main')
+    expect(srcFolder.files[0].fileType).toBe('js')
   })
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)

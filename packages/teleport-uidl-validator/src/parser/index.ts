@@ -49,6 +49,14 @@ export const parseProjectJSON = (
   }
 
   result.root = parseComponentJSON(root, { noClone: true })
+
+  if (result.root?.styleSetDefinitions) {
+    const { styleSetDefinitions } = root
+    Object.values(styleSetDefinitions).forEach((styleRef) => {
+      styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
+    })
+  }
+
   if (result.components) {
     result.components = Object.keys(result.components).reduce(
       (parsedComponnets: Record<string, ComponentUIDL>, key) => {
@@ -68,6 +76,28 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   switch (((node as unknown) as UIDLNode).type) {
     case 'element':
       const elementContent = node.content as Record<string, unknown>
+
+      if (elementContent?.referencedStyles) {
+        Object.values(elementContent.referencedStyles).forEach((styleRef) => {
+          const { content } = styleRef
+          if (content.mapType === 'inlined') {
+            content.styles = UIDLUtils.transformStylesAssignmentsToJson(
+              content.styles as Record<string, string>
+            )
+          }
+
+          if (content.mapType === 'project-referenced' && content?.conditions) {
+            throw new Error(`
+              We currently don't support conditions for "referencedStyles" which are
+              "project-referenced". Because we need a solution to conditionally apply on the nodes
+              with the condition they are being used.
+
+              Eg: If a reference styles is used only for hover, we should be applying the style
+              on hover of the node which is using it by pulling from project-style sheet.
+            `)
+          }
+        })
+      }
 
       if (elementContent.style) {
         elementContent.style = UIDLUtils.transformStylesAssignmentsToJson(

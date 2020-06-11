@@ -13,6 +13,7 @@ describe('JSS Utils ', () => {
       const result = getContentOfStyleObject(styleValue)
       expect(result).toEqual({ color: 'red' })
     })
+
     it('with nested-style', () => {
       const styleValue: UIDLStyleDefinitions = {
         test: {
@@ -31,10 +32,10 @@ describe('JSS Utils ', () => {
         },
       }
 
-      const result = getContentOfStyleObject(styleValue)
-      expect(result).toEqual({ test: { testAgain: { someKey: 'value' } } })
+      expect(() => getContentOfStyleObject(styleValue)).toThrow(Error)
     })
   })
+
   it('fails with other type than static or nested-style', () => {
     const styleValue: UIDLStyleDefinitions = {
       content: {

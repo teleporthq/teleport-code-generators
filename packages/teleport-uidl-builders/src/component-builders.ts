@@ -15,6 +15,8 @@ import {
   UIDLDynamicReference,
   UIDLEventDefinitions,
   UIDLRawValue,
+  UIDLReferencedStyles,
+  UIDLElement,
 } from '@teleporthq/teleport-types'
 
 export const component = (
@@ -47,13 +49,12 @@ export const elementNode = (
   children?: UIDLNode[],
   dependency?: UIDLDependency,
   style?: Record<string, UIDLStyleValue>,
-  events?: UIDLEventDefinitions
+  events?: UIDLEventDefinitions,
+  referencedStyles?: UIDLReferencedStyles
 ): UIDLElementNode => {
   return {
     type: 'element',
-    content: style
-      ? element(elementType, attrs, children, dependency, events, style)
-      : element(elementType, attrs, children, dependency, events),
+    content: element(elementType, attrs, children, dependency, events, style, referencedStyles),
   }
 }
 
@@ -63,29 +64,38 @@ export const element = (
   children?: UIDLNode[],
   dependency?: UIDLDependency,
   events?: UIDLEventDefinitions,
-  style?: Record<string, UIDLStyleValue>
+  style?: Record<string, UIDLStyleValue>,
+  referencedStyles?: UIDLReferencedStyles
 ) => {
-  if (dependency) {
-    return {
-      elementType: 'component',
-      semanticType: elementType,
-      name: elementType,
-      dependency,
-      attrs,
-      style,
-      events,
-      children,
-    }
-  }
-  return {
+  const elementObj: UIDLElement = {
     elementType,
-    // TODO: Handle semantic type in the element builder as well
     name: elementType,
-    attrs,
-    style,
-    events,
     children,
   }
+
+  if (attrs) {
+    elementObj.attrs = attrs
+  }
+
+  if (events) {
+    elementObj.events = events
+  }
+
+  if (dependency) {
+    elementObj.elementType = 'component'
+    elementObj.semanticType = elementType
+    elementObj.dependency = dependency
+  }
+
+  if (style) {
+    elementObj.style = style
+  }
+
+  if (referencedStyles) {
+    elementObj.referencedStyles = referencedStyles
+  }
+
+  return elementObj
 }
 
 export const componentDependency = (

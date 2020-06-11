@@ -4,9 +4,11 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import { createVueHeadConfigPlugin } from '@teleporthq/teleport-plugin-vue-head-config'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import { Mapping } from '@teleporthq/teleport-types'
-
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+import { Mapping, FileType } from '@teleporthq/teleport-types'
+import { configContentGenerator } from './utils'
 import GridsomeTemplate from './gridsome-project-template'
 import GridsomeProjectMappng from './gridsome-project-mapping.json'
 
@@ -23,6 +25,16 @@ const createGridsomeProjectGenerator = () => {
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
+
+  const configGenerator = createComponentGenerator()
+  configGenerator.addPostProcessor(prettierJS)
+
   const generator = createProjectGenerator({
     components: {
       generator: vueComponentGenerator,
@@ -33,6 +45,21 @@ const createGridsomeProjectGenerator = () => {
       path: ['src', 'pages'],
       options: {
         useFileNameForNavigation: true,
+      },
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: ['src', 'assets'],
+    },
+    framework: {
+      config: {
+        generator: configGenerator,
+        configContentGenerator,
+        fileName: 'main',
+        fileType: FileType.JS,
+        path: ['src'],
+        isGlobalStylesDependent: true,
       },
     },
     entry: {

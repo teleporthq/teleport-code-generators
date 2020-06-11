@@ -1,14 +1,16 @@
+import * as types from '@babel/types'
 import {
   ProjectUIDL,
   EntryFileOptions,
   ChunkDefinition,
   FileType,
   ChunkType,
+  GeneratedFolder,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
-
-import * as types from '@babel/types'
+import MagicString from 'magic-string'
+import { STYLED_DEPENDENCIES } from './constants'
 
 export const createCustomHTMLEntryFile = (
   uidl: ProjectUIDL,
@@ -221,4 +223,31 @@ const createObjectpropertyAST = (
     t.identifier(attributeName),
     t.memberExpression(t.identifier(prefix), t.identifier(attributeType))
   )
+}
+
+export const appendToConfigFile = (
+  template: GeneratedFolder,
+  dependencies: Record<string, string>,
+  fileName: string,
+  fileType: string
+) => {
+  const configFile = template.files.find(
+    (file) => file.name === fileName && file.fileType === fileType
+  )
+
+  if (!configFile || !configFile.content) {
+    throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
+  }
+
+  const parsedFile = configFile.content.replace('/n', '//n')
+
+  const magic = new MagicString(parsedFile)
+
+  magic.appendRight(parsedFile.length - 10, `,'gatsby-plugin-styled-components'`)
+  configFile.content = magic.toString()
+
+  return {
+    file: configFile,
+    dependencies: { ...dependencies, ...STYLED_DEPENDENCIES },
+  }
 }

@@ -33,7 +33,8 @@
     "@teleporthq/teleport-plugin-react-app-routing": "^0.11.1",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.11.1",
     "@teleporthq/teleport-project-generator": "^0.11.1",
-    "@teleporthq/teleport-types": "^0.11.0"
+    "@teleporthq/teleport-types": "^0.11.0",
+    "@teleporthq/teleport-plugin-css-modules": "^0.11.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

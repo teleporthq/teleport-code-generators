@@ -1,0 +1,111 @@
+{
+    "name": "ComponentWithPrimitiveProps",
+    "propDefinitions": {
+      "test": {
+        "type": "string",
+        "defaultValue": "123"
+      },
+      "content": {
+        "type": "object",
+        "defaultValue": {
+          "heading": "Hello World"
+        }
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "container",
+        "referencedStyles": {
+            "5ed0cb9ff4fd989551c4edc0": {
+                "id": "5ed0cb9ff4fd989551c4edc0",
+                "type": "style-map",
+                "content": {
+                    "mapType": "inlined",
+                    "conditions": [
+                        { "conditionType": "screen-size", "maxWidth": 991 }
+                    ],
+                    "styles": {
+                        "flex-wrap": "wrap"
+                    } 
+                }
+            }
+        },
+        "style": {
+          "flexDirection": {
+            "type": "dynamic",
+            "content": {
+              "referenceType":"prop",
+              "id": "test"
+            }
+          },
+          "alignSelf": {"type":"static", "content": "center"}
+        },
+  
+        "attrs": {
+          "data-test": {
+            "type": "dynamic",
+            "content": {
+              "referenceType":"prop",
+              "id": "test"
+            }
+          },
+          "data-static": { "type":"static", "content":"I am just a static string"},
+          "data-inner-value": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType":"prop",
+                    "id": "content.heading"
+                  }
+                }
+        },
+        
+        "children": [
+          {"type":"static", "content": "hello I am a test"},
+          {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+          {"type": "dynamic", "content": {"referenceType":"prop", "id": "children"}},
+          {
+            "type": "element",
+            "content": {
+              "elementType": "container",
+              
+              "style": {
+                "flexDirection": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType":"prop",
+                    "id": "test"
+                  }
+                },
+                "alignSelf": {"type":"static", "content": "center"}
+              },
+        
+              "attrs": {
+                "data-test": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType":"prop",
+                    "id": "test"
+                  }
+                },
+                "data-static": { "type":"static", "content":"I am just a static string"},
+                "data-inner-value": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType":"prop",
+                    "id": "content.heading"
+                  }
+                }
+              },
+  
+              "children": [
+                {"type":"static", "content": "hello I am a test"},
+                {"type": "dynamic", "content": {"referenceType": "prop", "id": "content.heading"}},
+                {"type": "dynamic", "content": {"referenceType": "prop", "id": "children"}}
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }

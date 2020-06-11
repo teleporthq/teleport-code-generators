@@ -30,8 +30,7 @@
     "@teleporthq/teleport-shared": "^0.11.1",
     "@teleporthq/teleport-types": "^0.11.0",
     "@teleporthq/teleport-uidl-builders": "^0.11.1",
-    "@teleporthq/teleport-uidl-validator": "^0.11.1",
-    "magic-string": "0.25.4"
+    "@teleporthq/teleport-uidl-validator": "^0.11.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

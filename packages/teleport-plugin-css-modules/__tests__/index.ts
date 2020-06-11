@@ -146,11 +146,11 @@ describe('plugin-css-modules', () => {
     const nodeReference = chunks[0].meta.nodesLookup.container
     expect(nodeReference.openingElement.attributes.length).toBe(2)
 
-    const classNameAttr = nodeReference.openingElement.attributes[0]
+    const classNameAttr = nodeReference.openingElement.attributes[1]
     expect(classNameAttr.name.name).toBe('className')
     expect(classNameAttr.value.expression.name).toBe('styles.container')
 
-    const styleAttr = nodeReference.openingElement.attributes[1]
+    const styleAttr = nodeReference.openingElement.attributes[0]
     expect(styleAttr.name.name).toBe('style')
 
     const dynamicStyleObject = styleAttr.value.expression as types.ObjectExpression
@@ -158,5 +158,101 @@ describe('plugin-css-modules', () => {
     expect(heightProperty.key.value).toBe('height')
     expect((heightProperty.value as types.MemberExpression).object.name).toBe('props.')
     expect((heightProperty.value as types.MemberExpression).property.name).toBe('height')
+  })
+
+  it('will not generate any media styles if the referencedStyles are empty', async () => {
+    const plugin = createCSSModulesPlugin()
+    const structure = setupPluginStructure()
+
+    // structure.uidl.node.content.referencedStyles
+    const { chunks } = await plugin(structure)
+    const cssFile = chunks.find((chunk) => chunk.fileType === 'css')
+
+    expect(cssFile.content).not.toContain('@media')
+    expect(cssFile.content).not.toContain('hover')
+  })
+
+  it('will generate hover styles with the new referencedStyles syntax', async () => {
+    const plugin = createCSSModulesPlugin()
+    const structure = setupPluginStructure()
+
+    structure.uidl.node.content.referencedStyles = {
+      '5ecfb3b6f2be3a6e09ff4ad3': {
+        id: '5ecfb3b6f2be3a6e09ff4ad3',
+        type: 'style-map',
+        content: {
+          mapType: 'inlined',
+          conditions: [{ conditionType: 'element-state', content: 'hover' }],
+          styles: {
+            height: staticNode('200px'),
+          },
+        },
+      },
+      '5ecfb3b6f2be3a6e09ff4ad4': {
+        id: '5ecfb3b6f2be3a6e09ff4ad4',
+        type: 'style-map',
+        content: {
+          mapType: 'inlined',
+          conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
+          styles: {
+            height: staticNode('200px'),
+          },
+        },
+      },
+    }
+
+    const result = await plugin(structure)
+    const cssFile = result.chunks.find((chunks) => chunks.fileType === 'css')
+
+    expect(cssFile).toBeDefined()
+    expect(cssFile.content).toContain('.container:hover')
+    expect(cssFile.content).toContain('@media(max-width: 991px)')
+  })
+
+  it('adds projectStyles when a node refers from the project style sheet', async () => {
+    const plugin = createCSSModulesPlugin()
+    const structure = setupPluginStructure()
+
+    structure.options.projectStyleSet = {
+      styleSetDefinitions: {
+        '5ecfb5c3ce6b220ce8d154a2': {
+          id: '5ecfb5c3ce6b220ce8d154a2',
+          name: 'primaryButton',
+          type: 'reusable-project-style-map',
+          content: {
+            background: {
+              type: 'static',
+              content: 'blue',
+            },
+          },
+        },
+      },
+      fileName: 'style',
+      path: '..',
+    }
+
+    structure.uidl.node.content.referencedStyles = {
+      '5ecfb3b6f2be3a6e09ff4ad3': {
+        id: '5ecfb3b6f2be3a6e09ff4ad3',
+        type: 'style-map',
+        content: {
+          mapType: 'project-referenced',
+          referenceId: '5ecfb5c3ce6b220ce8d154a2',
+        },
+      },
+    }
+
+    const result = await plugin(structure)
+    const jsxChunk = result.chunks.find((chunk) => chunk.fileType === 'js')
+    const cssFile = result.chunks.find((file) => file.fileType === 'css')
+
+    const nodeReference = jsxChunk.meta.nodesLookup.container
+    const styleAttr = nodeReference.openingElement.attributes[0]
+
+    expect(cssFile).toBeDefined()
+    expect(jsxChunk).toBeDefined()
+    expect(nodeReference.openingElement.attributes.length).toBe(1)
+    expect(styleAttr.value.expression.quasis.length).toBe(3)
+    expect(styleAttr.value.expression.expressions.length).toBe(2)
   })
 })

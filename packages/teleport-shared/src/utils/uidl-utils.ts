@@ -140,15 +140,23 @@ export const traverseNodes = (
 
   switch (node.type) {
     case 'element':
-      const { attrs, children, style, abilities } = node.content
+      const { attrs, children, style, abilities, referencedStyles } = node.content
       if (attrs) {
         Object.keys(attrs).forEach((attrKey) => {
           traverseNodes(attrs[attrKey], fn, node)
         })
       }
 
+      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
+        Object.values(referencedStyles).forEach((styleRef) => {
+          if (styleRef.content.mapType === 'inlined') {
+            traverseStyleObject(styleRef.content.styles)
+          }
+        })
+      }
+
       if (style) {
-        traverseStyleObject(style, fn, node)
+        traverseStyleObject(style)
       }
 
       if (abilities?.link?.type === 'url') {
@@ -190,17 +198,12 @@ export const traverseNodes = (
   }
 }
 
-const traverseStyleObject = (
-  style: UIDLStyleDefinitions,
-  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
-  parent: UIDLNode
-) => {
+const traverseStyleObject = (style: UIDLStyleDefinitions) => {
   Object.keys(style).forEach((styleKey) => {
     const styleValue = style[styleKey]
-    if (styleValue.type === 'nested-style') {
-      traverseStyleObject(styleValue.content, fn, parent)
-    } else {
-      fn(styleValue, parent)
+    // TODO: cross-check the support for the strings as content for styles
+    if (styleValue.type !== 'static' && styleValue.type !== 'dynamic') {
+      throw new Error(`We support only 'static' and 'dynamic' content for styles`)
     }
   })
 }
@@ -304,17 +307,6 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
       case 'static':
         staticStyles[styleKey] = styleValue
         return acc
-      case 'nested-style':
-        const nestedResult = splitDynamicAndStaticStyles(styleValue.content)
-        if (Object.keys(nestedResult.dynamicStyles).length > 0) {
-          dynamicStyles[styleKey] = styleValue
-          dynamicStyles[styleKey].content = nestedResult.dynamicStyles
-        }
-        if (Object.keys(nestedResult.staticStyles).length > 0) {
-          staticStyles[styleKey] = styleValue
-          staticStyles[styleKey].content = nestedResult.staticStyles
-        }
-        return acc
       default:
         throw new Error(
           `splitDynamicAndStaticStyles encountered an unknown style definition ${JSON.stringify(
@@ -331,22 +323,6 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
   return responsePayload
 }
 
-// TODO add tests
-// return only the root level styles, ignoring any :hover or @media keys which can be nested structures
-export const cleanupNestedStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
-  return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {
-    const styleValue = style[styleKey]
-
-    switch (styleValue.type) {
-      case 'nested-style':
-        return resultedStyles
-      default:
-        resultedStyles[styleKey] = styleValue
-        return resultedStyles
-    }
-  }, {})
-}
-
 // removes all the dynamic styles from the style object, including the nested structures
 export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefinitions => {
   return Object.keys(style).reduce((resultedStyles: UIDLStyleDefinitions, styleKey: string) => {
@@ -354,10 +330,6 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 
     switch (styleValue.type) {
       case 'dynamic':
-        return resultedStyles
-      case 'nested-style':
-        resultedStyles[styleKey] = styleValue
-        resultedStyles[styleKey].content = cleanupDynamicStyles(styleValue.content)
         return resultedStyles
       case 'static':
         resultedStyles[styleKey] = styleValue
@@ -387,9 +359,6 @@ export const transformDynamicStyles = (
     switch (styleValue.type) {
       case 'dynamic':
         resultedStyles[styleKey] = transform(styleValue, styleKey)
-        return resultedStyles
-      case 'nested-style':
-        resultedStyles[styleKey] = transformDynamicStyles(styleValue.content, transform)
         return resultedStyles
       case 'static':
         resultedStyles[styleKey] = styleValue.content
@@ -465,27 +434,13 @@ export const transformStylesAssignmentsToJson = (
 
     if (!Array.isArray(styleContentAtKey) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type, content } = styleContentAtKey as Record<string, unknown>
+      const { type } = styleContentAtKey as Record<string, unknown>
 
       if (['dynamic', 'static'].indexOf(type as string) !== -1) {
         acc[key] = styleContentAtKey as UIDLAttributeValue
         return acc
       }
 
-      if (type === 'nested-style') {
-        acc[key] = {
-          type: 'nested-style',
-          content: transformStylesAssignmentsToJson(content as Record<string, unknown>),
-        }
-        return acc
-      }
-
-      // if the supported types of objects did not match the previous if statement
-      // we are ready to begin parsing a new nested style
-      acc[key] = {
-        type: 'nested-style',
-        content: transformStylesAssignmentsToJson(styleContentAtKey as Record<string, unknown>),
-      }
       return acc
     }
 

@@ -29,8 +29,7 @@ export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig>
         }
 
         // Nested styles are ignored
-        const rootStyles = UIDLUtils.cleanupNestedStyles(style)
-        const inlineStyles = UIDLUtils.transformDynamicStyles(rootStyles, (styleValue) =>
+        const inlineStyles = UIDLUtils.transformDynamicStyles(style, (styleValue) =>
           StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
         )
 

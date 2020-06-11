@@ -98,7 +98,7 @@ const packProject = async (projectType: string) => {
 const run = async () => {
   try {
     await packProject('react')
-    await packProject('reactnative')
+    // await packProject('reactnative')
     await packProject('next')
     await packProject('vue')
     await packProject('nuxt')
@@ -107,7 +107,7 @@ const run = async () => {
     await packProject('angular')
     await packProject('preactCodesandbox')
     await packProject('gridsome')
-    await packProject('gatsby')
+    await packProject('gatsbyStyledComponents')
   } catch (e) {
     console.info(e)
   }

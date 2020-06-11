@@ -1,7 +1,12 @@
-import Ajv from 'ajv'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
-import { ProjectUIDL, UIDLElement, ComponentUIDL, UIDLNode } from '@teleporthq/teleport-types'
+import {
+  ProjectUIDL,
+  UIDLElement,
+  ComponentUIDL,
+  UIDLNode,
+  UIDLStyleSetDefinition,
+} from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
@@ -174,6 +179,32 @@ export const checkComponentNaming = (input: ProjectUIDL) => {
   return errors
 }
 
+export const checkProjectStyleSet = (input: ProjectUIDL) => {
+  const errors: string[] = []
+  const styleSet = input.root.styleSetDefinitions
+  if (styleSet) {
+    Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefinition) => {
+      const { content } = styleSetObj
+      Object.values(content).forEach((styleContent) => {
+        if (
+          styleContent.type !== 'static' &&
+          typeof styleContent !== 'string' &&
+          typeof styleContent !== 'number'
+        ) {
+          /* We don't currently support dynamic nodes in project-style sheet
+          Since, these are just used as reference styles on any other nodes.
+           Any logic related to styles should be directly applied on the node. Validators
+           take care of this, but good to cross-check with content too if the they skip Validation */
+          errors.push(
+            `Project Style sheet / styleSetDefinitions only support styles with static content, received ${styleContent}`
+          )
+        }
+      })
+    })
+  }
+  return errors
+}
+
 // The "root" node should contain only elements of type "conditional"
 export const checkRootComponent = (input: ProjectUIDL) => {
   const errors = []
@@ -206,13 +237,10 @@ export const checkRootComponent = (input: ProjectUIDL) => {
 }
 
 // The errors should be displayed in a human-readeable way
-export const formatErrors = (errors: Ajv.ErrorObject[]) => {
+export const formatErrors = (errors: Array<{ kind: string; at: string; message: string }>) => {
   const listOfErrors: string[] = []
   errors.forEach((error) => {
-    const message =
-      error.keyword === 'type'
-        ? `\n - Path ${error.dataPath}: ${error.message}. Received ${typeof error.data}`
-        : `\n - Path ${error.dataPath}: ${error.message}. ${JSON.stringify(error.params)}`
+    const message = `\n - Path ${error.at}: ${error.message}. \n is a ${error.kind} \n`
     listOfErrors.push(message)
   })
 

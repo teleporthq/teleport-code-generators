@@ -2,8 +2,7 @@
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 // @ts-ignore
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
-// @ts-ignore
-import template from './template-definition.json'
+import template from './mocks'
 import { createStencilProjectGenerator } from '../../src'
 import { ProjectUIDL } from '@teleporthq/teleport-types'
 
@@ -18,7 +17,8 @@ describe('Preact Project Generator', () => {
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
+    expect(outputFolder.name).toBe('stencil')
+    expect(outputFolder.files[1].name).toBe('package')
 
     const srcFolder = outputFolder.subFolders[0]
     const rootFiles = srcFolder.subFolders[0].files

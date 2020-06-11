@@ -3,11 +3,12 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
-import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-js'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import { Mapping, ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
-import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
-
-import { createDocumentFileChunks } from './utils'
+import { createDocumentFileChunks, configContentGenerator } from './utils'
 import NextMapping from './next-mapping.json'
 import NextTemplate from './project-template'
 
@@ -26,7 +27,18 @@ const createNextProjectGenerator = () => {
   })
 
   const documentFileGenerator = createComponentGenerator()
-  documentFileGenerator.addPostProcessor(prettierHTML)
+  documentFileGenerator.addPostProcessor(prettierJS)
+
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
+
+  const configGenerator = createComponentGenerator()
+  configGenerator.addPlugin(importStatementsPlugin)
+  configGenerator.addPostProcessor(prettierJS)
 
   const generator = createProjectGenerator({
     components: {
@@ -40,11 +52,26 @@ const createNextProjectGenerator = () => {
         useFileNameForNavigation: true,
       },
     },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: ['pages'],
+    },
     entry: {
       generator: documentFileGenerator,
       path: ['pages'],
       fileName: '_document',
       chunkGenerationFunction: createDocumentFileChunks,
+    },
+    framework: {
+      config: {
+        fileName: `_app`,
+        fileType: FileType.JS,
+        path: ['pages'],
+        generator: configGenerator,
+        configContentGenerator,
+        isGlobalStylesDependent: true,
+      },
     },
     static: {
       prefix: '',

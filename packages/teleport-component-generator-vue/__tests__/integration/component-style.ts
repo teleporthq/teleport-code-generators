@@ -25,15 +25,10 @@ describe('Vue styles in Component Generator', () => {
       expect(vueFile.content).toContain('config.height')
     })
 
-    it('should support nested styles', async () => {
-      const result = await generator.generateComponent(ComponentWithNestedStyles as ComponentUIDL)
-      const vueFile = findFileByType(result.files, VUE_FILE)
-
-      expect(vueFile).toBeDefined()
-      expect(vueFile.content).toContain('{flexDirection: direction}')
-      expect(vueFile.content).toContain(`align-self: center`)
-      expect(vueFile.content).toContain('@media (max-width: 640px) {')
-      expect(vueFile.content).toContain(`@media (max-width: 634px) {`)
+    it('should not support nested styles', async () => {
+      // @ts-ignore
+      const result = generator.generateComponent(ComponentWithNestedStyles)
+      await expect(result).rejects.toThrow(Error)
     })
   })
 })

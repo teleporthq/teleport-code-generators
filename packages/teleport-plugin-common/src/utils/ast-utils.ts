@@ -67,6 +67,28 @@ export const addDynamicAttributeToJSXTag = (
   )
 }
 
+export const addMultipleDynamicAttributesToJSXTag = (
+  jsxASTNode: types.JSXElement,
+  name: string,
+  values: string[],
+  t = types
+) => {
+  const memberExpressions: types.Identifier[] = []
+  const templateElements: types.TemplateElement[] = []
+
+  Object.values(values).forEach((item) => {
+    templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+    memberExpressions.push(t.identifier(item))
+  })
+  templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+
+  const content = t.templateLiteral(templateElements, memberExpressions)
+
+  jsxASTNode.openingElement.attributes.push(
+    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
+  )
+}
+
 export const stringAsTemplateLiteral = (str: string, t = types) => {
   const formmattedString = `
 ${str}

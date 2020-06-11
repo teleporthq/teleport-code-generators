@@ -31,11 +31,11 @@ const packerOptions: PackerOptions = {
 const run = async () => {
   try {
     let result
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.REACTNATIVE,
-    })
-    console.info(ProjectType.REACTNATIVE, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.REACTNATIVE,
+    // })
+    // console.info(ProjectType.REACTNATIVE, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.REACT })
     console.info(ProjectType.REACT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NEXT })

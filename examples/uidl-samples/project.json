@@ -1,5 +1,4 @@
 {
-  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/project.json",
   "name": "teleportProject",
   "globals": {
     "settings": {
@@ -44,6 +43,30 @@
   },
   "root": {
     "name": "App",
+    "styleSetDefinitions": {
+      "5ed0d05baa77d97673711820": {
+        "id": "5ed0d05baa77d97673711820",
+        "name": "primaryButton",
+        "type": "reusable-project-style-map",
+        "content": {
+          "background": "blue",
+          "width": "auto",
+          "color": "#fff",
+          "border": "1px solid #fff"
+        }
+      },
+      "5ed0d4923de727e93cb4efa2": {
+        "id": "5ed0d4923de727e93cb4efa2",
+        "name": "secondaryButton",
+        "type": "reusable-project-style-map",
+        "content": {
+          "background": "red",
+          "width": "auto",
+          "color": "#fff",
+          "border": "1px solid #fff"
+        }
+      }
+    },
     "stateDefinitions": {
       "route": {
         "type": "string",
@@ -106,7 +129,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "container",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -186,6 +210,21 @@
                           "content": {
                             "elementType": "container",
                             "name": "columns",
+                            "referencedStyles": {
+                              "5ed0cb9ff4fd989551c4edc0": {
+                                "id": "5ed0cb9ff4fd989551c4edc0",
+                                "type": "style-map",
+                                "content": {
+                                  "mapType": "inlined",
+                                  "conditions": [
+                                    { "conditionType": "screen-size", "maxWidth": 991 }
+                                  ],
+                                  "styles": {
+                                    "flex-wrap": "wrap"
+                                  } 
+                                }
+                              }
+                            },
                             "style": {
                               "display": "flex",
                               "justify-content": "space-between",
@@ -197,8 +236,23 @@
                                 "type": "element",
                                 "content": {
                                   "elementType": "container",
+                                  "referencedStyles": {
+                                    "5ed0cc78c15bf36607fceff5": {
+                                      "id": "5ed0cc78c15bf36607fceff5",
+                                      "type": "style-map",
+                                      "content": {
+                                        "mapType": "inlined",
+                                        "conditions": [
+                                          { "conditionType": "screen-size", "maxWidth": 991 }
+                                        ],
+                                        "styles": {
+                                          "flex": "inherit"
+                                        }
+                                      }
+                                    }
+                                  },
                                   "style": {
-                                    "max-width": "30%"
+                                    "flex": "1"
                                   },
                                   "children": [{
                                     "type": "element",
@@ -219,8 +273,23 @@
                                 "type": "element",
                                 "content": {
                                   "elementType": "container",
+                                  "referencedStyles": {
+                                    "5ed0cd2ef0ece67901cc8f20": {
+                                      "id": "5ed0cd2ef0ece67901cc8f20",
+                                      "type": "style-map",
+                                      "content": {
+                                        "mapType": "inlined",
+                                        "conditions": [
+                                          { "conditionType": "screen-size", "maxWidth": 991 }
+                                        ],
+                                        "styles": {
+                                          "flex": "inherit"
+                                        }
+                                      }
+                                    }
+                                  },
                                   "style": {
-                                    "max-width": "30%"
+                                    "flex": "1"
                                   },
                                   "children": [{
                                     "type": "element",
@@ -241,8 +310,23 @@
                                 "type": "element",
                                 "content": {
                                   "elementType": "container",
+                                  "referencedStyles": {
+                                    "5ed0cd26bd7301de692957bf": {
+                                      "id": "5ed0cd26bd7301de692957bf",
+                                      "type": "style-map",
+                                      "content": {
+                                        "mapType": "inlined",
+                                        "conditions": [
+                                          { "conditionType": "screen-size", "maxWidth": 991 }
+                                        ],
+                                        "styles": {
+                                          "flex": "inherit"
+                                        }
+                                      }
+                                    }
+                                  },
                                   "style": {
-                                    "max-width": "30%"
+                                    "flex": "1"
                                   },
                                   "children": [{
                                     "type": "element",
@@ -260,6 +344,65 @@
                                 }
                               }
                             ]
+                          }
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "container",
+                              "style": {
+                                "width": "100%",
+                                "marginTop": 15,
+                                "marginBottom": 15,
+                                "line-height": 1.5
+                              },
+                              "children": [
+                                "We introcuded some new features to make your use your style sets defined once and use across the pages.",
+                                "Here are some of them, shown below as examples"
+                              ]
+                          }
+                        }, 
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "button",
+                            "style": {
+                              "font-size": "16px",
+                              "padding": "12px 24px",
+                              "border-radius": "6px"
+                            },
+                            "referencedStyles": {
+                              "5ed0d3daf36df4da926078ee": {
+                                "id": "5ed0d3daf36df4da926078ee",
+                                "type": "style-map",
+                                "content": {
+                                  "mapType": "project-referenced",
+                                  "referenceId": "5ed0d05baa77d97673711820"
+                                }
+                              }
+                            },
+                            "children": [ "Primary Button"]
+                          }
+                        }, {
+                          "type": "element",
+                          "content": {
+                            "elementType": "button",
+                            "style": {
+                              "font-size": "16px",
+                              "padding": "12px 24px",
+                              "border-radius": "6px"
+                            },
+                            "referencedStyles": {
+                              "5ed0d3daf36df4da926078ee": {
+                                "id": "5ed0d3daf36df4da926078ee",
+                                "type": "style-map",
+                                "content": {
+                                  "mapType": "project-referenced",
+                                  "referenceId": "5ed0d4923de727e93cb4efa2"
+                                }
+                              }
+                            },
+                            "children": [ "Secondary Button"]
                           }
                         }]
                       }
@@ -288,7 +431,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -297,7 +441,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "PersonList",
+                        "elementType": "component",
+                        "semanticType": "PersonList",
                         "dependency": {
                           "type": "local"
                         }
@@ -327,7 +472,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "Navbar",
+                        "elementType": "component",
+                        "semanticType": "Navbar",
                         "dependency": {
                           "type": "local"
                         }
@@ -336,7 +482,8 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "ContactForm",
+                        "elementType": "component",
+                        "semanticType": "ContactForm",
                         "dependency": {
                           "type": "local"
                         }
@@ -391,22 +538,27 @@
                     "content": {
                       "elementType": "li",
                       "name": "home-link",
+                      "referencedStyles": {
+                        "5ecf9f48c169f22eb26ce91d": {
+                          "id": "5ecf9f48c169f22eb26ce91d",
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "element-state", "content": "hover"}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
+                            }
+                          }
+                        }
+                      },
                       "style": {
                         "padding": "10px 20px",
                         "transition": "all .15s ease-in-out",
-                        "cursor": "pointer",
-                        "&:hover": {
-                          "type": "nested-style",
-                          "content": {
-                            "color": { "type": "static", "content": "red"},
-                            "border-bottom": "3px solid red",
-                            "padding-bottom": "7px"
-                          }
-                        },
-                        "& a": {
-                          "color": "inherit",
-                          "text-decoration": "none"
-                        }
+                        "cursor": "pointer"
                       },
                       "children": [{
                         "type": "element",
@@ -430,22 +582,27 @@
                     "content": {
                       "name": "team-link",
                       "elementType": "li",
+                      "referencedStyles": {
+                        "5ecfa07284d8848f05ef9c2d": {
+                          "id": "5ecfa07284d8848f05ef9c2d",
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "element-state", "content": "hover"}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
+                            }
+                          }
+                        }
+                      },
                       "style": {
                         "padding": "10px 20px",
                         "transition": "all .15s ease-in-out",
-                        "cursor": "pointer",
-                        "&:hover": {
-                          "type": "nested-style",
-                          "content": {
-                            "color": { "type": "static", "content": "red"},
-                            "border-bottom": "3px solid red",
-                            "padding-bottom": "7px"
-                          }
-                        },
-                        "& a": {
-                          "color": "inherit",
-                          "text-decoration": "none"
-                        }
+                        "cursor": "pointer"
                       },
                       "children": [{
                         "type": "element",
@@ -469,22 +626,27 @@
                     "content": {
                       "elementType": "li",
                       "name": "contact-link",
+                      "referencedStyles": {
+                        "5ecfa0d2f9f29ada8482ff03": {
+                          "id": "5ecfa0d2f9f29ada8482ff03",
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "element-state", "content": "hover"}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
+                            }
+                          }
+                        }
+                      },
                       "style": {
                         "padding": "10px 20px",
                         "transition": "all .15s ease-in-out",
-                        "cursor": "pointer",
-                        "&:hover": {
-                          "type": "nested-style",
-                          "content": {
-                            "color": { "type": "static", "content": "red"},
-                            "border-bottom": "3px solid red",
-                            "padding-bottom": "7px"
-                          }
-                        },
-                        "& a": {
-                          "color": "inherit",
-                          "text-decoration": "none"
-                        }
+                        "cursor": "pointer"
                       },
                       "children": [{
                         "type": "element",
@@ -680,7 +842,8 @@
                 "node": {
                   "type": "element",
                   "content": {
-                    "elementType": "PersonSpotlight",
+                    "elementType": "component",
+                    "semanticType": "PersonSpotlight",
                     "dependency": {
                       "type": "local",
                       "path": "./person-spotlight"
@@ -879,6 +1042,22 @@
               "type": "element",
               "content": {
                 "elementType": "button",
+                "referencedStyles": {
+                  "5ecfa1233b8e50f60ea2b64d": {
+                    "id": "5ecfa1233b8e50f60ea2b64d",
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "inlined",
+                      "conditions": [
+                        { "conditionType": "element-state", "content": "hover"}
+                      ],
+                      "styles": {
+                        "background-color": "green",
+                        "color": "white"
+                      }
+                    }
+                  }
+                },
                 "style": {
                   "font-size": "18px",
                   "padding": "5px 10px",
@@ -888,14 +1067,7 @@
                   "border": "1px solid grey",
                   "transition": "all .35s ease-out",
                   "border-radius": "3px",
-                  "cursor": "pointer",
-                  "&:hover": {
-                    "type": "nested-style",
-                    "content": {
-                      "background-color": "green",
-                      "color": "white"
-                    }
-                  }
+                  "cursor": "pointer"
                 },
                 "children": ["Send"]
               }
@@ -1050,13 +1222,7 @@
                 "style": {
                   "height": "0",
                   "overflow": "hidden",
-                  "transition": "height .2s ease-out",
-                  "&[data-is-expanded='true']": {
-                    "type": "nested-style",
-                    "content": {
-                      "height": "$props.expandableHeight"
-                    }
-                  }
+                  "transition": "height .2s ease-out"
                 },
                 "children": [
                   {

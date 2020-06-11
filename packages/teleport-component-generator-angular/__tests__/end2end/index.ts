@@ -56,9 +56,14 @@ describe('Angular Component Validator', () => {
     expect(result.dependencies).toBeDefined()
   })
 
-  it('throws error when invalid UIDL sample is used', async () => {
-    const result = generator.generateComponent(invalidUidlSample)
-    await expect(result).rejects.toThrow(Error)
+  it('Decoders remove additational fields and uses the uidl', async () => {
+    const result = await generator.generateComponent(invalidUidlSample)
+    const tsFile = findFileByType(result.files, TS_FILE)
+
+    expect(tsFile).toBeDefined()
+    expect(result.files.length).toBe(2)
+    expect(tsFile.content).toContain(`import { Component, Input } from '@angular/core`)
+    expect(result.dependencies).toBeDefined()
   })
 
   it('works when validation step is skiped', async () => {

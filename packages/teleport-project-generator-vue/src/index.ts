@@ -10,6 +10,8 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 import { Mapping } from '@teleporthq/teleport-types'
 
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+
 import VueTemplate from './project-template'
 import VueProjectMapping from './vue-project-mapping.json'
 
@@ -31,6 +33,13 @@ const createVueProjectGenerator = () => {
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
+  const styleSheetGenerator = createComponentGenerator()
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'index',
+    })
+  )
+
   const generator = createProjectGenerator({
     components: {
       generator: vueComponentGenerator,
@@ -39,6 +48,12 @@ const createVueProjectGenerator = () => {
     pages: {
       generator: vuePageGenerator,
       path: ['src', 'views'],
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'index',
+      path: ['src'],
+      importFile: true,
     },
     router: {
       generator: vueRouterGenerator,

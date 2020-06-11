@@ -1,53 +1,39 @@
-import Ajv from 'ajv'
-import componentSchema from '../uidl-schemas/component.json'
-import projectSchema from '../uidl-schemas/project.json'
-
 import {
   ProjectUIDL,
   ComponentUIDL,
   ProjectValidationError,
   ComponentValidationError,
 } from '@teleporthq/teleport-types'
+import { componentUIDLValidator, projectUIDLValidator } from '../decoders'
+import { VComponentUIDL, VProjectUIDL } from '../decoders/types'
 import * as utils from './utils'
 
 interface ValidationResult {
   valid: boolean
   errorMsg: string
+  componentUIDL?: VComponentUIDL
+  projectUIDL?: VProjectUIDL
 }
 
 export default class Validator {
-  private componentValidator: Ajv.ValidateFunction
-  private projectValidator: Ajv.ValidateFunction
-
-  constructor() {
-    const ajv = new Ajv({
-      allErrors: true,
-      verbose: true,
-    })
-    this.componentValidator = ajv.compile(componentSchema)
-    this.projectValidator = ajv.compile(projectSchema)
-  }
-
   public validateComponentSchema(input: unknown): ValidationResult {
-    const valid = this.componentValidator(input)
-
-    if (!valid && this.componentValidator.errors) {
-      const errorMsg = utils.formatErrors(this.componentValidator.errors)
+    try {
+      const cleanedUIDL = componentUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+    } catch (e) {
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
       throw new ComponentValidationError(errorMsg)
     }
-
-    return { valid: true, errorMsg: '' }
   }
 
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
-    const valid = this.projectValidator(input)
-
-    if (!valid && this.projectValidator.errors) {
-      const errorMessage = utils.formatErrors(this.projectValidator.errors)
-      throw new ProjectValidationError(errorMessage)
+    try {
+      const cleanedUIDL = projectUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '', projectUIDL: cleanedUIDL }
+    } catch (e) {
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(errorMsg)
     }
-
-    return { valid: true, errorMsg: '' }
   }
 
   public validateComponentContent(input: ComponentUIDL): ValidationResult {
@@ -73,6 +59,7 @@ export default class Validator {
     let allErrors = errorsOnRouteNode
 
     if (errorsOnRouteNode.length === 0) {
+      const errorsInStyleSet = utils.checkProjectStyleSet(input)
       const errorsInRootComponent = utils.checkRootComponent(input)
 
       const errorsWithComponentNaming = utils.checkComponentNaming(input)
@@ -83,6 +70,7 @@ export default class Validator {
         ...errorsWtihComponentExistence,
         ...errorsWithComponentNaming,
         ...errorsInRootComponent,
+        ...errorsInStyleSet,
       ]
     }
 
