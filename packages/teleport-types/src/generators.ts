@@ -383,7 +383,7 @@ export enum ReactNativeStyleVariation {
 export enum PublisherType {
   DISK = 'Disk',
   ZIP = 'Zip',
-  NOW = 'Now',
+  NOW = 'Vercel',
   NETLIFY = 'Netlify',
   GITHUB = 'Github',
   CODESANDBOX = 'CodeSandbox',

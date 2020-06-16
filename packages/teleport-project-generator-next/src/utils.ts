@@ -70,7 +70,7 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   }
 
   // Create AST representation of the class CustomDocument extends Document
-  // https://github.com/zeit/next.js#custom-document
+  // https://github.com/vercel/next.js#custom-document
   const fileAST = createDocumentWrapperAST(htmlNode)
 
   const chunks: Record<string, ChunkDefinition[]> = {
