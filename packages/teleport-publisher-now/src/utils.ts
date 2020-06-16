@@ -12,9 +12,9 @@ import {
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, NowFile, NowPayload } from './types'
 
-const CREATE_DEPLOY_URL = 'https://api.zeit.co/v10/now/deployments'
-const UPLOAD_FILES_URL = 'https://api.zeit.co/v10/now/files'
-const CHECK_DEPLOY_BASE_URL = 'https://api.zeit.co/v10/now/deployments/get?url='
+const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
+const UPLOAD_FILES_URL = 'https://api.vercel.com/v10/now/files'
+const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v10/now/deployments/get?url='
 
 type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
 
