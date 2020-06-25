@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-angular",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Project generator for a standard Angular project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -26,16 +26,16 @@
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.12.0",
-    "@teleporthq/teleport-component-generator-angular": "^0.12.0",
-    "@teleporthq/teleport-plugin-angular-module": "^0.12.0",
-    "@teleporthq/teleport-plugin-css": "^0.12.0",
-    "@teleporthq/teleport-plugin-import-statements": "^0.12.0",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.12.0",
-    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.12.0",
-    "@teleporthq/teleport-project-generator": "^0.12.0",
-    "@teleporthq/teleport-shared": "^0.12.0",
-    "@teleporthq/teleport-types": "^0.12.0"
+    "@teleporthq/teleport-component-generator": "^0.12.1",
+    "@teleporthq/teleport-component-generator-angular": "^0.12.1",
+    "@teleporthq/teleport-plugin-angular-module": "^0.12.1",
+    "@teleporthq/teleport-plugin-css": "^0.12.1",
+    "@teleporthq/teleport-plugin-import-statements": "^0.12.1",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.12.1",
+    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.12.1",
+    "@teleporthq/teleport-project-generator": "^0.12.1",
+    "@teleporthq/teleport-shared": "^0.12.1",
+    "@teleporthq/teleport-types": "^0.12.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
