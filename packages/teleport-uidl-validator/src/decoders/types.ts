@@ -21,6 +21,8 @@ import {
   UIDLNavLinkNode,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
+  UIDLStyleSetMediaCondition,
+  UIDLStyleSetStateCondition,
 } from '@teleporthq/teleport-types'
 
 type Modify<T, R> = Omit<T, keyof R> & R
@@ -94,6 +96,7 @@ export interface VUIDLStyleSetDefnition
   extends Modify<
     UIDLStyleSetDefinition,
     {
+      conditions?: VUIDLStyleSetConditions[]
       content: Record<string, UIDLStaticValue | string | number>
     }
   > {}
@@ -144,6 +147,24 @@ export interface VUIDLURLLinkNode
       }
     }
   > {}
+
+export interface VUIDLStyleSetMediaCondition
+  extends Modify<
+    UIDLStyleSetMediaCondition,
+    {
+      content: Record<string, UIDLStaticValue | string | number>
+    }
+  > {}
+
+export interface VUIDLStyleSetStateCondition
+  extends Modify<
+    UIDLStyleSetStateCondition,
+    {
+      content: Record<string, UIDLStaticValue | string | number>
+    }
+  > {}
+
+export type VUIDLStyleSetConditions = VUIDLStyleSetMediaCondition | VUIDLStyleSetStateCondition
 
 export type VUIDLLinkNode =
   | VUIDLURLLinkNode
