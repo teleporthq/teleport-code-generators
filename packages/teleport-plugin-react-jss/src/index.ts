@@ -65,7 +65,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               const { conditions } = styleRef.content
               const [condition] = conditions
 
-              if (styleRef.content?.styles && Object.keys(styleRef.content.styles).length === 0) {
+              if (!styleRef.content?.styles || Object.keys(styleRef.content.styles).length === 0) {
                 return
               }
 
