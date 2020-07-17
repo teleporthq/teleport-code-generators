@@ -133,6 +133,11 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               const { staticStyles } = UIDLUtils.splitDynamicAndStaticStyles(
                 styleRef.content.styles
               )
+
+              if (staticStyles && Object.keys(staticStyles).length === 0) {
+                return
+              }
+
               if (Object.keys(staticStyles).length > 0) {
                 const condition = styleRef.content.conditions[0]
                 const { conditionType } = condition
@@ -206,18 +211,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     })
 
     if (Object.keys(mediaStylesMap).length > 0) {
-      Object.keys(mediaStylesMap)
-        .sort((a: string, b: string) => Number(a) - Number(b))
-        .reverse()
-        .forEach((mediaOffset: string) => {
-          jssStylesArray.push(
-            StyleBuilders.createCSSClassWithMediaQuery(
-              `max-width: ${mediaOffset}px`,
-              // @ts-ignore
-              mediaStylesMap[mediaOffset]
-            )
-          )
-        })
+      jssStylesArray.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
 
     if (isProjectStyleReferred && projectStyleSet?.importFile) {

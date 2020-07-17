@@ -72,3 +72,20 @@ export const createDynamicStyleExpression = (
       )
   }
 }
+
+export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string, unknown>>) => {
+  const styles: string[] = []
+  Object.keys(mediaStylesMap)
+    .sort((a: string, b: string) => Number(a) - Number(b))
+    .reverse()
+    .forEach((mediaOffset: string) => {
+      styles.push(
+        createCSSClassWithMediaQuery(
+          `max-width: ${mediaOffset}px`,
+          // @ts-ignore
+          mediaStylesMap[mediaOffset]
+        )
+      )
+    })
+  return styles
+}

@@ -10,6 +10,7 @@ import {
   UIDLSlotNode,
   UIDLElementNode,
   UIDLStaticValue,
+  UIDLStyleSetConditions,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -53,7 +54,16 @@ export const parseProjectJSON = (
   if (result.root?.styleSetDefinitions) {
     const { styleSetDefinitions } = root
     Object.values(styleSetDefinitions).forEach((styleRef) => {
+      const { conditions = [] } = styleRef
       styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
+      if (conditions.length > 0) {
+        conditions.forEach((style: UIDLStyleSetConditions) => {
+          style.content = UIDLUtils.transformStylesAssignmentsToJson(style.content) as Record<
+            string,
+            UIDLStaticValue
+          >
+        })
+      }
     })
   }
 
