@@ -58,13 +58,38 @@ describe('Style Sheet from styled components', () => {
           color: staticNode('blue'),
         },
       },
+      '5ecfa1233b8e50f60ea2b64c': {
+        id: '5ecfa1233b8e50f60ea2b64c',
+        name: 'conditionalButton',
+        type: 'reusable-project-style-map',
+        conditions: [
+          {
+            type: 'screen-size',
+            meta: { maxWidth: 991 },
+            content: {
+              backgrouns: staticNode('purple'),
+            },
+          },
+          {
+            type: 'element-state',
+            meta: { state: 'hover' },
+            content: {
+              background: staticNode('yellow'),
+            },
+          },
+        ],
+        content: {
+          background: staticNode('red'),
+          color: staticNode('blue'),
+        },
+      },
     }
 
     const result = await plugin(structure)
     const { chunks, dependencies } = result
     const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
 
-    expect(styleChunks.length).toBe(2)
+    expect(styleChunks.length).toBe(3)
     expect(dependencies.css.path).toBe('styled-components')
   })
 
