@@ -114,30 +114,33 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               const { staticStyles } = UIDLUtils.splitDynamicAndStaticStyles(
                 styleRef.content.styles
               )
-              if (Object.keys(staticStyles).length > 0) {
-                const condition = styleRef.content.conditions[0]
-                const { conditionType } = condition
-                if (conditionType === 'screen-size') {
-                  const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-                  mediaStylesMap[maxWidth] = {
-                    ...mediaStylesMap[maxWidth],
-                    [className]: StyleUtils.getContentOfStyleObject(staticStyles),
-                  }
-                }
 
-                if (condition.conditionType === 'element-state') {
-                  cssClasses.push(
-                    StyleBuilders.createCSSClassWithSelector(
-                      className,
-                      `&:${condition.content}`,
-                      // @ts-ignore
-                      StyleUtils.getContentOfStyleObject(staticStyles)
-                    )
-                  )
-                }
-
-                appendClassName = true
+              if (staticStyles && Object.keys(staticStyles).length === 0) {
+                return
               }
+
+              const condition = styleRef.content.conditions[0]
+              const { conditionType } = condition
+              if (conditionType === 'screen-size') {
+                const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
+                mediaStylesMap[maxWidth] = {
+                  ...mediaStylesMap[maxWidth],
+                  [className]: StyleUtils.getContentOfStyleObject(staticStyles),
+                }
+              }
+
+              if (condition.conditionType === 'element-state') {
+                cssClasses.push(
+                  StyleBuilders.createCSSClassWithSelector(
+                    className,
+                    `&:${condition.content}`,
+                    // @ts-ignore
+                    StyleUtils.getContentOfStyleObject(staticStyles)
+                  )
+                )
+              }
+
+              appendClassName = true
               return
             }
             case 'project-referenced': {
@@ -189,18 +192,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     })
 
     if (Object.keys(mediaStylesMap).length > 0) {
-      Object.keys(mediaStylesMap)
-        .sort((a: string, b: string) => Number(a) - Number(b))
-        .reverse()
-        .forEach((mediaOffset: string) => {
-          cssClasses.push(
-            StyleBuilders.createCSSClassWithMediaQuery(
-              `max-width: ${mediaOffset}px`,
-              // @ts-ignore
-              mediaStylesMap[mediaOffset]
-            )
-          )
-        })
+      cssClasses.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
     /**
      * If no classes were added, we don't need to import anything or to alter any code

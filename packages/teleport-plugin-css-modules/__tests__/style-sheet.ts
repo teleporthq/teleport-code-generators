@@ -25,6 +25,31 @@ describe('plugin-css-modules-style-sheet', () => {
           color: staticNode('blue'),
         },
       },
+      '5ecfa1233b8e50f60ea2b64c': {
+        id: '5ecfa1233b8e50f60ea2b64c',
+        name: 'conditionalButton',
+        type: 'reusable-project-style-map',
+        conditions: [
+          {
+            type: 'screen-size',
+            meta: { maxWidth: 991 },
+            content: {
+              backgrouns: staticNode('purple'),
+            },
+          },
+          {
+            type: 'element-state',
+            meta: { state: 'hover' },
+            content: {
+              background: staticNode('yellow'),
+            },
+          },
+        ],
+        content: {
+          background: staticNode('red'),
+          color: staticNode('blue'),
+        },
+      },
     }
 
     const { chunks } = await plugin(structure)
@@ -33,6 +58,8 @@ describe('plugin-css-modules-style-sheet', () => {
     expect(cssFile).toBeDefined()
     expect(cssFile.content).toContain('.primaryButton')
     expect(cssFile.content).toContain('secondaryButton')
+    expect(cssFile.content).toContain('.conditionalButton:hover')
+    expect(cssFile.content).toContain('@media(max-width: 991px)')
     expect(cssFile.content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })
 

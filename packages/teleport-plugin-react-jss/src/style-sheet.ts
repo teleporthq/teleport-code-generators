@@ -26,9 +26,40 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
     if (styleSetDefinitions && Object.keys(styleSetDefinitions)) {
       Object.values(styleSetDefinitions).forEach((style) => {
-        styleSet[StringUtils.dashCaseToCamelCase(style.name)] = StyleUtils.getContentOfStyleObject(
-          style.content
-        )
+        const { conditions = [] } = style
+        let styles = StyleUtils.getContentOfStyleObject(style.content)
+
+        if (conditions.length > 0) {
+          conditions.forEach((styleRef) => {
+            if (Object.keys(styleRef.content).length === 0) {
+              return
+            }
+
+            if (styleRef.type === 'screen-size') {
+              styles = {
+                ...styles,
+                ...{
+                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: StyleUtils.getContentOfStyleObject(
+                    styleRef.content
+                  ),
+                },
+              }
+            }
+
+            if (styleRef.type === 'element-state') {
+              styles = {
+                ...styles,
+                ...{
+                  [`&:${styleRef.meta.state}`]: StyleUtils.getContentOfStyleObject(
+                    styleRef.content
+                  ),
+                },
+              }
+            }
+          })
+        }
+
+        styleSet[StringUtils.dashCaseToCamelCase(style.name)] = styles
       })
     }
 

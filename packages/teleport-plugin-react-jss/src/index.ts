@@ -64,6 +64,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
             case 'inlined': {
               const { conditions } = styleRef.content
               const [condition] = conditions
+
+              if (!styleRef.content?.styles || Object.keys(styleRef.content.styles).length === 0) {
+                return
+              }
+
               if (condition.conditionType === 'screen-size') {
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),

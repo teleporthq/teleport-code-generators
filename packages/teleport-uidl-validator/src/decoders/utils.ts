@@ -49,6 +49,9 @@ import {
   VUIDLSectionLinkNode,
   VUIDLLinkNode,
   VUIDLURLLinkNode,
+  VUIDLStyleSetConditions,
+  VUIDLStyleSetMediaCondition,
+  VUIDLStyleSetStateCondition,
 } from './types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -80,10 +83,35 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   content: union(string(), number(), boolean(), array()),
 })
 
+export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
+  type: constant('screen-size'),
+  meta: object({
+    maxWidth: number(),
+    maxHeight: optional(number()),
+    minHeight: optional(number()),
+    minWidth: optional(number()),
+  }),
+  content: dict(union(staticValueDecoder, string(), number())),
+})
+
+export const styleSetStateConditionDecoder: Decoder<VUIDLStyleSetStateCondition> = object({
+  type: constant('element-state'),
+  meta: object({
+    state: lazy(() => elementStateDecoder),
+  }),
+  content: dict(union(staticValueDecoder, string(), number())),
+})
+
+export const projectStyleConditionsDecoder: Decoder<VUIDLStyleSetConditions> = union(
+  styleSetMediaConditionDecoder,
+  styleSetStateConditionDecoder
+)
+
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
   id: string(),
   name: string(),
   type: constant('reusable-project-style-map'),
+  conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number())),
 })
 

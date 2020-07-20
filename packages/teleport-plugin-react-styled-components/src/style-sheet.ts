@@ -28,18 +28,44 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     uidl.outputOptions.fileName = fileName
 
     Object.values(styleSetDefinitions).forEach((style) => {
-      const { name, content } = style
+      const { name, content, conditions = [] } = style
 
       const className = StringUtils.dashCaseToUpperCamelCase(name)
+      let styles = StyleUtils.getContentOfStyleObject(content)
+
+      if (conditions.length > 0) {
+        conditions.forEach((styleRef) => {
+          if (Object.keys(styleRef.content).length === 0) {
+            return
+          }
+
+          if (styleRef.type === 'screen-size') {
+            styles = {
+              ...styles,
+              ...{
+                [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: StyleUtils.getContentOfStyleObject(
+                  styleRef.content
+                ),
+              },
+            }
+          }
+
+          if (styleRef.type === 'element-state') {
+            styles = {
+              ...styles,
+              ...{
+                [`&:${styleRef.meta.state}`]: StyleUtils.getContentOfStyleObject(styleRef.content),
+              },
+            }
+          }
+        })
+      }
 
       chunks.push({
         name: fileName,
         type: ChunkType.AST,
         fileType: FileType.JS,
-        content: generateExportablCSSInterpolate(
-          className,
-          StyleUtils.getContentOfStyleObject(content)
-        ),
+        content: generateExportablCSSInterpolate(className, styles),
         linkAfter: ['import-local'],
       })
     })

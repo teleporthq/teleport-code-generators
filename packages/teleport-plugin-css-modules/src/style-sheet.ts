@@ -5,7 +5,6 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-
 interface StyleSheetPlugin {
   fileName?: string
   omitModuleextension?: boolean
@@ -25,8 +24,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     const cssMap: string[] = []
+    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+
     Object.values(styleSetDefinitions).forEach((style) => {
-      const { name, content } = style
+      const { name, content, conditions = [] } = style
       cssMap.push(
         StyleBuilders.createCSSClass(
           name,
@@ -34,7 +35,32 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           StyleUtils.getContentOfStyleObject(content)
         )
       )
+
+      if (conditions.length === 0) {
+        return
+      }
+      conditions.forEach((styleRef) => {
+        if (styleRef.type === 'element-state') {
+          cssMap.push(
+            StyleBuilders.createCSSClassWithSelector(
+              name,
+              `&:${styleRef.meta.state}`,
+              // @ts-ignore
+              StyleUtils.getContentOfStyleObject(styleRef.content)
+            )
+          )
+        }
+
+        if (styleRef.type === 'screen-size') {
+          mediaStylesMap[styleRef.meta.maxWidth] = {
+            ...mediaStylesMap[styleRef.meta.maxWidth],
+            [name]: StyleUtils.getContentOfStyleObject(styleRef.content),
+          }
+        }
+      })
     })
+
+    cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
 
     const sheeName = omitModuleextension ? fileName : `${fileName}.module`
 

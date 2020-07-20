@@ -43,8 +43,17 @@ export const insertLinks = (
       return node
     }
 
-    // a text node (span) on which we added a link gets transformed into an <a>
-    // the rest of the text elements get wrapped with an <a> tag
+    /* We repalce buttons with link to use <a> tag's, to make the generated
+    code to be semantically correct. */
+    if (elementType === 'button') {
+      node.content.elementType = getLinkElementType(abilities.link)
+      node.content.semanticType = ''
+      node.content.attrs = createLinkAttributes(abilities.link, options)
+      return node
+    }
+
+    /* a text node (span) on which we added a link gets transformed into an <a>
+     the rest of the text elements get wrapped with an <a> tag */
     if (elementType === 'text' && semanticType === 'span') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''

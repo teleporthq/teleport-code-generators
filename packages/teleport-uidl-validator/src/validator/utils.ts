@@ -6,6 +6,7 @@ import {
   ComponentUIDL,
   UIDLNode,
   UIDLStyleSetDefinition,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -184,24 +185,35 @@ export const checkProjectStyleSet = (input: ProjectUIDL) => {
   const styleSet = input.root.styleSetDefinitions
   if (styleSet) {
     Object.values(styleSet).forEach((styleSetObj: UIDLStyleSetDefinition) => {
-      const { content } = styleSetObj
-      Object.values(content).forEach((styleContent) => {
-        if (
-          styleContent.type !== 'static' &&
-          typeof styleContent !== 'string' &&
-          typeof styleContent !== 'number'
-        ) {
-          /* We don't currently support dynamic nodes in project-style sheet
-          Since, these are just used as reference styles on any other nodes.
-           Any logic related to styles should be directly applied on the node. Validators
-           take care of this, but good to cross-check with content too if the they skip Validation */
-          errors.push(
-            `Project Style sheet / styleSetDefinitions only support styles with static content, received ${styleContent}`
-          )
-        }
+      const { content, conditions = [] } = styleSetObj
+
+      Object.values(conditions).forEach((style) => {
+        errors.push(...checkContentForErrors(style.content))
       })
+
+      errors.push(...checkContentForErrors(content))
     })
   }
+  return errors
+}
+
+export const checkContentForErrors = (content: Record<string, UIDLStaticValue>) => {
+  const errors: string[] = []
+  Object.values(content).forEach((styleContent) => {
+    if (
+      styleContent.type !== 'static' &&
+      typeof styleContent !== 'string' &&
+      typeof styleContent !== 'number'
+    ) {
+      /* We don't currently support dynamic nodes in project-style sheet
+      Since, these are just used as reference styles on any other nodes.
+       Any logic related to styles should be directly applied on the node. Validators
+       take care of this, but good to cross-check with content too if the they skip Validation */
+      errors.push(
+        `Project Style sheet / styleSetDefinitions only support styles with static content, received ${styleContent}`
+      )
+    }
+  })
   return errors
 }
 

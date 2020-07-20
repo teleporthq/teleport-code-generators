@@ -72,6 +72,7 @@ export interface UIDLStyleSetDefinition {
   id: string
   name: string
   type: 'reusable-project-style-map'
+  conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStaticValue>
 }
 
@@ -321,3 +322,24 @@ export interface UIDLStyleStateCondition {
 }
 
 export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'
+
+export type UIDLStyleSetConditions = UIDLStyleSetMediaCondition | UIDLStyleSetStateCondition
+
+export interface UIDLStyleSetMediaCondition {
+  type: 'screen-size'
+  content: Record<string, UIDLStaticValue>
+  meta: {
+    maxWidth: number
+    minWidth?: number
+    maxHeight?: number
+    minHeight?: number
+  }
+}
+
+export interface UIDLStyleSetStateCondition {
+  type: 'element-state'
+  meta: {
+    state: UIDLElementStyleStates
+  }
+  content: Record<string, UIDLStaticValue>
+}
