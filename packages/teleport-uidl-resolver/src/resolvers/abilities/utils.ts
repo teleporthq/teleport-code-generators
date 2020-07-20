@@ -49,10 +49,6 @@ export const insertLinks = (
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''
       node.content.attrs = createLinkAttributes(abilities.link, options)
-      node.content.style = {
-        ...node.content.style,
-        textDecoration: { type: 'static', content: 'none' },
-      }
       return node
     }
 
