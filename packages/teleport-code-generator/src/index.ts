@@ -9,6 +9,7 @@ import {
   ReactStyleVariation,
   InvalidProjectTypeError,
   InvalidPublisherTypeError,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
@@ -169,12 +170,20 @@ export const packProject: PackProjectFunction = async (
 
 export const generateComponent: GenerateComponentFunction = async (
   componentUIDL: ComponentUIDL,
-  { componentType = ComponentType.REACT, styleVariation = ReactStyleVariation.CSSModules } = {}
+  {
+    componentType = ComponentType.REACT,
+    styleVariation = ReactStyleVariation.CSSModules,
+    componentGeneratorOptions = {},
+  }: {
+    componentType?: ComponentType
+    styleVariation?: ReactStyleVariation
+    componentGeneratorOptions?: GeneratorOptions
+  } = {}
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]
   generator.addMapping(projectMapping)
-  return generator.generateComponent(componentUIDL)
+  return generator.generateComponent(componentUIDL, componentGeneratorOptions)
 }
 
 const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {
