@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-gridsome",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Project generator using Gridsome",
   "author": "teleportHQ",
   "license": "MIT",
@@ -28,7 +28,7 @@
   "dependencies": {
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-component-generator": "^0.12.2",
-    "@teleporthq/teleport-component-generator-vue": "^0.12.2",
+    "@teleporthq/teleport-component-generator-vue": "^0.12.3",
     "@teleporthq/teleport-plugin-vue-head-config": "^0.12.2",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.12.2",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.12.2",

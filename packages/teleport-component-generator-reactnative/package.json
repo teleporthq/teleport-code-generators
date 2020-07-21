@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-reactnative",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Component generator customization, capable of creating React Native components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.12.2",
     "@teleporthq/teleport-plugin-jsx-proptypes": "^0.12.2",
     "@teleporthq/teleport-plugin-react-base-component": "^0.12.2",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.12.2",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.12.3",
     "@teleporthq/teleport-plugin-reactnative-component-navigation": "^0.12.2",
     "@teleporthq/teleport-plugin-reactnative-resource-loader": "^0.12.2",
     "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.12.2",

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-reactnative",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Project generator using React Native and Navigator",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.12.2",
-    "@teleporthq/teleport-component-generator-reactnative": "^0.12.2",
+    "@teleporthq/teleport-component-generator-reactnative": "^0.12.3",
     "@teleporthq/teleport-plugin-import-statements": "^0.12.2",
     "@teleporthq/teleport-plugin-reactnative-app-routing": "^0.12.2",
     "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.12.2",
