@@ -98,7 +98,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                if (!referencedStyles) {
+                if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )

@@ -154,7 +154,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
                 const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                if (!referencedStyles) {
+                if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
