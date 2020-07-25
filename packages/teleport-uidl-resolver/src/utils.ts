@@ -99,7 +99,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
   // Mapping the type from the semantic type of the mapping
   // Semantic type has precedence as it is dictated by the user
-  originalElement.elementType = originalElement.semanticType || mappedElement.elementType
+  originalElement.elementType =
+    originalElement.semanticType && !originalElement.dependency
+      ? originalElement.semanticType
+      : mappedElement.elementType
 
   if (mappedElement.ignore) {
     originalElement.ignore = mappedElement.ignore
