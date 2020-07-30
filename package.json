@@ -8,9 +8,9 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "lerna link && lerna run build",
-    "build:cjs": "lerna run build:cjs",
-    "build:esm": "lerna run build:esm",
+    "build": "lerna link && lerna run clean --stream && lerna run build --stream",
+    "build:cjs": "lerna run build:cjs ---stream",
+    "build:esm": "lerna run build:esm ---stream",
     "dev": "lerna link && npm run build:cjs && npm run watch",
     "watch": "node scripts/watcher.js",
     "test": "jest",
