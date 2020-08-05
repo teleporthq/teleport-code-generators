@@ -22,14 +22,17 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
     dependencies.Vue = {
       type: 'library',
       path: 'vue',
+      version: '^2.6.7',
     }
     dependencies.Router = {
       type: 'library',
       path: 'vue-router',
+      version: '^3.0.2',
     }
     dependencies.Meta = {
       type: 'library',
       path: 'vue-meta',
+      version: '^2.2.1',
     }
 
     const routerDeclaration = t.expressionStatement(
