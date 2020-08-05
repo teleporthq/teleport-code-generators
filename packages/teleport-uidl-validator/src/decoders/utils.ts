@@ -36,6 +36,8 @@ import {
   UIDLElementNodeProjectReferencedStyle,
   UIDLComponentSEO,
   UIDLGlobalAsset,
+  UIDLExternalDependency,
+  UIDLLocalDependency,
 } from '@teleporthq/teleport-types'
 import {
   VUIDLStyleSetDefnition,
@@ -200,17 +202,35 @@ export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object(
   folderPath: optional(array((isValidFileName() as unknown) as Decoder<string>)),
 })
 
-export const dependencyDecoder: Decoder<UIDLDependency> = object({
-  type: union(constant('library'), constant('package'), constant('local')),
-  path: optional(string()),
-  version: optional(string()),
+export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
+  type: union(constant('library'), constant('package')),
+  path: string(),
+  version: string(),
   meta: optional(
     object({
       namedImport: optional(boolean()),
       originalName: optional(string()),
+      importJustPath: optional(boolean()),
     })
   ),
 })
+
+export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({
+  type: constant('local'),
+  path: optional(string()),
+  meta: optional(
+    object({
+      namedImport: optional(boolean()),
+      originalName: optional(string()),
+      importJustPath: optional(boolean()),
+    })
+  ),
+})
+
+export const dependencyDecoder: Decoder<UIDLDependency> = union(
+  localDependencyDecoder,
+  externaldependencyDecoder
+)
 
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
