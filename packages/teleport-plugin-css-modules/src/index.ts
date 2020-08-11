@@ -217,13 +217,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       uidl.outputOptions.styleFileName = cssFileName
     }
 
-    if (cssClasses.length > 0) {
-      dependencies[styleObjectImportName] = {
-        type: 'local',
-        path: `./${cssFileName}.${FileType.CSS}`,
-      }
-    }
-
+    /* Order of imports play a important role on initial load sequence
+    So, project styles should always be loaded before component styles */
     if (isProjectStyleReferred) {
       const fileName = moduleExtension
         ? `${options.projectStyleSet.fileName}.module`
@@ -231,6 +226,13 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       dependencies[projectStylesReferenceOffset] = {
         type: 'local',
         path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,
+      }
+    }
+
+    if (cssClasses.length > 0) {
+      dependencies[styleObjectImportName] = {
+        type: 'local',
+        path: `./${cssFileName}.${FileType.CSS}`,
       }
     }
 
