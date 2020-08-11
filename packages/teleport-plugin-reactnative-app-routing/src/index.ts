@@ -26,7 +26,8 @@ export const createReactAppRoutingComponentPlugin: ComponentPluginFactory<AppRou
 
     const navigatorDependency: UIDLDependency = {
       type: 'library',
-      path: 'react-navigator',
+      path: 'react-navigaton',
+      version: '^4.4.0',
       meta: {
         namedImport: true,
       },

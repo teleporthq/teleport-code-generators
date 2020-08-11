@@ -6,6 +6,7 @@ interface JSXHeadPluginConfig {
   componentChunkName?: string
   configTagIdentifier?: string
   configTagDependencyPath?: string
+  configTagDependencyVersion?: string
 }
 
 export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config) => {
@@ -13,6 +14,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     componentChunkName = 'jsx-component',
     configTagIdentifier = 'Helmet',
     configTagDependencyPath = 'react-helmet',
+    configTagDependencyVersion = '^5.2.1',
   } = config || {}
 
   const jsxHeadConfigPlugin: ComponentPlugin = async (structure) => {
@@ -72,6 +74,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       dependencies[configTagIdentifier] = {
         type: 'library',
         path: configTagDependencyPath,
+        version: configTagDependencyVersion,
       }
     }
 

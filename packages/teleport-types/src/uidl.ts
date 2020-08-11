@@ -249,10 +249,22 @@ export interface UIDLEventHandlerStatement {
   args?: Array<string | number | boolean>
 }
 
-export interface UIDLDependency {
-  type: 'library' | 'package' | 'local'
+export type UIDLDependency = UIDLLocalDependency | UIDLExternalDependency
+
+export interface UIDLLocalDependency {
+  type: 'local'
   path?: string
-  version?: string
+  meta?: {
+    namedImport?: boolean
+    originalName?: string
+    importJustPath?: boolean
+  }
+}
+
+export interface UIDLExternalDependency {
+  type: 'library' | 'package'
+  path: string
+  version: string
   meta?: {
     namedImport?: boolean
     originalName?: string
