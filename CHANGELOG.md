@@ -1,3 +1,133 @@
+## v0.12.4 (2020-08-11)
+
+#### :bug: Bug Fix
+* `teleport-plugin-css-modules`
+  * [#475](https://github.com/teleporthq/teleport-code-generators/pull/475) fix(css-modules): importing project styles at first than local styles ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :fire: Refactoring
+* `teleport-component-generator`, `teleport-plugin-jsx-head-config`, `teleport-plugin-reactnative-app-routing`, `teleport-plugin-vue-app-routing`, `teleport-types`, `teleport-uidl-validator`
+  * [#471](https://github.com/teleporthq/teleport-code-generators/pull/471) refactor(teleport-types): refactored checkes and validators for UIDLDependency ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.12.3 (2020-07-21)
+
+#### :rocket: New Features
+* `teleport-code-generator`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`
+  * [#460](https://github.com/teleporthq/teleport-code-generators/pull/460) refactor(code-generator): allowing code-generator to pass options to component-generators ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.12.2 (2020-07-20)
+
+#### :rocket: New Features
+* `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-types`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#459](https://github.com/teleporthq/teleport-code-generators/pull/459) feat(proj-styles): adding support for conditions on project-styles ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.12.1 (2020-06-25)
+
+#### :earth_asia: Core
+* `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-jsx-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-gridsome`, `teleport-project-generator-next`, `teleport-project-generator-nuxt`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-stencil`, `teleport-project-generator-vue`, `teleport-project-generator`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#444](https://github.com/teleporthq/teleport-code-generators/pull/444) feat(reusable-styles): Project level styles that can be used across components and pages. ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :bug: Bug Fix
+* `teleport-uidl-resolver`
+  * [#458](https://github.com/teleporthq/teleport-code-generators/pull/458) fix(resolver): alignment fix when 'a' tags are used as direct child ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 2
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Utwo ([@Utwo](https://github.com/Utwo))
+
+
+## v0.11.0 (2020-05-27)
+
+#### :earth_asia: Core
+* `teleport-types`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#445](https://github.com/teleporthq/teleport-code-generators/pull/445) feat: add semantic type ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 1
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+
+
+## v0.10.11 (2020-04-28)
+
+#### :bug: Bug Fix
+* `teleport-uidl-resolver`
+  * [#442](https://github.com/teleporthq/teleport-code-generators/pull/442) fix: styling problems when using link on inline elements ([@alexnm](https://github.com/alexnm))
+* `teleport-code-generator`, `teleport-github-gateway`, `teleport-project-packer`, `teleport-publisher-codesandbox`, `teleport-test`, `teleport-types`
+  * [#443](https://github.com/teleporthq/teleport-code-generators/pull/443) fix: assets handling ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 1
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+
+
+## v0.10.8 (2020-04-01)
+
+#### :electric_plug: Angular Generators
+* `teleport-project-generator-angular`
+  * [#440](https://github.com/teleporthq/teleport-code-generators/pull/440) chore: Upgrading angular template to 9 ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+* `teleport-component-generator-reactnative`, `teleport-project-generator-next`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#439](https://github.com/teleporthq/teleport-code-generators/pull/439) feat(link) adding basic support for links on any nodes and resolver functionality ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 3
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Utwo ([@Utwo](https://github.com/Utwo))
+
+
+## v0.10.6 (2020-03-09)
+
+#### :rocket: New Features
+* `teleport-project-generator-gatsby`, `teleport-project-generator-next`, `teleport-project-generator`, `teleport-types`, `teleport-uidl-validator`
+  * [#436](https://github.com/teleporthq/teleport-code-generators/pull/436) feat: custom code inject in entry files ([@alexnm](https://github.com/alexnm))
+
+#### :bug: Bug Fix
+* `teleport-plugin-react-styled-jsx`
+  * [#429](https://github.com/teleporthq/teleport-code-generators/pull/429) fix: styled-jsx handling self-closing root ([@alexnm](https://github.com/alexnm))
+
+#### Committers: 2
+- Alex Moldovan ([@alexnm](https://github.com/alexnm))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.10.4 (2020-02-06)
+
+#### :electric_plug: React Generators
+* `teleport-project-generator-gatsby`, `teleport-project-generator`, `teleport-test`, `teleport-types`
+  * [#399](https://github.com/teleporthq/teleport-code-generators/pull/399) feat(gatsby-proj): project generators can configure a file to change ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+* `teleport-component-generator-angular`, `teleport-plugin-angular-base-component`, `teleport-plugin-common`, `teleport-plugin-preact-base-component`, `teleport-plugin-react-base-component`, `teleport-plugin-stencil-base-component`, `teleport-plugin-vue-base-component`, `teleport-shared`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-validator`
+  * [#425](https://github.com/teleporthq/teleport-code-generators/pull/425) feat(uidl-schema): adding a new raw node for escaping encoding ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :crystal_ball: UIDL
+* `teleport-component-generator-angular`, `teleport-plugin-angular-base-component`, `teleport-plugin-common`, `teleport-plugin-preact-base-component`, `teleport-plugin-react-base-component`, `teleport-plugin-stencil-base-component`, `teleport-plugin-vue-base-component`, `teleport-shared`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-validator`
+  * [#425](https://github.com/teleporthq/teleport-code-generators/pull/425) feat(uidl-schema): adding a new raw node for escaping encoding ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 2
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Utwo ([@Utwo](https://github.com/Utwo))
+
+
+## v0.10.2 (2019-12-03)
+
+#### :electric_plug: React Generators
+* `teleport-project-generator-react`
+  * [#418](https://github.com/teleporthq/teleport-code-generators/pull/418) chore(project-temp-react): upgrading react version in react template ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
 ## v0.10.1 (2019-11-27)
 
 #### :rocket: New Features
