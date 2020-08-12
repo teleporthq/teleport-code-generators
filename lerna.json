@@ -18,7 +18,8 @@
     "repo": "teleporthq/teleport-code-generators",
     "cacheDir": ".changelog",
     "ignoreCommitters": [
-      "allcontributors"
+      "allcontributors",
+      "dependabot"
     ],
     "labels": {
       "enhancement": ":rocket: New Features",
