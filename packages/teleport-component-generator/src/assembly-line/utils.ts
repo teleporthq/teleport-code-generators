@@ -7,7 +7,7 @@ export const extractExternalDependencies = (dependencies: Record<string, UIDLDep
     })
     .reduce((acc: Record<string, string>, key) => {
       const depInfo = dependencies[key]
-      if (depInfo.path && (depInfo.type === 'library' || depInfo.type === 'package')) {
+      if (depInfo.path && depInfo.type === 'package') {
         acc[depInfo.path] = depInfo.version
       }
 

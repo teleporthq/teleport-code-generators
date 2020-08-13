@@ -322,8 +322,9 @@ export class ProjectGenerator {
 
     // Create the routing component in case the project generator has a strategy for that
     if (this.strategy.router) {
-      const routerFile = await createRouterFile(root, this.strategy)
+      const { routerFile, dependencies } = await createRouterFile(root, this.strategy)
       injectFilesToPath(rootFolder, this.strategy.router.path, [routerFile])
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Create the entry file of the project (ex: index.html, _document.js)

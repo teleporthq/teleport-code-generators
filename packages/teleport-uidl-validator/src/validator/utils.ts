@@ -7,6 +7,7 @@ import {
   UIDLNode,
   UIDLStyleSetDefinition,
   UIDLStaticValue,
+  UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -64,13 +65,25 @@ const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) 
   return dynamicIdRoot === iteratorName
 }
 
-// All referenced props and states should be previously defined in the
-// "propDefinitions" and "stateDefinitions" sections
-// If props or states are defined and not used, a warning witll be displayed
+/* All referenced props, states and importRefs should be previously defined in the
+ "propDefinitions" and "stateDefinitions" and "importDefinitions" sections
+ If props or states are defined and not used, a warning witll be displayed */
 export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
-  const importKeys = Object.keys(input.importDefinitions || {})
+  let importKeys = Object.keys(input.importDefinitions || {})
+
+  if (Object.keys(importKeys).length > 0) {
+    importKeys = importKeys.reduce((acc, importRef) => {
+      if (
+        !(input.importDefinitions as { [key: string]: UIDLExternalDependency })[importRef]?.meta
+          ?.importJustPath
+      ) {
+        acc.push(importRef)
+      }
+      return acc
+    }, [])
+  }
 
   const usedPropKeys: string[] = []
   const usedStateKeys: string[] = []
