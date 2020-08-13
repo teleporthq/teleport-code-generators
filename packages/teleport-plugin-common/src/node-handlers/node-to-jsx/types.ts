@@ -22,6 +22,7 @@ export interface JSXGenerationOptions {
     prop: string
     state: string
     local: string
+    import: string
   }
 
   /*

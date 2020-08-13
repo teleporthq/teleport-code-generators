@@ -66,6 +66,7 @@ export const createStencilComponentPlugin: ComponentPluginFactory<StencilPluginC
         prop: 'this',
         state: 'this',
         local: '',
+        import: '',
       },
       dependencyHandling: 'ignore',
       stateHandling: 'mutation',

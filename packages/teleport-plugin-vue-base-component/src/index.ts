@@ -30,7 +30,6 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
 
   const vueComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-
     const templateLookup: { [key: string]: unknown } = {}
     const dataObject: Record<string, unknown> = {}
     const methodsObject: Record<string, UIDLEventHandlerStatement[]> = {}
@@ -72,6 +71,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
     })
 
     const stateObject = uidl.stateDefinitions ? extractStateObject(uidl.stateDefinitions) : {}
+
     const jsContent = generateVueComponentJS(
       uidl,
       Object.keys(dependencies),

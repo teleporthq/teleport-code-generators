@@ -40,6 +40,7 @@ export interface ComponentUIDL {
   node: UIDLElementNode
   styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>
   propDefinitions?: Record<string, UIDLPropDefinition>
+  importDefinitions?: Record<string, UIDLExternalDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
   seo?: UIDLComponentSEO
@@ -94,7 +95,7 @@ export interface UIDLPageOptions {
   fileName?: string
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'import'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
