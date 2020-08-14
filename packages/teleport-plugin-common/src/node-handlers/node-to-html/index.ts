@@ -17,24 +17,40 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const templateSyntax = { ...DEFAULT_TEMPLATE_SYNTAX, ...syntax }
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
-  const tagName = elementType || 'component'
+
+  const originalElementName = elementType || 'component'
+  let tagName = originalElementName
   const safeTagName =
     dependency && dependency.type === 'local'
       ? templateSyntax.customElementTagName(tagName)
       : tagName
 
-  const htmlNode = createHTMLNode(safeTagName)
-
-  if (dependency && templateSyntax.dependencyHandling === 'import') {
-    if (dependency.type !== 'local') {
-      // library and package dependencies are assumed to be safe
-      dependencies[tagName] = { ...dependency }
-    } else {
-      // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
-      const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
-      dependencies[safeImportName] = { ...dependency }
+  if (dependency) {
+    if (templateSyntax.dependencyHandling === 'import') {
+      if (dependency.type !== 'local') {
+        // library and package dependencies are assumed to be safe
+        const existingDependency = dependencies[tagName]
+        if (existingDependency && existingDependency?.path !== dependency?.path) {
+          tagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+          dependencies[tagName] = {
+            ...dependency,
+            meta: {
+              ...dependency.meta,
+              originalName: originalElementName,
+            },
+          }
+        } else {
+          dependencies[tagName] = { ...dependency }
+        }
+      } else {
+        // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
+        const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
+        dependencies[safeImportName] = { ...dependency }
+      }
     }
   }
+
+  const htmlNode = createHTMLNode(safeTagName)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {

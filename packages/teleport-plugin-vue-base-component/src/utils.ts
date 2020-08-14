@@ -51,7 +51,9 @@ export const generateVueComponentJS = (
     const dataAST = ASTUtils.objectToObjectExpression(dataObject)
 
     Object.keys(importDefinitions).forEach((importRef) => {
-      dataAST.properties.push(t.objectProperty(t.identifier(importRef), t.identifier(importRef)))
+      if (!importDefinitions[importRef].meta?.importJustPath) {
+        dataAST.properties.push(t.objectProperty(t.identifier(importRef), t.identifier(importRef)))
+      }
     })
 
     vueObjectProperties.push(

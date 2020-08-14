@@ -91,7 +91,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   const originalElement = element
   const originalElementType = originalElement.elementType
   const mappedElement = elementsMapping[originalElement.elementType] || {
-    elementType: originalElement.elementType, // identity mapping
+    elementType: originalElement.semanticType ?? originalElement.elementType, // identity mapping
   }
 
   // Setting up the name of the node based on the type, if it is not supplied
@@ -440,7 +440,7 @@ const resolveDependency = (
 
     // ex: PrimaryButton component should be written in a file called primary-button
     // This is just a fallback for when the dependency path is not set by a project generator
-    const componentName = mappedElement.elementType
+    const componentName = mappedElement.semanticType ?? mappedElement.elementType
     const componentFileName = StringUtils.camelCaseToDashCase(componentName)
 
     // concatenate a trailing slash in case it's missing

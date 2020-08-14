@@ -39,7 +39,28 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const { dependencies, nodesLookup } = params
   const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
-  const tagName = elementType || 'component'
+  const originalElementName = elementType || 'component'
+  let tagName = originalElementName
+
+  if (dependency) {
+    if (options.dependencyHandling === 'import') {
+      const existingDependency = dependencies[tagName]
+      if (existingDependency && existingDependency?.path !== dependency?.path) {
+        tagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+        dependencies[tagName] = {
+          ...dependency,
+          meta: {
+            ...dependency.meta,
+            originalName: originalElementName,
+          },
+        }
+      } else {
+        // Make a copy to avoid reference leaking
+        dependencies[tagName] = { ...dependency }
+      }
+    }
+  }
+
   const elementName =
     dependency && dependency.type === 'local' && options.customElementTag
       ? options.customElementTag(tagName)
@@ -72,13 +93,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           )
       }
     })
-  }
-
-  if (dependency) {
-    if (options.dependencyHandling === 'import') {
-      // Make a copy to avoid reference leaking
-      dependencies[tagName] = { ...dependency }
-    }
   }
 
   if (events) {

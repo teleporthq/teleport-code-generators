@@ -66,9 +66,12 @@ export const generateExportAST = (
     )
   })
 
-  const referencedImportDeclerations = Object.keys(importDefinitions).map((importRef) => {
-    return t.classProperty(t.identifier(importRef), t.identifier(importRef))
-  })
+  const referencedImportDeclerations = Object.keys(importDefinitions).reduce((acc, importRef) => {
+    if (!importDefinitions[importRef]?.meta?.importJustPath) {
+      acc.push(t.classProperty(t.identifier(importRef), t.identifier(importRef)))
+    }
+    return acc
+  }, [])
 
   const classBodyAST = (componentUIDL: ComponentUIDL) => {
     return t.classBody([
