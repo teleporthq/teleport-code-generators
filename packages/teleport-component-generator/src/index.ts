@@ -60,13 +60,7 @@ const createComponentGenerator = ({
       throw new Error('No plugins found. Component generation cannot work without any plugins!')
     }
 
-    const dependencies = resolvedUIDL?.importDefinitions ?? {}
-
-    const { chunks, externalDependencies } = await assemblyLine.run(
-      resolvedUIDL,
-      options,
-      dependencies
-    )
+    const { chunks, externalDependencies } = await assemblyLine.run(resolvedUIDL, options)
 
     let codeChunks: Record<string, string> = {}
 

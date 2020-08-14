@@ -19,8 +19,8 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
 
   const originalElementName = elementType || 'component'
-  let tagName = originalElementName
-  const safeTagName =
+  const tagName = originalElementName
+  let safeTagName =
     dependency && dependency.type === 'local'
       ? templateSyntax.customElementTagName(tagName)
       : tagName
@@ -31,8 +31,8 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
         // library and package dependencies are assumed to be safe
         const existingDependency = dependencies[tagName]
         if (existingDependency && existingDependency?.path !== dependency?.path) {
-          tagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
-          dependencies[tagName] = {
+          safeTagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+          dependencies[safeTagName] = {
             ...dependency,
             meta: {
               ...dependency.meta,
@@ -40,7 +40,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
             },
           }
         } else {
-          dependencies[tagName] = { ...dependency }
+          dependencies[safeTagName] = { ...dependency }
         }
       } else {
         // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)

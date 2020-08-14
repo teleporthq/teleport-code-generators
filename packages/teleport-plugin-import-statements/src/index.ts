@@ -24,11 +24,20 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (c
   } = config || {}
 
   const importPlugin: ComponentPlugin = async (structure) => {
-    const { dependencies } = structure
+    const { dependencies, uidl } = structure
+    let collectedDependencies = dependencies
 
-    const libraryDependencies = groupDependenciesByPackage(dependencies, 'library')
-    const packageDependencies = groupDependenciesByPackage(dependencies, 'package')
-    const localDependencies = groupDependenciesByPackage(dependencies, 'local')
+    if (uidl?.importDefinitions) {
+      const { importDefinitions = {} } = uidl
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...importDefinitions,
+      }
+    }
+
+    const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')
+    const packageDependencies = groupDependenciesByPackage(collectedDependencies, 'package')
+    const localDependencies = groupDependenciesByPackage(collectedDependencies, 'local')
     addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileType)
     addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileType)
     addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileType)

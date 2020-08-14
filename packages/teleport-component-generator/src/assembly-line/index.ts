@@ -4,7 +4,6 @@ import {
   ComponentPlugin,
   ComponentUIDL,
   GeneratorOptions,
-  UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 
 export default class AssemblyLine {
@@ -17,14 +16,11 @@ export default class AssemblyLine {
   public async run(
     uidl: ComponentUIDL,
     options: GeneratorOptions,
-    componentDependencies: Record<string, UIDLExternalDependency>,
     initialStructure: ComponentStructure = {
       uidl,
       options,
       chunks: [],
-      dependencies: {
-        ...componentDependencies,
-      },
+      dependencies: {},
     }
   ) {
     const structure = initialStructure

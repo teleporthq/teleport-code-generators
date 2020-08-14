@@ -12,7 +12,7 @@ describe('Generates component and uses importDefinitions', () => {
     const jsFile = findFileByType(files, FileType.JS)
 
     expect(jsFile.content).toContain(
-      `import { theme as defaultTheme, ThemeProvider, Button } from '@chakra-ui/core'`
+      `import { ThemeProvider, Button, theme as defaultTheme } from '@chakra-ui/core'`
     )
     expect(jsFile.content).toContain(`<ThemeProvider theme={defaultTheme}>`)
   })

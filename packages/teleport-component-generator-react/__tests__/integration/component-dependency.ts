@@ -61,7 +61,7 @@ describe('Component with dependency ', () => {
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain(
-        `import { tokens, components, ThemeProvider, Button, Avatar } from 'react-ui'`
+        `import { ThemeProvider, Button, Avatar, tokens, components } from 'react-ui`
       )
       expect(jsFile.content).toContain(`import { Button as AntdButton } from 'antd'`)
       expect(jsFile.content).toContain(`import 'antd/dist/antd.css'`)

@@ -41,13 +41,12 @@ describe('Component with dependency ', () => {
       const vueFile = result.files[0]
 
       expect(vueFile).toBeDefined()
-      expect(vueFile.content).toContain(`:tokens="tokens" :components="components"`)
       expect(vueFile.content).toContain(
-        `import { tokens, components, ThemeProvider, Button, Avatar } from 'react-ui'`
+        `import { CThemeProvider, CButton, CAvatar } from '@chakra-ui/vue'`
       )
-      expect(vueFile.content).toContain(`import { Button as AntdButton } from 'antd'`)
+      expect(vueFile.content).toContain(`import { CButton as AntdCButton } from 'antd'`)
       expect(vueFile.content).toContain(`import 'antd/dist/antd.css'`)
-      expect(vueFile.content).toContain(`tokens: tokens`)
+      expect(vueFile.content).toContain(`randomName: randomName`)
       expect(vueFile.content).not.toContain(`antdCSS: antdCSS`)
     })
 
