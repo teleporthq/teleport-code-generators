@@ -197,7 +197,6 @@ export class ProjectGenerator {
       }
 
       const { files, dependencies } = await createPage(pageUIDL, this.strategy, pageOptions)
-
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
@@ -320,10 +319,14 @@ export class ProjectGenerator {
       injectFilesToPath(rootFolder, this.strategy.static.path, [manifestFile])
     }
 
+    // TODO: Projects which don't need a router file will miss collecting
+    // dependencies which are specified on them
+
     // Create the routing component in case the project generator has a strategy for that
     if (this.strategy.router) {
       const { routerFile, dependencies } = await createRouterFile(root, this.strategy)
       injectFilesToPath(rootFolder, this.strategy.router.path, [routerFile])
+
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 

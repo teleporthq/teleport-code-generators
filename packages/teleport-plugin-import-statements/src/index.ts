@@ -7,15 +7,19 @@ import {
   ImportIdentifier,
   ChunkType,
   FileType,
+  ComponentStructure,
 } from '@teleporthq/teleport-types'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
   importPackagesChunkName?: string
   importLocalsChunkName?: string
+  fileType?: FileType
 }
 
-export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
+export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
+  config: ImportPluginConfig
+) => {
   const {
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
@@ -23,16 +27,27 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (c
     fileType = FileType.JS,
   } = config || {}
 
-  const importPlugin: ComponentPlugin = async (structure) => {
-    const { dependencies, uidl } = structure
+  const importPlugin: ComponentPlugin = async (structure: ComponentStructure) => {
+    const { uidl, dependencies } = structure
     let collectedDependencies = dependencies
 
-    if (uidl?.importDefinitions) {
+    if (Object.keys(uidl?.importDefinitions || {}).length > 0) {
       const { importDefinitions = {} } = uidl
       collectedDependencies = {
         ...collectedDependencies,
         ...importDefinitions,
       }
+
+      Object.keys(importDefinitions).forEach((dependencyRef) => {
+        const dependency = importDefinitions[dependencyRef]
+        if (dependency && dependency.meta?.ignoreImport) {
+          dependencies[dependencyRef] = {
+            type: 'package',
+            path: dependencyRef,
+            version: dependency.version,
+          }
+        }
+      })
     }
 
     const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')
@@ -60,6 +75,10 @@ const groupDependenciesByPackage = (
 
       // Should not be the case at this point
       if (!dep.path) {
+        return
+      }
+
+      if ((dep.type === 'package' || dep.type === 'library') && dep.meta?.ignoreImport) {
         return
       }
 

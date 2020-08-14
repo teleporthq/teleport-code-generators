@@ -262,6 +262,9 @@ export interface UIDLLocalDependency {
   }
 }
 
+// ignoreImport is used for specifying imports that are needed in package.json.
+// Similar to peerDepeendencies
+
 export interface UIDLExternalDependency {
   type: 'library' | 'package'
   path: string
@@ -270,6 +273,7 @@ export interface UIDLExternalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
+    ignoreImport?: boolean
   }
 }
 

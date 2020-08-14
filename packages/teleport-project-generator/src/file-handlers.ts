@@ -87,6 +87,7 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
   root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
   const { files, dependencies } = await routerGenerator.generateComponent(root, options)
+
   return { routerFile: files[0], dependencies }
 }
 

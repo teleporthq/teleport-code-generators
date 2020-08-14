@@ -73,14 +73,19 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const stateKeys = Object.keys(input.stateDefinitions || {})
   let importKeys = Object.keys(input.importDefinitions || {})
 
+  const importDefinitions: { [key: string]: UIDLExternalDependency } = ((input?.importDefinitions ??
+    {}) as unknown) as { [key: string]: UIDLExternalDependency }
+
   if (Object.keys(importKeys).length > 0) {
     importKeys = importKeys.reduce((acc, importRef) => {
       if (
-        !(input.importDefinitions as { [key: string]: UIDLExternalDependency })[importRef]?.meta
-          ?.importJustPath
+        importDefinitions[importRef]?.meta?.importJustPath ||
+        importDefinitions[importRef]?.meta?.ignoreImport
       ) {
-        acc.push(importRef)
+        return acc
       }
+
+      acc.push(importRef)
       return acc
     }, [])
   }

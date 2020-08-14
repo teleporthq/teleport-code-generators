@@ -212,6 +212,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       namedImport: optional(boolean()),
       originalName: optional(string()),
       importJustPath: optional(boolean()),
+      ignoreImport: optional(boolean()),
     })
   ),
 })
