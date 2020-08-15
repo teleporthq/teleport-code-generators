@@ -11,8 +11,12 @@ import {
   UIDLStateDefinition,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
+  UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
+
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 export const createPageUIDLs = (uidl: ProjectUIDL, strategy: ProjectStrategy): ComponentUIDL[] => {
   const routeNodes = UIDLUtils.extractRoutes(uidl.root)
@@ -92,11 +96,28 @@ const createPageUIDL = (
     seo,
   }
 
-  // Adding all kinds of peer dependencies and importing css only files
-  // are good to be added in router. So, for projects which don't follow that
-  // We will use since we don't generate any router
+  /* Adding all kinds of peer dependencies and importing css only files
+   are good to be added in router. So, for projects which don't follow that
+   We will use since we don't generate any router */
+
+  /* Fow now frameworks which follow file name for navigation
+   have such constaraints like placing all css imports in some other files */
   if (isHomePage && strategy.pages?.options?.useFileNameForNavigation) {
-    componentUIDL.importDefinitions = uidl.root?.importDefinitions ?? {}
+    const { importDefinitions = {} } = uidl.root
+
+    componentUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
+      (acc: Record<string, UIDLExternalDependency>, importRef) => {
+        if (
+          strategy.framework?.externalStyles &&
+          importDefinitions[importRef].path.endsWith('.css')
+        ) {
+          return acc
+        }
+        acc[importRef] = importDefinitions[importRef]
+        return acc
+      },
+      {}
+    )
   }
 
   return componentUIDL
@@ -391,6 +412,45 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
     .join('')
 
   return dependencyPrefix
+}
+
+export const fileFileAndReplaceContent = (
+  files: GeneratedFile[],
+  fileName: string,
+  content: string
+): GeneratedFile[] => {
+  Object.values(files).forEach((file: GeneratedFile) => {
+    if (file.name === fileName) {
+      file.content = content.concat(file.content)
+    }
+  })
+  return files
+}
+
+export const generateExternalCSSImports = async (uidl: ComponentUIDL) => {
+  const { importDefinitions = {} } = uidl
+
+  const styleImports = Object.keys(importDefinitions || {}).reduce(
+    (acc: Record<string, UIDLExternalDependency>, importRef) => {
+      const importedPackage = importDefinitions[importRef]
+      if (importedPackage.path.endsWith('.css')) {
+        acc[importRef] = importDefinitions[importRef]
+        return acc
+      }
+      return acc
+    },
+    {}
+  )
+
+  const generator = createComponentGenerator()
+  const { chunks } = await importStatementsPlugin({
+    uidl: null,
+    dependencies: styleImports,
+    options: {},
+    chunks: [],
+  })
+
+  return generator.linkCodeChunks({ imports: chunks }, 'imports')
 }
 
 const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {

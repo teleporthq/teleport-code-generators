@@ -41,11 +41,11 @@ const run = async () => {
     //   projectType: ProjectType.REACTNATIVE,
     // })
     // console.info(ProjectType.REACTNATIVE, '-', result.payload)
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.REACT,
-    // })
-    // console.info(ProjectType.REACT, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACT,
+    })
+    console.info(ProjectType.REACT, '-', result.payload)
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
       projectType: ProjectType.NEXT,

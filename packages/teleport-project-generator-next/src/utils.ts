@@ -124,33 +124,42 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     dependencies: options.dependencies,
   }
 
-  if (options.globalStyles?.isGlobalStylesDependent) {
-    const contentChunkContent = t.exportDefaultDeclaration(
-      t.functionDeclaration(
-        t.identifier('MyApp'),
-        [
-          t.objectPattern([
-            t.objectProperty(t.identifier('Component'), t.identifier('Component')),
-            t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
-          ]),
-        ],
-        t.blockStatement([
-          t.returnStatement(
-            t.jsxElement(
-              t.jsxOpeningElement(
-                t.jsxIdentifier('Component'),
-                [t.jsxSpreadAttribute(t.identifier('pageProps'))],
-                true
-              ),
-              null,
-              [],
+  const contentChunkContent = t.exportDefaultDeclaration(
+    t.functionDeclaration(
+      t.identifier('MyApp'),
+      [
+        t.objectPattern([
+          t.objectProperty(t.identifier('Component'), t.identifier('Component')),
+          t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
+        ]),
+      ],
+      t.blockStatement([
+        t.returnStatement(
+          t.jsxElement(
+            t.jsxOpeningElement(
+              t.jsxIdentifier('Component'),
+              [t.jsxSpreadAttribute(t.identifier('pageProps'))],
               true
-            )
-          ),
-        ])
-      )
+            ),
+            null,
+            [],
+            true
+          )
+        ),
+      ])
     )
+  )
 
+  chunks.push({
+    type: ChunkType.AST,
+    name: 'app-js-chunk',
+    fileType: FileType.JS,
+    content: contentChunkContent,
+    linkAfter: ['import-js-chunk'],
+  })
+
+  // Adding global styles import only when needed. By default we will generate _app.js
+  if (options.globalStyles?.isGlobalStylesDependent) {
     chunks.push({
       type: ChunkType.AST,
       name: 'import-js-chunk',
@@ -161,18 +170,10 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       ),
       linkAfter: [],
     })
+  }
 
-    chunks.push({
-      type: ChunkType.AST,
-      name: 'app-js-chunk',
-      fileType: FileType.JS,
-      content: contentChunkContent,
-      linkAfter: ['import-js-chunk'],
-    })
-
-    result.chunks = {
-      [FileType.JS]: chunks,
-    }
+  result.chunks = {
+    [FileType.JS]: chunks,
   }
 
   return result

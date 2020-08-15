@@ -181,6 +181,11 @@ export interface ProjectStrategy {
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
       isGlobalStylesDependent?: boolean
     }
+    externalStyles?: {
+      // All the css imports from importDefinitions are moved to the file in this destination
+      fileName: string
+      fileType: string
+    }
     replace?: {
       fileName: string
       fileType: string

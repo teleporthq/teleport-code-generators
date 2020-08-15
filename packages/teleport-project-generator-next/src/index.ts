@@ -72,6 +72,10 @@ const createNextProjectGenerator = () => {
         configContentGenerator,
         isGlobalStylesDependent: true,
       },
+      externalStyles: {
+        fileName: '_app',
+        fileType: FileType.JS,
+      },
     },
     static: {
       prefix: '',
