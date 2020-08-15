@@ -26,10 +26,11 @@ const createPageUIDL = (
 ): ComponentUIDL => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
+
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
-  const pageOptions = extractPageOptions(
+  const { pageOptions, isHomePage } = extractPageOptions(
     routeDefinition,
     pageName,
     pagesStrategyOptions.useFileNameForNavigation
@@ -84,12 +85,21 @@ const createPageUIDL = (
   // The solution is to wrap a non-element node with a 'group' element
   const pageContent = node.type === 'element' ? node : elementNode('group', {}, [node])
 
-  return {
+  const componentUIDL: ComponentUIDL = {
     name: componentName,
     node: pageContent,
     outputOptions,
     seo,
   }
+
+  // Adding all kinds of peer dependencies and importing css only files
+  // are good to be added in router. So, for projects which don't follow that
+  // We will use since we don't generate any router
+  if (isHomePage && strategy.pages?.options?.useFileNameForNavigation) {
+    componentUIDL.importDefinitions = uidl.root?.importDefinitions ?? {}
+  }
+
+  return componentUIDL
 }
 
 /**
@@ -101,7 +111,7 @@ export const extractPageOptions = (
   routeDefinitions: UIDLStateDefinition,
   routeName: string,
   useFileNameForNavigation = false
-): UIDLPageOptions => {
+): { pageOptions: UIDLPageOptions; isHomePage: boolean } => {
   const isHomePage = routeDefinitions.defaultValue === routeName
   const pageDefinitions = routeDefinitions.values || []
   const pageDefinition = pageDefinitions.find((stateDef) => stateDef.value === routeName)
@@ -140,7 +150,7 @@ export const extractPageOptions = (
     otherPages.map((page) => page.pageOptions)
   )
 
-  return pageOptions
+  return { pageOptions, isHomePage }
 }
 
 export const prepareComponentOutputOptions = (

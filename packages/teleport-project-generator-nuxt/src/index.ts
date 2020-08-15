@@ -58,11 +58,11 @@ const createNuxtProjectGenerator = () => {
     },
     framework: {
       config: {
-        generator: configGenerator,
-        configContentGenerator,
         fileName: 'nuxt.config',
         fileType: FileType.JS,
         path: [''],
+        generator: configGenerator,
+        configContentGenerator,
         isGlobalStylesDependent: true,
       },
     },
