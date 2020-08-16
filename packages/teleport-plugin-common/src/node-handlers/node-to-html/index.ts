@@ -26,27 +26,28 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
       : tagName
 
   if (dependency) {
-    if (templateSyntax.dependencyHandling === 'import') {
-      if (dependency.type !== 'local') {
-        // library and package dependencies are assumed to be safe
-        const existingDependency = dependencies[tagName]
-        if (existingDependency && existingDependency?.path !== dependency?.path) {
-          safeTagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
-          dependencies[safeTagName] = {
-            ...dependency,
-            meta: {
-              ...dependency.meta,
-              originalName: originalElementName,
-            },
-          }
-        } else {
-          dependencies[safeTagName] = { ...dependency }
+    const existingDependency = dependencies[tagName]
+    safeTagName =
+      existingDependency && existingDependency?.path !== dependency?.path
+        ? `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+        : tagName
+
+    if (templateSyntax.dependencyHandling === 'import' && dependency.type !== 'local') {
+      dependencies[safeTagName] = { ...dependency }
+
+      if (existingDependency && existingDependency?.path !== dependency?.path) {
+        dependencies[safeTagName] = {
+          ...dependency,
+          meta: {
+            ...dependency.meta,
+            originalName: originalElementName,
+          },
         }
-      } else {
-        // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
-        const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
-        dependencies[safeImportName] = { ...dependency }
       }
+    } else if (dependency.type === 'local') {
+      // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
+      const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
+      dependencies[safeImportName] = { ...dependency }
     }
   }
 

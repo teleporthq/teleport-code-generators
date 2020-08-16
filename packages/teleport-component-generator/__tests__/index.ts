@@ -1,6 +1,36 @@
 import { createComponentGenerator } from '../src/index'
 import { elementNode, element, component } from '@teleporthq/teleport-uidl-builders'
-import { ChunkDefinition, ChunkType, FileType, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ChunkDefinition,
+  ChunkType,
+  FileType,
+  ComponentPlugin,
+  UIDLDependency,
+} from '@teleporthq/teleport-types'
+import { extractExternalDependencies } from '../src/assembly-line/utils'
+
+describe('Assembly Line', () => {
+  it('extract external dependencies', () => {
+    const dependencies: Record<string, UIDLDependency> = {
+      react: {
+        type: 'library',
+        path: 'react',
+        version: '16.8.0',
+      },
+      antd: {
+        type: 'package',
+        path: 'antd',
+        version: '4.5.1',
+        meta: {
+          namedImport: true,
+        },
+      },
+    }
+    const result = extractExternalDependencies(dependencies)
+
+    expect(Object.keys(result).length).toBe(1)
+  })
+})
 
 describe('component generator', () => {
   it('creates a new instance of the generator', () => {

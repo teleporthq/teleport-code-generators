@@ -230,7 +230,22 @@ export class ProjectGenerator {
           path,
           files: pageModule.files,
         })
+
+        collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
       }
+    }
+
+    // Handling module generation for components
+    if (this.strategy.components.moduleGenerator) {
+      const componentsModule = await createComponentModule(uidl, this.strategy)
+
+      inMemoryFilesMap.set(componentsModule.files[0].name, {
+        rootFolder,
+        path: this.strategy.components.path,
+        files: componentsModule.files,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
     }
 
     // Handling components
@@ -275,17 +290,6 @@ export class ProjectGenerator {
       })
 
       collectedDependencies = { ...collectedDependencies, ...dependencies }
-    }
-
-    // Handling module generation for components
-    if (this.strategy.components.moduleGenerator) {
-      const componentsModuleFile = await createComponentModule(uidl, this.strategy)
-
-      inMemoryFilesMap.set(componentsModuleFile.name, {
-        rootFolder,
-        path: this.strategy.components.path,
-        files: [componentsModuleFile],
-      })
     }
 
     // Handling framework specific changes to the project
@@ -392,6 +396,7 @@ export class ProjectGenerator {
       })
     }
 
+    // If the framework needs all the external css dependencies to be placed in some other file
     if (framework?.externalStyles && this.strategy.pages.options?.useFileNameForNavigation) {
       const { fileName } = framework.externalStyles
       const folder = inMemoryFilesMap.get(fileName)

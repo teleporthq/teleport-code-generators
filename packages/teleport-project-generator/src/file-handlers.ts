@@ -55,8 +55,7 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = 'components.module'
 
-  const { files } = await moduleGenerator.generateComponent(root, options)
-  return files[0]
+  return moduleGenerator.generateComponent(root, options)
 }
 
 export const createPageModule = async (

@@ -62,7 +62,10 @@ const run = async () => {
       projectType: ProjectType.PREACT,
     })
     console.info(ProjectType.PREACT, '-', result.payload)
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.ANGULAR })
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.ANGULAR,
+    })
     console.info(ProjectType.ANGULAR, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
     console.info(ProjectType.GRIDSOME, '-', result.payload)
