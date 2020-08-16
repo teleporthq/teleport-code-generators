@@ -41,6 +41,7 @@ export interface ComponentUIDL {
   styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>
   propDefinitions?: Record<string, UIDLPropDefinition>
   importDefinitions?: Record<string, UIDLExternalDependency>
+  peerDefinitions?: Record<string, UIDLPeerDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
   seo?: UIDLComponentSEO
@@ -252,6 +253,12 @@ export interface UIDLEventHandlerStatement {
 
 export type UIDLDependency = UIDLLocalDependency | UIDLExternalDependency
 
+export interface UIDLPeerDependency {
+  type: 'package'
+  path: string
+  version: string
+}
+
 export interface UIDLLocalDependency {
   type: 'local'
   path?: string
@@ -262,9 +269,6 @@ export interface UIDLLocalDependency {
   }
 }
 
-// ignoreImport is used for specifying imports that are needed in package.json.
-// Similar to peerDepeendencies
-
 export interface UIDLExternalDependency {
   type: 'library' | 'package'
   path: string
@@ -273,7 +277,7 @@ export interface UIDLExternalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
-    ignoreImport?: boolean
+    useAsReference?: boolean
   }
 }
 

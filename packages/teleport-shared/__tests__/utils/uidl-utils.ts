@@ -15,6 +15,7 @@ import {
   traverseNodes,
   traverseElements,
   traverseRepeats,
+  extractExternalDependencies,
 } from '../../src/utils/uidl-utils'
 import {
   component,
@@ -34,10 +35,34 @@ import {
   UIDLSlotNode,
   UIDLAttributeValue,
   ComponentUIDL,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 
 import uidlStyleJSON from './uidl-utils-style.json'
 import projectUIDL from '../../../../examples/test-samples/project-sample.json'
+
+describe('Assembly Line', () => {
+  it('extract external dependencies', () => {
+    const dependencies: Record<string, UIDLDependency> = {
+      react: {
+        type: 'library',
+        path: 'react',
+        version: '16.8.0',
+      },
+      antd: {
+        type: 'package',
+        path: 'antd',
+        version: '4.5.1',
+        meta: {
+          namedImport: true,
+        },
+      },
+    }
+    const result = extractExternalDependencies(dependencies)
+
+    expect(Object.keys(result).length).toBe(1)
+  })
+})
 
 describe('cleanupDynamicStyles', () => {
   const styleObject = uidlStyleJSON as UIDLStyleDefinitions

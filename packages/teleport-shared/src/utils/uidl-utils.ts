@@ -16,6 +16,7 @@ import {
   UIDLRepeatContent,
   UIDLRepeatMeta,
   UIDLElementNode,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -558,4 +559,19 @@ export const removeChildNodes = (
         `removeChildNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
+}
+
+export const extractExternalDependencies = (dependencies: Record<string, UIDLDependency>) => {
+  return Object.keys(dependencies)
+    .filter((key) => {
+      return dependencies[key].type === 'package'
+    })
+    .reduce((acc: Record<string, string>, key) => {
+      const depInfo = dependencies[key]
+      if (depInfo.path && depInfo.type === 'package') {
+        acc[depInfo.path] = depInfo.version
+      }
+
+      return acc
+    }, {})
 }

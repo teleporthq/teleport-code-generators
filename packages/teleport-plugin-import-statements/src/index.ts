@@ -40,12 +40,13 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
 
       Object.keys(importDefinitions).forEach((dependencyRef) => {
         const dependency = importDefinitions[dependencyRef]
-        if (dependency && dependency.meta?.ignoreImport) {
-          dependencies[dependencyRef] = {
-            type: 'package',
-            path: dependencyRef,
-            version: dependency.version,
-          }
+        if (dependency.meta.importJustPath || dependency.meta.useAsReference) {
+          return
+        }
+        dependencies[dependencyRef] = {
+          type: 'package',
+          path: dependencyRef,
+          version: dependency.version,
         }
       })
     }
@@ -75,10 +76,6 @@ const groupDependenciesByPackage = (
 
       // Should not be the case at this point
       if (!dep.path) {
-        return
-      }
-
-      if ((dep.type === 'package' || dep.type === 'library') && dep.meta?.ignoreImport) {
         return
       }
 

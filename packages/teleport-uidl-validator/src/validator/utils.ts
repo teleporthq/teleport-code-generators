@@ -78,10 +78,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
   if (Object.keys(importKeys).length > 0) {
     importKeys = importKeys.reduce((acc, importRef) => {
-      if (
-        importDefinitions[importRef]?.meta?.importJustPath ||
-        importDefinitions[importRef]?.meta?.ignoreImport
-      ) {
+      if (importDefinitions[importRef]?.meta?.importJustPath) {
         return acc
       }
 

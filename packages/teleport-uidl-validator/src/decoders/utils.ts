@@ -38,6 +38,7 @@ import {
   UIDLGlobalAsset,
   UIDLExternalDependency,
   UIDLLocalDependency,
+  UIDLPeerDependency,
 } from '@teleporthq/teleport-types'
 import {
   VUIDLStyleSetDefnition,
@@ -203,6 +204,12 @@ export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object(
   folderPath: optional(array((isValidFileName() as unknown) as Decoder<string>)),
 })
 
+export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
+  type: constant('package'),
+  version: string(),
+  path: string(),
+})
+
 export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
   type: union(constant('library'), constant('package')),
   path: string(),
@@ -212,7 +219,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       namedImport: optional(boolean()),
       originalName: optional(string()),
       importJustPath: optional(boolean()),
-      ignoreImport: optional(boolean()),
+      useAsReference: optional(boolean()),
     })
   ),
 })
