@@ -233,12 +233,6 @@ export class ProjectGenerator {
 
         collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
       }
-
-      // Collecting peerDependencies from pages
-      const pagePeerDependencies = UIDLUtils.extractExternalDependencies(
-        pageUIDL?.peerDefinitions || {}
-      )
-      collectedDependencies = { ...collectedDependencies, ...pagePeerDependencies }
     }
 
     // Handling module generation for components
@@ -284,16 +278,6 @@ export class ProjectGenerator {
         this.strategy,
         componentOptions
       )
-
-      // Collect peerDependencies from components
-      const componentPeerDependencies = UIDLUtils.extractExternalDependencies(
-        componentUIDL?.peerDefinitions || {}
-      )
-
-      collectedDependencies = {
-        ...collectedDependencies,
-        ...componentPeerDependencies,
-      }
 
       // Components might be generated inside subfolders in the main components folder
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
@@ -429,16 +413,6 @@ export class ProjectGenerator {
         path: folder.path,
         files,
       })
-    }
-
-    // Extracting all peerDependencies that are defined in root
-    const rootPeerDependencies = UIDLUtils.extractExternalDependencies(
-      uidl.root?.peerDefinitions || {}
-    )
-
-    collectedDependencies = {
-      ...collectedDependencies,
-      ...rootPeerDependencies,
     }
 
     inMemoryFilesMap.forEach((stage) => {

@@ -34,7 +34,10 @@ export default class AssemblyLine {
       Promise.resolve(structure)
     )
 
-    const externalDependencies = UIDLUtils.extractExternalDependencies(finalStructure.dependencies)
+    const externalDependencies = {
+      ...UIDLUtils.extractExternalDependencies(finalStructure.dependencies),
+      ...UIDLUtils.extractExternalDependencies(finalStructure.uidl?.peerDefinitions || {}),
+    }
     const chunks = groupChunksByFileType(finalStructure.chunks)
 
     return {

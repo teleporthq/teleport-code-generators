@@ -46,7 +46,9 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
     if (options.dependencyHandling === 'import') {
       const existingDependency = dependencies[tagName]
       if (existingDependency && existingDependency?.path !== dependency?.path) {
-        tagName = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+        tagName = `${StringUtils.dashCaseToUpperCamelCase(
+          StringUtils.removeIllegalCharacters(dependency.path)
+        )}${tagName}`
         dependencies[tagName] = {
           ...dependency,
           meta: {

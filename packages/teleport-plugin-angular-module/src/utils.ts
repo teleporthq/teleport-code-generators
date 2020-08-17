@@ -237,7 +237,9 @@ const traverseUIDLElements = (
       const existingDependency = dependenciesMap[elementTag]
 
       if (existingDependency) {
-        const safeImport = `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${elementTag}`
+        const safeImport = `${StringUtils.dashCaseToUpperCamelCase(
+          StringUtils.removeIllegalCharacters(dependency.path)
+        )}${elementTag}`
         dependenciesMap[safeImport] = {
           ...dependency,
           meta: {

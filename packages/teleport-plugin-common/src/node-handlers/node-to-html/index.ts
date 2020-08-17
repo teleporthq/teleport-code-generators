@@ -29,7 +29,9 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
     const existingDependency = dependencies[tagName]
     safeTagName =
       existingDependency && existingDependency?.path !== dependency?.path
-        ? `${StringUtils.dashCaseToUpperCamelCase(dependency.path)}${tagName}`
+        ? `${StringUtils.dashCaseToUpperCamelCase(
+            StringUtils.removeIllegalCharacters(dependency.path)
+          )}${tagName}`
         : tagName
 
     if (templateSyntax.dependencyHandling === 'import' && dependency.type !== 'local') {
