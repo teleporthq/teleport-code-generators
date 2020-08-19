@@ -55,7 +55,6 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
         prop: 'props',
         state: 'state',
         local: '',
-        import: '',
       },
       dependencyHandling: 'import',
       stateHandling: 'function',

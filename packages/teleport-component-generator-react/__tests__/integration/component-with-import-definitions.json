@@ -18,9 +18,8 @@
         "semanticType": "ThemeProvider",
         "attrs": {
           "theme": {
-            "type": "dynamic",
+            "type": "import",
             "content": {
-              "referenceType": "import",
               "id": "defaultTheme"
             }
           }

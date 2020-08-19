@@ -117,7 +117,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       usedStateKeys.push(dynamicIdRoot)
     }
 
-    if (node.type === 'dynamic' && node.content.referenceType === 'import') {
+    if (node.type === 'import') {
       if (!dynamicPathExistsInDefinitions(node.content.id, importKeys)) {
         const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in importDefinitions`
         errors.push(errorMsg)

@@ -1,10 +1,6 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-  UIDLAttributeValue,
-} from '@teleporthq/teleport-types'
+import { ComponentPluginFactory, ComponentPlugin, UIDLStyleValue } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 import * as types from '@babel/types'
 
@@ -31,7 +27,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
     const styleJSXString: string[] = []
 
-    const transformStyle = (style: Record<string, UIDLAttributeValue>) =>
+    const transformStyle = (style: Record<string, UIDLStyleValue>) =>
       UIDLUtils.transformDynamicStyles(style, (styleValue) => {
         if (styleValue.content.referenceType === 'prop') {
           return `\$\{${propsPrefix}.${styleValue.content.id}\}`

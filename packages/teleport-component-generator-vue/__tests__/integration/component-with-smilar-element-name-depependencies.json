@@ -58,9 +58,8 @@
             "elementType": "component",
             "attrs": {
               "name": {
-                "type": "dynamic",
+                "type": "import",
                 "content": {
-                  "referenceType": "import",
                   "id": "randomName"
                 }
               },

@@ -57,6 +57,7 @@ import {
   VUIDLStyleSetStateCondition,
 } from './types'
 import { CustomCombinators } from './custom-combinators'
+import { UIDLImportReference } from '@teleporthq/teleport-types/src'
 
 const {
   isValidComponentName,
@@ -70,8 +71,7 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('state'),
   constant('local'),
   constant('attr'),
-  constant('children'),
-  constant('import')
+  constant('children')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -241,12 +241,23 @@ export const dependencyDecoder: Decoder<UIDLDependency> = union(
   externaldependencyDecoder
 )
 
+export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
+  type: constant('import'),
+  content: object({
+    id: string(),
+  }),
+})
+
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
-  staticValueDecoder
+  staticValueDecoder,
+  importReferenceDecoder
 )
 
-export const styleValueDecoder: Decoder<UIDLStyleValue> = attributeValueDecoder
+export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
+  staticValueDecoder,
+  dynamicValueDecoder
+)
 
 export const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(styleValueDecoder)
 

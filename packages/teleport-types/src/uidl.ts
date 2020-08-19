@@ -1,5 +1,4 @@
 export interface ProjectUIDL {
-  $schema?: string
   name: string
   globals: UIDLGlobalProjectValues
   root: ComponentUIDL
@@ -96,7 +95,7 @@ export interface UIDLPageOptions {
   fileName?: string
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'import'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -197,14 +196,22 @@ export type UIDLNode =
   | UIDLElementNode
   | UIDLConditionalNode
   | UIDLSlotNode
+  | UIDLImportReference
 
-export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
+export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue | UIDLImportReference
 
-export type UIDLStyleValue = UIDLAttributeValue
+export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
 export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
+
+export interface UIDLImportReference {
+  type: 'import'
+  content: {
+    id: string
+  }
+}
 
 export interface UIDLURLLinkNode {
   type: 'url'
@@ -323,7 +330,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
   content: {
     mapType: 'inlined'
     conditions: UIDLStyleConditions[]
-    styles: Record<string, UIDLAttributeValue>
+    styles: Record<string, UIDLStyleValue>
   }
 }
 

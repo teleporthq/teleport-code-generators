@@ -31,24 +31,30 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
     const { uidl, dependencies } = structure
     let collectedDependencies = dependencies
 
-    if (Object.keys(uidl?.importDefinitions || {}).length > 0) {
+    if (uidl?.importDefinitions) {
       const { importDefinitions = {} } = uidl
       collectedDependencies = {
         ...collectedDependencies,
         ...importDefinitions,
       }
-
-      Object.keys(importDefinitions).forEach((dependencyRef) => {
-        const dependency = importDefinitions[dependencyRef]
-        if (dependency.meta.importJustPath || dependency.meta.useAsReference) {
-          return
-        }
-        dependencies[dependencyRef] = {
-          type: 'package',
-          path: dependencyRef,
-          version: dependency.version,
-        }
-      })
+      if (Object.keys(importDefinitions).length > 0) {
+        Object.keys(importDefinitions).forEach((dependencyRef) => {
+          const dependency = importDefinitions[dependencyRef]
+          if (dependency.meta?.useAsReference || dependency.meta?.importJustPath) {
+            return
+          }
+          dependencies[dependencyRef] = {
+            type: 'package',
+            path: dependency.meta?.importJustPath ? dependency.path : dependencyRef,
+            version: dependency.version,
+            meta: {
+              importJustPath: dependency?.meta?.importJustPath,
+              originalName: dependency?.meta?.originalName,
+              namedImport: dependency?.meta?.namedImport,
+            },
+          }
+        })
+      }
     }
 
     const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')

@@ -33,16 +33,14 @@
         "elementType": "component",
         "attrs": {
           "tokens": {
-            "type": "dynamic",
+            "type": "import",
             "content": {
-              "referenceType": "import",
               "id": "tokens"
             }
           },
           "components": {
-            "type": "dynamic",
+            "type": "import",
             "content": {
-              "referenceType": "import",
               "id": "components"
             }
           }
