@@ -1,10 +1,11 @@
-import { extractExternalDependencies, groupChunksByFileType } from './utils'
+import { groupChunksByFileType } from './utils'
 import {
   ComponentStructure,
   ComponentPlugin,
   ComponentUIDL,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 export default class AssemblyLine {
   private plugins: ComponentPlugin[]
@@ -33,7 +34,10 @@ export default class AssemblyLine {
       Promise.resolve(structure)
     )
 
-    const externalDependencies = extractExternalDependencies(finalStructure.dependencies)
+    const externalDependencies = {
+      ...UIDLUtils.extractExternalDependencies(finalStructure.dependencies),
+      ...UIDLUtils.extractExternalDependencies(finalStructure.uidl?.peerDefinitions || {}),
+    }
     const chunks = groupChunksByFileType(finalStructure.chunks)
 
     return {

@@ -1,9 +1,9 @@
 import * as t from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ParsedASTNode, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import { UIDLAttributeValue } from '@teleporthq/teleport-types'
+import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
-export const generatePropSyntax = (style: Record<string, UIDLAttributeValue>) => {
+export const generatePropSyntax = (style: Record<string, UIDLStyleValue>) => {
   return UIDLUtils.transformDynamicStyles(style, (styleValue) => {
     if (styleValue.content.referenceType === 'prop') {
       return new ParsedASTNode(

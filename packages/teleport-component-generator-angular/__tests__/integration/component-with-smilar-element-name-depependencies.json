@@ -1,0 +1,117 @@
+{
+    "name": "App",
+    "importDefinitions": {
+      "tokens": {
+        "type": "package",
+        "path": "react-ui",
+        "version": "1.0.0-beta.26",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "components": {
+        "path": "react-ui",
+        "type": "package",
+        "version": "1.0.0-beta.26",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "antdCSS": {
+        "path": "antd/dist/antd.css",
+        "type": "package",
+        "version": "4.5.1",
+        "meta": {
+          "importJustPath": true
+        }
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "semanticType": "ThemeProvider",
+        "elementType": "component",
+        "attrs": {
+          "tokens": {
+            "type": "import",
+            "content": {
+              "id": "tokens"
+            }
+          },
+          "components": {
+            "type": "import",
+            "content": {
+              "id": "components"
+            }
+          }
+        },
+        "dependency": {
+          "type": "package",
+          "path": "react-ui",
+          "version": "1.0.0-beta.26",
+          "meta": {
+            "namedImport": true
+          }
+        },
+        "children": [
+          {
+            "type": "element",
+            "content": {
+              "semanticType": "Button",
+              "elementType": "component",
+              "attrs": {
+                "variant": "primary"
+              },
+              "children": ["Button from Chakra"],
+              "dependency": {
+                "type": "package",
+                "path": "react-ui",
+                "version": "1.0.0-beta.26",
+                "meta": {
+                  "namedImport": true
+                }
+              }
+            }
+          },
+          {
+            "type": "element",
+            "content": {
+              "semanticType": "Avatar",
+              "elementType": "component",
+              "attrs": {
+                "size": "xlarge",
+                "src": "https://github.com/sameen-shi.png"
+              },
+              "dependency": {
+                "type": "package",
+                "path": "react-ui",
+                "version": "1.0.0-beta.26",
+                "meta": {
+                  "namedImport": true
+                }
+              }
+            }
+          },
+          {
+            "type": "element",
+            "content": {
+              "semanticType": "Button",
+              "elementType": "component",
+              "attrs": {
+                "type": "primary"
+              },
+              "children": ["Button from ANTD"],
+              "dependency": {
+                "type": "package",
+                "path": "antd",
+                "version": "0.8.0",
+                "meta": {
+                  "namedImport": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }

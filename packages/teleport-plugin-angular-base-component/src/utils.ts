@@ -24,6 +24,8 @@ export const generateExportAST = (
     angularMethodsAST = createMethodsObject(methodsObject, propDefinitions)
   }
 
+  const { importDefinitions = {} } = uidl
+
   const propDeclaration = Object.keys(propDefinitions).map((propKey) => {
     const definition = propDefinitions[propKey]
     // By default any prop with type function is used to emitting events to the callee
@@ -64,11 +66,19 @@ export const generateExportAST = (
     )
   })
 
+  const referencedImportDeclarations = Object.keys(importDefinitions).reduce((acc, importRef) => {
+    if (!importDefinitions[importRef]?.meta?.importJustPath) {
+      acc.push(t.classProperty(t.identifier(importRef), t.identifier(importRef)))
+    }
+    return acc
+  }, [])
+
   const classBodyAST = (componentUIDL: ComponentUIDL) => {
     return t.classBody([
       ...propDeclaration,
       ...propertyDecleration,
       ...dataDeclaration,
+      ...referencedImportDeclarations,
       constructorAST(componentUIDL.seo),
       ...angularMethodsAST,
     ])

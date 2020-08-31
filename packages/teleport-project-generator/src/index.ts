@@ -3,6 +3,8 @@ import {
   resolveLocalDependencies,
   createPageUIDLs,
   prepareComponentOutputOptions,
+  generateExternalCSSImports,
+  fileFileAndReplaceContent,
 } from './utils'
 
 import {
@@ -33,6 +35,7 @@ import {
   ComponentGenerator,
   ProjectStrategyPageOptions,
   ConfigGeneratorResult,
+  GeneratedFile,
 } from '@teleporthq/teleport-types'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
@@ -121,6 +124,10 @@ export class ProjectGenerator {
     mapping: Mapping = {}
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
+    const inMemoryFilesMap = new Map<
+      string,
+      { rootFolder: GeneratedFolder; path: string[]; files: GeneratedFile[] }
+    >()
     // Validating and parsing the UIDL
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
@@ -167,9 +174,15 @@ export class ProjectGenerator {
     // Handling project style sheet
     if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { generator, path } = this.strategy.projectStyleSheet
-      const { files } = await generator.generateComponent(uidl.root)
+      const { files, dependencies } = await generator.generateComponent(uidl.root)
 
-      injectFilesToPath(rootFolder, path, files)
+      inMemoryFilesMap.set('projectStyleSheet', {
+        rootFolder,
+        path,
+        files,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Handling pages
@@ -197,18 +210,42 @@ export class ProjectGenerator {
       }
 
       const { files, dependencies } = await createPage(pageUIDL, this.strategy, pageOptions)
-
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
 
-      injectFilesToPath(rootFolder, path, files)
+      inMemoryFilesMap.set(pageUIDL.name, {
+        rootFolder,
+        path,
+        files,
+      })
+
       collectedDependencies = { ...collectedDependencies, ...dependencies }
 
       if (this.strategy.pages.moduleGenerator) {
         const pageModule = await createPageModule(pageUIDL, this.strategy, options)
-        injectFilesToPath(rootFolder, path, pageModule.files)
+
+        inMemoryFilesMap.set(`${pageUIDL.name}Module`, {
+          rootFolder,
+          path,
+          files: pageModule.files,
+        })
+
+        collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
       }
+    }
+
+    // Handling module generation for components
+    if (this.strategy.components.moduleGenerator) {
+      const componentsModule = await createComponentModule(uidl, this.strategy)
+
+      inMemoryFilesMap.set(componentsModule.files[0].name, {
+        rootFolder,
+        path: this.strategy.components.path,
+        files: componentsModule.files,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
     }
 
     // Handling components
@@ -246,14 +283,13 @@ export class ProjectGenerator {
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
       const path = this.strategy.components.path.concat(relativePath)
 
-      injectFilesToPath(rootFolder, path, files)
-      collectedDependencies = { ...collectedDependencies, ...dependencies }
-    }
+      inMemoryFilesMap.set(componentName, {
+        rootFolder,
+        path,
+        files,
+      })
 
-    // Handling module generation for components
-    if (this.strategy.components.moduleGenerator) {
-      const componentsModuleFile = await createComponentModule(uidl, this.strategy)
-      injectFilesToPath(rootFolder, this.strategy.components.path, [componentsModuleFile])
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Handling framework specific changes to the project
@@ -274,7 +310,12 @@ export class ProjectGenerator {
           fileType
         )
         collectedDependencies = result.dependencies
-        injectFilesToPath(rootFolder, this.strategy.framework.replace.path, [result.file])
+
+        inMemoryFilesMap.set(fileName, {
+          rootFolder,
+          path: this.strategy.framework.replace.path,
+          files: [result.file],
+        })
       }
     }
 
@@ -309,7 +350,11 @@ export class ProjectGenerator {
             framework.config.fileName
           )
 
-          injectFilesToPath(rootFolder, this.strategy.framework.config.path, files)
+          inMemoryFilesMap.set(fileName, {
+            rootFolder,
+            path: this.strategy.framework.config.path,
+            files,
+          })
         }
       }
     }
@@ -317,20 +362,62 @@ export class ProjectGenerator {
     // Global settings are transformed into the root html file and the manifest file for PWA support
     if (uidl.globals.manifest) {
       const manifestFile = createManifestJSONFile(uidl, assetsPrefix)
-      injectFilesToPath(rootFolder, this.strategy.static.path, [manifestFile])
+
+      inMemoryFilesMap.set(manifestFile.name, {
+        rootFolder,
+        path: this.strategy.static.path,
+        files: [manifestFile],
+      })
     }
+
+    // TODO: Projects which don't need a router file will miss collecting
+    // dependencies which are specified on them
 
     // Create the routing component in case the project generator has a strategy for that
     if (this.strategy.router) {
-      const routerFile = await createRouterFile(root, this.strategy)
-      injectFilesToPath(rootFolder, this.strategy.router.path, [routerFile])
+      const { routerFile, dependencies } = await createRouterFile(root, this.strategy)
+
+      inMemoryFilesMap.set('router', {
+        rootFolder,
+        path: this.strategy.router.path,
+        files: [routerFile],
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
       const entryFile = await createEntryFile(uidl, this.strategy, { assetsPrefix })
-      injectFilesToPath(rootFolder, this.strategy.entry.path, [entryFile])
+      inMemoryFilesMap.set('entry', {
+        rootFolder,
+        path: this.strategy.entry.path,
+        files: [entryFile],
+      })
     }
+
+    // If the framework needs all the external css dependencies to be placed in some other file
+    if (framework?.externalStyles && this.strategy.pages.options?.useFileNameForNavigation) {
+      const { fileName } = framework.externalStyles
+      const folder = inMemoryFilesMap.get(fileName)
+
+      if (!folder) {
+        throw new Error(`Canno't find file - ${fileName} from the list of files generated`)
+      }
+
+      const [resultFile] = await generateExternalCSSImports(uidl.root)
+      const files = fileFileAndReplaceContent(folder.files, fileName, resultFile.content)
+
+      inMemoryFilesMap.set(fileName, {
+        rootFolder,
+        path: folder.path,
+        files,
+      })
+    }
+
+    inMemoryFilesMap.forEach((stage) => {
+      injectFilesToPath(stage.rootFolder, stage.path, stage.files)
+    })
 
     // Inject all the collected dependencies in the package.json file
     handlePackageJSON(rootFolder, uidl, collectedDependencies)

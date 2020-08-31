@@ -5,6 +5,7 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -17,6 +18,8 @@ import {
   createComponentModuleDecorator,
   createPageModuleModuleDecorator,
   constructRouteForComponentsModule,
+  extractExtrenalImportsFromComponents,
+  extractExternalDependenciesFromPage,
 } from './utils'
 
 import {
@@ -46,17 +49,19 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
   } = config || {}
 
   const angularModuleGenerator: ComponentPlugin = async (structure) => {
-    const { uidl, dependencies, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { stateDefinitions = {} } = uidl
 
-    const { moduleComponents } = options
+    const { moduleComponents = {} } = options
 
     let routesAST: types.VariableDeclaration
     let ngModuleAST: types.Decorator
     let moduleDecoratorAST: types.ExportNamedDeclaration
+    let externalDependencies: Record<string, UIDLDependency> = {}
 
     dependencies.NgModule = ANGULAR_CORE_DEPENDENCY
     dependencies.RouterModule = ANGULAR_ROUTER
+
     switch (moduleType) {
       case 'root':
         {
@@ -79,7 +84,13 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           dependencies[componentName] = constructLocalDependency(fileName)
 
           routesAST = createPageRouteAST(componentName)
-          ngModuleAST = createPageModuleModuleDecorator(componentName)
+
+          externalDependencies = extractExternalDependenciesFromPage(uidl)
+
+          ngModuleAST = createPageModuleModuleDecorator(
+            componentName,
+            Object.keys(externalDependencies)
+          )
           moduleDecoratorAST = createExportModuleAST(uidl.outputOptions.moduleName)
 
           // Acording to widely followed convention module should have .module in its name
@@ -105,12 +116,24 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           const componentClassNames = Object.keys(moduleComponents).map((componentKey) =>
             UIDLUtils.getComponentClassName(moduleComponents[componentKey])
           )
-          ngModuleAST = createComponentModuleDecorator(componentClassNames)
+
+          externalDependencies = extractExtrenalImportsFromComponents(moduleComponents)
+
+          ngModuleAST = createComponentModuleDecorator(
+            componentClassNames,
+            Object.keys(externalDependencies)
+          )
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
         }
         break
       default:
         throw new Error(`Invalid module type '${moduleType}'`)
+    }
+
+    if (Object.keys(externalDependencies).length > 0) {
+      Object.keys(externalDependencies).forEach((importRef) => {
+        dependencies[importRef] = externalDependencies[importRef]
+      })
     }
 
     // Routes will be present for only pages and root

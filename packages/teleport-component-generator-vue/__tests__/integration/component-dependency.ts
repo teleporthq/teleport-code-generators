@@ -4,6 +4,7 @@ import {
   elementNode,
   componentDependency,
 } from '@teleporthq/teleport-uidl-builders'
+import componentJSON from './component-with-smilar-element-name-depependencies.json'
 
 import { createVueComponentGenerator } from '../../src'
 
@@ -35,6 +36,20 @@ const uidl = (dependency) => {
 
 describe('Component with dependency ', () => {
   describe('from package.json', () => {
+    it('Remaps elementName when to elements have same name but different dependencies', async () => {
+      const result = await vueGenerator.generateComponent(componentJSON)
+      const vueFile = result.files[0]
+
+      expect(vueFile).toBeDefined()
+      expect(vueFile.content).toContain(
+        `import { CThemeProvider, CButton, CAvatar } from '@chakra-ui/vue'`
+      )
+      expect(vueFile.content).toContain(`import { CButton as AntdCButton } from 'antd'`)
+      expect(vueFile.content).toContain(`import 'antd/dist/antd.css'`)
+      expect(vueFile.content).toContain(`randomName: randomName`)
+      expect(vueFile.content).not.toContain(`antdCSS: antdCSS`)
+    })
+
     it('renders code with imported package', async () => {
       const result = await vueGenerator.generateComponent(
         uidl(

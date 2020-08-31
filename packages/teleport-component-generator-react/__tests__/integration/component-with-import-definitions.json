@@ -1,0 +1,58 @@
+{
+    "name": "App",
+    "importDefinitions": {
+      "defaultTheme": {
+        "type": "package",
+        "path": "@chakra-ui/core",
+        "version": "0.8.0",
+        "meta": {
+          "namedImport": true,
+          "originalName": "theme"
+        }
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "ThemeProvider",
+        "semanticType": "ThemeProvider",
+        "attrs": {
+          "theme": {
+            "type": "import",
+            "content": {
+              "id": "defaultTheme"
+            }
+          }
+        },
+        "dependency": {
+          "type": "package",
+          "path": "@chakra-ui/core",
+          "version": "0.8.0",
+          "meta": {
+            "namedImport": true
+          }
+        },
+        "children": [
+          {
+            "type": "element",
+            "content": {
+              "elementType": "component",
+              "semanticType": "Button",
+              "attrs": {
+                "variantColor": "teal"
+              },
+              "dependency": {
+                "type": "package",
+                "path": "@chakra-ui/core",
+                "version": "0.8.0",
+                "meta": {
+                  "namedImport": true
+                }
+              },
+              "children": ["Some button"]
+            }
+          }
+        ]
+      }
+    }
+  }

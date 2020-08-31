@@ -30,7 +30,9 @@
     "@teleporthq/teleport-shared": "^0.12.4",
     "@teleporthq/teleport-types": "^0.12.4",
     "@teleporthq/teleport-uidl-builders": "^0.12.4",
-    "@teleporthq/teleport-uidl-validator": "^0.12.4"
+    "@teleporthq/teleport-uidl-validator": "^0.12.4",
+    "@teleporthq/teleport-plugin-import-statements": "^0.12.4",
+    "@teleporthq/teleport-component-generator": "^0.12.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

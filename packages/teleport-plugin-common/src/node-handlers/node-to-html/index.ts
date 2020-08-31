@@ -17,24 +17,43 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
   const templateSyntax = { ...DEFAULT_TEMPLATE_SYNTAX, ...syntax }
   const { dependencies, templateLookup } = params
   const { elementType, name, key, children, attrs, dependency, events, selfClosing } = node.content
-  const tagName = elementType || 'component'
-  const safeTagName =
+
+  const originalElementName = elementType || 'component'
+  const tagName = originalElementName
+  let safeTagName =
     dependency && dependency.type === 'local'
       ? templateSyntax.customElementTagName(tagName)
       : tagName
 
-  const htmlNode = createHTMLNode(safeTagName)
+  if (dependency) {
+    const existingDependency = dependencies[tagName]
+    safeTagName =
+      existingDependency && existingDependency?.path !== dependency?.path
+        ? `${StringUtils.dashCaseToUpperCamelCase(
+            StringUtils.removeIllegalCharacters(dependency.path)
+          )}${tagName}`
+        : tagName
 
-  if (dependency && templateSyntax.dependencyHandling === 'import') {
-    if (dependency.type !== 'local') {
-      // library and package dependencies are assumed to be safe
-      dependencies[tagName] = { ...dependency }
-    } else {
+    if (templateSyntax.dependencyHandling === 'import' && dependency.type !== 'local') {
+      dependencies[safeTagName] = { ...dependency }
+
+      if (existingDependency && existingDependency?.path !== dependency?.path) {
+        dependencies[safeTagName] = {
+          ...dependency,
+          meta: {
+            ...dependency.meta,
+            originalName: originalElementName,
+          },
+        }
+      }
+    } else if (dependency.type === 'local') {
       // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
       const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
       dependencies[safeImportName] = { ...dependency }
     }
   }
+
+  const htmlNode = createHTMLNode(safeTagName)
 
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {

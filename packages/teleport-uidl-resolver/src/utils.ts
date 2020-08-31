@@ -91,7 +91,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   const originalElement = element
   const originalElementType = originalElement.elementType
   const mappedElement = elementsMapping[originalElement.elementType] || {
-    elementType: originalElement.elementType, // identity mapping
+    elementType: originalElement.semanticType ?? originalElement.elementType, // identity mapping
   }
 
   // Setting up the name of the node based on the type, if it is not supplied

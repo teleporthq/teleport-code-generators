@@ -7,15 +7,19 @@ import {
   ImportIdentifier,
   ChunkType,
   FileType,
+  ComponentStructure,
 } from '@teleporthq/teleport-types'
 
 interface ImportPluginConfig {
   importLibsChunkName?: string
   importPackagesChunkName?: string
   importLocalsChunkName?: string
+  fileType?: FileType
 }
 
-export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (config) => {
+export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
+  config: ImportPluginConfig
+) => {
   const {
     importLibsChunkName = 'import-lib',
     importPackagesChunkName = 'import-pack',
@@ -23,12 +27,39 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (c
     fileType = FileType.JS,
   } = config || {}
 
-  const importPlugin: ComponentPlugin = async (structure) => {
-    const { dependencies } = structure
+  const importPlugin: ComponentPlugin = async (structure: ComponentStructure) => {
+    const { uidl, dependencies } = structure
+    let collectedDependencies = dependencies
 
-    const libraryDependencies = groupDependenciesByPackage(dependencies, 'library')
-    const packageDependencies = groupDependenciesByPackage(dependencies, 'package')
-    const localDependencies = groupDependenciesByPackage(dependencies, 'local')
+    if (uidl?.importDefinitions) {
+      const { importDefinitions = {} } = uidl
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...importDefinitions,
+      }
+      if (Object.keys(importDefinitions).length > 0) {
+        Object.keys(importDefinitions).forEach((dependencyRef) => {
+          const dependency = importDefinitions[dependencyRef]
+          if (dependency.meta?.useAsReference || dependency.meta?.importJustPath) {
+            return
+          }
+          dependencies[dependencyRef] = {
+            type: 'package',
+            path: dependency.meta?.importJustPath ? dependency.path : dependencyRef,
+            version: dependency.version,
+            meta: {
+              importJustPath: dependency?.meta?.importJustPath,
+              originalName: dependency?.meta?.originalName,
+              namedImport: dependency?.meta?.namedImport,
+            },
+          }
+        })
+      }
+    }
+
+    const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')
+    const packageDependencies = groupDependenciesByPackage(collectedDependencies, 'package')
+    const localDependencies = groupDependenciesByPackage(collectedDependencies, 'local')
     addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileType)
     addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileType)
     addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileType)

@@ -1,5 +1,6 @@
 import { createReactComponentGenerator } from '../../src'
 import { GeneratedFile } from '@teleporthq/teleport-types'
+import componentJSON from './component-with-smilar-element-name-depependencies.json'
 
 import {
   component,
@@ -52,6 +53,18 @@ describe('Component with dependency ', () => {
 
       expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain("import ReactDatepicker from 'react-datepicker'")
+    })
+
+    it('Remaps elementName when to elements have same name but different dependencies', async () => {
+      const result = await generator.generateComponent(componentJSON)
+      const jsFile = findFileByType(result.files, JS_FILE)
+
+      expect(jsFile).toBeDefined()
+      expect(jsFile.content).toContain(
+        `import { ThemeProvider, Button, Avatar, tokens, components } from 'react-ui`
+      )
+      expect(jsFile.content).toContain(`import { Button as AntdButton } from 'antd'`)
+      expect(jsFile.content).toContain(`import 'antd/dist/antd.css'`)
     })
 
     it('renders code with named import ', async () => {

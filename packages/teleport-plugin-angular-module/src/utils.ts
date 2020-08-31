@@ -3,15 +3,21 @@ import {
   UIDLDependency,
   UIDLConditionalNode,
   UIDLStateDefinition,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
-export const createPageModuleModuleDecorator = (componentName: string, t = types) => {
+export const createPageModuleModuleDecorator = (
+  componentName: string,
+  externalComponents: string[] = [],
+  t = types
+) => {
   const imports: types.ObjectProperty = t.objectProperty(
     t.identifier('imports'),
     t.arrayExpression([
       t.identifier('CommonModule'),
       t.identifier('ComponentsModule'),
+      ...externalComponents.map((component) => t.identifier(component)),
       t.callExpression(t.memberExpression(t.identifier('RouterModule'), t.identifier('forChild')), [
         t.identifier('routes'),
       ]),
@@ -35,7 +41,11 @@ export const createPageModuleModuleDecorator = (componentName: string, t = types
   )
 }
 
-export const createComponentModuleDecorator = (componentNames?: string[], t = types) => {
+export const createComponentModuleDecorator = (
+  componentNames?: string[],
+  externalComponents: string[] = [],
+  t = types
+) => {
   const componentsList =
     componentNames && componentNames.length > 0
       ? componentNames.map((componentName) => t.identifier(componentName))
@@ -48,7 +58,11 @@ export const createComponentModuleDecorator = (componentNames?: string[], t = ty
 
   const imports: types.ObjectProperty = t.objectProperty(
     t.identifier('imports'),
-    t.arrayExpression([t.identifier('CommonModule'), t.identifier('RouterModule')])
+    t.arrayExpression([
+      ...externalComponents.map((componentName) => t.identifier(componentName)),
+      t.identifier('CommonModule'),
+      t.identifier('RouterModule'),
+    ])
   )
 
   const exportsProperty: types.ObjectProperty = t.objectProperty(
@@ -63,7 +77,7 @@ export const createComponentModuleDecorator = (componentNames?: string[], t = ty
   )
 }
 
-export const createRootModuleDecorator = (t = types) => {
+export const createRootModuleDecorator = (externalComponents: string[] = [], t = types) => {
   const declerations: types.ObjectProperty = t.objectProperty(
     t.identifier('declarations'),
     t.arrayExpression([t.identifier('AppComponent')])
@@ -77,6 +91,7 @@ export const createRootModuleDecorator = (t = types) => {
         t.identifier('routes'),
       ]),
       t.identifier('ComponentsModule'),
+      ...externalComponents.map((component) => t.identifier(component)),
     ])
   )
 
@@ -191,4 +206,51 @@ export const constructRouteForComponentsModule = (path: string) => {
     },
   }
   return dependency
+}
+
+export const extractExternalDependenciesFromPage = (uidl: ComponentUIDL) => {
+  const extractedDependencies: Record<string, UIDLDependency> = {}
+  return traverseUIDLElements(uidl, extractedDependencies)
+}
+
+// In Angular imports are not added to components, instead they are added to modules
+export const extractExtrenalImportsFromComponents = (
+  components: Record<string, ComponentUIDL>
+): Record<string, UIDLDependency> => {
+  const externalDependencies: Record<string, UIDLDependency> = {}
+  if (Object.keys(components).length > 0) {
+    Object.values(components).forEach((component) => {
+      traverseUIDLElements(component, externalDependencies)
+    })
+  }
+  return externalDependencies
+}
+
+const traverseUIDLElements = (
+  component: ComponentUIDL,
+  dependenciesMap: Record<string, UIDLDependency>
+): Record<string, UIDLDependency> => {
+  UIDLUtils.traverseElements(component.node, (element) => {
+    const { dependency, semanticType, elementType } = element
+    const elementTag = semanticType || elementType
+    if (dependency?.type === 'package') {
+      const existingDependency = dependenciesMap[elementTag]
+
+      if (existingDependency) {
+        const safeImport = `${StringUtils.dashCaseToUpperCamelCase(
+          StringUtils.removeIllegalCharacters(dependency.path)
+        )}${elementTag}`
+        dependenciesMap[safeImport] = {
+          ...dependency,
+          meta: {
+            ...dependency.meta,
+            originalName: safeImport,
+          },
+        }
+      } else {
+        dependenciesMap[elementTag] = dependency
+      }
+    }
+  })
+  return dependenciesMap
 }

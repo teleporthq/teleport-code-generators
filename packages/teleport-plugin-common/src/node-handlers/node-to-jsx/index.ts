@@ -39,7 +39,30 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const { dependencies, nodesLookup } = params
   const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
-  const tagName = elementType || 'component'
+  const originalElementName = elementType || 'component'
+  let tagName = originalElementName
+
+  if (dependency) {
+    if (options.dependencyHandling === 'import') {
+      const existingDependency = dependencies[tagName]
+      if (existingDependency && existingDependency?.path !== dependency?.path) {
+        tagName = `${StringUtils.dashCaseToUpperCamelCase(
+          StringUtils.removeIllegalCharacters(dependency.path)
+        )}${tagName}`
+        dependencies[tagName] = {
+          ...dependency,
+          meta: {
+            ...dependency.meta,
+            originalName: originalElementName,
+          },
+        }
+      } else {
+        // Make a copy to avoid reference leaking
+        dependencies[tagName] = { ...dependency }
+      }
+    }
+  }
+
   const elementName =
     dependency && dependency.type === 'local' && options.customElementTag
       ? options.customElementTag(tagName)
@@ -58,6 +81,9 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
             options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
           addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix)
           break
+        case 'import':
+          addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
+          break
         case 'static':
           const { content } = attributeValue
           addAttributeToJSXTag(elementTag, attrKey, content)
@@ -70,13 +96,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           )
       }
     })
-  }
-
-  if (dependency) {
-    if (options.dependencyHandling === 'import') {
-      // Make a copy to avoid reference leaking
-      dependencies[tagName] = { ...dependency }
-    }
   }
 
   if (events) {

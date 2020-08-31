@@ -16,6 +16,8 @@ import {
   UIDLRepeatContent,
   UIDLRepeatMeta,
   UIDLElementNode,
+  UIDLDependency,
+  UIDLStyleValue,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -188,6 +190,7 @@ export const traverseNodes = (
 
     case 'static':
     case 'dynamic':
+    case 'import':
     case 'raw':
       break
 
@@ -386,7 +389,7 @@ export const transformDynamicStyles = (
  */
 export const transformStringAssignmentToJson = (
   declaration: string | number
-): UIDLStaticValue | UIDLAttributeValue => {
+): UIDLStaticValue | UIDLStyleValue => {
   if (typeof declaration === 'number') {
     return {
       type: 'static',
@@ -437,7 +440,7 @@ export const transformStylesAssignmentsToJson = (
       const { type } = styleContentAtKey as Record<string, unknown>
 
       if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = styleContentAtKey as UIDLAttributeValue
+        acc[key] = styleContentAtKey as UIDLStyleValue
         return acc
       }
 
@@ -475,7 +478,7 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
+      if (['dynamic', 'static', 'import'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }
@@ -558,4 +561,19 @@ export const removeChildNodes = (
         `removeChildNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
       )
   }
+}
+
+export const extractExternalDependencies = (dependencies: Record<string, UIDLDependency>) => {
+  return Object.keys(dependencies)
+    .filter((key) => {
+      return dependencies[key].type === 'package'
+    })
+    .reduce((acc: Record<string, string>, key) => {
+      const depInfo = dependencies[key]
+      if (depInfo.path && depInfo.type === 'package') {
+        acc[depInfo.path] = depInfo.version
+      }
+
+      return acc
+    }, {})
 }

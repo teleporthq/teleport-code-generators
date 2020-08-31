@@ -23,6 +23,7 @@ export const handleAttribute = (
   const dynamicAttrKey = templateSyntax.valueBinding(attrKey, node)
   switch (attrValue.type) {
     case 'dynamic':
+    case 'import':
       hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
       break
     case 'static':

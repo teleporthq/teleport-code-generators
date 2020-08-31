@@ -14,6 +14,8 @@ import {
   outputOptionsDecoder,
   elementNodeDecoder,
   componentSeoDecoder,
+  externaldependencyDecoder,
+  peerDependencyDecoder,
 } from './utils'
 
 const componentUIDLValudator: Decoder<VComponentUIDL> = object({
@@ -24,6 +26,8 @@ const componentUIDLValudator: Decoder<VComponentUIDL> = object({
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
   styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
+  peerDefinitions: optional(dict(peerDependencyDecoder)),
+  importDefinitions: optional(dict(externaldependencyDecoder)),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),
 })

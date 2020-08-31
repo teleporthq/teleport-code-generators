@@ -7,15 +7,17 @@ import {
   UIDLNode,
   UIDLStyleSetDefinition,
   UIDLStaticValue,
+  UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
   const props = Object.keys(input.propDefinitions || {})
   const states = Object.keys(input.stateDefinitions || {})
+  const imports = Object.keys(input.importDefinitions || {})
 
   props
-    .filter((x) => states.includes(x))
+    .filter((x) => states.includes(x) || imports.includes(x))
     .forEach((duplicate) =>
       console.warn(
         `\n"${duplicate}" is defined both as a prop and as a state. If you are using VUE Code Generators this can cause bad behavior.`
@@ -63,15 +65,31 @@ const validLocalVariableUsage = (dynamicId: string, repeatIteratorName: string) 
   return dynamicIdRoot === iteratorName
 }
 
-// All referenced props and states should be previously defined in the
-// "propDefinitions" and "stateDefinitions" sections
-// If props or states are defined and not used, a warning witll be displayed
+/* All referenced props, states and importRefs should be previously defined in the
+ "propDefinitions" and "stateDefinitions" and "importDefinitions" sections
+ If props or states are defined and not used, a warning witll be displayed */
 export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
+  let importKeys = Object.keys(input.importDefinitions || {})
+
+  const importDefinitions: { [key: string]: UIDLExternalDependency } = ((input?.importDefinitions ??
+    {}) as unknown) as { [key: string]: UIDLExternalDependency }
+
+  if (Object.keys(importKeys).length > 0) {
+    importKeys = importKeys.reduce((acc, importRef) => {
+      if (importDefinitions[importRef]?.meta?.importJustPath) {
+        return acc
+      }
+
+      acc.push(importRef)
+      return acc
+    }, [])
+  }
 
   const usedPropKeys: string[] = []
   const usedStateKeys: string[] = []
+  const usedImportKeys: string[] = []
   const errors: string[] = []
 
   UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
@@ -98,6 +116,18 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       const dynamicIdRoot = node.content.id.split('.')[0]
       usedStateKeys.push(dynamicIdRoot)
     }
+
+    if (node.type === 'import') {
+      if (!dynamicPathExistsInDefinitions(node.content.id, importKeys)) {
+        const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in importDefinitions`
+        errors.push(errorMsg)
+      }
+
+      // for member expression we check the root
+      // if value has no `.` it will be checked as it is
+      const dynamicIdRoot = node.content.id.split('.')[0]
+      usedImportKeys.push(dynamicIdRoot)
+    }
   })
 
   propKeys
@@ -110,6 +140,12 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
     .filter((x) => !usedStateKeys.includes(x))
     .forEach((diff) =>
       console.warn(`"${diff}" is defined in stateDefinitions but it is not used in the UIDL.`)
+    )
+
+  importKeys
+    .filter((x) => !usedImportKeys.includes(x))
+    .forEach((diff) =>
+      console.warn(`"${diff}" is defined in importDefinitions but it is not used in the UIDL.`)
     )
 
   return errors

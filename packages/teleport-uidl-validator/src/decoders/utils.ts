@@ -38,6 +38,7 @@ import {
   UIDLGlobalAsset,
   UIDLExternalDependency,
   UIDLLocalDependency,
+  UIDLPeerDependency,
 } from '@teleporthq/teleport-types'
 import {
   VUIDLStyleSetDefnition,
@@ -56,6 +57,7 @@ import {
   VUIDLStyleSetStateCondition,
 } from './types'
 import { CustomCombinators } from './custom-combinators'
+import { UIDLImportReference } from '@teleporthq/teleport-types/src'
 
 const {
   isValidComponentName,
@@ -202,6 +204,12 @@ export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object(
   folderPath: optional(array((isValidFileName() as unknown) as Decoder<string>)),
 })
 
+export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
+  type: constant('package'),
+  version: string(),
+  path: string(),
+})
+
 export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
   type: union(constant('library'), constant('package')),
   path: string(),
@@ -211,6 +219,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       namedImport: optional(boolean()),
       originalName: optional(string()),
       importJustPath: optional(boolean()),
+      useAsReference: optional(boolean()),
     })
   ),
 })
@@ -232,12 +241,23 @@ export const dependencyDecoder: Decoder<UIDLDependency> = union(
   externaldependencyDecoder
 )
 
+export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
+  type: constant('import'),
+  content: object({
+    id: string(),
+  }),
+})
+
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
-  staticValueDecoder
+  staticValueDecoder,
+  importReferenceDecoder
 )
 
-export const styleValueDecoder: Decoder<UIDLStyleValue> = attributeValueDecoder
+export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
+  staticValueDecoder,
+  dynamicValueDecoder
+)
 
 export const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(styleValueDecoder)
 

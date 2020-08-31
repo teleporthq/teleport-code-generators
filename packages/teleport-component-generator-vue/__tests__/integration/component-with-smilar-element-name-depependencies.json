@@ -1,0 +1,100 @@
+{
+  "name": "App",
+  "importDefinitions": {
+    "randomName": {
+      "type": "package",
+      "path": "some-random-name-exporting-package",
+      "version": "0.0.1",
+      "meta": {
+        "namedImport": true
+      }
+    },
+    "antdCSS": {
+      "type": "package",
+      "path": "antd/dist/antd.css",
+      "version": "0.8.0",
+      "meta": {
+        "importJustPath": true
+      }
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "semanticType": "CThemeProvider",
+      "elementType": "component",
+      "dependency": {
+        "type": "package",
+        "path": "@chakra-ui/vue",
+        "version": "0.6.1",
+        "meta": {
+          "namedImport": true
+        }
+      },
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "semanticType": "CButton",
+            "elementType": "component",
+            "attrs": {
+              "variant": "primary"
+            },
+            "children": ["Button from Chakra"],
+            "dependency": {
+              "type": "package",
+              "path": "@chakra-ui/vue",
+              "version": "0.6.1",
+              "meta": {
+                "namedImport": true
+              }
+            }
+          }
+        },
+        {
+          "type": "element",
+          "content": {
+            "semanticType": "CAvatar",
+            "elementType": "component",
+            "attrs": {
+              "name": {
+                "type": "import",
+                "content": {
+                  "id": "randomName"
+                }
+              },
+              "src": "https://github.com/sameen-shi.png"
+            },
+            "dependency": {
+              "type": "package",
+              "path": "@chakra-ui/vue",
+              "version": "0.6.1",
+              "meta": {
+                "namedImport": true
+              }
+            }
+          }
+        },
+        {
+          "type": "element",
+          "content": {
+            "semanticType": "CButton",
+            "elementType": "component",
+            "attrs": {
+              "type": "primary"
+            },
+            "children": ["Button from ANTD"],
+            "dependency": {
+              "type": "package",
+              "path": "antd",
+              "version": "0.8.0",
+              "meta": {
+                "namedImport": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

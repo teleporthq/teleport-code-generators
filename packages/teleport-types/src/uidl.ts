@@ -1,5 +1,4 @@
 export interface ProjectUIDL {
-  $schema?: string
   name: string
   globals: UIDLGlobalProjectValues
   root: ComponentUIDL
@@ -40,6 +39,8 @@ export interface ComponentUIDL {
   node: UIDLElementNode
   styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>
   propDefinitions?: Record<string, UIDLPropDefinition>
+  importDefinitions?: Record<string, UIDLExternalDependency>
+  peerDefinitions?: Record<string, UIDLPeerDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
   seo?: UIDLComponentSEO
@@ -195,14 +196,22 @@ export type UIDLNode =
   | UIDLElementNode
   | UIDLConditionalNode
   | UIDLSlotNode
+  | UIDLImportReference
 
-export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue
+export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue | UIDLImportReference
 
-export type UIDLStyleValue = UIDLAttributeValue
+export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
 export type UIDLStyleDefinitions = Record<string, UIDLStyleValue>
 
 export type UIDLEventDefinitions = Record<string, UIDLEventHandlerStatement[]>
+
+export interface UIDLImportReference {
+  type: 'import'
+  content: {
+    id: string
+  }
+}
 
 export interface UIDLURLLinkNode {
   type: 'url'
@@ -251,6 +260,12 @@ export interface UIDLEventHandlerStatement {
 
 export type UIDLDependency = UIDLLocalDependency | UIDLExternalDependency
 
+export interface UIDLPeerDependency {
+  type: 'package'
+  path: string
+  version: string
+}
+
 export interface UIDLLocalDependency {
   type: 'local'
   path?: string
@@ -269,6 +284,7 @@ export interface UIDLExternalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
+    useAsReference?: boolean
   }
 }
 
@@ -314,7 +330,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
   content: {
     mapType: 'inlined'
     conditions: UIDLStyleConditions[]
-    styles: Record<string, UIDLAttributeValue>
+    styles: Record<string, UIDLStyleValue>
   }
 }
 

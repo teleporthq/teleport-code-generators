@@ -55,8 +55,7 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = 'components.module'
 
-  const { files } = await moduleGenerator.generateComponent(root, options)
-  return files[0]
+  return moduleGenerator.generateComponent(root, options)
 }
 
 export const createPageModule = async (
@@ -86,8 +85,9 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
-  const { files } = await routerGenerator.generateComponent(root, options)
-  return files[0]
+  const { files, dependencies } = await routerGenerator.generateComponent(root, options)
+
+  return { routerFile: files[0], dependencies }
 }
 
 export const createEntryFile = async (

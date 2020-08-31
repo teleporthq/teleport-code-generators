@@ -1,12 +1,7 @@
 import * as t from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import {
-  UIDLStyleValue,
-  UIDLDependency,
-  UIDLAttributeValue,
-  UIDLReferencedStyles,
-} from '@teleporthq/teleport-types'
+import { UIDLStyleValue, UIDLDependency, UIDLReferencedStyles } from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (
   name: string,
@@ -114,7 +109,7 @@ export const removeUnusedDependencies = (
 }
 
 export const generatePropReferencesSyntax = (
-  style: Record<string, UIDLAttributeValue>,
+  style: Record<string, UIDLStyleValue>,
   timesReferred: number,
   root: t.JSXElement,
   propsPrefix: unknown
