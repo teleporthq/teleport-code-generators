@@ -66,7 +66,7 @@ export const generateExportAST = (
     )
   })
 
-  const referencedImportDeclerations = Object.keys(importDefinitions).reduce((acc, importRef) => {
+  const referencedImportDeclarations = Object.keys(importDefinitions).reduce((acc, importRef) => {
     if (!importDefinitions[importRef]?.meta?.importJustPath) {
       acc.push(t.classProperty(t.identifier(importRef), t.identifier(importRef)))
     }
@@ -78,7 +78,7 @@ export const generateExportAST = (
       ...propDeclaration,
       ...propertyDecleration,
       ...dataDeclaration,
-      ...referencedImportDeclerations,
+      ...referencedImportDeclarations,
       constructorAST(componentUIDL.seo),
       ...angularMethodsAST,
     ])

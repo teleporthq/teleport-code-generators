@@ -440,7 +440,7 @@ const resolveDependency = (
 
     // ex: PrimaryButton component should be written in a file called primary-button
     // This is just a fallback for when the dependency path is not set by a project generator
-    const componentName = mappedElement.semanticType ?? mappedElement.elementType
+    const componentName = mappedElement.elementType
     const componentFileName = StringUtils.camelCaseToDashCase(componentName)
 
     // concatenate a trailing slash in case it's missing
