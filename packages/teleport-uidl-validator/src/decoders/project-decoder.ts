@@ -4,7 +4,7 @@ import { globalAssetsValidator } from './utils'
 import componentUIDLValudator from './component-decoder'
 import { VProjectUIDL } from './types'
 
-const webManifestDecoder: Decoder<WebManifest> = object({
+export const webManifestDecoder: Decoder<WebManifest> = object({
   short_name: optional(string()),
   name: optional(string()),
   icons: optional(array(object({ src: string(), type: string(), sizes: string() }))),
@@ -16,7 +16,7 @@ const webManifestDecoder: Decoder<WebManifest> = object({
   theme_color: optional(string()),
 })
 
-const globalProjectValuesDecoder: Decoder<UIDLGlobalProjectValues> = object({
+export const globalProjectValuesDecoder: Decoder<UIDLGlobalProjectValues> = object({
   settings: object({
     title: string(),
     language: string(),
