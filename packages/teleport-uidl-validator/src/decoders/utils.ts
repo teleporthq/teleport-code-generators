@@ -367,7 +367,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
   }),
 })
 
-export const element: Decoder<VUIDLElement> = object({
+export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
   name: optional((isValidElementName() as unknown) as Decoder<string>),
@@ -441,10 +441,10 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
 
 export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   type: constant('element'),
-  content: element,
+  content: elementDecoder,
 })
 
-const uidlNodeDecoder: Decoder<VUIDLNode> = union(
+export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
   dynamicValueDecoder,
   staticValueDecoder,
