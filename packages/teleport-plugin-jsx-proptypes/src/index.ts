@@ -55,7 +55,7 @@ export const createPropTypesPlugin: ComponentPluginFactory<PropTypesConfig> = (c
     }
 
     dependencies.PropTypes = {
-      type: 'library',
+      type: 'package',
       path: 'prop-types',
       version: '15.7.2',
     }

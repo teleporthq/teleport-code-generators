@@ -24,7 +24,7 @@ describe('Preact Component Generator', () => {
       expect(result.files).toBeDefined()
       expect(Array.isArray(result.files)).toBeTruthy()
       expect(result.files.length).toBe(1)
-      expect(jsFile.content).toContain('import { Component }')
+      expect(jsFile.content).toContain('import { useState }')
       expect(result.dependencies).toBeDefined()
     })
   })
@@ -39,7 +39,7 @@ describe('Preact Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import { Component }')
+    expect(jsFile.content).toContain('import { useState }')
     expect(result.dependencies).toBeDefined()
   })
 
@@ -49,7 +49,7 @@ describe('Preact Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain(`import { Component } from 'preact'`)
+    expect(jsFile.content).toContain(`import { useState } from 'preact/hooks'`)
     expect(result.dependencies).toBeDefined()
   })
 
@@ -60,7 +60,7 @@ describe('Preact Component Validator', () => {
 
     expect(jsFile).toBeDefined()
     expect(result.files.length).toBe(1)
-    expect(jsFile.content).toContain('import { Component }')
+    expect(jsFile.content).toContain('import { useState }')
     expect(result.dependencies).toBeDefined()
   })
 })
