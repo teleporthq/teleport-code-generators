@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-jsx-inline-styles",
-  "version": "0.12.4",
+  "version": "0.13.0",
   "description": "A plugin for injecting the styles as inline styles inside JSX-based components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,9 +26,9 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-common": "^0.12.4",
-    "@teleporthq/teleport-shared": "^0.12.4",
-    "@teleporthq/teleport-types": "^0.12.4"
+    "@teleporthq/teleport-plugin-common": "^0.13.0",
+    "@teleporthq/teleport-shared": "^0.13.0",
+    "@teleporthq/teleport-types": "^0.13.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
