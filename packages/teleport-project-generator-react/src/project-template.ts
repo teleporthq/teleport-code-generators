@@ -12,7 +12,6 @@ export default {
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-router-dom": "5.1.2",
-    "react-helmet": "^5.2.1",
     "react-scripts": "3.2.0"
   },
   "scripts": {

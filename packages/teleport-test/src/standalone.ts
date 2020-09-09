@@ -59,7 +59,7 @@ const run = async () => {
     console.info(ProjectType.VUE, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
     console.info(ProjectType.STENCIL, '-', result.payload)
-    result = await packProject(reactProjectUIDL, {
+    result = await packProject(projectUIDL, {
       ...packerOptions,
       projectType: ProjectType.PREACT,
     })

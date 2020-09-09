@@ -1,9 +1,10 @@
-import { createClassComponent, createPureComponent, createDOMInjectionNode } from './utils'
+import { createDOMInjectionNode } from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
   JSXGenerationOptions,
   ASTBuilders,
+  ASTUtils,
 } from '@teleporthq/teleport-plugin-common'
 
 import {
@@ -17,7 +18,8 @@ import {
   DEFAULT_COMPONENT_CHUNK_NAME,
   DEFAULT_EXPORT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
-  PREACT_COMPONENT_DEPENDENCY,
+  USE_STATE_DEPENDENCY,
+  PREACTJSX_PRAGMA_DEPENDENCY,
 } from './constants'
 
 interface PreactPluginConfig {
@@ -36,8 +38,11 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
   const preactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies } = structure
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
+    dependencies.h = PREACTJSX_PRAGMA_DEPENDENCY
 
-    const usePureComponent = Object.keys(stateDefinitions).length === 0
+    if (Object.keys(stateDefinitions).length > 0) {
+      dependencies.useState = USE_STATE_DEPENDENCY
+    }
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
@@ -53,25 +58,24 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
     const jsxOptions: JSXGenerationOptions = {
       dynamicReferencePrefixMap: {
         prop: 'props',
-        state: 'state',
+        state: '',
         local: '',
       },
       dependencyHandling: 'import',
-      stateHandling: 'function',
+      stateHandling: 'hooks',
       slotHandling: 'props',
       domHTMLInjection: (content: string) => createDOMInjectionNode(content),
     }
 
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
 
-    if (!usePureComponent) {
-      dependencies.Component = PREACT_COMPONENT_DEPENDENCY
-    }
-
     const componentName = UIDLUtils.getComponentClassName(uidl)
-    const preactComponent = usePureComponent
-      ? createPureComponent(componentName, propDefinitions, jsxTagStructure)
-      : createClassComponent(componentName, propDefinitions, stateDefinitions, jsxTagStructure)
+    const preactComponent = ASTUtils.createPureComponent(
+      componentName,
+      stateDefinitions,
+      propDefinitions,
+      jsxTagStructure
+    )
 
     structure.chunks.push({
       type: ChunkType.AST,
