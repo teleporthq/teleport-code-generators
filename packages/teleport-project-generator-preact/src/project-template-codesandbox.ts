@@ -15,29 +15,30 @@ export default {
     "start:production": "npm run -s serve",
     "start:development": "npm run -s dev",
     "build": "preact build --template src/index.html",
-    "serve": "npm run build && preact serve",
     "dev": "preact watch --template src/index.html",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "serve": "sirv build --port 8080 --cors --single"
   },
   "eslintConfig": {
-    "extends": "eslint-config-synacor"
+    "extends": "preact",
+    "ignorePatterns": [
+      "build/"
+    ]
   },
-  "eslintIgnore": [
-    "build/*"
-  ],
   "devDependencies": {
-    "eslint": "^4.9.0",
-    "eslint-config-synacor": "^2.0.2",
-    "identity-obj-proxy": "^3.0.0",
-    "per-env": "^1.0.2",
-    "preact-cli": "^2.1.0",
-    "preact-render-spy": "^1.2.1"
+    "enzyme": "^3.10.0",
+    "enzyme-adapter-preact-pure": "^2.0.0",
+    "eslint": "^6.0.1",
+    "eslint-config-preact": "^1.1.0",
+    "jest": "^24.9.0",
+    "jest-preset-preact": "^1.0.0",
+    "preact-cli": "^3.0.0",
+    "sirv-cli": "1.0.3"
   },
   "dependencies": {
-    "preact": "^8.2.6",
-    "preact-router": "^2.5.7",
-    "preact-compat": "3.19.0",
-    "react-helmet": "^5.2.1"
+    "preact": "^10.3.2",
+    "preact-render-to-string": "^5.1.4",
+    "preact-router": "^3.2.1"
   }
 }`,
       fileType: 'json',

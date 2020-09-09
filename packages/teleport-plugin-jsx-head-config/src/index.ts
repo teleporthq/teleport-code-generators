@@ -14,7 +14,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     componentChunkName = 'jsx-component',
     configTagIdentifier = 'Helmet',
     configTagDependencyPath = 'react-helmet',
-    configTagDependencyVersion = '^5.2.1',
+    configTagDependencyVersion = '^6.1.0',
   } = config || {}
 
   const jsxHeadConfigPlugin: ComponentPlugin = async (structure) => {
@@ -72,7 +72,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       rootElement.children.unshift(headConfigTag)
 
       dependencies[configTagIdentifier] = {
-        type: 'library',
+        type: 'package',
         path: configTagDependencyPath,
         version: configTagDependencyVersion,
       }

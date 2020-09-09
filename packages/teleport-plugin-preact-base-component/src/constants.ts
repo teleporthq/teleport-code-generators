@@ -3,7 +3,7 @@ import { UIDLDependency } from '@teleporthq/teleport-types'
 export const PREACTJSX_PRAGMA_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'preact',
-  version: 'next',
+  version: '^10.3.2',
   meta: {
     namedImport: true,
   },
@@ -12,7 +12,7 @@ export const PREACTJSX_PRAGMA_DEPENDENCY: UIDLDependency = {
 export const USE_STATE_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'preact/hooks',
-  version: '16.8.3', // change the version with the template
+  version: '^10.3.2',
   meta: {
     namedImport: true,
   },
