@@ -1,9 +1,10 @@
-import { createPureComponent, createDOMInjectionNode } from './utils'
+import { createDOMInjectionNode } from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
   JSXGenerationOptions,
   ASTBuilders,
+  ASTUtils,
 } from '@teleporthq/teleport-plugin-common'
 
 import {
@@ -70,7 +71,12 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     const jsxTagStructure = createJSXSyntax(uidl.node, jsxParams, jsxOptions)
 
     const componentName = UIDLUtils.getComponentClassName(uidl)
-    const pureComponent = createPureComponent(componentName, stateDefinitions, jsxTagStructure)
+    const pureComponent = ASTUtils.createPureComponent(
+      componentName,
+      stateDefinitions,
+      propDefinitions,
+      jsxTagStructure
+    )
 
     structure.chunks.push({
       type: ChunkType.AST,
