@@ -209,6 +209,7 @@ describe('React Styles in Component', () => {
     it('should inject props only once for styled components', async () => {
       const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
+
       const jsFile = findFileByType(result.files, FileType.JS)
       expect(jsFile.content).toContain('<Container {...props}')
     })
