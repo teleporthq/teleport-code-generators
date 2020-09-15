@@ -95,6 +95,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
@@ -118,7 +119,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       if (classNamesToAppend.length > 1) {
         ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend.join(' '))
       } else if (classNamesToAppend.length === 1) {
-        ASTUtils.addClassStringOnJSXTag(root, className)
+        ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend[0])
       }
     })
 
