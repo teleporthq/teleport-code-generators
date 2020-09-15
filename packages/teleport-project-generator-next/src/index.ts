@@ -19,6 +19,7 @@ const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
     configTagIdentifier: 'Head',
     configTagDependencyPath: 'next/head',
+    isExternalPackage: false,
   })
 
   const reactPageGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX, {
