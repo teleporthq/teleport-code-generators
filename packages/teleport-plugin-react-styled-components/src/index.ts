@@ -135,6 +135,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                   ),
                 }
               }
+              ASTUtils.renameJSXTag(root, className)
 
               return
             }
@@ -161,7 +162,9 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                     namedImport: true,
                   },
                 }
+                ASTUtils.renameJSXTag(root, styleName)
               }
+
               return
             }
             default: {
@@ -176,8 +179,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       if (timesReferred > 1) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
       }
-
-      ASTUtils.renameJSXTag(root, className)
 
       const code = {
         type: ChunkType.AST,
