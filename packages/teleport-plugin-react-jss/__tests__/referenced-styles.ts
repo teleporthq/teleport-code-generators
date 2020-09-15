@@ -131,7 +131,7 @@ describe('Referenced Styles on Node', () => {
       '5ecfa1233b8e50f60ea2b64d': {
         id: '5ecfa1233b8e50f60ea2b64d',
         name: 'primaryButton',
-        type: 'reusable-project-style-map',
+        type: 'reusable-project-style-map' as const,
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),

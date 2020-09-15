@@ -319,7 +319,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
     // Styled JSX is used only with NextJS, for NextJS we don't need to import anything
-    expect(jsFile.content).toContain('<div className="container">')
+    expect(jsFile.content).toContain('<div className="primaryButton">')
   })
 
   it('React JSS', async () => {
