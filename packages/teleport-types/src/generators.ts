@@ -416,7 +416,7 @@ export enum ComponentType {
   REACTNATIVE = 'React-Native',
 }
 
-export const DefaultStyleVariation: Record<ComponentType, StyleVariation> = {
+export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
   [ComponentType.REACT]: ReactStyleVariation.CSSModules,
   [ComponentType.PREACT]: PreactStyleVariation.CSSModules,
   [ComponentType.REACTNATIVE]: ReactNativeStyleVariation.StyledComponents,
