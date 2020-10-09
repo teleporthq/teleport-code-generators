@@ -1,5 +1,5 @@
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { HASTUtils, HASTBuilers } from '@teleporthq/teleport-plugin-common'
+import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 
 import {
   GeneratedFile,
@@ -120,9 +120,9 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest, customCode } = uidl.globals
 
-  const htmlNode = HASTBuilers.createHTMLNode('html')
-  const headNode = HASTBuilers.createHTMLNode('head')
-  const bodyNode = HASTBuilers.createHTMLNode('body')
+  const htmlNode = HASTBuilders.createHTMLNode('html')
+  const headNode = HASTBuilders.createHTMLNode('head')
+  const bodyNode = HASTBuilders.createHTMLNode('body')
 
   HASTUtils.addChildNode(htmlNode, headNode)
   HASTUtils.addChildNode(htmlNode, bodyNode)
@@ -132,7 +132,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   if (appRootOverride) {
     HASTUtils.addTextNode(bodyNode, appRootOverride)
   } else {
-    const appRootNode = HASTBuilers.createHTMLNode('div')
+    const appRootNode = HASTBuilders.createHTMLNode('div')
     HASTUtils.addAttributeToNode(appRootNode, 'id', 'app')
     HASTUtils.addChildNode(bodyNode, appRootNode)
   }
@@ -142,7 +142,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   }
 
   if (settings.title) {
-    const titleTag = HASTBuilers.createHTMLNode('title')
+    const titleTag = HASTBuilders.createHTMLNode('title')
     HASTUtils.addTextNode(titleTag, settings.title)
     HASTUtils.addChildNode(headNode, titleTag)
   }
@@ -153,7 +153,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     customTags.forEach((tag: CustomTag) => {
       const { targetTag, tagName, attributes, content } = tag
       const targetNode = targetTag === 'head' ? headNode : bodyNode
-      const createdNode = HASTBuilers.createHTMLNode(tagName)
+      const createdNode = HASTBuilders.createHTMLNode(tagName)
 
       if (content) {
         HASTUtils.addTextNode(createdNode, content)
@@ -175,14 +175,14 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   }
 
   if (manifest) {
-    const linkTag = HASTBuilers.createHTMLNode('link')
+    const linkTag = HASTBuilders.createHTMLNode('link')
     HASTUtils.addAttributeToNode(linkTag, 'rel', 'manifest')
     HASTUtils.addAttributeToNode(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
     HASTUtils.addChildNode(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
-    const metaTag = HASTBuilers.createHTMLNode('meta')
+    const metaTag = HASTBuilders.createHTMLNode('meta')
     Object.keys(metaItem).forEach((key) => {
       const prefixedURL = UIDLUtils.prefixAssetsPath(assetsPrefix, metaItem[key])
       HASTUtils.addAttributeToNode(metaTag, key, prefixedURL)
@@ -195,7 +195,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
-      const linkTag = HASTBuilers.createHTMLNode('link')
+      const linkTag = HASTBuilders.createHTMLNode('link')
       HASTUtils.addAttributeToNode(linkTag, 'rel', 'canonical')
       HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
       HASTUtils.addChildNode(headNode, linkTag)
@@ -203,7 +203,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // link stylesheet (external css, font)
     if ((asset.type === 'style' || asset.type === 'font') && assetPath) {
-      const linkTag = HASTBuilers.createHTMLNode('link')
+      const linkTag = HASTBuilders.createHTMLNode('link')
       HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
       HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
       HASTUtils.addChildNode(headNode, linkTag)
@@ -211,7 +211,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // inline style
     if (asset.type === 'style' && asset.content) {
-      const styleTag = HASTBuilers.createHTMLNode('style')
+      const styleTag = HASTBuilders.createHTMLNode('style')
       HASTUtils.addTextNode(styleTag, asset.content)
       HASTUtils.addChildNode(headNode, styleTag)
     }
@@ -219,7 +219,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     // script (external or inline)
     if (asset.type === 'script') {
       const scriptInBody = (asset.options && asset.options.target === 'body') || false
-      const scriptTag = HASTBuilers.createHTMLNode('script')
+      const scriptTag = HASTBuilders.createHTMLNode('script')
       HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         HASTUtils.addAttributeToNode(scriptTag, 'src', assetPath)
@@ -241,7 +241,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // icon
     if (asset.type === 'icon' && assetPath) {
-      const iconTag = HASTBuilers.createHTMLNode('link')
+      const iconTag = HASTBuilders.createHTMLNode('link')
       HASTUtils.addAttributeToNode(iconTag, 'rel', 'shortcut icon')
       HASTUtils.addAttributeToNode(iconTag, 'href', assetPath)
 
