@@ -47,7 +47,7 @@
     "@teleporthq/teleport-publisher-disk": "^0.13.3",
     "@teleporthq/teleport-publisher-github": "^0.13.3",
     "@teleporthq/teleport-publisher-netlify": "^0.13.3",
-    "@teleporthq/teleport-publisher-now": "^0.13.3",
+    "@teleporthq/teleport-publisher-vercel": "^0.13.3",
     "@teleporthq/teleport-publisher-zip": "^0.13.3",
     "@teleporthq/teleport-shared": "^0.13.3",
     "@teleporthq/teleport-types": "^0.13.3"

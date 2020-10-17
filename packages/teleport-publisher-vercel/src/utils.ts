@@ -1,16 +1,16 @@
 import fetch from 'cross-fetch'
 import {
   GeneratedFolder,
-  NowDeployResponse,
-  NowServerError,
-  NowInvalidTokenError,
-  NowUnexpectedError,
-  NowDeploymentError,
-  NowDeploymentTimeoutError,
-  NowRateLimiterError,
-  NowProjectTooBigError,
+  VercelDeployResponse,
+  VercelServerError,
+  VercelInvalidTokenError,
+  VercelUnexpectedError,
+  VercelDeploymentError,
+  VercelDeploymentTimeoutError,
+  VercelRateLimiterError,
+  VercelProjectTooBigError,
 } from '@teleporthq/teleport-types'
-import { ProjectFolderInfo, NowFile, NowPayload } from './types'
+import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
 const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
 const UPLOAD_FILES_URL = 'https://api.vercel.com/v10/now/files'
@@ -22,7 +22,7 @@ export const generateProjectFiles = async (
   project: GeneratedFolder,
   token: string,
   individualUpload: boolean
-): Promise<NowFile[]> => {
+): Promise<VercelFile[]> => {
   return destructureProjectFiles(
     {
       folder: project,
@@ -37,7 +37,7 @@ const destructureProjectFiles = async (
   folderInfo: ProjectFolderInfo,
   token: string,
   individualUpload: boolean
-): Promise<NowFile[]> => {
+): Promise<VercelFile[]> => {
   const { folder, prefix = '', files = [], ignoreFolder = false } = folderInfo
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
 
@@ -49,13 +49,13 @@ const destructureProjectFiles = async (
     if (individualUpload && file.contentEncoding !== 'base64') {
       // All non-images are uploaded separately
       const { digest, fileSize } = await uploadFile(file.content, token)
-      const nowFile: NowFile = {
+      const vercelFile: VercelFile = {
         file: fileName,
         sha: digest,
         size: fileSize,
       }
 
-      files.push(nowFile)
+      files.push(vercelFile)
       continue
     }
 
@@ -95,14 +95,14 @@ export const uploadFile = async (
   const response = await fetch(UPLOAD_FILES_URL, {
     method: 'POST',
     headers: {
-      'x-now-digest': stringSHA,
+      'x-vercel-digest': stringSHA,
       Authorization: `Bearer ${token}`,
     },
     body: content,
   })
 
   if (response.status >= 500) {
-    throw new NowServerError()
+    throw new VercelServerError()
   }
 
   const result = await response.json()
@@ -115,13 +115,13 @@ export const uploadFile = async (
 }
 
 export const createDeployment = async (
-  payload: NowPayload,
+  payload: VercelPayload,
   token: string,
   teamId?: string
-): Promise<NowDeployResponse> => {
-  const nowDeployURL = teamId ? `${CREATE_DEPLOY_URL}?teamId=${teamId}` : CREATE_DEPLOY_URL
+): Promise<VercelDeployResponse> => {
+  const vercelDeployURL = teamId ? `${CREATE_DEPLOY_URL}?teamId=${teamId}` : CREATE_DEPLOY_URL
 
-  const response = await fetch(nowDeployURL, {
+  const response = await fetch(vercelDeployURL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -131,21 +131,21 @@ export const createDeployment = async (
   })
 
   if (response.status >= 500) {
-    throw new NowServerError()
+    throw new VercelServerError()
   }
 
   const result = await response.json()
   if (result.error) {
     switch (result.error.code) {
       case 'forbidden':
-        throw new NowInvalidTokenError()
+        throw new VercelInvalidTokenError()
       // TODO: needs validation / checking
       case 'rate_limited':
-        throw new NowRateLimiterError()
+        throw new VercelRateLimiterError()
       case 'payload_too_large':
-        throw new NowProjectTooBigError()
+        throw new VercelProjectTooBigError()
       default:
-        throw new NowUnexpectedError(result.error)
+        throw new VercelUnexpectedError(result.error)
     }
   }
 
@@ -170,12 +170,12 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
 
       if (readyState === 'ERROR') {
         clearInterval(clearHook)
-        reject(new NowDeploymentError())
+        reject(new VercelDeploymentError())
       }
 
       if (retries <= 0) {
         clearInterval(clearHook)
-        reject(new NowDeploymentTimeoutError())
+        reject(new VercelDeploymentTimeoutError())
       }
     }, 5000)
   })
@@ -183,8 +183,8 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
 
 export const checkDeploymentReady = async (deploymentURL: string): Promise<DeploymentStatus> => {
   try {
-    const nowUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
-    const result = await fetch(nowUrl)
+    const vercelUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+    const result = await fetch(vercelUrl)
     const jsonResult = await result.json()
     if (jsonResult.readyState) {
       return jsonResult.readyState

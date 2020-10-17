@@ -64,7 +64,7 @@ import {
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
-import { createNowPublisher } from '@teleporthq/teleport-publisher-now'
+import { createVercelPublisher } from '@teleporthq/teleport-publisher-vercel'
 import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codesandbox'
@@ -123,7 +123,7 @@ const templates = {
 const projectPublisherFactories = {
   [PublisherType.ZIP]: createZipPublisher,
   [PublisherType.DISK]: createDiskPublisher,
-  [PublisherType.NOW]: createNowPublisher,
+  [PublisherType.VERCEL]: createVercelPublisher,
   [PublisherType.NETLIFY]: createNetlifyPublisher,
   [PublisherType.GITHUB]: createGithubPublisher,
   [PublisherType.CODESANDBOX]: createCodesandboxPublisher,

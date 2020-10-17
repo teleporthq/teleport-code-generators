@@ -283,7 +283,7 @@ export interface PublisherResponse<T> {
   payload?: T
 }
 
-export interface NowDeployResponse {
+export interface VercelDeployResponse {
   url: string
   alias: string[]
 }
@@ -333,7 +333,7 @@ interface PublisherOptions {
   accessToken?: string
   outputPath?: string
   projectSlug?: string
-  domainAlias?: string // used by the now publisher
+  domainAlias?: string // used by the vercel publisher
   createProjectFolder?: boolean // used only by the disk publisher
 }
 
@@ -346,17 +346,17 @@ interface GithubOptions {
   commitMessage?: string
 }
 
-interface NowOptions {
+interface VercelOptions {
   accessToken?: string
   projectSlug?: string
-  domainAlias?: string // used by the now publisher
+  domainAlias?: string // used by the Vercel publisher
   individualUpload?: boolean
 }
 
 export interface PackerOptions {
   projectType: ProjectType
   publisher?: PublisherType
-  publishOptions?: GithubOptions | NowOptions | PublisherOptions
+  publishOptions?: GithubOptions | VercelOptions | PublisherOptions
   assets?: GeneratedFile[]
 }
 
@@ -388,7 +388,7 @@ export enum ReactNativeStyleVariation {
 export enum PublisherType {
   DISK = 'Disk',
   ZIP = 'Zip',
-  NOW = 'Vercel',
+  VERCEL = 'Vercel',
   NETLIFY = 'Netlify',
   GITHUB = 'Github',
   CODESANDBOX = 'CodeSandbox',
