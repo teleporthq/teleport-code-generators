@@ -165,7 +165,7 @@ Here's a list of functionalities that the UIDL and the component generators are 
 *  Support for slots
 
 ### Project Generators
-Project generators rely on a `ProjectUIDL` input and on a **project strategy**. The `ProjectUIDL` will contain all the information about routing, pages, components and global settings. The strategy will tell the generators where to put each file and which component generator to use. 
+Project generators rely on a `ProjectUIDL` input and on a **project strategy**. The `ProjectUIDL` will contain all the information about routing, pages, components and global settings. The strategy will tell the generators where to put each file and which component generator to use.
 
 The generators will output an abstract structure with folders and files, without writing anything to disk. The project packer is tasked with taking the output of a project generator and publishing it somewhere.
 
@@ -193,10 +193,10 @@ Besides the regular files and folders generated at the end of the process, proje
 * Generating a web manifest for PWA support.
 
 ### Project Packers
-Once a generator created the code for the components and pages, the **project packer** will take that output, put it on top of an existing **project template**, add any local **assets** required and then will pass the entire result to a **publisher**. The publishers are specialized in deploying the entire folder structure to a 3rd party like `now` or `github`, or in creating an in-memory `zip` file or simply writing the folder to `disk`.
+Once a generator created the code for the components and pages, the **project packer** will take that output, put it on top of an existing **project template**, add any local **assets** required and then will pass the entire result to a **publisher**. The publishers are specialized in deploying the entire folder structure to a 3rd party like `vercel` or `github`, or in creating an in-memory `zip` file or simply writing the folder to `disk`.
 
 #### Publishers
-* `teleport-publisher-now`
+* `teleport-publisher-vercel`
 * `teleport-publisher-github`
 * `teleport-publisher-codesandbox`
 * `teleport-publisher-zip`

@@ -3,11 +3,11 @@ import { GeneratedFolder } from '@teleporthq/teleport-types'
 export interface ProjectFolderInfo {
   folder: GeneratedFolder
   prefix?: string
-  files?: NowFile[]
+  files?: VercelFile[]
   ignoreFolder?: boolean
 }
 
-export interface NowFile {
+export interface VercelFile {
   file: string
   data?: Blob | string
   sha?: string
@@ -15,8 +15,8 @@ export interface NowFile {
   encoding?: string
 }
 
-export interface NowPayload {
-  files: NowFile[]
+export interface VercelPayload {
+  files: VercelFile[]
   name: string
   version: number
   public?: boolean

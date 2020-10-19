@@ -3,14 +3,14 @@ import {
   PublisherFactory,
   Publisher,
   PublisherFactoryParams,
-  NowDeployResponse,
+  VercelDeployResponse,
   MissingProjectUIDLError,
-  NowMissingTokenError,
+  VercelMissingTokenError,
 } from '@teleporthq/teleport-types'
 import { generateProjectFiles, createDeployment, checkDeploymentStatus } from './utils'
-import { NowPayload } from './types'
+import { VercelPayload } from './types'
 
-const defaultPublisherParams: NowPublisherParams = {
+const defaultPublisherParams: VercelPublisherParams = {
   accessToken: null,
   projectSlug: 'teleport',
   version: 2,
@@ -20,7 +20,7 @@ const defaultPublisherParams: NowPublisherParams = {
   individualUpload: false,
 }
 
-export interface NowPublisherParams extends PublisherFactoryParams {
+export interface VercelPublisherParams extends PublisherFactoryParams {
   accessToken: string
   projectSlug: string
   domainAlias?: string
@@ -32,14 +32,14 @@ export interface NowPublisherParams extends PublisherFactoryParams {
   individualUpload?: boolean
 }
 
-export interface NowPublisher extends Publisher<NowPublisherParams, NowDeployResponse> {
+export interface VercelPublisher extends Publisher<VercelPublisherParams, VercelDeployResponse> {
   getAccessToken: () => string
   setAccessToken: (token: string) => void
 }
 
-export const createNowPublisher: PublisherFactory<NowPublisherParams, NowPublisher> = (
-  params: NowPublisherParams = defaultPublisherParams
-): NowPublisher => {
+export const createVercelPublisher: PublisherFactory<VercelPublisherParams, VercelPublisher> = (
+  params: VercelPublisherParams = defaultPublisherParams
+): VercelPublisher => {
   let { project, accessToken } = params
 
   const getProject = (): GeneratedFolder => project
@@ -52,7 +52,7 @@ export const createNowPublisher: PublisherFactory<NowPublisherParams, NowPublish
     accessToken = token
   }
 
-  const publish = async (options?: NowPublisherParams) => {
+  const publish = async (options?: VercelPublisherParams) => {
     const publishOptions = {
       ...defaultPublisherParams,
       ...params,
@@ -68,7 +68,7 @@ export const createNowPublisher: PublisherFactory<NowPublisherParams, NowPublish
       projectSlug,
       domainAlias,
       teamId,
-      accessToken: nowAccessToken,
+      accessToken: vercelAccessToken,
       public: publicDeploy,
       version,
       target,
@@ -76,29 +76,30 @@ export const createNowPublisher: PublisherFactory<NowPublisherParams, NowPublish
       individualUpload,
     } = publishOptions
 
-    if (!nowAccessToken) {
-      throw new NowMissingTokenError()
+    if (!vercelAccessToken) {
+      throw new VercelMissingTokenError()
     }
 
-    const files = await generateProjectFiles(projectToPublish, nowAccessToken, individualUpload)
+    const files = await generateProjectFiles(projectToPublish, vercelAccessToken, individualUpload)
 
-    const nowPayload: NowPayload = {
+    const vercelPayload: VercelPayload = {
       files,
-      name: projectSlug.toLowerCase(), // to avoid any now error
+      name: projectSlug.toLowerCase(), // to avoid any vercel error
       version,
       public: publicDeploy,
       target,
     }
 
-    nowPayload.alias = alias.length === 0 && domainAlias ? [`${projectSlug}.${domainAlias}`] : alias
+    vercelPayload.alias =
+      alias.length === 0 && domainAlias ? [`${projectSlug}.${domainAlias}`] : alias
 
-    const deploymentResult = await createDeployment(nowPayload, nowAccessToken, teamId)
+    const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
 
     // Makes requests to the deployment URL until the deployment is ready
     await checkDeploymentStatus(deploymentResult.url)
 
     // If productionAlias is empty, the deploymentURL is the fallback
-    // TODO: return all links from now
+    // TODO: return all links from vercel
     return { success: true, payload: deploymentResult }
   }
 

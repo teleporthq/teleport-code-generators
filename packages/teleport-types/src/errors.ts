@@ -67,53 +67,53 @@ export class CodeSandboxServerError extends TeleportError {
   }
 }
 
-// Now Integration
+// Vercel Integration
 
-export class NowMissingTokenError extends TeleportError {
+export class VercelMissingTokenError extends TeleportError {
   constructor() {
     super('No access token provided')
   }
 }
 
-export class NowInvalidTokenError extends TeleportError {
+export class VercelInvalidTokenError extends TeleportError {
   constructor() {
-    super('The now token you have provided is invalid')
+    super('The vercel token you have provided is invalid')
   }
 }
 
-export class NowProjectTooBigError extends TeleportError {
+export class VercelProjectTooBigError extends TeleportError {
   constructor() {
-    super('Project size exceeds 6MB, the maximum allowed for a now deploy')
+    super('Project size exceeds 6MB, the maximum allowed for a vercel deploy')
   }
 }
 
-export class NowRateLimiterError extends TeleportError {
+export class VercelRateLimiterError extends TeleportError {
   constructor() {
-    super('Too many requests to now. Please try again later')
+    super('Too many requests to vercel. Please try again later')
   }
 }
 
-export class NowDeploymentError extends TeleportError {
+export class VercelDeploymentError extends TeleportError {
   constructor() {
-    super('The now deployment returned an ERROR status')
+    super('The vercel deployment returned an ERROR status')
   }
 }
 
-export class NowDeploymentTimeoutError extends TeleportError {
+export class VercelDeploymentTimeoutError extends TeleportError {
   constructor() {
-    super('Now deployment timed out')
+    super('Vercel deployment timed out')
   }
 }
 
-export class NowUnexpectedError extends TeleportError {
+export class VercelUnexpectedError extends TeleportError {
   constructor(errorObj: Record<string, unknown>) {
-    super(`Unexpected error when publishing to Now\nReceived: ${JSON.stringify(errorObj)}`)
+    super(`Unexpected error when publishing to Vercel\nReceived: ${JSON.stringify(errorObj)}`)
   }
 }
 
-export class NowServerError extends TeleportError {
+export class VercelServerError extends TeleportError {
   constructor() {
-    super('Now service is currently unavailable. Please try again later')
+    super('Vercel service is currently unavailable. Please try again later')
   }
 }
 

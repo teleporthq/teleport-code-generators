@@ -1,11 +1,11 @@
-import { createNowPublisher } from '../src'
+import { createVercelPublisher } from '../src'
 import project from './project-files.json'
 
 const token = 'deploy-token'
 
-describe('teleport publisher now', () => {
-  it('creates a new instance of now publisher', () => {
-    const publisher = createNowPublisher()
+describe('teleport publisher vercel', () => {
+  it('creates a new instance of vercel publisher', () => {
+    const publisher = createVercelPublisher()
     expect(publisher.getAccessToken).toBeDefined()
     expect(publisher.setAccessToken).toBeDefined()
     expect(publisher.getProject).toBeDefined()
@@ -14,7 +14,7 @@ describe('teleport publisher now', () => {
   })
 
   it('should set project', () => {
-    const publisher = createNowPublisher()
+    const publisher = createVercelPublisher()
     publisher.setProject(project)
 
     const publisherProject = JSON.stringify(publisher.getProject())
@@ -22,7 +22,7 @@ describe('teleport publisher now', () => {
   })
 
   it('should set deploy token', () => {
-    const publisher = createNowPublisher()
+    const publisher = createVercelPublisher()
     publisher.setAccessToken(token)
 
     const publisherDeployToken = publisher.getAccessToken()
@@ -30,7 +30,7 @@ describe('teleport publisher now', () => {
   })
 
   it('should fail if no project is provided', async () => {
-    const publisher = createNowPublisher()
+    const publisher = createVercelPublisher()
     publisher.setAccessToken(token)
 
     await expect(publisher.publish()).rejects.toThrow(Error)
