@@ -9,6 +9,10 @@
     "text": {
       "elementType": "span"
     },
+    "linebreak": {
+      "elementType": "br",
+      "selfClosing": true
+    },
     "image": {
       "elementType": "img",
       "attrs": {
