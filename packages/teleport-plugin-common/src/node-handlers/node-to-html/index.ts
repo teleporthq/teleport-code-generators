@@ -27,14 +27,16 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
 
   if (dependency) {
     const existingDependency = dependencies[tagName]
-    safeTagName =
-      existingDependency && existingDependency?.path !== dependency?.path
-        ? `${StringUtils.dashCaseToUpperCamelCase(
-            StringUtils.removeIllegalCharacters(dependency.path)
-          )}${tagName}`
-        : tagName
+    if (templateSyntax.dependencyHandling === 'import') {
+      safeTagName =
+        existingDependency && existingDependency?.path !== dependency?.path
+          ? `${StringUtils.dashCaseToUpperCamelCase(
+              StringUtils.removeIllegalCharacters(dependency.path)
+            )}${tagName}`
+          : tagName
+    }
 
-    if (templateSyntax.dependencyHandling === 'import' && dependency.type !== 'local') {
+    if (dependency.type !== 'local') {
       dependencies[safeTagName] = { ...dependency }
 
       if (existingDependency && existingDependency?.path !== dependency?.path) {
@@ -46,7 +48,7 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
           },
         }
       }
-    } else if (dependency.type === 'local') {
+    } else if (dependency.type === 'local' && templateSyntax.dependencyHandling === 'import') {
       // local dependencies can be renamed based on their safety (eg: Header/header, Form/form)
       const safeImportName = StringUtils.dashCaseToUpperCamelCase(safeTagName)
       dependencies[safeImportName] = { ...dependency }
