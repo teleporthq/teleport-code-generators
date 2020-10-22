@@ -27,16 +27,14 @@ const generateElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, params
 
   if (dependency) {
     const existingDependency = dependencies[tagName]
-    if (templateSyntax.dependencyHandling === 'import') {
+    if (templateSyntax.dependencyHandling === 'import' && dependency.type !== 'local') {
       safeTagName =
         existingDependency && existingDependency?.path !== dependency?.path
           ? `${StringUtils.dashCaseToUpperCamelCase(
               StringUtils.removeIllegalCharacters(dependency.path)
             )}${tagName}`
           : tagName
-    }
 
-    if (dependency.type !== 'local') {
       dependencies[safeTagName] = { ...dependency }
 
       if (existingDependency && existingDependency?.path !== dependency?.path) {
