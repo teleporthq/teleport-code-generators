@@ -93,6 +93,19 @@ describe('addAttributeToJSXTag', () => {
     expect(classAttr.value).toBe(null)
   })
 
+  it('adds an attribute with false', () => {
+    const tag = createJSXTag('button')
+
+    addAttributeToJSXTag(tag, 'disabled', false)
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    expect(classAttr.name.name).toBe('disabled')
+    expect(((classAttr.value as JSXExpressionContainer).expression as BooleanLiteral).value).toBe(
+      false
+    )
+  })
+
   it('adds an attribute with the selected value', () => {
     const tag = createJSXTag('button')
 
