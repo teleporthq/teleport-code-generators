@@ -34,7 +34,9 @@ export const handleAttribute = (
         dataObject[dataObjectIdentifier] = attrValue.content
         hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, dataObjectIdentifier)
       } else if (typeof attrValue.content === 'boolean') {
-        hastUtils.addBooleanAttributeToNode(htmlNode, attrKey)
+        attrValue.content === true
+          ? hastUtils.addBooleanAttributeToNode(htmlNode, attrKey)
+          : hastUtils.addBooleanAttributeToNode(htmlNode, dynamicAttrKey, false)
       } else if (typeof attrValue.content === 'string') {
         hastUtils.addAttributeToNode(
           htmlNode,
