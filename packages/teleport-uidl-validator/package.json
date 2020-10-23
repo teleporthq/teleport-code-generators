@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-validator",
-  "version": "0.13.3",
+  "version": "0.14.0",
   "description": "A module that offers validation and parsing for non-standard UIDL structures",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@mojotech/json-type-validation": "^3.1.0",
-    "@teleporthq/teleport-shared": "^0.13.3",
-    "@teleporthq/teleport-types": "^0.13.3"
+    "@teleporthq/teleport-shared": "^0.14.0",
+    "@teleporthq/teleport-types": "^0.14.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
