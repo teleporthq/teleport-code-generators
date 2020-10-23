@@ -117,7 +117,10 @@ export const addAttributeToJSXTag = (
   const nameOfAttribute = t.jsxIdentifier(attrName)
   let attributeDefinition
   if (typeof attrValue === 'boolean') {
-    attributeDefinition = t.jsxAttribute(nameOfAttribute)
+    attributeDefinition = t.jsxAttribute(
+      nameOfAttribute,
+      attrValue === true ? undefined : t.jsxExpressionContainer(t.booleanLiteral(attrValue))
+    )
   } else {
     attributeDefinition = t.jsxAttribute(
       nameOfAttribute,
