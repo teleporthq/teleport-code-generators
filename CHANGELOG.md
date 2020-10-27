@@ -1,3 +1,65 @@
+## v0.14.0 (2020-10-23)
+
+#### :electric_plug: Angular Generators
+  * [#496](https://github.com/teleporthq/teleport-code-generators/pull/496)  fix(angular-base): ignore imports for frameworks like angular. External imports added directly in modules for Angular. ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :bug: Bug Fix
+* `teleport-plugin-common`
+  * [#493](https://github.com/teleporthq/teleport-code-generators/pull/493) fix: addAttributeToJSXTag  when attr's value is boolean. Fixed attribute value generation, if the attribute's vlaue is boolean. ([@good-father](https://github.com/good-father))
+* `teleport-uidl-resolver`
+  * [#491](https://github.com/teleporthq/teleport-code-generators/pull/491) refactor(html-mappings): add linebreak to html mappings ([@ionutpasca](https://github.com/ionutpasca))
+
+#### :house: Docs
+* `teleport-plugin-common`, `teleport-project-generator`
+  * [#485](https://github.com/teleporthq/teleport-code-generators/pull/485) Fix typo's in HAST-Builders ([@teeteejo](https://github.com/teeteejo))
+
+#### :fire: Refactoring
+  * [#490](https://github.com/teleporthq/teleport-code-generators/pull/490) refactor(publisher-vercel): rename from now-publisher to vercel ([@creativenull](https://github.com/creativenull))
+
+#### Committers: 6
+- Arnold Chand ([@creativenull](https://github.com/creativenull))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Marek ([@mrewers](https://github.com/mrewers))
+- Pașca Ionuț ([@ionutpasca](https://github.com/ionutpasca))
+- [@teeteejo](https://github.com/teeteejo)
+- 好爸爸 ([@good-father](https://github.com/good-father))
+
+
+## v0.13.3 (2020-09-16)
+
+#### :bug: Bug Fix
+* `teleport-types`
+  * [#484](https://github.com/teleporthq/teleport-code-generators/pull/484) fix(types): type check correction for default types in Style Variations ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.13.1 (2020-09-15)
+
+#### :bug: Bug Fix
+* `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-test`
+  * [#481](https://github.com/teleporthq/teleport-code-generators/pull/481) fix(styles): fixed issue for refering to project styles when no styles are present on the node. We can now refer to a style in project-stylesheet even if the node doesn't have any styles on it.  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.13.0 (2020-09-09)
+
+#### :rocket: New Features
+  * [#478](https://github.com/teleporthq/teleport-code-generators/pull/478) feat(core): importing modules or packages and using them as reference for nodes ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :electric_plug: Preact Generators
+  * [#480](https://github.com/teleporthq/teleport-code-generators/pull/480) refactor(preact-template): upgrading preact to use preact x ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+  * [#478](https://github.com/teleporthq/teleport-code-generators/pull/478) feat(core): importing modules or packages and using them as reference for nodes ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
 ## v0.12.4 (2020-08-11)
 
 #### :bug: Bug Fix
@@ -25,7 +87,6 @@
 ## v0.12.2 (2020-07-20)
 
 #### :rocket: New Features
-* `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-types`, `teleport-uidl-resolver`, `teleport-uidl-validator`
   * [#459](https://github.com/teleporthq/teleport-code-generators/pull/459) feat(proj-styles): adding support for conditions on project-styles ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
 #### Committers: 1
@@ -35,7 +96,6 @@
 ## v0.12.1 (2020-06-25)
 
 #### :earth_asia: Core
-* `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-jsx-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-gridsome`, `teleport-project-generator-next`, `teleport-project-generator-nuxt`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-stencil`, `teleport-project-generator-vue`, `teleport-project-generator`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-resolver`, `teleport-uidl-validator`
   * [#444](https://github.com/teleporthq/teleport-code-generators/pull/444) feat(reusable-styles): Project level styles that can be used across components and pages. ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
 
 #### :bug: Bug Fix
