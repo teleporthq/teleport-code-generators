@@ -102,10 +102,7 @@ type ModifiedComponentUIDL = Modify<
   { styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>; node: VUIDLElementNode }
 >
 
-export type VComponentUIDL = Omit<
-  ModifiedComponentUIDL,
-  'peerDefinitions' | 'seo' | 'styleSetDefinitions'
->
+export type VComponentUIDL = Omit<ModifiedComponentUIDL, 'peerDefinitions' | 'styleSetDefinitions'>
 
 export type VRootComponentUIDL = ModifiedComponentUIDL
 

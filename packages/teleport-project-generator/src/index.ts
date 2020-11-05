@@ -149,11 +149,12 @@ export class ProjectGenerator {
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
 
-    // Set the filename and folder path for each component based on the strategy
-    prepareComponentOutputOptions(components, this.strategy)
-
-    // Set the local dependency paths based on the relative paths between files
-    resolveLocalDependencies(pageUIDLs, components, this.strategy)
+    if (Object.keys(components).length > 0) {
+      // Set the filename and folder path for each component based on the strategy
+      prepareComponentOutputOptions(components, this.strategy)
+      // Set the local dependency paths based on the relative paths between files
+      resolveLocalDependencies(pageUIDLs, components, this.strategy)
+    }
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)

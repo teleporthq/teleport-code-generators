@@ -179,7 +179,7 @@ export const checkRouteDefinition = (input: ProjectUIDL) => {
 // in the component section
 export const checkComponentExistence = (input: ProjectUIDL) => {
   const errors: string[] = []
-  const components = Object.keys(input.components)
+  const components = Object.keys(input.components || {})
 
   UIDLUtils.traverseElements(input.root.node, (element) => {
     if (
@@ -203,8 +203,8 @@ export const checkComponentExistence = (input: ProjectUIDL) => {
 //      }
 //    }
 export const checkComponentNaming = (input: ProjectUIDL) => {
-  const errors = []
-  const namesUsed = Object.keys(input.components)
+  const errors: string[] = []
+  const namesUsed = Object.keys(input.components || {})
 
   const diffs = namesUsed.filter((name) => input.components[name].name !== name)
 
