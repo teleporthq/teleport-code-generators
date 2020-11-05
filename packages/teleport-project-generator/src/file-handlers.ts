@@ -77,9 +77,10 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     strategy.pages.path
   )
 
-  const options = {
+  const options: GeneratorOptions = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
     strategy,
+    isRootComponent: true,
   }
 
   root.outputOptions = root.outputOptions || {}

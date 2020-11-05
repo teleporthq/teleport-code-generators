@@ -143,8 +143,8 @@ export class ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    const { components = {}, root } = uidl
-    const { styleSetDefinitions = {} } = root
+    const { components = {} } = uidl
+    const { styleSetDefinitions = {} } = uidl.root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -166,7 +166,7 @@ export class ProjectGenerator {
         : '/' + this.getAssetsPath().join('/')
     const options: GeneratorOptions = {
       assetsPrefix,
-      projectRouteDefinition: root.stateDefinitions.route,
+      projectRouteDefinition: uidl.root.stateDefinitions.route,
       mapping,
       skipValidation: true,
     }
@@ -174,7 +174,9 @@ export class ProjectGenerator {
     // Handling project style sheet
     if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { generator, path } = this.strategy.projectStyleSheet
-      const { files, dependencies } = await generator.generateComponent(uidl.root)
+      const { files, dependencies } = await generator.generateComponent(uidl.root, {
+        isRootComponent: true,
+      })
 
       inMemoryFilesMap.set('projectStyleSheet', {
         rootFolder,
@@ -375,7 +377,7 @@ export class ProjectGenerator {
 
     // Create the routing component in case the project generator has a strategy for that
     if (this.strategy.router) {
-      const { routerFile, dependencies } = await createRouterFile(root, this.strategy)
+      const { routerFile, dependencies } = await createRouterFile(uidl.root, this.strategy)
 
       inMemoryFilesMap.set('router', {
         rootFolder,

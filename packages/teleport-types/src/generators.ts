@@ -85,6 +85,7 @@ export interface GeneratorOptions {
   assetsPrefix?: string
   mapping?: Mapping
   skipValidation?: boolean
+  isRootComponent?: boolean
   skipNavlinkResolver?: boolean
   projectRouteDefinition?: UIDLStateDefinition
   strategy?: ProjectStrategy

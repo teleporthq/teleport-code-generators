@@ -9,7 +9,7 @@ import projectJSON from '../../../examples/uidl-samples/project.json'
 const projectUIDL = (projectJSON as unknown) as ProjectUIDL
 const reactProjectUIDL = (reactProjectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
-const base64File = new Buffer(assetFile).toString('base64')
+const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
   publisher: PublisherType.DISK,
   projectType: ProjectType.REACT,

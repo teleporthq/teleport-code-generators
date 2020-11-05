@@ -4,7 +4,11 @@ import {
   ProjectValidationError,
   ComponentValidationError,
 } from '@teleporthq/teleport-types'
-import { componentUIDLValidator, projectUIDLValidator } from '../decoders'
+import {
+  componentUIDLValidator,
+  projectUIDLValidator,
+  rootComponentUIDLValidator,
+} from '../decoders'
 import { VComponentUIDL, VProjectUIDL } from '../decoders/types'
 import * as utils from './utils'
 
@@ -19,6 +23,16 @@ export default class Validator {
   public validateComponentSchema(input: unknown): ValidationResult {
     try {
       const cleanedUIDL = componentUIDLValidator.runWithException(input)
+      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+    } catch (e) {
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(errorMsg)
+    }
+  }
+
+  public validateRootComponentSchema(input: unknown): ValidationResult {
+    try {
+      const cleanedUIDL = rootComponentUIDLValidator.runWithException(input)
       return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
