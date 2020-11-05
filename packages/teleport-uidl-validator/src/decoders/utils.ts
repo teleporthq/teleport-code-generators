@@ -279,7 +279,7 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
 
 export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
-  content: optional(dict(string())),
+  content: dict(string()),
 })
 
 export const navLinkNodeDecoder: Decoder<UIDLNavLinkNode> = object({

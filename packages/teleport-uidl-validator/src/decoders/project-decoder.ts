@@ -1,7 +1,7 @@
 import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
 import { UIDLGlobalProjectValues, WebManifest } from '@teleporthq/teleport-types'
 import { globalAssetsValidator } from './utils'
-import componentUIDLValudator from './component-decoder'
+import componentUIDLValudator, { rootComponentUIDLValidator } from './component-decoder'
 import { VProjectUIDL } from './types'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -37,7 +37,7 @@ const projectUIDLValidator: Decoder<VProjectUIDL> = object({
   $schema: optional(string()),
   name: string(),
   globals: globalProjectValuesDecoder,
-  root: componentUIDLValudator,
+  root: rootComponentUIDLValidator,
   components: optional(dict(componentUIDLValudator)),
 })
 

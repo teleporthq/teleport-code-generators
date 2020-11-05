@@ -39,7 +39,11 @@ const createComponentGenerator = ({
   ): Promise<CompiledComponent> => {
     let cleanedUIDL = input
     if (!options.skipValidation) {
-      const schemaValidationResult = validator.validateComponentSchema(input)
+      const schemaValidator = options?.isRootComponent
+        ? validator.validateRootComponentSchema
+        : validator.validateComponentSchema
+
+      const schemaValidationResult = schemaValidator(input)
       const { componentUIDL, valid } = schemaValidationResult
       if (valid && componentUIDL) {
         cleanedUIDL = (componentUIDL as unknown) as Record<string, unknown>

@@ -34,7 +34,6 @@ export interface UIDLGlobalAsset {
 }
 
 export interface ComponentUIDL {
-  $schema?: string
   name: string
   node: UIDLElementNode
   styleSetDefinitions?: Record<string, UIDLStyleSetDefinition>

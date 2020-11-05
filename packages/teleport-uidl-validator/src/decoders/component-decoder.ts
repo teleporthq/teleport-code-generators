@@ -6,7 +6,7 @@ import {
   Decoder,
   optional,
 } from '@mojotech/json-type-validation'
-import { VComponentUIDL } from './types'
+import { VComponentUIDL, VRootComponentUIDL } from './types'
 import {
   styleSetDefinitionDecoder,
   propDefinitionsDecoder,
@@ -18,18 +18,28 @@ import {
   peerDependencyDecoder,
 } from './utils'
 
-const componentUIDLValudator: Decoder<VComponentUIDL> = object({
-  $schema: optional(string()),
-  id: optional(string()),
+const componentUIDLValidator: Decoder<VComponentUIDL> = object({
   name: withDefault('MyComponent', string()),
   node: elementNodeDecoder,
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
-  styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
-  peerDefinitions: optional(dict(peerDependencyDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),
 })
 
-export default componentUIDLValudator
+const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
+  name: withDefault('App', string()),
+  node: elementNodeDecoder,
+  stateDefinitions: dict(stateDefinitionsDecoder),
+  propDefinitions: optional(dict(propDefinitionsDecoder)),
+  importDefinitions: optional(dict(externaldependencyDecoder)),
+  peerDefinitions: optional(dict(peerDependencyDecoder)),
+  styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
+  outputOptions: optional(outputOptionsDecoder),
+  seo: optional(componentSeoDecoder),
+})
+
+export { rootComponentUIDLValidator }
+
+export default componentUIDLValidator
