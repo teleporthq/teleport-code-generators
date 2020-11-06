@@ -86,7 +86,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         if (Object.keys(staticStyles).length > 0) {
           cssClasses.push(
             StyleBuilders.createCSSClass(
-              className,
+              `.${className}`,
               // @ts-ignore
               StyleUtils.getContentOfStyleObject(staticStyles)
             )
@@ -125,14 +125,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
                 mediaStylesMap[maxWidth] = {
                   ...mediaStylesMap[maxWidth],
-                  [className]: StyleUtils.getContentOfStyleObject(staticStyles),
+                  [`.${className}`]: StyleUtils.getContentOfStyleObject(staticStyles),
                 }
               }
 
               if (condition.conditionType === 'element-state') {
                 cssClasses.push(
                   StyleBuilders.createCSSClassWithSelector(
-                    className,
+                    `.${className}`,
                     `&:${condition.content}`,
                     // @ts-ignore
                     StyleUtils.getContentOfStyleObject(staticStyles)

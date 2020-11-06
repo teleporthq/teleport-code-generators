@@ -19,6 +19,7 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
+export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 
 export interface UIDLGlobalAsset {
   type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
@@ -42,6 +43,9 @@ export interface ComponentUIDL {
   peerDefinitions?: Record<string, UIDLPeerDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
+  designLanguage?: {
+    tokens?: UIDLDesignTokens
+  }
   seo?: UIDLComponentSEO
 }
 
@@ -94,7 +98,7 @@ export interface UIDLPageOptions {
   fileName?: string
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'

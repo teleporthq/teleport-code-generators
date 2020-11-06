@@ -43,6 +43,24 @@
   },
   "root": {
     "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "blue-500": {
+          "type": "static",
+          "content": "#9999ff"
+        },
+        "blue-600": {
+          "type": "static",
+          "content": "#6b7db3"
+        },
+        "red-500": {
+          "type": "static",
+          "content": "#ff9999"
+        },
+        "red-300": "#b36b6b",
+        "font-size": 45
+      }
+    },
     "styleSetDefinitions": {
       "5ed0d05baa77d97673711820": {
         "id": "5ed0d05baa77d97673711820",

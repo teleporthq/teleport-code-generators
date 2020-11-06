@@ -14,7 +14,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    const { styleSetDefinitions } = uidl
+    const { styleSetDefinitions, designLanguage = {} } = uidl
+    const { tokens = {} } = designLanguage
 
     if (!styleSetDefinitions || Object.keys(styleSetDefinitions).length === 0) {
       return
@@ -23,11 +24,20 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     const cssMap: string[] = []
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
 
+    if (Object.keys(tokens).length > 0) {
+      cssMap.push(
+        StyleBuilders.createCSSClass(
+          ':root',
+          StyleUtils.getContentOfStyleObject(tokens) as Record<string, string | number>
+        )
+      )
+    }
+
     Object.values(styleSetDefinitions).forEach((style) => {
       const { name, content, conditions = [] } = style
       cssMap.push(
         StyleBuilders.createCSSClass(
-          name,
+          `.${name}`,
           // @ts-ignore
           StyleUtils.getContentOfStyleObject(content)
         )
@@ -40,7 +50,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         if (styleRef.type === 'element-state') {
           cssMap.push(
             StyleBuilders.createCSSClassWithSelector(
-              name,
+              `.${name}`,
               `&:${styleRef.meta.state}`,
               // @ts-ignore
               StyleUtils.getContentOfStyleObject(styleRef.content)
@@ -51,7 +61,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         if (styleRef.type === 'screen-size') {
           mediaStylesMap[styleRef.meta.maxWidth] = {
             ...mediaStylesMap[styleRef.meta.maxWidth],
-            [name]: StyleUtils.getContentOfStyleObject(styleRef.content),
+            [`.${name}`]: StyleUtils.getContentOfStyleObject(styleRef.content),
           }
         }
       })

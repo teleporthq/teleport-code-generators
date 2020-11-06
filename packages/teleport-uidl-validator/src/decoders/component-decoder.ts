@@ -16,6 +16,7 @@ import {
   componentSeoDecoder,
   externaldependencyDecoder,
   peerDependencyDecoder,
+  designTokensDecoder,
 } from './utils'
 
 const componentUIDLValidator: Decoder<VComponentUIDL> = object({
@@ -38,6 +39,11 @@ const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
   styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),
+  designLanguage: optional(
+    object({
+      tokens: optional(designTokensDecoder),
+    })
+  ),
 })
 
 export { rootComponentUIDLValidator }

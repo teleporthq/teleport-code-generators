@@ -97,14 +97,23 @@ export type VUIDLStyleSetDefnition = Modify<
   }
 >
 
-type ModifiedComponentUIDL = Modify<
+export type VUIDLDesignTokens = Record<string, UIDLStaticValue | string | number>
+
+export type VRootComponentUIDL = Modify<
   ComponentUIDL,
-  { styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>; node: VUIDLElementNode }
+  {
+    styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
+    node: VUIDLElementNode
+    designLanguage: {
+      tokens: VUIDLDesignTokens
+    }
+  }
 >
 
-export type VComponentUIDL = Omit<ModifiedComponentUIDL, 'peerDefinitions' | 'styleSetDefinitions'>
-
-export type VRootComponentUIDL = ModifiedComponentUIDL
+export type VComponentUIDL = Omit<
+  VRootComponentUIDL,
+  'peerDefinitions' | 'styleSetDefinitions' | 'designLanguage'
+>
 
 export type VProjectUIDL = Modify<
   ProjectUIDL,

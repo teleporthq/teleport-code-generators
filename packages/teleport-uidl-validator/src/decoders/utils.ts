@@ -55,6 +55,7 @@ import {
   VUIDLStyleSetConditions,
   VUIDLStyleSetMediaCondition,
   VUIDLStyleSetStateCondition,
+  VUIDLDesignTokens,
 } from './types'
 import { CustomCombinators } from './custom-combinators'
 import { UIDLImportReference } from '@teleporthq/teleport-types/src'
@@ -71,7 +72,8 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('state'),
   constant('local'),
   constant('attr'),
-  constant('children')
+  constant('children'),
+  constant('token')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -366,6 +368,10 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
     styles: optional(dict(union(attributeValueDecoder, string(), number()))),
   }),
 })
+
+export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
+  union(staticValueDecoder, string(), number())
+)
 
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),

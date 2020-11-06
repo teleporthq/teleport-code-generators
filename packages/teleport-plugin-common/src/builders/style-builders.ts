@@ -6,33 +6,33 @@ import ParsedASTNode from '../utils/parsed-ast'
 
 jss.setup(preset())
 
-export const createCSSClass = (className: string, styleObject: Record<string, string | number>) => {
+export const createCSSClass = (key: string, styleObject: Record<string, string | number>) => {
   return jss
     .createStyleSheet(
       {
-        [`.${className}`]: styleObject,
+        [key]: styleObject,
       },
       {
-        generateId: () => className,
+        generateId: () => key,
       }
     )
     .toString()
 }
 
 export const createCSSClassWithSelector = (
-  className: string,
+  key: string,
   selector: string,
   styleObject: Record<string, string | number>
 ) => {
   return jss
     .createStyleSheet(
       {
-        [`.${className}`]: {
+        [key]: {
           [selector]: styleObject,
         },
       },
       {
-        generateId: () => className,
+        generateId: () => key,
       }
     )
     .toString()
