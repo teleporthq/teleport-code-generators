@@ -54,7 +54,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         // Generating the string templates for the dynamic styles
         const styleRules = transformStyle(style)
 
-        styleJSXString.push(StyleBuilders.createCSSClass(`.${className}`, styleRules))
+        styleJSXString.push(StyleBuilders.createCSSClass(className, styleRules))
         appendClassName = true
       }
 
@@ -66,14 +66,14 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               if (conditions[0].conditionType === 'screen-size') {
                 mediaStylesMap[conditions[0].maxWidth] = {
                   ...mediaStylesMap[conditions[0].maxWidth],
-                  [`.${className}`]: transformStyle(styleRef.content.styles),
+                  [className]: transformStyle(styleRef.content.styles),
                 }
               }
 
               if (conditions[0].conditionType === 'element-state') {
                 styleJSXString.push(
                   StyleBuilders.createCSSClassWithSelector(
-                    `.${className}`,
+                    className,
                     `&:${conditions[0].content}`,
                     // @ts-ignore
                     transformStyle(styleRef.content.styles)

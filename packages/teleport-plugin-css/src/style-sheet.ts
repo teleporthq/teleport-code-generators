@@ -26,9 +26,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
     if (Object.keys(tokens).length > 0) {
       cssMap.push(
-        StyleBuilders.createCSSClass(
+        StyleBuilders.createCSSClassWithSelector(
+          '@global',
           ':root',
-          StyleUtils.getContentOfStyleObject(tokens) as Record<string, string | number>
+          StyleUtils.getVariablesFromTokens(tokens)
         )
       )
     }
@@ -37,7 +38,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       const { name, content, conditions = [] } = style
       cssMap.push(
         StyleBuilders.createCSSClass(
-          `.${name}`,
+          name,
           // @ts-ignore
           StyleUtils.getContentOfStyleObject(content)
         )
@@ -50,7 +51,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         if (styleRef.type === 'element-state') {
           cssMap.push(
             StyleBuilders.createCSSClassWithSelector(
-              `.${name}`,
+              name,
               `&:${styleRef.meta.state}`,
               // @ts-ignore
               StyleUtils.getContentOfStyleObject(styleRef.content)
@@ -61,7 +62,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         if (styleRef.type === 'screen-size') {
           mediaStylesMap[styleRef.meta.maxWidth] = {
             ...mediaStylesMap[styleRef.meta.maxWidth],
-            [`.${name}`]: StyleUtils.getContentOfStyleObject(styleRef.content),
+            [name]: StyleUtils.getContentOfStyleObject(styleRef.content),
           }
         }
       })
