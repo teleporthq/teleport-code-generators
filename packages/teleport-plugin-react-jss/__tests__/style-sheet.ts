@@ -7,7 +7,7 @@ import {
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 
-describe('Style Sheet from styled components', () => {
+describe('Style Sheet from react-jss', () => {
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {
@@ -89,7 +89,7 @@ describe('Style Sheet from styled components', () => {
     const result = await plugin(structure)
     const { chunks, dependencies } = result
 
-    expect(chunks.length).toBe(2)
+    expect(chunks.length).toBe(3)
     expect(dependencies.createUseStyles.path).toBe('react-jss')
   })
 
@@ -125,6 +125,6 @@ describe('Style Sheet from styled components', () => {
 
     const result = await plugin(structure)
     const { chunks } = result
-    expect(chunks[1].name).toBe('index')
+    expect(chunks[2].name).toBe('index')
   })
 })

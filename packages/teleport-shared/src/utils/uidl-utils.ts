@@ -3,6 +3,7 @@ import {
   camelCaseToDashCase,
   removeIllegalCharacters,
   dashCaseToUpperCamelCase,
+  generateCSSVariableName,
 } from './string-utils'
 import {
   ComponentUIDL,
@@ -305,6 +306,15 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
 
     switch (styleValue.type) {
       case 'dynamic':
+        const { referenceType, id } = styleValue.content
+        if (referenceType === 'token') {
+          staticStyles[styleKey] = {
+            type: 'static',
+            content: `var(${generateCSSVariableName(id)})`,
+          }
+
+          return acc
+        }
         dynamicStyles[styleKey] = styleValue
         return acc
       case 'static':

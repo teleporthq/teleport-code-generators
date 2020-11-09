@@ -16,14 +16,24 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { styleSetDefinitions } = uidl
+    const { styleSetDefinitions, designLanguage = {} } = uidl
+    const { tokens = {} } = designLanguage
 
-    if (!styleSetDefinitions) {
+    if (!styleSetDefinitions && !tokens) {
       return
     }
 
-    const styleSet: Record<string, unknown> = {}
+    const tokensMap: Record<string, string | number> = Object.keys(tokens || {}).reduce(
+      (acc: Record<string, string | number>, key: string) => {
+        const style = tokens[key]
+        const name: string = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(key))
+        acc[name] = style.content as string
+        return acc
+      },
+      {}
+    )
 
+    const styleSet: Record<string, unknown> = {}
     if (styleSetDefinitions && Object.keys(styleSetDefinitions)) {
       Object.values(styleSetDefinitions).forEach((style) => {
         const { conditions = [] } = style
@@ -76,6 +86,21 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     chunks.push({
+      name: 'tokens-chunk',
+      type: ChunkType.AST,
+      fileType: FileType.JS,
+      content: t.exportNamedDeclaration(
+        t.variableDeclaration('const', [
+          t.variableDeclarator(
+            t.identifier('tokens'),
+            ASTUtils.objectToObjectExpression(tokensMap)
+          ),
+        ])
+      ),
+      linkAfter: ['import-local'],
+    })
+
+    chunks.push({
       name: fileName,
       type: ChunkType.AST,
       fileType: FileType.JS,
@@ -89,7 +114,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           ),
         ])
       ),
-      linkAfter: ['import-local'],
+      linkAfter: ['tokens-chunk'],
     })
 
     return structure

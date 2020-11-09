@@ -70,7 +70,7 @@
           "background": "blue",
           "width": "auto",
           "color": "#fff",
-          "border": "1px solid #fff"
+          "border": "1px solid #fff"     
         }
       },
       "5ed0d4923de727e93cb4efa2": {
@@ -301,13 +301,28 @@
                                           { "conditionType": "screen-size", "maxWidth": 991 }
                                         ],
                                         "styles": {
-                                          "flex": "inherit"
+                                          "flex": "inherit",
+                                          "background": "#000",
+                                          "color": {
+                                            "type": "dynamic",
+                                            "content": {
+                                              "referenceType": "token",
+                                              "id": "blue-500"
+                                            }
+                                          }
                                         }
                                       }
                                     }
                                   },
                                   "style": {
-                                    "flex": "1"
+                                    "flex": "1",
+                                    "color": {
+                                      "type": "dynamic",
+                                      "content": {
+                                        "referenceType": "token",
+                                        "id": "blue-500"
+                                      }
+                                    }
                                   },
                                   "children": [{
                                     "type": "element",

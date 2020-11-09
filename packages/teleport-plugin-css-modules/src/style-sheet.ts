@@ -17,7 +17,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    const { styleSetDefinitions } = uidl
+    const { styleSetDefinitions, designLanguage = {} } = uidl
+    const { tokens = {} } = designLanguage
 
     if (!styleSetDefinitions || Object.keys(styleSetDefinitions).length === 0) {
       return
@@ -25,6 +26,16 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
     const cssMap: string[] = []
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+
+    if (Object.keys(tokens).length > 0) {
+      cssMap.push(
+        StyleBuilders.createCSSClassWithSelector(
+          '@global',
+          ':root',
+          StyleUtils.getVariablesFromTokens(tokens)
+        )
+      )
+    }
 
     Object.values(styleSetDefinitions).forEach((style) => {
       const { name, content, conditions = [] } = style

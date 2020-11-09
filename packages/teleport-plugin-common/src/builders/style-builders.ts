@@ -3,6 +3,8 @@ import preset from 'jss-preset-default'
 import * as types from '@babel/types'
 import { UIDLDynamicReference } from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
+import { StyleUtils } from '../../dist/cjs'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 jss.setup(preset())
 
@@ -62,6 +64,8 @@ export const createDynamicStyleExpression = (
       return new ParsedASTNode(
         t.memberExpression(t.identifier(propsPrefix), t.identifier(styleValue.content.id))
       )
+    case 'token':
+      return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
     default:
       throw new Error(
         `createDynamicStyleExpression received unsupported ${JSON.stringify(

@@ -200,7 +200,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     dependencies.styled = {
-      type: 'library',
+      type: 'package',
       path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
       version: '4.2.0',
     }

@@ -29,13 +29,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
     const transformStyle = (style: Record<string, UIDLStyleValue>) =>
       UIDLUtils.transformDynamicStyles(style, (styleValue) => {
-        if (styleValue.content.referenceType === 'prop') {
-          return `\$\{${propsPrefix}.${styleValue.content.id}\}`
+        switch (styleValue.content.referenceType) {
+          case 'token':
+            return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
+          case 'prop':
+            return `\$\{${propsPrefix}.${styleValue.content.id}\}`
+          default:
+            throw new Error(
+              `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+            )
         }
-
-        throw new Error(
-          `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
-        )
       })
 
     UIDLUtils.traverseElements(node, (element) => {
