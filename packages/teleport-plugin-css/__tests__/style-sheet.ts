@@ -1,12 +1,31 @@
-import { staticNode } from '@teleporthq/teleport-uidl-builders'
+import {
+  UIDLDesignTokens,
+  UIDLStyleSetDefinition,
+  UIDLStyleSetTokenReference,
+} from '@teleporthq/teleport-types'
+import { staticNode, dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import { createStyleSheetPlugin } from '../src/style-sheet'
 import { setUpStructureWithHASTChunk } from './mocks'
 
-describe('plugin-css-modules-style-sheet', () => {
-  it('should generate css modules when the styleSetDefinitions are presnet', async () => {
+describe('plugin-css-style-sheet', () => {
+  it('should generate css when the styleSetDefinitions are presnet', async () => {
     const plugin = createStyleSheetPlugin()
     const structure = setUpStructureWithHASTChunk()
-    structure.uidl.styleSetDefinitions = {
+    const tokens: UIDLDesignTokens = {
+      'blue-500': {
+        type: 'static',
+        content: '#9999ff',
+      },
+      'blue-600': {
+        type: 'static',
+        content: '#6b7db3',
+      },
+      'red-500': {
+        type: 'static',
+        content: '#ff9999',
+      },
+    }
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       '5ecfa1233b8e50f60ea2b64d': {
         id: '5ecfa1233b8e50f60ea2b64d',
         name: 'primaryButton',
@@ -34,14 +53,15 @@ describe('plugin-css-modules-style-sheet', () => {
             type: 'screen-size',
             meta: { maxWidth: 991 },
             content: {
-              backgrouns: staticNode('purple'),
+              background: staticNode('purple'),
+              color: dynamicNode('token', 'red-500') as UIDLStyleSetTokenReference,
             },
           },
           {
             type: 'element-state',
             meta: { state: 'hover' },
             content: {
-              background: staticNode('yellow'),
+              background: dynamicNode('token', 'blue-500') as UIDLStyleSetTokenReference,
             },
           },
         ],
@@ -51,16 +71,35 @@ describe('plugin-css-modules-style-sheet', () => {
         },
       },
     }
+    structure.uidl = {
+      ...structure.uidl,
+      styleSetDefinitions,
+      designLanguage: {
+        tokens,
+      },
+    }
 
     const { chunks } = await plugin(structure)
     const cssFile = chunks.find((chunk) => chunk.fileType === 'css')
+    const { content } = cssFile
 
     expect(cssFile).toBeDefined()
-    expect(cssFile.content).toContain('.primaryButton')
-    expect(cssFile.content).toContain('secondaryButton')
-    expect(cssFile.content).toContain('.conditionalButton:hover')
-    expect(cssFile.content).toContain('@media(max-width: 991px)')
-    expect(cssFile.content).not.toContain('5ecfa1233b8e50f60ea2b64b')
+    expect(content).toContain(`:root {
+  --red-500: #ff9999;
+  --blue-500: #9999ff;
+  --blue-600: #6b7db3;
+}
+`)
+    expect(content).toContain(`.conditionalButton:hover {
+  background: var(--blue-500);
+}
+`)
+    expect(content).toContain(`color: var(--red-500)`)
+    expect(content).toContain('.primaryButton')
+    expect(content).toContain('secondaryButton')
+    expect(content).toContain('.conditionalButton:hover')
+    expect(content).toContain('@media(max-width: 991px)')
+    expect(content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })
 
   it('should not generate file when the styleSetDefinition is empty', async () => {

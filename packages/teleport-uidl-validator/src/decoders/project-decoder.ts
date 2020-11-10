@@ -34,7 +34,6 @@ export const globalProjectValuesDecoder: Decoder<UIDLGlobalProjectValues> = obje
 })
 
 const projectUIDLValidator: Decoder<VProjectUIDL> = object({
-  $schema: optional(string()),
   name: string(),
   globals: globalProjectValuesDecoder,
   root: rootComponentUIDLValidator,

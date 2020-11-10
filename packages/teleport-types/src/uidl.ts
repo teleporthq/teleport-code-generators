@@ -19,8 +19,6 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
-export type UIDLDesignTokens = Record<string, UIDLStaticValue>
-
 export interface UIDLGlobalAsset {
   type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
   path?: string
@@ -49,6 +47,7 @@ export interface ComponentUIDL {
   seo?: UIDLComponentSEO
 }
 
+export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 export interface UIDLComponentOutputOptions {
   componentClassName?: string // needs to be a valid class name
   fileName?: string // needs to be a valid file name
