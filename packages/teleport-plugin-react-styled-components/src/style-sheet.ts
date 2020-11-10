@@ -1,4 +1,5 @@
-import { StyleUtils } from '@teleporthq/teleport-plugin-common'
+import * as t from '@babel/types'
+import { StyleUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
@@ -18,14 +19,22 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { styleSetDefinitions } = uidl
+    const { styleSetDefinitions, designLanguage = {} } = uidl
+    const { tokens = {} } = designLanguage
 
-    if (!styleSetDefinitions) {
+    if (!styleSetDefinitions && !tokens) {
       return
     }
 
-    uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.fileName = fileName
+    const tokensMap: Record<string, string | number> = Object.keys(tokens || {}).reduce(
+      (acc: Record<string, string | number>, key: string) => {
+        const style = tokens[key]
+        const name: string = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(key))
+        acc[name] = style.content as string
+        return acc
+      },
+      {}
+    )
 
     Object.values(styleSetDefinitions).forEach((style) => {
       const { name, content, conditions = [] } = style
@@ -61,17 +70,35 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         })
       }
 
+      uidl.outputOptions = uidl.outputOptions || {}
+      uidl.outputOptions.fileName = fileName
+
       chunks.push({
         name: fileName,
         type: ChunkType.AST,
         fileType: FileType.JS,
         content: generateExportablCSSInterpolate(className, styles),
-        linkAfter: ['import-local'],
+        linkAfter: ['tokens-chunk'],
       })
     })
 
+    chunks.push({
+      name: 'tokens-chunk',
+      type: ChunkType.AST,
+      fileType: FileType.JS,
+      content: t.exportNamedDeclaration(
+        t.variableDeclaration('const', [
+          t.variableDeclarator(
+            t.identifier('TOKENS'),
+            ASTUtils.objectToObjectExpression(tokensMap)
+          ),
+        ])
+      ),
+      linkAfter: ['import-local'],
+    })
+
     dependencies.css = {
-      type: 'library',
+      type: 'package',
       path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
       version: '4.2.0',
       meta: {

@@ -147,12 +147,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       }
     })
 
-    const componentChunkAST = chunks.find((item) => item.name === 'jsx-component')
-    if (!componentChunkAST) {
-      throw new Error(`jsx-component chunk is missing, cannot inset useProjectStyles() hook`)
-    }
-
-    const { content: astContent } = componentChunkAST
+    const { content: astContent } = componentChunk
     const parser = new ParsedASTNode(astContent)
     // @ts-ignore
     const astNode = parser.ast.declarations[0]
@@ -164,7 +159,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     }
 
     if (isTokenReferenced) {
-      dependencies.tokens = {
+      dependencies.TOKENS = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
         meta: {

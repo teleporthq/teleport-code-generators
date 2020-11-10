@@ -16,7 +16,7 @@ export const generatePropSyntax = (style: Record<string, UIDLStyleValue>) => {
           tokensUsed = true
           return new ParsedASTNode(
             t.memberExpression(
-              t.identifier('tokens'),
+              t.identifier('TOKENS'),
               t.identifier(
                 StringUtils.capitalize(StringUtils.dashCaseToCamelCase(styleValue.content.id))
               )

@@ -77,9 +77,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     uidl.outputOptions.fileName = fileName
 
     dependencies.createUseStyles = {
-      type: 'library',
+      type: 'package',
       path: 'react-jss',
-      version: '8.6.1',
+      version: '10.4.0',
       meta: {
         namedImport: true,
       },
@@ -92,7 +92,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       content: t.exportNamedDeclaration(
         t.variableDeclaration('const', [
           t.variableDeclarator(
-            t.identifier('tokens'),
+            t.identifier('TOKENS'),
             ASTUtils.objectToObjectExpression(tokensMap)
           ),
         ])

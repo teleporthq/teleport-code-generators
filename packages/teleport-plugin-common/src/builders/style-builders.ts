@@ -3,7 +3,6 @@ import preset from 'jss-preset-default'
 import * as types from '@babel/types'
 import { UIDLDynamicReference } from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
-import { StyleUtils } from '../../dist/cjs'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 jss.setup(preset())
