@@ -1,3 +1,4 @@
+import * as types from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 import {
@@ -32,7 +33,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const { projectStyleSet } = options
     const { node } = uidl
 
-    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+    const componentChunk = chunks.find((chunkItem) => chunkItem.name === componentChunkName)
     if (!componentChunk) {
       return structure
     }
@@ -42,6 +43,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap: Record<string, unknown> = {}
     let isProjectReferenced: boolean = false
+    let isTokenReferenced = false
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
@@ -54,7 +56,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       const className = StringUtils.camelCaseToDashCase(key)
       const classNamesToAppend: string[] = []
       if (style && Object.keys(style).length > 0) {
-        jssStyleMap[className] = generatePropSyntax(style)
+        const { transformedStyles, tokensUsed } = generatePropSyntax(style)
+        jssStyleMap[className] = transformedStyles
+        if (tokensUsed) {
+          isTokenReferenced = true
+        }
         appendClassname = true
       }
 
@@ -65,23 +71,34 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               const { conditions } = styleRef.content
               const [condition] = conditions
 
-              if (!styleRef.content?.styles || Object.keys(styleRef.content.styles).length === 0) {
+              if (Object.keys(styleRef.content.styles || {}).length === 0) {
                 return
               }
 
               if (condition.conditionType === 'screen-size') {
+                const { transformedStyles, tokensUsed } = generatePropSyntax(
+                  styleRef.content.styles
+                )
+                if (tokensUsed) {
+                  isTokenReferenced = true
+                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropSyntax(
-                    styleRef.content.styles
-                  ),
+
+                  [`@media(max-width: ${condition.maxWidth}px)`]: transformedStyles,
                 }
               }
 
               if (condition.conditionType === 'element-state') {
+                const { transformedStyles, tokensUsed } = generatePropSyntax(
+                  styleRef.content.styles
+                )
+                if (tokensUsed) {
+                  isTokenReferenced = true
+                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: generatePropSyntax(styleRef.content.styles),
+                  [`&:${condition.content}`]: transformedStyles,
                 }
               }
 
@@ -130,8 +147,28 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       }
     })
 
+    const { content: astContent } = componentChunk
+    const parser = new ParsedASTNode(astContent)
+    // @ts-ignore
+    const astNode = parser.ast.declarations[0]
+    const isPropsInjected = astNode.init.params?.some(
+      (prop: types.Identifier) => prop.name === 'props'
+    )
+    if (!isPropsInjected) {
+      astNode.init.params.push(types.identifier('props'))
+    }
+
+    if (isTokenReferenced) {
+      dependencies.TOKENS = {
+        type: 'local',
+        path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+        meta: {
+          namedImport: true,
+        },
+      }
+    }
+
     if (isProjectReferenced) {
-      // Adding dependency from the exported sheet
       dependencies.useProjectStyles = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
@@ -139,27 +176,18 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
           namedImport: true,
         },
       }
-
-      const chunk = chunks.find((item) => item.name === 'jsx-component')
-      if (!chunk) {
-        throw new Error(`jsx-component chunk is missing, cannot inset useProjectStyles() hook`)
-      }
-      const { content } = chunk
-      const parser = new ParsedASTNode(content)
       // @ts-ignore
-      const astNode = parser.ast.declarations[0]
       astNode.init.body.body.unshift(createStylesHookDecleration())
     }
 
     if (!Object.keys(jssStyleMap).length) {
-      // if no styles are defined, no need to build the jss style at all
       return structure
     }
 
     dependencies.injectSheet = {
-      type: 'library',
+      type: 'package',
       path: 'react-jss',
-      version: '8.6.1',
+      version: '10.4.0',
     }
 
     chunks.push({

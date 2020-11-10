@@ -40,22 +40,15 @@ export const generateExportablCSSInterpolate = (name: string, styles: Record<str
   return t.exportNamedDeclaration(generateCSSInterpolate(name, styles))
 }
 
-const mapStyles = (styles: Record<string, unknown>) => {
-  let style = ''
-  if (styles && Object.keys(styles).length > 0) {
-    Object.keys(styles).forEach((item) => {
-      if (typeof styles[item] === 'string' || typeof styles[item] === 'number') {
-        style = `${style}
-        ${StringUtils.camelCaseToDashCase(item)}: ${styles[item]};`
-      } else {
-        style = `${style}
-        ${item} {
-          ${mapStyles(styles[item] as Record<string, unknown>)}
-        };`
-      }
-    })
-  }
-  return style
+const mapStyles = (styles: Record<string, unknown>): string => {
+  return Object.keys(styles || {}).reduce((acc: string, item) => {
+    const value = styles[item]
+    acc =
+      typeof value === 'string' || typeof value === 'number'
+        ? `${acc} ${StringUtils.camelCaseToDashCase(item)}: ${value}; \n`
+        : `${acc} ${item} {\n ${mapStyles(value as Record<string, unknown>)}};`
+    return acc
+  }, ``)
 }
 
 export const countPropReferences = (
@@ -111,14 +104,15 @@ export const removeUnusedDependencies = (
 export const generatePropReferencesSyntax = (
   style: Record<string, UIDLStyleValue>,
   timesReferred: number,
-  root: t.JSXElement,
-  propsPrefix: unknown
-) =>
-  UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
-    if (styleValue.content.referenceType === 'prop') {
-      const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
-      switch (timesReferred) {
-        case 1:
+  root?: t.JSXElement,
+  propsPrefix?: unknown
+) => {
+  let tokensUsed = false
+  const transformedStyles = UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
+    switch (styleValue.content.referenceType) {
+      case 'prop': {
+        const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
+        if (timesReferred === 1 && root && propsPrefix) {
           ASTUtils.addDynamicAttributeToJSXTag(
             root,
             dashCaseAttribute,
@@ -126,11 +120,24 @@ export const generatePropReferencesSyntax = (
             propsPrefix as string
           )
           return `\$\{props => props.${dashCaseAttribute}\}`
-        default:
-          return `\$\{props => props.${styleValue.content.id}\}`
+        }
+        return `\$\{props => props.${styleValue.content.id}\}`
       }
+      case 'token':
+        tokensUsed = true
+        return `\$\{TOKENS.${StringUtils.capitalize(
+          StringUtils.dashCaseToCamelCase(styleValue.content.id)
+        )}\}`
+      default:
+        throw new Error(
+          `Error running transformDynamicStyles in reactStyledComponentsPlugin. 
+          Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+        )
     }
-    throw new Error(
-      `Error running transformDynamicStyles in reactStyledComponentsPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
-    )
   })
+
+  return {
+    transformedStyles,
+    tokensUsed,
+  }
+}

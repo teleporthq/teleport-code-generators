@@ -3,6 +3,8 @@ import {
   ChunkType,
   FileType,
   ComponentStructure,
+  UIDLDesignTokens,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
@@ -39,7 +41,22 @@ describe('Style Sheet from styled components', () => {
       options: {},
       dependencies: {},
     }
-    structure.uidl.styleSetDefinitions = {
+    const tokens: UIDLDesignTokens = {
+      'blue-500': {
+        type: 'static',
+        content: '#9999ff',
+      },
+      'blue-600': {
+        type: 'static',
+        content: '#6b7db3',
+      },
+      'red-500': {
+        type: 'static',
+        content: '#ff9999',
+      },
+    }
+
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       '5ecfa1233b8e50f60ea2b64d': {
         id: '5ecfa1233b8e50f60ea2b64d',
         name: 'primaryButton',
@@ -82,6 +99,14 @@ describe('Style Sheet from styled components', () => {
           background: staticNode('red'),
           color: staticNode('blue'),
         },
+      },
+    }
+
+    structure.uidl = {
+      ...structure.uidl,
+      styleSetDefinitions,
+      designLanguage: {
+        tokens,
       },
     }
 

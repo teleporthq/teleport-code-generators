@@ -24,6 +24,7 @@ import {
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
 } from '@teleporthq/teleport-types'
+import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
 
 type Modify<T, R> = Omit<T, keyof R> & R
 
@@ -93,18 +94,27 @@ export type VUIDLStyleSetDefnition = Modify<
   UIDLStyleSetDefinition,
   {
     conditions?: VUIDLStyleSetConditions[]
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 
-type ModifiedComponentUIDL = Modify<
+export type VUIDLDesignTokens = Record<string, UIDLStaticValue | string | number>
+
+export type VRootComponentUIDL = Modify<
   ComponentUIDL,
-  { styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>; node: VUIDLElementNode }
+  {
+    styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
+    node: VUIDLElementNode
+    designLanguage: {
+      tokens: VUIDLDesignTokens
+    }
+  }
 >
 
-export type VComponentUIDL = Omit<ModifiedComponentUIDL, 'peerDefinitions' | 'styleSetDefinitions'>
-
-export type VRootComponentUIDL = ModifiedComponentUIDL
+export type VComponentUIDL = Omit<
+  VRootComponentUIDL,
+  'peerDefinitions' | 'styleSetDefinitions' | 'designLanguage'
+>
 
 export type VProjectUIDL = Modify<
   ProjectUIDL,
@@ -146,14 +156,14 @@ export type VUIDLURLLinkNode = Modify<
 export type VUIDLStyleSetMediaCondition = Modify<
   UIDLStyleSetMediaCondition,
   {
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 
 export type VUIDLStyleSetStateCondition = Modify<
   UIDLStyleSetStateCondition,
   {
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 

@@ -29,13 +29,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
     const transformStyle = (style: Record<string, UIDLStyleValue>) =>
       UIDLUtils.transformDynamicStyles(style, (styleValue) => {
-        if (styleValue.content.referenceType === 'prop') {
-          return `\$\{${propsPrefix}.${styleValue.content.id}\}`
+        switch (styleValue.content.referenceType) {
+          case 'token':
+            return `var(${StringUtils.generateCSSVariableName(styleValue.content.id)})`
+          case 'prop':
+            return `\$\{${propsPrefix}.${styleValue.content.id}\}`
+          default:
+            throw new Error(
+              `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+            )
         }
-
-        throw new Error(
-          `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
-        )
       })
 
     UIDLUtils.traverseElements(node, (element) => {
@@ -75,7 +78,6 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   StyleBuilders.createCSSClassWithSelector(
                     className,
                     `&:${conditions[0].content}`,
-                    // @ts-ignore
                     transformStyle(styleRef.content.styles)
                   )
                 )
@@ -131,8 +133,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
           styleJSXString.push(
             StyleBuilders.createCSSClassWithMediaQuery(
               `max-width: ${mediaOffset}px`,
-              // @ts-ignore
-              mediaStylesMap[mediaOffset]
+              mediaStylesMap[mediaOffset] as Record<string, string | number>
             )
           )
         })

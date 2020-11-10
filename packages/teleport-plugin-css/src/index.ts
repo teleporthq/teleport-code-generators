@@ -31,7 +31,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     templateChunkName = 'template-chunk',
     componentDecoratorChunkName = 'component-decorator',
     inlineStyleAttributeKey = 'style',
-    // @ts-ignore
     classAttributeName = 'class',
     templateStyle = 'html',
     declareDependency = 'none',
@@ -82,16 +81,16 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         : elementClassName
 
       if (style) {
-        const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
+        const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
+          style
+        )
+        const collectedStyles = {
+          ...StyleUtils.getContentOfStyleObject(staticStyles),
+          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+        } as Record<string, string | number>
 
         if (Object.keys(staticStyles).length > 0) {
-          jssStylesArray.push(
-            StyleBuilders.createCSSClass(
-              className,
-              // @ts-ignore
-              StyleUtils.getContentOfStyleObject(staticStyles)
-            )
-          )
+          jssStylesArray.push(StyleBuilders.createCSSClass(className, collectedStyles))
 
           appendClassName = true
         }
@@ -130,9 +129,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             case 'inlined': {
               /* We can't set dynamic styles for conditions in css, 
               they need be directly applied in the node. */
-              const { staticStyles } = UIDLUtils.splitDynamicAndStaticStyles(
+              const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
                 styleRef.content.styles
               )
+              const collectedStyles = {
+                ...StyleUtils.getContentOfStyleObject(staticStyles),
+                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+              } as Record<string, string | number>
 
               if (staticStyles && Object.keys(staticStyles).length === 0) {
                 return
@@ -145,7 +148,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                   const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
                   mediaStylesMap[maxWidth] = {
                     ...mediaStylesMap[maxWidth],
-                    [className]: StyleUtils.getContentOfStyleObject(staticStyles),
+                    [className]: collectedStyles,
                   }
                 }
 
@@ -154,8 +157,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                     StyleBuilders.createCSSClassWithSelector(
                       className,
                       `&:${condition.content}`,
-                      // @ts-ignore
-                      StyleUtils.getContentOfStyleObject(staticStyles)
+                      collectedStyles
                     )
                   )
                 }

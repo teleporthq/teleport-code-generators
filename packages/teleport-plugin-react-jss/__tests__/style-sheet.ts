@@ -3,11 +3,13 @@ import {
   ChunkType,
   FileType,
   ComponentStructure,
+  UIDLStyleSetDefinition,
+  UIDLDesignTokens,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 
-describe('Style Sheet from styled components', () => {
+describe('Style Sheet from react-jss', () => {
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
     meta: {
@@ -34,13 +36,27 @@ describe('Style Sheet from styled components', () => {
   it('Generates a style sheet from the give JSON of styleSet', async () => {
     const plugin = createStyleSheetPlugin()
     const uidl = component('MyComponent', elementNode('container'))
+    const tokens: UIDLDesignTokens = {
+      'blue-500': {
+        type: 'static',
+        content: '#9999ff',
+      },
+      'blue-600': {
+        type: 'static',
+        content: '#6b7db3',
+      },
+      'red-500': {
+        type: 'static',
+        content: '#ff9999',
+      },
+    }
     const structure: ComponentStructure = {
       uidl,
       chunks: [componentChunk],
       options: {},
       dependencies: {},
     }
-    structure.uidl.styleSetDefinitions = {
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       '5ecfa1233b8e50f60ea2b64d': {
         id: '5ecfa1233b8e50f60ea2b64d',
         name: 'primaryButton',
@@ -86,14 +102,22 @@ describe('Style Sheet from styled components', () => {
       },
     }
 
+    structure.uidl = {
+      ...structure.uidl,
+      styleSetDefinitions,
+      designLanguage: {
+        tokens,
+      },
+    }
+
     const result = await plugin(structure)
     const { chunks, dependencies } = result
 
-    expect(chunks.length).toBe(2)
+    expect(chunks.length).toBe(3)
     expect(dependencies.createUseStyles.path).toBe('react-jss')
   })
 
-  it('Changes the name of output file, with the name that is passed', async () => {
+  it('Changes the name of output file, with the name is passed', async () => {
     const plugin = createStyleSheetPlugin({ fileName: 'index' })
     const uidl = component('MyComponent', elementNode('container'))
     const structure: ComponentStructure = {
@@ -125,6 +149,6 @@ describe('Style Sheet from styled components', () => {
 
     const result = await plugin(structure)
     const { chunks } = result
-    expect(chunks[1].name).toBe('index')
+    expect(chunks[2].name).toBe('index')
   })
 })

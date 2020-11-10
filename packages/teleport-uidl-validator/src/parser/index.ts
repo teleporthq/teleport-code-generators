@@ -11,6 +11,7 @@ import {
   UIDLElementNode,
   UIDLStaticValue,
   UIDLStyleSetConditions,
+  UIDLDesignTokens,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -53,6 +54,7 @@ export const parseProjectJSON = (
 
   if (result.root?.styleSetDefinitions) {
     const { styleSetDefinitions } = root
+
     Object.values(styleSetDefinitions).forEach((styleRef) => {
       const { conditions = [] } = styleRef
       styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
@@ -65,6 +67,26 @@ export const parseProjectJSON = (
         })
       }
     })
+  }
+
+  if (result.root?.designLanguage) {
+    const { tokens = {} } = result.root.designLanguage
+
+    result.root.designLanguage.tokens = Object.keys(tokens).reduce(
+      (acc: UIDLDesignTokens, tokenId: string) => {
+        const token = tokens[tokenId]
+        if (typeof token === 'string' || typeof token === 'number') {
+          acc[tokenId] = {
+            type: 'static',
+            content: token,
+          }
+        } else {
+          acc[tokenId] = token
+        }
+        return acc
+      },
+      {}
+    )
   }
 
   if (result.components) {

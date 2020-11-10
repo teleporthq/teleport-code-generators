@@ -19,7 +19,6 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
-
 export interface UIDLGlobalAsset {
   type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
   path?: string
@@ -42,9 +41,13 @@ export interface ComponentUIDL {
   peerDefinitions?: Record<string, UIDLPeerDependency>
   stateDefinitions?: Record<string, UIDLStateDefinition>
   outputOptions?: UIDLComponentOutputOptions
+  designLanguage?: {
+    tokens?: UIDLDesignTokens
+  }
   seo?: UIDLComponentSEO
 }
 
+export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 export interface UIDLComponentOutputOptions {
   componentClassName?: string // needs to be a valid class name
   fileName?: string // needs to be a valid file name
@@ -68,14 +71,6 @@ export interface UIDLPropDefinition {
   isRequired?: boolean
 }
 
-export interface UIDLStyleSetDefinition {
-  id: string
-  name: string
-  type: 'reusable-project-style-map'
-  conditions?: UIDLStyleSetConditions[]
-  content: Record<string, UIDLStaticValue>
-}
-
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | unknown[] | object | (() => void)
@@ -94,7 +89,7 @@ export interface UIDLPageOptions {
   fileName?: string
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -350,11 +345,27 @@ export interface UIDLStyleStateCondition {
 
 export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'
 
+export interface UIDLStyleSetDefinition {
+  id: string
+  name: string
+  type: 'reusable-project-style-map'
+  conditions?: UIDLStyleSetConditions[]
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+}
+
+export interface UIDLStyleSetTokenReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'token'
+    id: string
+  }
+}
+
 export type UIDLStyleSetConditions = UIDLStyleSetMediaCondition | UIDLStyleSetStateCondition
 
 export interface UIDLStyleSetMediaCondition {
   type: 'screen-size'
-  content: Record<string, UIDLStaticValue>
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
   meta: {
     maxWidth: number
     minWidth?: number
@@ -368,5 +379,5 @@ export interface UIDLStyleSetStateCondition {
   meta: {
     state: UIDLElementStyleStates
   }
-  content: Record<string, UIDLStaticValue>
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
 }

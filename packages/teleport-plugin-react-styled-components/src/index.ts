@@ -46,6 +46,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap: Record<string, unknown> = {}
+    let isTokensUsed: boolean = false
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style } = element
@@ -85,20 +86,21 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                     // @ts-ignore
                     styles: styleRef.content.styles,
                   },
-                  /* We are doing a check at the top to make sure we
-                  are doing this only for inlined styles. Some typescipt error, can be ignored */
                 }
               }
             })
           }
         }
-
-        jssStyleMap[className] = generatePropReferencesSyntax(
+        const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
           style,
           timesReferred,
           root,
           propsPrefix
         )
+        jssStyleMap[className] = transformedStyles
+        if (tokensUsed) {
+          isTokensUsed = true
+        }
       }
 
       if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
@@ -113,26 +115,34 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               }
 
               if (condition.conditionType === 'screen-size') {
+                const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
+                  styleRef.content.styles,
+                  timesReferred,
+                  root,
+                  propsPrefix
+                )
+                if (tokensUsed) {
+                  isTokensUsed = tokensUsed
+                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropReferencesSyntax(
-                    styleRef.content.styles,
-                    timesReferred,
-                    root,
-                    propsPrefix
-                  ),
+                  [`@media(max-width: ${condition.maxWidth}px)`]: transformedStyles,
                 }
               }
 
               if (condition.conditionType === 'element-state') {
+                const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
+                  styleRef.content.styles,
+                  timesReferred,
+                  root,
+                  propsPrefix
+                )
+                if (tokensUsed) {
+                  isTokensUsed = true
+                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: generatePropReferencesSyntax(
-                    styleRef.content.styles,
-                    timesReferred,
-                    root,
-                    propsPrefix
-                  ),
+                  [`&:${condition.content}`]: transformedStyles,
                 }
               }
 
@@ -199,8 +209,18 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       return structure
     }
 
+    if (isTokensUsed) {
+      dependencies.TOKENS = {
+        type: 'local',
+        path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+        meta: {
+          namedImport: true,
+        },
+      }
+    }
+
     dependencies.styled = {
-      type: 'library',
+      type: 'package',
       path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
       version: '4.2.0',
     }

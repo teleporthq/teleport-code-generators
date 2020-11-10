@@ -60,7 +60,7 @@ describe('Testing the functionality for StyledComponents', () => {
     const { styled } = dependencies
 
     expect(Object.keys(dependencies).length).toBeGreaterThan(0)
-    expect(styled.type).toBe('library')
+    expect(styled.type).toBe('package')
     expect(styled.path).toBe('styled-components')
   })
 
@@ -100,6 +100,7 @@ describe('Testing the functionality for StyledComponents', () => {
         container: {
           type: 'library',
           path: 'react-native',
+          version: '0.0.0',
         },
       },
     }
@@ -111,7 +112,7 @@ describe('Testing the functionality for StyledComponents', () => {
     const { styled } = dependencies
 
     expect(Object.keys(dependencies).length).toBeGreaterThan(0)
-    expect(styled.type).toBe('library')
+    expect(styled.type).toBe('package')
     expect(styled.path).toBe('styled-components/native')
   })
 })

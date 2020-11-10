@@ -9,6 +9,7 @@ import {
   UIDLStaticValue,
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
+import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
@@ -233,20 +234,23 @@ export const checkProjectStyleSet = (input: ProjectUIDL) => {
   return errors
 }
 
-export const checkContentForErrors = (content: Record<string, UIDLStaticValue>) => {
+export const checkContentForErrors = (
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+) => {
   const errors: string[] = []
   Object.values(content).forEach((styleContent) => {
+    if (styleContent.type === 'dynamic' && styleContent.content.referenceType !== 'token') {
+      errors.push(`Dynamic nodes in styleSetDefinitions supports only tokens`)
+    }
+
     if (
-      styleContent.type !== 'static' &&
-      typeof styleContent !== 'string' &&
-      typeof styleContent !== 'number'
+      styleContent.type === 'static' &&
+      typeof styleContent.content !== 'string' &&
+      typeof styleContent.content !== 'number'
     ) {
-      /* We don't currently support dynamic nodes in project-style sheet
-      Since, these are just used as reference styles on any other nodes.
-       Any logic related to styles should be directly applied on the node. Validators
-       take care of this, but good to cross-check with content too if the they skip Validation */
       errors.push(
-        `Project Style sheet / styleSetDefinitions only support styles with static content, received ${styleContent}`
+        `Project Style sheet / styleSetDefinitions only support styles with static 
+        content and dynamic tokens, received ${styleContent}`
       )
     }
   })

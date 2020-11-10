@@ -51,8 +51,8 @@ const createComponentGenerator = ({
         throw new Error(schemaValidationResult.errorMsg)
       }
     }
-    const uidl = Parser.parseComponentJSON(cleanedUIDL)
 
+    const uidl = Parser.parseComponentJSON(cleanedUIDL)
     const contentValidationResult = validator.validateComponentContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)

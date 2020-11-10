@@ -32,6 +32,7 @@ describe('Referenced Styles on Node', () => {
       declarations: [
         {
           init: {
+            params: [],
             body: {
               body: [],
             },

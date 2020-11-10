@@ -43,13 +43,53 @@
   },
   "root": {
     "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "blue-500": {
+          "type": "static",
+          "content": "#9999ff"
+        },
+        "blue-600": {
+          "type": "static",
+          "content": "#6b7db3"
+        },
+        "red-500": {
+          "type": "static",
+          "content": "#ff9999"
+        },
+        "red-300": "#b36b6b",
+        "font-size": 45
+      }
+    },
     "styleSetDefinitions": {
       "5ed0d05baa77d97673711820": {
         "id": "5ed0d05baa77d97673711820",
         "name": "primaryButton",
         "type": "reusable-project-style-map",
+        "conditions": [
+          { "type": "screen-size",
+            "meta": {
+              "maxWidth": 991
+            },
+            "content": {
+              "background": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "blue-600"
+                }
+              }
+            } 
+          }
+        ],
         "content": {
-          "background": "blue",
+          "background": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "blue-500"
+            }
+          },
           "width": "auto",
           "color": "#fff",
           "border": "1px solid #fff"
@@ -283,13 +323,28 @@
                                           { "conditionType": "screen-size", "maxWidth": 991 }
                                         ],
                                         "styles": {
-                                          "flex": "inherit"
+                                          "flex": "inherit",
+                                          "background": "#000",
+                                          "color": {
+                                            "type": "dynamic",
+                                            "content": {
+                                              "referenceType": "token",
+                                              "id": "blue-500"
+                                            }
+                                          }
                                         }
                                       }
                                     }
                                   },
                                   "style": {
-                                    "flex": "1"
+                                    "flex": "1",
+                                    "color": {
+                                      "type": "dynamic",
+                                      "content": {
+                                        "referenceType": "token",
+                                        "id": "blue-500"
+                                      }
+                                    }
                                   },
                                   "children": [{
                                     "type": "element",

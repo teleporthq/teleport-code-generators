@@ -32,7 +32,18 @@ describe('plugin-react-jss', () => {
     type: ChunkType.AST,
     fileType: FileType.JS,
     linkAfter: ['import-local'],
-    content: {},
+    content: {
+      declarations: [
+        {
+          init: {
+            params: [],
+            body: {
+              body: [],
+            },
+          },
+        },
+      ],
+    },
   }
 
   it('generates no chunk if no styles exist', async () => {
@@ -49,11 +60,17 @@ describe('plugin-react-jss', () => {
     expect(chunks.length).toBe(1)
   })
 
-  it('Should add styled as dependency', async () => {
+  it('Should add react-jss as dependency', async () => {
     const style = {
       height: staticNode('100px'),
     }
-    const element = elementNode('container', {}, [], { type: 'package' }, style)
+    const element = elementNode(
+      'container',
+      {},
+      [],
+      { type: 'package' as const, version: '10.4.0', path: 'react-jss' },
+      style
+    )
     element.content.key = 'container'
     const uidlSample = component('JSS', element)
     const structure: ComponentStructure = {
@@ -67,7 +84,7 @@ describe('plugin-react-jss', () => {
     const { injectSheet } = dependencies
 
     expect(Object.keys(dependencies).length).toBeGreaterThan(0)
-    expect(injectSheet.type).toBe('library')
+    expect(injectSheet.type).toBe('package')
     expect(injectSheet.path).toBe('react-jss')
 
     expect(chunks.length).toBe(3)
