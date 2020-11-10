@@ -3,7 +3,6 @@ import {
   camelCaseToDashCase,
   removeIllegalCharacters,
   dashCaseToUpperCamelCase,
-  generateCSSVariableName,
 } from './string-utils'
 import {
   ComponentUIDL,
@@ -293,26 +292,22 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 interface SplitResponse {
   staticStyles: UIDLStyleDefinitions
   dynamicStyles: UIDLStyleDefinitions
+  tokenStyles: UIDLStyleDefinitions
 }
 export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitResponse => {
   // const staticStyles: UIDLStyleDefinitions = {}
   // const dynamicStyles: UIDLStyleDefinitions = {}
 
-  const responsePayload: SplitResponse = { staticStyles: {}, dynamicStyles: {} }
+  const responsePayload: SplitResponse = { staticStyles: {}, dynamicStyles: {}, tokenStyles: {} }
 
   Object.keys(style).reduce((acc: SplitResponse, styleKey) => {
     const styleValue = style[styleKey]
-    const { staticStyles, dynamicStyles } = acc
+    const { staticStyles, dynamicStyles, tokenStyles } = acc
 
     switch (styleValue.type) {
       case 'dynamic':
-        const { referenceType, id } = styleValue.content
-        if (referenceType === 'token') {
-          staticStyles[styleKey] = {
-            type: 'static',
-            content: `var(${generateCSSVariableName(id)})`,
-          }
-
+        if (styleValue.content.referenceType === 'token') {
+          tokenStyles[styleKey] = styleValue
           return acc
         }
         dynamicStyles[styleKey] = styleValue

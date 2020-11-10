@@ -1,5 +1,5 @@
 import * as t from '@babel/types'
-import { StyleUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
@@ -7,6 +7,7 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
+import { generatePropSyntax } from './utils'
 
 interface StyleSheetPlugin {
   fileName?: string
@@ -16,7 +17,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { styleSetDefinitions, designLanguage = {} } = uidl
+    const { styleSetDefinitions = {}, designLanguage = {} } = uidl
     const { tokens = {} } = designLanguage
 
     if (!styleSetDefinitions && !tokens) {
@@ -34,24 +35,28 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     )
 
     const styleSet: Record<string, unknown> = {}
-    if (styleSetDefinitions && Object.keys(styleSetDefinitions)) {
+    if (Object.keys(styleSetDefinitions).length > 0) {
       Object.values(styleSetDefinitions).forEach((style) => {
-        const { conditions = [] } = style
-        let styles = StyleUtils.getContentOfStyleObject(style.content)
+        const { conditions = [], content } = style
+        const { transformedStyles } = generatePropSyntax(content)
+        let styles = {
+          ...transformedStyles,
+        }
 
         if (conditions.length > 0) {
           conditions.forEach((styleRef) => {
             if (Object.keys(styleRef.content).length === 0) {
               return
             }
+            const { transformedStyles: transformedMediaStyles } = generatePropSyntax(
+              styleRef.content
+            )
 
             if (styleRef.type === 'screen-size') {
               styles = {
                 ...styles,
                 ...{
-                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: StyleUtils.getContentOfStyleObject(
-                    styleRef.content
-                  ),
+                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: transformedMediaStyles,
                 },
               }
             }
@@ -60,9 +65,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
               styles = {
                 ...styles,
                 ...{
-                  [`&:${styleRef.meta.state}`]: StyleUtils.getContentOfStyleObject(
-                    styleRef.content
-                  ),
+                  [`&:${styleRef.meta.state}`]: transformedMediaStyles as Record<
+                    string,
+                    string | number
+                  >,
                 },
               }
             }

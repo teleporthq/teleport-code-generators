@@ -66,8 +66,30 @@
         "id": "5ed0d05baa77d97673711820",
         "name": "primaryButton",
         "type": "reusable-project-style-map",
+        "conditions": [
+          { "type": "screen-size",
+            "meta": {
+              "maxWidth": 991
+            },
+            "content": {
+              "background": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "blue-600"
+                }
+              }
+            } 
+          }
+        ],
         "content": {
-          "background": "blue",
+          "background": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "blue-500"
+            }
+          },
           "width": "auto",
           "color": "#fff",
           "border": "1px solid #fff"

@@ -81,14 +81,18 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const root = astNodesLookup[key]
 
       if (style) {
-        const { staticStyles, dynamicStyles } = UIDLUtils.splitDynamicAndStaticStyles(style)
-
-        if (Object.keys(staticStyles).length > 0) {
+        const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
+          style
+        )
+        if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
           cssClasses.push(
             StyleBuilders.createCSSClass(
               className,
               // @ts-ignore
-              StyleUtils.getContentOfStyleObject(staticStyles)
+              {
+                ...StyleUtils.getContentOfStyleObject(staticStyles),
+                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+              } as Record<string, string | number>
             )
           )
           appendClassName = true
@@ -111,13 +115,13 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           switch (styleRef.content.mapType) {
             case 'inlined': {
               // We can't set dynamic styles for conditions in css-modules, they need be directly applied in the node.
-              const { staticStyles } = UIDLUtils.splitDynamicAndStaticStyles(
+              const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
                 styleRef.content.styles
               )
-
-              if (staticStyles && Object.keys(staticStyles).length === 0) {
-                return
-              }
+              const collectedStyles = {
+                ...StyleUtils.getContentOfStyleObject(staticStyles),
+                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+              } as Record<string, string | number>
 
               const condition = styleRef.content.conditions[0]
               const { conditionType } = condition
@@ -125,7 +129,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
                 mediaStylesMap[maxWidth] = {
                   ...mediaStylesMap[maxWidth],
-                  [className]: StyleUtils.getContentOfStyleObject(staticStyles),
+                  [className]: collectedStyles,
                 }
               }
 
@@ -134,8 +138,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   StyleBuilders.createCSSClassWithSelector(
                     className,
                     `&:${condition.content}`,
-                    // @ts-ignore
-                    StyleUtils.getContentOfStyleObject(staticStyles)
+                    collectedStyles
                   )
                 )
               }

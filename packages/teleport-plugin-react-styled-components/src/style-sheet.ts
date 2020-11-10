@@ -1,12 +1,12 @@
 import * as t from '@babel/types'
-import { StyleUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { generateExportablCSSInterpolate } from './utils'
+import { generateExportablCSSInterpolate, generatePropReferencesSyntax } from './utils'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 interface StyleSheetPlugin {
@@ -40,21 +40,28 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       const { name, content, conditions = [] } = style
 
       const className = StringUtils.dashCaseToUpperCamelCase(name)
-      let styles = StyleUtils.getContentOfStyleObject(content)
+      let styles = {}
+      const { transformedStyles } = generatePropReferencesSyntax(content, 0)
+      styles = {
+        ...styles,
+        ...transformedStyles,
+      }
 
       if (conditions.length > 0) {
         conditions.forEach((styleRef) => {
           if (Object.keys(styleRef.content).length === 0) {
             return
           }
+          const { transformedStyles: transformedMediaStyles } = generatePropReferencesSyntax(
+            styleRef.content,
+            0
+          )
 
           if (styleRef.type === 'screen-size') {
             styles = {
               ...styles,
               ...{
-                [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: StyleUtils.getContentOfStyleObject(
-                  styleRef.content
-                ),
+                [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: transformedMediaStyles,
               },
             }
           }
@@ -63,7 +70,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
             styles = {
               ...styles,
               ...{
-                [`&:${styleRef.meta.state}`]: StyleUtils.getContentOfStyleObject(styleRef.content),
+                [`&:${styleRef.meta.state}`]: transformedMediaStyles,
               },
             }
           }

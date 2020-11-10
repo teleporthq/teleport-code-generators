@@ -72,14 +72,6 @@ export interface UIDLPropDefinition {
   isRequired?: boolean
 }
 
-export interface UIDLStyleSetDefinition {
-  id: string
-  name: string
-  type: 'reusable-project-style-map'
-  conditions?: UIDLStyleSetConditions[]
-  content: Record<string, UIDLStaticValue>
-}
-
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | unknown[] | object | (() => void)
@@ -354,11 +346,27 @@ export interface UIDLStyleStateCondition {
 
 export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'
 
+export interface UIDLStyleSetDefinition {
+  id: string
+  name: string
+  type: 'reusable-project-style-map'
+  conditions?: UIDLStyleSetConditions[]
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+}
+
+export interface UIDLStyleSetTokenReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'token'
+    id: string
+  }
+}
+
 export type UIDLStyleSetConditions = UIDLStyleSetMediaCondition | UIDLStyleSetStateCondition
 
 export interface UIDLStyleSetMediaCondition {
   type: 'screen-size'
-  content: Record<string, UIDLStaticValue>
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
   meta: {
     maxWidth: number
     minWidth?: number
@@ -372,5 +380,5 @@ export interface UIDLStyleSetStateCondition {
   meta: {
     state: UIDLElementStyleStates
   }
-  content: Record<string, UIDLStaticValue>
+  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
 }

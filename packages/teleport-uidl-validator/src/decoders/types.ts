@@ -24,6 +24,7 @@ import {
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
 } from '@teleporthq/teleport-types'
+import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
 
 type Modify<T, R> = Omit<T, keyof R> & R
 
@@ -93,7 +94,7 @@ export type VUIDLStyleSetDefnition = Modify<
   UIDLStyleSetDefinition,
   {
     conditions?: VUIDLStyleSetConditions[]
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 
@@ -155,14 +156,14 @@ export type VUIDLURLLinkNode = Modify<
 export type VUIDLStyleSetMediaCondition = Modify<
   UIDLStyleSetMediaCondition,
   {
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 
 export type VUIDLStyleSetStateCondition = Modify<
   UIDLStyleSetStateCondition,
   {
-    content: Record<string, UIDLStaticValue | string | number>
+    content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
   }
 >
 

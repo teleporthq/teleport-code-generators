@@ -43,13 +43,10 @@ export const generateExportablCSSInterpolate = (name: string, styles: Record<str
 const mapStyles = (styles: Record<string, unknown>): string => {
   return Object.keys(styles || {}).reduce((acc: string, item) => {
     const value = styles[item]
-    if (typeof value === 'string' || typeof value === 'number') {
-      acc = `${acc}\n ${StringUtils.camelCaseToDashCase(item)}: ${value};`
-    } else {
-      acc = `${acc}\n ${item} {\n
-          ${mapStyles(value as Record<string, unknown>)}
-        };`
-    }
+    acc =
+      typeof value === 'string' || typeof value === 'number'
+        ? `${acc} ${StringUtils.camelCaseToDashCase(item)}: ${value}; \n`
+        : `${acc} ${item} {\n ${mapStyles(value as Record<string, unknown>)}};`
     return acc
   }, ``)
 }
@@ -107,15 +104,15 @@ export const removeUnusedDependencies = (
 export const generatePropReferencesSyntax = (
   style: Record<string, UIDLStyleValue>,
   timesReferred: number,
-  root: t.JSXElement,
-  propsPrefix: unknown
+  root?: t.JSXElement,
+  propsPrefix?: unknown
 ) => {
   let tokensUsed = false
   const transformedStyles = UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
     switch (styleValue.content.referenceType) {
       case 'prop': {
         const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
-        if (timesReferred === 1) {
+        if (timesReferred === 1 && root && propsPrefix) {
           ASTUtils.addDynamicAttributeToJSXTag(
             root,
             dashCaseAttribute,

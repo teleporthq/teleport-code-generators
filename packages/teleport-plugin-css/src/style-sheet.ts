@@ -1,4 +1,5 @@
 import { StyleUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
@@ -29,32 +30,39 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         StyleBuilders.createCSSClassWithSelector(
           '@global',
           ':root',
-          StyleUtils.getVariablesFromTokens(tokens)
+          StyleUtils.getTokensContentFromTokensObject(tokens)
         )
       )
     }
 
     Object.values(styleSetDefinitions).forEach((style) => {
       const { name, content, conditions = [] } = style
-      cssMap.push(
-        StyleBuilders.createCSSClass(
-          name,
-          // @ts-ignore
-          StyleUtils.getContentOfStyleObject(content)
-        )
-      )
+      const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
+      const collectedStyles = {
+        ...StyleUtils.getContentOfStyleObject(staticStyles),
+        ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+      } as Record<string, string | number>
+      cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
 
       if (conditions.length === 0) {
         return
       }
       conditions.forEach((styleRef) => {
+        const {
+          staticStyles: staticValues,
+          tokenStyles: tokenValues,
+        } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+        const collecedMediaStyles = {
+          ...StyleUtils.getContentOfStyleObject(staticValues),
+          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
+        } as Record<string, string | number>
+
         if (styleRef.type === 'element-state') {
           cssMap.push(
             StyleBuilders.createCSSClassWithSelector(
               name,
               `&:${styleRef.meta.state}`,
-              // @ts-ignore
-              StyleUtils.getContentOfStyleObject(styleRef.content)
+              collecedMediaStyles
             )
           )
         }
@@ -62,7 +70,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         if (styleRef.type === 'screen-size') {
           mediaStylesMap[styleRef.meta.maxWidth] = {
             ...mediaStylesMap[styleRef.meta.maxWidth],
-            [name]: StyleUtils.getContentOfStyleObject(styleRef.content),
+            [name]: collecedMediaStyles,
           }
         }
       })

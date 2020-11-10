@@ -78,7 +78,6 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   StyleBuilders.createCSSClassWithSelector(
                     className,
                     `&:${conditions[0].content}`,
-                    // @ts-ignore
                     transformStyle(styleRef.content.styles)
                   )
                 )
@@ -134,8 +133,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
           styleJSXString.push(
             StyleBuilders.createCSSClassWithMediaQuery(
               `max-width: ${mediaOffset}px`,
-              // @ts-ignore
-              mediaStylesMap[mediaOffset]
+              mediaStylesMap[mediaOffset] as Record<string, string | number>
             )
           )
         })
