@@ -8,8 +8,12 @@ import {
   UIDLStyleSetDefinition,
   UIDLStaticValue,
   UIDLExternalDependency,
+  UIDLElementNodeProjectReferencedStyle,
+  UIDLStyleValue,
+  UIDLElementNodeInlineReferencedStyle,
+  UIDLReferencedStyles,
+  UIDLStyleSetTokenReference,
 } from '@teleporthq/teleport-types'
-import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
 
 // Prop definitions and state definitions should have different keys
 export const checkForDuplicateDefinitions = (input: ComponentUIDL) => {
@@ -177,19 +181,112 @@ export const checkRouteDefinition = (input: ProjectUIDL) => {
 }
 
 // All referenced components inside of the projectUIDL should be defined
-// in the component section
-export const checkComponentExistence = (input: ProjectUIDL) => {
+// in the component section and all the project-references and tokens
+export const checkComponentExistenceAndReferences = (input: ProjectUIDL) => {
   const errors: string[] = []
   const components = Object.keys(input.components || {})
+  const styleSetDefinitions = Object.keys(input.root?.styleSetDefinitions || {})
+  const tokens: string[] = Object.keys(input.root?.designLanguage?.tokens || {})
+  const nodesToParse = [
+    input.root.node,
+    ...Object.values(input.components || {}).map((component) => component.node),
+  ]
+  let usedReferencedStyles: string[] = []
 
-  UIDLUtils.traverseElements(input.root.node, (element) => {
+  if (input.root?.styleSetDefinitions) {
+    Object.values(input.root.styleSetDefinitions || {}).forEach((style) => {
+      const { content, conditions = [] } = style
+      errors.push(...checkForTokensInstyles(content, tokens))
+      conditions.forEach((condition) => {
+        if (condition?.content) {
+          errors.push(...checkForTokensInstyles(condition.content, tokens))
+        }
+      })
+    })
+  }
+
+  nodesToParse.forEach((node) => {
+    UIDLUtils.traverseElements(node, (element) => {
+      /* Checking for project-referenced styles */
+      if (element?.referencedStyles) {
+        const { errorsInRferences, usedStyleRefrences } = checkForReferencedStylesUsed(
+          element.referencedStyles,
+          styleSetDefinitions,
+          tokens
+        )
+        errors.push(...errorsInRferences)
+        usedReferencedStyles = [...usedReferencedStyles, ...usedStyleRefrences]
+      }
+
+      /* Checking for token references used in styles */
+      if (element?.style) {
+        errors.push(...checkForTokensInstyles(element.style, tokens))
+      }
+
+      if (
+        element.dependency &&
+        element.dependency.type === 'local' &&
+        !components.includes(element.semanticType)
+      ) {
+        const errorMsg = `\nThe component "${element.semanticType}" is not defined in the UIDL's component section.`
+        errors.push(errorMsg)
+      }
+    })
+  })
+
+  styleSetDefinitions.forEach((key) => {
+    if (!usedReferencedStyles.includes(key)) {
+      console.warn(`${key} styleSet is defined but not used in the project.`)
+    }
+  })
+
+  return errors
+}
+
+const checkForReferencedStylesUsed = (
+  referencedStyles: UIDLReferencedStyles,
+  styleSetDefinitions: string[],
+  tokens: string[]
+) => {
+  const errorsInRferences: string[] = []
+  const usedStyleRefrences: string[] = []
+  Object.values(referencedStyles || {}).forEach((styleRef) => {
+    const { mapType } = styleRef.content
+
+    if (mapType === 'inlined') {
+      errorsInRferences.push(
+        ...checkForTokensInstyles(
+          (styleRef as UIDLElementNodeInlineReferencedStyle).content.styles,
+          tokens
+        )
+      )
+    }
+
+    if (mapType === 'project-referenced') {
+      const { referenceId } = (styleRef as UIDLElementNodeProjectReferencedStyle).content
+      usedStyleRefrences.push(referenceId)
+      if (!styleSetDefinitions.includes(referenceId)) {
+        errorsInRferences.push(
+          `\n ${referenceId} is missing from the styleSetDefinitions, please check the reference id.`
+        )
+      }
+    }
+  })
+  return {
+    errorsInRferences,
+    usedStyleRefrences,
+  }
+}
+
+const checkForTokensInstyles = (styles: Record<string, UIDLStyleValue>, tokens: string[]) => {
+  const errors: string[] = []
+  Object.values(styles || {}).forEach((style: UIDLStyleValue) => {
     if (
-      element.dependency &&
-      element.dependency.type === 'local' &&
-      !components.includes(element.semanticType)
+      style.type === 'dynamic' &&
+      style.content.referenceType === 'token' &&
+      !tokens.includes(style.content.id)
     ) {
-      const errorMsg = `\nThe component "${element.semanticType}" is not defined in the UIDL's component section.`
-      errors.push(errorMsg)
+      errors.push(`\nToken ${style.content.id} is missing from the project UIDL.`)
     }
   })
   return errors
@@ -225,16 +322,16 @@ export const checkProjectStyleSet = (input: ProjectUIDL) => {
       const { content, conditions = [] } = styleSetObj
 
       Object.values(conditions).forEach((style) => {
-        errors.push(...checkContentForErrors(style.content))
+        errors.push(...checStylekContentForErrors(style.content))
       })
 
-      errors.push(...checkContentForErrors(content))
+      errors.push(...checStylekContentForErrors(content))
     })
   }
   return errors
 }
 
-export const checkContentForErrors = (
+export const checStylekContentForErrors = (
   content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
 ) => {
   const errors: string[] = []

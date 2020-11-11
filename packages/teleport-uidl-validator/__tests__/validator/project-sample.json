@@ -1,5 +1,4 @@
 {
-  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/project.json",
   "name": "myVueProject",
   "globals": {
     "settings": {
