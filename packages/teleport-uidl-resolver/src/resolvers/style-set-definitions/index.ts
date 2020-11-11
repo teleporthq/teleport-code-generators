@@ -3,20 +3,12 @@
     and pseudo styles on them. These need to be sorted as we do for referenced-Styles
 */
 
-import {
-  ComponentUIDL,
-  UIDLStyleSetDefinition,
-  UIDLStyleSetMediaCondition,
-} from '@teleporthq/teleport-types'
+import { StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLStyleSetDefinition, UIDLStyleSetMediaCondition } from '@teleporthq/teleport-types'
 
-export const resolveStyleSetDefinitions = (input: ComponentUIDL) => {
-  if (!input?.styleSetDefinitions) {
-    return
-  }
-  input.styleSetDefinitions = sortStyleSetDefinitions(input.styleSetDefinitions)
-}
-
-const sortStyleSetDefinitions = (styleSets: Record<string, UIDLStyleSetDefinition>) => {
+export const resolveStyleSetDefinitions = (
+  styleSets: Record<string, UIDLStyleSetDefinition>
+): Record<string, UIDLStyleSetDefinition> => {
   return Object.values(styleSets).reduce(
     (acc: Record<string, UIDLStyleSetDefinition>, styleRef) => {
       const { conditions = [] } = styleRef
@@ -26,6 +18,7 @@ const sortStyleSetDefinitions = (styleSets: Record<string, UIDLStyleSetDefinitio
           ...acc,
           [styleRef.id]: {
             ...styleRef,
+            name: StringUtils.dashCaseToCamelCase(styleRef.name),
           },
         })
       }
@@ -44,6 +37,7 @@ const sortStyleSetDefinitions = (styleSets: Record<string, UIDLStyleSetDefinitio
         [styleRef.id]: {
           ...styleRef,
           conditions: [...elementStateConditions, ...mediaConditions],
+          name: StringUtils.dashCaseToCamelCase(styleRef.name),
         },
       })
     },

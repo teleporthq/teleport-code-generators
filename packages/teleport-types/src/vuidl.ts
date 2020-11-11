@@ -23,8 +23,8 @@ import {
   UIDLPhoneLinkNode,
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
-} from '@teleporthq/teleport-types'
-import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
+  UIDLStyleSetTokenReference,
+} from './uidl'
 
 type Modify<T, R> = Omit<T, keyof R> & R
 
