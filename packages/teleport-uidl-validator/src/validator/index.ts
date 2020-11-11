@@ -77,7 +77,7 @@ export default class Validator {
       const errorsInRootComponent = utils.checkRootComponent(input)
 
       const errorsWithComponentNaming = utils.checkComponentNaming(input)
-      const errorsWtihComponentExistence = utils.checkComponentExistence(input)
+      const errorsWtihComponentExistence = utils.checkComponentExistenceAndReferences(input)
 
       allErrors = [
         ...errorsOnRouteNode,

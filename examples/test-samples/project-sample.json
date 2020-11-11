@@ -1,5 +1,4 @@
 {
-  "$schema": "https://docs.teleporthq.io/uidl-schema/v1/project.json",
   "name": "myVueProject",
   "globals": {
     "settings": {
@@ -471,7 +470,8 @@
                 "node": {
                   "type": "element",
                   "content": {
-                    "elementType": "ModalWindow",
+                    "elementType": "component",
+                    "semanticType": "ModalWindow",
                     "name": "window",
                     "dependency": {
                       "type": "local"
