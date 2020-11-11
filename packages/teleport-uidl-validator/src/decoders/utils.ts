@@ -33,7 +33,6 @@ import {
   UIDLStyleStateCondition,
   UIDLStyleMediaQueryScreenSizeCondition,
   UIDLStyleConditions,
-  UIDLElementNodeProjectReferencedStyle,
   UIDLComponentSEO,
   UIDLGlobalAsset,
   UIDLExternalDependency,
@@ -41,9 +40,6 @@ import {
   UIDLPeerDependency,
   UIDLImportReference,
   UIDLStyleSetTokenReference,
-} from '@teleporthq/teleport-types'
-import {
-  VUIDLStyleSetDefnition,
   VUIDLElement,
   VUIDLSlotNode,
   VUIDLConditionalNode,
@@ -54,12 +50,10 @@ import {
   VUIDLSectionLinkNode,
   VUIDLLinkNode,
   VUIDLURLLinkNode,
-  VUIDLStyleSetConditions,
-  VUIDLStyleSetMediaCondition,
-  VUIDLStyleSetStateCondition,
   VUIDLDesignTokens,
-} from './types'
+} from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
+import { elementProjectReferencedStyle } from './project-style-sheet-decoders'
 
 const {
   isValidComponentName,
@@ -90,58 +84,12 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   content: union(string(), number(), boolean(), array()),
 })
 
-export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
-  type: constant('screen-size'),
-  meta: object({
-    maxWidth: number(),
-    maxHeight: optional(number()),
-    minHeight: optional(number()),
-    minWidth: optional(number()),
-  }),
-  content: dict(
-    union(
-      staticValueDecoder,
-      string(),
-      number(),
-      lazy(() => tokenReferenceDecoder)
-    )
-  ),
-})
-
-export const styleSetStateConditionDecoder: Decoder<VUIDLStyleSetStateCondition> = object({
-  type: constant('element-state'),
-  meta: object({
-    state: lazy(() => elementStateDecoder),
-  }),
-  content: dict(
-    union(
-      staticValueDecoder,
-      string(),
-      number(),
-      lazy(() => tokenReferenceDecoder)
-    )
-  ),
-})
-
-export const projectStyleConditionsDecoder: Decoder<VUIDLStyleSetConditions> = union(
-  styleSetMediaConditionDecoder,
-  styleSetStateConditionDecoder
-)
-
 export const tokenReferenceDecoder: Decoder<UIDLStyleSetTokenReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: constant('token'),
     id: string(),
   }),
-})
-
-export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
-  id: string(),
-  name: string(),
-  type: constant('reusable-project-style-map'),
-  conditions: optional(array(projectStyleConditionsDecoder)),
-  content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
 })
 
 // TODO: Implement decoder for () => void
@@ -368,18 +316,6 @@ export const elementStyleWithMediaConditionDecoder: Decoder<UIDLStyleMediaQueryS
 export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
   elementStyleWithMediaConditionDecoder,
   elementStyleWithStateConditionDecoder
-)
-
-export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectReferencedStyle> = object(
-  {
-    id: string(),
-    type: constant('style-map'),
-    content: object({
-      mapType: constant('project-referenced'),
-      conditions: optional(array(styleConditionsDecoder)),
-      referenceId: string(),
-    }),
-  }
 )
 
 export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferencedStyle> = object({

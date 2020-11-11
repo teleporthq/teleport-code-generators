@@ -5,10 +5,10 @@ import {
   withDefault,
   Decoder,
   optional,
+  lazy,
 } from '@mojotech/json-type-validation'
-import { VComponentUIDL, VRootComponentUIDL } from './types'
+import { VComponentUIDL, VRootComponentUIDL } from '@teleporthq/teleport-types'
 import {
-  styleSetDefinitionDecoder,
   propDefinitionsDecoder,
   stateDefinitionsDecoder,
   outputOptionsDecoder,
@@ -18,8 +18,9 @@ import {
   peerDependencyDecoder,
   designTokensDecoder,
 } from './utils'
+import { styleSetDefinitionDecoder } from './project-style-sheet-decoders'
 
-const componentUIDLValidator: Decoder<VComponentUIDL> = object({
+export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
   name: withDefault('MyComponent', string()),
   node: elementNodeDecoder,
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
@@ -29,14 +30,14 @@ const componentUIDLValidator: Decoder<VComponentUIDL> = object({
   seo: optional(componentSeoDecoder),
 })
 
-const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
+export const rootComponentUIDLDecoder: Decoder<VRootComponentUIDL> = object({
   name: withDefault('App', string()),
   node: elementNodeDecoder,
   stateDefinitions: dict(stateDefinitionsDecoder),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   peerDefinitions: optional(dict(peerDependencyDecoder)),
-  styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
+  styleSetDefinitions: optional(dict(lazy(() => styleSetDefinitionDecoder))),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),
   designLanguage: optional(
@@ -45,7 +46,3 @@ const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
     })
   ),
 })
-
-export { rootComponentUIDLValidator }
-
-export default componentUIDLValidator

@@ -147,7 +147,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               return
             }
             case 'project-referenced': {
-              if (!projectStyleSet) {
+              if (
+                !projectStyleSet?.styleSetDefinitions ||
+                Object.keys(projectStyleSet.styleSetDefinitions).length === 0
+              ) {
                 throw new Error(
                   `Project Style Sheet is missing, but the node is referring to it ${element}`
                 )
@@ -157,6 +160,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
                 const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                // console.log(referedStyle)
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`

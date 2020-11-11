@@ -1,4 +1,4 @@
-import componentUIDLValidator, { rootComponentUIDLValidator } from './component-decoder'
-import projectUIDLValidator from './project-decoder'
+import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
+import { projectUIDLDecoder } from './project-decoder'
 
-export { componentUIDLValidator, projectUIDLValidator, rootComponentUIDLValidator }
+export { componentUIDLDecoder, rootComponentUIDLDecoder, projectUIDLDecoder }

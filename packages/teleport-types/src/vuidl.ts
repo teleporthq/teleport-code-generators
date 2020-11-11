@@ -23,8 +23,9 @@ import {
   UIDLPhoneLinkNode,
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
-} from '@teleporthq/teleport-types'
-import { UIDLStyleSetTokenReference } from '@teleporthq/teleport-types/src'
+  UIDLStyleSetTokenReference,
+  UIDLGlobalProjectValues,
+} from './uidl'
 
 type Modify<T, R> = Omit<T, keyof R> & R
 
@@ -119,6 +120,8 @@ export type VComponentUIDL = Omit<
 export type VProjectUIDL = Modify<
   ProjectUIDL,
   {
+    name: string
+    globals: UIDLGlobalProjectValues
     root: VRootComponentUIDL
     components?: Record<string, VComponentUIDL>
   }

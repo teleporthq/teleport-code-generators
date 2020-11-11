@@ -3,7 +3,6 @@ import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 import { resolveAbilities } from './resolvers/abilities'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
-import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -42,8 +41,6 @@ export default class Resolver {
     UIDLUtils.setFriendlyOutputOptions(uidl)
 
     utils.checkForIllegalNames(uidl, mapping)
-
-    resolveStyleSetDefinitions(uidl)
 
     resolveAbilities(uidl, newOptions)
 

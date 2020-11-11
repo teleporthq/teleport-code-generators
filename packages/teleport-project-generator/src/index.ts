@@ -25,7 +25,7 @@ import { DEFAULT_TEMPLATE } from './constants'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
-
+import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
 import {
   GeneratorOptions,
   GeneratedFolder,
@@ -131,6 +131,7 @@ export class ProjectGenerator {
     // Validating and parsing the UIDL
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
+
     if (valid && projectUIDL) {
       cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
     } else {
@@ -141,6 +142,13 @@ export class ProjectGenerator {
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
+    }
+
+    /* Takes in styleSetDefinitions and then resolves them to follow media size conventions
+    Pulled it out of component resolvers, as it needs to be done on top level as the 
+    same are sent to all the components and pages. */
+    if (uidl.root?.styleSetDefinitions) {
+      uidl.root.styleSetDefinitions = resolveStyleSetDefinitions(uidl.root.styleSetDefinitions)
     }
 
     const { components = {} } = uidl

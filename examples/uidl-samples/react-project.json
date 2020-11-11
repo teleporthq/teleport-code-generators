@@ -64,7 +64,7 @@
     "styleSetDefinitions": {
       "5ed0d05baa77d97673711820": {
         "id": "5ed0d05baa77d97673711820",
-        "name": "primaryButton",
+        "name": "primary-button",
         "type": "reusable-project-style-map",
         "conditions": [
           { "type": "screen-size",
