@@ -6,7 +6,7 @@ import {
   Decoder,
   optional,
 } from '@mojotech/json-type-validation'
-import { VComponentUIDL, VRootComponentUIDL } from './types'
+import { VComponentUIDL, VRootComponentUIDL } from '@teleporthq/teleport-types'
 import {
   styleSetDefinitionDecoder,
   propDefinitionsDecoder,
@@ -19,7 +19,7 @@ import {
   designTokensDecoder,
 } from './utils'
 
-const componentUIDLValidator: Decoder<VComponentUIDL> = object({
+export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
   name: withDefault('MyComponent', string()),
   node: elementNodeDecoder,
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
@@ -29,7 +29,7 @@ const componentUIDLValidator: Decoder<VComponentUIDL> = object({
   seo: optional(componentSeoDecoder),
 })
 
-const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
+export const rootComponentUIDLDecoder: Decoder<VRootComponentUIDL> = object({
   name: withDefault('App', string()),
   node: elementNodeDecoder,
   stateDefinitions: dict(stateDefinitionsDecoder),
@@ -45,7 +45,3 @@ const rootComponentUIDLValidator: Decoder<VRootComponentUIDL> = object({
     })
   ),
 })
-
-export { rootComponentUIDLValidator }
-
-export default componentUIDLValidator

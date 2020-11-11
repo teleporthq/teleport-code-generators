@@ -64,7 +64,7 @@
     "styleSetDefinitions": {
       "5ed0d05baa77d97673711820": {
         "id": "5ed0d05baa77d97673711820",
-        "name": "primaryButton",
+        "name": "primary-button",
         "type": "reusable-project-style-map",
         "conditions": [
           { "type": "screen-size",
@@ -928,6 +928,14 @@
                       "elementType": "li",
                       "name": "contact-link",
                       "referencedStyles": {
+                        "5ed0d3daf36df4da926078e": {
+                          "id": "5ed0d3daf36df4da926078e",
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "project-referenced",
+                            "referenceId": "5ed0d4923de727e93cb4efa2"
+                          }
+                        },
                         "5ecfa0d2f9f29ada8482ff03": {
                           "id": "5ecfa0d2f9f29ada8482ff03",
                           "type": "style-map",

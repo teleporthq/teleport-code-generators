@@ -41,8 +41,6 @@ import {
   UIDLPeerDependency,
   UIDLImportReference,
   UIDLStyleSetTokenReference,
-} from '@teleporthq/teleport-types'
-import {
   VUIDLStyleSetDefnition,
   VUIDLElement,
   VUIDLSlotNode,
@@ -58,7 +56,7 @@ import {
   VUIDLStyleSetMediaCondition,
   VUIDLStyleSetStateCondition,
   VUIDLDesignTokens,
-} from './types'
+} from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
 const {
