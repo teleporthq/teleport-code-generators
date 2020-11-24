@@ -34,18 +34,22 @@ import {
   ComponentGenerator,
   ProjectStrategyPageOptions,
   ConfigGeneratorResult,
-  GeneratedFile,
+  ProjectPlugin,
+  InMemoryFileRecord,
 } from '@teleporthq/teleport-types'
+import ProjectAssemblyLine from './assembly-line'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
 export class ProjectGenerator {
   private strategy: ProjectStrategy
   private validator: Validator
+  private assemblyLine: ProjectAssemblyLine
 
   constructor(strategy: ProjectStrategy) {
     this.validator = new Validator()
     this.strategy = strategy
+    this.assemblyLine = new ProjectAssemblyLine()
   }
 
   public getStrategy() {
@@ -123,11 +127,12 @@ export class ProjectGenerator {
     mapping: Mapping = {}
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
-    const inMemoryFilesMap = new Map<
-      string,
-      { rootFolder: GeneratedFolder; path: string[]; files: GeneratedFile[] }
-    >()
-    // Validating and parsing the UIDL
+    let collectedDependencies: Record<string, string> = {}
+    const inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
+
+    // Initialize output folder and other reusable structures
+    const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
+
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
     if (valid && projectUIDL) {
@@ -150,6 +155,15 @@ export class ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    const {} = this.assemblyLine.runBefore({
+      uidl,
+      template,
+      files: inMemoryFilesMap,
+      strategy: this.strategy,
+      dependencies: collectedDependencies,
+      rootFolder,
+    })
+
     const { components = {} } = uidl
     const { styleSetDefinitions = {} } = uidl.root
 
@@ -162,10 +176,6 @@ export class ProjectGenerator {
       // Set the local dependency paths based on the relative paths between files
       resolveLocalDependencies(pageUIDLs, components, this.strategy)
     }
-
-    // Initialize output folder and other reusable structures
-    const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
-    let collectedDependencies: Record<string, string> = {}
 
     // If static prefix is not specified, compute it from the path, but if the string is empty it should work
     const assetsPrefix =
@@ -251,7 +261,7 @@ export class ProjectGenerator {
     }
 
     // Handling module generation for components
-    if (this.strategy.components.moduleGenerator) {
+    if (this.strategy?.components?.moduleGenerator) {
       const componentsModule = await createComponentModule(uidl, this.strategy)
 
       inMemoryFilesMap.set(componentsModule.files[0].name, {
@@ -265,6 +275,10 @@ export class ProjectGenerator {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
+      if (!this.strategy?.components?.generator) {
+        return
+      }
+
       let componentOptions = options
       const componentsPath = this.strategy.components.path
       if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
@@ -435,12 +449,24 @@ export class ProjectGenerator {
       })
     }
 
-    inMemoryFilesMap.forEach((stage) => {
+    const {
+      files: projectFiles,
+      dependencies: projectDependencies,
+    } = await this.assemblyLine.runAfter({
+      uidl,
+      template,
+      files: inMemoryFilesMap,
+      strategy: this.strategy,
+      dependencies: collectedDependencies,
+      rootFolder,
+    })
+
+    projectFiles.forEach((stage) => {
       injectFilesToPath(stage.rootFolder, stage.path, stage.files)
     })
 
     // Inject all the collected dependencies in the package.json file
-    handlePackageJSON(rootFolder, uidl, collectedDependencies)
+    handlePackageJSON(rootFolder, uidl, projectDependencies)
 
     return rootFolder
   }
@@ -455,6 +481,10 @@ export class ProjectGenerator {
     if (this.strategy.router) {
       // TODO: Add mapping later if we decide to reference a generator object instead of a generator function for routing
     }
+  }
+
+  public addPlugin(plugin: ProjectPlugin) {
+    this.assemblyLine.addPlugin(plugin)
   }
 
   public getAssetsPath() {

@@ -53,6 +53,26 @@ export interface ComponentStructure {
 
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
+export type InMemoryFileRecord = {
+  rootFolder: GeneratedFolder
+  path: string[]
+  files: GeneratedFile[]
+}
+
+export interface ProjectPluginStructure {
+  uidl: ProjectUIDL
+  template: GeneratedFolder
+  files: Map<string, InMemoryFileRecord>
+  dependencies: Record<string, string>
+  strategy: ProjectStrategy
+  rootFolder: GeneratedFolder
+}
+
+export interface ProjectPlugin {
+  runBefore: (structure: ProjectPluginStructure) => Promise<ProjectPluginStructure>
+  runAfter: (structure: ProjectPluginStructure) => Promise<ProjectPluginStructure>
+}
+
 export interface ComponentDefaultPluginParams {
   fileType: FileType
 }

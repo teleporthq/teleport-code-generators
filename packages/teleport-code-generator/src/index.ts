@@ -11,6 +11,7 @@ import {
   InvalidPublisherTypeError,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
+import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -154,7 +155,10 @@ export const packProject: PackProjectFunction = async (
     path: [Constants.ASSETS_IDENTIFIER],
   })
 
-  packer.setGenerator(projectGeneratorFactory())
+  const projectFactory = projectGeneratorFactory()
+  projectFactory.addPlugin(pluginNextCSSModules)
+
+  packer.setGenerator(projectFactory)
   packer.setTemplate(projectTemplate)
 
   // If no publisher is provided, the packer will return the generated project

@@ -50,7 +50,8 @@
     "@teleporthq/teleport-publisher-vercel": "^0.14.0",
     "@teleporthq/teleport-publisher-zip": "^0.14.0",
     "@teleporthq/teleport-shared": "^0.14.0",
-    "@teleporthq/teleport-types": "^0.14.0"
+    "@teleporthq/teleport-types": "^0.14.0",
+    "@teleporthq/teleport-project-plugin-next-css-modules": "^0.14.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
