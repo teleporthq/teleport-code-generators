@@ -13,9 +13,11 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
     const { strategy } = structure
     const reactComponentGenerator = createCustomReactGatsbyComponentGenerator()
     reactComponentGenerator.addPlugin(reactStyledComponentsPlugin)
+    reactComponentGenerator.addPlugin(importStatementsPlugin)
 
     const reactPagesGenerator = createCustomReactGatsbyComponentGenerator([headConfigPlugin])
     reactPagesGenerator.addPlugin(reactStyledComponentsPlugin)
+    reactPagesGenerator.addPlugin(importStatementsPlugin)
 
     const projectStyleSheetGenerator = createComponentGenerator()
     projectStyleSheetGenerator.addPlugin(createStyleSheetPlugin())
@@ -24,7 +26,11 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
 
     strategy.components.generator = reactComponentGenerator
     strategy.pages.generator = reactPagesGenerator
-    strategy.projectStyleSheet.generator = projectStyleSheetGenerator
+    strategy.projectStyleSheet = {
+      generator: projectStyleSheetGenerator,
+      path: ['src'],
+      fileName: 'style',
+    }
 
     return structure
   }

@@ -11,7 +11,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-import { Mapping, ComponentPlugin, ProjectStrategy } from '@teleporthq/teleport-types'
+import { Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
 import { createCustomHTMLEntryFile } from './utils'
@@ -26,7 +26,10 @@ const createGatsbyProjectGenerator = () => {
   const reactPagesGenerator = createCustomReactGatsbyComponentGenerator([headConfigPlugin])
 
   reactComponentGenerator.addPlugin(cssModulesPlugin)
+  reactComponentGenerator.addPlugin(importStatementsPlugin)
+
   reactPagesGenerator.addPlugin(cssModulesPlugin)
+  reactPagesGenerator.addPlugin(importStatementsPlugin)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
@@ -37,9 +40,13 @@ const createGatsbyProjectGenerator = () => {
   htmlFileGenerator.addPostProcessor(prettierJS)
 
   const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  styleSheetGenerator.addPlugin(
+    createStyleSheetPlugin({
+      fileName: 'style',
+    })
+  )
 
-  const strategy: ProjectStrategy = {
+  const generator = createProjectGenerator({
     components: {
       generator: reactComponentGenerator,
       path: ['src', 'components'],
@@ -66,20 +73,7 @@ const createGatsbyProjectGenerator = () => {
       fileName: 'style',
       path: ['src'],
     },
-  }
-
-  // if (variation === ReactStyleVariation.StyledComponents) {
-  //   strategy.framework = {
-  //     replace: {
-  //       fileName: 'gatsby-config',
-  //       fileType: FileType.JS,
-  //       path: [''],
-  //       replaceFile: appendToConfigFile,
-  //     },
-  //   }
-  // }
-
-  const generator = createProjectGenerator(strategy)
+  })
 
   return generator
 }
@@ -87,9 +81,8 @@ const createGatsbyProjectGenerator = () => {
 const createCustomReactGatsbyComponentGenerator = (extraPlugins: ComponentPlugin[] = []) => {
   const reactComponentGenerator = createComponentGenerator()
   reactComponentGenerator.addPlugin(reactBasePlugin)
-  reactComponentGenerator.addPlugin(reactProptypes)
   extraPlugins.forEach((plugin) => reactComponentGenerator.addPlugin(plugin))
-  reactComponentGenerator.addPlugin(importStatementsPlugin)
+  reactComponentGenerator.addPlugin(reactProptypes)
   reactComponentGenerator.addMapping(GatsbyProjectMapping as Mapping)
   reactComponentGenerator.addPostProcessor(prettierJSX)
   return reactComponentGenerator
