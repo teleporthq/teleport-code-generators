@@ -11,7 +11,8 @@ import {
   InvalidPublisherTypeError,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
-import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+// import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -156,7 +157,7 @@ export const packProject: PackProjectFunction = async (
   })
 
   const projectFactory = projectGeneratorFactory()
-  projectFactory.addPlugin(pluginNextCSSModules)
+  projectFactory.addPlugin(pluginGatsbyStyledComponents)
 
   packer.setGenerator(projectFactory)
   packer.setTemplate(projectTemplate)

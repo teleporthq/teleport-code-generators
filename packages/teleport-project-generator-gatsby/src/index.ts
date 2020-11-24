@@ -1,51 +1,32 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import reactBasePlugin from '@teleporthq/teleport-plugin-react-base-component'
 import {
   createCSSModulesPlugin,
   createStyleSheetPlugin,
 } from '@teleporthq/teleport-plugin-css-modules'
-import {
-  createReactStyledComponentsPlugin,
-  createStyleSheetPlugin as createStyledComponentsStyleSheetPlugin,
-} from '@teleporthq/teleport-plugin-react-styled-components'
 import reactProptypes from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-
-import {
-  Mapping,
-  ComponentPlugin,
-  FileType,
-  ReactStyleVariation,
-  ProjectStrategy,
-} from '@teleporthq/teleport-types'
-
+import { Mapping, ComponentPlugin, ProjectStrategy } from '@teleporthq/teleport-types'
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
-import { createCustomHTMLEntryFile, appendToConfigFile } from './utils'
+import { createCustomHTMLEntryFile } from './utils'
 
 const cssModulesPlugin = createCSSModulesPlugin({
   moduleExtension: true,
   camelCaseClassNames: true,
 })
-const styledComponentsPlugin = createReactStyledComponentsPlugin()
 
-interface GatsbyProjectConfig {
-  variation?: ReactStyleVariation
-}
+const createGatsbyProjectGenerator = () => {
+  const reactComponentGenerator = createCustomReactGatsbyComponentGenerator()
+  const reactPagesGenerator = createCustomReactGatsbyComponentGenerator([headConfigPlugin])
 
-const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
-  const variation =
-    config && config?.variation === ReactStyleVariation.StyledComponents
-      ? ReactStyleVariation.StyledComponents
-      : ReactStyleVariation.CSSModules
-  const reactComponentGenerator = createCustomReactComponentGenerator(variation)
-  const reactPagesGenerator = createCustomReactComponentGenerator(variation, [headConfigPlugin])
+  reactComponentGenerator.addPlugin(cssModulesPlugin)
+  reactPagesGenerator.addPlugin(cssModulesPlugin)
 
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
@@ -56,13 +37,7 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
   htmlFileGenerator.addPostProcessor(prettierJS)
 
   const styleSheetGenerator = createComponentGenerator()
-  if (config?.variation && config.variation === ReactStyleVariation.StyledComponents) {
-    styleSheetGenerator.addPlugin(createStyledComponentsStyleSheetPlugin())
-    styleSheetGenerator.addPlugin(importStatementsPlugin)
-    styleSheetGenerator.addPostProcessor(prettierJS)
-  } else {
-    styleSheetGenerator.addPlugin(createStyleSheetPlugin())
-  }
+  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
 
   const strategy: ProjectStrategy = {
     components: {
@@ -93,33 +68,25 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
     },
   }
 
-  if (variation === ReactStyleVariation.StyledComponents) {
-    strategy.framework = {
-      replace: {
-        fileName: 'gatsby-config',
-        fileType: FileType.JS,
-        path: [''],
-        replaceFile: appendToConfigFile,
-      },
-    }
-  }
+  // if (variation === ReactStyleVariation.StyledComponents) {
+  //   strategy.framework = {
+  //     replace: {
+  //       fileName: 'gatsby-config',
+  //       fileType: FileType.JS,
+  //       path: [''],
+  //       replaceFile: appendToConfigFile,
+  //     },
+  //   }
+  // }
 
   const generator = createProjectGenerator(strategy)
 
   return generator
 }
 
-const createCustomReactComponentGenerator = (
-  styleVariation: string,
-  extraPlugins: ComponentPlugin[] = []
-) => {
+const createCustomReactGatsbyComponentGenerator = (extraPlugins: ComponentPlugin[] = []) => {
   const reactComponentGenerator = createComponentGenerator()
   reactComponentGenerator.addPlugin(reactBasePlugin)
-  if (styleVariation === ReactStyleVariation.StyledComponents) {
-    reactComponentGenerator.addPlugin(styledComponentsPlugin)
-  } else {
-    reactComponentGenerator.addPlugin(cssModulesPlugin)
-  }
   reactComponentGenerator.addPlugin(reactProptypes)
   extraPlugins.forEach((plugin) => reactComponentGenerator.addPlugin(plugin))
   reactComponentGenerator.addPlugin(importStatementsPlugin)
@@ -128,4 +95,9 @@ const createCustomReactComponentGenerator = (
   return reactComponentGenerator
 }
 
-export { createGatsbyProjectGenerator, GatsbyProjectMapping, GatsbyTemplate }
+export {
+  createGatsbyProjectGenerator,
+  GatsbyProjectMapping,
+  GatsbyTemplate,
+  createCustomReactGatsbyComponentGenerator,
+}
