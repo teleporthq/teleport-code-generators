@@ -2,6 +2,7 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
   InMemoryFileRecord,
+  ProjectStrategy,
 } from '@teleporthq/teleport-types'
 
 class ProjectAssemblyLine {
@@ -13,7 +14,11 @@ class ProjectAssemblyLine {
 
   public async runBefore(
     structure: ProjectPluginStructure
-  ): Promise<{ files: Map<string, InMemoryFileRecord>; dependencies: Record<string, string> }> {
+  ): Promise<{
+    files: Map<string, InMemoryFileRecord>
+    dependencies: Record<string, string>
+    strategy: ProjectStrategy
+  }> {
     const finalStructure = await this.plugins.reduce(
       async (previousPluginOperation: Promise<ProjectPluginStructure>, plugin) => {
         const modifiedStructure = await previousPluginOperation
@@ -25,6 +30,7 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
+      strategy: finalStructure.strategy,
     }
   }
 

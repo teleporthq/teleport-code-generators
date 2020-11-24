@@ -155,7 +155,7 @@ export class ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    const {} = this.assemblyLine.runBefore({
+    const { strategy: projectStrategy } = await this.assemblyLine.runBefore({
       uidl,
       template,
       files: inMemoryFilesMap,
@@ -163,6 +163,8 @@ export class ProjectGenerator {
       dependencies: collectedDependencies,
       rootFolder,
     })
+
+    this.strategy = projectStrategy
 
     const { components = {} } = uidl
     const { styleSetDefinitions = {} } = uidl.root
