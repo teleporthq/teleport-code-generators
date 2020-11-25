@@ -128,10 +128,10 @@ export class ProjectGenerator {
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
-    const inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
+    let inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
 
     // Initialize output folder and other reusable structures
-    const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
+    let rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
 
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
@@ -155,7 +155,7 @@ export class ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
-    const { strategy: projectStrategy } = await this.assemblyLine.runBefore({
+    const runBeforeResult = await this.assemblyLine.runBefore({
       uidl,
       template,
       files: inMemoryFilesMap,
@@ -164,7 +164,10 @@ export class ProjectGenerator {
       rootFolder,
     })
 
-    this.strategy = projectStrategy
+    collectedDependencies = { ...collectedDependencies, ...runBeforeResult.dependencies }
+    this.strategy = runBeforeResult.strategy
+    rootFolder = runBeforeResult.rootFolder
+    inMemoryFilesMap = runBeforeResult.files
 
     const { components = {} } = uidl
     const { styleSetDefinitions = {} } = uidl.root
@@ -199,7 +202,6 @@ export class ProjectGenerator {
       })
 
       inMemoryFilesMap.set('projectStyleSheet', {
-        rootFolder,
         path,
         files,
       })
@@ -221,7 +223,6 @@ export class ProjectGenerator {
               : pagesPath.join('/'),
             this.strategy.projectStyleSheet.path.join('/')
           ) || '.'
-
         /* If relative path resolver returns empty string, then both the files are in the same
         folder. */
 
@@ -242,7 +243,6 @@ export class ProjectGenerator {
       const path = this.strategy.pages.path.concat(relativePath)
 
       inMemoryFilesMap.set(pageUIDL.name, {
-        rootFolder,
         path,
         files,
       })
@@ -253,7 +253,6 @@ export class ProjectGenerator {
         const pageModule = await createPageModule(pageUIDL, this.strategy, options)
 
         inMemoryFilesMap.set(`${pageUIDL.name}Module`, {
-          rootFolder,
           path,
           files: pageModule.files,
         })
@@ -267,7 +266,6 @@ export class ProjectGenerator {
       const componentsModule = await createComponentModule(uidl, this.strategy)
 
       inMemoryFilesMap.set(componentsModule.files[0].name, {
-        rootFolder,
         path: this.strategy.components.path,
         files: componentsModule.files,
       })
@@ -320,7 +318,6 @@ export class ProjectGenerator {
       const path = this.strategy.components.path.concat(relativePath)
 
       inMemoryFilesMap.set(componentName, {
-        rootFolder,
         path,
         files,
       })
@@ -348,7 +345,6 @@ export class ProjectGenerator {
         collectedDependencies = result.dependencies
 
         inMemoryFilesMap.set(fileName, {
-          rootFolder,
           path: this.strategy.framework.replace.path,
           files: [result.file],
         })
@@ -378,6 +374,7 @@ export class ProjectGenerator {
           },
           dependencies: collectedDependencies,
         })
+
         collectedDependencies = result.dependencies
 
         if (Object.keys(result?.chunks).length > 0) {
@@ -387,7 +384,6 @@ export class ProjectGenerator {
           )
 
           inMemoryFilesMap.set(fileName, {
-            rootFolder,
             path: this.strategy.framework.config.path,
             files,
           })
@@ -400,7 +396,6 @@ export class ProjectGenerator {
       const manifestFile = createManifestJSONFile(uidl, assetsPrefix)
 
       inMemoryFilesMap.set(manifestFile.name, {
-        rootFolder,
         path: this.strategy.static.path,
         files: [manifestFile],
       })
@@ -414,7 +409,6 @@ export class ProjectGenerator {
       const { routerFile, dependencies } = await createRouterFile(uidl.root, this.strategy)
 
       inMemoryFilesMap.set('router', {
-        rootFolder,
         path: this.strategy.router.path,
         files: [routerFile],
       })
@@ -426,7 +420,6 @@ export class ProjectGenerator {
     if (this.strategy.entry) {
       const entryFile = await createEntryFile(uidl, this.strategy, { assetsPrefix })
       inMemoryFilesMap.set('entry', {
-        rootFolder,
         path: this.strategy.entry.path,
         files: [entryFile],
       })
@@ -445,16 +438,12 @@ export class ProjectGenerator {
       const files = fileFileAndReplaceContent(folder.files, fileName, resultFile.content)
 
       inMemoryFilesMap.set(fileName, {
-        rootFolder,
         path: folder.path,
         files,
       })
     }
 
-    const {
-      files: projectFiles,
-      dependencies: projectDependencies,
-    } = await this.assemblyLine.runAfter({
+    const runAfterResult = await this.assemblyLine.runAfter({
       uidl,
       template,
       files: inMemoryFilesMap,
@@ -463,12 +452,16 @@ export class ProjectGenerator {
       rootFolder,
     })
 
-    projectFiles.forEach((stage) => {
-      injectFilesToPath(stage.rootFolder, stage.path, stage.files)
+    collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
+    rootFolder = runAfterResult.rootFolder
+    inMemoryFilesMap = runAfterResult.files
+
+    inMemoryFilesMap.forEach((stage) => {
+      injectFilesToPath(rootFolder, stage.path, stage.files)
     })
 
     // Inject all the collected dependencies in the package.json file
-    handlePackageJSON(rootFolder, uidl, projectDependencies)
+    handlePackageJSON(rootFolder, uidl, collectedDependencies)
 
     return rootFolder
   }

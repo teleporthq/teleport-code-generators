@@ -3,7 +3,16 @@ import {
   ProjectPluginStructure,
   InMemoryFileRecord,
   ProjectStrategy,
+  GeneratedFolder,
 } from '@teleporthq/teleport-types'
+
+interface ProjectAssemblyLineResult {
+  files: Map<string, InMemoryFileRecord>
+  dependencies: Record<string, string>
+  rootFolder: GeneratedFolder
+  strategy: ProjectStrategy
+  template: GeneratedFolder
+}
 
 class ProjectAssemblyLine {
   private plugins: ProjectPlugin[]
@@ -12,13 +21,7 @@ class ProjectAssemblyLine {
     this.plugins = plugins
   }
 
-  public async runBefore(
-    structure: ProjectPluginStructure
-  ): Promise<{
-    files: Map<string, InMemoryFileRecord>
-    dependencies: Record<string, string>
-    strategy: ProjectStrategy
-  }> {
+  public async runBefore(structure: ProjectPluginStructure): Promise<ProjectAssemblyLineResult> {
     const finalStructure = await this.plugins.reduce(
       async (previousPluginOperation: Promise<ProjectPluginStructure>, plugin) => {
         const modifiedStructure = await previousPluginOperation
@@ -30,13 +33,15 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
+      rootFolder: finalStructure.rootFolder,
       strategy: finalStructure.strategy,
+      template: finalStructure.template,
     }
   }
 
   public async runAfter(
     structure: ProjectPluginStructure
-  ): Promise<{ files: Map<string, InMemoryFileRecord>; dependencies: Record<string, string> }> {
+  ): Promise<Omit<ProjectAssemblyLineResult, 'strategy'>> {
     const finalStructure = await this.plugins.reduce(
       async (previousPluginOperation: Promise<ProjectPluginStructure>, plugin) => {
         const modifiedStructure = await previousPluginOperation
@@ -48,6 +53,8 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
+      rootFolder: finalStructure.rootFolder,
+      template: finalStructure.template,
     }
   }
 

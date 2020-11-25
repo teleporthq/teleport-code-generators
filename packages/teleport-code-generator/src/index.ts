@@ -11,7 +11,7 @@ import {
   InvalidPublisherTypeError,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
-// import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
@@ -96,17 +96,25 @@ const componentGeneratorProjectMappings = {
   [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
 }
 
+const nextCSSModulesProjectGenerator = createNextProjectGenerator()
+nextCSSModulesProjectGenerator.addPlugin(pluginNextCSSModules)
+
+const gatsbyStyledComponentsProjectGenerator = createGatsbyProjectGenerator()
+gatsbyStyledComponentsProjectGenerator.addPlugin(pluginGatsbyStyledComponents)
+
 const projectGeneratorFactories = {
-  [ProjectType.REACT]: createReactProjectGenerator,
-  [ProjectType.NEXT]: createNextProjectGenerator,
-  [ProjectType.VUE]: createVueProjectGenerator,
-  [ProjectType.NUXT]: createNuxtProjectGenerator,
-  [ProjectType.PREACT]: createPreactProjectGenerator,
-  [ProjectType.STENCIL]: createStencilProjectGenerator,
-  [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
-  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
-  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
+  [ProjectType.REACT]: createReactProjectGenerator(),
+  [ProjectType.NEXT]: createNextProjectGenerator(),
+  [ProjectType.VUE]: createVueProjectGenerator(),
+  [ProjectType.NUXT]: createNuxtProjectGenerator(),
+  [ProjectType.PREACT]: createPreactProjectGenerator(),
+  [ProjectType.STENCIL]: createStencilProjectGenerator(),
+  [ProjectType.ANGULAR]: createAngularProjectGenerator(),
+  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
+  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
+  [ProjectType.NEXT_CSSMODULES]: nextCSSModulesProjectGenerator,
+  [ProjectType.GATSBY_STYLED_COMPONENTS]: gatsbyStyledComponentsProjectGenerator,
 }
 
 const templates = {
@@ -120,6 +128,8 @@ const templates = {
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
   [ProjectType.GATSBY]: GatsbyTemplate,
+  [ProjectType.NEXT_CSSMODULES]: NextTemplate,
+  [ProjectType.GATSBY_STYLED_COMPONENTS]: GatsbyTemplate,
 }
 
 const projectPublisherFactories = {
@@ -156,10 +166,7 @@ export const packProject: PackProjectFunction = async (
     path: [Constants.ASSETS_IDENTIFIER],
   })
 
-  const projectFactory = projectGeneratorFactory()
-  projectFactory.addPlugin(pluginGatsbyStyledComponents)
-
-  packer.setGenerator(projectFactory)
+  packer.setGenerator(projectGeneratorFactory)
   packer.setTemplate(projectTemplate)
 
   // If no publisher is provided, the packer will return the generated project

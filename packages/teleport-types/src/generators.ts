@@ -54,7 +54,6 @@ export interface ComponentStructure {
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
 export type InMemoryFileRecord = {
-  rootFolder: GeneratedFolder
   path: string[]
   files: GeneratedFile[]
 }
@@ -426,6 +425,8 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
+  NEXT_CSSMODULES = 'Next-CSSModules',
+  GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
 }
 
 export enum ComponentType {

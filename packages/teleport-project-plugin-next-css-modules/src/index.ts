@@ -1,6 +1,5 @@
 import {
   FileType,
-  GeneratedFile,
   Mapping,
   ProjectPlugin,
   ProjectPluginStructure,
@@ -45,38 +44,25 @@ class PluginNextCSSModules implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { rootFolder, files, dependencies, template } = structure
+    const { files, dependencies, template } = structure
     const configFile = template.files.find(
       (file) => file.name === 'next.config' && file.fileType === FileType.JS
     )
 
-    let appFile: GeneratedFile | null
+    const appFileContent = files.get('_app').files[0].content
 
-    const publicFolder = template.subFolders.find((folder) => folder.name === 'pages')
-    if (publicFolder) {
-      appFile = publicFolder.files.find((file) => file.name === '_app')
-      if (appFile) {
-        /* Modify from template */
-      }
-    }
-
-    if (files.has('_app') && !appFile) {
-      const appFileContent = files.get('_app').files[0].content
-
-      files.set('_app', {
-        rootFolder,
-        path: files.get('_app').path,
-        files: [
-          {
-            name: '_app',
-            fileType: FileType.JS,
-            content: `import "./style.module.css" \n
+    files.set('_app', {
+      path: files.get('_app').path,
+      files: [
+        {
+          name: '_app',
+          fileType: FileType.JS,
+          content: `import "./style.module.css" \n
 ${appFileContent}
 `,
-          },
-        ],
-      })
-    }
+        },
+      ],
+    })
 
     if (files.has('next.config') || configFile) {
       // const content = configFile.content
@@ -85,7 +71,6 @@ ${appFileContent}
     }
 
     files.set('next.config', {
-      rootFolder,
       path: [],
       files: [
         {
