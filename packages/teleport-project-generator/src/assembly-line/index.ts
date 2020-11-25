@@ -9,7 +9,6 @@ import {
 interface ProjectAssemblyLineResult {
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
-  rootFolder: GeneratedFolder
   strategy: ProjectStrategy
   template: GeneratedFolder
 }
@@ -33,7 +32,6 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
-      rootFolder: finalStructure.rootFolder,
       strategy: finalStructure.strategy,
       template: finalStructure.template,
     }
@@ -53,7 +51,6 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
-      rootFolder: finalStructure.rootFolder,
       template: finalStructure.template,
     }
   }

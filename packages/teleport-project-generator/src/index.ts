@@ -131,7 +131,7 @@ export class ProjectGenerator {
     let inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
 
     // Initialize output folder and other reusable structures
-    let rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
+    const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
 
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
@@ -166,7 +166,6 @@ export class ProjectGenerator {
 
     collectedDependencies = { ...collectedDependencies, ...runBeforeResult.dependencies }
     this.strategy = runBeforeResult.strategy
-    rootFolder = runBeforeResult.rootFolder
     inMemoryFilesMap = runBeforeResult.files
 
     const { components = {} } = uidl
@@ -453,7 +452,6 @@ export class ProjectGenerator {
     })
 
     collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
-    rootFolder = runAfterResult.rootFolder
     inMemoryFilesMap = runAfterResult.files
 
     inMemoryFilesMap.forEach((stage) => {

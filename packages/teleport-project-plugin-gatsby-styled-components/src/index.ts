@@ -12,7 +12,7 @@ import { STYLED_DEPENDENCIES } from './constants'
 
 class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
-    const { strategy, template, rootFolder, dependencies } = structure
+    const { strategy, template, files, dependencies } = structure
 
     const reactComponentGenerator = createCustomReactGatsbyComponentGenerator()
     reactComponentGenerator.addPlugin(reactStyledComponentsPlugin)
@@ -49,7 +49,11 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
     magic.appendRight(parsedFile.length - 10, `,'gatsby-plugin-styled-components'`)
 
     const content = magic.toString()
-    rootFolder.files.push({ name: 'gatsby-config', fileType: FileType.JS, content })
+
+    files.set('gatsby-config', {
+      path: [],
+      files: [{ name: `gatsby-config`, fileType: FileType.JS, content }],
+    })
 
     Object.keys(STYLED_DEPENDENCIES).forEach((dep: string) => {
       dependencies[dep] = STYLED_DEPENDENCIES[dep]

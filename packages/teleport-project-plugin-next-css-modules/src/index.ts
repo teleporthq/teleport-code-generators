@@ -44,11 +44,7 @@ class PluginNextCSSModules implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { files, dependencies, template } = structure
-    const configFile = template.files.find(
-      (file) => file.name === 'next.config' && file.fileType === FileType.JS
-    )
-
+    const { files, dependencies } = structure
     const appFileContent = files.get('_app').files[0].content
 
     files.set('_app', {
@@ -63,12 +59,6 @@ ${appFileContent}
         },
       ],
     })
-
-    if (files.has('next.config') || configFile) {
-      // const content = configFile.content
-      /* Config already exists so edit the existing one */
-      return structure
-    }
 
     files.set('next.config', {
       path: [],
