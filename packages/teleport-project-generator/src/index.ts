@@ -200,14 +200,19 @@ export class ProjectGenerator {
       let pageOptions = options
       const pagesPath = this.strategy.pages.path
       if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet = PathResolver.relative(
-          /* When each page is created inside a another folder then we just need to 
+        const relativePathForProjectStyleSheet =
+          PathResolver.relative(
+            /* When each page is created inside a another folder then we just need to 
           add one more element to the path resolver to maintian the hierarcy */
-          this.strategy.pages.options?.createFolderForEachComponent
-            ? [...pagesPath, pageUIDL.name].join('/')
-            : pagesPath.join('/'),
-          this.strategy.projectStyleSheet.path.join('/')
-        )
+            this.strategy.pages.options?.createFolderForEachComponent
+              ? [...pagesPath, pageUIDL.name].join('/')
+              : pagesPath.join('/'),
+            this.strategy.projectStyleSheet.path.join('/')
+          ) || '.'
+
+        /* If relative path resolver returns empty string, then both the files are in the same
+        folder. */
+
         pageOptions = {
           ...options,
           projectStyleSet: {
@@ -263,14 +268,19 @@ export class ProjectGenerator {
       let componentOptions = options
       const componentsPath = this.strategy.components.path
       if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet = PathResolver.relative(
-          /* When each page is created inside a another folder then we just need to 
+        const relativePathForProjectStyleSheet =
+          PathResolver.relative(
+            /* When each page is created inside a another folder then we just need to 
           add one more element to the path resolver to maintian the hierarcy */
-          this.strategy.components.options?.createFolderForEachComponent
-            ? [...componentsPath, componentName].join('/')
-            : componentsPath.join('/'),
-          this.strategy.projectStyleSheet.path.join('/')
-        )
+            this.strategy.components.options?.createFolderForEachComponent
+              ? [...componentsPath, componentName].join('/')
+              : componentsPath.join('/'),
+            this.strategy.projectStyleSheet.path.join('/')
+          ) || '.'
+
+        /* If relative path resolver returns empty string, then both the files are in the same
+        folder. */
+
         componentOptions = {
           ...options,
           projectStyleSet: {
