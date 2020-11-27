@@ -322,7 +322,8 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
 export const handlePackageJSON = (
   template: GeneratedFolder,
   uidl: ProjectUIDL,
-  dependencies: Record<string, string>
+  dependencies: Record<string, string>,
+  devDependencies: Record<string, string>
 ) => {
   const inputPackageJSONFile = template.files.find(
     (file) => file.name === 'package' && file.fileType === FileType.JSON
@@ -337,12 +338,18 @@ export const handlePackageJSON = (
       ...dependencies,
     }
 
+    packageJSONContent.devDependencies = {
+      ...packageJSONContent.devDependencies,
+      ...devDependencies,
+    }
+
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
   } else {
     const content: PackageJSON = {
       ...DEFAULT_PACKAGE_JSON,
       name: StringUtils.slugify(uidl.name),
       dependencies,
+      devDependencies,
     }
 
     template.files.push({

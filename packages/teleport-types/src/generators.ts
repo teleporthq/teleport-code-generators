@@ -63,6 +63,7 @@ export interface ProjectPluginStructure {
   template: GeneratedFolder
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
+  devDependencies: Record<string, string>
   strategy: ProjectStrategy
   rootFolder: GeneratedFolder
 }

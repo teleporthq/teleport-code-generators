@@ -47,12 +47,15 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
     const parsedFile = configFile.content.replace('/n', '//n')
     const magic = new MagicString(parsedFile)
     magic.appendRight(parsedFile.length - 10, `,'gatsby-plugin-styled-components'`)
-
     const content = magic.toString()
+
+    const formattedCode = prettierJS({ [FileType.JS]: content })
 
     files.set('gatsby-config', {
       path: [],
-      files: [{ name: `gatsby-config`, fileType: FileType.JS, content }],
+      files: [
+        { name: `gatsby-config`, fileType: FileType.JS, content: formattedCode[FileType.JS] },
+      ],
     })
 
     Object.keys(STYLED_DEPENDENCIES).forEach((dep: string) => {

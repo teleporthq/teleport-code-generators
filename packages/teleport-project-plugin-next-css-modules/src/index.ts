@@ -10,6 +10,7 @@ import { NextMapping } from '@teleporthq/teleport-project-generator-next'
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 class PluginNextCSSModules implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
@@ -44,8 +45,13 @@ class PluginNextCSSModules implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { files, dependencies } = structure
+    const { files, devDependencies } = structure
     const appFileContent = files.get('_app').files[0].content
+    const content = `import "./style.module.css" \n
+    ${appFileContent}
+    `
+
+    const formattedCode = prettierJS({ [FileType.JS]: content })
 
     files.set('_app', {
       path: files.get('_app').path,
@@ -53,11 +59,16 @@ class PluginNextCSSModules implements ProjectPlugin {
         {
           name: '_app',
           fileType: FileType.JS,
-          content: `import "./style.module.css" \n
-${appFileContent}
-`,
+          content: formattedCode[FileType.JS],
         },
       ],
+    })
+
+    const nextContent = prettierJS({
+      [FileType.JS]: `const withCSS = require('@zeit/next-css')
+    module.exports = withCSS({
+      cssModules: true
+    })`,
     })
 
     files.set('next.config', {
@@ -66,15 +77,12 @@ ${appFileContent}
         {
           name: 'next.config',
           fileType: FileType.JS,
-          content: `const withCSS = require('@zeit/next-css')
-module.exports = withCSS({
-  cssModules: true
-})`,
+          content: nextContent[FileType.JS],
         },
       ],
     })
 
-    dependencies['@zeit/next-css'] = '^1.0.1'
+    devDependencies['@zeit/next-css'] = '^1.0.1'
     return structure
   }
 }

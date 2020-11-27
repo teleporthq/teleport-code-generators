@@ -11,6 +11,7 @@ interface ProjectAssemblyLineResult {
   dependencies: Record<string, string>
   strategy: ProjectStrategy
   template: GeneratedFolder
+  devDependencies: Record<string, string>
 }
 
 class ProjectAssemblyLine {
@@ -32,6 +33,7 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
+      devDependencies: finalStructure.devDependencies,
       strategy: finalStructure.strategy,
       template: finalStructure.template,
     }
@@ -51,6 +53,7 @@ class ProjectAssemblyLine {
     return {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
+      devDependencies: finalStructure.devDependencies,
       template: finalStructure.template,
     }
   }

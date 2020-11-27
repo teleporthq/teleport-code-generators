@@ -27,6 +27,7 @@
     },
     "dependencies": {
       "@teleporthq/teleport-types": "^0.14.0",
+      "@teleporthq/teleport-postprocessor-prettier-js": "^0.14.0",
       "@teleporthq/teleport-component-generator-react": "^0.14.0",
       "@teleporthq/teleport-project-generator-next": "^0.14.0",
       "@teleporthq/teleport-plugin-jsx-head-config": "^0.14.0",

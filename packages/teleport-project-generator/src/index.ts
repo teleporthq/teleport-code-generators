@@ -1,27 +1,3 @@
-import {
-  injectFilesToPath,
-  resolveLocalDependencies,
-  createPageUIDLs,
-  prepareComponentOutputOptions,
-  generateExternalCSSImports,
-  fileFileAndReplaceContent,
-} from './utils'
-
-import {
-  createManifestJSONFile,
-  handlePackageJSON,
-  createComponent,
-  createPage,
-  createRouterFile,
-  createEntryFile,
-  createComponentModule,
-  createPageModule,
-} from './file-handlers'
-
-import PathResolver from 'path'
-
-import { DEFAULT_TEMPLATE } from './constants'
-
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
@@ -37,6 +13,27 @@ import {
   ProjectPlugin,
   InMemoryFileRecord,
 } from '@teleporthq/teleport-types'
+import PathResolver from 'path'
+
+import {
+  injectFilesToPath,
+  resolveLocalDependencies,
+  createPageUIDLs,
+  prepareComponentOutputOptions,
+  generateExternalCSSImports,
+  fileFileAndReplaceContent,
+} from './utils'
+import {
+  createManifestJSONFile,
+  handlePackageJSON,
+  createComponent,
+  createPage,
+  createRouterFile,
+  createEntryFile,
+  createComponentModule,
+  createPageModule,
+} from './file-handlers'
+import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
@@ -128,6 +125,7 @@ export class ProjectGenerator {
   ): Promise<GeneratedFolder> {
     let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
+    let collectedDevDependencies: Record<string, string> = {}
     let inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
 
     // Initialize output folder and other reusable structures
@@ -161,10 +159,13 @@ export class ProjectGenerator {
       files: inMemoryFilesMap,
       strategy: this.strategy,
       dependencies: collectedDependencies,
+      devDependencies: collectedDevDependencies,
       rootFolder,
     })
 
     collectedDependencies = { ...collectedDependencies, ...runBeforeResult.dependencies }
+    collectedDevDependencies = { ...collectedDevDependencies, ...runBeforeResult.devDependencies }
+
     this.strategy = runBeforeResult.strategy
     inMemoryFilesMap = runBeforeResult.files
 
@@ -448,10 +449,12 @@ export class ProjectGenerator {
       files: inMemoryFilesMap,
       strategy: this.strategy,
       dependencies: collectedDependencies,
+      devDependencies: collectedDevDependencies,
       rootFolder,
     })
 
     collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
+    collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
     inMemoryFilesMap = runAfterResult.files
 
     inMemoryFilesMap.forEach((stage) => {
@@ -459,7 +462,7 @@ export class ProjectGenerator {
     })
 
     // Inject all the collected dependencies in the package.json file
-    handlePackageJSON(rootFolder, uidl, collectedDependencies)
+    handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
 
     return rootFolder
   }
