@@ -18,7 +18,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "yarn run build:cjs & yarn run build:esm",
+    "build": "concurrently \"yarn run build:cjs\" \"yarn run build:esm\"",
     "build:cjs": "tsc -p tsconfig-cjs.json",
     "build:esm": "tsc -p tsconfig-esm.json"
   },
