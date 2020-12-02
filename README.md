@@ -266,9 +266,6 @@ It's not just our code that's open source, we're also planning the development o
 
 We're especially interested in opening discussions around the issues tagged with the [`discussion`](https://github.com/teleporthq/teleport-code-generators/issues?q=is%3Aissue+is%3Aopen+label%3Adiscussion) label.
 
-### Official Release
-The official release will be a switch to version `1.0`. ETA for this is around the end of 2019.
-
 <h2 id="contributions">💕 Contributions</h2>
 
 We'd be super happy to have **community** involvement around this project. We strongly believe in the power of **open source**, so we're planning on building the best possible code generators, together with the entire development community.

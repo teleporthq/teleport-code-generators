@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
+    "composite": true,
     "incremental": true,
     "module": "commonjs",
-    "target": "es5",
+    "target": "esnext",
     "declaration": true,
     "lib": ["es2015", "dom"],
     "sourceMap": true,
@@ -17,13 +18,10 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "noImplicitAny": true,
-    "typeRoots" : [
-      "node_modules/@types"
-    ]
+ 
   },
   "exclude": [
     "examples",
-    "node_modules",
     "**/dist/**",
     "./__tests__/**/*"
   ]
