@@ -5,9 +5,9 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
-  "module": "dist/esm/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -21,10 +21,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "yarn run build:cjs & yarn run build:esm",
-    "build:esbuild": "esbuild-node-tsc",
-    "build:cjs": "tsc -p tsconfig-cjs.json",
-    "build:esm": "tsc -b tsconfig-esm.json"
+    "build": "tsc"
   },
   "dependencies": {
     "@teleporthq/teleport-types": "^0.14.0"

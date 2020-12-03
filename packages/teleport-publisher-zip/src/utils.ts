@@ -1,5 +1,7 @@
 import JSZip from 'jszip'
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
+import fs from 'fs'
+import path from 'path'
 
 export const isNodeProcess = (): boolean => {
   return (
@@ -14,9 +16,6 @@ export const writeZipToDisk = (
   content: Buffer | Blob,
   zipName: string
 ): void => {
-  const fs = require('fs')
-  const path = require('path')
-
   if (!fs.existsSync(zipFolderPath)) {
     fs.mkdirSync(zipFolderPath, { recursive: true })
   }

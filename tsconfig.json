@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
     "incremental": true,
     "module": "esnext",
     "target": "es2019",
@@ -8,7 +7,6 @@
     "lib": ["es2015", "dom"],
     "sourceMap": true,
     "types": ["node", "jest"],
-    "noEmit": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
@@ -18,8 +16,7 @@
     "noUnusedParameters": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "noImplicitAny": true,
- 
+    "noImplicitAny": true
   },
   "exclude": [
     "examples",

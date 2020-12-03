@@ -5,9 +5,9 @@
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
   "license": "MIT",
-  "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
-  "module": "dist/esm/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
@@ -18,10 +18,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "yarn run build:cjs & yarn run build:esm",
-    "build:esbuild": "esbuild-node-tsc",
-    "build:cjs": "tsc -p tsconfig-cjs.json",
-    "build:esm": "tsc -b tsconfig-esm.json"
+    "build": "tsc"
   },
   "bugs": {
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
