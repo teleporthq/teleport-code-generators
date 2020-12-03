@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "lerna link && lerna run build --stream",
+    "build": "lerna link && lerna run build --parallel",
     "dev": "lerna link && yarn run build && yarn run watch",
     "watch": "node scripts/watcher.js",
     "test": "jest",
