@@ -16,14 +16,6 @@ coverage/
 *.swo
 .history/
 
-# yarn
-.yarn/*
-!.yarn/releases
-!.yarn/plugins
-!.yarn/sdks
-!.yarn/versions
-.pnp.*
-
 # Logs
 logs
 *.log

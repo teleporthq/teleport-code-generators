@@ -16,7 +16,10 @@
     "noUnusedParameters": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "typeRoots" : [	
+      "node_modules/@types"	
+    ]
   },
   "exclude": [
     "examples",
