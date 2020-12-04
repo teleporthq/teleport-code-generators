@@ -8,6 +8,7 @@
   "homepage": "https://teleporthq.io/",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -19,8 +20,8 @@
     "access": "public"
   },
   "scripts": {
-    "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
-    "standalone": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
+    "packer": "cross-env node --experimental-json-modules ./src/packer.js",
+    "standalone": "cross-env node --experimental-json-modules ./src/standalone.js",
     "bundle": "webpack --config webpack.config.js"
   },
   "dependencies": {
@@ -42,7 +43,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.2",
-    "ts-node": "^8.6.2",
+    "ts-node": "^9.1.0",
     "typescript": "^4.1.2",
     "webpack": "^4.40.2",
     "webpack-bundle-analyzer": "^3.5.1",

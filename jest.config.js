@@ -1,6 +1,7 @@
 module.exports = {
   "transform": {
-    "^.+\\.ts?$": "ts-jest"
+    "^.+\\.ts?$": "ts-jest",
+    "^.+\\.jsx?$": "babel-jest",
   },
   'globals': {
     'ts-jest': {

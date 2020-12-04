@@ -5,6 +5,7 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
