@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "incremental": true,
+    "composite": true,
     "module": "esnext",
     "target": "es2019",
     "declaration": true,
@@ -21,6 +22,9 @@
       "node_modules/@types"	
     ]
   },
+  "references": [
+    {"path": "packages/"}
+  ],
   "exclude": [
     "examples",
     "**/dist/**",

@@ -35,4 +35,6 @@ node_modules/
 
 .changelog
 
+tsconfig.tsbuildinfo
+
 packages/teleport-test/config.json
