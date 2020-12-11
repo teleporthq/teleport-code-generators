@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-github-gateway",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Teleport github gateway - use this package if you require a github integration",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.14.0",
+    "@teleporthq/teleport-types": "^0.15.0",
     "cross-fetch": "^3.0.4",
     "github-api": "^3.2.2"
   },
