@@ -1,3 +1,90 @@
+## v0.15.0 (2020-12-11)
+
+#### :nail_care: Style Flavours
+* [#503](https://github.com/teleporthq/teleport-code-generators/pull/503) (feat): Define and use design tokens in root. And use them for styles, media queries and project style sheets. 
+  
+  Design tokens are here, you can deifne basic tokens which in returns converts into `css-variablees` in the projects generated. All, we need to do is, define a simple `designLanguage` [field]("https://github.com/teleporthq/teleport-code-generators/blob/development/examples/uidl-samples/project.json#L46") in the `root` of the `ProjectUIDL`.
+  
+  And then start using the tokens in the UIDL using
+  
+```json
+{
+    ...
+   "style":{
+      "flex":"1",
+      "color":{
+         "type":"dynamic",
+         "content":{
+            "referenceType":"token",
+            "id":"blue-500"
+         }
+      }
+   }
+}
+  ```
+  
+  You can use these tokens in
+  
+  - Project Styles
+  - Media Queries inside project styles
+  - Inline Styles
+ 
+Supports all style-flavours that we currently support. 
+
+ - css-variables in css / css-modules based templates (css, css-modules, styled-jsx),
+ - Tokens / contants in CSS-In-JS based libraries (styled-components, jss)
+
+#### :earth_asia: Core
+* [#507](https://github.com/teleporthq/teleport-code-generators/pull/507) feat(vuild): exposing vuidl for better Dx for integrations 
+  We are exporting UIDL types from @teleporthq/teleport-types like, ComponentUIDL, ProjectUIDL etc. But these are mostly used for internal implementations. The syntax for UIDL is much more simpler than this.
+ 
+ For example, if we define a simple `UIDLNode` with styles. 
+ 
+ ```json
+{
+   "type":"element",
+   "content":{
+      "elementType":"text",
+      "style":{
+         "width":"200px"
+      },
+      "children":[
+         {
+            "type":"static",
+            "content":"Hello World!"
+         }
+      ]
+   }
+}
+ ```
+ 
+ The generators pass this through `resolving` step and generates nodes. But when you use `UIDLElement` it throws error. Since `UIDLElement` expects the style to be `UIDLStyleDefinitions` which in return says that the style should be
+ 
+ ```json
+ {
+   "width":{
+      "type":"static",
+      "content":"200px"
+   }
+}
+ ```
+ 
+ But, we don't actually need to define static nodes this way, samee thing applies to static children in UIDL. So, start using `VComponentUIDL` from **@teleporthq/teleport-types**
+ https://repl.teleporthq.io/?uidlLink=lrvw58rmbqcxpr4dsrfrv
+ 
+ These `VUIDL` helps in writing more compact and human redeable UIDL's. For more types that are exported, please check --> https://github.com/teleporthq/teleport-code-generators/blob/development/packages/teleport-types/src/vuidl.ts
+([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#505](https://github.com/teleporthq/teleport-code-generators/pull/505) refactor(validator): improved validation checks for used tokens and project style references ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* [#503](https://github.com/teleporthq/teleport-code-generators/pull/503) (feat): Define and use design tokens in root. And use them for styles, media queries and project style sheets
+
+#### :bug: Bug Fix
+* `teleport-project-generator`
+  * [#513](https://github.com/teleporthq/teleport-code-generators/pull/513) fix(proj-generator): fixed path mapping if the style sheet is from the same folder.
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
 ## v0.14.0 (2020-10-23)
 
 #### :electric_plug: Angular Generators
