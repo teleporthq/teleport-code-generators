@@ -12,39 +12,28 @@ import NuxtMapping from './nuxt-mapping.json'
 import NuxtTemplate from './project-template'
 
 const createNuxtProjectGenerator = () => {
-  const vueComponentGenerator = createVueComponentGenerator()
-  vueComponentGenerator.addMapping(NuxtMapping as Mapping)
-  const vuePageGenerator = createVueComponentGenerator()
-  vuePageGenerator.addMapping(NuxtMapping as Mapping)
-  vuePageGenerator.addPlugin(vueHeadConfigPlugin)
-
-  const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(prettierHTML)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
-
-  const configGenerator = createComponentGenerator()
-  configGenerator.addPostProcessor(prettierJS)
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
+  })
 
   const generator = createProjectGenerator({
     components: {
-      generator: vueComponentGenerator,
+      generator: createVueComponentGenerator,
+      mappings: [NuxtMapping as Mapping],
       path: ['components'],
     },
     pages: {
-      generator: vuePageGenerator,
+      generator: createVueComponentGenerator,
+      plugins: [vueHeadConfigPlugin],
+      mappings: [NuxtMapping as Mapping],
       path: ['pages'],
       options: {
         useFileNameForNavigation: true,
       },
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierHTML],
       fileName: 'app',
       path: [],
       options: {
@@ -52,7 +41,8 @@ const createNuxtProjectGenerator = () => {
       },
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: [''],
     },
@@ -61,7 +51,8 @@ const createNuxtProjectGenerator = () => {
         fileName: 'nuxt.config',
         fileType: FileType.JS,
         path: [''],
-        generator: configGenerator,
+        generator: createComponentGenerator,
+        postprocessors: [prettierJS],
         configContentGenerator,
         isGlobalStylesDependent: true,
       },

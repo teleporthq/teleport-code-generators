@@ -12,6 +12,12 @@ import {
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLExternalDependency,
+  ComponentGenerator,
+  ComponentPlugin,
+  PostProcessor,
+  Mapping,
+  StyleVariation,
+  GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 
@@ -553,4 +559,14 @@ const findSubFolderByName = (rootFolder: GeneratedFolder, folderName: string): G
 
 const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
   return folder.files.find((f) => f.name === file.name && f.fileType === file.fileType)
+}
+
+export const bootstrapGenerator = (
+  generator: (params: GeneratorFactoryParams) => ComponentGenerator,
+  plugins: ComponentPlugin[] = [],
+  postprocessors: PostProcessor[] = [],
+  mappings: Mapping[] = [],
+  style?: StyleVariation
+): ComponentGenerator => {
+  return generator({ plugins, postprocessors, mappings, ...(style && { variation: style }) })
 }

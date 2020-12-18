@@ -1,46 +1,19 @@
 import {
   FileType,
-  Mapping,
   ProjectPlugin,
   ProjectPluginStructure,
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
-import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-import { NextMapping } from '@teleporthq/teleport-project-generator-next'
-import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
-import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
 
 class PluginNextCSSModules implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure
-    const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
-    reactComponentGenerator.addMapping(NextMapping as Mapping)
 
-    const headConfigPlugin = createJSXHeadConfigPlugin({
-      configTagIdentifier: 'Head',
-      configTagDependencyPath: 'next/head',
-      isExternalPackage: false,
-    })
-
-    const reactPageGenerator = createReactComponentGenerator(ReactStyleVariation.CSSModules, {
-      plugins: [headConfigPlugin],
-      mappings: [NextMapping as Mapping],
-    })
-
-    const styleSheetGenerator = createComponentGenerator()
-    styleSheetGenerator.addPlugin(createStyleSheetPlugin())
-
-    strategy.components.generator = reactComponentGenerator
-    strategy.pages.generator = reactPageGenerator
-    strategy.projectStyleSheet = {
-      generator: styleSheetGenerator,
-      fileName: 'style',
-      path: ['pages'],
-    }
+    strategy.projectStyleSheet.plugins = [createStyleSheetPlugin()]
+    strategy.style = ReactStyleVariation.CSSModules
     strategy.framework.config.isGlobalStylesDependent = false
-
     return structure
   }
 

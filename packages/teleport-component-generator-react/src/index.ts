@@ -19,10 +19,12 @@ import ReactMapping from './react-mapping.json'
 
 import { ComponentGenerator, Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
 
-const createReactComponentGenerator = (
+const createReactComponentGenerator = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
   variation = ReactStyleVariation.CSSModules,
-  { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
-): ComponentGenerator => {
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const cssPlugin = createCSSPlugin({
     templateChunkName: 'jsx-component',
     templateStyle: 'jsx',

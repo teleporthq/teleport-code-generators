@@ -8,13 +8,13 @@ import {
 } from '@teleporthq/teleport-types'
 interface StyleSheetPlugin {
   fileName?: string
-  omitModuleextension?: boolean
+  omitModuleExtension?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName, omitModuleextension } = config || {
+  const { fileName, omitModuleExtension } = config || {
     fileName: 'style',
-    omitModuleextension: false,
+    omitModuleExtension: false,
   }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
@@ -83,7 +83,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
     cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
 
-    const sheeName = omitModuleextension ? fileName : `${fileName}.module`
+    const sheeName = omitModuleExtension ? fileName : `${fileName}.module`
 
     uidl.outputOptions = uidl.outputOptions || {}
     uidl.outputOptions.styleFileName = sheeName

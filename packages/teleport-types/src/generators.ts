@@ -151,32 +151,65 @@ export interface ProjectGenerator {
   getAssetsPath: () => string[]
 }
 
+export interface GeneratorFactoryParams {
+  mappings?: Mapping[]
+  plugins?: ComponentPlugin[]
+  postprocessors?: PostProcessor[]
+  variation?: StyleVariation
+}
+
 export interface ProjectStrategy {
+  style?: StyleVariation
   components: {
-    generator: ComponentGenerator
-    moduleGenerator?: ComponentGenerator
+    generator: () => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
+    module?: {
+      generator: () => ComponentGenerator
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
+      mappings?: Mapping[]
+    }
     path: string[]
     options?: ProjectStrategyComponentOptions
   }
   pages: {
-    generator: ComponentGenerator
-    moduleGenerator?: ComponentGenerator
+    generator: () => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
+    module?: {
+      generator: () => ComponentGenerator
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
+      mappings?: Mapping[]
+    }
     path: string[]
     options?: ProjectStrategyPageOptions
   }
   projectStyleSheet?: {
-    generator: ComponentGenerator
+    generator: () => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName: string
     importFile?: boolean
   }
   router?: {
-    generator: ComponentGenerator
+    generator: () => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName?: string
   }
   entry?: {
-    generator: ComponentGenerator
+    generator: () => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName?: string
     chunkGenerationFunction?: (
@@ -198,7 +231,9 @@ export interface ProjectStrategy {
       fileName: string
       fileType: string
       path: string[]
-      generator?: ComponentGenerator
+      generator?: () => ComponentGenerator
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
       isGlobalStylesDependent?: boolean
     }

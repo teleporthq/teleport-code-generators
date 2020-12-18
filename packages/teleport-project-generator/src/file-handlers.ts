@@ -15,6 +15,7 @@ import {
   Attribute,
   FileType,
   ChunkType,
+  ComponentGenerator,
 } from '@teleporthq/teleport-types'
 
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -23,24 +24,27 @@ import { generateLocalDependenciesPrefix } from './utils'
 
 export const createPage = async (
   pageUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
-  return strategy.pages.generator.generateComponent(pageUIDL, options)
+  return generator.generateComponent(pageUIDL, options)
 }
 
 export const createComponent = async (
   componentUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
-  return strategy.components.generator.generateComponent(componentUIDL, options)
+  return generator.generateComponent(componentUIDL, options)
 }
 
-export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+export const createComponentModule = async (
+  uidl: ProjectUIDL,
+  strategy: ProjectStrategy,
+  generator: ComponentGenerator
+) => {
   const { root } = uidl
   const { path } = strategy.components
-  const { moduleGenerator } = strategy.components
   const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     path,
     strategy.components.path
@@ -55,23 +59,27 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = 'components.module'
 
-  return moduleGenerator.generateComponent(root, options)
+  return generator.generateComponent(root, options)
 }
 
 export const createPageModule = async (
   pageUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
   pageUIDL.outputOptions = pageUIDL.outputOptions || {}
   pageUIDL.outputOptions.moduleName = `${StringUtils.dashCaseToUpperCamelCase(
     pageUIDL.outputOptions.folderPath[0]
   )}Module`
-  return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
+  return generator.generateComponent(pageUIDL, options)
 }
 
-export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
-  const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
+export const createRouterFile = async (
+  root: ComponentUIDL,
+  strategy: ProjectStrategy,
+  routerGenerator: ComponentGenerator
+) => {
+  const { path: routerFilePath, fileName } = strategy.router
   const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     routerFilePath,
     strategy.pages.path
@@ -87,13 +95,13 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
   root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
   const { files, dependencies } = await routerGenerator.generateComponent(root, options)
-
   return { routerFile: files[0], dependencies }
 }
 
 export const createEntryFile = async (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy,
+  entryFileGenerator: ComponentGenerator,
   { assetsPrefix }: GeneratorOptions
 ) => {
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
@@ -112,7 +120,7 @@ export const createEntryFile = async (
     customTags,
   })
 
-  const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
+  const [entryFile] = entryFileGenerator.linkCodeChunks(chunks, entryFileName)
   return entryFile
 }
 
