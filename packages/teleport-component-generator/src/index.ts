@@ -18,7 +18,7 @@ const createComponentGenerator = ({
   mappings = [],
   plugins = [],
   postprocessors = [],
-}: GeneratorFactoryParams = {}): ComponentGenerator => {
+}: Omit<GeneratorFactoryParams, 'variation'> = {}): ComponentGenerator => {
   const validator = new Validator()
   const resolver = new Resolver([HTMLMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
