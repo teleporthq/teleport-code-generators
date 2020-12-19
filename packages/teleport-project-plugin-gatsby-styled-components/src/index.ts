@@ -1,12 +1,13 @@
-import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
-import { createCustomReactGatsbyComponentGenerator } from '@teleporthq/teleport-project-generator-gatsby'
-import reactStyledComponentsPlugin, {
-  createStyleSheetPlugin,
-} from '@teleporthq/teleport-plugin-react-styled-components'
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
-import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
+import {
+  FileType,
+  ProjectPlugin,
+  ProjectPluginStructure,
+  TeleportError,
+  GatsbyStyleVariation,
+} from '@teleporthq/teleport-types'
+import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import MagicString from 'magic-string'
 import { STYLED_DEPENDENCIES } from './constants'
 
@@ -14,26 +15,10 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy, template, files, dependencies } = structure
 
-    const reactComponentGenerator = createCustomReactGatsbyComponentGenerator()
-    reactComponentGenerator.addPlugin(reactStyledComponentsPlugin)
-    reactComponentGenerator.addPlugin(importStatementsPlugin)
-
-    const reactPagesGenerator = createCustomReactGatsbyComponentGenerator([headConfigPlugin])
-    reactPagesGenerator.addPlugin(reactStyledComponentsPlugin)
-    reactPagesGenerator.addPlugin(importStatementsPlugin)
-
-    const projectStyleSheetGenerator = createComponentGenerator()
-    projectStyleSheetGenerator.addPlugin(createStyleSheetPlugin())
-    projectStyleSheetGenerator.addPlugin(importStatementsPlugin)
-    projectStyleSheetGenerator.addPostProcessor(prettierJS)
-
-    strategy.components.generator = reactComponentGenerator
-    strategy.pages.generator = reactPagesGenerator
-    strategy.projectStyleSheet = {
-      generator: projectStyleSheetGenerator,
-      path: ['src'],
-      fileName: 'style',
+    if (strategy?.projectStyleSheet?.generator) {
+      strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
     }
+    strategy.style = GatsbyStyleVariation.StyledComponents
 
     const fileName = 'gatsby-config'
     const configFile = template.files.find(
@@ -41,14 +26,13 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
     )
 
     if (!configFile || !configFile.content) {
-      throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
+      throw new TeleportError(`${fileName} not found, while adding gatsby-plugin-styled-components`)
     }
 
     const parsedFile = configFile.content.replace('/n', '//n')
     const magic = new MagicString(parsedFile)
     magic.appendRight(parsedFile.length - 10, `,'gatsby-plugin-styled-components'`)
     const content = magic.toString()
-
     const formattedCode = prettierJS({ [FileType.JS]: content })
 
     files.set('gatsby-config', {
@@ -70,6 +54,6 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
   }
 }
 
-const pluginGatsbyStyleedComponents = new PluginGatsbyStyledComponents()
+const pluginGatsbyStyledComponents = new PluginGatsbyStyledComponents()
 export { PluginGatsbyStyledComponents }
-export default pluginGatsbyStyleedComponents
+export default pluginGatsbyStyledComponents

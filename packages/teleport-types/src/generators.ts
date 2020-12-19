@@ -158,15 +158,17 @@ export interface GeneratorFactoryParams {
   variation?: StyleVariation
 }
 
+export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
+
 export interface ProjectStrategy {
   style?: StyleVariation
   components: {
-    generator: () => ComponentGenerator
+    generator: ComponentGeneratorInstance
     plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
     module?: {
-      generator: () => ComponentGenerator
+      generator: ComponentGeneratorInstance
       plugins?: ComponentPlugin[]
       postprocessors?: PostProcessor[]
       mappings?: Mapping[]
@@ -175,12 +177,12 @@ export interface ProjectStrategy {
     options?: ProjectStrategyComponentOptions
   }
   pages: {
-    generator: () => ComponentGenerator
+    generator: ComponentGeneratorInstance
     plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
     module?: {
-      generator: () => ComponentGenerator
+      generator: ComponentGeneratorInstance
       plugins?: ComponentPlugin[]
       postprocessors?: PostProcessor[]
       mappings?: Mapping[]
@@ -189,7 +191,7 @@ export interface ProjectStrategy {
     options?: ProjectStrategyPageOptions
   }
   projectStyleSheet?: {
-    generator: () => ComponentGenerator
+    generator: ComponentGeneratorInstance
     plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
@@ -198,7 +200,7 @@ export interface ProjectStrategy {
     importFile?: boolean
   }
   router?: {
-    generator: () => ComponentGenerator
+    generator: ComponentGeneratorInstance
     plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
@@ -206,7 +208,7 @@ export interface ProjectStrategy {
     fileName?: string
   }
   entry?: {
-    generator: () => ComponentGenerator
+    generator: ComponentGeneratorInstance
     plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
@@ -231,7 +233,7 @@ export interface ProjectStrategy {
       fileName: string
       fileType: string
       path: string[]
-      generator?: () => ComponentGenerator
+      generator?: ComponentGeneratorInstance
       plugins?: ComponentPlugin[]
       postprocessors?: PostProcessor[]
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
@@ -450,6 +452,11 @@ export enum PublisherType {
   CODESANDBOX = 'CodeSandbox',
 }
 
+export enum GatsbyStyleVariation {
+  CSSModules = 'CSS Modules',
+  StyledComponents = 'Styled Components',
+}
+
 export enum ProjectType {
   REACT = 'React',
   NEXT = 'Next',
@@ -483,7 +490,11 @@ export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null>
   [ComponentType.ANGULAR]: null,
 }
 
-export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation
+export type StyleVariation =
+  | ReactStyleVariation
+  | PreactStyleVariation
+  | ReactNativeStyleVariation
+  | GatsbyStyleVariation
 
 // The last two types are used by the teleport-code-generator package
 

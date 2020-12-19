@@ -1,65 +1,49 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import reactBasePlugin from '@teleporthq/teleport-plugin-react-base-component'
+import {
+  GatsbyStyleVariation,
+  ComponentGenerator,
+  TeleportError,
+  ComponentGeneratorInstance,
+  Mapping,
+  GeneratorFactoryParams,
+} from '@teleporthq/teleport-types'
 import {
   createCSSModulesPlugin,
   createStyleSheetPlugin,
 } from '@teleporthq/teleport-plugin-css-modules'
+import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
 import reactProptypes from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-import { Mapping, ComponentPlugin } from '@teleporthq/teleport-types'
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
 import { createCustomHTMLEntryFile } from './utils'
 
-const cssModulesPlugin = createCSSModulesPlugin({
-  moduleExtension: true,
-  camelCaseClassNames: true,
-})
-
 const createGatsbyProjectGenerator = () => {
-  const reactComponentGenerator = createCustomReactGatsbyComponentGenerator()
-  const reactPagesGenerator = createCustomReactGatsbyComponentGenerator([headConfigPlugin])
-
-  reactComponentGenerator.addPlugin(cssModulesPlugin)
-  reactComponentGenerator.addPlugin(importStatementsPlugin)
-
-  reactPagesGenerator.addPlugin(cssModulesPlugin)
-  reactPagesGenerator.addPlugin(importStatementsPlugin)
-
-  const routingComponentGenerator = createComponentGenerator()
-  routingComponentGenerator.addPlugin(reactAppRoutingPlugin)
-  routingComponentGenerator.addPlugin(importStatementsPlugin)
-  routingComponentGenerator.addPostProcessor(prettierJS)
-
-  const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(prettierJS)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
+  })
 
   const generator = createProjectGenerator({
     components: {
-      generator: reactComponentGenerator,
+      generator: createCustomReactGatsbyComponentGenerator,
       path: ['src', 'components'],
     },
     pages: {
-      generator: reactPagesGenerator,
+      generator: createCustomReactGatsbyComponentGenerator,
       path: ['src', 'pages'],
+      plugins: [headConfigPlugin],
       options: {
         useFileNameForNavigation: true,
       },
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierJS],
       path: ['src'],
       fileName: 'html',
       chunkGenerationFunction: createCustomHTMLEntryFile,
@@ -69,7 +53,8 @@ const createGatsbyProjectGenerator = () => {
       path: ['static'],
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: ['src'],
     },
@@ -78,13 +63,39 @@ const createGatsbyProjectGenerator = () => {
   return generator
 }
 
-const createCustomReactGatsbyComponentGenerator = (extraPlugins: ComponentPlugin[] = []) => {
+const createCustomReactGatsbyComponentGenerator: ComponentGeneratorInstance = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
+  variation = GatsbyStyleVariation.CSSModules,
+}: GeneratorFactoryParams): ComponentGenerator => {
+  const cssModulesPlugin = createCSSModulesPlugin({
+    moduleExtension: true,
+    camelCaseClassNames: true,
+  })
+  const stylePlugins = {
+    [GatsbyStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
+    [GatsbyStyleVariation.CSSModules]: cssModulesPlugin,
+  }
+
+  const stylePlugin = stylePlugins[variation as GatsbyStyleVariation]
+  if (!stylePlugin) {
+    throw new TeleportError(`Un-supported style flavour selected - ${variation}`)
+  }
+
   const reactComponentGenerator = createComponentGenerator()
+
+  mappings.forEach((mapping) => reactComponentGenerator.addMapping(mapping))
   reactComponentGenerator.addPlugin(reactBasePlugin)
-  extraPlugins.forEach((plugin) => reactComponentGenerator.addPlugin(plugin))
   reactComponentGenerator.addPlugin(reactProptypes)
+  reactComponentGenerator.addPlugin(stylePlugin)
+
+  plugins.forEach((plugin) => reactComponentGenerator.addPlugin(plugin))
+
+  reactComponentGenerator.addPlugin(importStatementsPlugin)
   reactComponentGenerator.addMapping(GatsbyProjectMapping as Mapping)
   reactComponentGenerator.addPostProcessor(prettierJSX)
+  postprocessors.forEach((postprocessor) => reactComponentGenerator.addPostProcessor(postprocessor))
   return reactComponentGenerator
 }
 

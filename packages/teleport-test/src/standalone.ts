@@ -38,21 +38,21 @@ const run = async () => {
     }
 
     let result
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.REACTNATIVE,
-    // })
-    // console.info(ProjectType.REACTNATIVE, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACTNATIVE,
+    })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
       projectType: ProjectType.REACT,
     })
     console.info(ProjectType.REACT, '-', result.payload)
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-    })
-    console.info(ProjectType.NEXT, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT,
+    // })
+    // console.info(ProjectType.NEXT, '-', result.payload)
     result = await packProject(projectUIDL, {
       ...packerOptions,
       projectType: ProjectType.NEXT_CSSMODULES,
@@ -76,16 +76,16 @@ const run = async () => {
     console.info(ProjectType.ANGULAR, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
     console.info(ProjectType.GRIDSOME, '-', result.payload)
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.GATSBY,
-    // })
-    // console.info(ProjectType.GATSBY, '-', result.payload)
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.GATSBY_STYLED_COMPONENTS,
-    // })
-    // console.info(ProjectType.GATSBY_STYLED_COMPONENTS, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY,
+    })
+    console.info(ProjectType.GATSBY, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY_STYLED_COMPONENTS,
+    })
+    console.info(ProjectType.GATSBY_STYLED_COMPONENTS, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

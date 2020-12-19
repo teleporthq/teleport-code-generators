@@ -3,6 +3,7 @@ import {
   ComponentGenerator,
   GeneratorFactoryParams,
   ComponentPlugin,
+  ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
 import preactComponentPlugin from '@teleporthq/teleport-plugin-preact-base-component'
 import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
@@ -15,7 +16,7 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 
 import PreactMapping from './preact-mapping.json'
 
-const createPreactComponentGenerator = ({
+const createPreactComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
   plugins = [],
   postprocessors = [],

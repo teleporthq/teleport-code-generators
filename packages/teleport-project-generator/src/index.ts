@@ -190,7 +190,8 @@ export class ProjectGenerator {
           projectComponents?.generator,
           projectComponents?.plugins,
           projectComponents?.postprocessors,
-          projectComponents?.mappings
+          projectComponents?.mappings,
+          this.strategy?.style
         )
       }
 
@@ -199,7 +200,8 @@ export class ProjectGenerator {
           pages?.generator,
           pages?.plugins,
           pages?.postprocessors,
-          pages?.mappings
+          pages?.mappings,
+          this.strategy?.style
         )
       }
 
@@ -208,7 +210,8 @@ export class ProjectGenerator {
           entry?.generator,
           entry?.plugins,
           entry?.postprocessors,
-          entry?.mappings
+          entry?.mappings,
+          this.strategy?.style
         )
       }
 
@@ -226,7 +229,8 @@ export class ProjectGenerator {
           router?.generator,
           router?.plugins,
           router?.postprocessors,
-          router?.mappings
+          router?.mappings,
+          this.strategy?.style
         )
       }
     } catch (e) {
@@ -325,7 +329,8 @@ export class ProjectGenerator {
           this.strategy.pages.module.generator,
           this.strategy.pages.module?.plugins,
           this.strategy.pages.module?.postprocessors,
-          this.strategy.pages.module?.mappings
+          this.strategy.pages.module?.mappings,
+          this.strategy?.style
         )
         const pageModule = await createPageModule(pageUIDL, pageModuleGenerator, options)
 
@@ -344,7 +349,8 @@ export class ProjectGenerator {
         this.strategy.components.module.generator,
         this.strategy.components.module?.plugins,
         this.strategy.components.module?.postprocessors,
-        this.strategy.components.module?.mappings
+        this.strategy.components.module?.mappings,
+        this.strategy?.style
       )
       const componentsModule = await createComponentModule(
         uidl,

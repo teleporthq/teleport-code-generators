@@ -10,6 +10,9 @@ import {
   InvalidProjectTypeError,
   InvalidPublisherTypeError,
   GeneratorOptions,
+  Mapping,
+  ComponentGenerator,
+  ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
 import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
@@ -78,7 +81,7 @@ import { createStencilComponentGenerator } from '@teleporthq/teleport-component-
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 
-const componentGeneratorFactories = {
+const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
   [ComponentType.PREACT]: createPreactComponentGenerator,
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
@@ -194,11 +197,14 @@ export const generateComponent: GenerateComponentFunction = async (
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]
-  generator.addMapping(projectMapping)
+  generator.addMapping(projectMapping as Mapping)
   return generator.generateComponent(componentUIDL, componentGeneratorOptions)
 }
 
-const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {
+const createComponentGenerator = (
+  componentType: ComponentType,
+  styleVariation: StyleVariation
+): ComponentGenerator => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
   if (!generatorFactory) {
@@ -210,8 +216,7 @@ const createComponentGenerator = (componentType: ComponentType, styleVariation: 
     componentType === ComponentType.PREACT ||
     componentType === ComponentType.REACTNATIVE
   ) {
-    // @ts-ignore
-    return generatorFactory(styleVariation)
+    return generatorFactory({ variation: styleVariation })
   }
 
   return generatorFactory()
