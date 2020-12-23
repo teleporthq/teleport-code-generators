@@ -3,14 +3,12 @@ import {
   ProjectPluginStructure,
   InMemoryFileRecord,
   ProjectStrategy,
-  GeneratedFolder,
 } from '@teleporthq/teleport-types'
 
 interface ProjectAssemblyLineResult {
   files: Map<string, InMemoryFileRecord>
-  dependencies: Record<string, string>
   strategy: ProjectStrategy
-  template: GeneratedFolder
+  dependencies: Record<string, string>
   devDependencies: Record<string, string>
 }
 
@@ -35,7 +33,6 @@ class ProjectAssemblyLine {
       dependencies: finalStructure.dependencies,
       devDependencies: finalStructure.devDependencies,
       strategy: finalStructure.strategy,
-      template: finalStructure.template,
     }
   }
 
@@ -54,7 +51,6 @@ class ProjectAssemblyLine {
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
       devDependencies: finalStructure.devDependencies,
-      template: finalStructure.template,
     }
   }
 
