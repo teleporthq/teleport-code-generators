@@ -16,6 +16,7 @@ import {
 } from '@teleporthq/teleport-types'
 import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
+import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -105,6 +106,9 @@ nextCSSModulesProjectGenerator.addPlugin(pluginNextCSSModules)
 const gatsbyStyledComponentsProjectGenerator = createGatsbyProjectGenerator()
 gatsbyStyledComponentsProjectGenerator.addPlugin(pluginGatsbyStyledComponents)
 
+const nextStyledComponentsProjectGenerator = createNextProjectGenerator()
+nextStyledComponentsProjectGenerator.addPlugin(pluginNextStyledComponents)
+
 const projectGeneratorFactories = {
   [ProjectType.REACT]: createReactProjectGenerator(),
   [ProjectType.NEXT]: createNextProjectGenerator(),
@@ -118,6 +122,7 @@ const projectGeneratorFactories = {
   [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
   [ProjectType.NEXT_CSSMODULES]: nextCSSModulesProjectGenerator,
   [ProjectType.GATSBY_STYLED_COMPONENTS]: gatsbyStyledComponentsProjectGenerator,
+  [ProjectType.NEXT_STYLED_COMPONENTS]: nextStyledComponentsProjectGenerator,
 }
 
 const templates = {
@@ -133,6 +138,7 @@ const templates = {
   [ProjectType.GATSBY]: GatsbyTemplate,
   [ProjectType.NEXT_CSSMODULES]: NextTemplate,
   [ProjectType.GATSBY_STYLED_COMPONENTS]: GatsbyTemplate,
+  [ProjectType.NEXT_STYLED_COMPONENTS]: NextTemplate,
 }
 
 const projectPublisherFactories = {

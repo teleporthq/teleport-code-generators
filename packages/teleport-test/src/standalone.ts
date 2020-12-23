@@ -48,16 +48,21 @@ const run = async () => {
       projectType: ProjectType.REACT,
     })
     console.info(ProjectType.REACT, '-', result.payload)
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    // })
-    // console.info(ProjectType.NEXT, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+    })
+    console.info(ProjectType.NEXT, '-', result.payload)
     result = await packProject(projectUIDL, {
       ...packerOptions,
       projectType: ProjectType.NEXT_CSSMODULES,
     })
     console.info(ProjectType.NEXT_CSSMODULES, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT_STYLED_COMPONENTS,
+    })
+    console.info(ProjectType.NEXT_STYLED_COMPONENTS, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
     console.info(ProjectType.NUXT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })

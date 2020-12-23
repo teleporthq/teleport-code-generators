@@ -470,6 +470,7 @@ export enum ProjectType {
   REACTNATIVE = 'React-Native',
   NEXT_CSSMODULES = 'Next-CSSModules',
   GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
+  NEXT_STYLED_COMPONENTS = 'Next-StyledComponents',
 }
 
 export enum ComponentType {

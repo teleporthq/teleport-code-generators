@@ -16,7 +16,7 @@ import {
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest, customCode } = uidl.globals
 
-  const htmlNode = ASTBuilders.createJSXTag('html')
+  const htmlNode = ASTBuilders.createJSXTag('Html')
   const headNode = ASTBuilders.createJSXTag('Head')
   const bodyNode = ASTBuilders.createJSXTag('body')
 
@@ -93,6 +93,7 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
     t.importDeclaration(
       [
         t.importDefaultSpecifier(t.identifier('Document')),
+        t.importSpecifier(t.identifier('Html'), t.identifier('Html')),
         t.importSpecifier(t.identifier('Head'), t.identifier('Head')),
         t.importSpecifier(t.identifier('Main'), t.identifier('Main')),
         t.importSpecifier(t.identifier('NextScript'), t.identifier('NextScript')),
