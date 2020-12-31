@@ -84,41 +84,37 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
           style
         )
-        const collectedStyles = {
-          ...StyleUtils.getContentOfStyleObject(staticStyles),
-          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-        } as Record<string, string | number>
 
-        if (Object.keys(staticStyles).length > 0) {
+        if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
+          const collectedStyles = {
+            ...StyleUtils.getContentOfStyleObject(staticStyles),
+            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+          } as Record<string, string | number>
           jssStylesArray.push(StyleBuilders.createCSSClass(className, collectedStyles))
-
           appendClassName = true
         }
 
         if (Object.keys(dynamicStyles).length > 0) {
           /* If dynamic styles are on nested-styles they are unfortunately lost, 
           since inline style does not support that */
-
-          if (Object.keys(dynamicStyles).length > 0) {
-            if (templateStyle === 'html') {
-              // simple string expression
-              const inlineStyles = createDynamicInlineStyle(dynamicStyles)
-              HASTUtils.addAttributeToNode(
-                root as HastNode,
-                inlineStyleAttributeKey,
-                `{${inlineStyles}}`
-              )
-            } else {
-              // jsx object expression
-              const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
-                StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
-              )
-              ASTUtils.addAttributeToJSXTag(
-                root as types.JSXElement,
-                inlineStyleAttributeKey,
-                inlineStyles
-              )
-            }
+          if (templateStyle === 'html') {
+            // simple string expression
+            const inlineStyles = createDynamicInlineStyle(dynamicStyles)
+            HASTUtils.addAttributeToNode(
+              root as HastNode,
+              inlineStyleAttributeKey,
+              `{${inlineStyles}}`
+            )
+          } else {
+            // jsx object expression
+            const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
+              StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
+            )
+            ASTUtils.addAttributeToJSXTag(
+              root as types.JSXElement,
+              inlineStyleAttributeKey,
+              inlineStyles
+            )
           }
         }
       }
@@ -136,10 +132,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                 ...StyleUtils.getContentOfStyleObject(staticStyles),
                 ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
               } as Record<string, string | number>
-
-              if (staticStyles && Object.keys(staticStyles).length === 0) {
-                return
-              }
 
               if (Object.keys(staticStyles).length > 0) {
                 const condition = styleRef.content.conditions[0]
