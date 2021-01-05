@@ -5,6 +5,7 @@ import {
   ComponentValidationError,
   VComponentUIDL,
   VProjectUIDL,
+  VRootComponentUIDL,
 } from '@teleporthq/teleport-types'
 import { componentUIDLDecoder, rootComponentUIDLDecoder, projectUIDLDecoder } from '../decoders'
 import * as utils from './utils'
@@ -17,30 +18,30 @@ interface ValidationResult {
 }
 
 export default class Validator {
-  public validateComponentSchema(input: unknown): ValidationResult {
+  public validateComponentSchema(input: VComponentUIDL): ValidationResult {
     try {
-      const cleanedUIDL = componentUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+      const uidl = componentUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)
     }
   }
 
-  public validateRootComponentSchema(input: unknown): ValidationResult {
+  public validateRootComponentSchema(input: VRootComponentUIDL): ValidationResult {
     try {
-      const cleanedUIDL = rootComponentUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+      const uidl = rootComponentUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)
     }
   }
 
-  public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
+  public validateProjectSchema(input: VProjectUIDL): ValidationResult {
     try {
-      const cleanedUIDL = projectUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', projectUIDL: cleanedUIDL }
+      const uidl = projectUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      return { valid: true, errorMsg: '', projectUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)
