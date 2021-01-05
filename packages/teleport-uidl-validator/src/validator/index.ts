@@ -5,7 +5,6 @@ import {
   ComponentValidationError,
   VComponentUIDL,
   VProjectUIDL,
-  VRootComponentUIDL,
 } from '@teleporthq/teleport-types'
 import { componentUIDLDecoder, rootComponentUIDLDecoder, projectUIDLDecoder } from '../decoders'
 import * as utils from './utils'
@@ -18,9 +17,10 @@ interface ValidationResult {
 }
 
 export default class Validator {
-  public validateComponentSchema(input: VComponentUIDL): ValidationResult {
+  public validateComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const uidl = componentUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      const cleanedUIDL = utils.cleanUIDL(input)
+      const uidl = componentUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
@@ -28,9 +28,10 @@ export default class Validator {
     }
   }
 
-  public validateRootComponentSchema(input: VRootComponentUIDL): ValidationResult {
+  public validateRootComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const uidl = rootComponentUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      const cleanedUIDL = utils.cleanUIDL(input)
+      const uidl = rootComponentUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
@@ -38,9 +39,10 @@ export default class Validator {
     }
   }
 
-  public validateProjectSchema(input: VProjectUIDL): ValidationResult {
+  public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const uidl = projectUIDLDecoder.runWithException(utils.cleanUIDL(input))
+      const cleanedUIDL = utils.cleanUIDL(input)
+      const uidl = projectUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', projectUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])

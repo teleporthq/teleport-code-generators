@@ -13,9 +13,6 @@ import {
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
   UIDLStyleSetTokenReference,
-  VComponentUIDL,
-  VRootComponentUIDL,
-  VProjectUIDL,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -399,7 +396,7 @@ export const formatErrors = (errors: Array<{ kind: string; at: string; message: 
   return `UIDL Format Validation Error. Please check the following: ${listOfErrors}`
 }
 
-export const cleanUIDL = (uidl: VComponentUIDL | VRootComponentUIDL | VProjectUIDL) => {
+export const cleanUIDL = (uidl: Record<string, unknown>) => {
   return JSON.parse(JSON.stringify(uidl), (_, value) => {
     if (value !== null) {
       return value
