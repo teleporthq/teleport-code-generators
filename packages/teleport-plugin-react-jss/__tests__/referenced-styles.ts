@@ -80,9 +80,9 @@ describe('Referenced Styles on Node', () => {
     const result = await plugin(structure)
     const { chunks, dependencies } = result
 
-    expect(chunks.length).toBe(3)
+    expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(1)
-    expect(dependencies.injectSheet.path).toBe('react-jss')
+    expect(dependencies.createUseStyles.path).toBe('react-jss')
   })
 
   it('References a style from project and adds, Media and pseudo from referencedStyles', async () => {
@@ -149,9 +149,9 @@ describe('Referenced Styles on Node', () => {
     const result = await plugin(structure)
     const { chunks, dependencies } = result
 
-    expect(chunks.length).toBe(3)
+    expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(2)
-    expect(dependencies.injectSheet.path).toBe('react-jss')
+    expect(dependencies.createUseStyles.path).toBe('react-jss')
     expect(dependencies.useProjectStyles.path).toBe('../style')
     expect(dependencies.useProjectStyles.meta.namedImport).toBe(true)
   })
