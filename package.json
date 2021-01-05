@@ -45,7 +45,7 @@
     "@types/jest": "^25.1.1",
     "@types/jss": "^10.0.0",
     "@types/jszip": "^3.1.7",
-    "@types/prettier": "^2.0.0",
+    "@types/prettier": "^2.1.6",
     "@types/rimraf": "^2.0.3",
     "all-contributors-cli": "^6.13.0",
     "chalk": "^2.4.2",
