@@ -5,10 +5,12 @@ import { UIDLStyleValue } from '@teleporthq/teleport-types'
 
 export const generatePropSyntax = (style: Record<string, UIDLStyleValue>) => {
   let tokensUsed = false
+  let propsUsed = false
   return {
     transformedStyles: UIDLUtils.transformDynamicStyles(style, (styleValue) => {
       switch (styleValue.content.referenceType) {
         case 'prop':
+          propsUsed = true
           return new ParsedASTNode(
             ASTBuilders.createArrowFunctionWithMemberExpression('props', styleValue.content.id)
           )
@@ -29,14 +31,22 @@ export const generatePropSyntax = (style: Record<string, UIDLStyleValue>) => {
       }
     }),
     tokensUsed,
+    propsUsed,
   }
 }
 
-export const createStylesHookDecleration = (types = t) => {
-  return types.variableDeclaration('const', [
+export const createStylesHookDecleration = (
+  assignee: string,
+  hookName: string,
+  dynamicValueIdentifier?: string,
+  types = t
+) =>
+  types.variableDeclaration('const', [
     types.variableDeclarator(
-      t.identifier('projectStyles'),
-      t.callExpression(t.identifier('useProjectStyles'), [])
+      t.identifier(assignee),
+      t.callExpression(
+        t.identifier(hookName),
+        dynamicValueIdentifier ? [types.identifier(dynamicValueIdentifier)] : []
+      )
     ),
   ])
-}

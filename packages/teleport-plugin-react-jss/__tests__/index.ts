@@ -10,7 +10,6 @@ import { createReactJSSPlugin } from '../src/index'
 describe('plugin-react-jss', () => {
   const plugin = createReactJSSPlugin({
     styleChunkName: 'jss-chunk',
-    exportChunkName: 'export-chunk',
   })
   const componentChunk: ChunkDefinition = {
     name: 'jsx-component',
@@ -81,16 +80,14 @@ describe('plugin-react-jss', () => {
     }
 
     const { dependencies, chunks } = await plugin(structure)
-    const { injectSheet } = dependencies
+    const { createUseStyles } = dependencies
 
     expect(Object.keys(dependencies).length).toBeGreaterThan(0)
-    expect(injectSheet.type).toBe('package')
-    expect(injectSheet.path).toBe('react-jss')
+    expect(createUseStyles.type).toBe('package')
+    expect(createUseStyles.path).toBe('react-jss')
 
-    expect(chunks.length).toBe(3)
+    expect(chunks.length).toBe(2)
     expect(chunks[1].type).toBe(ChunkType.AST)
     expect(chunks[1].name).toBe('jss-chunk')
-    expect(chunks[2].type).toBe(ChunkType.AST)
-    expect(chunks[2].name).toBe('export-chunk')
   })
 })
