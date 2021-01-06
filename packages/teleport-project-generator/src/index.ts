@@ -42,6 +42,11 @@ import ProjectAssemblyLine from './assembly-line'
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
 export class ProjectGenerator {
+  public componentGenerator: ComponentGenerator
+  public pageGenerator: ComponentGenerator
+  public entryGenerator: ComponentGenerator
+  public routerGenerator: ComponentGenerator
+  public styleSheetGenerator: ComponentGenerator
   private strategy: ProjectStrategy
   private validator: Validator
   private assemblyLine: ProjectAssemblyLine
@@ -130,11 +135,6 @@ export class ProjectGenerator {
     let collectedDependencies: Record<string, string> = {}
     let collectedDevDependencies: Record<string, string> = {}
     let inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
-    let componentGenerator: ComponentGenerator
-    let pageGenerator: ComponentGenerator
-    let entryGenerator: ComponentGenerator
-    let routerGenerator: ComponentGenerator
-    let styleSheetGenerator: ComponentGenerator
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
@@ -177,61 +177,28 @@ export class ProjectGenerator {
 
       this.strategy = runBeforeResult.strategy
       inMemoryFilesMap = runBeforeResult.files
-      const {
-        components: projectComponents,
-        pages,
-        entry,
-        projectStyleSheet,
-        router,
-      } = this.strategy
 
       if (this.strategy.components?.generator) {
-        componentGenerator = bootstrapGenerator(
-          projectComponents?.generator,
-          projectComponents?.plugins,
-          projectComponents?.postprocessors,
-          projectComponents?.mappings,
-          this.strategy?.style
-        )
+        this.componentGenerator = bootstrapGenerator(this.strategy.components, this.strategy.style)
       }
 
       if (this.strategy.pages?.generator) {
-        pageGenerator = bootstrapGenerator(
-          pages?.generator,
-          pages?.plugins,
-          pages?.postprocessors,
-          pages?.mappings,
-          this.strategy?.style
-        )
+        this.pageGenerator = bootstrapGenerator(this.strategy.pages, this.strategy.style)
       }
 
       if (this.strategy.entry?.generator) {
-        entryGenerator = bootstrapGenerator(
-          entry?.generator,
-          entry?.plugins,
-          entry?.postprocessors,
-          entry?.mappings,
-          this.strategy?.style
-        )
+        this.entryGenerator = bootstrapGenerator(this.strategy.entry, this.strategy.style)
       }
 
       if (this.strategy.projectStyleSheet?.generator) {
-        styleSheetGenerator = bootstrapGenerator(
-          projectStyleSheet?.generator,
-          projectStyleSheet?.plugins,
-          projectStyleSheet?.postprocessors,
-          projectStyleSheet?.mappings
+        this.styleSheetGenerator = bootstrapGenerator(
+          this.strategy.projectStyleSheet,
+          this.strategy.style
         )
       }
 
       if (this.strategy.router?.generator) {
-        routerGenerator = bootstrapGenerator(
-          router?.generator,
-          router?.plugins,
-          router?.postprocessors,
-          router?.mappings,
-          this.strategy?.style
-        )
+        this.routerGenerator = bootstrapGenerator(this.strategy.router, this.strategy.style)
       }
     } catch (e) {
       throw new TeleportError(`Error in Generating Project after runBefore - ${e}`)
@@ -266,7 +233,7 @@ export class ProjectGenerator {
     if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
       const { path } = this.strategy.projectStyleSheet
 
-      const { files, dependencies } = await styleSheetGenerator.generateComponent(uidl.root, {
+      const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
       })
 
@@ -312,7 +279,7 @@ export class ProjectGenerator {
         }
       }
 
-      const { files, dependencies } = await createPage(pageUIDL, pageGenerator, pageOptions)
+      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
@@ -326,11 +293,8 @@ export class ProjectGenerator {
 
       if (this.strategy.pages?.module) {
         const pageModuleGenerator = bootstrapGenerator(
-          this.strategy.pages.module.generator,
-          this.strategy.pages.module?.plugins,
-          this.strategy.pages.module?.postprocessors,
-          this.strategy.pages.module?.mappings,
-          this.strategy?.style
+          this.strategy.pages.module,
+          this.strategy.style
         )
         const pageModule = await createPageModule(pageUIDL, pageModuleGenerator, options)
 
@@ -346,11 +310,8 @@ export class ProjectGenerator {
     // Handling module generation for components
     if (this.strategy?.components?.module) {
       const componentModuleGenerator = bootstrapGenerator(
-        this.strategy.components.module.generator,
-        this.strategy.components.module?.plugins,
-        this.strategy.components.module?.postprocessors,
-        this.strategy.components.module?.mappings,
-        this.strategy?.style
+        this.strategy.components.module,
+        this.strategy.style
       )
       const componentsModule = await createComponentModule(
         uidl,
@@ -406,7 +367,7 @@ export class ProjectGenerator {
       const componentUIDL = components[componentName]
       const { files, dependencies } = await createComponent(
         componentUIDL,
-        componentGenerator,
+        this.componentGenerator,
         componentOptions
       )
 
@@ -514,7 +475,7 @@ export class ProjectGenerator {
       const { routerFile, dependencies } = await createRouterFile(
         uidl.root,
         this.strategy,
-        routerGenerator
+        this.routerGenerator
       )
 
       inMemoryFilesMap.set('router', {
@@ -527,10 +488,12 @@ export class ProjectGenerator {
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
-      const entryFile = await createEntryFile(uidl, this.strategy, entryGenerator, { assetsPrefix })
+      const entryFile = await createEntryFile(uidl, this.strategy, this.entryGenerator, {
+        assetsPrefix,
+      })
       inMemoryFilesMap.set('entry', {
         path: this.strategy.entry.path,
-        files: [entryFile],
+        files: entryFile,
       })
     }
 
@@ -581,16 +544,34 @@ export class ProjectGenerator {
   }
 
   public addMapping(mapping: Mapping) {
-    this.strategy.components.mappings.push(mapping)
-
-    if (this.strategy.components.generator !== this.strategy.pages.generator) {
-      this.strategy.pages.mappings.push(mapping)
-    }
+    this.strategy.components.mappings = [...this.strategy.components?.mappings, mapping]
+    this.strategy.pages.mappings = [...this.strategy.pages?.mappings, mapping]
 
     if (this.strategy.router) {
-      // TODO: Add mapping later if we decide to reference a generator object instead of a generator function for routing
+      /* TODO: Add mapping later if we decide to reference a generator object
+      instead of a generator function for routing */
     }
   }
+
+  // get componentsGenerator() {
+  //   return this.componentGenerator
+  // }
+
+  // get pagesGenerator() {
+  //   return this.pageGenerator
+  // }
+
+  // get routersGenerator() {
+  //   return this.routerGenerator
+  // }
+
+  // get styleSheetGenerators() {
+  //   return this.styleSheetGenerator
+  // }
+
+  // get entryFileGenerators() {
+  //   return this.entryGenerator
+  // }
 
   public addPlugin(plugin: ProjectPlugin) {
     this.assemblyLine.addPlugin(plugin)

@@ -102,14 +102,16 @@ export const createEntryFile = async (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy,
   entryFileGenerator: ComponentGenerator,
-  { assetsPrefix }: GeneratorOptions
+  entryFileOptions: GeneratorOptions
 ) => {
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
   const chunkGenerationFunction =
     strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
-  const { options } = strategy.entry
+  const { assetsPrefix } = entryFileOptions
+  const options = { ...strategy.entry?.options, ...entryFileOptions }
 
   const appRootOverride = (options && options.appRootOverride) || null
+
   const entryFileName = strategy.entry.fileName || 'index'
   const customHeadContent = (options && options.customHeadContent) || null
   const customTags = (options && options.customTags) || []
@@ -120,8 +122,8 @@ export const createEntryFile = async (
     customTags,
   })
 
-  const [entryFile] = entryFileGenerator.linkCodeChunks(chunks, entryFileName)
-  return entryFile
+  const result = entryFileGenerator.linkCodeChunks(chunks, entryFileName)
+  return result
 }
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
@@ -331,7 +333,7 @@ export const handlePackageJSON = (
   template: GeneratedFolder,
   uidl: ProjectUIDL,
   dependencies: Record<string, string>,
-  devDependencies: Record<string, string>
+  devDependencies?: Record<string, string>
 ) => {
   const inputPackageJSONFile = template.files.find(
     (file) => file.name === 'package' && file.fileType === FileType.JSON
@@ -348,7 +350,7 @@ export const handlePackageJSON = (
 
     packageJSONContent.devDependencies = {
       ...packageJSONContent.devDependencies,
-      ...devDependencies,
+      ...(Object.keys(devDependencies || {}).length > 0 && dependencies),
     }
 
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
@@ -357,7 +359,7 @@ export const handlePackageJSON = (
       ...DEFAULT_PACKAGE_JSON,
       name: StringUtils.slugify(uidl.name),
       dependencies,
-      devDependencies,
+      ...(Object.keys(devDependencies || {}).length > 0 && { devDependencies }),
     }
 
     template.files.push({

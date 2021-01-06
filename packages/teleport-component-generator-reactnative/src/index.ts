@@ -37,7 +37,7 @@ const createReactNativeComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
   postprocessors = [],
   plugins = [],
-}: GeneratorFactoryParams): ComponentGenerator => {
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
   const stylePlugin = stylePlugins[variation as ReactNativeStyleVariation] || inlineStylesPlugin
 

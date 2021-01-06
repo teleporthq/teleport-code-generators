@@ -50,7 +50,9 @@ describe('Generates media, pseudo and normal styles', () => {
   })
 
   it('Generates styles using CSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSS,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -65,7 +67,9 @@ describe('Generates media, pseudo and normal styles', () => {
   })
 
   it('Generates styles using Styled-Components', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -79,7 +83,9 @@ describe('Generates media, pseudo and normal styles', () => {
   })
 
   it('Generates styles using ReactJSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.ReactJSS,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -93,7 +99,9 @@ describe('Generates media, pseudo and normal styles', () => {
   })
 
   it('Generates styles using StyledJSX', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledJSX,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -143,7 +151,9 @@ describe('Add referenced styles even when direct styles are not present on node'
   })
 
   it('Generates styles using CSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSS,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -158,7 +168,9 @@ describe('Add referenced styles even when direct styles are not present on node'
   })
 
   it('Generates styles using Styled-Components', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -172,7 +184,9 @@ describe('Add referenced styles even when direct styles are not present on node'
   })
 
   it('Generates styles using ReactJSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.ReactJSS,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -186,7 +200,9 @@ describe('Add referenced styles even when direct styles are not present on node'
   })
 
   it('Generates styles using StyledJSX', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledJSX,
+    })
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -222,22 +238,30 @@ describe('Throws Error when a node is using project-styles but not present in UI
   })
 
   it('CSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSS,
+    })
     await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
   })
 
   it('Styled Components', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
     await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
   })
 
   it('Styled JSX', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledJSX,
+    })
     await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
   })
 
   it('React JSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.ReactJSS,
+    })
     await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
   })
 })
@@ -275,7 +299,9 @@ describe('Referes from project style and adds it to the node, without any styles
   }
 
   it('CSS-Modules', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSSModules,
+    })
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
 
@@ -285,7 +311,9 @@ describe('Referes from project style and adds it to the node, without any styles
   })
 
   it('CSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSS,
+    })
     const cssOptions: GeneratorOptions = {
       projectStyleSet: {
         ...options.projectStyleSet,
@@ -302,7 +330,9 @@ describe('Referes from project style and adds it to the node, without any styles
   })
 
   it('StyledComponents', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
 
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
@@ -314,7 +344,9 @@ describe('Referes from project style and adds it to the node, without any styles
   })
 
   it('Styled JSX', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledJSX,
+    })
 
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
@@ -323,7 +355,9 @@ describe('Referes from project style and adds it to the node, without any styles
   })
 
   it('React JSS', async () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.ReactJSS,
+    })
 
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)

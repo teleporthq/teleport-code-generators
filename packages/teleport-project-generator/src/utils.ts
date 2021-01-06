@@ -562,10 +562,17 @@ const findFileInFolder = (file: GeneratedFile, folder: GeneratedFolder) => {
 }
 
 export const bootstrapGenerator = (
-  generator: (params: GeneratorFactoryParams) => ComponentGenerator,
-  plugins: ComponentPlugin[] = [],
-  postprocessors: PostProcessor[] = [],
-  mappings: Mapping[] = [],
+  {
+    generator,
+    plugins = [],
+    postprocessors = [],
+    mappings = [],
+  }: {
+    generator: (params: GeneratorFactoryParams) => ComponentGenerator
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
+  },
   style?: StyleVariation
 ): ComponentGenerator => {
   return generator({ plugins, postprocessors, mappings, ...(style && { variation: style }) })

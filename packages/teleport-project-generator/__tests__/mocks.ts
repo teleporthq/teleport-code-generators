@@ -24,7 +24,7 @@ const mockedCompiledComponent: CompiledComponent = {
   dependencies: {},
 }
 
-const mockComponentGenerator = () => ({
+export const mockComponentGenerator = () => ({
   addMapping: jest.fn(),
   addPlugin: jest.fn(),
   addPostProcessor: jest.fn(),
@@ -58,23 +58,34 @@ const mockEntryFileGenerator = () => ({
 })
 
 export const createStrategyWithCommonGenerator = () => {
-  const commonGenerator = mockComponentGenerator()
   const strategy: ProjectStrategy = {
     components: {
-      generator: commonGenerator,
+      generator: mockComponentGenerator,
       path: ['test', 'components'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     pages: {
-      generator: commonGenerator,
+      generator: mockComponentGenerator,
       path: ['test', 'pages'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     entry: {
-      generator: mockEntryFileGenerator(),
+      generator: mockEntryFileGenerator,
       path: ['test'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     router: {
-      generator: mockRouterGenerator(),
+      generator: mockRouterGenerator,
       path: ['test'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     static: {
       path: ['test', 'static'],
@@ -86,22 +97,34 @@ export const createStrategyWithCommonGenerator = () => {
 export const createStrategyWithSeparateGenerators = () => {
   const strategy: ProjectStrategy = {
     components: {
-      generator: mockComponentGenerator(),
+      generator: mockComponentGenerator,
       path: ['test', 'components'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     pages: {
-      generator: mockComponentGenerator(),
+      generator: mockComponentGenerator,
       path: ['test', 'pages'],
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     entry: {
-      generator: mockEntryFileGenerator(),
+      generator: mockEntryFileGenerator,
       path: ['test'],
       fileName: 'mock-filename',
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     router: {
-      generator: mockRouterGenerator(),
+      generator: mockRouterGenerator,
       path: ['test'],
       fileName: 'mock-filename',
+      plugins: [],
+      postprocessors: [],
+      mappings: [],
     },
     static: {
       prefix: '/static',

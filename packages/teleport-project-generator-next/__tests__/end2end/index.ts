@@ -38,7 +38,7 @@ describe('React Next Project Generator', () => {
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
     expect(appFile.content).not.toContain(`import "antd/dist/antd.css`)
-    expect(appFile.content).toContain(`import './style.css'`)
+    expect(appFile.content).toContain(`import "./style.css"`)
   })
 
   it('runs without crashing', async () => {
@@ -56,6 +56,7 @@ describe('React Next Project Generator', () => {
     expect(pages.files[0].name).toBe('index')
     expect(pages.files[1].name).toBe('about')
   })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 

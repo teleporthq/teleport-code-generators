@@ -46,7 +46,9 @@ const findFileByType = (files: GeneratedFile[], type: string = FileType.JS) =>
 describe('React Styles in Component', () => {
   describe('supports usage of state in styles', () => {
     it('Inline Styles should refer state in styles when state is mapped', async () => {
-      const generator = createReactComponentGenerator(ReactStyleVariation.InlineStyles)
+      const generator = createReactComponentGenerator({
+        variation: ReactStyleVariation.InlineStyles,
+      })
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, FileType.JS)
 
@@ -56,7 +58,9 @@ describe('React Styles in Component', () => {
     })
 
     it('CSSModules should refer state in styles when state is mapped', async () => {
-      const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+      const generator = createReactComponentGenerator({
+        variation: ReactStyleVariation.CSSModules,
+      })
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, FileType.JS)
       const cssFile = findFileByType(result.files, FileType.CSS)
@@ -69,7 +73,9 @@ describe('React Styles in Component', () => {
     })
 
     it('Basic CSS should refer state in styles when state is mapped', async () => {
-      const generator = createReactComponentGenerator(ReactStyleVariation.CSS)
+      const generator = createReactComponentGenerator({
+        variation: ReactStyleVariation.CSS,
+      })
       const result = await generator.generateComponent(ComponentWithStateReference)
       const jsFile = findFileByType(result.files, FileType.JS)
       const cssFile = findFileByType(result.files, FileType.CSS)
@@ -82,7 +88,9 @@ describe('React Styles in Component', () => {
     })
 
     it('JSS should through error when state is refered', async () => {
-      const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+      const generator = createReactComponentGenerator({
+        variation: ReactStyleVariation.ReactJSS,
+      })
       try {
         await generator.generateComponent(ComponentWithStateReference)
       } catch (e) {
@@ -93,7 +101,9 @@ describe('React Styles in Component', () => {
   })
 
   describe('supports props json declaration in styles', () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.InlineStyles)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.InlineStyles,
+    })
 
     it('should add attributes on component', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
@@ -105,7 +115,9 @@ describe('React Styles in Component', () => {
     })
 
     it('should support object props in styledjsx', async () => {
-      const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledJSX,
+      })
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
       const jsFile = findFileByType(result.files, FileType.JS)
 
@@ -114,7 +126,9 @@ describe('React Styles in Component', () => {
     })
 
     it('should throw error when a state is being refered in generated StyledJSX ', async () => {
-      const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledJSX,
+      })
       try {
         await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
         expect(true).toBe(false)
@@ -126,9 +140,9 @@ describe('React Styles in Component', () => {
     })
 
     it('should explicitly send prop if style is using one prop variable', async () => {
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledComponents,
+      })
       const result = await styledComponentsGenerator.generateComponent(
         ComponentWithValidSingleStlye
       )
@@ -157,9 +171,9 @@ describe('React Styles in Component', () => {
         {}
       )
 
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledComponents,
+      })
       const result = await styledComponentsGenerator.generateComponent(uidl)
       const jsFile = findFileByType(result.files, FileType.JS)
 
@@ -191,9 +205,9 @@ describe('React Styles in Component', () => {
         {}
       )
 
-      const styledComponentsGenerator = createReactComponentGenerator(
-        ReactStyleVariation.StyledComponents
-      )
+      const styledComponentsGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledComponents,
+      })
       const result = await styledComponentsGenerator.generateComponent(uidl)
 
       const jsFile = findFileByType(result.files, FileType.JS)
@@ -207,7 +221,9 @@ describe('React Styles in Component', () => {
     })
 
     it('should inject props only once for styled components', async () => {
-      const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledComponents,
+      })
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
 
       const jsFile = findFileByType(result.files, FileType.JS)
@@ -215,7 +231,9 @@ describe('React Styles in Component', () => {
     })
 
     it('should throw error when a state is being refered in generated StyledComponents ', async () => {
-      const styledJSXGenerator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+      const styledJSXGenerator = createReactComponentGenerator({
+        variation: ReactStyleVariation.StyledComponents,
+      })
       try {
         await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
         expect(true).toBe(false)
@@ -228,7 +246,7 @@ describe('React Styles in Component', () => {
   })
 
   describe('React CSS file using CSS Modules', () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+    const generator = createReactComponentGenerator({ variation: ReactStyleVariation.CSSModules })
 
     it('should return code in an array of files', async () => {
       const result = await generator.generateComponent(ComponentWithValidStyle)
