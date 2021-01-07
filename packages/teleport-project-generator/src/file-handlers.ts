@@ -350,7 +350,7 @@ export const handlePackageJSON = (
 
     packageJSONContent.devDependencies = {
       ...packageJSONContent.devDependencies,
-      ...(Object.keys(devDependencies || {}).length > 0 && dependencies),
+      ...(Object.keys(devDependencies || {}).length > 0 && devDependencies),
     }
 
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)

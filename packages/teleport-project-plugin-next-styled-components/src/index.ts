@@ -14,8 +14,11 @@ class PluginNextStyledComponents implements ProjectPlugin {
     const { strategy } = structure
 
     strategy.style = ReactStyleVariation.StyledComponents
-    strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
-    strategy.framework.config.isGlobalStylesDependent = false
+    if (strategy?.projectStyleSheet?.generator) {
+      strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
+      strategy.framework.config.isGlobalStylesDependent = false
+    }
+
     return structure
   }
 

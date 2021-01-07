@@ -11,9 +11,11 @@ class PluginNextCSSModules implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure
 
-    strategy.projectStyleSheet.plugins = [createStyleSheetPlugin()]
     strategy.style = ReactStyleVariation.CSSModules
-    strategy.framework.config.isGlobalStylesDependent = false
+    if (strategy?.projectStyleSheet?.generator) {
+      strategy.projectStyleSheet.plugins = [createStyleSheetPlugin()]
+      strategy.framework.config.isGlobalStylesDependent = false
+    }
     return structure
   }
 

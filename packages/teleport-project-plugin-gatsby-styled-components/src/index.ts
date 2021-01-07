@@ -2,7 +2,6 @@ import {
   FileType,
   ProjectPlugin,
   ProjectPluginStructure,
-  TeleportError,
   GatsbyStyleVariation,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
@@ -13,20 +12,24 @@ import { STYLED_DEPENDENCIES } from './constants'
 
 class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
-    const { strategy, template, files, dependencies } = structure
+    const { strategy } = structure
 
+    strategy.style = GatsbyStyleVariation.StyledComponents
     if (strategy?.projectStyleSheet?.generator) {
       strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
     }
-    strategy.style = GatsbyStyleVariation.StyledComponents
+    return structure
+  }
 
+  async runAfter(structure: ProjectPluginStructure) {
+    const { template, files, dependencies } = structure
     const fileName = 'gatsby-config'
     const configFile = template.files.find(
       (file) => file.name === 'gatsby-config' && file.fileType === FileType.JS
     )
 
     if (!configFile || !configFile.content) {
-      throw new TeleportError(`${fileName} not found, while adding gatsby-plugin-styled-components`)
+      throw new Error(`${fileName} not found, while adding gatsby-plugin-styled-components`)
     }
 
     const parsedFile = configFile.content.replace('/n', '//n')
@@ -46,10 +49,6 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
       dependencies[dep] = STYLED_DEPENDENCIES[dep]
     })
 
-    return structure
-  }
-
-  async runAfter(structure: ProjectPluginStructure) {
     return structure
   }
 }
