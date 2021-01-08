@@ -1,5 +1,4 @@
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -14,7 +13,6 @@ import {
   UIDLExternalDependency,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
-
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 

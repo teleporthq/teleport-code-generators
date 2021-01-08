@@ -6,6 +6,7 @@ import {
   UIDLElement,
   UIDLStateDefinition,
   UIDLStyleSetDefinition,
+  UIDLDesignTokens,
 } from './uidl'
 
 export enum FileType {
@@ -95,6 +96,9 @@ export interface GeneratorOptions {
     fileName: string
     path: string
     importFile?: boolean
+  }
+  designLanguage?: {
+    tokens?: UIDLDesignTokens
   }
 }
 

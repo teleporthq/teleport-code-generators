@@ -17,9 +17,6 @@ export const createCustomHTMLEntryFile = (
   options: EntryFileOptions,
   t = types
 ) => {
-  const reactImport = createImportAST('React', 'react')
-  const propTypesImport = createImportAST('PropTypes', 'prop-types')
-
   const exportBody = t.exportDefaultDeclaration(
     t.functionDeclaration(
       t.identifier('HTML'),
@@ -34,7 +31,7 @@ export const createCustomHTMLEntryFile = (
         name: 'import-chunks',
         type: ChunkType.AST,
         fileType: FileType.JS,
-        content: [reactImport, propTypesImport],
+        content: [createImportAST('React', 'react'), createImportAST('PropTypes', 'prop-types')],
         linkAfter: [],
       },
       {

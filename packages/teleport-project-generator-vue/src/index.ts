@@ -1,16 +1,13 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import vueRoutingPlugin from '@teleporthq/teleport-plugin-vue-app-routing'
 import { createVueHeadConfigPlugin } from '@teleporthq/teleport-plugin-vue-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-
 import { Mapping } from '@teleporthq/teleport-types'
-
-import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+import pluginCSS, { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 
 import VueTemplate from './project-template'
 import VueProjectMapping from './vue-project-mapping.json'
@@ -27,6 +24,7 @@ const createVueProjectGenerator = () => {
 
   const vueRouterGenerator = createComponentGenerator()
   vueRouterGenerator.addPlugin(vueRoutingPlugin)
+  vueRouterGenerator.addPlugin(pluginCSS)
   vueRouterGenerator.addPlugin(importStatementsPlugin)
   vueRouterGenerator.addPostProcessor(prettierJS)
 
@@ -34,11 +32,7 @@ const createVueProjectGenerator = () => {
   htmlFileGenerator.addPostProcessor(prettierHTML)
 
   const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'index',
-    })
-  )
+  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
 
   const generator = createProjectGenerator({
     components: {
@@ -51,7 +45,7 @@ const createVueProjectGenerator = () => {
     },
     projectStyleSheet: {
       generator: styleSheetGenerator,
-      fileName: 'index',
+      fileName: 'style',
       path: ['src'],
       importFile: true,
     },

@@ -103,16 +103,16 @@ export const removeUnusedDependencies = (
 
 export const generatePropReferencesSyntax = (
   style: Record<string, UIDLStyleValue>,
-  timesReferred: number,
+  timesPropsReferred?: number,
+  tokensReferred?: string[],
   root?: t.JSXElement,
   propsPrefix?: unknown
 ) => {
-  let tokensUsed = false
-  const transformedStyles = UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
+  return UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
     switch (styleValue.content.referenceType) {
       case 'prop': {
         const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
-        if (timesReferred === 1 && root && propsPrefix) {
+        if (timesPropsReferred && timesPropsReferred === 1 && root && propsPrefix) {
           ASTUtils.addDynamicAttributeToJSXTag(
             root,
             dashCaseAttribute,
@@ -124,10 +124,9 @@ export const generatePropReferencesSyntax = (
         return `\$\{props => props.${styleValue.content.id}\}`
       }
       case 'token':
-        tokensUsed = true
-        return `\$\{TOKENS.${StringUtils.capitalize(
-          StringUtils.dashCaseToCamelCase(styleValue.content.id)
-        )}\}`
+        const token = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(styleValue.content.id))
+        tokensReferred?.push(token)
+        return `\$\{TOKENS.${token}\}`
       default:
         throw new Error(
           `Error running transformDynamicStyles in reactStyledComponentsPlugin. 
@@ -135,9 +134,4 @@ export const generatePropReferencesSyntax = (
         )
     }
   })
-
-  return {
-    transformedStyles,
-    tokensUsed,
-  }
 }

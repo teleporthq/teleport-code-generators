@@ -15,11 +15,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    const { styleSetDefinitions, designLanguage = {} } = uidl
-    const { tokens = {} } = designLanguage
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (!styleSetDefinitions || Object.keys(styleSetDefinitions).length === 0) {
-      return
+    if (!styleSetDefinitions && !tokens) {
+      return structure
     }
 
     const cssMap: string[] = []
@@ -77,6 +76,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     })
 
     cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
+
+    if (cssMap.length === 0) {
+      return structure
+    }
 
     uidl.outputOptions = uidl.outputOptions || {}
     uidl.outputOptions.styleFileName = fileName

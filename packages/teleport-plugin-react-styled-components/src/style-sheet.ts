@@ -19,8 +19,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { styleSetDefinitions, designLanguage = {} } = uidl
-    const { tokens = {} } = designLanguage
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
     if (!styleSetDefinitions && !tokens) {
       return
@@ -41,10 +40,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
       const className = StringUtils.dashCaseToUpperCamelCase(name)
       let styles = {}
-      const { transformedStyles } = generatePropReferencesSyntax(content, 0)
       styles = {
         ...styles,
-        ...transformedStyles,
+        ...generatePropReferencesSyntax(content),
       }
 
       if (conditions.length > 0) {
@@ -52,16 +50,14 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           if (Object.keys(styleRef.content).length === 0) {
             return
           }
-          const { transformedStyles: transformedMediaStyles } = generatePropReferencesSyntax(
-            styleRef.content,
-            0
-          )
 
           if (styleRef.type === 'screen-size') {
             styles = {
               ...styles,
               ...{
-                [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: transformedMediaStyles,
+                [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: generatePropReferencesSyntax(
+                  styleRef.content
+                ),
               },
             }
           }
@@ -70,15 +66,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
             styles = {
               ...styles,
               ...{
-                [`&:${styleRef.meta.state}`]: transformedMediaStyles,
+                [`&:${styleRef.meta.state}`]: generatePropReferencesSyntax(styleRef.content),
               },
             }
           }
         })
       }
-
-      uidl.outputOptions = uidl.outputOptions || {}
-      uidl.outputOptions.fileName = fileName
 
       chunks.push({
         name: fileName,
@@ -87,31 +80,36 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         content: generateExportablCSSInterpolate(className, styles),
         linkAfter: ['tokens-chunk'],
       })
+
+      dependencies.css = {
+        type: 'package',
+        path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
+        version: '4.2.0',
+        meta: {
+          namedImport: true,
+        },
+      }
     })
 
-    chunks.push({
-      name: 'tokens-chunk',
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: t.exportNamedDeclaration(
-        t.variableDeclaration('const', [
-          t.variableDeclarator(
-            t.identifier('TOKENS'),
-            ASTUtils.objectToObjectExpression(tokensMap)
-          ),
-        ])
-      ),
-      linkAfter: ['import-local'],
-    })
-
-    dependencies.css = {
-      type: 'package',
-      path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
-      version: '4.2.0',
-      meta: {
-        namedImport: true,
-      },
+    if (Object.keys(tokensMap).length > 0) {
+      chunks.push({
+        name: 'tokens-chunk',
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        content: t.exportNamedDeclaration(
+          t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.identifier('TOKENS'),
+              ASTUtils.objectToObjectExpression(tokensMap)
+            ),
+          ])
+        ),
+        linkAfter: ['import-local'],
+      })
     }
+
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.fileName = fileName
 
     return structure
   }

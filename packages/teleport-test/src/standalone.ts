@@ -1,4 +1,4 @@
-import { readFileSync, rmdirSync, mkdirSync } from 'fs'
+import { readFileSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
 import { ProjectUIDL, PackerOptions, ProjectType, PublisherType } from '@teleporthq/teleport-types'
@@ -33,8 +33,8 @@ const packerOptions: PackerOptions = {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmdirSync('dist', { recursive: true })
-      mkdirSync('dist')
+      // rmdirSync('dist', { recursive: true })
+      // mkdirSync('dist')
     }
 
     let result

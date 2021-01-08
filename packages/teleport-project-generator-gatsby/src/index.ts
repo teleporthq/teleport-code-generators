@@ -90,6 +90,7 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: ['src'],
+      importFile: true,
     },
   }
 
