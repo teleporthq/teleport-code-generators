@@ -46,17 +46,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const {
-      projectStyleSet: {
-        styleSetDefinitions = {},
-        fileName: projectStyleSheetName,
-        path,
-        importFile = false,
-      },
-      designLanguage: { tokens = {} } = {},
-      isRootComponent,
-    } = options
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
+
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+      projectStyleSet || {}
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {

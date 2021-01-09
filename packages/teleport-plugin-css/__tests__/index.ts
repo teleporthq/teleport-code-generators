@@ -5,7 +5,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { createCSSPlugin } from '../src/index'
+import { createCSSPlugin } from '../src'
 
 describe('plugin-css', () => {
   describe('on html template based components', () => {

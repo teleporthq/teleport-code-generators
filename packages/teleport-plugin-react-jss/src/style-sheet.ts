@@ -19,8 +19,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     const { uidl, chunks, dependencies } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (!styleSetDefinitions && !tokens) {
-      return
+    if (
+      (!styleSetDefinitions && !tokens) ||
+      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
+    ) {
+      return structure
     }
 
     const tokensMap: Record<string, string | number> = Object.keys(tokens || {}).reduce(

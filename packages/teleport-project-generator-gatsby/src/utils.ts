@@ -6,6 +6,7 @@ import {
   FileType,
   ChunkType,
   GeneratedFolder,
+  FrameWorkConfigOptions,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -247,4 +248,32 @@ export const appendToConfigFile = (
     file: configFile,
     dependencies: { ...dependencies, ...STYLED_DEPENDENCIES },
   }
+}
+
+export const styleSheetDependentConfigGenerator = (options: FrameWorkConfigOptions, t = types) => {
+  const chunks: ChunkDefinition[] = []
+  const result = {
+    chunks: {},
+    dependencies: options.dependencies,
+  }
+
+  const {
+    globalStyles: { path, sheetName, isGlobalStylesDependent },
+  } = options
+
+  if (isGlobalStylesDependent) {
+    chunks.push({
+      type: ChunkType.AST,
+      name: 'import-js-chunk',
+      fileType: FileType.JS,
+      content: t.importDeclaration([], t.stringLiteral(`./${path}/${sheetName}.module.css`)),
+      linkAfter: [],
+    })
+  }
+
+  result.chunks = {
+    [FileType.JS]: chunks,
+  }
+
+  return result
 }

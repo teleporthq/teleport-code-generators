@@ -20,7 +20,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     const { uidl, chunks } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (!styleSetDefinitions && !tokens) {
+    if (
+      (!styleSetDefinitions && !tokens) ||
+      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
+    ) {
       return
     }
 
@@ -37,48 +40,50 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       )
     }
 
-    Object.values(styleSetDefinitions).forEach((style) => {
-      const { name, content, conditions = [] } = style
-      const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
+    if (Object.keys(styleSetDefinitions).length > 0) {
+      Object.values(styleSetDefinitions).forEach((style) => {
+        const { name, content, conditions = [] } = style
+        const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
 
-      const collectedStyles = {
-        ...StyleUtils.getContentOfStyleObject(staticStyles),
-        ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-      } as Record<string, string | number>
-
-      cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
-
-      if (conditions.length === 0) {
-        return
-      }
-      conditions.forEach((styleRef) => {
-        const {
-          staticStyles: staticValues,
-          tokenStyles: tokenValues,
-        } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
-        const collectedMediaStyles = {
-          ...StyleUtils.getContentOfStyleObject(staticValues),
-          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
+        const collectedStyles = {
+          ...StyleUtils.getContentOfStyleObject(staticStyles),
+          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
         } as Record<string, string | number>
 
-        if (styleRef.type === 'element-state') {
-          cssMap.push(
-            StyleBuilders.createCSSClassWithSelector(
-              name,
-              `&:${styleRef.meta.state}`,
-              collectedMediaStyles
-            )
-          )
-        }
+        cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
 
-        if (styleRef.type === 'screen-size') {
-          mediaStylesMap[styleRef.meta.maxWidth] = {
-            ...mediaStylesMap[styleRef.meta.maxWidth],
-            [name]: collectedMediaStyles,
-          }
+        if (conditions.length === 0) {
+          return
         }
+        conditions.forEach((styleRef) => {
+          const {
+            staticStyles: staticValues,
+            tokenStyles: tokenValues,
+          } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+          const collectedMediaStyles = {
+            ...StyleUtils.getContentOfStyleObject(staticValues),
+            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
+          } as Record<string, string | number>
+
+          if (styleRef.type === 'element-state') {
+            cssMap.push(
+              StyleBuilders.createCSSClassWithSelector(
+                name,
+                `&:${styleRef.meta.state}`,
+                collectedMediaStyles
+              )
+            )
+          }
+
+          if (styleRef.type === 'screen-size') {
+            mediaStylesMap[styleRef.meta.maxWidth] = {
+              ...mediaStylesMap[styleRef.meta.maxWidth],
+              [name]: collectedMediaStyles,
+            }
+          }
+        })
       })
-    })
+    }
 
     cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
 

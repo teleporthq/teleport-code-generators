@@ -39,16 +39,9 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const {
-      projectStyleSet: {
-        styleSetDefinitions = {},
-        fileName: projectStyleSheetName,
-        path,
-        importFile = false,
-      },
-      designLanguage: { tokens = {} } = {},
-      isRootComponent,
-    } = options
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+      projectStyleSet || {}
 
     const { node } = uidl
 

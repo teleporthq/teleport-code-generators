@@ -77,32 +77,35 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
     strategy.pages.path
   )
 
-  const relativePathForProjectStyleSheet =
-    PathResolver.relative(
-      /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-      strategy.router.path.join('/'),
-      strategy.projectStyleSheet.path.join('/')
-    ) || '.'
-
-  const options: GeneratorOptions = {
+  let options: GeneratorOptions = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
     strategy,
     isRootComponent: true,
-    projectStyleSet: {
-      styleSetDefinitions: root?.styleSetDefinitions,
-      fileName: projectStyleSheet.fileName,
-      path: relativePathForProjectStyleSheet,
-      importFile: projectStyleSheet?.importFile || false,
-    },
     designLanguage: root?.designLanguage,
   }
 
+  if (projectStyleSheet) {
+    const relativePathForProjectStyleSheet =
+      PathResolver.relative(
+        /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+        strategy.router.path.join('/'),
+        strategy.projectStyleSheet.path.join('/')
+      ) || '.'
+    options = {
+      ...options,
+      projectStyleSet: {
+        styleSetDefinitions: root?.styleSetDefinitions,
+        fileName: projectStyleSheet.fileName,
+        path: relativePathForProjectStyleSheet,
+        importFile: projectStyleSheet?.importFile || false,
+      },
+    }
+  }
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 
   const { files, dependencies } = await routerGenerator.generateComponent(root, options)
-
   return { routerFile: files[0], dependencies }
 }
 
