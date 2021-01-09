@@ -147,7 +147,7 @@ export class ProjectGenerator {
     }
 
     const { components = {} } = uidl
-    const { styleSetDefinitions = {} } = uidl.root
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl.root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -177,7 +177,10 @@ export class ProjectGenerator {
     }
 
     // Handling project style sheet
-    if (this.strategy.projectStyleSheet?.generator) {
+    if (
+      this.strategy.projectStyleSheet?.generator &&
+      (Object.keys(styleSetDefinitions).length > 0 || Object.keys(tokens).length > 0)
+    ) {
       const { generator, path } = this.strategy.projectStyleSheet
       const { files, dependencies } = await generator.generateComponent(uidl.root, {
         isRootComponent: true,
