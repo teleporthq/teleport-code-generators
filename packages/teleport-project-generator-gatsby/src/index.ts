@@ -43,10 +43,7 @@ interface GatsbyProjectConfig {
 }
 
 const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
-  const variation =
-    config?.variation === ReactStyleVariation.CSSModules
-      ? ReactStyleVariation.CSSModules
-      : ReactStyleVariation.StyledComponents
+  const variation = config?.variation || ReactStyleVariation.CSSModules
   const reactComponentGenerator = createCustomReactComponentGenerator(variation)
   const reactPagesGenerator = createCustomReactComponentGenerator(variation, [headConfigPlugin])
 
@@ -68,7 +65,7 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
     styleSheetGenerator.addPlugin(importStatementsPlugin)
     styleSheetGenerator.addPostProcessor(prettierJS)
   } else {
-    styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+    styleSheetGenerator.addPlugin(createStyleSheetPlugin({ moduleExtension: true }))
   }
 
   const strategy: ProjectStrategy = {

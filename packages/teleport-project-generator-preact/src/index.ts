@@ -30,7 +30,6 @@ const createPreactProjectGenerator = () => {
   styleSheetGenerator.addPlugin(
     createStyleSheetPlugin({
       fileName: 'style',
-      omitModuleextension: true,
     })
   )
 
