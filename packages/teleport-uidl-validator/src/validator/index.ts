@@ -19,7 +19,7 @@ interface ValidationResult {
 export default class Validator {
   public validateComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = utils.cleanUIDL(input)
+      const cleanedUIDL = utils.validateNulls(input)
       const uidl = componentUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
@@ -30,7 +30,7 @@ export default class Validator {
 
   public validateRootComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = utils.cleanUIDL(input)
+      const cleanedUIDL = utils.validateNulls(input)
       const uidl = rootComponentUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
@@ -41,7 +41,7 @@ export default class Validator {
 
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = utils.cleanUIDL(input)
+      const cleanedUIDL = utils.validateNulls(input)
       const uidl = projectUIDLDecoder.runWithException(cleanedUIDL)
       return { valid: true, errorMsg: '', projectUIDL: uidl }
     } catch (e) {

@@ -36,12 +36,11 @@ const uidl = component(
 )
 
 describe('Validate UIDL', () => {
-  describe('Component UIDL with null /  undefined in the JSON', () => {
+  it('Component UIDL with null /  undefined in the JSON', () => {
     const validator = new Validator()
-    const result = validator.validateComponentSchema(
-      (uidlWithNull as unknown) as Record<string, unknown>
-    )
-    expect(result.valid).toBe(true)
+    expect(() =>
+      validator.validateComponentSchema((uidlWithNull as unknown) as Record<string, unknown>)
+    ).toThrow(Error)
   })
 
   describe('Component UIDL Format', () => {
