@@ -1,0 +1,24 @@
+{
+    "name": "Sample Component",
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "div",
+        "name": "div",
+        "children": [
+          {
+            "type": "static",
+            "content": "Hello World"
+          }
+        ],
+        "attrs": {},
+        "style": {
+          "width": {
+            "type": "static",
+            "content": "100px"
+          },
+          "height": null
+        }
+      }
+    }
+  }

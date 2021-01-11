@@ -10,6 +10,8 @@ import oldInvalidProjectUidlSample from './old-project-invalid-sample.json'
 import invalidProjectUidlSample from './project-invalid-sample.json'
 // @ts-ignore
 import noRouteProjectUidlSample from './project-invalid-sample-no-route.json'
+import uidlWithNull from './component-uidl-with-null-undefined.json'
+
 import {
   component,
   definition,
@@ -34,10 +36,19 @@ const uidl = component(
 )
 
 describe('Validate UIDL', () => {
+  it('Component UIDL with null /  undefined in the JSON', () => {
+    const validator = new Validator()
+    expect(() =>
+      validator.validateComponentSchema((uidlWithNull as unknown) as Record<string, unknown>)
+    ).toThrow(Error)
+  })
+
   describe('Component UIDL Format', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
-      const validationResult = validator.validateComponentSchema(uidl)
+      const validationResult = validator.validateComponentSchema(
+        (uidl as unknown) as Record<string, unknown>
+      )
 
       expect(typeof validationResult).toBe('object')
       expect(validationResult.valid).toEqual(true)

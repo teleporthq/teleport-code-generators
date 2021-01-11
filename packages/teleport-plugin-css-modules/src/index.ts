@@ -27,6 +27,7 @@ const defaultConfigProps = {
   camelCaseClassNames: false,
   moduleExtension: false,
   classAttributeName: 'className',
+  projectStylesReferenceOffset: 'projectStyles',
 }
 
 export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = {}) => {
@@ -37,6 +38,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     camelCaseClassNames,
     moduleExtension,
     classAttributeName,
+    projectStylesReferenceOffset,
   } = {
     ...defaultConfigProps,
     ...config,
@@ -44,8 +46,26 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { projectStyleSet } = options
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
+
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+      projectStyleSet || {}
+
+    if (isRootComponent) {
+      if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {
+        const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
+        dependencies[projectStylesReferenceOffset] = {
+          type: 'local',
+          path: `${path}/${fileName}.${FileType.CSS}`,
+          meta: {
+            importJustPath: true,
+          },
+        }
+      }
+
+      return structure
+    }
 
     if (!componentChunk) {
       throw new Error(
@@ -56,7 +76,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const cssClasses: string[] = []
     let isProjectStyleReferred: boolean = false
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
-    const projectStylesReferenceOffset = `projectStyles`
     const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
@@ -80,7 +99,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           : `styles['${className}']`
       const root = astNodesLookup[key]
 
-      if (style) {
+      if (Object.keys(style || {}).length > 0) {
         const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
           style
         )
@@ -110,7 +129,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         }
       }
 
-      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
+      if (Object.keys(referencedStyles || {}).length > 0) {
         Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
@@ -147,16 +166,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               return
             }
             case 'project-referenced': {
-              if (!projectStyleSet) {
-                throw new Error(
-                  `Project Style Sheet is missing, but the node is referring to it ${element}`
-                )
-              }
-
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                const referedStyle = styleSetDefinitions[content.referenceId]
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
@@ -222,13 +235,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     /* Order of imports play a important role on initial load sequence
     So, project styles should always be loaded before component styles */
-    if (isProjectStyleReferred) {
-      const fileName = moduleExtension
-        ? `${options.projectStyleSet.fileName}.module`
-        : options.projectStyleSet.fileName
+    if (isProjectStyleReferred && importFile) {
+      const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
       dependencies[projectStylesReferenceOffset] = {
         type: 'local',
-        path: `${options.projectStyleSet.path}/${fileName}.${FileType.CSS}`,
+        path: `${path}/${fileName}.${FileType.CSS}`,
       }
     }
 

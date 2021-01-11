@@ -25,10 +25,6 @@ const createAngularProjectGenerator = () => {
   })
   const pagesModuleGeneratorAngularPlugin = createAngularModulePlugin({ moduleType: 'page' })
 
-  const styleSheetPlugin = createStyleSheetPlugin({
-    fileName: 'styles',
-  })
-
   const generator = createProjectGenerator({
     components: {
       generator: createAngularComponentGenerator,
@@ -64,7 +60,7 @@ const createAngularProjectGenerator = () => {
     },
     projectStyleSheet: {
       generator: createComponentGenerator,
-      plugins: [styleSheetPlugin],
+      plugins: [createStyleSheetPlugin({ fileName: 'styles' })],
       fileName: 'styles',
       path: ['src'],
     },

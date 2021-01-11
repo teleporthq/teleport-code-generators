@@ -17,11 +17,13 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const { styleSetDefinitions = {}, designLanguage = {} } = uidl
-    const { tokens = {} } = designLanguage
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (!styleSetDefinitions && !tokens) {
-      return
+    if (
+      (!styleSetDefinitions && !tokens) ||
+      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
+    ) {
+      return structure
     }
 
     const tokensMap: Record<string, string | number> = Object.keys(tokens || {}).reduce(
@@ -38,9 +40,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     if (Object.keys(styleSetDefinitions).length > 0) {
       Object.values(styleSetDefinitions).forEach((style) => {
         const { conditions = [], content } = style
-        const { transformedStyles } = generatePropSyntax(content)
         let styles = {
-          ...transformedStyles,
+          ...generatePropSyntax(content),
         }
 
         if (conditions.length > 0) {
@@ -48,15 +49,13 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
             if (Object.keys(styleRef.content).length === 0) {
               return
             }
-            const { transformedStyles: transformedMediaStyles } = generatePropSyntax(
-              styleRef.content
-            )
-
             if (styleRef.type === 'screen-size') {
               styles = {
                 ...styles,
                 ...{
-                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: transformedMediaStyles,
+                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: generatePropSyntax(
+                    styleRef.content
+                  ),
                 },
               }
             }
@@ -65,10 +64,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
               styles = {
                 ...styles,
                 ...{
-                  [`&:${styleRef.meta.state}`]: transformedMediaStyles as Record<
-                    string,
-                    string | number
-                  >,
+                  [`&:${styleRef.meta.state}`]: generatePropSyntax(styleRef.content),
                 },
               }
             }
@@ -91,37 +87,41 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       },
     }
 
-    chunks.push({
-      name: 'tokens-chunk',
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: t.exportNamedDeclaration(
-        t.variableDeclaration('const', [
-          t.variableDeclarator(
-            t.identifier('TOKENS'),
-            ASTUtils.objectToObjectExpression(tokensMap)
-          ),
-        ])
-      ),
-      linkAfter: ['import-local'],
-    })
+    if (Object.keys(tokens).length > 0) {
+      chunks.push({
+        name: 'tokens-chunk',
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        content: t.exportNamedDeclaration(
+          t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.identifier('TOKENS'),
+              ASTUtils.objectToObjectExpression(tokensMap)
+            ),
+          ])
+        ),
+        linkAfter: ['import-local'],
+      })
+    }
 
-    chunks.push({
-      name: fileName,
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: t.exportNamedDeclaration(
-        t.variableDeclaration('const', [
-          t.variableDeclarator(
-            t.identifier('useProjectStyles'),
-            t.callExpression(t.identifier('createUseStyles'), [
-              ASTUtils.objectToObjectExpression(styleSet),
-            ])
-          ),
-        ])
-      ),
-      linkAfter: ['tokens-chunk'],
-    })
+    if (Object.keys(styleSet).length > 0) {
+      chunks.push({
+        name: fileName,
+        type: ChunkType.AST,
+        fileType: FileType.JS,
+        content: t.exportNamedDeclaration(
+          t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.identifier('useProjectStyles'),
+              t.callExpression(t.identifier('createUseStyles'), [
+                ASTUtils.objectToObjectExpression(styleSet),
+              ])
+            ),
+          ])
+        ),
+        linkAfter: ['tokens-chunk'],
+      })
+    }
 
     return structure
   }

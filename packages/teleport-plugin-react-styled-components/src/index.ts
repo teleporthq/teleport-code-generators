@@ -46,7 +46,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     // @ts-ignore
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jssStyleMap: Record<string, unknown> = {}
-    let isTokensUsed: boolean = false
+    const tokensReferred: string[] = []
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style } = element
@@ -60,8 +60,11 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       let className = StringUtils.dashCaseToUpperCamelCase(key)
       const projectReferencedClassNames: string[] = []
 
-      let timesReferred = countPropReferences(style, 0)
-      timesReferred = countPropRefernecesFromReferencedStyles(referencedStyles, timesReferred)
+      let timesProsReferred = countPropReferences(style, 0)
+      timesProsReferred = countPropRefernecesFromReferencedStyles(
+        referencedStyles,
+        timesProsReferred
+      )
 
       if (style && Object.keys(style).length > 0) {
         /* Styled components might create an element that
@@ -91,16 +94,13 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
             })
           }
         }
-        const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
+        jssStyleMap[className] = generatePropReferencesSyntax(
           style,
-          timesReferred,
+          timesProsReferred,
+          tokensReferred,
           root,
           propsPrefix
         )
-        jssStyleMap[className] = transformedStyles
-        if (tokensUsed) {
-          isTokensUsed = true
-        }
       }
 
       if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
@@ -115,34 +115,28 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               }
 
               if (condition.conditionType === 'screen-size') {
-                const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
-                  styleRef.content.styles,
-                  timesReferred,
-                  root,
-                  propsPrefix
-                )
-                if (tokensUsed) {
-                  isTokensUsed = tokensUsed
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`@media(max-width: ${condition.maxWidth}px)`]: transformedStyles,
+                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropReferencesSyntax(
+                    styleRef.content.styles,
+                    timesProsReferred,
+                    tokensReferred,
+                    root,
+                    propsPrefix
+                  ),
                 }
               }
 
               if (condition.conditionType === 'element-state') {
-                const { transformedStyles, tokensUsed } = generatePropReferencesSyntax(
-                  styleRef.content.styles,
-                  timesReferred,
-                  root,
-                  propsPrefix
-                )
-                if (tokensUsed) {
-                  isTokensUsed = true
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: transformedStyles,
+                  [`&:${condition.content}`]: generatePropReferencesSyntax(
+                    styleRef.content.styles,
+                    timesProsReferred,
+                    tokensReferred,
+                    root,
+                    propsPrefix
+                  ),
                 }
               }
 
@@ -184,7 +178,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         })
       }
 
-      if (timesReferred > 1) {
+      if (timesProsReferred > 1) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
       }
 
@@ -209,7 +203,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       return structure
     }
 
-    if (isTokensUsed) {
+    if (tokensReferred.length > 0) {
       dependencies.TOKENS = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,

@@ -1,6 +1,8 @@
+import { FileType } from '@teleporthq/teleport-types'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import template from './template-definition.json'
 import { createPreactProjectGenerator } from '../../src'
 
@@ -58,6 +60,9 @@ describe('Preact Project Generator', () => {
     expect(componentFiles.length).toBe(6)
     expect(componentFiles[componentFiles.length - 1].fileType).toBe('js')
     expect(componentFiles[componentFiles.length - 1].name).toBe('app')
+    expect(componentFiles[componentFiles.length - 1].content).not.toContain(
+      `import '../routes/style.css'`
+    )
     expect(modalComponent.content).toContain(
       `<Button type="primary" onClick={() => setIsOpen(true)}>
         Show Popup
@@ -68,6 +73,25 @@ describe('Preact Project Generator', () => {
     expect(componentFiles[componentFiles.length - 1].content).toContain(
       `import 'antd/dist/antd.css'`
     )
+  })
+
+  it('runs without crashing and using only tokens', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+    const routes = result.subFolders[0].subFolders.find((folder) => folder.name === 'routes')
+    const styleSheet = routes.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const components = result.subFolders[0].subFolders.find(
+      (folder) => folder.name === 'components'
+    )
+    const index = components.files.find(
+      (file) => file.name === 'app' && file.fileType === FileType.JS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+    expect(index).toBeDefined()
+    expect(index.content).toContain(`import '../routes/style.css'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

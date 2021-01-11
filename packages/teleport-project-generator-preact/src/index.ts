@@ -9,7 +9,10 @@ import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping, PreactStyleVariation } from '@teleporthq/teleport-types'
-import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
+import {
+  createStyleSheetPlugin,
+  createCSSModulesPlugin,
+} from '@teleporthq/teleport-plugin-css-modules'
 
 import PreactTemplate from './project-template'
 import PreactCodesandBoxTemplate from './project-template-codesandbox'
@@ -19,7 +22,7 @@ import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } 
 const createPreactProjectGenerator = () => {
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'style',
-    omitModuleExtension: true,
+    moduleExtension: false,
   })
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
 
@@ -41,10 +44,17 @@ const createPreactProjectGenerator = () => {
     },
     router: {
       generator: createComponentGenerator,
-      plugins: [routerPlugin, importStatementsPlugin],
+      plugins: [routerPlugin, createCSSModulesPlugin(), importStatementsPlugin],
       postprocessors: [prettierJS],
       path: ['src', 'components'],
       fileName: 'app',
+    },
+    projectStyleSheet: {
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
+      fileName: 'style',
+      path: ['src', 'routes'],
+      importFile: true,
     },
     entry: {
       generator: createComponentGenerator,
@@ -69,12 +79,6 @@ const createPreactProjectGenerator = () => {
           },
         ],
       },
-    },
-    projectStyleSheet: {
-      generator: createComponentGenerator,
-      plugins: [styleSheetPlugin],
-      fileName: 'style',
-      path: ['src', 'routes'],
     },
     static: {
       prefix: '/assets',

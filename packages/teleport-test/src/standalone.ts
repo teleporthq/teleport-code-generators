@@ -1,4 +1,4 @@
-import { readFileSync, rmdirSync, mkdirSync } from 'fs'
+import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
 import { ProjectUIDL, PackerOptions, ProjectType, PublisherType } from '@teleporthq/teleport-types'
@@ -53,16 +53,16 @@ const run = async () => {
       projectType: ProjectType.NEXT,
     })
     console.info(ProjectType.NEXT, '-', result.payload)
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT_CSSMODULES,
-    })
-    console.info(ProjectType.NEXT_CSSMODULES, '-', result.payload)
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT_STYLED_COMPONENTS,
-    })
-    console.info(ProjectType.NEXT_STYLED_COMPONENTS, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT_CSSMODULES,
+    // })
+    // console.info(ProjectType.NEXT_CSSMODULES, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT_STYLED_COMPONENTS,
+    // })
+    // console.info(ProjectType.NEXT_STYLED_COMPONENTS, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
     console.info(ProjectType.NUXT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
@@ -81,11 +81,11 @@ const run = async () => {
     console.info(ProjectType.ANGULAR, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
     console.info(ProjectType.GRIDSOME, '-', result.payload)
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.GATSBY,
-    })
-    console.info(ProjectType.GATSBY, '-', result.payload)
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.GATSBY,
+    // })
+    // console.info(ProjectType.GATSBY, '-', result.payload)
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
       projectType: ProjectType.GATSBY_STYLED_COMPONENTS,

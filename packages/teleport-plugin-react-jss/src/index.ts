@@ -14,17 +14,17 @@ interface JSSConfig {
   styleChunkName?: string
   importChunkName?: string
   componentChunkName: string
-  exportChunkName: string
   jssDeclarationName?: string
   classAttributeName?: string
 }
+const EXPORT_IDENTIFIER = 'createUseStyles'
+
 export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) => {
   const {
     componentChunkName = 'jsx-component',
     importChunkName = 'import-local',
     styleChunkName = 'jss-style-definition',
-    exportChunkName = 'export',
-    jssDeclarationName = 'style',
+    jssDeclarationName = 'useStyles',
     classAttributeName = 'className',
   } = config || {}
 
@@ -38,12 +38,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       return structure
     }
 
-    // @ts-ignore
-    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap: Record<string, unknown> = {}
     let isProjectReferenced: boolean = false
-    let isTokenReferenced = false
+    const tokensUsed: string[] = []
+    const propsUsed: string[] = []
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
@@ -55,12 +54,9 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       const root = jsxNodesLookup[key]
       const className = StringUtils.camelCaseToDashCase(key)
       const classNamesToAppend: string[] = []
-      if (style && Object.keys(style).length > 0) {
-        const { transformedStyles, tokensUsed } = generatePropSyntax(style)
-        jssStyleMap[className] = transformedStyles
-        if (tokensUsed) {
-          isTokenReferenced = true
-        }
+
+      if (Object.keys(style || {}).length > 0) {
+        jssStyleMap[className] = generatePropSyntax(style, tokensUsed, propsUsed)
         appendClassname = true
       }
 
@@ -76,29 +72,25 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               }
 
               if (condition.conditionType === 'screen-size') {
-                const { transformedStyles, tokensUsed } = generatePropSyntax(
-                  styleRef.content.styles
-                )
-                if (tokensUsed) {
-                  isTokenReferenced = true
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
 
-                  [`@media(max-width: ${condition.maxWidth}px)`]: transformedStyles,
+                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropSyntax(
+                    styleRef.content.styles,
+                    tokensUsed,
+                    propsUsed
+                  ),
                 }
               }
 
               if (condition.conditionType === 'element-state') {
-                const { transformedStyles, tokensUsed } = generatePropSyntax(
-                  styleRef.content.styles
-                )
-                if (tokensUsed) {
-                  isTokenReferenced = true
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: transformedStyles,
+                  [`&:${condition.content}`]: generatePropSyntax(
+                    styleRef.content.styles,
+                    tokensUsed,
+                    propsUsed
+                  ),
                 }
               }
 
@@ -137,7 +129,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       }
 
       if (appendClassname) {
-        classNamesToAppend.push(`${propsPrefix}.classes['${className}']`)
+        classNamesToAppend.push(`classes['${className}']`)
       }
 
       if (classNamesToAppend.length > 1) {
@@ -154,11 +146,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const isPropsInjected = astNode.init.params?.some(
       (prop: types.Identifier) => prop.name === 'props'
     )
-    if (!isPropsInjected) {
+    if (!isPropsInjected && propsUsed.length > 0) {
       astNode.init.params.push(types.identifier('props'))
     }
 
-    if (isTokenReferenced) {
+    if (tokensUsed.length > 0) {
       dependencies.TOKENS = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
@@ -177,17 +169,29 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         },
       }
       // @ts-ignore
-      astNode.init.body.body.unshift(createStylesHookDecleration())
+      astNode.init.body.body.unshift(
+        createStylesHookDecleration('projectStyles', 'useProjectStyles')
+      )
     }
 
     if (!Object.keys(jssStyleMap).length) {
       return structure
     }
 
-    dependencies.injectSheet = {
+    // @ts-ignore
+    astNode.init.body.body.unshift(
+      propsUsed.length > 0
+        ? createStylesHookDecleration('classes', 'useStyles', 'props')
+        : createStylesHookDecleration('classes', 'useStyles')
+    )
+
+    dependencies[EXPORT_IDENTIFIER] = {
       type: 'package',
       path: 'react-jss',
       version: '10.4.0',
+      meta: {
+        namedImport: true,
+      },
     }
 
     chunks.push({
@@ -197,30 +201,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       linkAfter: [importChunkName],
       content: ASTBuilders.createConstAssignment(
         jssDeclarationName,
-        ASTUtils.objectToObjectExpression(jssStyleMap)
+        types.callExpression(types.identifier(EXPORT_IDENTIFIER), [
+          ASTUtils.objectToObjectExpression(jssStyleMap),
+        ])
       ),
     })
-
-    const exportChunk = chunks.find((chunk) => chunk.name === exportChunkName)
-
-    const componentName = UIDLUtils.getComponentClassName(uidl)
-    const exportStatement = ASTBuilders.createReactJSSDefaultExport(
-      componentName,
-      jssDeclarationName
-    )
-
-    if (exportChunk) {
-      exportChunk.content = exportStatement
-      exportChunk.linkAfter = [importChunkName, styleChunkName]
-    } else {
-      chunks.push({
-        type: ChunkType.AST,
-        fileType: FileType.JS,
-        name: exportChunkName,
-        content: exportStatement,
-        linkAfter: [importChunkName, styleChunkName],
-      })
-    }
 
     return structure
   }

@@ -1,5 +1,7 @@
+import { FileType } from '@teleporthq/teleport-types'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
+import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import template from './template-definition.json'
 import { createReactProjectGenerator } from '../../src'
@@ -49,6 +51,7 @@ describe('React Project Generator', () => {
     expect(packageJSON.name).toBe('package')
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('js')
+    expect(srcFolder.files[0].content).not.toContain(`import './style.module.css'`)
     expect(publicFolder.files[0].name).toBe('manifest')
     expect(publicFolder.files[0].fileType).toBe('json')
     expect(publicFolder.files[1].name).toBe('index')
@@ -85,6 +88,22 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
     /* Imports that are just need to be inserted are added to router file by default */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+  })
+
+  it('runs without crashing and using only tokens', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
+    const styleSheet = srcFolder.files.find(
+      (file) => file.name === 'style.module' && file.fileType === FileType.CSS
+    )
+    const index = srcFolder.files.find(
+      (file) => file.name === 'index' && file.fileType === FileType.JS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+    expect(index).toBeDefined()
+    expect(index.content).toContain(`import './style.module.css'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

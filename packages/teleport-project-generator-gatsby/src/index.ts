@@ -8,6 +8,7 @@ import {
   ComponentGeneratorInstance,
   Mapping,
   GeneratorFactoryParams,
+  FileType,
 } from '@teleporthq/teleport-types'
 import {
   createCSSModulesPlugin,
@@ -21,13 +22,9 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
-import { createCustomHTMLEntryFile } from './utils'
+import { createCustomHTMLEntryFile, styleSheetDependentConfigGenerator } from './utils'
 
 const createGatsbyProjectGenerator = () => {
-  const styleSheetPlugin = createStyleSheetPlugin({
-    fileName: 'style',
-  })
-
   const generator = createProjectGenerator({
     components: {
       generator: createCustomReactGatsbyComponentGenerator,
@@ -54,9 +51,22 @@ const createGatsbyProjectGenerator = () => {
     },
     projectStyleSheet: {
       generator: createComponentGenerator,
-      plugins: [styleSheetPlugin],
+      plugins: [createStyleSheetPlugin({ moduleExtension: true })],
       fileName: 'style',
       path: ['src'],
+      importFile: true,
+    },
+    framework: {
+      config: {
+        fileName: 'gatsby-browser',
+        fileType: FileType.JS,
+        path: [''],
+        generator: createComponentGenerator,
+        plugins: [importStatementsPlugin],
+        postprocessors: [prettierJS],
+        configContentGenerator: styleSheetDependentConfigGenerator,
+        isGlobalStylesDependent: true,
+      },
     },
   })
 

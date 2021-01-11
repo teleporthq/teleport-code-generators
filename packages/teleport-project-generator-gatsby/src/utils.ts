@@ -5,6 +5,7 @@ import {
   ChunkDefinition,
   FileType,
   ChunkType,
+  FrameWorkConfigOptions,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -14,9 +15,6 @@ export const createCustomHTMLEntryFile = (
   options: EntryFileOptions,
   t = types
 ) => {
-  const reactImport = createImportAST('React', 'react')
-  const propTypesImport = createImportAST('PropTypes', 'prop-types')
-
   const exportBody = t.exportDefaultDeclaration(
     t.functionDeclaration(
       t.identifier('HTML'),
@@ -31,7 +29,7 @@ export const createCustomHTMLEntryFile = (
         name: 'import-chunks',
         type: ChunkType.AST,
         fileType: FileType.JS,
-        content: [reactImport, propTypesImport],
+        content: [createImportAST('React', 'react'), createImportAST('PropTypes', 'prop-types')],
         linkAfter: [],
       },
       {
@@ -220,4 +218,32 @@ const createObjectpropertyAST = (
     t.identifier(attributeName),
     t.memberExpression(t.identifier(prefix), t.identifier(attributeType))
   )
+}
+
+export const styleSheetDependentConfigGenerator = (options: FrameWorkConfigOptions, t = types) => {
+  const chunks: ChunkDefinition[] = []
+  const result = {
+    chunks: {},
+    dependencies: options.dependencies,
+  }
+
+  const {
+    globalStyles: { path, sheetName, isGlobalStylesDependent },
+  } = options
+
+  if (isGlobalStylesDependent) {
+    chunks.push({
+      type: ChunkType.AST,
+      name: 'import-js-chunk',
+      fileType: FileType.JS,
+      content: t.importDeclaration([], t.stringLiteral(`./${path}/${sheetName}.module.css`)),
+      linkAfter: [],
+    })
+  }
+
+  result.chunks = {
+    [FileType.JS]: chunks,
+  }
+
+  return result
 }

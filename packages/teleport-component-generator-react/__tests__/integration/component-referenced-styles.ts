@@ -92,7 +92,9 @@ describe('Generates media, pseudo and normal styles', () => {
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className={props.classes['container']}`)
+
+    expect(jsFile.content).toContain(`const classes = useStyles()`)
+    expect(jsFile.content).toContain(`className={classes['container']}`)
     expect(jsFile.content).toContain(`container: {`)
     expect(jsFile.content).toContain(`width: '100px'`)
     expect(jsFile.content).toContain(`display: 'none'`)
@@ -193,7 +195,7 @@ describe('Add referenced styles even when direct styles are not present on node'
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className={props.classes['container']}`)
+    expect(jsFile.content).toContain(`className={classes['container']}`)
     expect(jsFile.content).toContain(`container: {`)
     expect(jsFile.content).not.toContain(`width: '100px'`)
     expect(jsFile.content).toContain(`display: 'none'`)
@@ -302,9 +304,15 @@ describe('Referes from project style and adds it to the node, without any styles
     const generator = createReactComponentGenerator({
       variation: ReactStyleVariation.CSSModules,
     })
-    const { files } = await generator.generateComponent(uidl, options)
-    const jsFile = findFileByType(files, FileType.JS)
+    const cssOptions: GeneratorOptions = {
+      projectStyleSet: {
+        ...options.projectStyleSet,
+        importFile: true,
+      },
+    }
 
+    const { files } = await generator.generateComponent(uidl, cssOptions)
+    const jsFile = findFileByType(files, FileType.JS)
     expect(jsFile.content).toContain('className={projectStyles.primaryButton}')
     expect(jsFile.content).toContain(`import projectStyles from '../style.module.css'`)
     expect(jsFile.content).not.toContain(`import styles from './my-component.module.css'`)

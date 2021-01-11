@@ -15,10 +15,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    const { styleSetDefinitions, designLanguage = {} } = uidl
-    const { tokens = {} } = designLanguage
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (!styleSetDefinitions || Object.keys(styleSetDefinitions).length === 0) {
+    if (
+      (!styleSetDefinitions && !tokens) ||
+      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
+    ) {
       return
     }
 
@@ -35,48 +37,54 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       )
     }
 
-    Object.values(styleSetDefinitions).forEach((style) => {
-      const { name, content, conditions = [] } = style
-      const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
-      const collectedStyles = {
-        ...StyleUtils.getContentOfStyleObject(staticStyles),
-        ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-      } as Record<string, string | number>
-      cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
-
-      if (conditions.length === 0) {
-        return
-      }
-      conditions.forEach((styleRef) => {
-        const {
-          staticStyles: staticValues,
-          tokenStyles: tokenValues,
-        } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
-        const collecedMediaStyles = {
-          ...StyleUtils.getContentOfStyleObject(staticValues),
-          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
+    if (Object.keys(styleSetDefinitions).length > 0) {
+      Object.values(styleSetDefinitions).forEach((style) => {
+        const { name, content, conditions = [] } = style
+        const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
+        const collectedStyles = {
+          ...StyleUtils.getContentOfStyleObject(staticStyles),
+          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
         } as Record<string, string | number>
+        cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
 
-        if (styleRef.type === 'element-state') {
-          cssMap.push(
-            StyleBuilders.createCSSClassWithSelector(
-              name,
-              `&:${styleRef.meta.state}`,
-              collecedMediaStyles
+        if (conditions.length === 0) {
+          return
+        }
+        conditions.forEach((styleRef) => {
+          const {
+            staticStyles: staticValues,
+            tokenStyles: tokenValues,
+          } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+          const collecedMediaStyles = {
+            ...StyleUtils.getContentOfStyleObject(staticValues),
+            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
+          } as Record<string, string | number>
+
+          if (styleRef.type === 'element-state') {
+            cssMap.push(
+              StyleBuilders.createCSSClassWithSelector(
+                name,
+                `&:${styleRef.meta.state}`,
+                collecedMediaStyles
+              )
             )
-          )
-        }
-
-        if (styleRef.type === 'screen-size') {
-          mediaStylesMap[styleRef.meta.maxWidth] = {
-            ...mediaStylesMap[styleRef.meta.maxWidth],
-            [name]: collecedMediaStyles,
           }
-        }
+
+          if (styleRef.type === 'screen-size') {
+            mediaStylesMap[styleRef.meta.maxWidth] = {
+              ...mediaStylesMap[styleRef.meta.maxWidth],
+              [name]: collecedMediaStyles,
+            }
+          }
+        })
       })
-    })
+    }
 
     cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
+
+    if (cssMap.length === 0) {
+      return structure
+    }
 
     uidl.outputOptions = uidl.outputOptions || {}
     uidl.outputOptions.styleFileName = fileName

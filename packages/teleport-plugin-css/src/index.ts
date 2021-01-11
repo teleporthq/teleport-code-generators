@@ -39,9 +39,25 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { projectStyleSet } = options
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+      projectStyleSet || {}
 
     const { node } = uidl
+
+    if (isRootComponent) {
+      if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {
+        dependencies[projectStyleSheetName] = {
+          type: 'local',
+          path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
+          meta: {
+            importJustPath: true,
+          },
+        }
+      }
+
+      return structure
+    }
 
     const templateChunk = chunks.find((chunk) => chunk.name === templateChunkName)
     const componentDecoratorChunk = chunks.find(
@@ -84,41 +100,37 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
           style
         )
-        const collectedStyles = {
-          ...StyleUtils.getContentOfStyleObject(staticStyles),
-          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-        } as Record<string, string | number>
 
-        if (Object.keys(staticStyles).length > 0) {
+        if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
+          const collectedStyles = {
+            ...StyleUtils.getContentOfStyleObject(staticStyles),
+            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+          } as Record<string, string | number>
           jssStylesArray.push(StyleBuilders.createCSSClass(className, collectedStyles))
-
           appendClassName = true
         }
 
         if (Object.keys(dynamicStyles).length > 0) {
           /* If dynamic styles are on nested-styles they are unfortunately lost, 
           since inline style does not support that */
-
-          if (Object.keys(dynamicStyles).length > 0) {
-            if (templateStyle === 'html') {
-              // simple string expression
-              const inlineStyles = createDynamicInlineStyle(dynamicStyles)
-              HASTUtils.addAttributeToNode(
-                root as HastNode,
-                inlineStyleAttributeKey,
-                `{${inlineStyles}}`
-              )
-            } else {
-              // jsx object expression
-              const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
-                StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
-              )
-              ASTUtils.addAttributeToJSXTag(
-                root as types.JSXElement,
-                inlineStyleAttributeKey,
-                inlineStyles
-              )
-            }
+          if (templateStyle === 'html') {
+            // simple string expression
+            const inlineStyles = createDynamicInlineStyle(dynamicStyles)
+            HASTUtils.addAttributeToNode(
+              root as HastNode,
+              inlineStyleAttributeKey,
+              `{${inlineStyles}}`
+            )
+          } else {
+            // jsx object expression
+            const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
+              StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
+            )
+            ASTUtils.addAttributeToJSXTag(
+              root as types.JSXElement,
+              inlineStyleAttributeKey,
+              inlineStyles
+            )
           }
         }
       }
@@ -136,10 +148,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                 ...StyleUtils.getContentOfStyleObject(staticStyles),
                 ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
               } as Record<string, string | number>
-
-              if (staticStyles && Object.keys(staticStyles).length === 0) {
-                return
-              }
 
               if (Object.keys(staticStyles).length > 0) {
                 const condition = styleRef.content.conditions[0]
@@ -167,16 +175,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               return
             }
             case 'project-referenced': {
-              if (!projectStyleSet) {
-                throw new Error(
-                  `Project Style Sheet is missing, but the node is referring to it ${element}`
-                )
-              }
-
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                const referedStyle = styleSetDefinitions[content.referenceId]
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
@@ -216,10 +218,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       jssStylesArray.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
 
-    if (isProjectStyleReferred && projectStyleSet?.importFile) {
-      dependencies[projectStyleSet.fileName] = {
+    if (isProjectStyleReferred && importFile) {
+      dependencies[projectStyleSheetName] = {
         type: 'local',
-        path: `${projectStyleSet.path}/${projectStyleSet.fileName}.${FileType.CSS}`,
+        path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
         meta: {
           importJustPath: true,
         },

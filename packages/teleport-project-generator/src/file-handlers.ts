@@ -1,6 +1,5 @@
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
-
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -17,7 +16,7 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-
+import PathResolver from 'path'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
@@ -79,18 +78,38 @@ export const createRouterFile = async (
   strategy: ProjectStrategy,
   routerGenerator: ComponentGenerator
 ) => {
-  const { path: routerFilePath, fileName } = strategy.router
+  const { projectStyleSheet, router } = strategy
+  const { path: routerFilePath, fileName } = router
   const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     routerFilePath,
     strategy.pages.path
   )
 
-  const options: GeneratorOptions = {
+  let options: GeneratorOptions = {
     localDependenciesPrefix: routerLocalDependenciesPrefix,
     strategy,
     isRootComponent: true,
+    designLanguage: root?.designLanguage,
   }
 
+  if (projectStyleSheet) {
+    const relativePathForProjectStyleSheet =
+      PathResolver.relative(
+        /* When each page is created inside a another folder then we just need to 
+          add one more element to the path resolver to maintian the hierarcy */
+        strategy.router.path.join('/'),
+        strategy.projectStyleSheet.path.join('/')
+      ) || '.'
+    options = {
+      ...options,
+      projectStyleSet: {
+        styleSetDefinitions: root?.styleSetDefinitions,
+        fileName: projectStyleSheet.fileName,
+        path: relativePathForProjectStyleSheet,
+        importFile: projectStyleSheet?.importFile || false,
+      },
+    }
+  }
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = fileName || DEFAULT_ROUTER_FILE_NAME
 

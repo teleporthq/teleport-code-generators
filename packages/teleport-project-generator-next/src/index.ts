@@ -1,7 +1,6 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping, ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
