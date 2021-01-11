@@ -1,5 +1,4 @@
 import * as t from '@babel/types'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
@@ -103,7 +102,16 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           t.variableDeclaration('const', [
             t.variableDeclarator(
               t.identifier('TOKENS'),
-              ASTUtils.objectToObjectExpression(tokensMap)
+              t.objectExpression(
+                Object.keys(tokensMap).reduce((acc: t.ObjectProperty[], token) => {
+                  const value =
+                    typeof tokensMap[token] === 'number'
+                      ? t.numericLiteral(Number(tokensMap[token]))
+                      : t.stringLiteral(String(tokensMap[token]))
+                  acc.push(t.objectProperty(t.identifier(token), value))
+                  return acc
+                }, [])
+              )
             ),
           ])
         ),

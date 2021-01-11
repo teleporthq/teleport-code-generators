@@ -15,6 +15,7 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
     const { strategy } = structure
 
     strategy.style = GatsbyStyleVariation.StyledComponents
+    delete strategy.framework.config
     if (strategy?.projectStyleSheet?.generator) {
       strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
     }
