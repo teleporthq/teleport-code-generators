@@ -17,20 +17,22 @@ interface ValidationResult {
 }
 
 export default class Validator {
-  public validateComponentSchema(input: unknown): ValidationResult {
+  public validateComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = componentUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+      const cleanedUIDL = utils.validateNulls(input)
+      const uidl = componentUIDLDecoder.runWithException(cleanedUIDL)
+      return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)
     }
   }
 
-  public validateRootComponentSchema(input: unknown): ValidationResult {
+  public validateRootComponentSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = rootComponentUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', componentUIDL: cleanedUIDL }
+      const cleanedUIDL = utils.validateNulls(input)
+      const uidl = rootComponentUIDLDecoder.runWithException(cleanedUIDL)
+      return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)
@@ -39,8 +41,9 @@ export default class Validator {
 
   public validateProjectSchema(input: Record<string, unknown>): ValidationResult {
     try {
-      const cleanedUIDL = projectUIDLDecoder.runWithException(input)
-      return { valid: true, errorMsg: '', projectUIDL: cleanedUIDL }
+      const cleanedUIDL = utils.validateNulls(input)
+      const uidl = projectUIDLDecoder.runWithException(cleanedUIDL)
+      return { valid: true, errorMsg: '', projectUIDL: uidl }
     } catch (e) {
       const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
       throw new ComponentValidationError(errorMsg)

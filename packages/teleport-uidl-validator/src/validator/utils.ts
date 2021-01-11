@@ -13,6 +13,7 @@ import {
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
   UIDLStyleSetTokenReference,
+  ComponentValidationError,
 } from '@teleporthq/teleport-types'
 
 // Prop definitions and state definitions should have different keys
@@ -394,4 +395,13 @@ export const formatErrors = (errors: Array<{ kind: string; at: string; message: 
   })
 
   return `UIDL Format Validation Error. Please check the following: ${listOfErrors}`
+}
+
+export const validateNulls = (uidl: Record<string, unknown>) => {
+  return JSON.parse(JSON.stringify(uidl), (key, value) => {
+    if (value === undefined || value == null) {
+      throw new ComponentValidationError(`Validation error, Received ${value} at ${key}`)
+    }
+    return value
+  })
 }
