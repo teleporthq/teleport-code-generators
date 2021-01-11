@@ -1,7 +1,9 @@
+import { FileType } from '@teleporthq/teleport-types'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import uidlSampleWithoutProjectStyleesButImports from './project-with-import-without-global-styles.json'
 import uidlSampleWithProjectStyleSheet from '../../../../examples/test-samples/project-with-import-global-styles.json'
+import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import template from './template-definition.json'
 import { createNextProjectGenerator } from '../../src'
 
@@ -56,6 +58,24 @@ describe('React Next Project Generator', () => {
     expect(pages.files[0].name).toBe('index')
     expect(pages.files[1].name).toBe('about')
   })
+
+  it('runs without crashing and adds import of style sheet in _app.js', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+
+    const pagesFolder = result.subFolders.find((folder) => folder.name === 'pages')
+    const styleSheet = pagesFolder.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+    const appFile = pagesFolder.files.find(
+      (file) => file.name === '_app' && file.fileType === FileType.JS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+    expect(appFile).toBeDefined()
+    expect(appFile.content).toContain(`import './style.css'`)
+  })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 

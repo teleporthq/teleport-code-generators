@@ -149,6 +149,7 @@ describe('Style Sheet from react-jss', () => {
 
     const result = await plugin(structure)
     const { chunks } = result
-    expect(chunks[2].name).toBe('index')
+    const styleChunk = chunks.find((chunk) => chunk.name === 'index')
+    expect(styleChunk).toBeDefined()
   })
 })

@@ -41,8 +41,8 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const jsxNodesLookup = componentChunk.meta.nodesLookup
     const jssStyleMap: Record<string, unknown> = {}
     let isProjectReferenced: boolean = false
-    let isTokenReferenced = false
-    let isPropsReferenced = false
+    const tokensUsed: string[] = []
+    const propsUsed: string[] = []
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
@@ -56,14 +56,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       const classNamesToAppend: string[] = []
 
       if (Object.keys(style || {}).length > 0) {
-        const { transformedStyles, tokensUsed, propsUsed } = generatePropSyntax(style)
-        jssStyleMap[className] = transformedStyles
-        if (tokensUsed) {
-          isTokenReferenced = true
-        }
-        if (propsUsed) {
-          isPropsReferenced = true
-        }
+        jssStyleMap[className] = generatePropSyntax(style, tokensUsed, propsUsed)
         appendClassname = true
       }
 
@@ -79,35 +72,25 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               }
 
               if (condition.conditionType === 'screen-size') {
-                const { transformedStyles, tokensUsed, propsUsed } = generatePropSyntax(
-                  styleRef.content.styles
-                )
-                if (tokensUsed) {
-                  isTokenReferenced = true
-                }
-                if (propsUsed) {
-                  isPropsReferenced = true
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
 
-                  [`@media(max-width: ${condition.maxWidth}px)`]: transformedStyles,
+                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropSyntax(
+                    styleRef.content.styles,
+                    tokensUsed,
+                    propsUsed
+                  ),
                 }
               }
 
               if (condition.conditionType === 'element-state') {
-                const { transformedStyles, tokensUsed, propsUsed } = generatePropSyntax(
-                  styleRef.content.styles
-                )
-                if (tokensUsed) {
-                  isTokenReferenced = true
-                }
-                if (propsUsed) {
-                  isPropsReferenced = true
-                }
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: transformedStyles,
+                  [`&:${condition.content}`]: generatePropSyntax(
+                    styleRef.content.styles,
+                    tokensUsed,
+                    propsUsed
+                  ),
                 }
               }
 
@@ -163,11 +146,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const isPropsInjected = astNode.init.params?.some(
       (prop: types.Identifier) => prop.name === 'props'
     )
-    if (!isPropsInjected && isPropsReferenced) {
+    if (!isPropsInjected && propsUsed.length > 0) {
       astNode.init.params.push(types.identifier('props'))
     }
 
-    if (isTokenReferenced) {
+    if (tokensUsed.length > 0) {
       dependencies.TOKENS = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
@@ -197,7 +180,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
     // @ts-ignore
     astNode.init.body.body.unshift(
-      isPropsReferenced
+      propsUsed.length > 0
         ? createStylesHookDecleration('classes', 'useStyles', 'props')
         : createStylesHookDecleration('classes', 'useStyles')
     )

@@ -1,4 +1,4 @@
-import { readFileSync, rmdirSync, mkdirSync } from 'fs'
+import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
 import { ProjectUIDL, PackerOptions, ProjectType, PublisherType } from '@teleporthq/teleport-types'

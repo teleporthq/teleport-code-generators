@@ -1,27 +1,4 @@
-import {
-  injectFilesToPath,
-  resolveLocalDependencies,
-  createPageUIDLs,
-  prepareComponentOutputOptions,
-  generateExternalCSSImports,
-  fileFileAndReplaceContent,
-} from './utils'
-
-import {
-  createManifestJSONFile,
-  handlePackageJSON,
-  createComponent,
-  createPage,
-  createRouterFile,
-  createEntryFile,
-  createComponentModule,
-  createPageModule,
-} from './file-handlers'
-
 import PathResolver from 'path'
-
-import { DEFAULT_TEMPLATE } from './constants'
-
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
@@ -36,6 +13,25 @@ import {
   ConfigGeneratorResult,
   GeneratedFile,
 } from '@teleporthq/teleport-types'
+import {
+  injectFilesToPath,
+  resolveLocalDependencies,
+  createPageUIDLs,
+  prepareComponentOutputOptions,
+  generateExternalCSSImports,
+  fileFileAndReplaceContent,
+} from './utils'
+import {
+  createManifestJSONFile,
+  handlePackageJSON,
+  createComponent,
+  createPage,
+  createRouterFile,
+  createEntryFile,
+  createComponentModule,
+  createPageModule,
+} from './file-handlers'
+import { DEFAULT_TEMPLATE } from './constants'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -151,7 +147,7 @@ export class ProjectGenerator {
     }
 
     const { components = {} } = uidl
-    const { styleSetDefinitions = {} } = uidl.root
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl.root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -177,10 +173,14 @@ export class ProjectGenerator {
       projectRouteDefinition: uidl.root.stateDefinitions.route,
       mapping,
       skipValidation: true,
+      designLanguage: uidl.root?.designLanguage,
     }
 
     // Handling project style sheet
-    if (this.strategy.projectStyleSheet?.generator && Object.keys(styleSetDefinitions).length > 0) {
+    if (
+      this.strategy.projectStyleSheet?.generator &&
+      (Object.keys(styleSetDefinitions).length > 0 || Object.keys(tokens).length > 0)
+    ) {
       const { generator, path } = this.strategy.projectStyleSheet
       const { files, dependencies } = await generator.generateComponent(uidl.root, {
         isRootComponent: true,
@@ -199,7 +199,7 @@ export class ProjectGenerator {
     for (const pageUIDL of pageUIDLs) {
       let pageOptions = options
       const pagesPath = this.strategy.pages.path
-      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
+      if (this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet =
           PathResolver.relative(
             /* When each page is created inside a another folder then we just need to 
@@ -219,8 +219,9 @@ export class ProjectGenerator {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
             path: relativePathForProjectStyleSheet,
-            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
+            importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
+          designLanguage: uidl.root?.designLanguage,
         }
       }
 
@@ -266,15 +267,14 @@ export class ProjectGenerator {
     // Handling components
     for (const componentName of Object.keys(components)) {
       let componentOptions = options
-      const componentsPath = this.strategy.components.path
-      if (Object.keys(styleSetDefinitions).length > 0 && this.strategy.projectStyleSheet) {
+      if (this.strategy.projectStyleSheet) {
         const relativePathForProjectStyleSheet =
           PathResolver.relative(
             /* When each page is created inside a another folder then we just need to 
           add one more element to the path resolver to maintian the hierarcy */
             this.strategy.components.options?.createFolderForEachComponent
-              ? [...componentsPath, componentName].join('/')
-              : componentsPath.join('/'),
+              ? [...this.strategy.components.path, componentName].join('/')
+              : this.strategy.components.path.join('/'),
             this.strategy.projectStyleSheet.path.join('/')
           ) || '.'
 
@@ -287,8 +287,9 @@ export class ProjectGenerator {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
             path: relativePathForProjectStyleSheet,
-            importFile: this.strategy.projectStyleSheet?.importFile ? true : false,
+            importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
+          designLanguage: uidl.root?.designLanguage,
         }
       }
 
@@ -317,10 +318,12 @@ export class ProjectGenerator {
 
     // Can be used for replacing a couple of strings
     if (framework?.replace) {
-      const shouldAddChanges =
-        Boolean(
-          framework.replace?.isGlobalStylesDependent && Object.keys(styleSetDefinitions).length > 0
-        ) || !framework.replace?.isGlobalStylesDependent
+      const shouldAddChanges = Boolean(
+        framework.replace?.isGlobalStylesDependent &&
+          (Object.keys(styleSetDefinitions).length > 0 ||
+            Object.keys(uidl?.root?.designLanguage?.tokens || {}).length > 0)
+      )
+
       if (shouldAddChanges) {
         const { fileName, fileType } = framework.replace
         const result = framework.replace.replaceFile(
@@ -348,16 +351,18 @@ export class ProjectGenerator {
           fileName,
           fileType,
           globalStyles: {
-            path: PathResolver.relative(
-              framework.config.path.join('/'),
-              this.strategy.projectStyleSheet.path.join('/')
-            ),
+            path:
+              PathResolver.relative(
+                framework.config.path.join('/'),
+                this.strategy.projectStyleSheet.path.join('/')
+              ) || '.',
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
               : '',
             isGlobalStylesDependent: Boolean(
-              framework.config?.isGlobalStylesDependent &&
-                Object.keys(styleSetDefinitions).length > 0
+              (framework.config?.isGlobalStylesDependent &&
+                Object.keys(styleSetDefinitions).length > 0) ||
+                Object.keys(uidl.root?.designLanguage?.tokens || {}).length > 0
             ),
           },
           dependencies: collectedDependencies,

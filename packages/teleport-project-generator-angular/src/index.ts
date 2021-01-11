@@ -44,11 +44,7 @@ const createAngularProjectGenerator = () => {
   htmlFileGenerator.addPostProcessor(createPrettierHTMLPostProcessor())
 
   const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'styles',
-    })
-  )
+  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
 
   const generator = createProjectGenerator({
     components: {

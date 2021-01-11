@@ -1,8 +1,9 @@
+import { FileType } from '@teleporthq/teleport-types'
 import uidlSample from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
-import template from './template-definition.json'
+import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import { createAngularProjectGenerator } from '../../src'
-import { FileType } from '@teleporthq/teleport-types'
+import template from './template-definition.json'
 
 describe('Angular Project Generator', () => {
   const generator = createAngularProjectGenerator()
@@ -63,6 +64,16 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[1].content).not.toContain(`import Modal`)
     expect(modalComponent.files[1].content).not.toContain(`import Modal`)
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
+  })
+
+  it('creates style sheet and adds to the webpack file', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+    const styleSheet = result.subFolders[0].files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`--greys-500: #595959`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

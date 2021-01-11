@@ -1,6 +1,5 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import reactAppRoutingPlugin from '@teleporthq/teleport-plugin-react-app-routing'
 import reactBasePlugin from '@teleporthq/teleport-plugin-react-base-component'
 import {
@@ -27,7 +26,11 @@ import {
 
 import GatsbyProjectMapping from './gatsby-mapping.json'
 import GatsbyTemplate from './project-template'
-import { createCustomHTMLEntryFile, appendToConfigFile } from './utils'
+import {
+  createCustomHTMLEntryFile,
+  appendToConfigFile,
+  styleSheetDependentConfigGenerator,
+} from './utils'
 
 const cssModulesPlugin = createCSSModulesPlugin({
   moduleExtension: true,
@@ -40,10 +43,7 @@ interface GatsbyProjectConfig {
 }
 
 const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
-  const variation =
-    config && config?.variation === ReactStyleVariation.StyledComponents
-      ? ReactStyleVariation.StyledComponents
-      : ReactStyleVariation.CSSModules
+  const variation = config?.variation || ReactStyleVariation.CSSModules
   const reactComponentGenerator = createCustomReactComponentGenerator(variation)
   const reactPagesGenerator = createCustomReactComponentGenerator(variation, [headConfigPlugin])
 
@@ -55,13 +55,17 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
   const htmlFileGenerator = createComponentGenerator()
   htmlFileGenerator.addPostProcessor(prettierJS)
 
+  const configGenerator = createComponentGenerator()
+  configGenerator.addPlugin(importStatementsPlugin)
+  configGenerator.addPostProcessor(prettierJS)
+
   const styleSheetGenerator = createComponentGenerator()
-  if (config?.variation && config.variation === ReactStyleVariation.StyledComponents) {
+  if (variation === ReactStyleVariation.StyledComponents) {
     styleSheetGenerator.addPlugin(createStyledComponentsStyleSheetPlugin())
     styleSheetGenerator.addPlugin(importStatementsPlugin)
     styleSheetGenerator.addPostProcessor(prettierJS)
   } else {
-    styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+    styleSheetGenerator.addPlugin(createStyleSheetPlugin({ moduleExtension: true }))
   }
 
   const strategy: ProjectStrategy = {
@@ -90,7 +94,21 @@ const createGatsbyProjectGenerator = (config?: GatsbyProjectConfig) => {
       generator: styleSheetGenerator,
       fileName: 'style',
       path: ['src'],
+      importFile: true,
     },
+  }
+
+  if (variation === ReactStyleVariation.CSSModules) {
+    strategy.framework = {
+      config: {
+        fileName: 'gatsby-browser',
+        fileType: FileType.JS,
+        path: [''],
+        generator: configGenerator,
+        configContentGenerator: styleSheetDependentConfigGenerator,
+        isGlobalStylesDependent: true,
+      },
+    }
   }
 
   if (variation === ReactStyleVariation.StyledComponents) {

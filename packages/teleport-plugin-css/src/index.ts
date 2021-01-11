@@ -39,9 +39,25 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { projectStyleSet } = options
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+      projectStyleSet || {}
 
     const { node } = uidl
+
+    if (isRootComponent) {
+      if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {
+        dependencies[projectStyleSheetName] = {
+          type: 'local',
+          path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
+          meta: {
+            importJustPath: true,
+          },
+        }
+      }
+
+      return structure
+    }
 
     const templateChunk = chunks.find((chunk) => chunk.name === templateChunkName)
     const componentDecoratorChunk = chunks.find(
@@ -159,16 +175,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               return
             }
             case 'project-referenced': {
-              if (!projectStyleSet) {
-                throw new Error(
-                  `Project Style Sheet is missing, but the node is referring to it ${element}`
-                )
-              }
-
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+                const referedStyle = styleSetDefinitions[content.referenceId]
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
@@ -208,10 +218,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       jssStylesArray.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
 
-    if (isProjectStyleReferred && projectStyleSet?.importFile) {
-      dependencies[projectStyleSet.fileName] = {
+    if (isProjectStyleReferred && importFile) {
+      dependencies[projectStyleSheetName] = {
         type: 'local',
-        path: `${projectStyleSet.path}/${projectStyleSet.fileName}.${FileType.CSS}`,
+        path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
         meta: {
           importJustPath: true,
         },

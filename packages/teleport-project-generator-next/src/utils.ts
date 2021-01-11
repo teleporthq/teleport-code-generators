@@ -117,7 +117,6 @@ const createDocumentWrapperAST = (htmlNode: types.JSXElement, t = types) => {
 }
 
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
-  const path = options.globalStyles?.path === '' ? '.' : options.globalStyles.path
   const chunks: ChunkDefinition[] = []
   const result = {
     chunks: {},
@@ -166,7 +165,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       fileType: FileType.JS,
       content: t.importDeclaration(
         [],
-        t.stringLiteral(`${path}/${options.globalStyles.sheetName}.css`)
+        t.stringLiteral(`${options.globalStyles.path}/${options.globalStyles.sheetName}.css`)
       ),
       linkAfter: [],
     })

@@ -1,9 +1,10 @@
+import { FileType, ReactStyleVariation } from '@teleporthq/teleport-types'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
+import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import template from './mocks'
 import { createGatsbyProjectGenerator } from '../../src'
-import { FileType, ReactStyleVariation } from '@teleporthq/teleport-types'
 
 describe('Gatsby Project Generator', () => {
   const generator = createGatsbyProjectGenerator()
@@ -58,6 +59,17 @@ describe('Gatsby Project Generator', () => {
     expect(pagesFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
   })
 
+  it('runs without crashing and using only tokens', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
+    const styleSheet = srcFolder.files.find(
+      (file) => file.name === 'style.module' && file.fileType === FileType.CSS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`--greys-500: #595959`)
+  })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 
@@ -99,6 +111,17 @@ describe('Gatsby Project Generator with Styled Components', () => {
     expect(pagesFolder.files.length).toBeGreaterThan(0)
     expect(componentsFolder.files.length).toBeGreaterThan(0)
     expect(componentsFolder.name).toBe('components')
+  })
+
+  it('runs without crashing and using only tokens', async () => {
+    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
+    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
+    const styleSheet = srcFolder.files.find(
+      (file) => file.name === 'style' && file.fileType === FileType.JS
+    )
+
+    expect(styleSheet).toBeDefined()
+    expect(styleSheet.content).toContain(`Greys700: '#999999'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

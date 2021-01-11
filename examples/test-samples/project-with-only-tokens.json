@@ -1,0 +1,766 @@
+{
+    "name": "dsffdsf",
+    "globals": {
+      "settings": {
+        "title": "dsffdsf",
+        "language": "en"
+      },
+      "assets": [
+        {
+          "type": "style",
+          "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6 {  margin: 0;  padding: 0;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}"
+        }
+      ],
+      "meta": [
+        {
+          "name": "viewport",
+          "content": "width=device-width, initial-scale=1.0"
+        },
+        {
+          "charSet": "utf-8"
+        },
+        {
+          "property": "twitter:card",
+          "content": "summary_large_image"
+        }
+      ],
+      "customCode": {}
+    },
+    "root": {
+      "name": "App",
+      "designLanguage": {
+        "tokens": {
+          "Primary-900": {
+            "type": "static",
+            "content": "#E6FAFF"
+          },
+          "Space-Unit": {
+            "type": "static",
+            "content": "1rem"
+          },
+          "Space-TripleUnit": {
+            "type": "static",
+            "content": "3rem"
+          },
+          "Greys-White": {
+            "type": "static",
+            "content": "#FFFFFF"
+          },
+          "Radius-Round": {
+            "type": "static",
+            "content": "50%"
+          },
+          "Greys-700": {
+            "type": "static",
+            "content": "#999999"
+          },
+          "Danger-300": {
+            "type": "static",
+            "content": "#A22020"
+          },
+          "Primary-500": {
+            "type": "static",
+            "content": "#14A9FF"
+          },
+          "Success-300": {
+            "type": "static",
+            "content": "#199033"
+          },
+          "Success-700": {
+            "type": "static",
+            "content": "#4CC366"
+          },
+          "Size-HalfUnit": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "Primary-700": {
+            "type": "static",
+            "content": "#85DCFF"
+          },
+          "Greys-Black": {
+            "type": "static",
+            "content": "#000000"
+          },
+          "Success-500": {
+            "type": "static",
+            "content": "#32A94C"
+          },
+          "Primary-300": {
+            "type": "static",
+            "content": "#0074F0"
+          },
+          "Space-DoubleUnit": {
+            "type": "static",
+            "content": "2rem"
+          },
+          "Radius-Square": {
+            "type": "static",
+            "content": "0"
+          },
+          "Danger-500": {
+            "type": "static",
+            "content": "#BF2626"
+          },
+          "Size-Unit": {
+            "type": "static",
+            "content": "1rem"
+          },
+          "Space-HalfUnit": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "Size-DoubleUnit": {
+            "type": "static",
+            "content": "2rem"
+          },
+          "Greys-500": {
+            "type": "static",
+            "content": "#595959"
+          },
+          "Size-TripleUnit": {
+            "type": "static",
+            "content": "3rem"
+          },
+          "Danger-700": {
+            "type": "static",
+            "content": "#E14747"
+          },
+          "Primary-100": {
+            "type": "static",
+            "content": "#003EB3"
+          }
+        }
+      },
+      "stateDefinitions": {
+        "route": {
+          "type": "string",
+          "defaultValue": "Home",
+          "values": [
+            {
+              "value": "Abolut",
+              "seo": {
+                "title": "Abolut - dsffdsf",
+                "metaTags": [
+                  {
+                    "property": "og:title",
+                    "content": "Abolut - dsffdsf"
+                  }
+                ]
+              }
+            },
+            {
+              "value": "Home",
+              "seo": {
+                "title": "dsffdsf",
+                "metaTags": [
+                  {
+                    "property": "og:title",
+                    "content": "dsffdsf"
+                  }
+                ]
+              }
+            },
+            {
+              "value": "Contact",
+              "seo": {
+                "title": "Contact - dsffdsf",
+                "metaTags": [
+                  {
+                    "property": "og:title",
+                    "content": "Contact - dsffdsf"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "Router",
+          "children": [
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "referencedStyles": {},
+                    "attrs": {},
+                    "abilities": {},
+                    "style": {
+                      "height": {
+                        "type": "static",
+                        "content": "auto"
+                      },
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "minHeight": {
+                        "type": "static",
+                        "content": "100vh"
+                      },
+                      "alignItems": {
+                        "type": "static",
+                        "content": "flex-start"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      }
+                    },
+                    "children": []
+                  }
+                },
+                "value": "Abolut",
+                "reference": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "state",
+                    "id": "route"
+                  }
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "referencedStyles": {},
+                    "attrs": {},
+                    "abilities": {},
+                    "style": {
+                      "height": {
+                        "type": "static",
+                        "content": "auto"
+                      },
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "minHeight": {
+                        "type": "static",
+                        "content": "100vh"
+                      },
+                      "alignItems": {
+                        "type": "static",
+                        "content": "flex-start"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      },
+                      "justifyContent": {
+                        "type": "static",
+                        "content": "flex-start"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "token",
+                                "id": "Primary-100"
+                              }
+                            }
+                          },
+                          "children": [
+                            {
+                              "type": "element",
+                              "content": {
+                                "elementType": "text",
+                                "semanticType": "h1",
+                                "attrs": {},
+                                "abilities": {},
+                                "style": {
+                                  "backgroundColor": {
+                                    "type": "dynamic",
+                                    "content": {
+                                      "referenceType": "token",
+                                      "id": "Primary-900"
+                                    }
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "type": "static",
+                                    "content": "Heading"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "value": "Home",
+                "reference": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "state",
+                    "id": "route"
+                  }
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "content": {
+                "node": {
+                  "type": "element",
+                  "content": {
+                    "elementType": "container",
+                    "semanticType": "div",
+                    "referencedStyles": {},
+                    "attrs": {},
+                    "abilities": {},
+                    "style": {
+                      "height": {
+                        "type": "static",
+                        "content": "auto"
+                      },
+                      "display": {
+                        "type": "static",
+                        "content": "flex"
+                      },
+                      "minHeight": {
+                        "type": "static",
+                        "content": "100vh"
+                      },
+                      "alignItems": {
+                        "type": "static",
+                        "content": "flex-start"
+                      },
+                      "flexDirection": {
+                        "type": "static",
+                        "content": "column"
+                      }
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      },
+                      {
+                        "type": "element",
+                        "content": {
+                          "elementType": "container",
+                          "semanticType": "div",
+                          "referencedStyles": {},
+                          "attrs": {},
+                          "abilities": {},
+                          "style": {
+                            "width": {
+                              "type": "static",
+                              "content": "100%"
+                            },
+                            "height": {
+                              "type": "static",
+                              "content": "100px"
+                            },
+                            "display": {
+                              "type": "static",
+                              "content": "flex"
+                            },
+                            "flexWrap": {
+                              "type": "static",
+                              "content": "wrap"
+                            },
+                            "alignItems": {
+                              "type": "static",
+                              "content": "center"
+                            },
+                            "flexDirection": {
+                              "type": "static",
+                              "content": "row"
+                            },
+                            "justifyContent": {
+                              "type": "static",
+                              "content": "flex-start"
+                            },
+                            "backgroundColor": {
+                              "type": "static",
+                              "content": "rgba(120, 120, 120, 0.4)"
+                            }
+                          },
+                          "children": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "value": "Contact",
+                "reference": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "state",
+                    "id": "route"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "components": {}
+  }

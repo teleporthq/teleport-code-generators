@@ -1,13 +1,15 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping, PreactStyleVariation } from '@teleporthq/teleport-types'
-import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css-modules'
+import {
+  createStyleSheetPlugin,
+  createCSSModulesPlugin,
+} from '@teleporthq/teleport-plugin-css-modules'
 
 import PreactTemplate from './project-template'
 import PreactCodesandBoxTemplate from './project-template-codesandbox'
@@ -28,13 +30,13 @@ const createPreactProjectGenerator = () => {
   styleSheetGenerator.addPlugin(
     createStyleSheetPlugin({
       fileName: 'style',
-      omitModuleextension: true,
     })
   )
 
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
   const routingComponentGenerator = createComponentGenerator()
   routingComponentGenerator.addPlugin(routerPlugin)
+  routingComponentGenerator.addPlugin(createCSSModulesPlugin())
   routingComponentGenerator.addPlugin(importStatementsPlugin)
   routingComponentGenerator.addPostProcessor(prettierJS)
 
@@ -56,6 +58,12 @@ const createPreactProjectGenerator = () => {
       generator: routingComponentGenerator,
       path: ['src', 'components'],
       fileName: 'app',
+    },
+    projectStyleSheet: {
+      generator: styleSheetGenerator,
+      fileName: 'style',
+      path: ['src', 'routes'],
+      importFile: true,
     },
     entry: {
       generator: htmlFileGenerator,
@@ -80,11 +88,6 @@ const createPreactProjectGenerator = () => {
           },
         ],
       },
-    },
-    projectStyleSheet: {
-      generator: styleSheetGenerator,
-      fileName: 'style',
-      path: ['src', 'routes'],
     },
     static: {
       prefix: '/assets',
