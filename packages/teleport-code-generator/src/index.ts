@@ -17,6 +17,8 @@ import {
 import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
 import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
+import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
+
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -109,6 +111,9 @@ gatsbyStyledComponentsProjectGenerator.addPlugin(pluginGatsbyStyledComponents)
 const nextStyledComponentsProjectGenerator = createNextProjectGenerator()
 nextStyledComponentsProjectGenerator.addPlugin(pluginNextStyledComponents)
 
+const nextReactJSSProjectGenerator = createNextProjectGenerator()
+nextReactJSSProjectGenerator.addPlugin(pluginNextReactJSS)
+
 const projectGeneratorFactories = {
   [ProjectType.REACT]: createReactProjectGenerator(),
   [ProjectType.NEXT]: createNextProjectGenerator(),
@@ -120,9 +125,10 @@ const projectGeneratorFactories = {
   [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
   [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
   [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
-  [ProjectType.NEXT_CSSMODULES]: nextCSSModulesProjectGenerator,
+  [ProjectType.NEXT_CSS_MODULES]: nextCSSModulesProjectGenerator,
   [ProjectType.GATSBY_STYLED_COMPONENTS]: gatsbyStyledComponentsProjectGenerator,
   [ProjectType.NEXT_STYLED_COMPONENTS]: nextStyledComponentsProjectGenerator,
+  [ProjectType.NEXT_REACT_JSS]: nextReactJSSProjectGenerator,
 }
 
 const templates = {
@@ -136,9 +142,10 @@ const templates = {
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
   [ProjectType.GATSBY]: GatsbyTemplate,
-  [ProjectType.NEXT_CSSMODULES]: NextTemplate,
+  [ProjectType.NEXT_CSS_MODULES]: NextTemplate,
   [ProjectType.GATSBY_STYLED_COMPONENTS]: GatsbyTemplate,
   [ProjectType.NEXT_STYLED_COMPONENTS]: NextTemplate,
+  [ProjectType.NEXT_REACT_JSS]: NextTemplate,
 }
 
 const projectPublisherFactories = {

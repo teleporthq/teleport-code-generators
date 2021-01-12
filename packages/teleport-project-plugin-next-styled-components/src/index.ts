@@ -7,7 +7,7 @@ import {
 import MagicString from 'magic-string'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-react-styled-components'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
-import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
+import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 
 class PluginNextStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
@@ -16,6 +16,7 @@ class PluginNextStyledComponents implements ProjectPlugin {
     strategy.style = ReactStyleVariation.StyledComponents
     if (strategy?.projectStyleSheet?.generator) {
       strategy.projectStyleSheet.plugins = [createStyleSheetPlugin(), importStatementsPlugin]
+      strategy.projectStyleSheet.postprocessors = [prettierJS]
       strategy.framework.config.isGlobalStylesDependent = false
     }
 
@@ -47,7 +48,7 @@ return { ...page, styleTags };
     )
     magicString.appendRight(175, `\n{this.props.styleTags}`)
 
-    const formattedCode = prettierJSX({
+    const formattedCode = prettierJS({
       [FileType.JS]: magicString.toString(),
     })
 

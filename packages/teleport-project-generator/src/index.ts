@@ -436,11 +436,12 @@ export class ProjectGenerator {
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
               : '',
-            isGlobalStylesDependent: Boolean(
-              (framework.config?.isGlobalStylesDependent &&
-                Object.keys(styleSetDefinitions).length > 0) ||
-                Object.keys(uidl.root?.designLanguage?.tokens || {}).length > 0
-            ),
+            isGlobalStylesDependent:
+              framework.config?.isGlobalStylesDependent ??
+              Boolean(
+                Object.keys(styleSetDefinitions).length > 0 ||
+                  Object.keys(uidl.root?.designLanguage?.tokens || {}).length > 0
+              ),
           },
           dependencies: collectedDependencies,
         })

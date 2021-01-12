@@ -472,9 +472,10 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
-  NEXT_CSSMODULES = 'Next-CSSModules',
-  GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
+  NEXT_REACT_JSS = 'Next-React-JSS',
+  NEXT_CSS_MODULES = 'Next-CSSModules',
   NEXT_STYLED_COMPONENTS = 'Next-StyledComponents',
+  GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
 }
 
 export enum ComponentType {

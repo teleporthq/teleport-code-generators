@@ -56,6 +56,9 @@ describe('Generates NEXT-JS project with plugins', () => {
     const document = pages.files.find(
       (file) => file.name === '_document' && file.fileType === FileType.JS
     )
+    const appFile = pages.files.find(
+      (file) => file.name === '_app' && file.fileType === FileType.JS
+    )
 
     expect(babelRC).toBeDefined()
     expect(babelRC.content).toContain(`styled-components`)
@@ -63,11 +66,12 @@ describe('Generates NEXT-JS project with plugins', () => {
     expect(packgeJSON.content).toContain(`"styled-components": "4.2.0"`)
     expect(pages.files.length).toBe(6)
     expect(styleModule).toBeDefined()
-    expect(styleModule.content).toContain(`import { css } from "styled-components"`)
+    expect(styleModule.content).toContain(`import { css } from 'styled-components'`)
     expect(document).toBeDefined()
     expect(document.content).toContain(`import { ServerStyleSheet } from 'styled-components'`)
     expect(document.content).toContain(`const sheet = new ServerStyleSheet()`)
     expect(document.content).toContain(`{this.props.styleTags}`)
+    expect(appFile.content).not.toContain(`import "./style.css"`)
   })
 })
 

@@ -11,7 +11,7 @@ const reactProjectUIDL = (reactProjectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
-  publisher: PublisherType.DISK,
+  publisher: PublisherType.CODESANDBOX,
   projectType: ProjectType.REACT,
   publishOptions: {
     outputPath: 'dist',
@@ -55,9 +55,14 @@ const run = async () => {
     console.info(ProjectType.NEXT, '-', result.payload)
     result = await packProject(projectUIDL, {
       ...packerOptions,
-      projectType: ProjectType.NEXT_CSSMODULES,
+      projectType: ProjectType.NEXT_CSS_MODULES,
     })
-    console.info(ProjectType.NEXT_CSSMODULES, '-', result.payload)
+    console.info(ProjectType.NEXT_CSS_MODULES, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT_REACT_JSS,
+    })
+    console.info(ProjectType.NEXT_REACT_JSS, '-', result.payload)
     result = await packProject(projectUIDL, {
       ...packerOptions,
       projectType: ProjectType.NEXT_STYLED_COMPONENTS,
