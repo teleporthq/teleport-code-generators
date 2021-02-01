@@ -7,9 +7,13 @@ import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-style
 import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
 import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
-
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-
+import {
+  ComponentGenerator,
+  Mapping,
+  ReactStyleVariation,
+  ComponentGeneratorInstance,
+} from '@teleporthq/teleport-types'
 import {
   createComponentGenerator,
   GeneratorFactoryParams,
@@ -17,12 +21,12 @@ import {
 
 import ReactMapping from './react-mapping.json'
 
-import { ComponentGenerator, Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
-
-const createReactComponentGenerator = (
+const createReactComponentGenerator: ComponentGeneratorInstance = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
   variation = ReactStyleVariation.CSSModules,
-  { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
-): ComponentGenerator => {
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const cssPlugin = createCSSPlugin({
     templateChunkName: 'jsx-component',
     templateStyle: 'jsx',

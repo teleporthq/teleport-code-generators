@@ -1,5 +1,8 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
+import {
+  createPreactComponentGenerator,
+  PreactMapping,
+} from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
@@ -17,56 +20,44 @@ import PreactProjectMapping from './preact-project-mapping.json'
 import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } from './constants'
 
 const createPreactProjectGenerator = () => {
-  const preactComponentGenerator = createPreactComponentGenerator(PreactStyleVariation.CSSModules, {
-    mappings: [PreactProjectMapping as Mapping],
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
+    moduleExtension: false,
   })
-
-  const preactPageGenerator = createPreactComponentGenerator(PreactStyleVariation.CSSModules, {
-    plugins: [headConfigPlugin],
-    mappings: [PreactProjectMapping as Mapping],
-  })
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
-
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
-  const routingComponentGenerator = createComponentGenerator()
-  routingComponentGenerator.addPlugin(routerPlugin)
-  routingComponentGenerator.addPlugin(createCSSModulesPlugin())
-  routingComponentGenerator.addPlugin(importStatementsPlugin)
-  routingComponentGenerator.addPostProcessor(prettierJS)
-
-  const htmlFileGenerator = createComponentGenerator()
 
   const generator = createProjectGenerator({
+    style: PreactStyleVariation.CSSModules,
     components: {
-      generator: preactComponentGenerator,
+      generator: createPreactComponentGenerator,
+      mappings: [PreactMapping as Mapping],
       path: ['src', 'components'],
     },
     pages: {
-      generator: preactPageGenerator,
+      generator: createPreactComponentGenerator,
       path: ['src', 'routes'],
+      plugins: [headConfigPlugin],
+      mappings: [PreactProjectMapping as Mapping],
       options: {
         createFolderForEachComponent: true,
       },
     },
     router: {
-      generator: routingComponentGenerator,
+      generator: createComponentGenerator,
+      plugins: [routerPlugin, createCSSModulesPlugin(), importStatementsPlugin],
+      postprocessors: [prettierJS],
       path: ['src', 'components'],
       fileName: 'app',
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: ['src', 'routes'],
       importFile: true,
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
       path: ['src'],
       fileName: 'index',
       options: {

@@ -54,6 +54,26 @@ export interface ComponentStructure {
 
 export type ComponentPlugin = (structure: ComponentStructure) => Promise<ComponentStructure>
 
+export type InMemoryFileRecord = {
+  path: string[]
+  files: GeneratedFile[]
+}
+
+export interface ProjectPluginStructure {
+  uidl: ProjectUIDL
+  template: GeneratedFolder
+  files: Map<string, InMemoryFileRecord>
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+  strategy: ProjectStrategy
+  rootFolder: GeneratedFolder
+}
+
+export interface ProjectPlugin {
+  runBefore: (structure: ProjectPluginStructure) => Promise<ProjectPluginStructure>
+  runAfter: (structure: ProjectPluginStructure) => Promise<ProjectPluginStructure>
+}
+
 export interface ComponentDefaultPluginParams {
   fileType: FileType
 }
@@ -135,32 +155,67 @@ export interface ProjectGenerator {
   getAssetsPath: () => string[]
 }
 
+export interface GeneratorFactoryParams {
+  mappings?: Mapping[]
+  plugins?: ComponentPlugin[]
+  postprocessors?: PostProcessor[]
+  variation?: StyleVariation
+}
+
+export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
+
 export interface ProjectStrategy {
+  style?: StyleVariation
   components: {
-    generator: ComponentGenerator
-    moduleGenerator?: ComponentGenerator
+    generator: ComponentGeneratorInstance
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
+    module?: {
+      generator: ComponentGeneratorInstance
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
+      mappings?: Mapping[]
+    }
     path: string[]
     options?: ProjectStrategyComponentOptions
   }
   pages: {
-    generator: ComponentGenerator
-    moduleGenerator?: ComponentGenerator
+    generator: ComponentGeneratorInstance
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
+    module?: {
+      generator: ComponentGeneratorInstance
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
+      mappings?: Mapping[]
+    }
     path: string[]
     options?: ProjectStrategyPageOptions
   }
   projectStyleSheet?: {
-    generator: ComponentGenerator
+    generator: ComponentGeneratorInstance
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName: string
     importFile?: boolean
   }
   router?: {
-    generator: ComponentGenerator
+    generator: ComponentGeneratorInstance
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName?: string
   }
   entry?: {
-    generator: ComponentGenerator
+    generator: ComponentGeneratorInstance
+    plugins?: ComponentPlugin[]
+    postprocessors?: PostProcessor[]
+    mappings?: Mapping[]
     path: string[]
     fileName?: string
     chunkGenerationFunction?: (
@@ -182,7 +237,9 @@ export interface ProjectStrategy {
       fileName: string
       fileType: string
       path: string[]
-      generator?: ComponentGenerator
+      generator?: ComponentGeneratorInstance
+      plugins?: ComponentPlugin[]
+      postprocessors?: PostProcessor[]
       configContentGenerator?: (options: FrameWorkConfigOptions) => ConfigGeneratorResult
       isGlobalStylesDependent?: boolean
     }
@@ -399,6 +456,11 @@ export enum PublisherType {
   CODESANDBOX = 'CodeSandbox',
 }
 
+export enum GatsbyStyleVariation {
+  CSSModules = 'CSS Modules',
+  StyledComponents = 'Styled Components',
+}
+
 export enum ProjectType {
   REACT = 'React',
   NEXT = 'Next',
@@ -410,6 +472,10 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
+  NEXT_REACT_JSS = 'Next-React-JSS',
+  NEXT_CSS_MODULES = 'Next-CSSModules',
+  NEXT_STYLED_COMPONENTS = 'Next-StyledComponents',
+  GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
 }
 
 export enum ComponentType {
@@ -430,7 +496,11 @@ export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null>
   [ComponentType.ANGULAR]: null,
 }
 
-export type StyleVariation = ReactStyleVariation | PreactStyleVariation | ReactNativeStyleVariation
+export type StyleVariation =
+  | ReactStyleVariation
+  | PreactStyleVariation
+  | ReactNativeStyleVariation
+  | GatsbyStyleVariation
 
 // The last two types are used by the teleport-code-generator package
 

@@ -1,60 +1,46 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import { createVueHeadConfigPlugin } from '@teleporthq/teleport-plugin-vue-head-config'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { Mapping, FileType } from '@teleporthq/teleport-types'
 import { configContentGenerator } from './utils'
 import GridsomeTemplate from './gridsome-project-template'
-import GridsomeProjectMappng from './gridsome-project-mapping.json'
+import GridsomeProjectMapping from './gridsome-project-mapping.json'
 
 const createGridsomeProjectGenerator = () => {
-  const vueComponentGenerator = createVueComponentGenerator()
-  vueComponentGenerator.addMapping(GridsomeProjectMappng as Mapping)
-
   const vueHeadConfigPlugin = createVueHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
-
-  const vuePageGenerator = createVueComponentGenerator()
-  vuePageGenerator.addMapping(GridsomeProjectMappng as Mapping)
-  vuePageGenerator.addPlugin(vueHeadConfigPlugin)
-
-  const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(prettierHTML)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
-
-  const configGenerator = createComponentGenerator()
-  configGenerator.addPostProcessor(prettierJS)
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
+  })
 
   const generator = createProjectGenerator({
     components: {
-      generator: vueComponentGenerator,
+      generator: createVueComponentGenerator,
+      mappings: [GridsomeProjectMapping as Mapping],
       path: ['src', 'components'],
     },
     pages: {
-      generator: vuePageGenerator,
+      generator: createVueComponentGenerator,
+      plugins: [vueHeadConfigPlugin],
+      mappings: [GridsomeProjectMapping as Mapping],
       path: ['src', 'pages'],
       options: {
         useFileNameForNavigation: true,
       },
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: ['src', 'assets'],
     },
     framework: {
       config: {
-        generator: configGenerator,
+        generator: createComponentGenerator,
+        postprocessors: [prettierJS],
         configContentGenerator,
         fileName: 'main',
         fileType: FileType.JS,
@@ -63,7 +49,8 @@ const createGridsomeProjectGenerator = () => {
       },
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierHTML],
       path: ['src'],
     },
     static: {
@@ -75,4 +62,4 @@ const createGridsomeProjectGenerator = () => {
   return generator
 }
 
-export { createGridsomeProjectGenerator, GridsomeProjectMappng, GridsomeTemplate }
+export { createGridsomeProjectGenerator, GridsomeProjectMapping, GridsomeTemplate }

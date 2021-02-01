@@ -13,9 +13,6 @@ describe('Generic Project Generator', () => {
   describe('with the same component generator for pages and components', () => {
     const strategy = createStrategyWithCommonGenerator()
     const generator = createProjectGenerator(strategy)
-    const { generator: componentsGenerator } = strategy.components
-    const { generator: routerGenerator } = strategy.router
-    const { generator: entryGenerator } = strategy.entry
 
     it('creates an instance of a project generator', () => {
       expect(generator.generateProject).toBeDefined()
@@ -30,20 +27,24 @@ describe('Generic Project Generator', () => {
 
     it('sends the mapping to the component generators', () => {
       generator.addMapping(mockMapping)
-      expect(componentsGenerator.addMapping).toBeCalledTimes(1)
-      expect(componentsGenerator.addMapping).toBeCalledWith(mockMapping)
+
+      expect(strategy.components.mappings.length).toBe(1)
+      expect(strategy.components.mappings[0]).toBe(mockMapping)
+      expect(strategy.pages.mappings.length).toBe(1)
+      expect(strategy.pages.mappings[0]).toBe(mockMapping)
     })
 
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
-
-      const uidl = projectUIDL as ProjectUIDL
+      const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
-
-      expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
-      expect(componentsGenerator.generateComponent).toBeCalledWith(
+      expect(generator.componentGenerator).toBeDefined()
+      expect(generator.pageGenerator).toBeDefined()
+      expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
+      expect(generator.componentGenerator.generateComponent).toBeCalledTimes(4)
+      expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         expect.objectContaining({
           assetsPrefix: '/test/static',
@@ -51,8 +52,8 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         })
       )
-      expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
-      expect(routerGenerator.generateComponent).toBeCalledTimes(1)
+      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
+      expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {
         ...uidl.root,
@@ -61,7 +62,7 @@ describe('Generic Project Generator', () => {
         },
       }
 
-      expect(routerGenerator.generateComponent).toBeCalledWith(
+      expect(generator.routerGenerator.generateComponent).toBeCalledWith(
         routerUIDL,
         expect.objectContaining({
           localDependenciesPrefix: './pages/',
@@ -76,10 +77,6 @@ describe('Generic Project Generator', () => {
   describe('with the different component generators', () => {
     const strategy = createStrategyWithSeparateGenerators()
     const generator = createProjectGenerator(strategy)
-    const { generator: componentsGenerator } = strategy.components
-    const { generator: pagesGenerator } = strategy.pages
-    const { generator: routerGenerator } = strategy.router
-    const { generator: entryGenerator } = strategy.entry
 
     it('creates an instance of a project generator', () => {
       expect(generator.generateProject).toBeDefined()
@@ -94,22 +91,19 @@ describe('Generic Project Generator', () => {
 
     it('sends the mapping to the component generators', () => {
       generator.addMapping(mockMapping)
-      expect(componentsGenerator.addMapping).toBeCalledTimes(1)
-      expect(componentsGenerator.addMapping).toBeCalledWith(mockMapping)
-      expect(pagesGenerator.addMapping).toBeCalledTimes(1)
-      expect(pagesGenerator.addMapping).toBeCalledWith(mockMapping)
+      expect(strategy.components.mappings.length).toBe(1)
+      expect(strategy.components.mappings[0]).toBe(mockMapping)
     })
 
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
-
       const uidl = (projectUIDL as unknown) as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
 
-      expect(componentsGenerator.generateComponent).toBeCalledTimes(4)
-      expect(componentsGenerator.generateComponent).toBeCalledWith(
+      expect(generator.componentGenerator.generateComponent).toBeCalledTimes(4)
+      expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         {
           assetsPrefix: '/static',
@@ -118,8 +112,8 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(pagesGenerator.generateComponent).toBeCalledTimes(3)
-      expect(pagesGenerator.generateComponent).toBeCalledWith(
+      expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
+      expect(generator.pageGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({
           name: 'Home',
         }),
@@ -130,7 +124,7 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
+      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
 
       const routerUIDL = {
         ...uidl.root,
@@ -139,8 +133,8 @@ describe('Generic Project Generator', () => {
         },
       }
 
-      expect(routerGenerator.generateComponent).toBeCalledTimes(1)
-      expect(routerGenerator.generateComponent).toBeCalledWith(
+      expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
+      expect(generator.routerGenerator.generateComponent).toBeCalledWith(
         routerUIDL,
         expect.objectContaining({
           localDependenciesPrefix: './pages/',
@@ -153,14 +147,10 @@ describe('Generic Project Generator', () => {
     const strategy = createStrategyWithCommonGenerator()
     strategy.components.options = {
       createFolderForEachComponent: true,
-      customComponentFileName: (name) => 'component',
-      customStyleFileName: (name) => 'style',
+      customComponentFileName: (_) => 'component',
+      customStyleFileName: (_) => 'style',
     }
-
     const generator = createProjectGenerator(strategy)
-    const { generator: componentsGenerator } = strategy.components
-    const { generator: routerGenerator } = strategy.router
-    const { generator: entryGenerator } = strategy.entry
 
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
@@ -169,9 +159,11 @@ describe('Generic Project Generator', () => {
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
-
-      expect(componentsGenerator.generateComponent).toBeCalledTimes(7)
-      expect(componentsGenerator.generateComponent).toBeCalledWith(
+      expect(generator.componentGenerator).toBeDefined()
+      expect(generator.pageGenerator).toBeDefined()
+      expect(generator.componentGenerator.generateComponent).toBeCalledTimes(4)
+      expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
+      expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         {
           assetsPrefix: '/test/static',
@@ -180,8 +172,8 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(entryGenerator.linkCodeChunks).toBeCalledTimes(1)
-      expect(routerGenerator.generateComponent).toBeCalledTimes(1)
+      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
+      expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {
         ...uidl.root,
@@ -190,7 +182,7 @@ describe('Generic Project Generator', () => {
         },
       }
 
-      expect(routerGenerator.generateComponent).toBeCalledWith(
+      expect(generator.routerGenerator.generateComponent).toBeCalledWith(
         routerUIDL,
         expect.objectContaining({
           localDependenciesPrefix: './pages/',

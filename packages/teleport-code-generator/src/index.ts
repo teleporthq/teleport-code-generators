@@ -10,7 +10,15 @@ import {
   InvalidProjectTypeError,
   InvalidPublisherTypeError,
   GeneratorOptions,
+  Mapping,
+  ComponentGenerator,
+  ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
+import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
+import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
+import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
+
 import { createProjectPacker } from '@teleporthq/teleport-project-packer'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -76,7 +84,7 @@ import { createStencilComponentGenerator } from '@teleporthq/teleport-component-
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 
-const componentGeneratorFactories = {
+const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
   [ComponentType.PREACT]: createPreactComponentGenerator,
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
@@ -94,17 +102,33 @@ const componentGeneratorProjectMappings = {
   [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
 }
 
+const nextCSSModulesProjectGenerator = createNextProjectGenerator()
+nextCSSModulesProjectGenerator.addPlugin(pluginNextCSSModules)
+
+const gatsbyStyledComponentsProjectGenerator = createGatsbyProjectGenerator()
+gatsbyStyledComponentsProjectGenerator.addPlugin(pluginGatsbyStyledComponents)
+
+const nextStyledComponentsProjectGenerator = createNextProjectGenerator()
+nextStyledComponentsProjectGenerator.addPlugin(pluginNextStyledComponents)
+
+const nextReactJSSProjectGenerator = createNextProjectGenerator()
+nextReactJSSProjectGenerator.addPlugin(pluginNextReactJSS)
+
 const projectGeneratorFactories = {
-  [ProjectType.REACT]: createReactProjectGenerator,
-  [ProjectType.NEXT]: createNextProjectGenerator,
-  [ProjectType.VUE]: createVueProjectGenerator,
-  [ProjectType.NUXT]: createNuxtProjectGenerator,
-  [ProjectType.PREACT]: createPreactProjectGenerator,
-  [ProjectType.STENCIL]: createStencilProjectGenerator,
-  [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
-  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
-  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
+  [ProjectType.REACT]: createReactProjectGenerator(),
+  [ProjectType.NEXT]: createNextProjectGenerator(),
+  [ProjectType.VUE]: createVueProjectGenerator(),
+  [ProjectType.NUXT]: createNuxtProjectGenerator(),
+  [ProjectType.PREACT]: createPreactProjectGenerator(),
+  [ProjectType.STENCIL]: createStencilProjectGenerator(),
+  [ProjectType.ANGULAR]: createAngularProjectGenerator(),
+  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
+  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
+  [ProjectType.NEXT_CSS_MODULES]: nextCSSModulesProjectGenerator,
+  [ProjectType.GATSBY_STYLED_COMPONENTS]: gatsbyStyledComponentsProjectGenerator,
+  [ProjectType.NEXT_STYLED_COMPONENTS]: nextStyledComponentsProjectGenerator,
+  [ProjectType.NEXT_REACT_JSS]: nextReactJSSProjectGenerator,
 }
 
 const templates = {
@@ -118,6 +142,10 @@ const templates = {
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
   [ProjectType.GATSBY]: GatsbyTemplate,
+  [ProjectType.NEXT_CSS_MODULES]: NextTemplate,
+  [ProjectType.GATSBY_STYLED_COMPONENTS]: GatsbyTemplate,
+  [ProjectType.NEXT_STYLED_COMPONENTS]: NextTemplate,
+  [ProjectType.NEXT_REACT_JSS]: NextTemplate,
 }
 
 const projectPublisherFactories = {
@@ -154,7 +182,7 @@ export const packProject: PackProjectFunction = async (
     path: [Constants.ASSETS_IDENTIFIER],
   })
 
-  packer.setGenerator(projectGeneratorFactory())
+  packer.setGenerator(projectGeneratorFactory)
   packer.setTemplate(projectTemplate)
 
   // If no publisher is provided, the packer will return the generated project
@@ -182,11 +210,14 @@ export const generateComponent: GenerateComponentFunction = async (
 ) => {
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]
-  generator.addMapping(projectMapping)
+  generator.addMapping(projectMapping as Mapping)
   return generator.generateComponent(componentUIDL, componentGeneratorOptions)
 }
 
-const createComponentGenerator = (componentType: ComponentType, styleVariation: StyleVariation) => {
+const createComponentGenerator = (
+  componentType: ComponentType,
+  styleVariation: StyleVariation
+): ComponentGenerator => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
   if (!generatorFactory) {
@@ -198,8 +229,7 @@ const createComponentGenerator = (componentType: ComponentType, styleVariation: 
     componentType === ComponentType.PREACT ||
     componentType === ComponentType.REACTNATIVE
   ) {
-    // @ts-ignore
-    return generatorFactory(styleVariation)
+    return generatorFactory({ variation: styleVariation })
   }
 
   return generatorFactory()

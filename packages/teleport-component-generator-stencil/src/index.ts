@@ -8,11 +8,15 @@ import {
   GeneratorFactoryParams,
 } from '@teleporthq/teleport-component-generator'
 
-import { ComponentGenerator, FileType } from '@teleporthq/teleport-types'
+import {
+  ComponentGenerator,
+  FileType,
+  ComponentGeneratorInstance,
+} from '@teleporthq/teleport-types'
 
 import StencilMapping from './stencil-mapping.json'
 
-const createStencilComponentGenerator = ({
+const createStencilComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
   plugins = [],
   postprocessors = [],

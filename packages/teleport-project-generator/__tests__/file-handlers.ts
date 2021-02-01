@@ -2,7 +2,7 @@ import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../s
 import { PackageJSON } from '../src/types'
 import { GeneratedFolder, ProjectUIDL, FileType } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
-
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createStrategyWithCommonGenerator } from './mocks'
 
 import uidlSample from '../../../examples/test-samples/project-sample.json'
@@ -13,10 +13,15 @@ describe('createHtmlIndexFile', () => {
       assetsPrefix: '/static',
       appRootOverride: '{{root-placeholder}}',
     }
-    const result = await createEntryFile(uidlSample, createStrategyWithCommonGenerator(), options)
+    const [entryFile] = await createEntryFile(
+      (uidlSample as unknown) as ProjectUIDL,
+      createStrategyWithCommonGenerator(),
+      createComponentGenerator(),
+      options
+    )
 
-    expect(result.content).toContain('<html')
-    expect(result.content).toContain('{{root-placeholder}}')
+    expect(entryFile.content).toContain('<html')
+    expect(entryFile.content).toContain('{{root-placeholder}}')
   })
 })
 

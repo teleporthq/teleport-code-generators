@@ -1,3 +1,4 @@
+import { UIDLStyleMediaQueryScreenSizeCondition } from '@teleporthq/teleport-types'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { resolveReferencedStyle } from '../../src/resolvers/referenced-styles'
 
@@ -9,10 +10,10 @@ describe('Resolves referenced styles and sorts media styles in order', () => {
     const referencedStyles = {
       '5ed66ec0b98ab344e6299c7d': {
         id: '5ed66ec0b98ab344e6299c7d',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
-          mapType: 'inlined',
-          conditions: [{ conditionType: 'screen-size', maxWidth: 767 }],
+          mapType: 'inlined' as const,
+          conditions: [{ conditionType: 'screen-size' as const, maxWidth: 767 }],
           styles: {
             display: staticNode('block'),
           },
@@ -20,10 +21,10 @@ describe('Resolves referenced styles and sorts media styles in order', () => {
       },
       '5ed66ec0b98ab344e6299c7c': {
         id: '5ed66ec0b98ab344e6299c7c',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
-          mapType: 'inlined',
-          conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
+          mapType: 'inlined' as const,
+          conditions: [{ conditionType: 'screen-size' as const, maxWidth: 991 }],
           styles: {
             display: staticNode('block'),
           },
@@ -35,7 +36,11 @@ describe('Resolves referenced styles and sorts media styles in order', () => {
     resolveReferencedStyle(uidl)
     const styles = Object.values(uidl.node.content.referencedStyles)
 
-    expect(styles[0].content.conditions[0].maxWidth).toBe(991)
-    expect(styles[1].content.conditions[0].maxWidth).toBe(767)
+    expect(
+      (styles[0].content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth
+    ).toBe(991)
+    expect(
+      (styles[1].content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth
+    ).toBe(767)
   })
 })

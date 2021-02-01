@@ -12,49 +12,40 @@ import NextMapping from './next-mapping.json'
 import NextTemplate from './project-template'
 
 const createNextProjectGenerator = () => {
-  const reactComponentGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX)
-  reactComponentGenerator.addMapping(NextMapping as Mapping)
-
   const headConfigPlugin = createJSXHeadConfigPlugin({
     configTagIdentifier: 'Head',
     configTagDependencyPath: 'next/head',
     isExternalPackage: false,
   })
-
-  const reactPageGenerator = createReactComponentGenerator(ReactStyleVariation.StyledJSX, {
-    plugins: [headConfigPlugin],
-    mappings: [NextMapping as Mapping],
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
   })
 
-  const documentFileGenerator = createComponentGenerator()
-  documentFileGenerator.addPostProcessor(prettierJS)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
-
-  const configGenerator = createComponentGenerator()
-  configGenerator.addPlugin(importStatementsPlugin)
-  configGenerator.addPostProcessor(prettierJS)
-
   const generator = createProjectGenerator({
+    style: ReactStyleVariation.StyledJSX,
     components: {
-      generator: reactComponentGenerator,
+      generator: createReactComponentGenerator,
+      mappings: [NextMapping as Mapping],
       path: ['components'],
     },
     pages: {
-      generator: reactPageGenerator,
+      generator: createReactComponentGenerator,
       path: ['pages'],
+      plugins: [headConfigPlugin],
+      mappings: [NextMapping as Mapping],
       options: {
         useFileNameForNavigation: true,
       },
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: ['pages'],
     },
     entry: {
-      generator: documentFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierJS],
       path: ['pages'],
       fileName: '_document',
       chunkGenerationFunction: createDocumentFileChunks,
@@ -64,7 +55,9 @@ const createNextProjectGenerator = () => {
         fileName: `_app`,
         fileType: FileType.JS,
         path: ['pages'],
-        generator: configGenerator,
+        generator: createComponentGenerator,
+        plugins: [importStatementsPlugin],
+        postprocessors: [prettierJS],
         configContentGenerator,
         isGlobalStylesDependent: true,
       },

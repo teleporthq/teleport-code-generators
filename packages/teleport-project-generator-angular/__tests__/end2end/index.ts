@@ -69,7 +69,7 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
   it('creates style sheet and adds to the webpack file', async () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
     const styleSheet = result.subFolders[0].files.find(
-      (file) => file.name === 'style' && file.fileType === FileType.CSS
+      (file) => file.name === 'styles' && file.fileType === FileType.CSS
     )
 
     expect(styleSheet).toBeDefined()

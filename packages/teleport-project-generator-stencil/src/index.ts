@@ -13,55 +13,46 @@ import StencilProjectMapping from './stencil-mapping.json'
 import StencilTemplate from './project-template'
 
 const createStencilProjectGenerator = () => {
-  const prettierJS = createPrettierJSPostProcessor({ fileType: FileType.TSX })
+  const prettierTSX = createPrettierJSPostProcessor({ fileType: FileType.TSX })
   const importStatementsPlugin = createImportPlugin({ fileType: FileType.TSX })
-
-  const stencilComponentGenerator = createStencilComponentGenerator()
-  stencilComponentGenerator.addMapping(StencilProjectMapping as Mapping)
-
-  const routingComponentGenerator = createComponentGenerator()
-  routingComponentGenerator.addPlugin(stencilAppRouting)
-  routingComponentGenerator.addPlugin(importStatementsPlugin)
-  routingComponentGenerator.addPostProcessor(prettierJS)
-
-  const htmlFileGenerator = createComponentGenerator()
   const prettierHTML = createPrettierHTMLPostProcessor()
-  htmlFileGenerator.addPostProcessor(prettierHTML)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(
-    createStyleSheetPlugin({
-      fileName: 'style',
-    })
-  )
+  const styleSheetPlugin = createStyleSheetPlugin({
+    fileName: 'style',
+  })
 
   const generator = createProjectGenerator({
     components: {
-      generator: stencilComponentGenerator,
+      generator: createStencilComponentGenerator,
+      mappings: [StencilProjectMapping as Mapping],
       path: ['src', 'components'],
       options: {
         createFolderForEachComponent: true,
       },
     },
     pages: {
-      generator: stencilComponentGenerator,
+      generator: createStencilComponentGenerator,
+      mappings: [StencilProjectMapping as Mapping],
       path: ['src', 'components'],
       options: {
         createFolderForEachComponent: true,
       },
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [styleSheetPlugin],
       fileName: 'style',
       path: ['src'],
     },
     router: {
-      generator: routingComponentGenerator,
+      generator: createComponentGenerator,
+      plugins: [stencilAppRouting, importStatementsPlugin],
+      postprocessors: [prettierTSX],
       path: ['src', 'components'],
       fileName: 'app-root',
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierHTML],
       path: ['src'],
       fileName: 'index',
       options: {

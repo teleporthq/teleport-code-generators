@@ -11,7 +11,7 @@ const reactProjectUIDL = (reactProjectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
-  publisher: PublisherType.DISK,
+  publisher: PublisherType.CODESANDBOX,
   projectType: ProjectType.REACT,
   publishOptions: {
     outputPath: 'dist',
@@ -38,11 +38,11 @@ const run = async () => {
     }
 
     let result
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.REACTNATIVE,
-    // })
-    // console.info(ProjectType.REACTNATIVE, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACTNATIVE,
+    })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
       projectType: ProjectType.REACT,
@@ -53,6 +53,21 @@ const run = async () => {
       projectType: ProjectType.NEXT,
     })
     console.info(ProjectType.NEXT, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT_CSS_MODULES,
+    })
+    console.info(ProjectType.NEXT_CSS_MODULES, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT_REACT_JSS,
+    })
+    console.info(ProjectType.NEXT_REACT_JSS, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT_STYLED_COMPONENTS,
+    })
+    console.info(ProjectType.NEXT_STYLED_COMPONENTS, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
     console.info(ProjectType.NUXT, '-', result.payload)
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
@@ -76,6 +91,11 @@ const run = async () => {
       projectType: ProjectType.GATSBY,
     })
     console.info(ProjectType.GATSBY, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY_STYLED_COMPONENTS,
+    })
+    console.info(ProjectType.GATSBY_STYLED_COMPONENTS, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

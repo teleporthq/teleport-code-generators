@@ -10,7 +10,11 @@ import prettierTS from '@teleporthq/teleport-postprocessor-prettier-ts'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
 import AngularMapping from './angular-mapping.json'
-import { ComponentGenerator, FileType } from '@teleporthq/teleport-types'
+import {
+  ComponentGenerator,
+  FileType,
+  ComponentGeneratorInstance,
+} from '@teleporthq/teleport-types'
 
 const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 const stylePlugin = createCSSPlugin({
@@ -18,7 +22,7 @@ const stylePlugin = createCSSPlugin({
   declareDependency: 'decorator',
 })
 
-const createAngularComponentGenerator = ({
+const createAngularComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
   plugins = [],
   postprocessors = [],

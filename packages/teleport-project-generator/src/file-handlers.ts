@@ -14,6 +14,7 @@ import {
   Attribute,
   FileType,
   ChunkType,
+  ComponentGenerator,
 } from '@teleporthq/teleport-types'
 import PathResolver from 'path'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
@@ -22,24 +23,27 @@ import { generateLocalDependenciesPrefix } from './utils'
 
 export const createPage = async (
   pageUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
-  return strategy.pages.generator.generateComponent(pageUIDL, options)
+  return generator.generateComponent(pageUIDL, options)
 }
 
 export const createComponent = async (
   componentUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
-  return strategy.components.generator.generateComponent(componentUIDL, options)
+  return generator.generateComponent(componentUIDL, options)
 }
 
-export const createComponentModule = async (uidl: ProjectUIDL, strategy: ProjectStrategy) => {
+export const createComponentModule = async (
+  uidl: ProjectUIDL,
+  strategy: ProjectStrategy,
+  generator: ComponentGenerator
+) => {
   const { root } = uidl
   const { path } = strategy.components
-  const { moduleGenerator } = strategy.components
   const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     path,
     strategy.components.path
@@ -54,24 +58,28 @@ export const createComponentModule = async (uidl: ProjectUIDL, strategy: Project
   root.outputOptions = root.outputOptions || {}
   root.outputOptions.fileName = 'components.module'
 
-  return moduleGenerator.generateComponent(root, options)
+  return generator.generateComponent(root, options)
 }
 
 export const createPageModule = async (
   pageUIDL: ComponentUIDL,
-  strategy: ProjectStrategy,
+  generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
   pageUIDL.outputOptions = pageUIDL.outputOptions || {}
   pageUIDL.outputOptions.moduleName = `${StringUtils.dashCaseToUpperCamelCase(
     pageUIDL.outputOptions.folderPath[0]
   )}Module`
-  return strategy.pages.moduleGenerator.generateComponent(pageUIDL, options)
+  return generator.generateComponent(pageUIDL, options)
 }
 
-export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStrategy) => {
-  const { projectStyleSheet } = strategy
-  const { generator: routerGenerator, path: routerFilePath, fileName } = strategy.router
+export const createRouterFile = async (
+  root: ComponentUIDL,
+  strategy: ProjectStrategy,
+  routerGenerator: ComponentGenerator
+) => {
+  const { projectStyleSheet, router } = strategy
+  const { path: routerFilePath, fileName } = router
   const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
     routerFilePath,
     strategy.pages.path
@@ -112,14 +120,17 @@ export const createRouterFile = async (root: ComponentUIDL, strategy: ProjectStr
 export const createEntryFile = async (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy,
-  { assetsPrefix }: GeneratorOptions
+  entryFileGenerator: ComponentGenerator,
+  entryFileOptions: GeneratorOptions
 ) => {
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
   const chunkGenerationFunction =
     strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
-  const { options } = strategy.entry
+  const { assetsPrefix } = entryFileOptions
+  const options = { ...strategy.entry?.options, ...entryFileOptions }
 
   const appRootOverride = (options && options.appRootOverride) || null
+
   const entryFileName = strategy.entry.fileName || 'index'
   const customHeadContent = (options && options.customHeadContent) || null
   const customTags = (options && options.customTags) || []
@@ -130,8 +141,8 @@ export const createEntryFile = async (
     customTags,
   })
 
-  const [entryFile] = strategy.entry.generator.linkCodeChunks(chunks, entryFileName)
-  return entryFile
+  const result = entryFileGenerator.linkCodeChunks(chunks, entryFileName)
+  return result
 }
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
@@ -340,7 +351,8 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
 export const handlePackageJSON = (
   template: GeneratedFolder,
   uidl: ProjectUIDL,
-  dependencies: Record<string, string>
+  dependencies: Record<string, string>,
+  devDependencies?: Record<string, string>
 ) => {
   const inputPackageJSONFile = template.files.find(
     (file) => file.name === 'package' && file.fileType === FileType.JSON
@@ -355,12 +367,18 @@ export const handlePackageJSON = (
       ...dependencies,
     }
 
+    packageJSONContent.devDependencies = {
+      ...packageJSONContent.devDependencies,
+      ...(Object.keys(devDependencies || {}).length > 0 && devDependencies),
+    }
+
     inputPackageJSONFile.content = JSON.stringify(packageJSONContent, null, 2)
   } else {
     const content: PackageJSON = {
       ...DEFAULT_PACKAGE_JSON,
       name: StringUtils.slugify(uidl.name),
       dependencies,
+      ...(Object.keys(devDependencies || {}).length > 0 && { devDependencies }),
     }
 
     template.files.push({

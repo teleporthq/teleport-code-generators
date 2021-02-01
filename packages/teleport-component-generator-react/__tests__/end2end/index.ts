@@ -14,7 +14,9 @@ const findFileByType = (files: GeneratedFile[], type: string = JS_FILE) =>
 
 describe('React Component Generator', () => {
   describe('with CSS Modules', () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.CSSModules,
+    })
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -30,7 +32,9 @@ describe('React Component Generator', () => {
   })
 
   describe('with JSS', () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.ReactJSS)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.ReactJSS,
+    })
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -44,7 +48,9 @@ describe('React Component Generator', () => {
   })
 
   describe('with StyledComponents', () => {
-    const generator = createReactComponentGenerator(ReactStyleVariation.StyledComponents)
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.StyledComponents,
+    })
 
     it('should return the files containing the code as string', async () => {
       const result = await generator.generateComponent(uidlSample)
@@ -73,7 +79,8 @@ describe('React Component Generator', () => {
 
   describe('with Custom Mapping', () => {
     const mapping = { elements: { container: { elementType: 'fakediv' } } }
-    const generator = createReactComponentGenerator(ReactStyleVariation.InlineStyles, {
+    const generator = createReactComponentGenerator({
+      variation: ReactStyleVariation.InlineStyles,
       mappings: [mapping],
     })
 
@@ -90,7 +97,9 @@ describe('React Component Generator', () => {
 })
 
 describe('React Component Validator', () => {
-  const generator = createReactComponentGenerator(ReactStyleVariation.CSSModules)
+  const generator = createReactComponentGenerator({
+    variation: ReactStyleVariation.CSSModules,
+  })
 
   it('works with valid UIDL sample', async () => {
     const result = await generator.generateComponent(uidlSample)

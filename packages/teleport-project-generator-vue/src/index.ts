@@ -13,49 +13,37 @@ import VueTemplate from './project-template'
 import VueProjectMapping from './vue-project-mapping.json'
 
 const createVueProjectGenerator = () => {
-  const vueComponentGenerator = createVueComponentGenerator()
-  vueComponentGenerator.addMapping(VueProjectMapping as Mapping)
-
   const vueHeadConfigPlugin = createVueHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
-
-  const vuePageGenerator = createVueComponentGenerator()
-  vuePageGenerator.addMapping(VueProjectMapping as Mapping)
-  vuePageGenerator.addPlugin(vueHeadConfigPlugin)
-
-  const vueRouterGenerator = createComponentGenerator()
-  vueRouterGenerator.addPlugin(vueRoutingPlugin)
-  vueRouterGenerator.addPlugin(pluginCSS)
-  vueRouterGenerator.addPlugin(importStatementsPlugin)
-  vueRouterGenerator.addPostProcessor(prettierJS)
-
-  const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(prettierHTML)
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
 
   const generator = createProjectGenerator({
     components: {
-      generator: vueComponentGenerator,
+      generator: createVueComponentGenerator,
+      mappings: [VueProjectMapping as Mapping],
       path: ['src', 'components'],
     },
     pages: {
-      generator: vuePageGenerator,
+      generator: createVueComponentGenerator,
+      plugins: [vueHeadConfigPlugin],
+      mappings: [VueProjectMapping as Mapping],
       path: ['src', 'views'],
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [createStyleSheetPlugin()],
       fileName: 'style',
       path: ['src'],
       importFile: true,
     },
     router: {
-      generator: vueRouterGenerator,
+      generator: createComponentGenerator,
+      plugins: [vueRoutingPlugin, pluginCSS, importStatementsPlugin],
+      postprocessors: [prettierJS],
       path: ['src'],
       fileName: 'router',
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [prettierHTML],
       path: ['public'],
     },
     static: {

@@ -1,26 +1,29 @@
-import { PreactStyleVariation, ComponentGenerator } from '@teleporthq/teleport-types'
+import {
+  PreactStyleVariation,
+  ComponentGenerator,
+  GeneratorFactoryParams,
+  ComponentPlugin,
+  ComponentGeneratorInstance,
+} from '@teleporthq/teleport-types'
 import preactComponentPlugin from '@teleporthq/teleport-plugin-preact-base-component'
 import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import inlineStylesPlugin from '@teleporthq/teleport-plugin-jsx-inline-styles'
 import importPlugin from '@teleporthq/teleport-plugin-import-statements'
 import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
-
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-
-import {
-  createComponentGenerator,
-  GeneratorFactoryParams,
-} from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import PreactMapping from './preact-mapping.json'
 
-const createPreactComponentGenerator = (
+const createPreactComponentGenerator: ComponentGeneratorInstance = ({
+  mappings = [],
+  plugins = [],
+  postprocessors = [],
   variation = PreactStyleVariation.CSSModules,
-  { mappings = [], plugins = [], postprocessors = [] }: GeneratorFactoryParams = {}
-): ComponentGenerator => {
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
-  const stylePlugins = {
+  const stylePlugins: Record<PreactStyleVariation, ComponentPlugin> = {
     [PreactStyleVariation.InlineStyles]: inlineStylesPlugin,
     [PreactStyleVariation.CSSModules]: createCSSModulesPlugin({
       classAttributeName: 'class',
@@ -33,7 +36,7 @@ const createPreactComponentGenerator = (
       forceScoping: true,
     }),
   }
-  const stylePlugin = stylePlugins[variation]
+  const stylePlugin = stylePlugins[variation as PreactStyleVariation]
   if (!stylePlugin) {
     throw new Error(`Invalid style variation '${variation}'`)
   }

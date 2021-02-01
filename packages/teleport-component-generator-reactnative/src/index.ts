@@ -5,14 +5,16 @@ import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import resourceLoaderPlugin from '@teleporthq/teleport-plugin-reactnative-resource-loader'
 import navigationPlugin from '@teleporthq/teleport-plugin-reactnative-component-navigation'
-
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import ReactNativeMapping from './react-native-mapping.json'
-
-import { ComponentGenerator, Mapping, ReactNativeStyleVariation } from '@teleporthq/teleport-types'
+import {
+  ComponentGenerator,
+  Mapping,
+  ReactNativeStyleVariation,
+  GeneratorFactoryParams,
+  ComponentGeneratorInstance,
+} from '@teleporthq/teleport-types'
 
 // This extracts Text, View, Image as illegal element names
 const rnMapping = ReactNativeMapping as Mapping
@@ -30,24 +32,28 @@ const stylePlugins = {
   [ReactNativeStyleVariation.StyledComponents]: styledComponentsPlugin,
 }
 
-const createReactNativeComponentGenerator = (
+const createReactNativeComponentGenerator: ComponentGeneratorInstance = ({
   variation = ReactNativeStyleVariation.StyledComponents,
-  mapping: Mapping = {}
-): ComponentGenerator => {
+  mappings = [],
+  postprocessors = [],
+  plugins = [],
+}: GeneratorFactoryParams = {}): ComponentGenerator => {
   const generator = createComponentGenerator()
-  const stylePlugin = stylePlugins[variation] || inlineStylesPlugin
+  const stylePlugin = stylePlugins[variation as ReactNativeStyleVariation] || inlineStylesPlugin
 
   generator.addMapping(ReactNativeMapping as Mapping)
-  generator.addMapping(mapping)
+  mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)
   generator.addPlugin(stylePlugin)
   generator.addPlugin(propTypesPlugin)
   generator.addPlugin(resourceLoaderPlugin)
   generator.addPlugin(navigationPlugin)
+  plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
 
   generator.addPostProcessor(prettierJSX)
+  postprocessors.forEach((postprocessor) => generator.addPostProcessor(postprocessor))
 
   const originalGeneratorFn = generator.generateComponent
 
@@ -62,5 +68,3 @@ const createReactNativeComponentGenerator = (
 }
 
 export { createReactNativeComponentGenerator, ReactNativeMapping, ReactNativeStyleVariation }
-
-export default createReactNativeComponentGenerator()

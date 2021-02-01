@@ -1,6 +1,9 @@
 import { createAngularModulePlugin } from '@teleporthq/teleport-plugin-angular-module'
 import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
-import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
+import {
+  createAngularComponentGenerator,
+  AngularMapping,
+} from '@teleporthq/teleport-component-generator-angular'
 import { createPrettierTSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-ts'
 import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -16,41 +19,22 @@ const createAngularProjectGenerator = () => {
   const prettierTS = createPrettierTSPostProcessor({ fileType: FileType.TS })
   const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 
-  const rootModuleGeneratorAngular = createAngularModulePlugin({ moduleType: 'root' })
-  const componentModuleGeneratorAngular = createAngularModulePlugin({ moduleType: 'component' })
-  const pagesModuleGeneratorAngular = createAngularModulePlugin({ moduleType: 'page' })
-
-  const angularComponentGenerator = createAngularComponentGenerator()
-  angularComponentGenerator.addMapping(AngularProjectMapping as Mapping)
-
-  const angularPageGenerator = createAngularComponentGenerator()
-
-  const angularRootModuleGenerator = createComponentGenerator()
-  angularRootModuleGenerator.addPlugin(rootModuleGeneratorAngular)
-  angularRootModuleGenerator.addPlugin(importStatementsPlugin)
-  angularRootModuleGenerator.addPostProcessor(prettierTS)
-
-  const angularComponentModuleGenerator = createComponentGenerator()
-  angularComponentModuleGenerator.addPlugin(componentModuleGeneratorAngular)
-  angularComponentModuleGenerator.addPlugin(importStatementsPlugin)
-  angularComponentModuleGenerator.addPostProcessor(prettierTS)
-
-  const anuglarPageModuleGenerator = createComponentGenerator()
-  anuglarPageModuleGenerator.addPlugin(pagesModuleGeneratorAngular)
-  anuglarPageModuleGenerator.addPlugin(importStatementsPlugin)
-  anuglarPageModuleGenerator.addPostProcessor(prettierTS)
-
-  const htmlFileGenerator = createComponentGenerator()
-  htmlFileGenerator.addPostProcessor(createPrettierHTMLPostProcessor())
-
-  const styleSheetGenerator = createComponentGenerator()
-  styleSheetGenerator.addPlugin(createStyleSheetPlugin())
+  const rootModuleGeneratorAngularPlugin = createAngularModulePlugin({ moduleType: 'root' })
+  const componentModuleGeneratorAngularPlugin = createAngularModulePlugin({
+    moduleType: 'component',
+  })
+  const pagesModuleGeneratorAngularPlugin = createAngularModulePlugin({ moduleType: 'page' })
 
   const generator = createProjectGenerator({
     components: {
-      generator: angularComponentGenerator,
-      moduleGenerator: angularComponentModuleGenerator,
+      generator: createAngularComponentGenerator,
+      mappings: [AngularProjectMapping as Mapping],
       path: ['src', 'app', 'components'],
+      module: {
+        generator: createComponentGenerator,
+        plugins: [componentModuleGeneratorAngularPlugin, importStatementsPlugin],
+        postprocessors: [prettierTS],
+      },
       options: {
         createFolderForEachComponent: true,
         customComponentFileName: (name: string) => `${name}.component`,
@@ -59,9 +43,14 @@ const createAngularProjectGenerator = () => {
       },
     },
     pages: {
-      generator: angularPageGenerator,
-      moduleGenerator: anuglarPageModuleGenerator,
+      generator: createAngularComponentGenerator,
+      mappings: [AngularMapping as Mapping],
       path: ['src', 'app', 'pages'],
+      module: {
+        generator: createComponentGenerator,
+        plugins: [pagesModuleGeneratorAngularPlugin, importStatementsPlugin],
+        postprocessors: [prettierTS],
+      },
       options: {
         createFolderForEachComponent: true,
         customComponentFileName: (name: string) => `${name}.component`,
@@ -70,17 +59,21 @@ const createAngularProjectGenerator = () => {
       },
     },
     projectStyleSheet: {
-      generator: styleSheetGenerator,
+      generator: createComponentGenerator,
+      plugins: [createStyleSheetPlugin({ fileName: 'styles' })],
       fileName: 'styles',
       path: ['src'],
     },
     router: {
-      generator: angularRootModuleGenerator,
+      generator: createComponentGenerator,
+      plugins: [rootModuleGeneratorAngularPlugin, importStatementsPlugin],
+      postprocessors: [prettierTS],
       path: ['src', 'app'],
       fileName: 'app.module',
     },
     entry: {
-      generator: htmlFileGenerator,
+      generator: createComponentGenerator,
+      postprocessors: [createPrettierHTMLPostProcessor()],
       path: ['src'],
       fileName: 'index',
       options: {

@@ -1,32 +1,24 @@
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import { Resolver, HTMLMapping } from '@teleporthq/teleport-uidl-resolver'
-import AssemblyLine from './assembly-line'
-import Builder from './builder'
-
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-
 import {
   ChunkDefinition,
   ComponentGenerator,
   CompiledComponent,
-  ComponentPlugin,
   PostProcessor,
   Mapping,
   FileType,
   GeneratorOptions,
+  GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
-
-interface GeneratorFactoryParams {
-  mappings?: Mapping[]
-  plugins?: ComponentPlugin[]
-  postprocessors?: PostProcessor[]
-}
+import AssemblyLine from './assembly-line'
+import Builder from './builder'
 
 const createComponentGenerator = ({
   mappings = [],
   plugins = [],
   postprocessors = [],
-}: GeneratorFactoryParams = {}): ComponentGenerator => {
+}: Omit<GeneratorFactoryParams, 'variation'> = {}): ComponentGenerator => {
   const validator = new Validator()
   const resolver = new Resolver([HTMLMapping as Mapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)

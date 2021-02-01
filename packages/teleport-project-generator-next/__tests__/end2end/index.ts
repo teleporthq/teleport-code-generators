@@ -40,7 +40,7 @@ describe('React Next Project Generator', () => {
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
     expect(appFile.content).not.toContain(`import "antd/dist/antd.css`)
-    expect(appFile.content).toContain(`import './style.css'`)
+    expect(appFile.content).toContain(`import "./style.css"`)
   })
 
   it('runs without crashing', async () => {
@@ -73,7 +73,7 @@ describe('React Next Project Generator', () => {
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(appFile).toBeDefined()
-    expect(appFile.content).toContain(`import './style.css'`)
+    expect(appFile.content).toContain(`import "./style.css"`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {
