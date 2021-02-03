@@ -14,6 +14,10 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure
 
+    if (strategy.id !== 'teleport-project-gatsby') {
+      throw new Error('Plugin can be used only with teleport-project-gatsby')
+    }
+
     strategy.style = GatsbyStyleVariation.StyledComponents
     delete strategy.framework.config
     if (strategy?.projectStyleSheet?.generator) {

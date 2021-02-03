@@ -21,6 +21,7 @@ const createStencilProjectGenerator = () => {
   })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-stencil',
     components: {
       generator: createStencilComponentGenerator,
       mappings: [StencilProjectMapping as Mapping],

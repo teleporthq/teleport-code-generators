@@ -16,6 +16,7 @@ const createVueProjectGenerator = () => {
   const vueHeadConfigPlugin = createVueHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-vue',
     components: {
       generator: createVueComponentGenerator,
       mappings: [VueProjectMapping as Mapping],

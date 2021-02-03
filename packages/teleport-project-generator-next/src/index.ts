@@ -22,6 +22,7 @@ const createNextProjectGenerator = () => {
   })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,

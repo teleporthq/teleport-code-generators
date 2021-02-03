@@ -12,6 +12,7 @@ import ReactNativeTemplate from './reactnative-project-template'
 
 const createReactNativeProjectGenerator = () => {
   const generator = createProjectGenerator({
+    id: 'teleport-project-react-native',
     components: {
       generator: createReactNativeComponentGenerator,
       mappings: [ReactNativeProjectMapping as Mapping],

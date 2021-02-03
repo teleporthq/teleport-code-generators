@@ -27,6 +27,7 @@ const createPreactProjectGenerator = () => {
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-preact',
     style: PreactStyleVariation.CSSModules,
     components: {
       generator: createPreactComponentGenerator,

@@ -11,6 +11,10 @@ class PluginNextCSSModules implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure
 
+    if (strategy.id !== 'teleport-project-next') {
+      throw new Error('Plugin can be used only with teleport-project-next')
+    }
+
     strategy.style = ReactStyleVariation.CSSModules
     if (strategy?.projectStyleSheet?.generator) {
       strategy.projectStyleSheet.plugins = [createStyleSheetPlugin({ moduleExtension: true })]

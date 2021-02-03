@@ -165,6 +165,7 @@ export interface GeneratorFactoryParams {
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
 
 export interface ProjectStrategy {
+  id: string
   style?: StyleVariation
   components: {
     generator: ComponentGeneratorInstance
