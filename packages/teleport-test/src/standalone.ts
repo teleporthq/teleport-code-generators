@@ -11,7 +11,7 @@ const reactProjectUIDL = (reactProjectJSON as unknown) as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
-  publisher: PublisherType.CODESANDBOX,
+  publisher: PublisherType.DISK,
   projectType: ProjectType.REACT,
   publishOptions: {
     outputPath: 'dist',

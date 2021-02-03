@@ -17,6 +17,7 @@ const createGridsomeProjectGenerator = () => {
   })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-gridsome',
     components: {
       generator: createVueComponentGenerator,
       mappings: [GridsomeProjectMapping as Mapping],

@@ -26,6 +26,7 @@ import { createCustomHTMLEntryFile, styleSheetDependentConfigGenerator } from '.
 
 const createGatsbyProjectGenerator = () => {
   const generator = createProjectGenerator({
+    id: 'teleport-project-gatsby',
     components: {
       generator: createCustomReactGatsbyComponentGenerator,
       path: ['src', 'components'],

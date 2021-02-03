@@ -26,6 +26,7 @@ const createAngularProjectGenerator = () => {
   const pagesModuleGeneratorAngularPlugin = createAngularModulePlugin({ moduleType: 'page' })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-angular',
     components: {
       generator: createAngularComponentGenerator,
       mappings: [AngularProjectMapping as Mapping],

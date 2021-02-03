@@ -17,6 +17,7 @@ const createNuxtProjectGenerator = () => {
   })
 
   const generator = createProjectGenerator({
+    id: 'teleport-project-nuxt',
     components: {
       generator: createVueComponentGenerator,
       mappings: [NuxtMapping as Mapping],
