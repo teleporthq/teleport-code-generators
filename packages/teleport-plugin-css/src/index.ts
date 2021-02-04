@@ -40,13 +40,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
-    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
+    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path } =
       projectStyleSet || {}
 
     const { node } = uidl
 
     if (isRootComponent) {
-      if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {
+      if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
         dependencies[projectStyleSheetName] = {
           type: 'local',
           path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
@@ -76,7 +76,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       : ''
 
     const jssStylesArray: string[] = []
-    let isProjectStyleReferred: boolean = false
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
@@ -177,7 +176,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             case 'project-referenced': {
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
-                isProjectStyleReferred = true
                 const referedStyle = styleSetDefinitions[content.referenceId]
                 if (!referedStyle) {
                   throw new Error(
@@ -216,16 +214,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
     if (Object.keys(mediaStylesMap).length > 0) {
       jssStylesArray.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
-    }
-
-    if (isProjectStyleReferred && importFile) {
-      dependencies[projectStyleSheetName] = {
-        type: 'local',
-        path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
-        meta: {
-          importJustPath: true,
-        },
-      }
     }
 
     if (jssStylesArray.length > 0) {
