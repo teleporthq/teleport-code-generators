@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-repl-component",
   "private": true,
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Repl editor component",
   "author": "teleportHQ",
   "license": "MIT",

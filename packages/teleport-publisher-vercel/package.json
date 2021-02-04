@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-vercel",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Publishes a generated folder structure to vercel",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.15.0",
+    "@teleporthq/teleport-types": "^0.16.0",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
