@@ -333,7 +333,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const jsFile = findFileByType(files, FileType.JS)
 
     expect(jsFile.content).toContain('className="primaryButton"')
-    expect(jsFile.content).toContain(`import '../style.css'`)
+    expect(jsFile.content).not.toContain(`import '../style.css'`)
     expect(jsFile.content).not.toContain(`import './my-component.css'`)
   })
 

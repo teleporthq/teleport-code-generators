@@ -182,7 +182,7 @@ export const checkRouteDefinition = (input: ProjectUIDL) => {
 }
 
 // All referenced components inside of the projectUIDL should be defined
-// in the component section and all the project-references and tokens
+// in the components section and all the project-referenced styles and tokens
 export const checkComponentExistenceAndReferences = (input: ProjectUIDL) => {
   const errors: string[] = []
   const components = Object.keys(input.components || {})

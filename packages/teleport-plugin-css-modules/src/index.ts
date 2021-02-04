@@ -53,7 +53,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       projectStyleSet || {}
 
     if (isRootComponent) {
-      if (Object.keys(tokens).length > 0 && Object.keys(styleSetDefinitions).length === 0) {
+      if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
         const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
         dependencies[projectStylesReferenceOffset] = {
           type: 'local',
