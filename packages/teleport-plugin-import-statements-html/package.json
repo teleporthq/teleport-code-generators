@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-plugin-common": "^0.16.0",
-    "@teleporthq/teleport-types": "^0.16.0"
+    "@teleporthq/teleport-types": "^0.16.0",
+    "@teleporthq/teleport-shared": "^0.16.0"
   }
 }

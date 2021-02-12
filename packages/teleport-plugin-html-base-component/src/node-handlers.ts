@@ -33,7 +33,16 @@ export const generateHtmlSynatx = (node: UIDLNode, templatesLookUp: Record<strin
 }
 
 const generatElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, templatesLookUp) => {
-  const { elementType, dependency, selfClosing, children, attrs, key } = node.content
+  const {
+    elementType,
+    dependency,
+    selfClosing,
+    children,
+    attrs,
+    key,
+    style,
+    referencedStyles,
+  } = node.content
 
   if (dependency) {
     throw new HTMLComponentGeneratorError(`External Components are not supported`)
@@ -49,6 +58,30 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode> = (node, templat
         )
       }
       handleAttribute(htmlNode, attrId, attr)
+    })
+  }
+
+  if (style) {
+    Object.values(style).forEach((styleValue) => {
+      if (styleValue.type === 'dynamic') {
+        throw new HTMLComponentGeneratorError(
+          `Dynamic values insidee styles are not supported, received - ${style}`
+        )
+      }
+    })
+  }
+
+  if (referencedStyles) {
+    Object.values(referencedStyles).forEach((styleId) => {
+      if (styleId.content.mapType === 'inlined') {
+        Object.values(styleId.content.styles || {}).forEach((styleValue) => {
+          if (styleValue.type === 'dynamic') {
+            throw new HTMLComponentGeneratorError(
+              `Dynamic values insidee styles are not supported, received - ${styleValue}`
+            )
+          }
+        })
+      }
     })
   }
 
