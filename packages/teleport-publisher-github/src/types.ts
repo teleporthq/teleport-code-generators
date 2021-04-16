@@ -10,7 +10,7 @@ export interface GithubFactoryParams extends PublisherFactoryParams {
   authMeta?: ServiceAuth
   repositoryOwner?: string
   repository?: string
-  masterBranch?: string
+  mainBranch?: string
   commitBranch?: string
   commitMessage?: string
 }
@@ -18,8 +18,8 @@ export interface GithubFactoryParams extends PublisherFactoryParams {
 export interface GithubPublisher extends Publisher<GithubFactoryParams, string> {
   getRepository: () => string
   setRepository: (repo: string) => void
-  getMasterBranchName: () => string
-  setMasterBranchName: (branch: string) => void
+  getMainBranchName: () => string
+  setMainBranchName: (branch: string) => void
   getCommitBranchName: () => string
   setCommitBranchName: (branch: string) => void
   getCommitMessage: () => string
@@ -32,7 +32,7 @@ export interface GithubPublishMeta {
   authMeta: ServiceAuth
   repository: string
   repositoryOwner: string
-  masterBranch?: string
+  mainBranch?: string
   commitBranch?: string
   commitMessage?: string
 }

@@ -1,21 +1,23 @@
 import { createGithubPublisher } from '../src'
 
-import project from './project-files.json'
+import projectJSON from './project-files.json'
 import githubFiles from './github-files-content.json'
 import { generateProjectFiles } from '../src/utils'
+import { GeneratedFolder } from '@teleporthq/teleport-types'
 
+const project = projectJSON as GeneratedFolder
 describe('teleport publisher github', () => {
   it('creates a new instance of github publisher', () => {
     const publisher = createGithubPublisher()
     expect(publisher.getCommitMessage).toBeDefined()
-    expect(publisher.getMasterBranchName).toBeDefined()
+    expect(publisher.getMainBranchName).toBeDefined()
     expect(publisher.getCommitBranchName).toBeDefined()
     expect(publisher.getProject).toBeDefined()
     expect(publisher.getRepository).toBeDefined()
     expect(publisher.getRepositoryOwner).toBeDefined()
 
     expect(publisher.setCommitMessage).toBeDefined()
-    expect(publisher.setMasterBranchName).toBeDefined()
+    expect(publisher.setMainBranchName).toBeDefined()
     expect(publisher.setCommitBranchName).toBeDefined()
     expect(publisher.setProject).toBeDefined()
     expect(publisher.setRepository).toBeDefined()
@@ -44,9 +46,9 @@ describe('teleport publisher github', () => {
   it('should set master branch name', () => {
     const BRANCH = 'master'
     const publisher = createGithubPublisher()
-    publisher.setMasterBranchName(BRANCH)
+    publisher.setMainBranchName(BRANCH)
 
-    const publisherMasterBranch = JSON.stringify(publisher.getMasterBranchName())
+    const publisherMasterBranch = JSON.stringify(publisher.getMainBranchName())
     expect(publisherMasterBranch).toBe(JSON.stringify(BRANCH))
   })
 
@@ -100,7 +102,7 @@ describe('teleport publisher github', () => {
   })
 
   it('should generate github project files from generated folder', () => {
-    const files = generateProjectFiles({ folder: project, ignoreFolder: true })
+    const files = generateProjectFiles({ folder: { ...project }, ignoreFolder: true })
     expect(JSON.stringify(files)).toBe(JSON.stringify(githubFiles))
   })
 })
