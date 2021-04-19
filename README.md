@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/development/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.15 - Beta!</h2>
+<h2 align="center">Code Generators v0.16 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -22,7 +22,7 @@
 
 <p align="center">
   <a target="_blank" href="https://www.npmjs.com/package/@teleporthq/teleport-component-generator"><img src="https://img.shields.io/npm/v/@teleporthq/teleport-component-generator.svg" /></a>
-  <a target="_blank" href="https://github.com/teleporthq/teleport-code-generators/actions/new"><img src="https://github.com/teleporthq/teleport-code-generators/workflows/publish/badge.svg" /></a>
+  <a target="_blank" href="https://github.com/teleporthq/teleport-code-generators/actions/workflows/publish.yml"><img src="https://github.com/teleporthq/teleport-code-generators/actions/workflows/publish.yml/badge.svg" /></a>
   <a target="_blank" href="https://codecov.io/gh/teleporthq/teleport-code-generators"><img src="https://codecov.io/gh/teleporthq/teleport-code-generators/branch/development/graph/badge.svg" /></a>
   <a target="_blank" href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg" /></a>
   <img src="https://img.shields.io/npm/l/@teleporthq/teleport-code-generators.svg" />
@@ -293,5 +293,6 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 
 Reach out to us on any of these channels:
 * 📧 [Write an Email](mailto:hello@teleporthq.io)
+* 💻 [Discord](https://discord.gg/5pfSVWJzzX)
 * 🐦 [Drop a message on twitter](https://twitter.com/teleporthqio)
 * ℹ️ [Website](https://teleporthq.io/)
