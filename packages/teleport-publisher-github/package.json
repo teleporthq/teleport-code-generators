@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-github",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "description": "Project github publisher",
   "author": "teleportHQ",
   "license": "MIT",

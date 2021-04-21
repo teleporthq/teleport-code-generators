@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-stencil",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "description": "Project generator for a standard stencil project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.16.0",
-    "@teleporthq/teleport-component-generator-stencil": "^0.16.0",
-    "@teleporthq/teleport-plugin-css": "^0.16.0",
+    "@teleporthq/teleport-component-generator-stencil": "^0.16.1",
+    "@teleporthq/teleport-plugin-css": "^0.16.1",
     "@teleporthq/teleport-plugin-import-statements": "^0.16.0",
     "@teleporthq/teleport-plugin-stencil-app-routing": "^0.16.0",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.16.0",
