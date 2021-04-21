@@ -217,14 +217,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     }
 
     if (jssStylesArray.length > 0) {
-      chunks.push({
-        type: ChunkType.STRING,
-        name: chunkName,
-        fileType: FileType.CSS,
-        content: jssStylesArray.join('\n'),
-        linkAfter: [],
-      })
-
       /**
        * Setup an import statement for the styles
        * The name of the file is either in the meta of the component generator
@@ -239,6 +231,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         ASTUtils.addPropertyToASTObject(decoratorParam, 'styleUrls', [
           `${cssFileName}.${FileType.CSS}`,
         ])
+        jssStylesArray.unshift(`:host { \n  display: contents; \n}`)
       }
 
       if (declareDependency === 'import') {
@@ -251,6 +244,14 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
           },
         }
       }
+
+      chunks.push({
+        type: ChunkType.STRING,
+        name: chunkName,
+        fileType: FileType.CSS,
+        content: jssStylesArray.join('\n'),
+        linkAfter: [],
+      })
     }
 
     return structure
