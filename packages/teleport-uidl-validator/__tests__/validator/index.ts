@@ -1,6 +1,8 @@
 import { Validator } from '../../src'
 
 // @ts-ignore
+import componentUidlWithStateUndefinedMismatch from './component-uidl-with-state-undefined-mismatch.json'
+// @ts-ignore
 import invalidComponentUidlSample from './component-invalid-sample.json'
 // @ts-ignore
 import projectUidlSample from './project-sample.json'
@@ -110,6 +112,20 @@ describe('Validate UIDL', () => {
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
       expect(warn).toHaveBeenCalled()
+    })
+
+    it('throws an error if event is modifying the state, which is not defined or mismatched with stateDefinitions', () => {
+      const validator = new Validator()
+      // @ts-ignore
+      expect(() =>
+        validator.validateComponentContent(componentUidlWithStateUndefinedMismatch)
+      ).toThrow(Error)
+
+      // expect(validationResult.errorMsg).toBe(
+      //   `\nUIDL Component Content Validation Error. Please check the following:
+      //    "isOpen" is having a type "boolean" but "string" is Provided. Please make it same type,
+      //    "isExplored" is used in events, but not defined. Please add it in stateDefinitions
+      // )
     })
   })
 
