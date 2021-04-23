@@ -345,7 +345,12 @@ export const elementStateDecoder: Decoder<UIDLElementStyleStates> = union(
   constant('hover'),
   constant('active'),
   constant('focus'),
-  constant('disabled')
+  constant('focus-within'),
+  constant('focus-visible'),
+  constant('disabled'),
+  constant('visited'),
+  constant('checked'),
+  constant('placeholder')
 )
 
 export const elementStyleWithStateConditionDecoder: Decoder<UIDLStyleStateCondition> = object({
