@@ -343,7 +343,7 @@ export interface UIDLStyleStateCondition {
   content: UIDLElementStyleStates
 }
 
-export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'
+export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'focus-within' | 'focus-visible' |  'disabled' | 'visited' | 'checked' | 'placeholder'
 
 export interface UIDLStyleSetDefinition {
   id: string
