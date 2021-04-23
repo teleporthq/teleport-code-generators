@@ -342,6 +342,7 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
 })
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = union(
+export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
   constant('hover'),
   constant('active'),
   constant('focus'),
