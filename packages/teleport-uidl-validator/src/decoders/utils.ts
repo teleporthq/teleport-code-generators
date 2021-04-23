@@ -10,6 +10,7 @@ import {
   boolean,
   array,
   lazy,
+  oneOf
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -341,7 +342,6 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   content: string(),
 })
 
-export const elementStateDecoder: Decoder<UIDLElementStyleStates> = union(
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
   constant('hover'),
   constant('active'),
