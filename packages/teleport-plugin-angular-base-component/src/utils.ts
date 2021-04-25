@@ -8,6 +8,7 @@ import {
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
+  UIDLPropCallEvent,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
@@ -167,7 +168,7 @@ const createMethodsObject = (
 }
 
 export const createPropCallStatement = (
-  eventHandlerStatement: UIDLEventHandlerStatement,
+  eventHandlerStatement: UIDLPropCallEvent,
   propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {

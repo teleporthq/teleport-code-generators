@@ -9,6 +9,7 @@ import {
   GeneratedFile,
   UIDLEventDefinitions,
   UIDLPropDefinition,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import {
   component,
@@ -90,6 +91,12 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       defaultValue: '() => {}',
     },
   }
+  const stateDefinitions: Record<string, UIDLStateDefinition> = {
+    fakeState: {
+      type: 'boolean',
+      defaultValue: true,
+    },
+  }
   const events: UIDLEventDefinitions = {
     click: [
       {
@@ -109,7 +116,8 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       dynamicNode('prop', 'message'),
       elementNode('button', {}, [staticNode('close')], null, null, events),
     ]),
-    propDefinitions
+    propDefinitions,
+    stateDefinitions
   )
 
   it('Adds EmitEmitter to the import', async () => {

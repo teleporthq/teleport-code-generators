@@ -285,7 +285,7 @@ export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
 export const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(styleValueDecoder)
 
 export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = object({
-  type: string(),
+  type: union(constant('stateChange'), constant('propCall')),
   calls: optional(string()),
   modifies: optional(string()),
   newState: optional(union(string(), number(), boolean())),

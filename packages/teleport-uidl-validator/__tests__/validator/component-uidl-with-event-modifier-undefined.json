@@ -1,0 +1,45 @@
+{
+  "name": "Simple Component",
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "button",
+            "name": "openmodal",
+            "children": [
+              {
+                "type": "static",
+                "content": "Show Popup"
+              }
+            ],
+            "events": {
+              "click": [
+                {
+                  "type": "stateChange",
+                  "modifies": "isOpen",
+                  "newState": true
+                }
+              ]
+            },
+            "attrs": {
+              "data-static-attr": {
+                "type": "static",
+                "content": "test"
+              }
+            },
+            "attributes": {
+              "htmlFor": {
+                "type": "static",
+                "content": "test"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

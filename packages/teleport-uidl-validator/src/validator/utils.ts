@@ -102,16 +102,10 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
     if (node.type === 'element' && node.content.events) {
       Object.keys(node.content.events).forEach((eventKey) => {
         node.content.events[eventKey].forEach((event) => {
-          if (!stateKeys.includes(event.modifies)) {
+          if (event.type === 'stateChange' && !stateKeys.includes(event.modifies)) {
             const errorMsg = `"${event.modifies}" is used in events, but not defined. Please add it in stateDefinitions`
             errors.push(errorMsg)
-            // @ts-ignore
-          } else if (typeof event.newState !== input.stateDefinitions[event.modifies]?.type) {
-            // @ts-ignore
-            const errorMsg = `"${event.modifies}" is having a type "${
-              input.stateDefinitions[event.modifies]?.type
-            }" but "${typeof event.newState}" is Provided. Please make it same type`
-            errors.push(errorMsg)
+            return
           }
         })
       })
