@@ -8,6 +8,7 @@ import {
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
+  UIDLPropCallEvent,
 } from '@teleporthq/teleport-types'
 
 export const generateExportAST = (
@@ -42,6 +43,7 @@ export const generateExportAST = (
         [t.decorator(t.callExpression(t.identifier('Output'), []))]
       )
     }
+
     return t.classProperty(
       t.identifier(propKey),
       ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
@@ -167,7 +169,7 @@ const createMethodsObject = (
 }
 
 export const createPropCallStatement = (
-  eventHandlerStatement: UIDLEventHandlerStatement,
+  eventHandlerStatement: UIDLPropCallEvent,
   propDefinitions: Record<string, UIDLPropDefinition>,
   t = types
 ) => {

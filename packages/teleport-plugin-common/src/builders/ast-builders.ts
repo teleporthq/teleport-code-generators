@@ -7,9 +7,9 @@ import {
 } from '../utils/ast-utils'
 import {
   ImportIdentifier,
-  UIDLEventHandlerStatement,
   EntryFileOptions,
   UIDLGlobalAsset,
+  UIDLStateModifierEvent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -164,7 +164,7 @@ export const createComponentDecorator = (params: Record<string, unknown>, t = ty
   )
 }
 
-export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
+export const createStateChangeStatement = (statement: UIDLStateModifierEvent, t = types) => {
   const { modifies, newState } = statement
 
   const rightOperand =

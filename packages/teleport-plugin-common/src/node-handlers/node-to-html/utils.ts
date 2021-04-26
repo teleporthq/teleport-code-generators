@@ -70,12 +70,13 @@ export const handleEvent = (
 
   if (eventHandlerStatements.length === 1) {
     const statement = eventHandlerStatements[0]
-    const isPropEvent = statement && statement.type === 'propCall' && statement.calls
 
-    if (isPropEvent) {
+    if (statement.type === 'propCall' && statement.calls) {
       const eventEmitter = templateSyntax.eventEmmitter(statement.calls)
       hastUtils.addAttributeToNode(htmlNode, eventHandlerKey, eventEmitter)
-    } else {
+    }
+
+    if (statement.type === 'stateChange') {
       hastUtils.addAttributeToNode(
         htmlNode,
         eventHandlerKey,

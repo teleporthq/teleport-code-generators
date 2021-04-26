@@ -9,6 +9,8 @@ import {
   UIDLStateDefinition,
   UIDLEventHandlerStatement,
   UIDLConditionalExpression,
+  UIDLPropCallEvent,
+  UIDLStateModifierEvent,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -67,7 +69,7 @@ export const addEventHandlerToTag = (
 }
 
 const createPropCallStatement = (
-  eventHandlerStatement: UIDLEventHandlerStatement,
+  eventHandlerStatement: UIDLPropCallEvent,
   propDefinitions: Record<string, UIDLPropDefinition>,
   options: JSXGenerationOptions,
   t = types
@@ -97,7 +99,7 @@ const createPropCallStatement = (
 }
 
 const createStateChangeStatement = (
-  eventHandlerStatement: UIDLEventHandlerStatement,
+  eventHandlerStatement: UIDLStateModifierEvent,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   options: JSXGenerationOptions,
   t = types

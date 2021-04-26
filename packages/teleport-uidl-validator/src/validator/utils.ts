@@ -99,6 +99,25 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const errors: string[] = []
 
   UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
+    if (node.type === 'element' && node.content.events) {
+      Object.keys(node.content.events).forEach((eventKey) => {
+        node.content.events[eventKey].forEach((event) => {
+          if (event.type === 'stateChange' && !stateKeys.includes(event.modifies)) {
+            const errorMsg = `"${event.modifies}" is used in events, but not defined. Please add it in stateDefinitions`
+            errors.push(errorMsg)
+            return
+          }
+
+          if (event.type === 'propCall' && !propKeys.includes(event.calls)) {
+            errors.push(
+              `"${event.calls}" is used in events, but missing from propDefinitons. Please add it in propDefinitions `
+            )
+            return
+          }
+        })
+      })
+    }
+
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
         const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
