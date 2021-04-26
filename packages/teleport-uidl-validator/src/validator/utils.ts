@@ -107,6 +107,13 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
             errors.push(errorMsg)
             return
           }
+
+          if (event.type === 'propCall' && !propKeys.includes(event.calls)) {
+            errors.push(
+              `"${event.calls}" is used in events, but missing from propDefinitons. Please add it in propDefinitions `
+            )
+            return
+          }
         })
       })
     }

@@ -246,14 +246,14 @@ export type UIDLLinkNode =
 
 export interface UIDLPropCallEvent {
   type: 'propCall'
-  calls?: string
+  calls: string
   args?: Array<string | number | boolean>
 }
 
 export interface UIDLStateModifierEvent {
   type: 'stateChange'
-  modifies?: string
-  newState?: string | number | boolean
+  modifies: string
+  newState: string | number | boolean
 }
 
 export type UIDLEventHandlerStatement = UIDLPropCallEvent | UIDLStateModifierEvent

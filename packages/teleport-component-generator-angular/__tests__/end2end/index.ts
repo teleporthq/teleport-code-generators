@@ -106,7 +106,7 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       {
         type: 'stateChange',
         modifies: 'fakeState',
-        newState: false,
+        newState: '$toggle',
       },
     ],
   }
@@ -129,6 +129,7 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
     expect(tsFile.content).toContain(`Output, EventEmitter`)
     expect(tsFile.content).toContain(`@Output`)
     expect(tsFile.content).toContain(`onClose: EventEmitter<any> = new EventEmitter()`)
+    expect(tsFile.content).toContain(`this.fakeState = !this.fakeState`)
     expect(tsFile.content).toContain(`this.onClose.emit()`)
     expect(htmlFile.content).toContain(`(click)="handleButtonClick()"`)
   })

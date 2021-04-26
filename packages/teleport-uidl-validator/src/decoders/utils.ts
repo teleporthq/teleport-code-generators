@@ -56,6 +56,8 @@ import {
   VUIDLStyleSetMediaCondition,
   VUIDLStyleSetStateCondition,
   VUIDLDesignTokens,
+  UIDLPropCallEvent,
+  UIDLStateModifierEvent,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -284,12 +286,21 @@ export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
 
 export const styleDefinitionsDecoder: Decoder<UIDLStyleDefinitions> = dict(styleValueDecoder)
 
-export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = object({
-  type: union(constant('stateChange'), constant('propCall')),
-  calls: optional(string()),
-  modifies: optional(string()),
-  newState: optional(union(string(), number(), boolean())),
+export const eventHandlerStatementDecoder: Decoder<UIDLEventHandlerStatement> = union(
+  lazy(() => propCallEventDecoder),
+  lazy(() => stateChangeEventDecoder)
+)
+
+export const propCallEventDecoder: Decoder<UIDLPropCallEvent> = object({
+  type: constant('propCall'),
+  calls: string(),
   args: optional(array(union(string(), number(), boolean()))),
+})
+
+export const stateChangeEventDecoder: Decoder<UIDLStateModifierEvent> = object({
+  type: constant('stateChange'),
+  modifies: string(),
+  newState: union(string(), number(), boolean()),
 })
 
 export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({

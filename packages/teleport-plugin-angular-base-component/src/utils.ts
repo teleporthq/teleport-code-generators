@@ -43,6 +43,7 @@ export const generateExportAST = (
         [t.decorator(t.callExpression(t.identifier('Output'), []))]
       )
     }
+
     return t.classProperty(
       t.identifier(propKey),
       ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
