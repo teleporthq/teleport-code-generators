@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-next-css-modules",
-  "version": "0.16.0",
+  "version": "0.16.2",
   "description": "A plugin for generating a next project using css modules",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
     "build:esm": "tsc -p tsconfig-esm.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-css-modules": "^0.16.0",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.16.0",
-    "@teleporthq/teleport-types": "^0.16.0"
+    "@teleporthq/teleport-plugin-css-modules": "^0.16.2",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.16.2",
+    "@teleporthq/teleport-types": "^0.16.2"
   }
 }
