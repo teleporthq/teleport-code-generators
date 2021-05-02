@@ -10,7 +10,7 @@ import {
   boolean,
   array,
   lazy,
-  oneOf
+  oneOf,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -59,6 +59,13 @@ import {
   VUIDLDesignTokens,
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
+  UIDLScriptExternalAsset,
+  UIDLScriptInlineAsset,
+  UIDLStyleInlineAsset,
+  UIDLStyleExternalAsset,
+  UIDLFontAsset,
+  UIDLCanonicalAsset,
+  UIDLIconAsset,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -160,21 +167,64 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   fileName: optional((isValidFileName() as unknown) as Decoder<string>),
 })
 
-export const globalAssetsValidator: Decoder<UIDLGlobalAsset> = object({
-  type: union(
-    constant('script'),
-    constant('style'),
-    constant('font'),
-    constant('canonical'),
-    constant('icon')
-  ),
-  path: optional(string()),
-  content: optional(string()),
+export const globalAssetsValidator: Decoder<UIDLGlobalAsset> = union(
+  lazy(() => inlineScriptAssetDecoder),
+  lazy(() => externalScriptAssetDecoder),
+  lazy(() => inlineStyletAssetDecoder),
+  lazy(() => externalStyleAssetDecoder),
+  lazy(() => fontAssetDecoder),
+  lazy(() => canonicalAssetDecoder),
+  lazy(() => iconAssetDecoder)
+)
+
+export const inlineScriptAssetDecoder: Decoder<UIDLScriptInlineAsset> = object({
+  type: constant('script'),
+  content: string(),
+})
+
+export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = object({
+  type: constant('script'),
+  path: string(),
   options: optional(
     object({
       async: optional(boolean()),
       defer: optional(boolean()),
       target: optional(string()),
+    })
+  ),
+})
+
+export const inlineStyletAssetDecoder: Decoder<UIDLStyleInlineAsset> = object({
+  type: constant('style'),
+  content: string(),
+})
+
+export const externalStyleAssetDecoder: Decoder<UIDLStyleExternalAsset> = object({
+  type: constant('style'),
+  path: string(),
+  options: optional(
+    object({
+      async: optional(boolean()),
+      defer: optional(boolean()),
+    })
+  ),
+})
+
+export const fontAssetDecoder: Decoder<UIDLFontAsset> = object({
+  type: constant('font'),
+  path: string(),
+})
+
+export const canonicalAssetDecoder: Decoder<UIDLCanonicalAsset> = object({
+  type: constant('canonical'),
+  path: string(),
+})
+
+export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
+  type: constant('icon'),
+  path: string(),
+  options: optional(
+    object({
       iconType: optional(string()),
       iconSizes: optional(string()),
     })
