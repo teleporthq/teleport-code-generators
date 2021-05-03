@@ -132,7 +132,17 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "chavda-bhavik",
+      "name": "Chavda Bhavik",
+      "avatar_url": "https://avatars.githubusercontent.com/u/50201755?v=4",
+      "profile": "https://github.com/chavda-bhavik",
+      "contributions": [
+        "code"
+      ]
     }
   ],
-  "contributorsPerLine": 7
+  "contributorsPerLine": 7,
+  "skipCi": true
 }
