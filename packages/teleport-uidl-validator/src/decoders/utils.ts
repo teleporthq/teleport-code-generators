@@ -11,6 +11,7 @@ import {
   array,
   lazy,
   oneOf,
+  intersection,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -66,6 +67,7 @@ import {
   UIDLFontAsset,
   UIDLCanonicalAsset,
   UIDLIconAsset,
+  UIDLAssetBase,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -167,7 +169,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   fileName: optional((isValidFileName() as unknown) as Decoder<string>),
 })
 
-export const globalAssetsValidator: Decoder<UIDLGlobalAsset> = union(
+export const globalAssetsDecoder: Decoder<UIDLGlobalAsset> = union(
   lazy(() => inlineScriptAssetDecoder),
   lazy(() => externalScriptAssetDecoder),
   lazy(() => inlineStyletAssetDecoder),
@@ -177,14 +179,7 @@ export const globalAssetsValidator: Decoder<UIDLGlobalAsset> = union(
   lazy(() => iconAssetDecoder)
 )
 
-export const inlineScriptAssetDecoder: Decoder<UIDLScriptInlineAsset> = object({
-  type: constant('script'),
-  content: string(),
-})
-
-export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = object({
-  type: constant('script'),
-  path: string(),
+export const baseAssetDecoder: Decoder<UIDLAssetBase> = object({
   options: optional(
     object({
       async: optional(boolean()),
@@ -194,29 +189,39 @@ export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = obje
   ),
 })
 
+export const inlineScriptAssetDecoder: Decoder<UIDLScriptInlineAsset> = intersection(
+  object({
+    type: constant('script' as const),
+    content: string(),
+  }),
+  optional(baseAssetDecoder)
+)
+
+export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = intersection(
+  object({
+    type: constant('script' as const),
+    path: string(),
+  }),
+  optional(baseAssetDecoder)
+)
+
 export const inlineStyletAssetDecoder: Decoder<UIDLStyleInlineAsset> = object({
-  type: constant('style'),
+  type: constant('style' as const),
   content: string(),
 })
 
 export const externalStyleAssetDecoder: Decoder<UIDLStyleExternalAsset> = object({
-  type: constant('style'),
+  type: constant('style' as const),
   path: string(),
-  options: optional(
-    object({
-      async: optional(boolean()),
-      defer: optional(boolean()),
-    })
-  ),
 })
 
 export const fontAssetDecoder: Decoder<UIDLFontAsset> = object({
-  type: constant('font'),
+  type: constant('font' as const),
   path: string(),
 })
 
 export const canonicalAssetDecoder: Decoder<UIDLCanonicalAsset> = object({
-  type: constant('canonical'),
+  type: constant('canonical' as const),
   path: string(),
 })
 
@@ -234,7 +239,7 @@ export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
 export const componentSeoDecoder: Decoder<UIDLComponentSEO> = object({
   title: optional(string()),
   metaTags: optional(array(dict(string()))),
-  assets: optional(array(globalAssetsValidator)),
+  assets: optional(array(globalAssetsDecoder)),
 })
 
 export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({

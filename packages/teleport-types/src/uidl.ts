@@ -19,38 +19,35 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
-export interface UIDLScriptExternalAsset {
-  type: 'script'
-  path: string
-  content?: string
+
+export interface UIDLAssetBase {
   options?: {
     async?: boolean
     defer?: boolean
     target?: string
   }
 }
-export interface UIDLScriptInlineAsset {
+
+export interface UIDLScriptInlineAsset extends UIDLAssetBase {
   type: 'script'
   content: string
-  path?: string
-  options?: {
-    async?: boolean
-    defer?: boolean
-    target?: string
-  }
 }
+export interface UIDLScriptExternalAsset extends UIDLAssetBase {
+  type: 'script'
+  path: string
+}
+
 export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
 
-export interface UIDLStyleExternalAsset {
-  type: 'style'
-  path: string
-  content?: string
-}
 export interface UIDLStyleInlineAsset {
   type: 'style'
   content: string
-  path?: string
 }
+export interface UIDLStyleExternalAsset {
+  type: 'style'
+  path: string
+}
+
 export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
 
 export interface UIDLFontAsset {
@@ -69,6 +66,7 @@ export interface UIDLIconAsset {
     iconSizes?: string
   }
 }
+
 export type UIDLGlobalAsset =
   | UIDLScriptAsset
   | UIDLStyleInlineAsset
