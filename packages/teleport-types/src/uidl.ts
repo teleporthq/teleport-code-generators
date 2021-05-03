@@ -19,18 +19,61 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
-export interface UIDLGlobalAsset {
-  type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
-  path?: string
-  content?: string
+
+export interface UIDLAssetBase {
   options?: {
     async?: boolean
     defer?: boolean
     target?: string
+  }
+}
+
+export interface UIDLScriptInlineAsset extends UIDLAssetBase {
+  type: 'script'
+  content: string
+}
+export interface UIDLScriptExternalAsset extends UIDLAssetBase {
+  type: 'script'
+  path: string
+}
+
+export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
+
+export interface UIDLStyleInlineAsset {
+  type: 'style'
+  content: string
+}
+export interface UIDLStyleExternalAsset {
+  type: 'style'
+  path: string
+}
+
+export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
+
+export interface UIDLFontAsset {
+  type: 'font'
+  path: string
+}
+export interface UIDLCanonicalAsset {
+  type: 'canonical'
+  path: string
+}
+export interface UIDLIconAsset {
+  type: 'icon'
+  path: string
+  options?: {
     iconType?: string
     iconSizes?: string
   }
 }
+
+export type UIDLGlobalAsset =
+  | UIDLScriptAsset
+  | UIDLStyleInlineAsset
+  | UIDLStyleExternalAsset
+  | UIDLFontAsset
+  | UIDLCanonicalAsset
+  | UIDLIconAsset
 
 export interface ComponentUIDL {
   name: string
@@ -349,7 +392,16 @@ export interface UIDLStyleStateCondition {
   content: UIDLElementStyleStates
 }
 
-export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'focus-within' | 'focus-visible' |  'disabled' | 'visited' | 'checked' | 'placeholder'
+export type UIDLElementStyleStates =
+  | 'hover'
+  | 'active'
+  | 'focus'
+  | 'focus-within'
+  | 'focus-visible'
+  | 'disabled'
+  | 'visited'
+  | 'checked'
+  | 'placeholder'
 
 export interface UIDLStyleSetDefinition {
   id: string
