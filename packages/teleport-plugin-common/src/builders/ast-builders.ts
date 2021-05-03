@@ -188,10 +188,7 @@ export const appendAssetsAST = (
   bodyNode: types.JSXElement
 ) => {
   assets.forEach((asset) => {
-    let assetPath
-    if ('path' in asset) {
-      assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
-    }
+    const assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
@@ -210,7 +207,7 @@ export const appendAssetsAST = (
     }
 
     // inline style
-    if (asset.type === 'style' && 'content' in asset) {
+    if (asset.type === 'style' && asset.content) {
       const styleTag = createJSXTag('style')
       addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
       addChildJSXTag(headNode, styleTag)
@@ -222,24 +219,22 @@ export const appendAssetsAST = (
       addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         addAttributeToJSXTag(scriptTag, 'src', assetPath)
-        if ('options' in asset && asset.options.defer) {
+        if (asset.options && asset.options.defer) {
           addAttributeToJSXTag(scriptTag, 'defer', true)
         }
-        if ('options' in asset && asset.options.async) {
+        if (asset.options && asset.options.async) {
           addAttributeToJSXTag(scriptTag, 'async', true)
         }
-      } else if ('content' in asset) {
+      } else if (asset.content) {
         addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', {
           __html: asset.content,
         })
       }
 
-      if ('options' in asset) {
-        if ('target' in asset.options) {
-          addChildJSXTag(bodyNode, scriptTag)
-        } else {
-          addChildJSXTag(headNode, scriptTag)
-        }
+      if (asset.options && asset.options.target === 'body') {
+        addChildJSXTag(bodyNode, scriptTag)
+      } else {
+        addChildJSXTag(headNode, scriptTag)
       }
     }
 

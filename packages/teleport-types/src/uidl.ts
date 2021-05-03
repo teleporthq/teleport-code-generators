@@ -22,6 +22,7 @@ export interface UIDLGlobalProjectValues {
 export interface UIDLScriptExternalAsset {
   type: 'script'
   path: string
+  content?: string
   options?: {
     async?: boolean
     defer?: boolean
@@ -31,16 +32,24 @@ export interface UIDLScriptExternalAsset {
 export interface UIDLScriptInlineAsset {
   type: 'script'
   content: string
+  path?: string
+  options?: {
+    async?: boolean
+    defer?: boolean
+    target?: string
+  }
 }
 export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
 
 export interface UIDLStyleExternalAsset {
   type: 'style'
   path: string
+  content?: string
 }
 export interface UIDLStyleInlineAsset {
   type: 'style'
   content: string
+  path?: string
 }
 export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
 

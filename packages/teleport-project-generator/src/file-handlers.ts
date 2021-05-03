@@ -221,10 +221,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   })
 
   assets.forEach((asset) => {
-    let assetPath
-    if ('path' in asset) {
-      assetPath = UIDLUtils.prefixAssetsPath(assetsPrefix, asset.path)
-    }
+    const assetPath = UIDLUtils.prefixAssetsPath(assetsPrefix, asset.path)
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
@@ -243,7 +240,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     }
 
     // inline style
-    if (asset.type === 'style' && 'content' in asset) {
+    if (asset.type === 'style' && asset.content) {
       const styleTag = HASTBuilders.createHTMLNode('style')
       HASTUtils.addTextNode(styleTag, asset.content)
       HASTUtils.addChildNode(headNode, styleTag)
@@ -251,23 +248,18 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
 
     // script (external or inline)
     if (asset.type === 'script') {
-      let scriptInBody = false
-      if ('options' in asset) {
-        if ('target' in asset.options && asset.options.target === 'body') {
-          scriptInBody = true
-        }
-      }
+      const scriptInBody = (asset.options && asset.options.target === 'body') || false
       const scriptTag = HASTBuilders.createHTMLNode('script')
       HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
       if (assetPath) {
         HASTUtils.addAttributeToNode(scriptTag, 'src', assetPath)
-        if ('options' in asset && asset.options.defer) {
+        if (asset.options && asset.options.defer) {
           HASTUtils.addBooleanAttributeToNode(scriptTag, 'defer')
         }
-        if ('options' in asset && asset.options.async) {
+        if (asset.options && asset.options.async) {
           HASTUtils.addBooleanAttributeToNode(scriptTag, 'async')
         }
-      } else if ('content' in asset) {
+      } else if (asset.content) {
         HASTUtils.addTextNode(scriptTag, asset.content)
       }
       if (scriptInBody) {
