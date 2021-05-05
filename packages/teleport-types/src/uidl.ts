@@ -401,7 +401,7 @@ export type UIDLElementStyleStates =
   | 'disabled'
   | 'visited'
   | 'checked'
-  | 'placeholder'
+  | 'link'
 
 export interface UIDLStyleSetDefinition {
   id: string
