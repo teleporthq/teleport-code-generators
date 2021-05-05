@@ -417,7 +417,7 @@ export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
   constant('disabled'),
   constant('visited'),
   constant('checked'),
-  constant('placeholder')
+  constant('link')
 )
 
 export const elementStyleWithStateConditionDecoder: Decoder<UIDLStyleStateCondition> = object({
