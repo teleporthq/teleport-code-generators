@@ -1,6 +1,8 @@
 import { Validator } from '../../src'
 
 // @ts-ignore
+import ComponentUidlElementWithoutName from './component-element-without-name.json'
+// @ts-ignore
 import componentUidlWithEventModifierUndefined from './component-uidl-with-event-modifier-undefined.json'
 // @ts-ignore
 import invalidComponentUidlSample from './component-invalid-sample.json'
@@ -125,6 +127,16 @@ describe('Validate UIDL', () => {
       //   `\nUIDL Component Content Validation Error. Please check the following:
       //    "isOpen" is used in events, but not defined. Please add it in stateDefinitions
       // )
+    })
+
+    it('return object with valid=true and errorMSG="" if element name is empty string', () => {
+      const validator = new Validator()
+      // @ts-ignore
+      const validationResult = validator.validateComponentSchema(ComponentUidlElementWithoutName)
+
+      expect(typeof validationResult).toBe('object')
+      expect(validationResult.valid).toEqual(true)
+      expect(validationResult.errorMsg).toEqual('')
     })
   })
 

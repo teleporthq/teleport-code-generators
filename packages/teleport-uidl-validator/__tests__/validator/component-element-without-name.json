@@ -1,0 +1,36 @@
+{
+  "name": "Simple Component",
+  "propDefinitions": {
+    "heading": {
+      "type": "string",
+      "defaultValue": "Hello"
+    }
+  },
+  "node": {
+    "type": "element",
+    "content": {
+      "elementType": "container",
+      "name": "",
+      "referencedStyles": {},
+      "abilities": {},
+      "children": [
+        {
+          "type": "element",
+          "content": {
+            "elementType": "text",
+            "referencedStyles": {},
+            "abilities": {},
+            "children": [
+              {
+                "type": "static",
+                "content": "Hello"
+              }
+            ],
+            "semanticType": "span"
+          }
+        }
+      ],
+      "semanticType": "div"
+    }
+  }
+}

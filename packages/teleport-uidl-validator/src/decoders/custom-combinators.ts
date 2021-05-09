@@ -43,8 +43,8 @@ export class CustomCombinators<A> {
 
   static isValidElementName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
-      if (json && typeof json === 'string' && fileNameRegex.test(json)) {
+      const fileNameRegex = new RegExp('^$|^[a-zA-Z]+[a-zA-Z0-9-_]*$')
+      if (typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
       }
       return Result.err({ message: `Invalid link attribute, received ${json}` })
