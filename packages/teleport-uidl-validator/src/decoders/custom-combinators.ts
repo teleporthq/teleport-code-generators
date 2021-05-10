@@ -43,11 +43,13 @@ export class CustomCombinators<A> {
 
   static isValidElementName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^$|^[a-zA-Z]+[a-zA-Z0-9-_]*$')
-      if (typeof json === 'string' && fileNameRegex.test(json)) {
+      const fileNameRegex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
+      if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        return Result.err({ message: `Name attribute cannot be empty` })
       }
-      return Result.err({ message: `Invalid link attribute, received ${json}` })
+      return Result.err({ message: `Invalid name attribute, received ${json}` })
     })
   }
 }

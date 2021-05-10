@@ -129,14 +129,18 @@ describe('Validate UIDL', () => {
       // )
     })
 
-    it('return object with valid=true and errorMSG="" if element name is empty string', () => {
+    it('throws an error if event name is empty string', () => {
       const validator = new Validator()
       // @ts-ignore
-      const validationResult = validator.validateComponentSchema(ComponentUidlElementWithoutName)
+      expect(() => validator.validateComponentSchema(ComponentUidlElementWithoutName)).toThrow(
+        Error
+      )
 
-      expect(typeof validationResult).toBe('object')
-      expect(validationResult.valid).toEqual(true)
-      expect(validationResult.errorMsg).toEqual('')
+      // expect(validationResult.errorMsg).toBe(
+      //  Error: UIDL Format Validation Error. Please check the following:
+      //  - Path input.node.content.name: [object Object].
+      //  is a DecoderError
+      // )
     })
   })
 
