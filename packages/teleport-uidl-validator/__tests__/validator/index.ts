@@ -1,7 +1,7 @@
 import { Validator } from '../../src'
 
 // @ts-ignore
-import ComponentUidlElementWithoutName from './component-element-without-name.json'
+import ComponentUidlElementWithEmptyName from './component-element-with-empty-name.json'
 // @ts-ignore
 import componentUidlWithEventModifierUndefined from './component-uidl-with-event-modifier-undefined.json'
 // @ts-ignore
@@ -132,14 +132,14 @@ describe('Validate UIDL', () => {
     it('throws an error if event name is empty string', () => {
       const validator = new Validator()
       // @ts-ignore
-      expect(() => validator.validateComponentSchema(ComponentUidlElementWithoutName)).toThrow(
+      expect(() => validator.validateComponentSchema(ComponentUidlElementWithEmptyName)).toThrow(
         Error
       )
 
       // expect(validationResult.errorMsg).toBe(
-      //  Error: UIDL Format Validation Error. Please check the following:
-      //  - Path input.node.content.name: [object Object].
-      //  is a DecoderError
+      //  UIDL Format Validation Error. Please check the following:
+      //  - Path undefined: Error: Name attribute cannot be empty.
+      //  is a undefined
       // )
     })
   })
