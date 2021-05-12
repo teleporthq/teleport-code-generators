@@ -16,6 +16,8 @@ export class CustomCombinators<A> {
       const componentNameRegex = new RegExp('^[A-Z]+[a-zA-Z0-9]*$')
       if (json && typeof json === 'string' && componentNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        throw new Error(`Component Name cannot be empty`)
       }
       throw new Error(`Invalid Component name, got ${json}`)
     })
@@ -36,6 +38,8 @@ export class CustomCombinators<A> {
       const fileNameRegex = new RegExp('^[a-zA-Z0-9-_.]*$')
       if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        throw new Error(`File Name cannot be empty`)
       }
       throw new Error(`Invalid File name, received ${json}`)
     })
