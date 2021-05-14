@@ -23,7 +23,8 @@
       "clean": "rimraf dist",
       "build": "npm run build:cjs & npm run build:esm",
       "build:cjs": "tsc -p tsconfig-cjs.json",
-      "build:esm": "tsc -p tsconfig-esm.json"
+      "build:esm": "tsc -p tsconfig-esm.json",
+      "prepare": "npm run build"
     },
     "dependencies": {
       "@teleporthq/teleport-types": "0.16.3"
