@@ -1,0 +1,32 @@
+{
+    "name": "@teleporthq/teleport-mapper",
+    "version": "0.16.3",
+    "description": "A mapper utility to convert the sources into UIDL",
+    "author": "teleportHQ",
+    "license": "MIT",
+    "homepage": "https://teleporthq.io/",
+    "main": "dist/cjs/index.js",
+    "types": "dist/cjs/index.d.ts",
+    "module": "dist/esm/index.js",
+    "sideEffects": false,
+    "repository": {
+      "type": "git",
+      "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+    },
+    "bugs": {
+      "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+    },
+    "publishConfig": {
+      "access": "public"
+    },
+    "scripts": {
+      "clean": "rimraf dist",
+      "build": "npm run build:cjs & npm run build:esm",
+      "build:cjs": "tsc -p tsconfig-cjs.json",
+      "build:esm": "tsc -p tsconfig-esm.json"
+    },
+    "dependencies": {
+      "@teleporthq/teleport-types": "0.16.3"
+    }
+  }
+  
