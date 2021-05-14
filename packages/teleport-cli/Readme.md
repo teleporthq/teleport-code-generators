@@ -1,4 +1,4 @@
-## @teleporthq/cli
+## @teleporthq/teleport-cli
 
 ### Clone a Project
 
@@ -33,13 +33,13 @@ teleport format
 
 ### Sync
 
-This command uses the `teleport.config.json` and sync's the project and component's used.
+Using `teleport.config.json` and sync's the project and component's used.
 
 ```shell
 teleport sync
 ```
 
-We can use `--force` if we want to `overwrite` local files with remote changes. 
+We can use `--force` to `overwrite` local files with remote changes. 
 
 ```shell
 teleport sync --force
@@ -47,8 +47,17 @@ teleport sync --force
 
 ### Init
 
-Crreate a `teleport.config.json` in a existing project
+Creates a `teleport.config.json` in a existing project
 
 ```shell
 teleport init
 ```
+
+### Dev Workflow
+
+- Install `dependencies` using `yarn` in the root folder. Under `teleport-code-generator`.
+- Run `yarn build` to build the project.
+- Run `yarn link` to create a `sym-link`.
+- Now go to the required folder and run `yarn link "@teleporthq/teleport-cli"`where we want to use the command line.
+- To run the `cli` in watch mode, please run `yarn dev`. This will re-complie the `.ts` files every-time we make changes.
+
