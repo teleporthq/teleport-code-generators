@@ -1,6 +1,6 @@
 import PathResolver from 'path'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
+// import { Validator } from '@teleporthq/teleport-uidl-validator'
 import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
 import {
   GeneratorOptions,
@@ -15,6 +15,7 @@ import {
   InMemoryFileRecord,
   TeleportError,
   GeneratorFactoryParams,
+  ProjectUIDL,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -47,11 +48,11 @@ export class ProjectGenerator {
   public routerGenerator: ComponentGenerator
   public styleSheetGenerator: ComponentGenerator
   private strategy: ProjectStrategy
-  private validator: Validator
+  // private validator: Validator
   private assemblyLine: ProjectAssemblyLine
 
   constructor(strategy: ProjectStrategy) {
-    this.validator = new Validator()
+    // this.validator = new Validator()
     this.strategy = strategy
     this.assemblyLine = new ProjectAssemblyLine()
   }
@@ -130,7 +131,7 @@ export class ProjectGenerator {
     template: GeneratedFolder = DEFAULT_TEMPLATE,
     mapping: Mapping = {}
   ): Promise<GeneratedFolder> {
-    let cleanedUIDL = input
+    // let cleanedUIDL = input
     let collectedDependencies: Record<string, string> = {}
     let collectedDevDependencies: Record<string, string> = {}
     let inMemoryFilesMap = new Map<string, InMemoryFileRecord>()
@@ -138,16 +139,17 @@ export class ProjectGenerator {
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
 
-    const schemaValidationResult = this.validator.validateProjectSchema(input)
-    const { valid, projectUIDL } = schemaValidationResult
-    if (valid && projectUIDL) {
-      cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
-    } else {
-      throw new Error(schemaValidationResult.errorMsg)
-    }
+    // const schemaValidationResult = this.validator.validateProjectSchema(input)
+    // const schemaValidationResult = input
+    // const { valid, projectUIDL } = schemaValidationResult
+    // if (valid && projectUIDL) {
+    //   cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
+    // } else {
+    //   throw new Error(schemaValidationResult.errorMsg)
+    // }
 
-    const uidl = Parser.parseProjectJSON(cleanedUIDL)
-
+    // const uidl = Parser.parseProjectJSON(input)
+    const uidl = (input as unknown) as ProjectUIDL
     /* Style sets contains only on project level. So passing them through componentcycle
     just resolves for that component alone and don't have any impact for other components.
     So, resolving happens here and is passed to all components. */
@@ -155,10 +157,10 @@ export class ProjectGenerator {
       uidl.root.styleSetDefinitions = resolveStyleSetDefinitions(uidl.root.styleSetDefinitions)
     }
 
-    const contentValidationResult = this.validator.validateProjectContent(uidl)
-    if (!contentValidationResult.valid) {
-      throw new Error(contentValidationResult.errorMsg)
-    }
+    // const contentValidationResult = this.validator.validateProjectContent(uidl)
+    // if (!contentValidationResult.valid) {
+    //   throw new Error(contentValidationResult.errorMsg)
+    // }
 
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
@@ -236,6 +238,7 @@ export class ProjectGenerator {
     ) {
       const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
+        skipValidation: true,
       })
 
       inMemoryFilesMap.set('projectStyleSheet', {

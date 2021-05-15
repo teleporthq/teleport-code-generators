@@ -15,7 +15,6 @@ export default async function (options: { url: string; targetPath: string; force
   let uidl: VComponentUIDL | VProjectUIDL
   const spinner = ora()
   spinner.start()
-  // Assuming it is coming from playground
   if (url.includes('play.teleporthq.io') && !url.includes('repl.teleporthq.io')) {
     const opts = url.split('/')
 
@@ -33,19 +32,23 @@ export default async function (options: { url: string; targetPath: string; force
           throw new Error('Failed in Generating Project')
         }
 
-        await generateProjectFromUIDL({
+        const projectName = await generateProjectFromUIDL({
           uidl,
           projectType: ProjectType.NEXT,
           targetPath,
           url,
           force,
         })
+        updateConfigFile((content) => {
+          content.project.name = projectName
+        })
 
-        spinner.text = `Project Generated Successfully`
+        spinner.text = `Project Generated Successfully ${projectName}`
         spinner.succeed()
       } catch (e) {
         spinner.text = `Project Generation Failed`
         spinner.fail()
+        throw new Error(e)
       }
     }
 
@@ -58,14 +61,14 @@ export default async function (options: { url: string; targetPath: string; force
         } = await fetchSnapshotFromPlayground(opts[4])
 
         const mapper = new MapSnapshotToUIDL(data)
-        uidl = mapper.componentToUIDL(opts[6])
+        uidl = mapper.pageToUIDL(opts[6])
 
         if (!uidl) {
-          throw new Error('Failed in Generating Project')
+          throw new Error('Failed in Generating UIDL')
         }
 
         const { files } = await generateComponentFromUIDL(uidl, getComponentType())
-        injectFilesToPath(process.cwd(), targetPath, files, force)
+        injectFilesToPath({ rootFolder: process.cwd(), targetPath, files, force })
         updateConfigFile((content) => {
           content.components[url] = { url, path: targetPath }
         })
@@ -87,7 +90,7 @@ export default async function (options: { url: string; targetPath: string; force
         spinner.text = `Fetching project from repl \n`
 
         uidl = (await fetchUIDLFromREPL(url)) as VProjectUIDL
-        await generateProjectFromUIDL({
+        const projectName = await generateProjectFromUIDL({
           uidl,
           projectType: ProjectType.NEXT,
           targetPath,
@@ -95,11 +98,16 @@ export default async function (options: { url: string; targetPath: string; force
           force,
         })
 
-        spinner.text = `Project Generated Successfully`
+        updateConfigFile((content) => {
+          content.project.name = projectName
+        })
+
+        spinner.text = `Project Generated Successfully ${projectName}`
         spinner.succeed()
       } catch (e) {
         spinner.text = `Project Generation Failed`
         spinner.fail()
+        throw new Error(e)
       }
     } else {
       try {
@@ -107,7 +115,13 @@ export default async function (options: { url: string; targetPath: string; force
 
         uidl = (await fetchUIDLFromREPL(url)) as VComponentUIDL
         const { files } = await generateComponentFromUIDL(uidl, getComponentType())
-        injectFilesToPath(process.cwd(), targetPath, files, force)
+
+        injectFilesToPath({
+          rootFolder: process.cwd(),
+          targetPath,
+          files,
+          force,
+        })
         updateConfigFile((content) => {
           content.components[url] = { url, path: targetPath }
         })
@@ -117,6 +131,7 @@ export default async function (options: { url: string; targetPath: string; force
       } catch (e) {
         spinner.text = `Component Generation Failed`
         spinner.fail()
+        throw new Error(e)
       }
     }
   }

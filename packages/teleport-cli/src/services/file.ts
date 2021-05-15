@@ -5,27 +5,40 @@ import { GeneratedFile, GeneratedFolder } from '@teleporthq/teleport-types'
 import { getPatchesBetweenFiles, mergeFiles } from './merge'
 import { IGNORE_EXTENSIONS } from '../constants'
 
-export const injectFilesFromSubFolder = (
-  folder: GeneratedFolder[],
-  targetPath: string,
-  force = false
-) => {
+export const injectFilesFromSubFolder = (params: {
+  folder: GeneratedFolder[]
+  targetPath: string
+  force: boolean
+}) => {
+  const { folder, targetPath, force = false } = params
   folder.map((items) => {
     const { files, subFolders, name } = items
+
     ensureDirSync(path.join(process.cwd(), targetPath, name))
-    injectFilesToPath(process.cwd(), path.join(targetPath, name), files, force)
-    injectFilesFromSubFolder(subFolders, path.join(targetPath, name), force)
+    injectFilesToPath({
+      rootFolder: process.cwd(),
+      targetPath: path.join(targetPath, name),
+      force,
+      files,
+    })
+    injectFilesFromSubFolder({
+      folder: subFolders,
+      targetPath: path.join(targetPath, name),
+      force,
+    })
   })
 }
 
-export const injectFilesToPath = (
-  rootFolder: string,
-  targetPath: string,
-  files: GeneratedFile[],
-  force = false
-): void => {
+export const injectFilesToPath = (params: {
+  rootFolder: string
+  targetPath: string
+  files: GeneratedFile[]
+  force: boolean
+}): void => {
   try {
+    const { files, force = false, targetPath, rootFolder } = params
     ensureDirSync(path.join(rootFolder, targetPath))
+
     files.map((file) => {
       const fileName = `${file.name}.${file.fileType}`
       const filePath = path.join(rootFolder, targetPath, fileName)
@@ -50,6 +63,7 @@ export const injectFilesToPath = (
       }
 
       const patches = getPatchesBetweenFiles(localFile, file.content)
+
       const fileContent = mergeFiles(patches)
       writeFileSync(filePath, fileContent, 'utf-8')
     })

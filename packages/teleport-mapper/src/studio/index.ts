@@ -471,7 +471,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
 
     // favicon
     if (settings.general?.favicon) {
-      const faviconAsset = projectDoc.assets.byId[settings.general?.favicon]
+      const faviconAsset = this.snapshot.assets.byId[settings.general?.favicon]
 
       if (faviconAsset) {
         globals.assets?.push({

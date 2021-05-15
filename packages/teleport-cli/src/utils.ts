@@ -22,22 +22,28 @@ export const updateConfigFile = (
 }
 
 export const getComponentType = (): ComponentType => {
-  const packageJSON = JSON.parse(findFileByName(`package.json`)) as Record<
-    string,
-    Record<string, unknown>
-  >
-  if (!packageJSON) {
-    console.warn(chalk.yellow(`Please run the command inside a project that contains package.json`))
-    return
-  }
+  const packageJSON = getPackageJSON()
+
   return findFlavourByDependencies(
     Object.keys(
       {
-        ...packageJSON.dependencies,
-        ...packageJSON.devDependencies,
+        ...(((packageJSON?.dependencies as unknown) as Record<string, string>) || {}),
+        ...(((packageJSON?.devDependencies as unknown) as Record<string, string>) || {}),
       } || {}
     )
   )
+}
+
+export const getPackageJSON = (): Record<
+  string,
+  Record<string, unknown> | string | number
+> | null => {
+  const json = findFileByName(`package.json`)
+  if (!json) {
+    console.warn(chalk.yellow(`Please run the command inside a project that contains package.json`))
+    return null
+  }
+  return JSON.parse(json) as Record<string, Record<string, unknown | string | number>>
 }
 
 export const extractCompIdsFromURls = (components: string[]) =>
