@@ -10,26 +10,22 @@ import { getComponentType, updateConfigFile } from '../utils'
 import { MapSnapshotToUIDL } from '@teleporthq/teleport-mapper'
 import ora from 'ora'
 
-/* Basic projects seems to generate
-  - Fonts & Assets
-  - Default Element Styles (Buttons)
-*/
-
 export default async function (options: { url: string; targetPath: string; force?: boolean }) {
   const { url, targetPath, force = false } = options
   let uidl: VComponentUIDL | VProjectUIDL
   const spinner = ora()
   spinner.start()
   // Assuming it is coming from playground
-  if (url.includes('teleport') && !url.includes('repl.teleporthq.io')) {
+  if (url.includes('play.teleporthq.io') && !url.includes('repl.teleporthq.io')) {
     const opts = url.split('/')
+
     if (opts.length === 5) {
       try {
         spinner.text = `Fetching from studio ${opts[4]} \n`
-
         const {
           snapshot: { data },
         } = await fetchSnapshotFromPlayground(opts[4])
+
         const mapper = new MapSnapshotToUIDL(data)
         uidl = mapper.toProjectUIDL()
 
@@ -60,6 +56,7 @@ export default async function (options: { url: string; targetPath: string; force
         const {
           snapshot: { data },
         } = await fetchSnapshotFromPlayground(opts[4])
+
         const mapper = new MapSnapshotToUIDL(data)
         uidl = mapper.componentToUIDL(opts[6])
 
@@ -78,6 +75,7 @@ export default async function (options: { url: string; targetPath: string; force
       } catch (e) {
         spinner.text = 'Failed in generating project'
         spinner.fail()
+        throw new Error(e)
       }
     }
   }

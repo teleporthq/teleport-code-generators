@@ -23,7 +23,7 @@
     },
     "scripts": {
       "clean": "rimraf dist",
-      "dev": "tsc -p tsconfig-cjs.json --watch",
+      "cli:dev": "tsc -p tsconfig-cjs.json --watch",
       "build": "tsc -p tsconfig-cjs.json"
     },
     "dependencies": {

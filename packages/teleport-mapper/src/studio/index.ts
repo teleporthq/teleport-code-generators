@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* Disabling types for the whole file, until we extract validator */
 import {
   UIDLAttributeValue,
   UIDLGlobalProjectValues,
@@ -12,9 +11,10 @@ import {
   VUIDLStyleSetDefnition,
 } from '@teleporthq/teleport-types'
 import { orderEntities, computeCustomPropertyName } from './utils'
-import { getResetStylesheet, getProjectGlobalStylesheet } from './constatnts'
+import { getResetStylesheet, getProjectGlobalStylesheet } from './constants'
+import { ProjectSnapshot } from './types'
 
-interface MapSnapshowToUIDLInterface {
+export interface MapSnapshowToUIDLInterface {
   generatePageMetaData: (pageId: string) => UIDLStateValueDetails
   nodeToUIDL: (
     nodeId: string,
@@ -28,7 +28,9 @@ interface MapSnapshowToUIDLInterface {
 }
 
 export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
-  constructor(snapshot: Record<string, unknown>) {
+  snapshot: ProjectSnapshot
+
+  constructor(snapshot: ProjectSnapshot) {
     this.snapshot = snapshot
   }
 
@@ -126,7 +128,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     if (!props) {
       return null
     }
-    return Object.values(props).reduce((acc: UIDLPropDefinition, prop) => {
+    return Object.values(props).reduce((acc: Record<string, UIDLPropDefinition>, prop) => {
       acc[prop.name] = {
         type: prop.type,
         defaultValue: prop.defaultValue,
@@ -147,10 +149,10 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     return Object.keys(attrs).reduce((acc: UIDLAttributeValue, attrId) => {
       const attr = attrs[attrId]
       if (attr.type === 'static') {
-        acc[attrId] = {
+        acc[attrId] = ({
           type: 'static',
-          content: attr.content,
-        }
+          content: String(attr.content),
+        } as unknown) as UIDLStaticValue
       }
 
       if (attr.type === 'dynamic' && attr.content.referenceType === 'prop') {
@@ -256,7 +258,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     }
 
     Object.values(contentChildren).forEach((contentNode) => {
-      if (contentNode.type === 'static') {
+      if (contentNode.type === 'static' && contentNode.content) {
         elementNode.content.children.push({
           type: 'static',
           content: contentNode.content,
@@ -439,7 +441,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
       assets: [
         {
           type: 'style',
-          content: getResetStylesheet().split('\n').join(''), // remove all new lines
+          content: getResetStylesheet().split('\n').join(''),
         },
         {
           type: 'style',
@@ -544,9 +546,9 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
   }
 
   private getTokensAsCustomProperties() {
-    const { tokensById, categoriesById } = this.snapshot.designLanguage
+    const { tokensById = {}, categoriesById = {} } = this.snapshot.designLanguage
     return Object.keys(tokensById || {}).reduce(
-      (acc: Record<string, CustomPropertyDefinition>, tokenId) => {
+      (acc: Record<string, Record<string, string>>, tokenId: string) => {
         acc[tokenId] = {
           name: computeCustomPropertyName(tokensById[tokenId], categoriesById),
           value: tokensById[tokenId].value,
@@ -559,7 +561,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
 
   private getDefaultTextStyle() {
     const {
-      designLanguage: { textStyleSetsById },
+      designLanguage: { textStyleSetsById = {} },
     } = this.snapshot
     return Object.values(textStyleSetsById).find((textStyle) => textStyle?.role === 'default')
   }

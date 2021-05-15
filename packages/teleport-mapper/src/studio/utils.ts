@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 export const orderEntities = (entityA: Record<string, string>, entityB: Record<string, string>) => {
   if (!entityA || !entityA.pos) {
     return -1
@@ -18,10 +20,7 @@ export const precisionRound = (numberToCompute: number, precision = 100) => {
   return Math.round(numberToCompute * factor) / factor
 }
 
-export const computeCustomPropertyName = (
-  token: Record<string, string>,
-  categories: Record<string, Record<string, string>>
-) => {
+export const computeCustomPropertyName = (token: unknown, categories: Record<string, unknown>) => {
   if (token.categoryId) {
     const categoryName = categories[token.categoryId].name.toLowerCase().replace(/ /g, '')
     const tokenName = token.name.toLowerCase().replace(/ /g, '')
