@@ -9,6 +9,7 @@ import {
   VProjectUIDL,
   VUIDLElementNode,
   VUIDLStyleSetDefnition,
+  UIDLLinkNode,
 } from '@teleporthq/teleport-types'
 import { orderEntities, computeCustomPropertyName } from './utils'
 import { getResetStylesheet, getProjectGlobalStylesheet } from './constants'
@@ -201,6 +202,42 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     }, {})
   }
 
+  abilitiesToUIDL(abilities: Record<string, unknown>, compId: string): { link: UIDLLinkNode } {
+    if (!abilities.link?.type) {
+      return {}
+    }
+
+    switch (abilities.link.type) {
+      case 'section':
+      case 'phone':
+      case 'mail':
+      case 'url': {
+        return { link: abilities.link }
+      }
+
+      case 'navlink': {
+        const pageId = abilities.link.content.routeName
+        const page = this.snapshot.pages.byId[pageId]
+        if (!page) {
+          return {}
+        }
+
+        return {
+          link: {
+            type: 'navlink',
+            content: {
+              routeName: page?.title || page?.id,
+            },
+          },
+        }
+      }
+
+      default: {
+        return {}
+      }
+    }
+  }
+
   nodeToUIDL(
     nodeId: string,
     compId: string,
@@ -222,7 +259,9 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
       childrenIds = {},
       contentChildren = {},
       compIdOfCompInstance,
+      abilities = {},
     } = node
+
     const style = this.stylesToUIDL(node.id)
     let elementNode: VUIDLElementNode = {
       type: 'element',
@@ -233,12 +272,14 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
           attrs: this.attrsToUIDL(attrs, compId),
         }),
         ...(Object.keys(style).length > 0 && { style }),
+        ...(abilities?.link && { abilities: this.abilitiesToUIDL(abilities, compId) }),
         children: [],
       },
     }
 
     if (primitiveType === 'component' && compIdOfCompInstance) {
       const usedComponent = componentsById[compIdOfCompInstance]
+      delete elementNode.content.children
       elementNode = {
         ...elementNode,
         content: {

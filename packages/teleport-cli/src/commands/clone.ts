@@ -44,6 +44,7 @@ export default async function (options: { url: string; targetPath: string; force
           updateConfigFile((content) => {
             content.project.name = projectName
           })
+
           spinner.text = `Project Generated Successfully ${projectName}`
           spinner.succeed()
         } else {
