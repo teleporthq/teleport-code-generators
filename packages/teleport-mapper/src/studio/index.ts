@@ -30,8 +30,8 @@ export interface MapSnapshowToUIDLInterface {
 export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
   snapshot: ProjectSnapshot
 
-  constructor(snapshot: ProjectSnapshot) {
-    this.snapshot = snapshot
+  constructor(snapshot: Record<string, unknown>) {
+    this.snapshot = (snapshot as unknown) as ProjectSnapshot
   }
 
   getDefaultStylesFromTokens() {
@@ -178,14 +178,15 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
 
     return Object.keys(styles || {}).reduce((acc: UIDLStaticValue, styleKey) => {
       const style = styles[styleKey]
-      if (style.type === 'static') {
+
+      if (style.type === 'static' && style?.content) {
         acc[styleKey] = {
           type: 'static',
           content: style.content,
         }
       }
 
-      if (style.type === 'dynamic' && style.content.referenceType === 'token') {
+      if (style.type === 'dynamic' && style.content?.referenceType === 'token') {
         const usedToken = tokensById[style.content.id]
         acc[styleKey] = {
           type: 'dynamic',
@@ -258,7 +259,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     }
 
     Object.values(contentChildren).forEach((contentNode) => {
-      if (contentNode.type === 'static' && contentNode.content) {
+      if (contentNode.type === 'static' && contentNode?.content) {
         elementNode.content.children.push({
           type: 'static',
           content: contentNode.content,

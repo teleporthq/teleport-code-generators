@@ -1,0 +1,1002 @@
+{
+    "fonts": {
+        "byId": {
+            "e1c691ea-cb20-4921-8360-e3c7efb68b0b": {
+                "id": "e1c691ea-cb20-4921-8360-e3c7efb68b0b",
+                "name": "Inter",
+                "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
+                "type": "google",
+                "usedInNodes": {},
+                "usedInTokens": {
+                    "c3a156b9-3327-4f8d-8a2c-8a946332726b": true
+                }
+            }
+        }
+    },
+    "nodes": {
+        "byId": {
+            "0e4e984c-a086-42ae-b328-4227d28fc98a": {
+                "id": "0e4e984c-a086-42ae-b328-4227d28fc98a",
+                "pos": "9007199254740991",
+                "name": null,
+                "attrs": {},
+                "styles": {},
+                "fakeSize": false,
+                "parentId": "55b09fba-37dd-43a3-81cf-c7e87c7c9336",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {},
+                "semanticType": "h1",
+                "primitiveType": "text",
+                "contentChildren": {
+                    "a9ce13c2-1d35-4780-afd2-d6aa6c5ec509": {
+                        "id": "a9ce13c2-1d35-4780-afd2-d6aa6c5ec509",
+                        "type": "dynamic",
+                        "content": {
+                            "id": "00829ae8-d1d4-4f99-916f-522b219ff11a",
+                            "referenceType": "prop"
+                        }
+                    }
+                },
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "356466a7-12dc-486a-bf2f-1dd4fa214c78": {
+                "id": "356466a7-12dc-486a-bf2f-1dd4fa214c78",
+                "pos": "13510798882111484",
+                "name": null,
+                "attrs": {},
+                "styles": {},
+                "fakeSize": false,
+                "parentId": "66438e70-aa6a-4aec-aeec-17c656045b14",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {},
+                "semanticType": "span",
+                "primitiveType": "text",
+                "contentChildren": {
+                    "319efa80-4455-463a-9be6-8639ea7529a1": {
+                        "id": "319efa80-4455-463a-9be6-8639ea7529a1",
+                        "type": "static",
+                        "content": "Lrem Ipsum is a dummy text,"
+                    }
+                },
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "55b09fba-37dd-43a3-81cf-c7e87c7c9336": {
+                "id": "55b09fba-37dd-43a3-81cf-c7e87c7c9336",
+                "pos": "0",
+                "name": null,
+                "attrs": {},
+                "styles": {
+                    "color": {
+                        "id": "a052cb40-305f-422a-ae7e-7e4138e7f328",
+                        "type": "dynamic",
+                        "content": {
+                            "id": "c7d382ca-61af-4559-b289-9a0799d9bbde",
+                            "referenceType": "token"
+                        }
+                    },
+                    "width": {
+                        "id": "08edbdc3-8ea0-486b-9d0b-e3696f277dd9",
+                        "type": "static",
+                        "content": "100%"
+                    },
+                    "height": {
+                        "id": "cdcf6a7f-b403-4a3e-8bf6-008c9e2bf8b2",
+                        "type": "static",
+                        "content": "400px"
+                    },
+                    "display": {
+                        "id": "ec0f75c5-fd2f-4787-bb74-ae0f61cc4bb7",
+                        "type": "static",
+                        "content": "flex"
+                    },
+                    "position": {
+                        "id": "d56cd8b4-d676-47f0-b243-a99f1c63394d",
+                        "type": "static",
+                        "content": "relative"
+                    },
+                    "alignItems": {
+                        "id": "12a7a0a7-1a16-407f-a736-1309ff757e5a",
+                        "type": "static",
+                        "content": "center"
+                    },
+                    "flexDirection": {
+                        "id": "4532b242-f58a-45da-8725-5dd355ccd013",
+                        "type": "static",
+                        "content": "column"
+                    },
+                    "justifyContent": {
+                        "id": "a7cf91d8-f4e4-4a63-839d-2155d7829d7e",
+                        "type": "static",
+                        "content": "center"
+                    },
+                    "backgroundColor": {
+                        "id": "8e850680-91a7-4c73-9551-799ba973e5a6",
+                        "type": "dynamic",
+                        "content": {
+                            "id": "0d5c3c18-662b-4093-9c5f-11a6bb1f12a4",
+                            "referenceType": "token"
+                        }
+                    }
+                },
+                "parentId": null,
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {
+                    "0e4e984c-a086-42ae-b328-4227d28fc98a": true
+                },
+                "semanticType": "div",
+                "primitiveType": "container",
+                "contentChildren": {},
+                "compIdOfRootNode": "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e",
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "66438e70-aa6a-4aec-aeec-17c656045b14": {
+                "id": "66438e70-aa6a-4aec-aeec-17c656045b14",
+                "pos": "40532396646334456",
+                "name": null,
+                "attrs": {},
+                "styles": {
+                    "flex": {
+                        "id": "d6213938-738b-4984-9cbf-f2d77e6b244b",
+                        "type": "static",
+                        "content": "1"
+                    },
+                    "width": {
+                        "id": "32e38b53-ae36-4e39-9a6a-1492ed1672ee",
+                        "type": "static",
+                        "content": "auto"
+                    },
+                    "height": {
+                        "id": "8039b21b-a146-4d9b-8e59-b7f195ff925b",
+                        "type": "static",
+                        "content": "100%"
+                    },
+                    "display": {
+                        "id": "1a93c19e-5ad9-47d6-803f-1100bfeccbca",
+                        "type": "static",
+                        "content": "flex"
+                    },
+                    "alignItems": {
+                        "id": "fa985889-0c38-4226-b348-f331265d9644",
+                        "type": "static",
+                        "content": "center"
+                    },
+                    "flexDirection": {
+                        "id": "e1f8ccac-a436-4430-84fc-73c90c80ee83",
+                        "type": "static",
+                        "content": "column"
+                    },
+                    "justifyContent": {
+                        "id": "a8f55df1-8e3a-4ae2-93aa-6fd9f44b01c7",
+                        "type": "static",
+                        "content": "center"
+                    }
+                },
+                "fakeSize": false,
+                "parentId": "a6d58aaf-29c6-4cad-b9ea-d7de11464278",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {
+                    "356466a7-12dc-486a-bf2f-1dd4fa214c78": true,
+                    "92bb0c3d-e7f3-497f-a930-15be3b269712": true
+                },
+                "semanticType": "div",
+                "primitiveType": "container",
+                "contentChildren": {},
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "92bb0c3d-e7f3-497f-a930-15be3b269712": {
+                "id": "92bb0c3d-e7f3-497f-a930-15be3b269712",
+                "pos": "9007199254740990",
+                "name": null,
+                "attrs": {},
+                "styles": {},
+                "fakeSize": false,
+                "parentId": "66438e70-aa6a-4aec-aeec-17c656045b14",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {},
+                "semanticType": "h1",
+                "primitiveType": "text",
+                "contentChildren": {
+                    "0a4aeafc-da2f-42e8-96a8-ac8364da55f8": {
+                        "id": "0a4aeafc-da2f-42e8-96a8-ac8364da55f8",
+                        "type": "static",
+                        "content": "Heading"
+                    }
+                },
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "a6d58aaf-29c6-4cad-b9ea-d7de11464278": {
+                "id": "a6d58aaf-29c6-4cad-b9ea-d7de11464278",
+                "pos": "27021597764222972",
+                "name": null,
+                "attrs": {},
+                "styles": {
+                    "flex": {
+                        "id": "b1ded04f-a00c-4f39-b34a-c8b7982bd1ce",
+                        "type": "static",
+                        "content": "0 0 auto"
+                    },
+                    "width": {
+                        "id": "5688c5ee-ae16-4a0d-81bd-2e36dbf64eb0",
+                        "type": "static",
+                        "content": "100%"
+                    },
+                    "height": {
+                        "id": "c2d4c269-2b57-47e8-b397-cb2a15eed4ee",
+                        "type": "static",
+                        "content": "617px"
+                    },
+                    "display": {
+                        "id": "53e8ed5f-c846-4f29-87a4-3736e2e5631c",
+                        "type": "static",
+                        "content": "flex"
+                    },
+                    "alignItems": {
+                        "id": "64fbb567-7030-4353-8e0d-e7f166383fc4",
+                        "type": "static",
+                        "content": "flex-start"
+                    },
+                    "flexDirection": {
+                        "id": "ef1ab834-219f-417d-8e68-cf5e6a37a510",
+                        "type": "static",
+                        "content": "row"
+                    },
+                    "justifyContent": {
+                        "id": "16896b64-3d96-474f-ba5d-2a1248af225d",
+                        "type": "static",
+                        "content": "center"
+                    }
+                },
+                "fakeSize": false,
+                "parentId": "d8e69ed6-3c51-450b-9792-405c61216b42",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {
+                    "66438e70-aa6a-4aec-aeec-17c656045b14": true,
+                    "f32e5b7f-67e0-42f5-bbf7-b7ce33447f7a": true
+                },
+                "semanticType": "div",
+                "primitiveType": "container",
+                "contentChildren": {},
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "c1fe6745-2b78-47e8-8504-f9f5b71cec88": {
+                "id": "c1fe6745-2b78-47e8-8504-f9f5b71cec88",
+                "pos": "9007199254740991",
+                "name": null,
+                "attrs": {},
+                "styles": {},
+                "parentId": "d8e69ed6-3c51-450b-9792-405c61216b42",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {},
+                "semanticType": null,
+                "primitiveType": "component",
+                "contentChildren": {},
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {},
+                "compIdOfCompInstance": "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e"
+            },
+            "d8e69ed6-3c51-450b-9792-405c61216b42": {
+                "id": "d8e69ed6-3c51-450b-9792-405c61216b42",
+                "pos": "0",
+                "name": null,
+                "attrs": {},
+                "styles": {
+                    "width": {
+                        "id": "723cdb2a-f80c-4a2c-b6b0-98bbed6e067a",
+                        "type": "static",
+                        "content": "100%"
+                    },
+                    "height": {
+                        "id": "461150ff-dfb5-4e98-a30e-fa0c4f85a11f",
+                        "type": "static",
+                        "content": "auto"
+                    },
+                    "display": {
+                        "id": "7aba8eba-0c41-4010-9f50-9b43f499623b",
+                        "type": "static",
+                        "content": "flex"
+                    },
+                    "minHeight": {
+                        "id": "1294e73b-47de-44ff-9506-d9340eff7769",
+                        "type": "static",
+                        "content": "100vh"
+                    },
+                    "alignItems": {
+                        "id": "a2244cf2-a46e-4b7b-a75b-fadf734525e2",
+                        "type": "static",
+                        "content": "center"
+                    },
+                    "flexDirection": {
+                        "id": "2bea9f37-1166-492f-a657-16c15eba5a38",
+                        "type": "static",
+                        "content": "column"
+                    },
+                    "justifyContent": {
+                        "id": "25414da3-bc31-458e-84ad-cf7bb104dd67",
+                        "type": "static",
+                        "content": "flex-start"
+                    }
+                },
+                "parentId": null,
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {
+                    "a6d58aaf-29c6-4cad-b9ea-d7de11464278": true,
+                    "c1fe6745-2b78-47e8-8504-f9f5b71cec88": true
+                },
+                "semanticType": "div",
+                "primitiveType": "container",
+                "contentChildren": {},
+                "compIdOfRootNode": "ff6245fc-169a-480d-bfa6-a053c03fc044",
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            },
+            "f32e5b7f-67e0-42f5-bbf7-b7ce33447f7a": {
+                "id": "f32e5b7f-67e0-42f5-bbf7-b7ce33447f7a",
+                "pos": "9007199254740991",
+                "name": null,
+                "attrs": {
+                    "alt": {
+                        "id": "b970754e-05b3-4b1a-b056-1f4f682b8947",
+                        "type": "static",
+                        "content": "image"
+                    },
+                    "src": {
+                        "id": "5e0a822c-fe98-4150-9d82-78fdce580aeb",
+                        "type": "static",
+                        "content": "https://images.unsplash.com/photo-1621090162436-78df0d317942?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1000"
+                    }
+                },
+                "styles": {
+                    "flex": {
+                        "id": "492a21f4-d289-4f59-9fb4-33430d206000",
+                        "type": "static",
+                        "content": "1"
+                    },
+                    "width": {
+                        "id": "3276bfe7-1d7c-468c-a32b-b70aba0a1393",
+                        "type": "static",
+                        "content": "494px"
+                    },
+                    "height": {
+                        "id": "56931e7d-4ff8-4533-8400-3dc4477b1c78",
+                        "type": "static",
+                        "content": "617px"
+                    },
+                    "objectFit": {
+                        "id": "c2cce68e-14d5-4608-ac4c-faa4de9908dc",
+                        "type": "static",
+                        "content": "cover"
+                    }
+                },
+                "fakeSize": false,
+                "parentId": "a6d58aaf-29c6-4cad-b9ea-d7de11464278",
+                "abilities": {},
+                "tempStyles": {},
+                "childrenIds": {},
+                "semanticType": null,
+                "primitiveType": "image",
+                "contentChildren": {},
+                "compIdOfRootNode": null,
+                "referencedStyles": {},
+                "tempInlineStyles": {}
+            }
+        }
+    },
+    "pages": {
+        "byId": {
+            "ff6245fc-169a-480d-bfa6-a053c03fc044": {
+                "id": "ff6245fc-169a-480d-bfa6-a053c03fc044",
+                "pos": "9007199254740991",
+                "title": "Home",
+                "settings": {},
+                "isHomePage": true,
+                "rootNodeId": "d8e69ed6-3c51-450b-9792-405c61216b42",
+                "sectionIds": {},
+                "usedComponents": {
+                    "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e": 1
+                }
+            }
+        }
+    },
+    "stats": {
+        "migrationDone": true
+    },
+    "title": "",
+    "assets": {
+        "byId": {}
+    },
+    "tokens": {},
+    "folders": {
+        "byId": {
+            "pages": {
+                "id": "pages",
+                "pos": "0",
+                "name": "pages",
+                "children": {
+                    "ff6245fc-169a-480d-bfa6-a053c03fc044": "page"
+                },
+                "parentId": null
+            },
+            "assets": {
+                "id": "assets",
+                "pos": "0",
+                "name": "assets",
+                "children": {},
+                "parentId": null
+            },
+            "components": {
+                "id": "components",
+                "pos": "0",
+                "name": "components",
+                "children": {
+                    "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e": "component"
+                },
+                "parentId": null
+            }
+        }
+    },
+    "settings": {
+        "general": {}
+    },
+    "components": {
+        "byId": {
+            "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e": {
+                "id": "d07f13db-02bf-4c3a-a84e-3ae9ec5df16e",
+                "pos": "9007199254740991",
+                "title": "Component",
+                "rootNodeId": "55b09fba-37dd-43a3-81cf-c7e87c7c9336",
+                "sectionIds": {},
+                "usedComponents": {},
+                "propDefinitions": {
+                    "00829ae8-d1d4-4f99-916f-522b219ff11a": {
+                        "id": "00829ae8-d1d4-4f99-916f-522b219ff11a",
+                        "name": "heading1",
+                        "type": "string",
+                        "nodes": {
+                            "0e4e984c-a086-42ae-b328-4227d28fc98a": {
+                                "node": {
+                                    "id": "0e4e984c-a086-42ae-b328-4227d28fc98a",
+                                    "pos": "9007199254740991",
+                                    "name": null,
+                                    "attrs": {},
+                                    "styles": {},
+                                    "fakeSize": false,
+                                    "parentId": "55b09fba-37dd-43a3-81cf-c7e87c7c9336",
+                                    "tempStyles": {},
+                                    "childrenIds": {},
+                                    "semanticType": "h1",
+                                    "primitiveType": "text",
+                                    "contentChildren": {
+                                        "a9ce13c2-1d35-4780-afd2-d6aa6c5ec509": {
+                                            "id": "a9ce13c2-1d35-4780-afd2-d6aa6c5ec509",
+                                            "type": "dynamic",
+                                            "content": {
+                                                "id": "00829ae8-d1d4-4f99-916f-522b219ff11a",
+                                                "referenceType": "prop"
+                                            }
+                                        }
+                                    },
+                                    "compIdOfRootNode": null,
+                                    "referencedStyles": {},
+                                    "tempInlineStyles": {},
+                                    "compIdOfCompInstance": null
+                                },
+                                "isRich": false
+                            }
+                        },
+                        "inputType": "text",
+                        "locations": {
+                            "0e4e984c-a086-42ae-b328-4227d28fc98a": {
+                                "content": {
+                                    "base": "content"
+                                }
+                            }
+                        },
+                        "defaultValue": "Welcome"
+                    }
+                },
+                "stateDefinitions": {},
+                "instantiatedByNodes": {
+                    "c1fe6745-2b78-47e8-8504-f9f5b71cec88": true
+                }
+            }
+        }
+    },
+    "collaborators": {
+        "byId": {
+            "f00aab18-03f0-4639-8646-638c94251ec0": {
+                "id": "f00aab18-03f0-4639-8646-638c94251ec0",
+                "meta": {
+                    "layout": {
+                        "mainPanel": "stage",
+                        "sidebarPanel": "pages",
+                        "shortcutsVisible": false,
+                        "visibleInspector": "main",
+                        "designLanguageTab": "colors",
+                        "helpBubbleVisible": false,
+                        "selectedAssetsTab": "unsplash"
+                    },
+                    "selection": {},
+                    "userPreferences": {
+                        "zoomLevel": {},
+                        "projectType": "React",
+                        "viewportSize": {},
+                        "highlightParent": true,
+                        "keepAspectRatio": false,
+                        "persistZoomLevel": true,
+                        "componentCodeType": "React",
+                        "persistViewportSize": true,
+                        "showStageBreakpoints": true,
+                        "layoutStructureVisible": false,
+                        "highlightMarginAndPadding": true,
+                        "componentCodeStyleVariation": "CSS Modules",
+                        "automaticallyCreateOverrides": true
+                    }
+                },
+                "account": {
+                    "id": "d37ed276-0a7f-44e7-ab09-57f7339dcce0",
+                    "name": "Venkata Jaya Krishna Namburu",
+                    "email": "jk.namburu@teleporthq.io",
+                    "picture": "https://lh3.googleusercontent.com/-7NhzTcvQjR0/AAAAAAAAAAI/AAAAAAAAAAA/AKF05nBGHSltq_jR8HMc-7oWsHwmcMvi7g/photo.jpg"
+                },
+                "accountId": "d37ed276-0a7f-44e7-ab09-57f7339dcce0",
+                "accessType": "owner",
+                "invitedEmail": null
+            }
+        }
+    },
+    "designLanguage": {
+        "tokensById": {
+            "0ac82851-67f4-475d-aca3-fb5c2d190856": {
+                "id": "0ac82851-67f4-475d-aca3-fb5c2d190856",
+                "name": "HalfUnit",
+                "type": "size",
+                "value": "0.5rem",
+                "position": 0,
+                "categoryId": "4f2b20f7-894d-4779-9bc0-5320912bad92",
+                "usedInNodes": {}
+            },
+            "0d5c3c18-662b-4093-9c5f-11a6bb1f12a4": {
+                "id": "0d5c3c18-662b-4093-9c5f-11a6bb1f12a4",
+                "name": "main-background",
+                "type": "color",
+                "value": "#1a202cff",
+                "position": 0,
+                "categoryId": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "usedInNodes": {
+                    "55b09fba-37dd-43a3-81cf-c7e87c7c9336": 1
+                }
+            },
+            "0ec70d36-cc58-4b8f-982e-9ee93542ffd1": {
+                "id": "0ec70d36-cc58-4b8f-982e-9ee93542ffd1",
+                "name": "Black",
+                "role": "foreground-color",
+                "type": "color",
+                "value": "#000000",
+                "position": 0,
+                "categoryId": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "usedInNodes": {}
+            },
+            "0fddf47f-0ee6-4cf2-a7a7-df1bab20a7f4": {
+                "id": "0fddf47f-0ee6-4cf2-a7a7-df1bab20a7f4",
+                "name": "DoubleUnit",
+                "type": "space",
+                "value": "2rem",
+                "position": 18014398509481982,
+                "categoryId": "2a8de6d3-170c-4603-bbe8-290c852871af",
+                "usedInNodes": {}
+            },
+            "15edf4a6-cdd3-4882-984c-cf20f5f76c9a": {
+                "id": "15edf4a6-cdd3-4882-984c-cf20f5f76c9a",
+                "name": "Radius 4",
+                "type": "radius",
+                "value": "4px",
+                "position": 9007199254740991,
+                "categoryId": "f1ee4d12-66e4-4439-973b-23585de64702",
+                "usedInNodes": {}
+            },
+            "17911570-6e27-4adb-9ce8-f389df9f3a84": {
+                "id": "17911570-6e27-4adb-9ce8-f389df9f3a84",
+                "name": "Unit",
+                "type": "space",
+                "value": "1rem",
+                "position": 9007199254740991,
+                "categoryId": "2a8de6d3-170c-4603-bbe8-290c852871af",
+                "usedInNodes": {}
+            },
+            "1a2bbefa-6632-4163-84ca-7e09c349eae0": {
+                "id": "1a2bbefa-6632-4163-84ca-7e09c349eae0",
+                "name": "Round",
+                "type": "radius",
+                "value": "50%",
+                "position": 27021597764222972,
+                "categoryId": "f1ee4d12-66e4-4439-973b-23585de64702",
+                "usedInNodes": {}
+            },
+            "3057620e-539e-4c38-a7c1-75b94a1e0dcb": {
+                "id": "3057620e-539e-4c38-a7c1-75b94a1e0dcb",
+                "name": "TripleUnit",
+                "type": "size",
+                "value": "3rem",
+                "position": 27021597764222972,
+                "categoryId": "4f2b20f7-894d-4779-9bc0-5320912bad92",
+                "usedInNodes": {}
+            },
+            "3264cd3f-e4e4-4812-989d-3fe09c085b3c": {
+                "id": "3264cd3f-e4e4-4812-989d-3fe09c085b3c",
+                "name": "700",
+                "type": "color",
+                "value": "#999999",
+                "position": 18014398509481982,
+                "categoryId": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "usedInNodes": {}
+            },
+            "4cb59fe5-4629-458d-99e4-db184192c3a5": {
+                "id": "4cb59fe5-4629-458d-99e4-db184192c3a5",
+                "name": "700",
+                "type": "color",
+                "value": "#85DCFF",
+                "position": 27021597764222972,
+                "categoryId": "6398f27a-d361-4f30-b0b0-0fa77ac53e0f",
+                "usedInNodes": {}
+            },
+            "4da99e22-2819-4c80-95f5-66f901ec9b0b": {
+                "id": "4da99e22-2819-4c80-95f5-66f901ec9b0b",
+                "name": "300",
+                "type": "color",
+                "value": "#A22020",
+                "position": 0,
+                "categoryId": "4de09f05-4eaf-4fae-bb2b-5e85d0db0c4c",
+                "usedInNodes": {}
+            },
+            "55fe015d-f05b-4c31-8c93-d58489513584": {
+                "id": "55fe015d-f05b-4c31-8c93-d58489513584",
+                "name": "code",
+                "type": "color",
+                "value": "#bd5555ff",
+                "position": 36028797018963964,
+                "categoryId": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "usedInNodes": {}
+            },
+            "582ecfc5-86ab-4d4e-af02-bff26045a4f4": {
+                "id": "582ecfc5-86ab-4d4e-af02-bff26045a4f4",
+                "name": "White",
+                "role": "background-color",
+                "type": "color",
+                "value": "#FFFFFF",
+                "position": 36028797018963964,
+                "categoryId": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "usedInNodes": {}
+            },
+            "6c8fd1ef-83a7-4ce0-89df-afb3ef62a3ba": {
+                "id": "6c8fd1ef-83a7-4ce0-89df-afb3ef62a3ba",
+                "name": "500",
+                "type": "color",
+                "value": "#595959",
+                "position": 9007199254740991,
+                "categoryId": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "usedInNodes": {}
+            },
+            "6e1e0edf-09b1-40b5-9d69-d30bdde37f51": {
+                "id": "6e1e0edf-09b1-40b5-9d69-d30bdde37f51",
+                "name": "700",
+                "type": "color",
+                "value": "#4CC366",
+                "position": 18014398509481982,
+                "categoryId": "0db942d6-30ad-4e0e-ab9b-dbf9730ccf0a",
+                "usedInNodes": {}
+            },
+            "7733e504-f51c-4a19-bcd2-db5200b884b7": {
+                "id": "7733e504-f51c-4a19-bcd2-db5200b884b7",
+                "name": "100",
+                "type": "color",
+                "value": "#003EB3",
+                "position": 0,
+                "categoryId": "6398f27a-d361-4f30-b0b0-0fa77ac53e0f",
+                "usedInNodes": {}
+            },
+            "77967008-38c8-4bca-aadc-64dd24a33852": {
+                "id": "77967008-38c8-4bca-aadc-64dd24a33852",
+                "name": "300",
+                "type": "color",
+                "value": "#199033",
+                "position": 0,
+                "categoryId": "0db942d6-30ad-4e0e-ab9b-dbf9730ccf0a",
+                "usedInNodes": {}
+            },
+            "89dee995-70bb-411d-bf4c-6ef756ee2870": {
+                "id": "89dee995-70bb-411d-bf4c-6ef756ee2870",
+                "name": "links",
+                "type": "color",
+                "value": "#0275d8ff",
+                "position": 27021597764222972,
+                "categoryId": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "usedInNodes": {}
+            },
+            "91cfde96-0fe8-400e-b34a-323af522f4f3": {
+                "id": "91cfde96-0fe8-400e-b34a-323af522f4f3",
+                "name": "900",
+                "type": "color",
+                "value": "#D9D9D9",
+                "position": 27021597764222972,
+                "categoryId": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "usedInNodes": {}
+            },
+            "953f8ec5-281b-4c37-b0a6-1a9eccad9d3c": {
+                "id": "953f8ec5-281b-4c37-b0a6-1a9eccad9d3c",
+                "name": "TripleUnit",
+                "type": "space",
+                "value": "3rem",
+                "position": 27021597764222972,
+                "categoryId": "2a8de6d3-170c-4603-bbe8-290c852871af",
+                "usedInNodes": {}
+            },
+            "a9021c99-b410-486a-bc57-d8a6e23dd93a": {
+                "id": "a9021c99-b410-486a-bc57-d8a6e23dd93a",
+                "name": "Radius 2",
+                "type": "radius",
+                "value": "2px",
+                "position": 0,
+                "categoryId": "f1ee4d12-66e4-4439-973b-23585de64702",
+                "usedInNodes": {}
+            },
+            "b18fefad-0476-4dce-9e1d-206e332fe52a": {
+                "id": "b18fefad-0476-4dce-9e1d-206e332fe52a",
+                "name": "500",
+                "type": "color",
+                "value": "#32A94C",
+                "position": 9007199254740991,
+                "categoryId": "0db942d6-30ad-4e0e-ab9b-dbf9730ccf0a",
+                "usedInNodes": {}
+            },
+            "b30dad11-5f05-461b-b1b3-e72d7dbb35b1": {
+                "id": "b30dad11-5f05-461b-b1b3-e72d7dbb35b1",
+                "name": "Unit",
+                "type": "size",
+                "value": "1rem",
+                "position": 9007199254740991,
+                "categoryId": "4f2b20f7-894d-4779-9bc0-5320912bad92",
+                "usedInNodes": {}
+            },
+            "bcf61401-4d97-436b-94a2-d509e88cdbcd": {
+                "id": "bcf61401-4d97-436b-94a2-d509e88cdbcd",
+                "name": "HalfUnit",
+                "type": "space",
+                "value": "0.5rem",
+                "position": 0,
+                "categoryId": "2a8de6d3-170c-4603-bbe8-290c852871af",
+                "usedInNodes": {}
+            },
+            "c7d382ca-61af-4559-b289-9a0799d9bbde": {
+                "id": "c7d382ca-61af-4559-b289-9a0799d9bbde",
+                "name": "foreground",
+                "type": "color",
+                "value": "#ffcd0eff",
+                "position": 9007199254740991,
+                "categoryId": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "usedInNodes": {
+                    "55b09fba-37dd-43a3-81cf-c7e87c7c9336": 1
+                }
+            },
+            "c7fa2ade-fc34-48c0-9002-c3a2e68f9cb7": {
+                "id": "c7fa2ade-fc34-48c0-9002-c3a2e68f9cb7",
+                "name": "DoubleUnit",
+                "type": "size",
+                "value": "2rem",
+                "position": 18014398509481982,
+                "categoryId": "4f2b20f7-894d-4779-9bc0-5320912bad92",
+                "usedInNodes": {}
+            },
+            "caed13ba-b98e-46c2-b3dd-fdfa2c8f77ac": {
+                "id": "caed13ba-b98e-46c2-b3dd-fdfa2c8f77ac",
+                "name": "700",
+                "type": "color",
+                "value": "#E14747",
+                "position": 18014398509481982,
+                "categoryId": "4de09f05-4eaf-4fae-bb2b-5e85d0db0c4c",
+                "usedInNodes": {}
+            },
+            "cbeefe82-5ebf-4847-bdb0-30a62fa409e9": {
+                "id": "cbeefe82-5ebf-4847-bdb0-30a62fa409e9",
+                "name": "500",
+                "type": "color",
+                "value": "#14A9FF",
+                "position": 18014398509481982,
+                "categoryId": "6398f27a-d361-4f30-b0b0-0fa77ac53e0f",
+                "usedInNodes": {}
+            },
+            "d041f991-545a-4f06-8f11-4ec8a2381db7": {
+                "id": "d041f991-545a-4f06-8f11-4ec8a2381db7",
+                "name": "500",
+                "type": "color",
+                "value": "#BF2626",
+                "position": 9007199254740991,
+                "categoryId": "4de09f05-4eaf-4fae-bb2b-5e85d0db0c4c",
+                "usedInNodes": {}
+            },
+            "e302cedf-ca3a-482e-8892-f44dfdeb3c17": {
+                "id": "e302cedf-ca3a-482e-8892-f44dfdeb3c17",
+                "name": "300",
+                "type": "color",
+                "value": "#0074F0",
+                "position": 9007199254740991,
+                "categoryId": "6398f27a-d361-4f30-b0b0-0fa77ac53e0f",
+                "usedInNodes": {}
+            },
+            "f181a39f-7f79-46a6-8040-f8c3e3ec02b7": {
+                "id": "f181a39f-7f79-46a6-8040-f8c3e3ec02b7",
+                "name": "content",
+                "type": "color",
+                "value": "#e6e0e0ff",
+                "position": 18014398509481982,
+                "categoryId": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "usedInNodes": {}
+            },
+            "ff080d3f-b943-46d5-871b-b0d1ac529cb3": {
+                "id": "ff080d3f-b943-46d5-871b-b0d1ac529cb3",
+                "name": "Radius 8",
+                "type": "radius",
+                "value": "8px",
+                "position": 18014398509481982,
+                "categoryId": "f1ee4d12-66e4-4439-973b-23585de64702",
+                "usedInNodes": {}
+            }
+        },
+        "categoriesById": {
+            "0db942d6-30ad-4e0e-ab9b-dbf9730ccf0a": {
+                "id": "0db942d6-30ad-4e0e-ab9b-dbf9730ccf0a",
+                "name": "Success",
+                "section": "colors",
+                "position": 18014398509481982
+            },
+            "2a8de6d3-170c-4603-bbe8-290c852871af": {
+                "id": "2a8de6d3-170c-4603-bbe8-290c852871af",
+                "name": "Space",
+                "section": "layout",
+                "position": 9007199254740991
+            },
+            "2d1d392d-5d06-4422-948f-b544b7b8a09e": {
+                "id": "2d1d392d-5d06-4422-948f-b544b7b8a09e",
+                "name": "Text Styles",
+                "section": "typography",
+                "position": 0
+            },
+            "4de09f05-4eaf-4fae-bb2b-5e85d0db0c4c": {
+                "id": "4de09f05-4eaf-4fae-bb2b-5e85d0db0c4c",
+                "name": "Danger",
+                "section": "colors",
+                "position": 27021597764222972
+            },
+            "4f2b20f7-894d-4779-9bc0-5320912bad92": {
+                "id": "4f2b20f7-894d-4779-9bc0-5320912bad92",
+                "name": "Size",
+                "section": "layout",
+                "position": 0
+            },
+            "6398f27a-d361-4f30-b0b0-0fa77ac53e0f": {
+                "id": "6398f27a-d361-4f30-b0b0-0fa77ac53e0f",
+                "name": "Primary",
+                "section": "colors",
+                "position": 0
+            },
+            "6aed2ba6-3597-4ccc-800d-d211c0fed19b": {
+                "id": "6aed2ba6-3597-4ccc-800d-d211c0fed19b",
+                "name": "Gray",
+                "section": "colors",
+                "position": 9007199254740991
+            },
+            "97a55452-db53-47a4-a8a5-dcce79db6e0e": {
+                "id": "97a55452-db53-47a4-a8a5-dcce79db6e0e",
+                "name": "Custom",
+                "section": "colors",
+                "position": 36028797018963964
+            },
+            "f1ee4d12-66e4-4439-973b-23585de64702": {
+                "id": "f1ee4d12-66e4-4439-973b-23585de64702",
+                "name": "Radius",
+                "section": "layout",
+                "position": 18014398509481982
+            }
+        },
+        "textStyleSetsById": {
+            "c07aa573-44bc-4e57-9c2a-3c6c90739a66": {
+                "id": "c07aa573-44bc-4e57-9c2a-3c6c90739a66",
+                "name": "Heading",
+                "content": {
+                    "fontSize": {
+                        "id": "8f686153-bd7d-445c-a9e0-355b95daacbc",
+                        "type": "static",
+                        "content": "32px"
+                    },
+                    "fontFamily": {
+                        "id": "f5eec450-3efc-4bc5-8d3e-0500bea6746f",
+                        "type": "static",
+                        "content": "Arial"
+                    },
+                    "fontWeight": {
+                        "id": "4f9d84c6-5f26-409e-a65d-4f838e4550d8",
+                        "type": "static",
+                        "content": "700"
+                    },
+                    "lineHeight": {
+                        "id": "c7a6fda1-b896-4da0-b839-eedecbc08f0a",
+                        "type": "static",
+                        "content": "1.55"
+                    },
+                    "textTransform": {
+                        "id": "c7b04246-c4c6-4666-adc4-17652197c307",
+                        "type": "static",
+                        "content": "none"
+                    },
+                    "textDecoration": {
+                        "id": "d0c0830a-a2f8-4688-a798-f5e26a6b664f",
+                        "type": "static",
+                        "content": "none"
+                    }
+                },
+                "position": 9007199254740991,
+                "categoryId": "2d1d392d-5d06-4422-948f-b544b7b8a09e",
+                "usedInNodes": {}
+            },
+            "c3a156b9-3327-4f8d-8a2c-8a946332726b": {
+                "id": "c3a156b9-3327-4f8d-8a2c-8a946332726b",
+                "name": "Content",
+                "role": "default",
+                "content": {
+                    "fontSize": {
+                        "id": "3dccca69-d94e-461a-81a3-9fe2b147152e",
+                        "type": "static",
+                        "content": "16px"
+                    },
+                    "fontFamily": {
+                        "id": "9b4b6f9c-925c-4d6e-adb7-ad1bfc7bfdfa",
+                        "type": "static",
+                        "content": "Inter"
+                    },
+                    "fontWeight": {
+                        "id": "e97d5861-f416-4ed2-afc8-ff04dae0daef",
+                        "type": "static",
+                        "content": "400"
+                    },
+                    "lineHeight": {
+                        "id": "04dc01bc-bede-4bf7-a82f-3a66881d4f08",
+                        "type": "static",
+                        "content": "1.55"
+                    },
+                    "textTransform": {
+                        "id": "9dc71085-9666-4108-b569-9a29136944d5",
+                        "type": "static",
+                        "content": "none"
+                    },
+                    "textDecoration": {
+                        "id": "fdcadb07-e399-4733-b6e2-4ebd3a7fe2c5",
+                        "type": "static",
+                        "content": "none"
+                    }
+                },
+                "position": 0,
+                "categoryId": "2d1d392d-5d06-4422-948f-b544b7b8a09e",
+                "usedInNodes": {}
+            }
+        }
+    }
+}

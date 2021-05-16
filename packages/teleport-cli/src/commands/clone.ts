@@ -29,7 +29,7 @@ export default async function (options: { url: string; targetPath: string; force
         uidl = mapper.toProjectUIDL()
 
         if (!uidl) {
-          throw new Error('Failed in Generating Project')
+          throw new Error('Failed in Generating UIDL')
         }
 
         const projectName = await generateProjectFromUIDL({
@@ -39,16 +39,20 @@ export default async function (options: { url: string; targetPath: string; force
           url,
           force,
         })
-        updateConfigFile((content) => {
-          content.project.name = projectName
-        })
 
-        spinner.text = `Project Generated Successfully ${projectName}`
-        spinner.succeed()
+        if (projectName) {
+          updateConfigFile((content) => {
+            content.project.name = projectName
+          })
+          spinner.text = `Project Generated Successfully ${projectName}`
+          spinner.succeed()
+        } else {
+          throw new Error()
+        }
       } catch (e) {
         spinner.text = `Project Generation Failed`
         spinner.fail()
-        throw new Error(e)
+        console.warn(e)
       }
     }
 
@@ -78,7 +82,7 @@ export default async function (options: { url: string; targetPath: string; force
       } catch (e) {
         spinner.text = 'Failed in generating project'
         spinner.fail()
-        throw new Error(e)
+        console.warn(e)
       }
     }
   }
@@ -98,16 +102,19 @@ export default async function (options: { url: string; targetPath: string; force
           force,
         })
 
-        updateConfigFile((content) => {
-          content.project.name = projectName
-        })
-
-        spinner.text = `Project Generated Successfully ${projectName}`
-        spinner.succeed()
+        if (projectName) {
+          updateConfigFile((content) => {
+            content.project.name = projectName
+          })
+          spinner.text = `Project Generated Successfully ${projectName}`
+          spinner.succeed()
+        } else {
+          throw new Error()
+        }
       } catch (e) {
         spinner.text = `Project Generation Failed`
         spinner.fail()
-        throw new Error(e)
+        console.warn(e)
       }
     } else {
       try {
@@ -131,7 +138,7 @@ export default async function (options: { url: string; targetPath: string; force
       } catch (e) {
         spinner.text = `Component Generation Failed`
         spinner.fail()
-        throw new Error(e)
+        console.warn(e)
       }
     }
   }

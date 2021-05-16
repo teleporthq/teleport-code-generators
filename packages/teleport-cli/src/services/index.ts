@@ -64,64 +64,60 @@ export const generateProjectFromUIDL = async ({
   url: string
   force?: boolean
 }): Promise<string> => {
-  try {
-    ensureDirSync(path.join(process.cwd(), targetPath))
+  ensureDirSync(path.join(process.cwd(), targetPath))
 
-    const { success, payload } = (await packProject(uidl as ProjectUIDL, {
-      projectType,
-      publishOptions: {
-        outputPath: targetPath,
-      },
-    })) as { success: boolean; payload: GeneratedFolder }
-    if (success) {
-      const { files, subFolders } = payload as GeneratedFolder
-      let { name } = payload as GeneratedFolder
-      const packageJSON = getPackageJSON()
-      const teleportConfig = findFileByName(DEFAULT_CONFIG_FILE_NAME)
+  const { success, payload } = (await packProject(uidl as ProjectUIDL, {
+    projectType,
+    publishOptions: {
+      outputPath: targetPath,
+    },
+  })) as { success: boolean; payload: GeneratedFolder }
+  if (success) {
+    const { files, subFolders } = payload as GeneratedFolder
+    let { name } = payload as GeneratedFolder
+    const packageJSON = getPackageJSON()
+    const teleportConfig = findFileByName(DEFAULT_CONFIG_FILE_NAME)
 
-      if (uidl?.name) {
-        name = uidl.name
-      }
+    if (uidl?.name && uidl.name.length > 0) {
+      name = uidl.name
+    }
 
-      if (packageJSON?.name) {
-        name = packageJSON?.name as string
-      }
+    if (packageJSON?.name) {
+      name = packageJSON?.name as string
+    }
 
-      if (teleportConfig && (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project?.name) {
-        name = (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project.name
-      }
+    if (teleportConfig && (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project?.name) {
+      name = (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project.name
+    }
 
-      files.push({
-        name: CONFIG_FILE_NAME,
-        fileType: FileType.JSON,
-        content: JSON.stringify(
-          {
-            ...DEFALT_CONFIG_TEMPLATE,
-            project: { url, projectType, name },
-          } as DefaultConfigTemplate,
-          null,
-          2
-        ),
-      })
+    files.push({
+      name: CONFIG_FILE_NAME,
+      fileType: FileType.JSON,
+      content: JSON.stringify(
+        {
+          ...DEFALT_CONFIG_TEMPLATE,
+          project: { url, projectType, name },
+        } as DefaultConfigTemplate,
+        null,
+        2
+      ),
+    })
 
-      injectFilesFromSubFolder({
-        folder: subFolders,
+    injectFilesFromSubFolder({
+      folder: subFolders,
+      targetPath: path.join(targetPath, name),
+      force,
+    })
+
+    files.forEach((file) => {
+      injectFilesToPath({
+        rootFolder: process.cwd(),
         targetPath: path.join(targetPath, name),
+        files: [file],
         force,
       })
+    })
 
-      files.forEach((file) => {
-        injectFilesToPath({
-          rootFolder: process.cwd(),
-          targetPath: path.join(targetPath, name),
-          files: [file],
-          force,
-        })
-      })
-
-      return name
-    }
-  } catch (e) {
-    console.warn(e)
+    return name
   }
 }
