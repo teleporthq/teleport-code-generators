@@ -9,7 +9,7 @@ interface NextImagePluginConfig {
 
 const NEXT_HEAD_DEPENDENCY: UIDLDependency = {
   type: 'library',
-  path: 'next/head',
+  path: 'next/image',
   version: '10.0.5',
 }
 
@@ -24,11 +24,16 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
     }
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
-      const { elementType, attrs } = element
+      const { elementType, attrs = {}, style = {} } = element
 
       if (elementType === 'img') {
         const imageSource = attrs?.src?.content.toString()
         if (!imageSource || !imageSource.startsWith(`/${localAssetFolder}`)) {
+          return
+        }
+
+        const { height, width } = style
+        if (!height?.content || !width?.content) {
           return
         }
 
@@ -39,6 +44,17 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
         >)[key]
         ;(jsxTag.openingElement.name as types.JSXIdentifier).name = 'Image'
         ;(jsxTag.closingElement.name as types.JSXIdentifier).name = 'Image'
+        jsxTag.openingElement.attributes = [
+          ...jsxTag.openingElement.attributes,
+          types.jsxAttribute(
+            types.jsxIdentifier('width'),
+            types.jsxExpressionContainer(types.numericLiteral(parseInt(String(width.content), 10)))
+          ),
+          types.jsxAttribute(
+            types.jsxIdentifier('height'),
+            types.jsxExpressionContainer(types.numericLiteral(parseInt(String(height.content), 10)))
+          ),
+        ]
 
         if (!dependencies.Image) {
           dependencies.Image = NEXT_HEAD_DEPENDENCY
