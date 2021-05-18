@@ -24,24 +24,28 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
     }
 
     UIDLUtils.traverseElements(uidl.node, (element) => {
-      const { elementType, attrs = {}, style = {} } = element
+      const { elementType, attrs = {}, style = {}, key } = element
 
-      if (elementType === 'img') {
+      if (key && elementType === 'img' && Object.keys(style).length === 2) {
         const imageSource = attrs?.src?.content.toString()
-        if (!imageSource || !imageSource.startsWith(`/${localAssetFolder}`)) {
+        if (
+          !imageSource ||
+          !imageSource.startsWith(`/${localAssetFolder}`) ||
+          !(style.hasOwnProperty('width') && style.hasOwnProperty('height'))
+        ) {
           return
         }
 
         const { height, width } = style
-        if (!height?.content || !width?.content) {
-          return
-        }
-
-        const { key } = element
         const jsxTag = ((componentChunk.meta.nodesLookup as unknown) as Record<
           string,
           types.JSXElement
         >)[key]
+
+        if (!jsxTag) {
+          return
+        }
+
         ;(jsxTag.openingElement.name as types.JSXIdentifier).name = 'Image'
         ;(jsxTag.closingElement.name as types.JSXIdentifier).name = 'Image'
         jsxTag.openingElement.attributes = [
