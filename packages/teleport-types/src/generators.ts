@@ -36,7 +36,7 @@ export interface ChunkDefinition {
   type: ChunkType
   name: string
   fileType: FileType
-  meta?: Record<string, unknown>
+  meta?: Record<string, unknown> // TODO: updates types here
   content: ChunkContent
   linkAfter: string[]
 }
