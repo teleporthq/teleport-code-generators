@@ -11,7 +11,6 @@ import {
   ChunkType,
   FrameWorkConfigOptions,
 } from '@teleporthq/teleport-types'
-// import MagicString from 'magic-string'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest, customCode } = uidl.globals
