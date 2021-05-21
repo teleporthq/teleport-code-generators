@@ -138,10 +138,10 @@ export const packProject: PackProjectFunction = async (
   { projectType, publisher, publishOptions = {}, assets = [], plugins = [] }
 ) => {
   const packer = createProjectPacker()
-
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
 
   if (plugins?.length > 0) {
+    projectGeneratorFactory.cleanPlugins()
     plugins.forEach((plugin: ProjectPlugin) => {
       projectGeneratorFactory.addPlugin(plugin)
     })

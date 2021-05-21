@@ -9,9 +9,9 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
-// import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
-// import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
-// import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
+import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
+import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
@@ -66,38 +66,38 @@ const run = async () => {
     })
     console.info(ProjectType.NEXT, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextStyledComponents],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-styled-components',
-    //   },
-    // })
-    // console.log(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-styled-components',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextReactCSSModules],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-css-modules',
-    //   },
-    // })
-    // console.log(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactCSSModules],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-css-modules',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextReactJSS],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-react-jss',
-    //   },
-    // })
-    // console.log(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactJSS],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-react-jss',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
     console.info(ProjectType.NUXT, '-', result.payload)
@@ -138,7 +138,7 @@ const run = async () => {
         projectSlug: 'teleport-project-gatsby-styled-components',
       },
     })
-    console.log(
+    console.info(
       ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
       '-',
       result.payload
