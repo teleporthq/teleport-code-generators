@@ -72,6 +72,7 @@ export const generateProjectFromUIDL = async ({
       outputPath: targetPath,
     },
   })) as { success: boolean; payload: GeneratedFolder }
+
   if (success) {
     const { files, subFolders } = payload as GeneratedFolder
     let { name } = payload as GeneratedFolder
