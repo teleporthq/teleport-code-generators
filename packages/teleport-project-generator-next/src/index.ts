@@ -6,6 +6,7 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { Mapping, ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import nextImagePlugin from '@teleporthq/teleport-plugin-jsx-next-image'
 
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import NextMapping from './next-mapping.json'
@@ -26,13 +27,14 @@ const createNextProjectGenerator = () => {
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
+      plugins: [nextImagePlugin],
       mappings: [NextMapping as Mapping],
       path: ['components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [headConfigPlugin],
+      plugins: [nextImagePlugin, headConfigPlugin],
       mappings: [NextMapping as Mapping],
       options: {
         useFileNameForNavigation: true,
