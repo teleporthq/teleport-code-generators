@@ -8,9 +8,8 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "yarn clean && lerna link && node scripts/build.mjs",
-    "dev": "lerna link && npm run build:cjs && npm run watch",
-    "watch": "node scripts/watcher.mjs",
+    "build": "yarn clean && lerna link && yarn types && node scripts/build.mjs",
+    "dev": "yarn clean && yarn link && yarn types && node scripts/watcher.mjs",
     "types": "lerna run types --sort",
     "test": "jest",
     "test:perf": "jest __tests__/performance",

@@ -141,7 +141,7 @@ export class ProjectGenerator {
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
     if (valid && projectUIDL) {
-      cleanedUIDL = (projectUIDL as unknown) as Record<string, unknown>
+      cleanedUIDL = projectUIDL as unknown as Record<string, unknown>
     } else {
       throw new Error(schemaValidationResult.errorMsg)
     }
