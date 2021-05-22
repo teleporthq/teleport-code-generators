@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "lerna link && node scripts/build.mjs",
+    "build": "npm run clean && lerna link && node scripts/build.mjs",
     "dev": "lerna link && npm run build:cjs && npm run watch",
     "watch": "node scripts/watcher.mjs",
     "test": "jest",
@@ -42,8 +42,6 @@
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "devDependencies": {
-    "walkdir": "^0.4.1",
-    "esbuild": "^0.12.1",
     "@esbuild-plugins/node-modules-polyfill": "^0.1.1",
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
@@ -57,6 +55,7 @@
     "codecov": "^3.8.0",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
+    "esbuild": "^0.12.1",
     "husky": "^3.0.4",
     "jest": "^24.9.0",
     "lerna": "^3.16.4",
@@ -67,7 +66,8 @@
     "ts-node": "^8.6.2",
     "tslint": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.7.5"
+    "typescript": "^4.2.4",
+    "walkdir": "^0.4.1"
   },
   "config": {
     "commitizen": {

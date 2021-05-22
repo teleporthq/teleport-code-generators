@@ -1,13 +1,10 @@
 import chalk from 'chalk'
 import { build } from 'esbuild'
+import { existsSync } from 'fs'
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import walk from 'walkdir'
 
-const log = console.log
-
 const ignorePackages = ['teleport-repl-component', 'teleport-test']
-const total = []
-
 const emitter = walk('packages', {
   max_depth: 1,
 })
@@ -19,20 +16,35 @@ emitter.on('directory', async (path) => {
     return
   }
 
-  log(chalk.gray(`Building ${packageName}`))
   await buildPackage(path, packageName)
-  log(chalk.green(`Building completed - ${packageName}`))
 })
-
 emitter.on('error', (err) => console.log(err))
 
-const buildPackage = async (path, packageName) => {
+export const buildPackage = async (path, packageName) => {
+  const entry = `${path}/src/index.ts`
+  const isEntryExists = existsSync(entry)
+
+  if (!isEntryExists) {
+    throw new Error(`Entry file missing from ${packageName}`)
+  }
+
   await build({
     entryPoints: [`${path}/src/index.ts`],
     outdir: `${path}/dist/cjs`,
     format: 'cjs',
     plugins: [new NodeModulesPolyfillPlugin()],
   }).catch((e) => {
-    throw new Error(`${packageName} \n ${e}`)
+    throw new Error(`Build failed for ${packageName} \n ${e}`)
   })
+
+  await build({
+    entryPoints: [`${path}/src/index.ts`],
+    outdir: `${path}/dist/esm`,
+    format: 'esm',
+    plugins: [new NodeModulesPolyfillPlugin()],
+  }).catch((e) => {
+    throw new Error(`Build failed for ${packageName} \n ${e}`)
+  })
+
+  console.log(chalk.green(`${packageName}`))
 }
