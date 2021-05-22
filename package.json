@@ -8,11 +8,9 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "lerna link && lerna run build",
-    "build:cjs": "lerna run build:cjs",
-    "build:esm": "lerna run build:esm",
+    "build": "lerna link && node scripts/build.mjs",
     "dev": "lerna link && npm run build:cjs && npm run watch",
-    "watch": "node scripts/watcher.js",
+    "watch": "node scripts/watcher.mjs",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:watch": "jest --watch",
@@ -33,6 +31,9 @@
       "pre-commit": "pretty-quick --staged && npm run lint"
     }
   },
+  "engines": {
+    "node": "14.x"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -41,6 +42,9 @@
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "devDependencies": {
+    "walkdir": "^0.4.1",
+    "esbuild": "^0.12.1",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.1",
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
     "@types/jss": "^10.0.0",
