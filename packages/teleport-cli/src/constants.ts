@@ -1,3 +1,5 @@
+import { PrettierFormatOptions } from '@teleporthq/teleport-types'
+
 export const CONFIG_FILE_NAME = `teleport.config`
 export const CONIFG_FILE_EXTENSION = '.json'
 export const DEFAULT_CONFIG_FILE_NAME = `${CONFIG_FILE_NAME}${CONIFG_FILE_EXTENSION}`
@@ -20,4 +22,13 @@ export interface DefaultConfigTemplate {
     name?: string
   }
   components: Record<string, { url: string; path: string }>
+  format?: {
+    config?: PrettierFormatOptions
+    ignoreFiles?: string[]
+    ignoreFolders?: string[]
+  }
+  sync?: {
+    ignoreFiles?: string[]
+    ignoreFolders?: string[]
+  }
 }

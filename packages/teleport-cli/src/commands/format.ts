@@ -8,13 +8,13 @@ import processorJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 import processorHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { IGNORE_EXTENSIONS, IGNORE_FOLDERS } from '../constants'
 
-/* Fromat is currently broken, please check */
 const processors: Record<string, PostProcessor> = {
   [FileType.JS]: processorJSX,
   [FileType.HTML]: processorHTML,
   [FileType.VUE]: processorVUE,
   [FileType.TS]: processorTS,
 }
+
 /* We can extend the prettier config, ignore folders, ignore extensions */
 const format = async ({ targetPath }: { targetPath: string }) => {
   formatFilesFromFolder(targetPath)

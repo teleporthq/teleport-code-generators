@@ -79,7 +79,7 @@ export const generateProjectFromUIDL = async ({
     const packageJSON = getPackageJSON()
     const teleportConfig = findFileByName(DEFAULT_CONFIG_FILE_NAME)
 
-    if (uidl?.name && uidl.name.length > 0) {
+    if (uidl?.name) {
       name = uidl.name
     }
 

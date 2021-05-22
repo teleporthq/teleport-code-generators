@@ -4,7 +4,7 @@ import {
   fetchUIDLFromREPL,
   generateComponentFromUIDL,
   generateProjectFromUIDL,
-} from '../services/generator'
+} from '../services/code'
 import { injectFilesToPath } from '../services/file'
 import { getComponentType, updateConfigFile } from '../utils'
 import { MapSnapshotToUIDL } from '@teleporthq/teleport-mapper'
@@ -13,6 +13,7 @@ import ora from 'ora'
 export default async function (options: { url: string; targetPath: string; force?: boolean }) {
   const { url, targetPath, force = false } = options
   let uidl: VComponentUIDL | VProjectUIDL
+  const name = 'teleport-project'
   const spinner = ora()
   spinner.start()
 
@@ -20,8 +21,10 @@ export default async function (options: { url: string; targetPath: string; force
     const opts = url.split('/')
     spinner.text = `Fetching from studio ${opts[4]} \n`
     const {
+      name: nameFromSnapshot,
       snapshot: { data },
     } = await fetchSnapshotFromPlayground(opts[4])
+    nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
     if (opts.length >= 7) {
       try {
@@ -58,7 +61,7 @@ export default async function (options: { url: string; targetPath: string; force
         throw new Error('Failed in Generating UIDL')
       }
 
-      const projectName = await generateProjectFromUIDL({
+      const fileName = await generateProjectFromUIDL({
         uidl,
         projectType: ProjectType.REACT,
         targetPath,
@@ -66,16 +69,12 @@ export default async function (options: { url: string; targetPath: string; force
         force,
       })
 
-      if (projectName) {
-        updateConfigFile((content) => {
-          content.project.name = projectName
-        })
+      updateConfigFile((content) => {
+        content.project.name = fileName
+      })
 
-        spinner.text = `Project Generated Successfully ${projectName}`
-        spinner.succeed()
-      } else {
-        throw new Error()
-      }
+      spinner.text = `Project Generated Successfully ${fileName}`
+      spinner.succeed()
     } catch (e) {
       spinner.text = `Project Generation Failed`
       spinner.fail()
@@ -90,7 +89,7 @@ export default async function (options: { url: string; targetPath: string; force
         spinner.text = `Fetching project from repl \n`
 
         uidl = (await fetchUIDLFromREPL(url)) as VProjectUIDL
-        const projectName = await generateProjectFromUIDL({
+        const fileName = await generateProjectFromUIDL({
           uidl,
           projectType: ProjectType.NEXT,
           targetPath,
@@ -98,15 +97,11 @@ export default async function (options: { url: string; targetPath: string; force
           force,
         })
 
-        if (projectName) {
-          updateConfigFile((content) => {
-            content.project.name = projectName
-          })
-          spinner.text = `Project Generated Successfully ${projectName}`
-          spinner.succeed()
-        } else {
-          throw new Error()
-        }
+        updateConfigFile((content) => {
+          content.project.name = fileName
+        })
+        spinner.text = `Project Generated Successfully ${fileName}`
+        spinner.succeed()
       } catch (e) {
         spinner.text = `Project Generation Failed`
         spinner.fail()
