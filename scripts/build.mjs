@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import { build } from 'esbuild'
-import { existsSync, copyFileSync } from 'fs'
-import { extname } from 'path'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import walk from 'walkdir'
 
 const ignorePackages = ['teleport-repl-component', 'teleport-test']
@@ -23,16 +23,27 @@ emitter.on('error', (err) => console.log(err))
 export const buildPackage = async (path, packageName) => {
   const entry = `${path}/src/index.ts`
   const isEntryExists = existsSync(entry)
+  const packageJSON = readFileSync(
+    join(process.cwd(), `packages/${packageName}/package.json`),
+    'utf-8'
+  )
 
-  if (!isEntryExists) {
+  if (!isEntryExists || !packageJSON) {
     throw new Error(`Entry file missing from ${packageName}`)
   }
 
+  const external = [...Object.keys(JSON.parse(packageJSON)?.dependencies || {})]
+  const input = `${path}/src/index.ts`
+  const cjsOutput = `${path}/dist/cjs`
+
   await build({
-    entryPoints: [`${path}/src/index.ts`],
-    outdir: `${path}/dist/cjs`,
+    entryPoints: [input],
+    outdir: cjsOutput,
     format: 'cjs',
     target: 'es6',
+    bundle: true,
+    minify: false,
+    external,
   }).catch((e) => {
     throw new Error(`Build failed for ${packageName} \n ${e}`)
   })
@@ -42,20 +53,11 @@ export const buildPackage = async (path, packageName) => {
     outdir: `${path}/dist/esm`,
     format: 'esm',
     target: 'es6',
+    bundle: true,
+    minify: false,
+    external,
   }).catch((e) => {
     throw new Error(`Build failed for ${packageName} \n ${e}`)
-  })
-
-  const filesToCopy = []
-  walk(`${path}/src`, { sync: true }, (subPath) => {
-    const fileType = extname(subPath)
-    if (fileType === '.json') {
-      filesToCopy.push(subPath)
-    }
-  })
-  filesToCopy.map((filePath) => {
-    copyFileSync(filePath, filePath.replace('src', 'dist/cjs'))
-    copyFileSync(filePath, filePath.replace('src', 'dist/esm'))
   })
 
   console.log(chalk.green(`${packageName}`))
