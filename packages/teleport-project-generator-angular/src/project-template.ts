@@ -1,4 +1,6 @@
-export default {
+import { GeneratedFolder } from '@teleporthq/teleport-types'
+
+export const template: GeneratedFolder = {
   name: 'teleport-project-angular',
   files: [
     {

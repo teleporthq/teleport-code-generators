@@ -13,7 +13,7 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 
 import { CUSTOM_BODY_CONTENT } from './constants'
 import AngularProjectMapping from './angular-mapping.json'
-import AngularTemplate from './project-template'
+import { template as AngularTemplate } from './project-template'
 
 const createAngularProjectGenerator = () => {
   const prettierTS = createPrettierTSPostProcessor({ fileType: FileType.TS })

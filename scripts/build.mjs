@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import { build } from 'esbuild'
-import { existsSync } from 'fs'
+import { existsSync, copyFileSync } from 'fs'
+import { extname } from 'path'
 import walk from 'walkdir'
 
 const ignorePackages = ['teleport-repl-component', 'teleport-test']
@@ -43,6 +44,18 @@ export const buildPackage = async (path, packageName) => {
     target: 'es6',
   }).catch((e) => {
     throw new Error(`Build failed for ${packageName} \n ${e}`)
+  })
+
+  const filesToCopy = []
+  walk(`${path}/src`, { sync: true }, (subPath) => {
+    const fileType = extname(subPath)
+    if (fileType === '.json') {
+      filesToCopy.push(subPath)
+    }
+  })
+  filesToCopy.map((filePath) => {
+    copyFileSync(filePath, filePath.replace('src', 'dist/cjs'))
+    copyFileSync(filePath, filePath.replace('src', 'dist/esm'))
   })
 
   console.log(chalk.green(`${packageName}`))
