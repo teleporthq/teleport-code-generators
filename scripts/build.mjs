@@ -1,7 +1,6 @@
 import chalk from 'chalk'
 import { build } from 'esbuild'
 import { existsSync } from 'fs'
-import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import walk from 'walkdir'
 
 const ignorePackages = ['teleport-repl-component', 'teleport-test']
@@ -32,7 +31,7 @@ export const buildPackage = async (path, packageName) => {
     entryPoints: [`${path}/src/index.ts`],
     outdir: `${path}/dist/cjs`,
     format: 'cjs',
-    plugins: [new NodeModulesPolyfillPlugin()],
+    target: 'es6',
   }).catch((e) => {
     throw new Error(`Build failed for ${packageName} \n ${e}`)
   })
@@ -41,7 +40,7 @@ export const buildPackage = async (path, packageName) => {
     entryPoints: [`${path}/src/index.ts`],
     outdir: `${path}/dist/esm`,
     format: 'esm',
-    plugins: [new NodeModulesPolyfillPlugin()],
+    target: 'es6',
   }).catch((e) => {
     throw new Error(`Build failed for ${packageName} \n ${e}`)
   })

@@ -23,7 +23,6 @@ watcher.on('change', async (filePath) => {
     return
   }
 
-  console.log(fileName)
   log(chalk.yellow(`Changes detected in ${fileName}`))
   await buildPackage(join(process.cwd(), `packages/${fileName}`), fileName)
 })
