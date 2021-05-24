@@ -9,7 +9,7 @@
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
     "build": "yarn clean && lerna link && node scripts/build.mjs && yarn types",
-    "dev": "yarn link && yarn types && node scripts/watcher.mjs",
+    "dev": "lerna link && yarn types && node scripts/watcher.mjs",
     "types": "lerna run types --stream",
     "test": "jest",
     "test:perf": "jest __tests__/performance",

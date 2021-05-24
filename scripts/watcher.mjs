@@ -30,7 +30,7 @@ watcher.on('change', async (filePath) => {
 
   exec(`yarn types`, { cwd: location }, (err, stdout, stderr) => {
     if (!err || err === null) {
-      log(chalk.greenBright(`${splitPath[1]} types was successfully re-built`))
+      log(chalk.greenBright(`${splitPath[1]}'s types was successfully re-built`))
     } else {
       log(err, stdout, stderr)
     }
