@@ -7,19 +7,17 @@ import resourceLoaderPlugin from '@teleporthq/teleport-plugin-reactnative-resour
 import navigationPlugin from '@teleporthq/teleport-plugin-reactnative-component-navigation'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import ReactNativeMapping from './react-native-mapping.json'
+import { ReactNativeMapping } from './react-native-mapping'
 import {
   ComponentGenerator,
-  Mapping,
   ReactNativeStyleVariation,
   GeneratorFactoryParams,
   ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
 
 // This extracts Text, View, Image as illegal element names
-const rnMapping = ReactNativeMapping as Mapping
-const illegalElementNames = Object.keys(rnMapping.elements).map(
-  (key) => rnMapping.elements[key].elementType
+const illegalElementNames = Object.keys(ReactNativeMapping.elements).map(
+  (key) => ReactNativeMapping.elements[key].elementType
 )
 
 const styledComponentsPlugin = createReactStyledComponentsPlugin({
@@ -41,7 +39,7 @@ const createReactNativeComponentGenerator: ComponentGeneratorInstance = ({
   const generator = createComponentGenerator()
   const stylePlugin = stylePlugins[variation as ReactNativeStyleVariation] || inlineStylesPlugin
 
-  generator.addMapping(ReactNativeMapping as Mapping)
+  generator.addMapping(ReactNativeMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)

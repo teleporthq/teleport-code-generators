@@ -156,7 +156,7 @@ export const createDeployment = async (
 }
 
 export const checkDeploymentStatus = async (deploymentURL: string) => {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     let retries = 60
 
     const clearHook = setInterval(async () => {

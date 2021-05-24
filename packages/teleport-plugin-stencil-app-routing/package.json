@@ -7,6 +7,11 @@
   "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
+  "exports": {
+    "module": "./dist/esm/index.js",
+    "require": "./dist/cjs/index.js",
+    "import": "./dist/esm/index.js"
+  },
   "types": "dist/cjs/index.d.ts",
   "sideEffects": false,
   "bugs": {
@@ -21,9 +26,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run build:cjs & npm run build:esm",
-    "build:cjs": "tsc -p tsconfig-cjs.json",
-    "build:esm": "tsc -p tsconfig-esm.json"
+    "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@babel/types": "^7.5.5",

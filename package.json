@@ -8,16 +8,14 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
-    "build": "lerna link && lerna run build",
-    "build:cjs": "lerna run build:cjs",
-    "build:esm": "lerna run build:esm",
-    "dev": "lerna link && npm run build:cjs && npm run watch",
-    "watch": "node scripts/watcher.js",
+    "build": "yarn clean && lerna link && node scripts/build.mjs && yarn types",
+    "dev": "lerna link && yarn types && node scripts/watcher.mjs",
+    "types": "lerna run types --stream",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:watch": "jest --watch",
     "test:clearcache": "jest --clearCache",
-    "test:coverage": "npm run test -- --coverage --no-cache",
+    "test:coverage": "yarn run test -- --coverage --no-cache",
     "upload:coverage": "codecov",
     "commitizen": "git-cz",
     "add-contributor": "all-contributors add",
@@ -33,6 +31,9 @@
       "pre-commit": "pretty-quick --staged && npm run lint"
     }
   },
+  "engines": {
+    "node": "14.x"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
@@ -43,8 +44,6 @@
   "devDependencies": {
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
-    "@types/jss": "^10.0.0",
-    "@types/jszip": "^3.1.7",
     "@types/prettier": "^2.1.6",
     "@types/rimraf": "^2.0.3",
     "all-contributors-cli": "^6.13.0",
@@ -53,17 +52,19 @@
     "codecov": "^3.8.0",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
+    "esbuild": "^0.12.1",
     "husky": "^3.0.4",
-    "jest": "^24.9.0",
+    "jest": "^26.6.3",
     "lerna": "^3.16.4",
     "lerna-changelog": "^0.8.2",
-    "pretty-quick": "^2.0.1",
+    "pretty-quick": "^3.1.0",
     "rimraf": "^3.0.0",
-    "ts-jest": "^25.2.0",
+    "ts-jest": "^26.5.6",
     "ts-node": "^8.6.2",
     "tslint": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.7.5"
+    "typescript": "^4.2.4",
+    "walkdir": "^0.4.1"
   },
   "config": {
     "commitizen": {

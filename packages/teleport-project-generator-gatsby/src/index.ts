@@ -6,7 +6,6 @@ import {
   ComponentGenerator,
   TeleportError,
   ComponentGeneratorInstance,
-  Mapping,
   GeneratorFactoryParams,
   FileType,
 } from '@teleporthq/teleport-types'
@@ -20,7 +19,7 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-import GatsbyProjectMapping from './gatsby-mapping.json'
+import { GatsbyProjectMapping } from './gatsby-project-mapping'
 import GatsbyTemplate from './project-template'
 import { createCustomHTMLEntryFile, styleSheetDependentConfigGenerator } from './utils'
 
@@ -104,7 +103,7 @@ const createCustomReactGatsbyComponentGenerator: ComponentGeneratorInstance = ({
   plugins.forEach((plugin) => reactComponentGenerator.addPlugin(plugin))
 
   reactComponentGenerator.addPlugin(importStatementsPlugin)
-  reactComponentGenerator.addMapping(GatsbyProjectMapping as Mapping)
+  reactComponentGenerator.addMapping(GatsbyProjectMapping)
   reactComponentGenerator.addPostProcessor(prettierJSX)
   postprocessors.forEach((postprocessor) => reactComponentGenerator.addPostProcessor(postprocessor))
   return reactComponentGenerator

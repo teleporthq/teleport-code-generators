@@ -6,13 +6,13 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-import { Mapping, ReactStyleVariation } from '@teleporthq/teleport-types'
+import { ReactStyleVariation } from '@teleporthq/teleport-types'
 import {
   createStyleSheetPlugin,
   createCSSModulesPlugin,
 } from '@teleporthq/teleport-plugin-css-modules'
 
-import ReactProjectMapping from './react-project-mapping.json'
+import { ReactProjectMapping } from './react-project-mapping'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
@@ -21,12 +21,12 @@ const createReactProjectGenerator = () => {
     style: ReactStyleVariation.CSSModules,
     components: {
       generator: createReactComponentGenerator,
-      mappings: [ReactProjectMapping as Mapping],
+      mappings: [ReactProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createReactComponentGenerator,
-      mappings: [ReactProjectMapping as Mapping],
+      mappings: [ReactProjectMapping],
       plugins: [headConfigPlugin],
       path: ['src', 'views'],
     },
