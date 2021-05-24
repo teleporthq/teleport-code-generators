@@ -5,10 +5,10 @@ import vueHeadConfigPlugin from '@teleporthq/teleport-plugin-vue-head-config'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
-import { Mapping, FileType } from '@teleporthq/teleport-types'
+import { FileType } from '@teleporthq/teleport-types'
 import { configContentGenerator } from './utils'
 
-import NuxtMapping from './nuxt-mapping.json'
+import { NuxtProjectMapping } from './nuxt-project-mapping'
 import NuxtTemplate from './project-template'
 
 const createNuxtProjectGenerator = () => {
@@ -20,13 +20,13 @@ const createNuxtProjectGenerator = () => {
     id: 'teleport-project-nuxt',
     components: {
       generator: createVueComponentGenerator,
-      mappings: [NuxtMapping as Mapping],
+      mappings: [NuxtProjectMapping],
       path: ['components'],
     },
     pages: {
       generator: createVueComponentGenerator,
       plugins: [vueHeadConfigPlugin],
-      mappings: [NuxtMapping as Mapping],
+      mappings: [NuxtProjectMapping],
       path: ['pages'],
       options: {
         useFileNameForNavigation: true,
@@ -67,4 +67,4 @@ const createNuxtProjectGenerator = () => {
   return generator
 }
 
-export { createNuxtProjectGenerator, NuxtMapping, NuxtTemplate }
+export { createNuxtProjectGenerator, NuxtProjectMapping, NuxtTemplate }

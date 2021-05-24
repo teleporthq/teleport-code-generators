@@ -7,9 +7,9 @@ import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statement
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import stencilAppRouting from '@teleporthq/teleport-plugin-stencil-app-routing'
 
-import { Mapping, FileType } from '@teleporthq/teleport-types'
+import { FileType } from '@teleporthq/teleport-types'
 import { appendToConfigFile } from './utils'
-import StencilProjectMapping from './stencil-mapping.json'
+import { StencilProjectMapping } from './stencil-project-mapping'
 import StencilTemplate from './project-template'
 
 const createStencilProjectGenerator = () => {
@@ -24,7 +24,7 @@ const createStencilProjectGenerator = () => {
     id: 'teleport-project-stencil',
     components: {
       generator: createStencilComponentGenerator,
-      mappings: [StencilProjectMapping as Mapping],
+      mappings: [StencilProjectMapping],
       path: ['src', 'components'],
       options: {
         createFolderForEachComponent: true,
@@ -32,7 +32,7 @@ const createStencilProjectGenerator = () => {
     },
     pages: {
       generator: createStencilComponentGenerator,
-      mappings: [StencilProjectMapping as Mapping],
+      mappings: [StencilProjectMapping],
       path: ['src', 'components'],
       options: {
         createFolderForEachComponent: true,

@@ -13,8 +13,7 @@ import importPlugin from '@teleporthq/teleport-plugin-import-statements'
 import proptypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
-import PreactMapping from './preact-mapping.json'
+import { PreactMapping } from './preact-mapping'
 
 const createPreactComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],

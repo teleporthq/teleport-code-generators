@@ -14,7 +14,7 @@ import {
   ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
 
-import StencilMapping from './stencil-mapping.json'
+import { StencilMapping } from './stencil-mapping'
 
 const createStencilComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],

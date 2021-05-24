@@ -8,6 +8,11 @@
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
+  "exports": {
+    "module": "./dist/esm/index.js",
+    "require": "./dist/cjs/index.js",
+    "import": "./dist/esm/index.js"
+  },
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -21,9 +26,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run build:cjs & npm run build:esm",
-    "build:cjs": "tsc -p tsconfig-cjs.json",
-    "build:esm": "tsc -p tsconfig-esm.json"
+    "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
@@ -36,7 +39,8 @@
     "@teleporthq/teleport-project-generator": "^0.16.3",
     "@teleporthq/teleport-shared": "^0.16.3",
     "@teleporthq/teleport-types": "^0.16.3",
-    "@teleporthq/teleport-plugin-jsx-next-image": "^0.16.3"
+    "@teleporthq/teleport-plugin-jsx-next-image": "^0.16.3",
+    "@teleporthq/teleport-plugin-import-statements": "^0.16.3"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

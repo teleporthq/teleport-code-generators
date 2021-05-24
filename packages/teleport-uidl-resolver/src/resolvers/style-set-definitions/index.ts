@@ -24,7 +24,7 @@ export const resolveStyleSetDefinitions = (
       }
 
       const mediaConditions = conditions
-        .filter((item) => item.type === 'screen-size')
+        .filter((item): item is UIDLStyleSetMediaCondition => item.type === 'screen-size')
         .sort(
           (a: UIDLStyleSetMediaCondition, b: UIDLStyleSetMediaCondition) =>
             a.meta.maxWidth - b.meta.maxWidth

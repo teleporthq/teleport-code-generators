@@ -11,12 +11,14 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "resolveJsonModule": true,
     "moduleResolution": "node",
     "noImplicitAny": true,
+    "baseUrl": "src",
     "typeRoots" : [
       "node_modules/@types"
     ]

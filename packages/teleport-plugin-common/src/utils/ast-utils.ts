@@ -223,7 +223,7 @@ export const objectToObjectExpression = (
 type ExpressionLiteral =
   | types.StringLiteral
   | types.BooleanLiteral
-  | types.NumberLiteral
+  | types.NumericLiteral
   | types.Identifier
   | types.ArrayExpression
   | types.ObjectExpression

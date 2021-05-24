@@ -10,7 +10,6 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
 import {
   ComponentGenerator,
-  Mapping,
   ReactStyleVariation,
   ComponentGeneratorInstance,
 } from '@teleporthq/teleport-types'
@@ -19,7 +18,7 @@ import {
   GeneratorFactoryParams,
 } from '@teleporthq/teleport-component-generator'
 
-import ReactMapping from './react-mapping.json'
+import { ReactMapping } from './react-mapping'
 
 const createReactComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
@@ -54,7 +53,7 @@ const createReactComponentGenerator: ComponentGeneratorInstance = ({
 
   const generator = createComponentGenerator()
 
-  generator.addMapping(ReactMapping as Mapping)
+  generator.addMapping(ReactMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)
