@@ -16,11 +16,11 @@ emitter.on('directory', async (path) => {
     return
   }
 
-  buildPackage(path, packageName)
+  await buildPackage(path, packageName)
 })
 emitter.on('error', (err) => console.log(err))
 
-export const buildPackage = (path, packageName) => {
+export const buildPackage = async (path, packageName) => {
   const entry = `${path}/src/index.ts`
   const isEntryExists = existsSync(entry)
   let packageJSON
@@ -41,43 +41,29 @@ export const buildPackage = (path, packageName) => {
   const input = `${path}/src/index.ts`
   const cjsOutput = `${path}/dist/cjs`
 
-  const buildCJS = new Promise((resolve, reject) => {
-    build({
-      entryPoints: [input],
-      outdir: cjsOutput,
-      format: 'cjs',
-      target: 'es6',
-      bundle: true,
-      minify: false,
-      external,
-    }).catch((e) => {
-      reject(`Build failed for ${packageName} \n ${e}`)
-    })
-
-    resolve()
+  await build({
+    entryPoints: [input],
+    outdir: cjsOutput,
+    format: 'cjs',
+    target: 'es6',
+    bundle: true,
+    minify: false,
+    external,
+  }).catch((e) => {
+    reject(`Build failed for ${packageName} \n ${e}`)
   })
 
-  const buildESM = new Promise((resolve, reject) => {
-    build({
-      entryPoints: [`${path}/src/index.ts`],
-      outdir: `${path}/dist/esm`,
-      format: 'esm',
-      target: 'es6',
-      bundle: true,
-      minify: false,
-      external,
-    }).catch((e) => {
-      reject(`Build failed for ${packageName} \n ${e}`)
-    })
-
-    resolve()
+  await build({
+    entryPoints: [`${path}/src/index.ts`],
+    outdir: `${path}/dist/esm`,
+    format: 'esm',
+    target: 'es6',
+    bundle: true,
+    minify: false,
+    external,
+  }).catch((e) => {
+    reject(`Build failed for ${packageName} \n ${e}`)
   })
 
-  Promise.all([buildCJS, buildESM])
-    .then(() => {
-      console.log(chalk.green(`${packageName}`))
-    })
-    .catch((err) => {
-      console.warn(err)
-    })
+  console.log(chalk.green(`${packageName}`))
 }
