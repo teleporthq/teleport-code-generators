@@ -8,7 +8,7 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import { Mapping, FileType } from '@teleporthq/teleport-types'
 import { configContentGenerator } from './utils'
 import GridsomeTemplate from './gridsome-project-template'
-import GridsomeProjectMapping from './gridsome-project-mapping.json'
+import { GridsomeProjectMapping } from './gridsome-project-mapping'
 
 const createGridsomeProjectGenerator = () => {
   const vueHeadConfigPlugin = createVueHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
@@ -20,7 +20,7 @@ const createGridsomeProjectGenerator = () => {
     id: 'teleport-project-gridsome',
     components: {
       generator: createVueComponentGenerator,
-      mappings: [GridsomeProjectMapping as Mapping],
+      mappings: [GridsomeProjectMapping],
       path: ['src', 'components'],
     },
     pages: {

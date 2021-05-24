@@ -8,7 +8,7 @@ import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-a
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import { Mapping, PreactStyleVariation } from '@teleporthq/teleport-types'
+import { PreactStyleVariation } from '@teleporthq/teleport-types'
 import {
   createStyleSheetPlugin,
   createCSSModulesPlugin,
@@ -16,7 +16,7 @@ import {
 
 import PreactTemplate from './project-template'
 import PreactCodesandBoxTemplate from './project-template-codesandbox'
-import PreactProjectMapping from './preact-project-mapping.json'
+import { PreactProjectMapping } from './preact-project-mapping'
 import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } from './constants'
 
 const createPreactProjectGenerator = () => {
@@ -31,14 +31,14 @@ const createPreactProjectGenerator = () => {
     style: PreactStyleVariation.CSSModules,
     components: {
       generator: createPreactComponentGenerator,
-      mappings: [PreactMapping as Mapping],
+      mappings: [PreactMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createPreactComponentGenerator,
       path: ['src', 'routes'],
       plugins: [headConfigPlugin],
-      mappings: [PreactProjectMapping as Mapping],
+      mappings: [PreactProjectMapping],
       options: {
         createFolderForEachComponent: true,
       },

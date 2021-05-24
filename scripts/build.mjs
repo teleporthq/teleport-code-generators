@@ -23,16 +23,21 @@ emitter.on('error', (err) => console.log(err))
 export const buildPackage = async (path, packageName) => {
   const entry = `${path}/src/index.ts`
   const isEntryExists = existsSync(entry)
-  const packageJSON = readFileSync(
-    join(process.cwd(), `packages/${packageName}/package.json`),
-    'utf-8'
-  )
+  let packageJSON
+  try {
+    packageJSON = readFileSync(join(process.cwd(), `packages/${packageName}/package.json`), 'utf-8')
+  } catch (e) {
+    return
+  }
 
   if (!isEntryExists || !packageJSON) {
     throw new Error(`Entry file missing from ${packageName}`)
   }
 
   const external = [...Object.keys(JSON.parse(packageJSON)?.dependencies || {})]
+  external.push('path')
+  external.push('fs')
+
   const input = `${path}/src/index.ts`
   const cjsOutput = `${path}/dist/cjs`
 

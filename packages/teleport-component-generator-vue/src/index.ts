@@ -10,7 +10,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import vueFileProcessor from '@teleporthq/teleport-postprocessor-vue-file'
 import { ComponentGenerator, ComponentGeneratorInstance } from '@teleporthq/teleport-types'
 
-import VueMapping from './vue-mapping.json'
+import { VueMapping } from './vue-mapping'
 
 const createVueComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],

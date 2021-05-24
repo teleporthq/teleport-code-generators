@@ -9,9 +9,9 @@
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
   "exports": {
+    "module": "./dist/esm/index.js",
     "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.js",
-    "module": "./dist/esm/index.js"
+    "import": "./dist/esm/index.js"
   },
   "sideEffects": false,
   "repository": {
@@ -36,6 +36,7 @@
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.16.3",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.16.3",
     "@teleporthq/teleport-project-generator": "^0.16.3",
+    "@teleporthq/teleport-plugin-css": "^0.16.3",
     "@teleporthq/teleport-shared": "^0.16.3",
     "@teleporthq/teleport-types": "^0.16.3"
   },

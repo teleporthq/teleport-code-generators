@@ -9,7 +9,7 @@ import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statement
 import prettierTS from '@teleporthq/teleport-postprocessor-prettier-ts'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import AngularMapping from './angular-mapping.json'
+import { AngularMapping } from './angular-mapping'
 import {
   ComponentGenerator,
   FileType,
