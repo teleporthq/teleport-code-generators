@@ -50,7 +50,7 @@ export const buildPackage = async (path, packageName) => {
     minify: false,
     external,
   }).catch((e) => {
-    reject(`Build failed for ${packageName} \n ${e}`)
+    throw new Error(`CJS Build failed for ${packageName} \n ${e}`)
   })
 
   await build({
@@ -62,7 +62,7 @@ export const buildPackage = async (path, packageName) => {
     minify: false,
     external,
   }).catch((e) => {
-    reject(`Build failed for ${packageName} \n ${e}`)
+    throw new Error(`ESM Build failed for ${packageName} \n ${e}`)
   })
 
   console.log(chalk.green(`${packageName}`))
