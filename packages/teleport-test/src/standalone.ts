@@ -14,10 +14,10 @@ import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-j
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
-import projectJSON from '../../../examples/uidl-samples/project.json'
+import projectJSON from '../../../examples/uidl-samples/teleport.json'
 
-const projectUIDL = (projectJSON as unknown) as ProjectUIDL
-const reactProjectUIDL = (reactProjectJSON as unknown) as ProjectUIDL
+const projectUIDL = projectJSON as unknown as ProjectUIDL
+const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
