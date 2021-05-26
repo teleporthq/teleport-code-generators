@@ -34,7 +34,10 @@ export const buildPackage = async (path, packageName) => {
     throw new Error(`Entry file missing from ${packageName}`)
   }
 
-  const external = [...Object.keys(JSON.parse(packageJSON)?.dependencies || {})]
+  const external = [
+    ...Object.keys(JSON.parse(packageJSON)?.dependencies || {}),
+    ...Object.keys(JSON.parse(packageJSON)?.devDependencies || {}),
+  ]
   external.push('path')
   external.push('fs')
 

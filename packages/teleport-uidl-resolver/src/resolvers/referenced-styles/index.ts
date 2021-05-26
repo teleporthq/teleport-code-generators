@@ -12,6 +12,7 @@ import {
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
   UIDLElementNodeReferenceStyles,
+  UIDLStyleMediaQueryScreenSizeCondition,
 } from '@teleporthq/teleport-types'
 
 export const resolveReferencedStyle = (input: ComponentUIDL) => {
@@ -62,11 +63,15 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
   if (Object.keys(styles).length === 0) {
     return {}
   }
-  const allMediaRelatedStyles: UIDLReferencedStyles = {}
+  const allMediaRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
+
   const list: UIDLReferencedStyles = Object.values(styles).reduce(
     (acc: UIDLReferencedStyles, styleRef: UIDLElementNodeReferenceStyles) => {
-      if (styleRef.content.conditions?.[0].conditionType === 'screen-size') {
-        allMediaRelatedStyles[styleRef.id] = styleRef
+      if (
+        styleRef.content.mapType === 'inlined' &&
+        styleRef.content.conditions?.[0].conditionType === 'screen-size'
+      ) {
+        allMediaRelatedStyles[styleRef.id] = styleRef as UIDLElementNodeInlineReferencedStyle
       } else {
         acc[styleRef.id] = styleRef
       }
@@ -75,10 +80,13 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
     {}
   )
 
-  const sortedMediaQueries: UIDLReferencedStyles = Object.values(allMediaRelatedStyles)
+  const sortedMediaQueries: Record<string, UIDLElementNodeReferenceStyles> = Object.values(
+    allMediaRelatedStyles
+  )
     .sort(
-      // @ts-ignore
-      (a, b) => a.content.conditions?.[0].maxWidth - b.content.conditions?.[0].maxWidth
+      (a, b) =>
+        (a.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth -
+        (b.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth
     )
     .reverse()
     .reduce((acc: UIDLReferencedStyles, item: UIDLElementNodeReferenceStyles) => {

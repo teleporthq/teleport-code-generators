@@ -16,7 +16,7 @@ export const resolveStyleSetDefinitions = (
       if (conditions.length === 0) {
         return (acc = {
           ...acc,
-          [styleRef.id]: {
+          [styleRef.name]: {
             ...styleRef,
             name: StringUtils.dashCaseToCamelCase(styleRef.name),
           },
@@ -34,7 +34,7 @@ export const resolveStyleSetDefinitions = (
 
       return (acc = {
         ...acc,
-        [styleRef.id]: {
+        [styleRef.name]: {
           ...styleRef,
           conditions: [...elementStateConditions, ...mediaConditions],
           name: StringUtils.dashCaseToCamelCase(styleRef.name),

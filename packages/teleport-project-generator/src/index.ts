@@ -1,7 +1,6 @@
 import PathResolver from 'path'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
-import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
 import {
   GeneratorOptions,
   GeneratedFolder,
@@ -147,13 +146,6 @@ export class ProjectGenerator {
     }
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
-
-    /* Style sets contains only on project level. So passing them through componentcycle
-    just resolves for that component alone and don't have any impact for other components.
-    So, resolving happens here and is passed to all components. */
-    if (uidl.root?.styleSetDefinitions) {
-      uidl.root.styleSetDefinitions = resolveStyleSetDefinitions(uidl.root.styleSetDefinitions)
-    }
 
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
@@ -562,6 +554,10 @@ export class ProjectGenerator {
 
   public addPlugin(plugin: ProjectPlugin) {
     this.assemblyLine.addPlugin(plugin)
+  }
+
+  public cleanPlugins() {
+    this.assemblyLine.cleanPlugins()
   }
 
   public getAssetsPath() {

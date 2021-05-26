@@ -1,11 +1,12 @@
 import { StyleUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { generateStyledFromStyleContent } from './utils'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
@@ -48,32 +49,22 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     if (Object.keys(styleSetDefinitions).length > 0) {
       Object.values(styleSetDefinitions).forEach((style) => {
         const { name, content, conditions = [] } = style
-        const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
+        const className = StringUtils.dashCaseToCamelCase(name)
 
-        const collectedStyles = {
-          ...StyleUtils.getContentOfStyleObject(staticStyles),
-          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-        } as Record<string, string | number>
-
-        cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
+        cssMap.push(
+          StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content))
+        )
 
         if (conditions.length === 0) {
           return
         }
         conditions.forEach((styleRef) => {
-          const {
-            staticStyles: staticValues,
-            tokenStyles: tokenValues,
-          } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
-          const collectedMediaStyles = {
-            ...StyleUtils.getContentOfStyleObject(staticValues),
-            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
-          } as Record<string, string | number>
+          const collectedMediaStyles = generateStyledFromStyleContent(styleRef.content)
 
           if (styleRef.type === 'element-state') {
             cssMap.push(
               StyleBuilders.createCSSClassWithSelector(
-                name,
+                className,
                 `&:${styleRef.meta.state}`,
                 collectedMediaStyles
               )
@@ -83,7 +74,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           if (styleRef.type === 'screen-size') {
             mediaStylesMap[styleRef.meta.maxWidth] = {
               ...mediaStylesMap[styleRef.meta.maxWidth],
-              [name]: collectedMediaStyles,
+              [className]: collectedMediaStyles,
             }
           }
         })

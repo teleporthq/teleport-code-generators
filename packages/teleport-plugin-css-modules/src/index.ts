@@ -1,5 +1,21 @@
+/*
+  teleport-plugin-css-modules
+
+  Plugin is responsible for generating styles from
+  - Styles defined on individual nodes.
+  - Styles defined in the project's global stylesheet.
+  - Styles present in the component style sheeet.
+
+  All static values and Dynamic values such as design-tokens are resolved.
+
+  Limitations
+
+  Any dynamic values specified in Media Queries, Component Stylesheet
+  ProjectStyle sheet are lost. Since, css-modules can have dynamic values only in inline.
+  */
+
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { StyleUtils, StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
@@ -10,6 +26,7 @@ import {
   UIDLStyleMediaQueryScreenSizeCondition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
+import { generateStyledFromStyleContent } from './utils'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -46,14 +63,18 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
+    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
-
-    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path, importFile = false } =
-      projectStyleSet || {}
+    const {
+      styleSetDefinitions: globalStyleSheet = {},
+      fileName: projectStyleSheetName,
+      path,
+      importFile = false,
+    } = projectStyleSet || {}
 
     if (isRootComponent) {
-      if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
+      if (Object.keys(tokens).length > 0 || Object.keys(globalStyleSheet).length > 0) {
         const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
         dependencies[projectStylesReferenceOffset] = {
           type: 'local',
@@ -76,14 +97,30 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const cssClasses: string[] = []
     let isProjectStyleReferred: boolean = false
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
-    const astNodesLookup = (componentChunk.meta.nodesLookup || {}) as Record<string, unknown>
-    // @ts-ignore
-    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
+    const astNodesLookup = componentChunk.meta.nodesLookup || {}
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
-    UIDLUtils.traverseElements(uidl.node, (element) => {
+    /* Generating component scoped styles */
+    if (Object.keys(componentStyleSheet).length > 0) {
+      Object.values(componentStyleSheet).forEach((compStyle) => {
+        cssClasses.push(
+          StyleBuilders.createCSSClass(
+            StringUtils.camelCaseToDashCase(compStyle.name),
+            generateStyledFromStyleContent(compStyle.content)
+          )
+        )
+      })
+    }
+
+    UIDLUtils.traverseElements(node, (element) => {
       let appendClassName: boolean = false
       const classNamesToAppend: string[] = []
       const { style, key, referencedStyles } = element
+      const jsxTag = astNodesLookup[key] as types.JSXElement
+
+      if (!jsxTag) {
+        return
+      }
 
       if (!style && !referencedStyles) {
         return
@@ -97,22 +134,15 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         camelCaseClassNames || classNameIsJSFriendly
           ? `styles.${jsFriendlyClassName}`
           : `styles['${className}']`
-      const root = astNodesLookup[key]
 
+      /* Generating styles from UIDLElementNode to component style sheet */
       if (Object.keys(style || {}).length > 0) {
-        const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
-          style
-        )
+        const { staticStyles, dynamicStyles, tokenStyles } =
+          UIDLUtils.splitDynamicAndStaticStyles(style)
+
         if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
           cssClasses.push(
-            StyleBuilders.createCSSClass(
-              className,
-              // @ts-ignore
-              {
-                ...StyleUtils.getContentOfStyleObject(staticStyles),
-                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-              } as Record<string, string | number>
-            )
+            StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(style))
           )
           appendClassName = true
         }
@@ -122,25 +152,22 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
           )
 
-          // If dynamic styles are on nested-styles they are unfortunately lost, since inline style does not support that
+          /* If dynamic styles are on nested-styles they are unfortunately lost, 
+            since inline style does not support that */
           if (Object.keys(inlineStyles).length > 0) {
-            ASTUtils.addAttributeToJSXTag(root as types.JSXElement, 'style', inlineStyles)
+            ASTUtils.addAttributeToJSXTag(jsxTag, 'style', inlineStyles)
           }
         }
       }
 
+      /* Any media-styles, component-scoped styles, global style sheet styles are handled here */
       if (Object.keys(referencedStyles || {}).length > 0) {
         Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
-              // We can't set dynamic styles for conditions in css-modules, they need be directly applied in the node.
-              const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
-                styleRef.content.styles
-              )
-              const collectedStyles = {
-                ...StyleUtils.getContentOfStyleObject(staticStyles),
-                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-              } as Record<string, string | number>
+              /* We can't set dynamic styles for conditions in css-modules, 
+              they need be directly applied in the node. */
+              const collectedStyles = generateStyledFromStyleContent(styleRef.content.styles)
 
               const condition = styleRef.content.conditions[0]
               const { conditionType } = condition
@@ -165,11 +192,16 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               appendClassName = true
               return
             }
+
+            case 'component-referenced': {
+              return
+            }
+
             case 'project-referenced': {
               const { content } = styleRef
               if (content.referenceId && !content?.conditions) {
                 isProjectStyleReferred = true
-                const referedStyle = styleSetDefinitions[content.referenceId]
+                const referedStyle = globalStyleSheet[content.referenceId]
                 if (!referedStyle) {
                   throw new Error(
                     `Style that is being used for reference is missing - ${content.referenceId}`
@@ -194,16 +226,12 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
       if (classNamesToAppend?.length > 1) {
         ASTUtils.addMultipleDynamicAttributesToJSXTag(
-          root as types.JSXElement,
+          jsxTag,
           classAttributeName,
           classNamesToAppend
         )
       } else if (classNamesToAppend.length === 1) {
-        ASTUtils.addDynamicAttributeToJSXTag(
-          root as types.JSXElement,
-          classAttributeName,
-          classNamesToAppend[0]
-        )
+        ASTUtils.addDynamicAttributeToJSXTag(jsxTag, classAttributeName, classNamesToAppend[0])
       }
     })
 

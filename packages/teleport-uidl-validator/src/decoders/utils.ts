@@ -71,12 +71,8 @@ import {
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
-const {
-  isValidComponentName,
-  isValidFileName,
-  isValidElementName,
-  isValidNavLink,
-} = CustomCombinators
+const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
+  CustomCombinators
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -147,9 +143,8 @@ export const tokenReferenceDecoder: Decoder<UIDLStyleSetTokenReference> = object
 })
 
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
-  id: string(),
   name: string(),
-  type: constant('reusable-project-style-map'),
+  type: union(constant('reusable-project-style-map'), constant('reusable-component-style-map')),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
 })
@@ -164,9 +159,9 @@ export const stateOrPropDefinitionDecoder = union(
 )
 
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional((isValidComponentName() as unknown) as Decoder<string>),
-  navLink: optional((isValidNavLink() as unknown) as Decoder<string>),
-  fileName: optional((isValidFileName() as unknown) as Decoder<string>),
+  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
+  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
+  fileName: optional(isValidFileName() as unknown as Decoder<string>),
 })
 
 export const globalAssetsDecoder: Decoder<UIDLGlobalAsset> = union(
@@ -277,12 +272,12 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
-  componentClassName: optional((isValidComponentName() as unknown) as Decoder<string>),
-  fileName: optional((isValidFileName() as unknown) as Decoder<string>),
-  styleFileName: optional((isValidFileName() as unknown) as Decoder<string>),
-  templateFileName: optional((isValidFileName() as unknown) as Decoder<string>),
-  moduleName: optional((isValidFileName() as unknown) as Decoder<string>),
-  folderPath: optional(array((isValidFileName() as unknown) as Decoder<string>)),
+  componentClassName: optional(isValidComponentName() as unknown as Decoder<string>),
+  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  styleFileName: optional(isValidFileName() as unknown as Decoder<string>),
+  templateFileName: optional(isValidFileName() as unknown as Decoder<string>),
+  moduleName: optional(isValidFileName() as unknown as Decoder<string>),
+  folderPath: optional(array(isValidFileName() as unknown as Decoder<string>)),
 })
 
 export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
@@ -425,15 +420,14 @@ export const elementStyleWithStateConditionDecoder: Decoder<UIDLStyleStateCondit
   content: elementStateDecoder,
 })
 
-export const elementStyleWithMediaConditionDecoder: Decoder<UIDLStyleMediaQueryScreenSizeCondition> = object(
-  {
+export const elementStyleWithMediaConditionDecoder: Decoder<UIDLStyleMediaQueryScreenSizeCondition> =
+  object({
     conditionType: constant('screen-size'),
     minHeight: optional(number()),
     maxHeight: optional(number()),
     minWidth: optional(number()),
     maxWidth: number(),
-  }
-)
+  })
 
 export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
   elementStyleWithMediaConditionDecoder,
@@ -469,7 +463,7 @@ export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
 export const elementDecoder: Decoder<VUIDLElement> = object({
   elementType: string(),
   semanticType: optional(string()),
-  name: optional((isValidElementName() as unknown) as Decoder<string>),
+  name: optional(isValidElementName() as unknown as Decoder<string>),
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),

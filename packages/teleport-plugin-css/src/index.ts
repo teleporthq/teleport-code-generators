@@ -39,11 +39,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
-    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path } =
-      projectStyleSet || {}
-
     const { node } = uidl
+    const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
+    const {
+      styleSetDefinitions = {},
+      fileName: projectStyleSheetName,
+      path,
+    } = projectStyleSet || {}
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -96,9 +98,8 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         : elementClassName
 
       if (style) {
-        const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
-          style
-        )
+        const { staticStyles, dynamicStyles, tokenStyles } =
+          UIDLUtils.splitDynamicAndStaticStyles(style)
 
         if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
           const collectedStyles = {

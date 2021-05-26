@@ -43,8 +43,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
-    // @ts-ignore
-    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
     const jssStyleMap: Record<string, unknown> = {}
     const tokensReferred: string[] = []
 

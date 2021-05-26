@@ -24,9 +24,26 @@ export const parseComponentJSON = (
 ): ComponentUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
+  if (input?.styleSetDefinitions) {
+    const { styleSetDefinitions } = safeInput
+
+    Object.values(styleSetDefinitions).forEach((styleRef) => {
+      const { conditions = [] } = styleRef
+      styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
+      if (conditions.length > 0) {
+        conditions.forEach((style: UIDLStyleSetConditions) => {
+          style.content = UIDLUtils.transformStylesAssignmentsToJson(style.content) as Record<
+            string,
+            UIDLStaticValue
+          >
+        })
+      }
+    })
+  }
+
   const node = safeInput.node as Record<string, unknown>
   const result: ComponentUIDL = {
-    ...((safeInput as unknown) as ComponentUIDL),
+    ...(safeInput as unknown as ComponentUIDL),
   }
 
   // other parsers for other sections of the component here
@@ -45,29 +62,10 @@ export const parseProjectJSON = (
 ): ProjectUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
   const root = safeInput.root as Record<string, unknown>
-
   const result = {
-    ...((safeInput as unknown) as ProjectUIDL),
+    ...(safeInput as unknown as ProjectUIDL),
   }
-
   result.root = parseComponentJSON(root, { noClone: true })
-
-  if (result.root?.styleSetDefinitions) {
-    const { styleSetDefinitions } = root
-
-    Object.values(styleSetDefinitions).forEach((styleRef) => {
-      const { conditions = [] } = styleRef
-      styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
-      if (conditions.length > 0) {
-        conditions.forEach((style: UIDLStyleSetConditions) => {
-          style.content = UIDLUtils.transformStylesAssignmentsToJson(style.content) as Record<
-            string,
-            UIDLStaticValue
-          >
-        })
-      }
-    })
-  }
 
   if (result.root?.designLanguage) {
     const { tokens = {} } = result.root.designLanguage
@@ -93,7 +91,7 @@ export const parseProjectJSON = (
     result.components = Object.keys(result.components).reduce(
       (parsedComponnets: Record<string, ComponentUIDL>, key) => {
         parsedComponnets[key] = parseComponentJSON(
-          (result.components[key] as unknown) as Record<string, unknown>
+          result.components[key] as unknown as Record<string, unknown>
         )
         return parsedComponnets
       },
@@ -105,7 +103,7 @@ export const parseProjectJSON = (
 }
 
 const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
-  switch (((node as unknown) as UIDLNode).type) {
+  switch ((node as unknown as UIDLNode).type) {
     case 'element':
       const elementContent = node.content as Record<string, unknown>
 
@@ -162,14 +160,14 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         }, [])
       }
 
-      return (node as unknown) as UIDLNode
+      return node as unknown as UIDLNode
 
     case 'conditional':
-      const conditionalNode = (node as unknown) as UIDLConditionalNode
+      const conditionalNode = node as unknown as UIDLConditionalNode
       const { reference } = conditionalNode.content
 
       conditionalNode.content.node = parseComponentNode(
-        (conditionalNode.content.node as unknown) as Record<string, unknown>
+        conditionalNode.content.node as unknown as Record<string, unknown>
       )
 
       if (typeof reference === 'string') {
@@ -181,11 +179,11 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       return conditionalNode
 
     case 'repeat':
-      const repeatNode = (node as unknown) as UIDLRepeatNode
+      const repeatNode = node as unknown as UIDLRepeatNode
       const { dataSource } = repeatNode.content
 
       repeatNode.content.node = parseComponentNode(
-        (repeatNode.content.node as unknown) as Record<string, unknown>
+        repeatNode.content.node as unknown as Record<string, unknown>
       ) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
@@ -195,11 +193,11 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       return repeatNode
 
     case 'slot':
-      const slotNode = (node as unknown) as UIDLSlotNode
+      const slotNode = node as unknown as UIDLSlotNode
 
       if (slotNode.content.fallback) {
         slotNode.content.fallback = parseComponentNode(
-          (slotNode.content.fallback as unknown) as Record<string, unknown>
+          slotNode.content.fallback as unknown as Record<string, unknown>
         ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
       }
 
@@ -208,7 +206,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
     case 'dynamic':
     case 'static':
     case 'raw':
-      return (node as unknown) as UIDLNode
+      return node as unknown as UIDLNode
 
     default:
       throw new Error(`parseComponentNode attempted to parsed invalid node type ${node.type}`)

@@ -38,7 +38,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       return structure
     }
 
-    const jsxNodesLookup = componentChunk.meta.nodesLookup
+    const jsxNodesLookup = componentChunk.meta.nodesLookup || {}
     const jssStyleMap: Record<string, unknown> = {}
     let isProjectReferenced: boolean = false
     const tokensUsed: string[] = []
@@ -50,8 +50,8 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       if (!style && !referencedStyles) {
         return
       }
-      // @ts-ignore
-      const root = jsxNodesLookup[key]
+
+      const root = jsxNodesLookup[key] as types.JSXElement
       const className = StringUtils.camelCaseToDashCase(key)
       const classNamesToAppend: string[] = []
 
@@ -141,13 +141,16 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
     const { content: astContent } = componentChunk
     const parser = new ParsedASTNode(astContent)
-    // @ts-ignore
-    const astNode = parser.ast.declarations[0]
-    const isPropsInjected = astNode.init.params?.some(
-      (prop: types.Identifier) => prop.name === 'props'
-    )
-    if (!isPropsInjected && propsUsed.length > 0) {
-      astNode.init.params.push(types.identifier('props'))
+
+    const astNode = (parser.ast as types.VariableDeclaration)
+      .declarations[0] as types.VariableDeclarator
+    if (astNode.type === 'VariableDeclarator') {
+      const isPropsInjected = (astNode.init as types.ArrowFunctionExpression).params?.some(
+        (prop: types.Identifier) => prop.name === 'props'
+      )
+      if (!isPropsInjected && propsUsed.length > 0) {
+        ;(astNode.init as types.ArrowFunctionExpression).params.push(types.identifier('props'))
+      }
     }
 
     if (tokensUsed.length > 0) {
@@ -168,8 +171,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
           namedImport: true,
         },
       }
-      // @ts-ignore
-      astNode.init.body.body.unshift(
+      ;((astNode.init as types.ArrowFunctionExpression).body as types.BlockStatement).body.unshift(
         createStylesHookDecleration('projectStyles', 'useProjectStyles')
       )
     }
@@ -178,8 +180,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       return structure
     }
 
-    // @ts-ignore
-    astNode.init.body.body.unshift(
+    ;((astNode.init as types.ArrowFunctionExpression).body as types.BlockStatement).body.unshift(
       propsUsed.length > 0
         ? createStylesHookDecleration('classes', 'useStyles', 'props')
         : createStylesHookDecleration('classes', 'useStyles')
