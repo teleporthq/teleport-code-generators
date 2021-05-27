@@ -1,4 +1,7 @@
-import { UIDLStyleMediaQueryScreenSizeCondition } from '@teleporthq/teleport-types'
+import {
+  UIDLElementNodeReferenceStyles,
+  UIDLStyleMediaQueryScreenSizeCondition,
+} from '@teleporthq/teleport-types'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { resolveReferencedStyle } from '../../src/resolvers/referenced-styles'
 
@@ -7,9 +10,8 @@ describe('Resolves referenced styles and sorts media styles in order', () => {
     const style = {
       width: staticNode('100px'),
     }
-    const referencedStyles = {
+    const referencedStyles: Record<string, UIDLElementNodeReferenceStyles> = {
       '5ed66ec0b98ab344e6299c7d': {
-        id: '5ed66ec0b98ab344e6299c7d',
         type: 'style-map' as const,
         content: {
           mapType: 'inlined' as const,
@@ -20,7 +22,6 @@ describe('Resolves referenced styles and sorts media styles in order', () => {
         },
       },
       '5ed66ec0b98ab344e6299c7c': {
-        id: '5ed66ec0b98ab344e6299c7c',
         type: 'style-map' as const,
         content: {
           mapType: 'inlined' as const,

@@ -114,7 +114,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
           /* If dynamic styles are on nested-styles they are unfortunately lost, 
           since inline style does not support that */
           if (templateStyle === 'html') {
-            // simple string expression
             const inlineStyles = createDynamicInlineStyle(dynamicStyles)
             HASTUtils.addAttributeToNode(
               root as HastNode,
@@ -122,7 +121,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               `{${inlineStyles}}`
             )
           } else {
-            // jsx object expression
             const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
               StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
             )

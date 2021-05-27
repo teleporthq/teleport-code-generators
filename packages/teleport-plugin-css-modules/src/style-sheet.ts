@@ -10,6 +10,7 @@ import { generateStyledFromStyleContent } from './utils'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
+  camelCaseClassNames?: boolean
 }
 
 const defaultConfig = {
@@ -18,7 +19,7 @@ const defaultConfig = {
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName, moduleExtension } = {
+  const { fileName, moduleExtension, camelCaseClassNames } = {
     ...defaultConfig,
     ...config,
   }
@@ -49,7 +50,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     if (Object.keys(styleSetDefinitions).length > 0) {
       Object.values(styleSetDefinitions).forEach((style) => {
         const { name, content, conditions = [] } = style
-        const className = StringUtils.dashCaseToCamelCase(name)
+        const className = camelCaseClassNames
+          ? StringUtils.dashCaseToCamelCase(name)
+          : StringUtils.camelCaseToDashCase(name)
 
         cssMap.push(
           StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content))

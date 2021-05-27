@@ -99,7 +99,7 @@ export type VUIDLElementNodeClassReferencedStyle = Modify<
   {
     content: {
       mapType: 'component-referenced'
-      content: string | UIDLClassDynamicReference
+      content: string | UIDLStaticValue | UIDLClassDynamicReference
     }
   }
 >

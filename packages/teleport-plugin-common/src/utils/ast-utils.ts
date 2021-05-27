@@ -68,13 +68,19 @@ export const addDynamicAttributeToJSXTag = (
   )
 }
 
+/*
+  Use, when we need to add a mix of dynamic and static values to
+  the same attribute at the same time.
+*/
+
 export const addMultipleDynamicAttributesToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
   values: string[],
+  propReferencedValues: types.MemberExpression[] = [],
   t = types
 ) => {
-  const memberExpressions: types.Identifier[] = []
+  const memberExpressions: Array<types.Identifier | types.MemberExpression> = []
   const templateElements: types.TemplateElement[] = []
 
   Object.values(values).forEach((item) => {
@@ -82,6 +88,11 @@ export const addMultipleDynamicAttributesToJSXTag = (
     memberExpressions.push(t.identifier(item))
   })
   templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+
+  propReferencedValues.forEach((propReference) => {
+    memberExpressions.push(propReference)
+    templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+  })
 
   const content = t.templateLiteral(templateElements, memberExpressions)
 

@@ -12,6 +12,7 @@ import {
   UIDLStaticValue,
   UIDLStyleSetConditions,
   UIDLDesignTokens,
+  ParserError,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -110,21 +111,44 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {
           const { content } = styleRef
-          if (content.mapType === 'inlined') {
-            content.styles = UIDLUtils.transformStylesAssignmentsToJson(
-              content.styles as Record<string, string>
-            )
-          }
 
-          if (content.mapType === 'project-referenced' && content?.conditions) {
-            throw new Error(`
-              We currently don't support conditions for "referencedStyles" which are
-              "project-referenced". Because we need a solution to conditionally apply on the nodes
-              with the condition they are being used.
+          switch (content.mapType) {
+            case 'inlined': {
+              content.styles = UIDLUtils.transformStylesAssignmentsToJson(
+                content.styles as Record<string, string>
+              )
+              break
+            }
 
-              Eg: If a reference styles is used only for hover, we should be applying the style
-              on hover of the node which is using it by pulling from project-style sheet.
+            case 'project-referenced': {
+              if (content?.conditions) {
+                throw new ParserError(`
+We currently don't support conditions for "referencedStyles" which are
+"project-referenced". Because we need a solution to conditionally apply on the nodes
+with the condition they are being used.
+
+Eg: If a reference styles is used only for hover, we should be applying the style
+on hover of the node which is using it by pulling from project-style sheet.
             `)
+              }
+              break
+            }
+
+            case 'component-referenced': {
+              if (['string', 'number'].includes(typeof styleRef.content.content)) {
+                styleRef.content.content = {
+                  type: 'static',
+                  content: styleRef.content.content,
+                }
+              }
+              break
+            }
+
+            default: {
+              throw new ParserError(
+                `Un-expected mapType passed in referencedStyles - ${content.mapType}`
+              )
+            }
           }
         })
       }
@@ -209,6 +233,6 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       return node as unknown as UIDLNode
 
     default:
-      throw new Error(`parseComponentNode attempted to parsed invalid node type ${node.type}`)
+      throw new ParserError(`parseComponentNode attempted to parsed invalid node type ${node.type}`)
   }
 }

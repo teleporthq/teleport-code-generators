@@ -359,8 +359,15 @@ export type UIDLElementNodeReferenceStyles =
   | UIDLElementNodeClassReferencedStyle
 
 export type UIDLProjectReferencedStyleID = string
+
+export interface UIDLElementNodeClassReferencedStyle {
+  type: 'style-map'
+  content: {
+    mapType: 'component-referenced'
+    content: UIDLStaticValue | UIDLClassDynamicReference
+  }
+}
 export interface UIDLElementNodeProjectReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'project-referenced'
@@ -369,7 +376,6 @@ export interface UIDLElementNodeProjectReferencedStyle {
   }
 }
 export interface UIDLElementNodeInlineReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'inlined'
@@ -379,16 +385,10 @@ export interface UIDLElementNodeInlineReferencedStyle {
 }
 
 export type UIDLClassDynamicReference = {
-  referenceType: 'prop' | 'state' | 'comp'
-  id: string
-}
-
-export interface UIDLElementNodeClassReferencedStyle {
-  id: string
-  type: 'style-map'
+  type: 'dynamic'
   content: {
-    mapType: 'component-referenced'
-    content: UIDLStaticValue | UIDLClassDynamicReference
+    referenceType: 'prop' | 'comp'
+    id: string
   }
 }
 

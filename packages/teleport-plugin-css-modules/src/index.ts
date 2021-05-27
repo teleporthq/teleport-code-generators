@@ -44,7 +44,7 @@ const defaultConfigProps = {
   camelCaseClassNames: false,
   moduleExtension: false,
   classAttributeName: 'className',
-  projectStylesReferenceOffset: 'projectStyles',
+  globalStyleSheetPrefix: 'projectStyles',
 }
 
 export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = (config = {}) => {
@@ -55,7 +55,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     camelCaseClassNames,
     moduleExtension,
     classAttributeName,
-    projectStylesReferenceOffset,
+    globalStyleSheetPrefix,
   } = {
     ...defaultConfigProps,
     ...config,
@@ -63,9 +63,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
-    const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
     const {
       styleSetDefinitions: globalStyleSheet = {},
       fileName: projectStyleSheetName,
@@ -76,7 +75,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(globalStyleSheet).length > 0) {
         const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
-        dependencies[projectStylesReferenceOffset] = {
+        dependencies[globalStyleSheetPrefix] = {
           type: 'local',
           path: `${path}/${fileName}.${FileType.CSS}`,
           meta: {
@@ -88,6 +87,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       return structure
     }
 
+    const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
     if (!componentChunk) {
       throw new Error(
         `JSX based component chunk with name ${componentChunkName} was required and not found.`
@@ -103,9 +103,12 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {
       Object.values(componentStyleSheet).forEach((compStyle) => {
+        const compScopedClassName = camelCaseClassNames
+          ? StringUtils.dashCaseToCamelCase(compStyle.name)
+          : StringUtils.camelCaseToDashCase(compStyle.name)
         cssClasses.push(
           StyleBuilders.createCSSClass(
-            StringUtils.camelCaseToDashCase(compStyle.name),
+            compScopedClassName,
             generateStyledFromStyleContent(compStyle.content)
           )
         )
@@ -117,6 +120,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const classNamesToAppend: string[] = []
       const { style, key, referencedStyles } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
+      const propReferencingClasses: types.MemberExpression[] = []
 
       if (!jsxTag) {
         return
@@ -165,8 +169,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
           switch (styleRef.content.mapType) {
             case 'inlined': {
-              /* We can't set dynamic styles for conditions in css-modules, 
-              they need be directly applied in the node. */
+              /* Dynamic values for media-queries are not supported */
               const collectedStyles = generateStyledFromStyleContent(styleRef.content.styles)
 
               const condition = styleRef.content.conditions[0]
@@ -194,6 +197,44 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             }
 
             case 'component-referenced': {
+              const classContent = styleRef.content.content
+              if (classContent.type === 'static') {
+                classNamesToAppend.push(`'${classContent.content}'`)
+                appendClassName = true
+                return
+              }
+
+              if (
+                classContent.type === 'dynamic' &&
+                classContent.content.referenceType === 'prop'
+              ) {
+                /*
+                  To maintain uniformity, all the classNames are generated using the same principle.
+                  Either camelCase or dashCase completly. So, here irrespective of the default value that
+                  use is setting. It is safe to change the default value depending on the naming convention
+                  that we follow.
+                  
+                  Since, node is referring to the prop in a `className` so ideally it shouldn't be used anywhere.
+                  // TODO
+                  Add check in validator to see, if any prop that is referring on node with `className` is of type string
+                */
+                const usedProp = propDefinitions[classContent.content.id]
+                propDefinitions[classContent.content.id].defaultValue = camelCaseClassNames
+                  ? StringUtils.camelCaseToDashCase(usedProp.defaultValue as string)
+                  : StringUtils.camelCaseToDashCase(usedProp.defaultValue as string)
+
+                propReferencingClasses.push(
+                  types.memberExpression(
+                    types.identifier('styles'),
+                    types.memberExpression(
+                      types.identifier(propsPrefix),
+                      types.identifier(classContent.content.id)
+                    ),
+                    true
+                  )
+                )
+              }
+
               return
             }
 
@@ -207,7 +248,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
-                classNamesToAppend.push(`${projectStylesReferenceOffset}.${referedStyle.name}`)
+                const globalClassName = camelCaseClassNames
+                  ? StringUtils.dashCaseToCamelCase(referedStyle.name)
+                  : StringUtils.camelCaseToDashCase(referedStyle.name)
+
+                classNamesToAppend.push(`${globalStyleSheetPrefix}.['${globalClassName}']`)
               }
               return
             }
@@ -228,7 +273,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         ASTUtils.addMultipleDynamicAttributesToJSXTag(
           jsxTag,
           classAttributeName,
-          classNamesToAppend
+          classNamesToAppend,
+          propReferencingClasses
         )
       } else if (classNamesToAppend.length === 1) {
         ASTUtils.addDynamicAttributeToJSXTag(jsxTag, classAttributeName, classNamesToAppend[0])
@@ -265,7 +311,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     So, project styles should always be loaded before component styles */
     if (isProjectStyleReferred && importFile) {
       const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
-      dependencies[projectStylesReferenceOffset] = {
+      dependencies[globalStyleSheetPrefix] = {
         type: 'local',
         path: `${path}/${fileName}.${FileType.CSS}`,
       }

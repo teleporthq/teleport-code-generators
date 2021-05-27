@@ -178,7 +178,6 @@ describe('plugin-css-modules', () => {
 
     structure.uidl.node.content.referencedStyles = {
       '5ecfb3b6f2be3a6e09ff4ad3': {
-        id: '5ecfb3b6f2be3a6e09ff4ad3',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -189,7 +188,6 @@ describe('plugin-css-modules', () => {
         },
       },
       '5ecfb3b6f2be3a6e09ff4ad4': {
-        id: '5ecfb3b6f2be3a6e09ff4ad4',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -216,7 +214,6 @@ describe('plugin-css-modules', () => {
     structure.options.projectStyleSet = {
       styleSetDefinitions: {
         '5ecfb5c3ce6b220ce8d154a2': {
-          id: '5ecfb5c3ce6b220ce8d154a2',
           name: 'primaryButton',
           type: 'reusable-project-style-map',
           content: {
@@ -233,7 +230,6 @@ describe('plugin-css-modules', () => {
 
     structure.uidl.node.content.referencedStyles = {
       '5ecfb3b6f2be3a6e09ff4ad3': {
-        id: '5ecfb3b6f2be3a6e09ff4ad3',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',

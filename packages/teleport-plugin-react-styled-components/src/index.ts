@@ -79,12 +79,13 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
         if (componentLibrary === 'reactnative') {
           if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-            Object.values(referencedStyles).forEach((styleRef) => {
+            Object.keys(referencedStyles).forEach((styleId) => {
+              const styleRef = referencedStyles[styleId]
               if (styleRef.content.mapType === 'inlined') {
-                referencedStyles[styleRef.id] = {
-                  ...referencedStyles[styleRef.id],
+                referencedStyles[styleId] = {
+                  ...referencedStyles[styleId],
                   content: {
-                    ...referencedStyles[styleRef.id].content,
+                    ...referencedStyles[styleId].content,
                     // @ts-ignore
                     styles: styleRef.content.styles,
                   },

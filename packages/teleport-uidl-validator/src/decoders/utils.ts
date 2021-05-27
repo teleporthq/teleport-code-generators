@@ -68,6 +68,8 @@ import {
   UIDLCanonicalAsset,
   UIDLIconAsset,
   UIDLAssetBase,
+  VUIDLElementNodeClassReferencedStyle,
+  UIDLClassDynamicReference,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -436,7 +438,6 @@ export const styleConditionsDecoder: Decoder<UIDLStyleConditions> = union(
 
 export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectReferencedStyle> = object(
   {
-    id: string(),
     type: constant('style-map'),
     content: object({
       mapType: constant('project-referenced'),
@@ -447,7 +448,6 @@ export const elementProjectReferencedStyle: Decoder<UIDLElementNodeProjectRefere
 )
 
 export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferencedStyle> = object({
-  id: string(),
   type: constant('style-map'),
   content: object({
     mapType: constant('inlined'),
@@ -455,6 +455,23 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
     styles: optional(dict(union(attributeValueDecoder, string(), number()))),
   }),
 })
+
+export const classDynamicReferenceDecoder: Decoder<UIDLClassDynamicReference> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: union(constant('prop'), constant('comp')),
+    id: string(),
+  }),
+})
+
+export const elementComponentReferencedStyle: Decoder<VUIDLElementNodeClassReferencedStyle> =
+  object({
+    type: constant('style-map'),
+    content: object({
+      mapType: constant('component-referenced'),
+      content: union(string(), staticValueDecoder, classDynamicReferenceDecoder),
+    }),
+  })
 
 export const designTokensDecoder: Decoder<VUIDLDesignTokens> = dict(
   union(staticValueDecoder, string(), number())
@@ -476,7 +493,13 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   ),
   children: optional(array(lazy(() => uidlNodeDecoder))),
   referencedStyles: optional(
-    dict(union(elementInlineReferencedStyle, elementProjectReferencedStyle))
+    dict(
+      union(
+        elementInlineReferencedStyle,
+        elementProjectReferencedStyle,
+        elementComponentReferencedStyle
+      )
+    )
   ),
   selfClosing: optional(boolean()),
   ignore: optional(boolean()),

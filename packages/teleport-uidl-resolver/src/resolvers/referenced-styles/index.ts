@@ -11,8 +11,8 @@ import {
   UIDLElementNodeProjectReferencedStyle,
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
-  UIDLElementNodeReferenceStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
+  UIDLElementNodeClassReferencedStyle,
 } from '@teleporthq/teleport-types'
 
 export const resolveReferencedStyle = (input: ComponentUIDL) => {
@@ -23,22 +23,7 @@ const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
   const { referencedStyles = {} } = node.content
 
   if (Object.keys(referencedStyles).length > 0) {
-    const projectReferencedStyles: Record<string, UIDLElementNodeProjectReferencedStyle> = {}
-    const inlineStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
-    Object.values(referencedStyles).forEach((styleRef) => {
-      const { content, id } = styleRef
-      if (content.mapType === 'project-referenced') {
-        projectReferencedStyles[id] = styleRef as UIDLElementNodeProjectReferencedStyle
-      }
-
-      if (content.mapType === 'inlined') {
-        inlineStyles[id] = styleRef as UIDLElementNodeInlineReferencedStyle
-      }
-    })
-    node.content.referencedStyles = {
-      ...sortByStateAndCondition(inlineStyles),
-      ...sortByStateAndCondition(projectReferencedStyles),
-    }
+    node.content.referencedStyles = sortByStateAndCondition(referencedStyles)
   }
 
   node.content?.children?.map((child) => {
@@ -59,40 +44,67 @@ const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
   return node
 }
 
-const sortByStateAndCondition = (styles: UIDLReferencedStyles) => {
+const sortByStateAndCondition = (styles: UIDLReferencedStyles): UIDLReferencedStyles => {
   if (Object.keys(styles).length === 0) {
     return {}
   }
   const allMediaRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
+  const allElementStateRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
+  const globalReferencedStyles: Record<string, UIDLElementNodeProjectReferencedStyle> = {}
+  const allClassReferencedStyles: Record<string, UIDLElementNodeClassReferencedStyle> = {}
 
-  const list: UIDLReferencedStyles = Object.values(styles).reduce(
-    (acc: UIDLReferencedStyles, styleRef: UIDLElementNodeReferenceStyles) => {
-      if (
-        styleRef.content.mapType === 'inlined' &&
-        styleRef.content.conditions?.[0].conditionType === 'screen-size'
-      ) {
-        allMediaRelatedStyles[styleRef.id] = styleRef as UIDLElementNodeInlineReferencedStyle
-      } else {
-        acc[styleRef.id] = styleRef
+  Object.keys(styles).map((styleId: string) => {
+    const styleRef = styles[styleId]
+
+    switch (styleRef.content.mapType) {
+      case 'inlined':
+        {
+          if (styleRef.content.conditions[0].conditionType === 'screen-size') {
+            allMediaRelatedStyles[styleId] = styleRef as UIDLElementNodeInlineReferencedStyle
+          }
+
+          if (styleRef.content.conditions[0].conditionType === 'element-state') {
+            allElementStateRelatedStyles[styleId] = styleRef as UIDLElementNodeInlineReferencedStyle
+          }
+        }
+        break
+      case 'component-referenced': {
+        allClassReferencedStyles[styleId] = styleRef as UIDLElementNodeClassReferencedStyle
+        break
       }
-      return acc
-    },
-    {}
-  )
+      case 'project-referenced': {
+        globalReferencedStyles[styleId] = styleRef as UIDLElementNodeProjectReferencedStyle
+        break
+      }
+      default: {
+        throw new Error(
+          `Invalid referenceStyle passed - ${JSON.stringify(styleRef.content, null, 2)}`
+        )
+      }
+    }
+  })
 
-  const sortedMediaQueries: Record<string, UIDLElementNodeReferenceStyles> = Object.values(
+  const sortedMediaQueries: Record<string, UIDLElementNodeInlineReferencedStyle> = Object.keys(
     allMediaRelatedStyles
   )
-    .sort(
-      (a, b) =>
-        (a.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth -
-        (b.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth
-    )
-    .reverse()
-    .reduce((acc: UIDLReferencedStyles, item: UIDLElementNodeReferenceStyles) => {
-      acc[item.id] = item
+    .sort((a, b) => {
+      const styleA = allMediaRelatedStyles[a]
+      const styleB = allMediaRelatedStyles[b]
+
+      return (
+        (styleB.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth -
+        (styleA.content.conditions[0] as UIDLStyleMediaQueryScreenSizeCondition).maxWidth
+      )
+    })
+    .reduce((acc: Record<string, UIDLElementNodeInlineReferencedStyle>, styleId: string) => {
+      acc[styleId] = allMediaRelatedStyles[styleId]
       return acc
     }, {})
 
-  return { ...list, ...sortedMediaQueries }
+  return {
+    ...globalReferencedStyles,
+    ...allClassReferencedStyles,
+    ...sortedMediaQueries,
+    ...allElementStateRelatedStyles,
+  }
 }

@@ -24,7 +24,6 @@ describe('plugin-css-modules-style-sheet', () => {
     }
     const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
         name: 'primaryButton',
         type: 'reusable-project-style-map',
         content: {
@@ -33,7 +32,6 @@ describe('plugin-css-modules-style-sheet', () => {
         },
       },
       '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
         name: 'secondaryButton',
         type: 'reusable-project-style-map',
         content: {
@@ -42,7 +40,6 @@ describe('plugin-css-modules-style-sheet', () => {
         },
       },
       '5ecfa1233b8e50f60ea2b64c': {
-        id: '5ecfa1233b8e50f60ea2b64c',
         name: 'conditionalButton',
         type: 'reusable-project-style-map',
         conditions: [
@@ -87,14 +84,14 @@ describe('plugin-css-modules-style-sheet', () => {
   --blue-600: #6b7db3;
 }
 `)
-    expect(content).toContain(`.conditionalButton:hover {
+    expect(content).toContain(`.conditional-button:hover {
   background: var(--blue-500);
 }
 `)
     expect(content).toContain(`color: var(--red-500)`)
-    expect(content).toContain('.primaryButton')
-    expect(content).toContain('secondaryButton')
-    expect(content).toContain('.conditionalButton:hover')
+    expect(content).toContain('.primary-button')
+    expect(content).toContain('.secondary-button')
+    expect(content).toContain('.conditional-button:hover')
     expect(content).toContain('@media(max-width: 991px)')
     expect(content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })
