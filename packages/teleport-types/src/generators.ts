@@ -37,7 +37,9 @@ export interface ChunkDefinition {
   name: string
   fileType: FileType
   meta?: {
-    nodesLookup?: Record<string, unknown>
+    nodesLookup?: {
+      container?: Record<string, unknown>
+    } & Record<string, unknown>
     dynamicRefPrefix?: Record<string, unknown>
   } & Record<string, unknown>
   content: ChunkContent

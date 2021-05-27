@@ -271,7 +271,7 @@ describe('Referes from project style and adds it to the node, without any styles
       type: 'style-map',
       content: {
         mapType: 'project-referenced',
-        referenceId: '987654321',
+        referenceId: 'primaryButton',
       },
     },
   }
@@ -282,9 +282,8 @@ describe('Referes from project style and adds it to the node, without any styles
   const options: GeneratorOptions = {
     projectStyleSet: {
       styleSetDefinitions: {
-        '987654321': {
+        primaryButton: {
           type: 'reusable-project-style-map',
-          name: 'primaryButton',
           content: {
             background: staticNode('blue'),
           },

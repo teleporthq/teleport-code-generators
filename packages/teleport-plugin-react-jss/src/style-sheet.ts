@@ -38,7 +38,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
 
     const styleSet: Record<string, unknown> = {}
     if (Object.keys(styleSetDefinitions).length > 0) {
-      Object.values(styleSetDefinitions).forEach((style) => {
+      Object.keys(styleSetDefinitions).forEach((styleId) => {
+        const style = styleSetDefinitions[styleId]
         const { conditions = [], content } = style
         let styles = {
           ...generatePropSyntax(content),
@@ -71,7 +72,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           })
         }
 
-        styleSet[StringUtils.dashCaseToCamelCase(style.name)] = styles
+        styleSet[StringUtils.dashCaseToCamelCase(styleId)] = styles
       })
     }
 

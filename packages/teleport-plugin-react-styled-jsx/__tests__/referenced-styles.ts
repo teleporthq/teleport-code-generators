@@ -62,7 +62,6 @@ describe('Referenced Styles on Node', () => {
     const plugin = createReactStyledJSXPlugin()
     uidl.node.content.referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -73,7 +72,6 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6382': {
-        id: '5ed659b1732f9b804f7b6382',
         type: 'style-map',
         content: {
           mapType: 'inlined',

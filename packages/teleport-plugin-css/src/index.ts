@@ -181,7 +181,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
-                classNamesToAppend.push(referedStyle.name)
+                classNamesToAppend.push(content.referenceId)
               }
               return
             }

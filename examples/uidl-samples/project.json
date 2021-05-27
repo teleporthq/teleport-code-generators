@@ -62,9 +62,7 @@
       }
     },
     "styleSetDefinitions": {
-      "5ed0d05baa77d97673711820": {
-        "id": "5ed0d05baa77d97673711820",
-        "name": "primary-button",
+      "primary-button": {
         "type": "reusable-project-style-map",
         "conditions": [
           { "type": "screen-size",
@@ -95,9 +93,7 @@
           "border": "1px solid #fff"
         }
       },
-      "5ed0d4923de727e93cb4efa2": {
-        "id": "5ed0d4923de727e93cb4efa2",
-        "name": "secondaryButton",
+      "secondary-button": {
         "type": "reusable-project-style-map",
         "content": {
           "background": "red",
@@ -252,7 +248,6 @@
                             "name": "columns",
                             "referencedStyles": {
                               "5ed0cb9ff4fd989551c4edc0": {
-                                "id": "5ed0cb9ff4fd989551c4edc0",
                                 "type": "style-map",
                                 "content": {
                                   "mapType": "inlined",
@@ -278,7 +273,6 @@
                                   "elementType": "container",
                                   "referencedStyles": {
                                     "5ed0cc78c15bf36607fceff5": {
-                                      "id": "5ed0cc78c15bf36607fceff5",
                                       "type": "style-map",
                                       "content": {
                                         "mapType": "inlined",
@@ -315,7 +309,6 @@
                                   "elementType": "container",
                                   "referencedStyles": {
                                     "5ed0cd2ef0ece67901cc8f20": {
-                                      "id": "5ed0cd2ef0ece67901cc8f20",
                                       "type": "style-map",
                                       "content": {
                                         "mapType": "inlined",
@@ -367,7 +360,6 @@
                                   "elementType": "container",
                                   "referencedStyles": {
                                     "5ed0cd26bd7301de692957bf": {
-                                      "id": "5ed0cd26bd7301de692957bf",
                                       "type": "style-map",
                                       "content": {
                                         "mapType": "inlined",
@@ -428,11 +420,10 @@
                             },
                             "referencedStyles": {
                               "5ed0d3daf36df4da926078ee": {
-                                "id": "5ed0d3daf36df4da926078ee",
                                 "type": "style-map",
                                 "content": {
                                   "mapType": "project-referenced",
-                                  "referenceId": "5ed0d05baa77d97673711820"
+                                  "referenceId": "primary-button"
                                 }
                               }
                             },
@@ -449,11 +440,10 @@
                             },
                             "referencedStyles": {
                               "5ed0d3daf36df4da926078ee": {
-                                "id": "5ed0d3daf36df4da926078ee",
                                 "type": "style-map",
                                 "content": {
                                   "mapType": "project-referenced",
-                                  "referenceId": "5ed0d4923de727e93cb4efa2"
+                                  "referenceId": "secondary-button"
                                 }
                               }
                             },
@@ -595,7 +585,6 @@
                       "name": "home-link",
                       "referencedStyles": {
                         "5ecf9f48c169f22eb26ce91d": {
-                          "id": "5ecf9f48c169f22eb26ce91d",
                           "type": "style-map",
                           "content": {
                             "mapType": "inlined",
@@ -639,7 +628,6 @@
                       "elementType": "li",
                       "referencedStyles": {
                         "5ecfa07284d8848f05ef9c2d": {
-                          "id": "5ecfa07284d8848f05ef9c2d",
                           "type": "style-map",
                           "content": {
                             "mapType": "inlined",
@@ -683,15 +671,13 @@
                       "name": "contact-link",
                       "referencedStyles": {
                         "5ed0d3daf36df4da926078e": {
-                          "id": "5ed0d3daf36df4da926078e",
                           "type": "style-map",
                           "content": {
                             "mapType": "project-referenced",
-                            "referenceId": "5ed0d4923de727e93cb4efa2"
+                            "referenceId": "secondary-button"
                           }
                         },
                         "5ecfa0d2f9f29ada8482ff03": {
-                          "id": "5ecfa0d2f9f29ada8482ff03",
                           "type": "style-map",
                           "content": {
                             "mapType": "inlined",
@@ -1107,7 +1093,6 @@
                 "elementType": "button",
                 "referencedStyles": {
                   "5ecfa1233b8e50f60ea2b64d": {
-                    "id": "5ecfa1233b8e50f60ea2b64d",
                     "type": "style-map",
                     "content": {
                       "mapType": "inlined",

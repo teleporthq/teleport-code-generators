@@ -8,8 +8,7 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-  '5ecfa1233b8e50f60ea2b64d': {
-    id: '5ecfa1233b8e50f60ea2b64d',
+  primaryButton: {
     name: 'primaryButton',
     type: 'reusable-project-style-map',
     content: {
@@ -17,8 +16,7 @@ export const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       color: staticNode('red'),
     },
   },
-  '5ecfa1233b8e50f60ea2b64b': {
-    id: '5ecfa1233b8e50f60ea2b64b',
+  secondaryButton: {
     name: 'secondaryButton',
     type: 'reusable-project-style-map',
     content: {

@@ -63,7 +63,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions: globalStyleSheet = {},
@@ -102,10 +102,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {
-      Object.values(componentStyleSheet).forEach((compStyle) => {
+      Object.keys(componentStyleSheet).forEach((compStyleId) => {
+        const compStyle = componentStyleSheet[compStyleId]
         const compScopedClassName = camelCaseClassNames
-          ? StringUtils.dashCaseToCamelCase(compStyle.name)
-          : StringUtils.camelCaseToDashCase(compStyle.name)
+          ? StringUtils.dashCaseToCamelCase(compStyleId)
+          : StringUtils.camelCaseToDashCase(compStyleId)
         cssClasses.push(
           StyleBuilders.createCSSClass(
             compScopedClassName,
@@ -218,11 +219,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   // TODO
                   Add check in validator to see, if any prop that is referring on node with `className` is of type string
                 */
-                const usedProp = propDefinitions[classContent.content.id]
-                propDefinitions[classContent.content.id].defaultValue = camelCaseClassNames
-                  ? StringUtils.camelCaseToDashCase(usedProp.defaultValue as string)
-                  : StringUtils.camelCaseToDashCase(usedProp.defaultValue as string)
-
                 propReferencingClasses.push(
                   types.memberExpression(
                     types.identifier('styles'),
@@ -249,8 +245,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   )
                 }
                 const globalClassName = camelCaseClassNames
-                  ? StringUtils.dashCaseToCamelCase(referedStyle.name)
-                  : StringUtils.camelCaseToDashCase(referedStyle.name)
+                  ? StringUtils.dashCaseToCamelCase(content.referenceId)
+                  : StringUtils.camelCaseToDashCase(content.referenceId)
 
                 classNamesToAppend.push(`${globalStyleSheetPrefix}.['${globalClassName}']`)
               }

@@ -13,7 +13,6 @@ const findFileByType = (files: GeneratedFile[], type: string = FileType.JS) =>
 describe('Generates media, pseudo and normal styles', () => {
   const referencedStyles: UIDLReferencedStyles = {
     '1234567890': {
-      id: '1234567890',
       type: 'style-map',
       content: {
         mapType: 'inlined',
@@ -52,7 +51,6 @@ describe('Generates media, pseudo and normal styles', () => {
 describe('Add referenced styles even when direct styles are not present on node', () => {
   const referencedStyles: UIDLReferencedStyles = {
     '1234567890': {
-      id: '1234567890',
       type: 'style-map',
       content: {
         mapType: 'inlined',
@@ -88,11 +86,10 @@ describe('Add referenced styles even when direct styles are not present on node'
 describe('Throws Error when a node is using project-styles but not present in UIDL', () => {
   const styles: UIDLReferencedStyles = {
     '123456789': {
-      id: '123456789',
       type: 'style-map',
       content: {
         mapType: 'project-referenced',
-        referenceId: '987654321',
+        referenceId: 'primaryButton',
       },
     },
   }
@@ -110,11 +107,10 @@ describe('Throws Error when a node is using project-styles but not present in UI
 describe('Referes from project style and adds it to the node, without any styles on the node', () => {
   const styles: UIDLReferencedStyles = {
     '123456789': {
-      id: '123456789',
       type: 'style-map',
       content: {
         mapType: 'project-referenced',
-        referenceId: '987654321',
+        referenceId: 'primaryButton',
       },
     },
   }
@@ -125,10 +121,8 @@ describe('Referes from project style and adds it to the node, without any styles
   const options: GeneratorOptions = {
     projectStyleSet: {
       styleSetDefinitions: {
-        '987654321': {
-          id: '987654321',
+        primaryButton: {
           type: 'reusable-project-style-map',
-          name: 'primaryButton',
           content: {
             background: staticNode('blue'),
           },

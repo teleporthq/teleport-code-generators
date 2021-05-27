@@ -35,7 +35,6 @@ describe('Referenced Styles on Node', () => {
     const plugin = createReactStyledComponentsPlugin()
     uidl.node.content.referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -46,7 +45,6 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6382': {
-        id: '5ed659b1732f9b804f7b6382',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -86,7 +84,6 @@ describe('Referenced Styles on Node', () => {
     const plugin = createReactStyledComponentsPlugin()
     uidl.node.content.referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -97,7 +94,6 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6382': {
-        id: '5ed659b1732f9b804f7b6382',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -108,11 +104,10 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6384': {
-        id: '5ed659b1732f9b804f7b6384',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfa1233b8e50f60ea2b64d',
+          referenceId: 'primaryButton',
         },
       },
     }
@@ -126,9 +121,7 @@ describe('Referenced Styles on Node', () => {
     }
 
     const styleSetDefinitions = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),

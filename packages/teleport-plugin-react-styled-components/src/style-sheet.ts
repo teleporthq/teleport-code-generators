@@ -37,10 +37,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       {}
     )
 
-    Object.values(styleSetDefinitions).forEach((style) => {
-      const { name, content, conditions = [] } = style
+    Object.keys(styleSetDefinitions).forEach((styleId) => {
+      const style = styleSetDefinitions[styleId]
+      const { content, conditions = [] } = style
 
-      const className = StringUtils.dashCaseToUpperCamelCase(name)
+      const className = StringUtils.dashCaseToUpperCamelCase(styleId)
       let styles = {}
       styles = {
         ...styles,

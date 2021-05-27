@@ -113,7 +113,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                   )
                 }
                 classNamesToAppend.push(
-                  `projectStyles['${StringUtils.dashCaseToCamelCase(referedStyle.name)}']`
+                  `projectStyles['${StringUtils.dashCaseToCamelCase(content.referenceId)}']`
                 )
               }
               isProjectReferenced = true

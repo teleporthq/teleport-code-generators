@@ -38,23 +38,24 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     if (Object.keys(styleSetDefinitions).length > 0) {
-      Object.values(styleSetDefinitions).forEach((style) => {
-        const { name, content, conditions = [] } = style
+      Object.keys(styleSetDefinitions).forEach((styleId) => {
+        const style = styleSetDefinitions[styleId]
+        const { content, conditions = [] } = style
+        const className = styleId
+
         const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
         const collectedStyles = {
           ...StyleUtils.getContentOfStyleObject(staticStyles),
           ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
         } as Record<string, string | number>
-        cssMap.push(StyleBuilders.createCSSClass(name, collectedStyles))
+        cssMap.push(StyleBuilders.createCSSClass(className, collectedStyles))
 
         if (conditions.length === 0) {
           return
         }
         conditions.forEach((styleRef) => {
-          const {
-            staticStyles: staticValues,
-            tokenStyles: tokenValues,
-          } = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+          const { staticStyles: staticValues, tokenStyles: tokenValues } =
+            UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
           const collecedMediaStyles = {
             ...StyleUtils.getContentOfStyleObject(staticValues),
             ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenValues),
@@ -63,7 +64,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           if (styleRef.type === 'element-state') {
             cssMap.push(
               StyleBuilders.createCSSClassWithSelector(
-                name,
+                className,
                 `&:${styleRef.meta.state}`,
                 collecedMediaStyles
               )
@@ -73,7 +74,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
           if (styleRef.type === 'screen-size') {
             mediaStylesMap[styleRef.meta.maxWidth] = {
               ...mediaStylesMap[styleRef.meta.maxWidth],
-              [name]: collecedMediaStyles,
+              [className]: collecedMediaStyles,
             }
           }
         })

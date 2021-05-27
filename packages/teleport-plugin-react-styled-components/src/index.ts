@@ -156,7 +156,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                     `Style that is being used for reference is missing - ${content.referenceId}`
                   )
                 }
-                const styleName = StringUtils.dashCaseToUpperCamelCase(referedStyle.name)
+                const styleName = StringUtils.dashCaseToUpperCamelCase(content.referenceId)
                 projectReferencedClassNames.push(styleName)
                 dependencies[styleName] = {
                   type: 'local',
