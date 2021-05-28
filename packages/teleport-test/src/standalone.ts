@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -14,10 +13,10 @@ import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next
 import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 
-import reactProjectJSON from '../../../examples/uidl-samples/test.json'
-// import projectJSON from '../../../examples/uidl-samples/test.json'
+import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
+import projectJSON from '../../../examples/uidl-samples/project.json'
 
-// const projectUIDL = projectJSON as unknown as ProjectUIDL
+const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
@@ -44,16 +43,16 @@ const packerOptions: PackerOptions = {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.REACTNATIVE,
-    // })
-    // console.info(ProjectType.REACTNATIVE, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACTNATIVE,
+    })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
@@ -61,89 +60,89 @@ const run = async () => {
     })
     console.info(ProjectType.REACT, '-', result.payload)
 
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    // })
-    // console.info(ProjectType.NEXT, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+    })
+    console.info(ProjectType.NEXT, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextStyledComponents],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-styled-components',
-    //   },
-    // })
-    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-styled-components',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextReactCSSModules],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-css-modules',
-    //   },
-    // })
-    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactCSSModules],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-css-modules',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.NEXT,
-    //   plugins: [pluginNextReactJSS],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-next-react-jss',
-    //   },
-    // })
-    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactJSS],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-react-jss',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
-    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
-    // console.info(ProjectType.NUXT, '-', result.payload)
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
+    console.info(ProjectType.NUXT, '-', result.payload)
 
-    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
-    // console.info(ProjectType.VUE, '-', result.payload)
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+    console.info(ProjectType.VUE, '-', result.payload)
 
-    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
-    // console.info(ProjectType.STENCIL, '-', result.payload)
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
+    console.info(ProjectType.STENCIL, '-', result.payload)
 
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.PREACT,
-    // })
-    // console.info(ProjectType.PREACT, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.PREACT,
+    })
+    console.info(ProjectType.PREACT, '-', result.payload)
 
-    // result = await packProject(projectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.ANGULAR,
-    // })
-    // console.info(ProjectType.ANGULAR, '-', result.payload)
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.ANGULAR,
+    })
+    console.info(ProjectType.ANGULAR, '-', result.payload)
 
-    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
-    // console.info(ProjectType.GRIDSOME, '-', result.payload)
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
+    console.info(ProjectType.GRIDSOME, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.GATSBY,
-    // })
-    // console.info(ProjectType.GATSBY, '-', result.payload)
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY,
+    })
+    console.info(ProjectType.GATSBY, '-', result.payload)
 
-    // result = await packProject(reactProjectUIDL, {
-    //   ...packerOptions,
-    //   projectType: ProjectType.GATSBY,
-    //   plugins: [pluginGatsbyStyledComponents],
-    //   publishOptions: {
-    //     ...packerOptions.publishOptions,
-    //     projectSlug: 'teleport-project-gatsby-styled-components',
-    //   },
-    // })
-    // console.info(
-    //   ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
-    //   '-',
-    //   result.payload
-    // )
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY,
+      plugins: [pluginGatsbyStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-gatsby-styled-components',
+      },
+    })
+    console.info(
+      ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
+      '-',
+      result.payload
+    )
   } catch (e) {
     console.info(e)
   }

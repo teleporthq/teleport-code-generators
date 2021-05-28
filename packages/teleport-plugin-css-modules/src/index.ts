@@ -26,7 +26,7 @@ import {
   UIDLStyleMediaQueryScreenSizeCondition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
-import { generateStyledFromStyleContent } from './utils'
+import { generateStylesFromStyleSetDefinitions, generateStyledFromStyleContent } from './utils'
 
 interface CSSModulesConfig {
   componentChunkName?: string
@@ -102,26 +102,17 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {
-      Object.keys(componentStyleSheet).forEach((compStyleId) => {
-        const compStyle = componentStyleSheet[compStyleId]
-        const compScopedClassName = camelCaseClassNames
-          ? StringUtils.dashCaseToCamelCase(compStyleId)
-          : StringUtils.camelCaseToDashCase(compStyleId)
-        cssClasses.push(
-          StyleBuilders.createCSSClass(
-            compScopedClassName,
-            generateStyledFromStyleContent(compStyle.content)
-          )
-        )
+      generateStylesFromStyleSetDefinitions({
+        styleSetDefinitions: componentStyleSheet,
+        cssMap: cssClasses,
+        mediaStylesMap,
       })
     }
 
     UIDLUtils.traverseElements(node, (element) => {
-      let appendClassName: boolean = false
-      const classNamesToAppend: string[] = []
       const { style, key, referencedStyles } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
-      const propReferencingClasses: types.MemberExpression[] = []
+      const classNamesToAppend: Array<types.MemberExpression | types.Identifier> = []
 
       if (!jsxTag) {
         return
@@ -137,8 +128,15 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const classNameIsJSFriendly = className === jsFriendlyClassName
       const classReferenceIdentifier =
         camelCaseClassNames || classNameIsJSFriendly
-          ? `styles.${jsFriendlyClassName}`
-          : `styles['${className}']`
+          ? types.memberExpression(
+              types.identifier(styleObjectImportName),
+              types.identifier(jsFriendlyClassName)
+            )
+          : types.memberExpression(
+              types.identifier(styleObjectImportName),
+              types.identifier(`'${className}'`),
+              true
+            )
 
       /* Generating styles from UIDLElementNode to component style sheet */
       if (Object.keys(style || {}).length > 0) {
@@ -149,7 +147,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           cssClasses.push(
             StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(style))
           )
-          appendClassName = true
         }
 
         if (Object.keys(dynamicStyles).length) {
@@ -193,15 +190,13 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 )
               }
 
-              appendClassName = true
               return
             }
 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.push(`'${classContent.content}'`)
-                appendClassName = true
+                classNamesToAppend.push(types.identifier(`'${String(classContent.content)}'`))
                 return
               }
 
@@ -209,19 +204,9 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 classContent.type === 'dynamic' &&
                 classContent.content.referenceType === 'prop'
               ) {
-                /*
-                  To maintain uniformity, all the classNames are generated using the same principle.
-                  Either camelCase or dashCase completly. So, here irrespective of the default value that
-                  use is setting. It is safe to change the default value depending on the naming convention
-                  that we follow.
-                  
-                  Since, node is referring to the prop in a `className` so ideally it shouldn't be used anywhere.
-                  // TODO
-                  Add check in validator to see, if any prop that is referring on node with `className` is of type string
-                */
-                propReferencingClasses.push(
+                classNamesToAppend.push(
                   types.memberExpression(
-                    types.identifier('styles'),
+                    types.identifier(styleObjectImportName),
                     types.memberExpression(
                       types.identifier(propsPrefix),
                       types.identifier(classContent.content.id)
@@ -230,26 +215,29 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   )
                 )
               }
-
               return
             }
 
             case 'project-referenced': {
               const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                isProjectStyleReferred = true
-                const referedStyle = globalStyleSheet[content.referenceId]
-                if (!referedStyle) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
-                }
-                const globalClassName = camelCaseClassNames
-                  ? StringUtils.dashCaseToCamelCase(content.referenceId)
-                  : StringUtils.camelCaseToDashCase(content.referenceId)
-
-                classNamesToAppend.push(`${globalStyleSheetPrefix}.['${globalClassName}']`)
+              isProjectStyleReferred = true
+              const referedStyle = globalStyleSheet[content.referenceId]
+              if (!referedStyle) {
+                throw new Error(
+                  `Style that is being used for reference is missing - ${content.referenceId}`
+                )
               }
+              const globalClassName = camelCaseClassNames
+                ? StringUtils.dashCaseToCamelCase(content.referenceId)
+                : `'${StringUtils.camelCaseToDashCase(content.referenceId)}'`
+
+              classNamesToAppend.push(
+                types.memberExpression(
+                  types.identifier(globalStyleSheetPrefix),
+                  types.identifier(globalClassName),
+                  !camelCaseClassNames
+                )
+              )
               return
             }
             default: {
@@ -261,20 +249,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         })
       }
 
-      if (appendClassName) {
-        classNamesToAppend.push(classReferenceIdentifier)
-      }
-
-      if (classNamesToAppend?.length > 1) {
-        ASTUtils.addMultipleDynamicAttributesToJSXTag(
-          jsxTag,
-          classAttributeName,
-          classNamesToAppend,
-          propReferencingClasses
-        )
-      } else if (classNamesToAppend.length === 1) {
-        ASTUtils.addDynamicAttributeToJSXTag(jsxTag, classAttributeName, classNamesToAppend[0])
-      }
+      classNamesToAppend.push(classReferenceIdentifier)
+      ASTUtils.addMultipleDynamicAttributesToJSXTag(jsxTag, classAttributeName, classNamesToAppend)
     })
 
     if (Object.keys(mediaStylesMap).length > 0) {

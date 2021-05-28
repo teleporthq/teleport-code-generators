@@ -76,25 +76,27 @@ export const addDynamicAttributeToJSXTag = (
 export const addMultipleDynamicAttributesToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
-  values: string[],
-  propReferencedValues: types.MemberExpression[] = [],
+  attrValues: Array<types.MemberExpression | types.Identifier> = [],
   t = types
 ) => {
   const memberExpressions: Array<types.Identifier | types.MemberExpression> = []
   const templateElements: types.TemplateElement[] = []
 
-  Object.values(values).forEach((item) => {
-    templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
-    memberExpressions.push(t.identifier(item))
-  })
-  templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+  if (attrValues.length === 0) {
+    return
+  }
 
-  propReferencedValues.forEach((propReference) => {
-    memberExpressions.push(propReference)
+  let content: types.TemplateLiteral | types.MemberExpression | types.Identifier
+  if (attrValues.length === 1) {
+    content = attrValues[0]
+  } else {
+    attrValues.forEach((attr) => {
+      memberExpressions.push(attr)
+      templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+    })
     templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
-  })
-
-  const content = t.templateLiteral(templateElements, memberExpressions)
+    content = t.templateLiteral(templateElements, memberExpressions)
+  }
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))

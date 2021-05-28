@@ -149,22 +149,20 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 )
               }
               const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                if (!referedStyle) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
-                }
-                const styleName = StringUtils.dashCaseToUpperCamelCase(content.referenceId)
-                projectReferencedClassNames.push(styleName)
-                dependencies[styleName] = {
-                  type: 'local',
-                  path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
-                  meta: {
-                    namedImport: true,
-                  },
-                }
+              const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+              if (!referedStyle) {
+                throw new Error(
+                  `Style that is being used for reference is missing - ${content.referenceId}`
+                )
+              }
+              const styleName = StringUtils.dashCaseToUpperCamelCase(content.referenceId)
+              projectReferencedClassNames.push(styleName)
+              dependencies[styleName] = {
+                type: 'local',
+                path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+                meta: {
+                  namedImport: true,
+                },
               }
 
               return

@@ -112,6 +112,9 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  meta?: {
+    target: 'style'
+  }
 }
 
 export interface UIDLStateDefinition {
@@ -371,7 +374,6 @@ export interface UIDLElementNodeProjectReferencedStyle {
   type: 'style-map'
   content: {
     mapType: 'project-referenced'
-    conditions?: UIDLStyleConditions[]
     referenceId: UIDLProjectReferencedStyleID
   }
 }

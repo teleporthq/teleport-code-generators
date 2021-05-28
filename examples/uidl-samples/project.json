@@ -62,7 +62,7 @@
       }
     },
     "styleSetDefinitions": {
-      "primary-button": {
+      "primaryButton": {
         "type": "reusable-project-style-map",
         "conditions": [
           { "type": "screen-size",
@@ -93,7 +93,7 @@
           "border": "1px solid #fff"
         }
       },
-      "secondary-button": {
+      "secondaryButton": {
         "type": "reusable-project-style-map",
         "content": {
           "background": "red",
@@ -423,7 +423,7 @@
                                 "type": "style-map",
                                 "content": {
                                   "mapType": "project-referenced",
-                                  "referenceId": "primary-button"
+                                  "referenceId": "primaryButton"
                                 }
                               }
                             },
@@ -443,7 +443,7 @@
                                 "type": "style-map",
                                 "content": {
                                   "mapType": "project-referenced",
-                                  "referenceId": "secondary-button"
+                                  "referenceId": "secondaryButton"
                                 }
                               }
                             },
@@ -674,7 +674,7 @@
                           "type": "style-map",
                           "content": {
                             "mapType": "project-referenced",
-                            "referenceId": "secondary-button"
+                            "referenceId": "secondaryButton"
                           }
                         },
                         "5ecfa0d2f9f29ada8482ff03": {

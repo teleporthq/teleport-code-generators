@@ -174,15 +174,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             }
             case 'project-referenced': {
               const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                const referedStyle = styleSetDefinitions[content.referenceId]
-                if (!referedStyle) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
-                }
-                classNamesToAppend.push(content.referenceId)
+              const referedStyle = styleSetDefinitions[content.referenceId]
+              if (!referedStyle) {
+                throw new Error(
+                  `Style that is being used for reference is missing - ${content.referenceId}`
+                )
               }
+              classNamesToAppend.push(content.referenceId)
               return
             }
             default: {

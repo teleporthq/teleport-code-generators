@@ -120,19 +120,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
               break
             }
 
-            case 'project-referenced': {
-              if (content?.conditions) {
-                throw new ParserError(`
-We currently don't support conditions for "referencedStyles" which are
-"project-referenced". Because we need a solution to conditionally apply on the nodes
-with the condition they are being used.
-
-Eg: If a reference styles is used only for hover, we should be applying the style
-on hover of the node which is using it by pulling from project-style sheet.
-            `)
-              }
+            case 'project-referenced':
               break
-            }
 
             case 'component-referenced': {
               if (['string', 'number'].includes(typeof styleRef.content.content)) {

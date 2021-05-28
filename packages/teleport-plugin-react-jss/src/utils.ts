@@ -1,7 +1,53 @@
 import * as t from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ParsedASTNode, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import { UIDLStyleValue } from '@teleporthq/teleport-types'
+import { UIDLStyleSetDefinition, UIDLStyleValue } from '@teleporthq/teleport-types'
+
+export const generateStylesFromStyleSetDefinitions = (params: {
+  styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
+  styleSet: Record<string, unknown>
+  tokensUsed?: string[]
+  formatClassName?: boolean
+}) => {
+  const { styleSetDefinitions, styleSet, tokensUsed, formatClassName = false } = params
+  Object.keys(styleSetDefinitions).forEach((styleId) => {
+    const style = styleSetDefinitions[styleId]
+    const { conditions = [], content } = style
+    let styles = {
+      ...generatePropSyntax(content, tokensUsed),
+    }
+
+    if (conditions.length > 0) {
+      conditions.forEach((styleRef) => {
+        if (Object.keys(styleRef.content).length === 0) {
+          return
+        }
+        if (styleRef.type === 'screen-size') {
+          styles = {
+            ...styles,
+            ...{
+              [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: generatePropSyntax(
+                styleRef.content,
+                tokensUsed
+              ),
+            },
+          }
+        }
+
+        if (styleRef.type === 'element-state') {
+          styles = {
+            ...styles,
+            ...{
+              [`&:${styleRef.meta.state}`]: generatePropSyntax(styleRef.content, tokensUsed),
+            },
+          }
+        }
+      })
+    }
+
+    styleSet[formatClassName ? StringUtils.dashCaseToCamelCase(styleId) : styleId] = styles
+  })
+}
 
 export const generatePropSyntax = (
   style: Record<string, UIDLStyleValue>,

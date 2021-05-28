@@ -1,12 +1,11 @@
 import { StyleUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPlugin,
   ComponentPluginFactory,
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { generateStyledFromStyleContent } from './utils'
+import { generateStylesFromStyleSetDefinitions } from './utils'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
@@ -48,40 +47,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     if (Object.keys(styleSetDefinitions).length > 0) {
-      Object.keys(styleSetDefinitions).forEach((styleId) => {
-        const style = styleSetDefinitions[styleId]
-        const { content, conditions = [] } = style
-        const className = camelCaseClassNames
-          ? StringUtils.dashCaseToCamelCase(styleId)
-          : StringUtils.camelCaseToDashCase(styleId)
-
-        cssMap.push(
-          StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content))
-        )
-
-        if (conditions.length === 0) {
-          return
-        }
-        conditions.forEach((styleRef) => {
-          const collectedMediaStyles = generateStyledFromStyleContent(styleRef.content)
-
-          if (styleRef.type === 'element-state') {
-            cssMap.push(
-              StyleBuilders.createCSSClassWithSelector(
-                className,
-                `&:${styleRef.meta.state}`,
-                collectedMediaStyles
-              )
-            )
-          }
-
-          if (styleRef.type === 'screen-size') {
-            mediaStylesMap[styleRef.meta.maxWidth] = {
-              ...mediaStylesMap[styleRef.meta.maxWidth],
-              [className]: collectedMediaStyles,
-            }
-          }
-        })
+      generateStylesFromStyleSetDefinitions({
+        styleSetDefinitions,
+        cssMap,
+        mediaStylesMap,
+        formatClassName: true,
+        camelCaseClassNames,
       })
     }
 
