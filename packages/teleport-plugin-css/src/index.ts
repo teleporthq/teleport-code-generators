@@ -172,6 +172,11 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
               }
               return
             }
+
+            case 'component-referenced': {
+              return
+            }
+
             case 'project-referenced': {
               const { content } = styleRef
               const referedStyle = styleSetDefinitions[content.referenceId]

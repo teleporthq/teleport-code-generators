@@ -6,13 +6,14 @@
   - Styles defined in the project's global stylesheet.
   - Styles present in the component style sheeet.
 
-  All static values and Dynamic values such as design-tokens are resolved.
+  All static values and Dynamic values such as design-tokens are resolved
+  to css-variables.
 
   Limitations
 
   Any dynamic values specified in Media Queries, Component Stylesheet
   ProjectStyle sheet are lost. Since, css-modules can have dynamic values only in inline.
-  */
+*/
 
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -24,6 +25,7 @@ import {
   ChunkType,
   UIDLElementNodeReferenceStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
+  PluginCssModules,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { generateStylesFromStyleSetDefinitions, generateStyledFromStyleContent } from './utils'
@@ -89,7 +91,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     const componentChunk = chunks.filter((chunk) => chunk.name === componentChunkName)[0]
     if (!componentChunk) {
-      throw new Error(
+      throw new PluginCssModules(
         `JSX based component chunk with name ${componentChunkName} was required and not found.`
       )
     }
@@ -112,7 +114,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
-      const classNamesToAppend: Array<types.MemberExpression | types.Identifier> = []
+      const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
 
       if (!jsxTag) {
         return
@@ -147,6 +149,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
           cssClasses.push(
             StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(style))
           )
+          classNamesToAppend.add(classReferenceIdentifier)
         }
 
         if (Object.keys(dynamicStyles).length) {
@@ -172,6 +175,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
               const condition = styleRef.content.conditions[0]
               const { conditionType } = condition
+
               if (conditionType === 'screen-size') {
                 const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
                 mediaStylesMap[maxWidth] = {
@@ -190,13 +194,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 )
               }
 
+              classNamesToAppend.add(classReferenceIdentifier)
               return
             }
 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.push(types.identifier(`'${String(classContent.content)}'`))
+                classNamesToAppend.add(types.identifier(`'${String(classContent.content)}'`))
                 return
               }
 
@@ -204,13 +209,30 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 classContent.type === 'dynamic' &&
                 classContent.content.referenceType === 'prop'
               ) {
-                classNamesToAppend.push(
+                classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
                     types.memberExpression(
                       types.identifier(propsPrefix),
                       types.identifier(classContent.content.id)
                     ),
+                    true
+                  )
+                )
+                return
+              }
+
+              if (
+                classContent.type === 'dynamic' &&
+                classContent.content.referenceType === 'comp'
+              ) {
+                const classNameFromCompSheet = camelCaseClassNames
+                  ? StringUtils.dashCaseToCamelCase(classContent.content.id)
+                  : `'${StringUtils.camelCaseToDashCase(classContent.content.id)}'`
+                classNamesToAppend.add(
+                  types.memberExpression(
+                    types.identifier(styleObjectImportName),
+                    types.identifier(classNameFromCompSheet),
                     true
                   )
                 )
@@ -223,15 +245,15 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               isProjectStyleReferred = true
               const referedStyle = globalStyleSheet[content.referenceId]
               if (!referedStyle) {
-                throw new Error(
-                  `Style that is being used for reference is missing - ${content.referenceId}`
+                throw new PluginCssModules(
+                  `Style used from global stylesheet is missing - ${content.referenceId}`
                 )
               }
               const globalClassName = camelCaseClassNames
                 ? StringUtils.dashCaseToCamelCase(content.referenceId)
                 : `'${StringUtils.camelCaseToDashCase(content.referenceId)}'`
 
-              classNamesToAppend.push(
+              classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier(globalStyleSheetPrefix),
                   types.identifier(globalClassName),
@@ -240,8 +262,9 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               )
               return
             }
+
             default: {
-              throw new Error(
+              throw new PluginCssModules(
                 `We support only project-referenced or inlined, received ${styleRef.content}`
               )
             }
@@ -249,8 +272,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         })
       }
 
-      classNamesToAppend.push(classReferenceIdentifier)
-      ASTUtils.addMultipleDynamicAttributesToJSXTag(jsxTag, classAttributeName, classNamesToAppend)
+      ASTUtils.addMultipleDynamicAttributesToJSXTag(
+        jsxTag,
+        classAttributeName,
+        Array.from(classNamesToAppend)
+      )
     })
 
     if (Object.keys(mediaStylesMap).length > 0) {

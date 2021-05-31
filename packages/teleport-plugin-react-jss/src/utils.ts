@@ -1,21 +1,27 @@
 import * as t from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { ParsedASTNode, ASTBuilders } from '@teleporthq/teleport-plugin-common'
+import { ParsedASTNode, ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStyleSetDefinition, UIDLStyleValue } from '@teleporthq/teleport-types'
 
 export const generateStylesFromStyleSetDefinitions = (params: {
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
   styleSet: Record<string, unknown>
+  mediaStyles: Record<string, Record<string, unknown>>
   tokensUsed?: string[]
   formatClassName?: boolean
 }) => {
-  const { styleSetDefinitions, styleSet, tokensUsed, formatClassName = false } = params
+  const {
+    styleSetDefinitions,
+    styleSet,
+    tokensUsed,
+    formatClassName = false,
+    mediaStyles = {},
+  } = params
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
+    const className = formatClassName ? StringUtils.dashCaseToCamelCase(styleId) : styleId
     const { conditions = [], content } = style
-    let styles = {
-      ...generatePropSyntax(content, tokensUsed),
-    }
+    styleSet[className] = generateStylesFromStyleObj(content, tokensUsed)
 
     if (conditions.length > 0) {
       conditions.forEach((styleRef) => {
@@ -23,33 +29,29 @@ export const generateStylesFromStyleSetDefinitions = (params: {
           return
         }
         if (styleRef.type === 'screen-size') {
-          styles = {
-            ...styles,
+          mediaStyles[styleRef.meta.maxWidth] = {
+            ...mediaStyles[styleRef.meta.maxWidth],
+            [className]: generateStylesFromStyleObj(styleRef.content, tokensUsed),
+          }
+        }
+
+        if (styleRef.type === 'element-state') {
+          styleSet[className] = {
+            ...((styleSet[className] as Record<string, unknown>) || {}),
             ...{
-              [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: generatePropSyntax(
+              [`&:${styleRef.meta.state}`]: generateStylesFromStyleObj(
                 styleRef.content,
                 tokensUsed
               ),
             },
           }
         }
-
-        if (styleRef.type === 'element-state') {
-          styles = {
-            ...styles,
-            ...{
-              [`&:${styleRef.meta.state}`]: generatePropSyntax(styleRef.content, tokensUsed),
-            },
-          }
-        }
       })
     }
-
-    styleSet[formatClassName ? StringUtils.dashCaseToCamelCase(styleId) : styleId] = styles
   })
 }
 
-export const generatePropSyntax = (
+export const generateStylesFromStyleObj = (
   style: Record<string, UIDLStyleValue>,
   tokensUsed?: string[],
   propsUsed?: string[]
@@ -88,3 +90,21 @@ export const createStylesHookDecleration = (
       )
     ),
   ])
+
+export const convertMediaAndStylesToObject = (
+  styleSet: Record<string, unknown>,
+  mediaStyles: Record<string, Record<string, unknown>>
+): t.ObjectExpression => {
+  const styles = ASTUtils.objectToObjectExpression(styleSet)
+
+  Object.keys(mediaStyles).forEach((mediaKey: string) => {
+    styles.properties.push(
+      t.objectProperty(
+        t.identifier(`'@media(max-width: ${mediaKey}px)'`),
+        ASTUtils.objectToObjectExpression(mediaStyles[mediaKey])
+      )
+    )
+  }, [])
+
+  return styles
+}

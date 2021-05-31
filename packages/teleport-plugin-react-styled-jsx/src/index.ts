@@ -1,6 +1,11 @@
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import { ComponentPluginFactory, ComponentPlugin, UIDLStyleValue } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  UIDLStyleValue,
+  PluginStyledJSX,
+} from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
 import * as types from '@babel/types'
 
@@ -35,7 +40,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
           case 'prop':
             return `\$\{${propsPrefix}.${styleValue.content.id}\}`
           default:
-            throw new Error(
+            throw new PluginStyledJSX(
               `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
             )
         }
@@ -87,9 +92,14 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
               return
             }
+
+            case 'component-referenced': {
+              return
+            }
+
             case 'project-referenced': {
               if (!projectStyleSet) {
-                throw new Error(
+                throw new PluginStyledJSX(
                   `Project Style Sheet is missing, but the node is referring to it ${element}`
                 )
               }
@@ -97,7 +107,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               const { content } = styleRef
               const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
               if (!referedStyle) {
-                throw new Error(
+                throw new PluginStyledJSX(
                   `Style that is being used for reference is missing - ${content.referenceId}`
                 )
               }
@@ -105,8 +115,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               classNamesToAppend.push(content.referenceId)
               return
             }
+
             default: {
-              throw new Error('We support only project-referneced and inlined for now.')
+              throw new PluginStyledJSX('We support only project-referneced and inlined for now.')
             }
           }
         })

@@ -170,3 +170,34 @@ export class ParserError extends TeleportError {
     super(error)
   }
 }
+
+// Plugin Errors
+export class PluginStyledJSX extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCssModules extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginStyledComponent extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginReactJSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}

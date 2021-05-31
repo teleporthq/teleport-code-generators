@@ -25,7 +25,7 @@ import {
   UIDLStyleSetStateCondition,
   UIDLStyleSetTokenReference,
   UIDLElementNodeClassReferencedStyle,
-  UIDLClassDynamicReference,
+  UIDLCompDynamicReference,
 } from './uidl'
 
 type Modify<T, R> = Omit<T, keyof R> & R
@@ -99,7 +99,7 @@ export type VUIDLElementNodeClassReferencedStyle = Modify<
   {
     content: {
       mapType: 'component-referenced'
-      content: string | UIDLStaticValue | UIDLClassDynamicReference
+      content: string | UIDLStaticValue | UIDLCompDynamicReference
     }
   }
 >

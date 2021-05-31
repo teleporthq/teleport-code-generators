@@ -48,17 +48,7 @@ const run = async () => {
     }
 
     let result
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.REACTNATIVE,
-    })
-    console.info(ProjectType.REACTNATIVE, '-', result.payload)
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.REACT,
-    })
-    console.info(ProjectType.REACT, '-', result.payload)
+    /* Styled JSX */
 
     result = await packProject(projectUIDL, {
       ...packerOptions,
@@ -66,27 +56,7 @@ const run = async () => {
     })
     console.info(ProjectType.NEXT, '-', result.payload)
 
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextStyledComponents],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-styled-components',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextReactCSSModules],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-css-modules',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+    /* React JSS */
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
@@ -99,35 +69,7 @@ const run = async () => {
     })
     console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
-    console.info(ProjectType.NUXT, '-', result.payload)
-
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
-    console.info(ProjectType.VUE, '-', result.payload)
-
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
-    console.info(ProjectType.STENCIL, '-', result.payload)
-
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.PREACT,
-    })
-    console.info(ProjectType.PREACT, '-', result.payload)
-
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.ANGULAR,
-    })
-    console.info(ProjectType.ANGULAR, '-', result.payload)
-
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
-    console.info(ProjectType.GRIDSOME, '-', result.payload)
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.GATSBY,
-    })
-    console.info(ProjectType.GATSBY, '-', result.payload)
+    /* Styled Components */
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
@@ -143,6 +85,74 @@ const run = async () => {
       '-',
       result.payload
     )
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-styled-components',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACTNATIVE,
+    })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
+
+    /* Frameworks using Css-Modules */
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY,
+    })
+    console.info(ProjectType.GATSBY, '-', result.payload)
+
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.PREACT,
+    })
+    console.info(ProjectType.PREACT, '-', result.payload)
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactCSSModules],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-css-modules',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACT,
+    })
+    console.info(ProjectType.REACT, '-', result.payload)
+
+    /* Frameworks use CSS */
+
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
+    console.info(ProjectType.STENCIL, '-', result.payload)
+
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
+    console.info(ProjectType.NUXT, '-', result.payload)
+
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+    console.info(ProjectType.VUE, '-', result.payload)
+
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.ANGULAR,
+    })
+    console.info(ProjectType.ANGULAR, '-', result.payload)
+
+    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
+    console.info(ProjectType.GRIDSOME, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

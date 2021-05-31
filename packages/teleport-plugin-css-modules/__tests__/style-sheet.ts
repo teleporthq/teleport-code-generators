@@ -90,7 +90,6 @@ describe('plugin-css-modules-style-sheet', () => {
     expect(content).toContain('.secondary-button')
     expect(content).toContain('.conditional-button:hover')
     expect(content).toContain('@media(max-width: 991px)')
-    expect(content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })
 
   it('should not generate file when the styleSetDefinition is empty', async () => {

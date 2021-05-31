@@ -69,7 +69,7 @@ import {
   UIDLIconAsset,
   UIDLAssetBase,
   VUIDLElementNodeClassReferencedStyle,
-  UIDLClassDynamicReference,
+  UIDLCompDynamicReference,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -455,7 +455,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
   }),
 })
 
-export const classDynamicReferenceDecoder: Decoder<UIDLClassDynamicReference> = object({
+export const classDynamicReferenceDecoder: Decoder<UIDLCompDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: union(constant('prop'), constant('comp')),

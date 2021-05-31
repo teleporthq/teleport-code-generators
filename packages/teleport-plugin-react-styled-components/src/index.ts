@@ -142,6 +142,11 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
               return
             }
+
+            case 'component-referenced': {
+              return
+            }
+
             case 'project-referenced': {
               if (!projectStyleSet) {
                 throw new Error(
@@ -169,7 +174,11 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
             }
             default: {
               throw new Error(`
-                We support only inlined and project-referenced styles as of now, received ${styleRef.content}
+                We support only inlined and project-referenced styles as of now, received ${JSON.stringify(
+                  styleRef.content,
+                  null,
+                  2
+                )}
               `)
             }
           }

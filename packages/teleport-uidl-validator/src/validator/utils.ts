@@ -78,6 +78,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
   let importKeys = Object.keys(input.importDefinitions || {})
+  const componentStyleSetKyes = Object.keys(input.styleSetDefinitions || {})
 
   const importDefinitions: { [key: string]: UIDLExternalDependency } = (input?.importDefinitions ??
     {}) as unknown as { [key: string]: UIDLExternalDependency }
@@ -120,16 +121,27 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       Object.values(node.content?.referencedStyles || {}).forEach((styleRef) => {
         if (
           styleRef.content.mapType === 'component-referenced' &&
-          styleRef.content.content.type === 'dynamic' &&
-          styleRef.content.content.content.referenceType === 'prop'
+          styleRef.content.content.type === 'dynamic'
         ) {
-          const referencedProp = styleRef.content.content.content.id
-          if (!dynamicPathExistsInDefinitions(referencedProp, propKeys)) {
-            const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions`
-            errors.push(errorMsg)
-            return
+          if (styleRef.content.content.content.referenceType === 'prop') {
+            const referencedProp = styleRef.content.content.content.id
+            if (!dynamicPathExistsInDefinitions(referencedProp, propKeys)) {
+              const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions`
+              errors.push(errorMsg)
+              return
+            }
+            usedPropKeys.push(referencedProp)
           }
-          usedPropKeys.push(referencedProp)
+
+          if (styleRef.content.content.content.referenceType === 'comp') {
+            const compStyleRefId = styleRef.content.content.content.id
+
+            if (!componentStyleSetKyes.includes(compStyleRefId)) {
+              errors.push(
+                `${compStyleRefId} is used, but not defined in Component Style Sheet in ${input.name}. Please add it in StyleSetDefinitions of the component`
+              )
+            }
+          }
         }
       })
     }

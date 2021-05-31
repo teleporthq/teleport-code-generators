@@ -15,6 +15,7 @@ coverage/
 *.swp
 *.swo
 .history/
+*.zip
 
 # Logs
 logs

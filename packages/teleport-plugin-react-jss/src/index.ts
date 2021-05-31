@@ -1,3 +1,12 @@
+/*
+  teleport-plugin-react-jss
+
+  Plugin is responsible for generating styles from
+  - Styles defined on individual nodes.
+  - Styles defined in the project's global stylesheet.
+  - Styles present in the component style sheeet.
+*/
+
 import * as types from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
@@ -6,11 +15,13 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  PluginReactJSS,
 } from '@teleporthq/teleport-types'
 import {
-  generatePropSyntax,
+  generateStylesFromStyleObj,
   createStylesHookDecleration,
   generateStylesFromStyleSetDefinitions,
+  convertMediaAndStylesToObject,
 } from './utils'
 import { createStyleSheetPlugin } from './style-sheet'
 
@@ -45,11 +56,14 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     }
 
     const jssStyleMap: Record<string, unknown> = {}
+    const mediaStyles: Record<string, Record<string, unknown>> = {}
     const tokensUsed: string[] = []
+
     if (Object.keys(componentStyleSheet).length > 0) {
       generateStylesFromStyleSetDefinitions({
         styleSetDefinitions: componentStyleSheet,
         styleSet: jssStyleMap,
+        mediaStyles,
         tokensUsed,
       })
     }
@@ -61,7 +75,6 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
-      let appendClassname: boolean = false
       if (!style && !referencedStyles) {
         return
       }
@@ -72,16 +85,21 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       }
 
       const className = StringUtils.camelCaseToDashCase(key)
-      const classNamesToAppend: Array<types.MemberExpression | types.Identifier> = []
+      const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
+      const nodeStyleIdentifier = types.memberExpression(
+        types.identifier(styleObjectImportName),
+        types.identifier(`'${className}'`),
+        true
+      )
 
       if (Object.keys(style || {}).length > 0) {
-        jssStyleMap[className] = generatePropSyntax(style, tokensUsed, propsUsed)
-        appendClassname = true
+        jssStyleMap[className] = generateStylesFromStyleObj(style, tokensUsed, propsUsed)
+        classNamesToAppend.add(nodeStyleIdentifier)
       }
 
-      if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
+      if (referencedStyles && Object.keys(referencedStyles || {}).length > 0) {
         Object.values(referencedStyles).forEach((styleRef) => {
-          switch (styleRef.content?.mapType) {
+          switch (styleRef.content.mapType) {
             case 'inlined': {
               const { conditions } = styleRef.content
               const [condition] = conditions
@@ -91,10 +109,9 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               }
 
               if (condition.conditionType === 'screen-size') {
-                jssStyleMap[className] = {
-                  ...(jssStyleMap[className] as Record<string, string>),
-
-                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropSyntax(
+                mediaStyles[condition.maxWidth] = {
+                  ...mediaStyles[condition.maxWidth],
+                  [className]: generateStylesFromStyleObj(
                     styleRef.content.styles,
                     tokensUsed,
                     propsUsed
@@ -105,7 +122,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               if (condition.conditionType === 'element-state') {
                 jssStyleMap[className] = {
                   ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: generatePropSyntax(
+                  [`&:${condition.content}`]: generateStylesFromStyleObj(
                     styleRef.content.styles,
                     tokensUsed,
                     propsUsed
@@ -113,13 +130,14 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                 }
               }
 
+              classNamesToAppend.add(nodeStyleIdentifier)
               return
             }
 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.push(types.identifier(`'${String(classContent.content)}'`))
+                classNamesToAppend.add(types.identifier(`'${classContent.content}'`))
                 return
               }
 
@@ -127,7 +145,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                 classContent.type === 'dynamic' &&
                 classContent.content.referenceType === 'prop'
               ) {
-                classNamesToAppend.push(
+                classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
                     types.memberExpression(
@@ -138,24 +156,43 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                   )
                 )
               }
+
+              if (
+                classContent.type === 'dynamic' &&
+                classContent.content.referenceType === 'comp'
+              ) {
+                classNamesToAppend.add(
+                  types.memberExpression(
+                    types.identifier(styleObjectImportName),
+                    types.identifier(`'${classContent.content.id}'`),
+                    true
+                  )
+                )
+              }
+
               return
             }
 
             case 'project-referenced': {
               if (!projectStyleSet) {
-                throw new Error(
-                  `Project Style Sheet is missing, but the node is referring to it ${element}`
+                throw new PluginReactJSS(
+                  `Project Style Sheet is missing, but the node is referring to it ${JSON.stringify(
+                    element,
+                    null,
+                    2
+                  )}`
                 )
               }
 
               const { content } = styleRef
               const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
               if (!referedStyle) {
-                throw new Error(
-                  `Style that is being used for reference is missing - ${content.referenceId}`
+                throw new PluginReactJSS(
+                  `Style used from global stylesheet is missing - ${content.referenceId}`
                 )
               }
-              classNamesToAppend.push(
+
+              classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier('projectStyles'),
                   types.identifier(`'${StringUtils.dashCaseToCamelCase(content.referenceId)}'`),
@@ -166,7 +203,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               return
             }
             default: {
-              throw new Error(`
+              throw new PluginReactJSS(`
                 We support only inlined and project-referenced styles as of now, received ${JSON.stringify(
                   styleRef.content,
                   null,
@@ -178,17 +215,11 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         })
       }
 
-      if (appendClassname) {
-        classNamesToAppend.push(
-          types.memberExpression(
-            types.identifier(styleObjectImportName),
-            types.identifier(`'${className}'`),
-            true
-          )
-        )
-      }
-
-      ASTUtils.addMultipleDynamicAttributesToJSXTag(jsxTag, classAttributeName, classNamesToAppend)
+      ASTUtils.addMultipleDynamicAttributesToJSXTag(
+        jsxTag,
+        classAttributeName,
+        Array.from(classNamesToAppend)
+      )
     })
 
     const { content: astContent } = componentChunk
@@ -228,7 +259,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       )
     }
 
-    if (!Object.keys(jssStyleMap).length) {
+    if (!Object.keys(jssStyleMap).length && !Object.keys(mediaStyles).length) {
       return structure
     }
 
@@ -255,7 +286,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       content: ASTBuilders.createConstAssignment(
         jssDeclarationName,
         types.callExpression(types.identifier(EXPORT_IDENTIFIER), [
-          ASTUtils.objectToObjectExpression(jssStyleMap),
+          convertMediaAndStylesToObject(jssStyleMap, mediaStyles),
         ])
       ),
     })

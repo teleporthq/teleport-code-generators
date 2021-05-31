@@ -367,7 +367,7 @@ export interface UIDLElementNodeClassReferencedStyle {
   type: 'style-map'
   content: {
     mapType: 'component-referenced'
-    content: UIDLStaticValue | UIDLClassDynamicReference
+    content: UIDLStaticValue | UIDLCompDynamicReference
   }
 }
 export interface UIDLElementNodeProjectReferencedStyle {
@@ -386,7 +386,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
   }
 }
 
-export type UIDLClassDynamicReference = {
+export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
     referenceType: 'prop' | 'comp'
