@@ -40,8 +40,8 @@ const createReactProjectGenerator = () => {
     router: {
       generator: createComponentGenerator,
       plugins: [
-        reactAppRoutingPlugin,
         createCSSModulesPlugin({ moduleExtension: true }),
+        reactAppRoutingPlugin,
         importStatementsPlugin,
       ],
       postprocessors: [prettierJS],

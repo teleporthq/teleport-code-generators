@@ -8,17 +8,47 @@ import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-ty
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
   classString: string,
-  classAttributeName?: string
+  classAttributeName?: string,
+  dynamicValues: Array<types.MemberExpression | types.Identifier> = []
 ) => {
   const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
-  if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
-    const classArray = classAttribute.value.value.split(' ')
-    classArray.push(classString)
-    classAttribute.value.value = classArray.join(' ').trim()
-  } else {
-    throw new Error(
-      'Attempted to set a class string literral on a jsx tag which had an invalid className attribute'
-    )
+
+  if (dynamicValues.length === 0) {
+    if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
+      const classArray = classAttribute.value.value.split(' ')
+      classArray.push(classString)
+      classAttribute.value.value = classArray.join(' ').trim()
+    } else {
+      throw new Error(
+        'Attempted to set a class string literral on a jsx tag which had an invalid className attribute'
+      )
+    }
+  }
+
+  if (dynamicValues.length) {
+    if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
+      const classArray = classAttribute.value.value.split(' ')
+      const quasis: types.TemplateElement[] = []
+      const expression: Array<types.MemberExpression | types.Identifier> = []
+
+      quasis.push(
+        types.templateElement({
+          raw: classString + classArray.join(' ') + ' ',
+          cooked: classString + classArray.join(' ') + ' ',
+        })
+      )
+
+      dynamicValues.forEach((dynamicVal) => {
+        expression.push(dynamicVal)
+        quasis.push(types.templateElement({ raw: ' ', cooked: ' ' }))
+      })
+
+      classAttribute.value = types.jsxExpressionContainer(types.templateLiteral(quasis, expression))
+    } else {
+      throw new Error(
+        `Attempted to set a dynamic class literral on a jsx tag which had an invalid className attribute`
+      )
+    }
   }
 }
 

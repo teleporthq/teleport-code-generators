@@ -31,9 +31,9 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
   it('Generates media query from referenced styles even styles are not defined on node', async () => {
     const referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
-          mapType: 'inlined',
+          mapType: 'inlined' as const,
           conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
           styles: {
             display: staticNode('none'),
@@ -116,7 +116,7 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
     expect(cssFile).toBeDefined()
     expect(cssFile.content).toContain('width')
     expect(cssFile.content).toContain('@media(max-width: 991px)')
-    expect(nodeReference.properties.class).toBe('primaryButton container')
+    expect(nodeReference.properties.class).toBe('container primaryButton')
   })
 })
 

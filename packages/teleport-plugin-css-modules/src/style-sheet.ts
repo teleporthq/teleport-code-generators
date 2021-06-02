@@ -5,11 +5,9 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { generateStylesFromStyleSetDefinitions } from './utils'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
-  camelCaseClassNames?: boolean
 }
 
 const defaultConfig = {
@@ -18,7 +16,7 @@ const defaultConfig = {
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName, moduleExtension, camelCaseClassNames } = {
+  const { fileName, moduleExtension } = {
     ...defaultConfig,
     ...config,
   }
@@ -47,13 +45,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     if (Object.keys(styleSetDefinitions).length > 0) {
-      generateStylesFromStyleSetDefinitions({
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
         styleSetDefinitions,
         cssMap,
-        mediaStylesMap,
-        formatClassName: true,
-        camelCaseClassNames,
-      })
+        mediaStylesMap
+      )
     }
 
     cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))

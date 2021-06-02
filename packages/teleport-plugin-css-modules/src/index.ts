@@ -15,7 +15,7 @@
   ProjectStyle sheet are lost. Since, css-modules can have dynamic values only in inline.
 */
 
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -28,13 +28,12 @@ import {
   PluginCssModules,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
-import { generateStylesFromStyleSetDefinitions, generateStyledFromStyleContent } from './utils'
+import { generateStyledFromStyleContent } from './utils'
 
 interface CSSModulesConfig {
   componentChunkName?: string
   styleObjectImportName?: string
   styleChunkName?: string
-  camelCaseClassNames?: boolean
   moduleExtension?: boolean
   classAttributeName?: string
 }
@@ -43,7 +42,6 @@ const defaultConfigProps = {
   componentChunkName: 'jsx-component',
   styleChunkName: 'css-modules',
   styleObjectImportName: 'styles',
-  camelCaseClassNames: false,
   moduleExtension: false,
   classAttributeName: 'className',
   globalStyleSheetPrefix: 'projectStyles',
@@ -54,7 +52,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     componentChunkName,
     styleObjectImportName,
     styleChunkName,
-    camelCaseClassNames,
     moduleExtension,
     classAttributeName,
     globalStyleSheetPrefix,
@@ -104,11 +101,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     /* Generating component scoped styles */
     if (Object.keys(componentStyleSheet).length > 0) {
-      generateStylesFromStyleSetDefinitions({
-        styleSetDefinitions: componentStyleSheet,
-        cssMap: cssClasses,
-        mediaStylesMap,
-      })
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSheet,
+        cssClasses,
+        mediaStylesMap
+      )
     }
 
     UIDLUtils.traverseElements(node, (element) => {
@@ -124,21 +121,12 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         return
       }
 
-      const className = StringUtils.camelCaseToDashCase(key)
-      const jsFriendlyClassName = StringUtils.dashCaseToCamelCase(className)
-
-      const classNameIsJSFriendly = className === jsFriendlyClassName
-      const classReferenceIdentifier =
-        camelCaseClassNames || classNameIsJSFriendly
-          ? types.memberExpression(
-              types.identifier(styleObjectImportName),
-              types.identifier(jsFriendlyClassName)
-            )
-          : types.memberExpression(
-              types.identifier(styleObjectImportName),
-              types.identifier(`'${className}'`),
-              true
-            )
+      const className = key
+      const classReferenceIdentifier = types.memberExpression(
+        types.identifier(styleObjectImportName),
+        types.identifier(`'${className}'`),
+        true
+      )
 
       /* Generating styles from UIDLElementNode to component style sheet */
       if (Object.keys(style || {}).length > 0) {
@@ -226,13 +214,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 classContent.type === 'dynamic' &&
                 classContent.content.referenceType === 'comp'
               ) {
-                const classNameFromCompSheet = camelCaseClassNames
-                  ? StringUtils.dashCaseToCamelCase(classContent.content.id)
-                  : `'${StringUtils.camelCaseToDashCase(classContent.content.id)}'`
                 classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
-                    types.identifier(classNameFromCompSheet),
+                    types.identifier(`'${classContent.content.id}'`),
                     true
                   )
                 )
@@ -249,15 +234,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                   `Style used from global stylesheet is missing - ${content.referenceId}`
                 )
               }
-              const globalClassName = camelCaseClassNames
-                ? StringUtils.dashCaseToCamelCase(content.referenceId)
-                : `'${StringUtils.camelCaseToDashCase(content.referenceId)}'`
-
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier(globalStyleSheetPrefix),
-                  types.identifier(globalClassName),
-                  !camelCaseClassNames
+                  types.identifier(`'${content.referenceId}'`),
+                  true
                 )
               )
               return

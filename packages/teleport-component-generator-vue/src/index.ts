@@ -21,6 +21,7 @@ const createVueComponentGenerator: ComponentGeneratorInstance = ({
   const vueStylePlugin = createCSSPlugin({
     inlineStyleAttributeKey: ':style',
     forceScoping: true,
+    dynamicVariantPrefix: 'v-bind:class',
   })
 
   generator.addMapping(VueMapping)

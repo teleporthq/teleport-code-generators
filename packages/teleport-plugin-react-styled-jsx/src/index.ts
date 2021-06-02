@@ -19,7 +19,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
     const { projectStyleSet } = options
-    const { node } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -27,10 +27,18 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
-    // @ts-ignore
-    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
-    const styleJSXString: string[] = []
+    const classMap: string[] = []
+
+    /* Generating component scoped styles */
+    if (Object.keys(componentStyleSheet).length > 0) {
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSheet,
+        classMap,
+        mediaStylesMap
+      )
+    }
 
     const transformStyle = (style: Record<string, UIDLStyleValue>) =>
       UIDLUtils.transformDynamicStyles(style, (styleValue) => {
@@ -47,91 +55,106 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       })
 
     UIDLUtils.traverseElements(node, (element) => {
-      let appendClassName: boolean = false
-      const classNamesToAppend: string[] = []
-      const { style, key, referencedStyles } = element
+      const classNamesToAppend: Set<string> = new Set()
+      const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
+      const { style = {}, key, referencedStyles = {} } = element
+      const className = StringUtils.camelCaseToDashCase(key)
 
       if (!style && !referencedStyles) {
         return
       }
 
       const root = jsxNodesLookup[key]
-      const className = StringUtils.camelCaseToDashCase(key)
 
-      if (style && Object.keys(style).length > 0) {
-        // Generating the string templates for the dynamic styles
-        const styleRules = transformStyle(style)
+      // Generating the string templates for the dynamic styles
+      const styleRules = transformStyle(style)
+      classMap.push(StyleBuilders.createCSSClass(className, styleRules))
+      classNamesToAppend.add(className)
 
-        styleJSXString.push(StyleBuilders.createCSSClass(className, styleRules))
-        appendClassName = true
-      }
-
-      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef) => {
-          switch (styleRef.content.mapType) {
-            case 'inlined': {
-              const { conditions } = styleRef.content
-              if (conditions[0].conditionType === 'screen-size') {
-                mediaStylesMap[conditions[0].maxWidth] = {
-                  ...mediaStylesMap[conditions[0].maxWidth],
-                  [className]: transformStyle(styleRef.content.styles),
-                }
+      Object.values(referencedStyles).forEach((styleRef) => {
+        switch (styleRef.content.mapType) {
+          case 'inlined': {
+            const { conditions } = styleRef.content
+            if (conditions[0].conditionType === 'screen-size') {
+              mediaStylesMap[conditions[0].maxWidth] = {
+                ...mediaStylesMap[conditions[0].maxWidth],
+                [className]: transformStyle(styleRef.content.styles),
               }
+            }
 
-              if (conditions[0].conditionType === 'element-state') {
-                styleJSXString.push(
-                  StyleBuilders.createCSSClassWithSelector(
-                    className,
-                    `&:${conditions[0].content}`,
-                    transformStyle(styleRef.content.styles)
-                  )
+            if (conditions[0].conditionType === 'element-state') {
+              classMap.push(
+                StyleBuilders.createCSSClassWithSelector(
+                  className,
+                  `&:${conditions[0].content}`,
+                  transformStyle(styleRef.content.styles)
                 )
-              }
-
-              appendClassName = true
-
-              return
+              )
             }
 
-            case 'component-referenced': {
-              return
-            }
+            classNamesToAppend.add(className)
 
-            case 'project-referenced': {
-              if (!projectStyleSet) {
-                throw new PluginStyledJSX(
-                  `Project Style Sheet is missing, but the node is referring to it ${element}`
-                )
-              }
-
-              const { content } = styleRef
-              const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-              if (!referedStyle) {
-                throw new PluginStyledJSX(
-                  `Style that is being used for reference is missing - ${content.referenceId}`
-                )
-              }
-
-              classNamesToAppend.push(content.referenceId)
-              return
-            }
-
-            default: {
-              throw new PluginStyledJSX('We support only project-referneced and inlined for now.')
-            }
+            return
           }
-        })
-      }
 
-      if (appendClassName) {
-        classNamesToAppend.push(className)
-      }
+          case 'component-referenced': {
+            if (styleRef.content.content.type === 'static') {
+              classNamesToAppend.add(String(styleRef.content.content.content))
+            }
 
-      if (classNamesToAppend.length > 1) {
-        ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend.join(' '))
-      } else if (classNamesToAppend.length === 1) {
-        ASTUtils.addClassStringOnJSXTag(root, classNamesToAppend[0])
-      }
+            if (
+              styleRef.content.content.type === 'dynamic' &&
+              styleRef.content.content.content.referenceType === 'prop'
+            ) {
+              dynamicVariantsToAppend.add(
+                types.memberExpression(
+                  types.identifier(propsPrefix),
+                  types.identifier(styleRef.content.content.content.id)
+                )
+              )
+            }
+
+            if (
+              styleRef.content.content.type === 'dynamic' &&
+              styleRef.content.content.content.referenceType === 'comp'
+            ) {
+              classNamesToAppend.add(styleRef.content.content.content.id)
+            }
+
+            return
+          }
+
+          case 'project-referenced': {
+            if (!projectStyleSet) {
+              throw new PluginStyledJSX(
+                `Project Style Sheet is missing, but the node is referring to it ${element}`
+              )
+            }
+
+            const { content } = styleRef
+            const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+            if (!referedStyle) {
+              throw new PluginStyledJSX(
+                `Style that is being used for reference is missing - ${content.referenceId}`
+              )
+            }
+
+            classNamesToAppend.add(content.referenceId)
+            return
+          }
+
+          default: {
+            throw new PluginStyledJSX('We support only project-referneced and inlined for now.')
+          }
+        }
+      })
+
+      ASTUtils.addClassStringOnJSXTag(
+        root as types.JSXElement,
+        Array.from(classNamesToAppend).join(' '),
+        'className',
+        Array.from(dynamicVariantsToAppend)
+      )
     })
 
     if (Object.keys(mediaStylesMap).length > 0) {
@@ -139,7 +162,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         .sort((a: string, b: string) => Number(a) - Number(b))
         .reverse()
         .forEach((mediaOffset: string) => {
-          styleJSXString.push(
+          classMap.push(
             StyleBuilders.createCSSClassWithMediaQuery(
               `max-width: ${mediaOffset}px`,
               mediaStylesMap[mediaOffset] as Record<string, string | number>
@@ -148,11 +171,11 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         })
     }
 
-    if (!styleJSXString || !styleJSXString.length) {
+    if (!classMap || !classMap.length) {
       return structure
     }
 
-    const jsxASTNodeReference = generateStyledJSXTag(styleJSXString.join('\n'))
+    const jsxASTNodeReference = generateStyledJSXTag(classMap.join('\n'))
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component

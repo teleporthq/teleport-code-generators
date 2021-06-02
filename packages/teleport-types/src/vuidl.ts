@@ -24,7 +24,7 @@ import {
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
   UIDLStyleSetTokenReference,
-  UIDLElementNodeClassReferencedStyle,
+  UIDLElementNodeCompReferencedStyle,
   UIDLCompDynamicReference,
 } from './uidl'
 
@@ -95,7 +95,7 @@ export type VUIDLElementNodeInlineReferencedStyle = Modify<
 >
 
 export type VUIDLElementNodeClassReferencedStyle = Modify<
-  UIDLElementNodeClassReferencedStyle,
+  UIDLElementNodeCompReferencedStyle,
   {
     content: {
       mapType: 'component-referenced'

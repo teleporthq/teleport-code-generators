@@ -118,6 +118,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
         })
       })
 
+      const dynamicVariants: string[] = []
       Object.values(node.content?.referencedStyles || {}).forEach((styleRef) => {
         if (
           styleRef.content.mapType === 'component-referenced' &&
@@ -130,6 +131,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
               errors.push(errorMsg)
               return
             }
+            dynamicVariants.push(referencedProp)
             usedPropKeys.push(referencedProp)
           }
 
@@ -144,6 +146,13 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
           }
         }
       })
+
+      if (dynamicVariants.length > 1) {
+        errors.push(`Node ${
+          node.content?.name || node.content?.key
+        } is using multiple dynamic variants using propDefinitions.
+        We can have only one dynamic variant at once`)
+      }
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {

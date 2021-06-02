@@ -81,7 +81,6 @@ const createCustomReactGatsbyComponentGenerator: ComponentGeneratorInstance = ({
 }: GeneratorFactoryParams): ComponentGenerator => {
   const cssModulesPlugin = createCSSModulesPlugin({
     moduleExtension: true,
-    camelCaseClassNames: true,
   })
   const stylePlugins = {
     [GatsbyStyleVariation.StyledComponents]: reactStyledComponentsPlugin,

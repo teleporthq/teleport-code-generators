@@ -1,9 +1,13 @@
 import jss from 'jss'
 import preset from 'jss-preset-default'
 import * as types from '@babel/types'
-import { UIDLDynamicReference } from '@teleporthq/teleport-types'
+import { UIDLDynamicReference, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import {
+  getContentOfStyleObject,
+  getCSSVariablesContentFromTokenStyles,
+} from '../utils/style-utils'
 
 jss.setup(preset())
 
@@ -91,4 +95,48 @@ export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string,
       )
     })
   return styles
+}
+
+export const generateStylesFromStyleSetDefinitions = (
+  styleSetDefinitions: Record<string, UIDLStyleSetDefinition>,
+  cssMap: string[],
+  mediaStylesMap: Record<string, Record<string, unknown>>
+) => {
+  Object.keys(styleSetDefinitions).forEach((styleId) => {
+    const style = styleSetDefinitions[styleId]
+    const { content, conditions = [] } = style
+    const className = styleId
+
+    const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
+    const collectedStyles = {
+      ...getContentOfStyleObject(staticStyles),
+      ...getCSSVariablesContentFromTokenStyles(tokenStyles),
+    } as Record<string, string | number>
+    cssMap.push(createCSSClass(className, collectedStyles))
+
+    if (conditions.length === 0) {
+      return
+    }
+    conditions.forEach((styleRef) => {
+      const { staticStyles: staticValues, tokenStyles: tokenValues } =
+        UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+      const collecedMediaStyles = {
+        ...getContentOfStyleObject(staticValues),
+        ...getCSSVariablesContentFromTokenStyles(tokenValues),
+      } as Record<string, string | number>
+
+      if (styleRef.type === 'element-state') {
+        cssMap.push(
+          createCSSClassWithSelector(className, `&:${styleRef.meta.state}`, collecedMediaStyles)
+        )
+      }
+
+      if (styleRef.type === 'screen-size') {
+        mediaStylesMap[styleRef.meta.maxWidth] = {
+          ...mediaStylesMap[styleRef.meta.maxWidth],
+          [className]: collecedMediaStyles,
+        }
+      }
+    })
+  })
 }

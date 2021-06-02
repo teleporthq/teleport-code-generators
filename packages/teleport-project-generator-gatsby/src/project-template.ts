@@ -12,15 +12,17 @@ export default {
   "version": "0.1.0",
   "author": "teleportHQ",
   "dependencies": {
-    "gatsby": "^2.15.36",
+    "gatsby": "^3.6.2",
     "gatsby-image": "^2.2.27",
-    "gatsby-plugin-offline": "^3.0.14",
-    "gatsby-plugin-react-helmet": "^3.3.10",
-    "gatsby-plugin-sharp": "^2.2.29",
-    "gatsby-source-filesystem": "^2.1.31",
-    "gatsby-transformer-sharp": "^2.2.21",
-    "react": "^16.10.2",
-    "react-dom": "^16.10.2",
+    "gatsby-plugin-offline": "^4.6.0",
+    "gatsby-plugin-postcss": "^4.6.0",
+    "gatsby-plugin-react-helmet": "^4.6.0",
+    "gatsby-plugin-sharp": "^3.6.0",
+    "gatsby-source-filesystem": "^3.6.0",
+    "gatsby-transformer-sharp": "^3.6.0",
+    "prop-types": "15.7.2",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "react-helmet": "^6.1.0"
   },
   "devDependencies": {
@@ -57,6 +59,18 @@ export default {
   },
   plugins: [
     'gatsby-plugin-react-helmet',
+    {
+      resolve: "gatsby-plugin-postcss",
+      options: {
+        cssLoaderOptions: {
+          esModule: false,
+          modules: {
+            exportLocalsConvention: "asIs",
+            namedExport: false,
+          },
+        },
+      },
+    },
     {
       resolve: 'gatsby-source-filesystem',
       options: {

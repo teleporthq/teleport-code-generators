@@ -12,7 +12,7 @@ import {
   UIDLElementNodeInlineReferencedStyle,
   UIDLReferencedStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
-  UIDLElementNodeClassReferencedStyle,
+  UIDLElementNodeCompReferencedStyle,
 } from '@teleporthq/teleport-types'
 
 export const resolveReferencedStyle = (input: ComponentUIDL) => {
@@ -51,7 +51,7 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles): UIDLReferencedSt
   const allMediaRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const allElementStateRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const globalReferencedStyles: Record<string, UIDLElementNodeProjectReferencedStyle> = {}
-  const allClassReferencedStyles: Record<string, UIDLElementNodeClassReferencedStyle> = {}
+  const allClassReferencedStyles: Record<string, UIDLElementNodeCompReferencedStyle> = {}
 
   Object.keys(styles).map((styleId: string) => {
     const styleRef = styles[styleId]
@@ -69,7 +69,7 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles): UIDLReferencedSt
         }
         break
       case 'component-referenced': {
-        allClassReferencedStyles[styleId] = styleRef as UIDLElementNodeClassReferencedStyle
+        allClassReferencedStyles[styleId] = styleRef as UIDLElementNodeCompReferencedStyle
         break
       }
       case 'project-referenced': {

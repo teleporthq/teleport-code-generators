@@ -359,11 +359,11 @@ export type UIDLReferencedStyles = Record<string, UIDLElementNodeReferenceStyles
 export type UIDLElementNodeReferenceStyles =
   | UIDLElementNodeProjectReferencedStyle
   | UIDLElementNodeInlineReferencedStyle
-  | UIDLElementNodeClassReferencedStyle
+  | UIDLElementNodeCompReferencedStyle
 
 export type UIDLProjectReferencedStyleID = string
 
-export interface UIDLElementNodeClassReferencedStyle {
+export interface UIDLElementNodeCompReferencedStyle {
   type: 'style-map'
   content: {
     mapType: 'component-referenced'

@@ -188,7 +188,6 @@ describe('Add referenced styles even when direct styles are not present on node'
       variation: ReactStyleVariation.ReactJSS,
     })
 
-    // console.log(JSON.stringify(uidl, null, 2))
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
