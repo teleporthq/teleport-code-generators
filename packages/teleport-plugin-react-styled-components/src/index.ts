@@ -4,6 +4,7 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  PluginStyledComponent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -57,7 +58,8 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const variants = generateVariantsfromStyleSet(
         componentStyleSheet,
         componentVariantPropPrefix,
-        componentVariantPropKey
+        componentVariantPropKey,
+        tokensReferred
       )
       chunks.push({
         name: 'variant',
@@ -184,6 +186,28 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 )
               }
 
+              if (
+                styleRef.content.content.type === 'dynamic' &&
+                styleRef.content.content.content.referenceType === 'prop'
+              ) {
+                if (styleReferences.has(componentVariantPropPrefix)) {
+                  throw new PluginStyledComponent(
+                    `Styled Components can refer to only one variant at one instance,
+                      The node ${root} already has a variant defined ${JSON.stringify(
+                      styleRef.content,
+                      null,
+                      2
+                    )}`
+                  )
+                }
+                styleReferences.add(componentVariantPropPrefix)
+                ASTUtils.addDynamicAttributeToJSXTag(
+                  root,
+                  componentVariantPropKey,
+                  `${propsPrefix}.${styleRef.content.content.content.id}`
+                )
+              }
+
               return
             }
 
@@ -263,7 +287,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     dependencies.styled = {
       type: 'package',
       path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
-      version: '4.2.0',
+      version: '^5.3.0',
     }
 
     /* React Native elements are imported from styled-components/native,

@@ -18,7 +18,7 @@ import ReactTemplate from './project-template'
 const createReactProjectGenerator = () => {
   const generator = createProjectGenerator({
     id: 'teleport-project-react',
-    style: ReactStyleVariation.CSSModules,
+    style: ReactStyleVariation.StyledComponents,
     components: {
       generator: createReactComponentGenerator,
       mappings: [ReactProjectMapping],

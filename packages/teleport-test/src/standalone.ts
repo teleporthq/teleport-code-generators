@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -56,53 +57,6 @@ const run = async () => {
     })
     console.info(ProjectType.NEXT, '-', result.payload)
 
-    /* React JSS */
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextReactJSS],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-react-jss',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
-
-    /* Styled Components */
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.GATSBY,
-      plugins: [pluginGatsbyStyledComponents],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-gatsby-styled-components',
-      },
-    })
-    console.info(
-      ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
-      '-',
-      result.payload
-    )
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextStyledComponents],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-styled-components',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
-
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.REACTNATIVE,
-    })
-    console.info(ProjectType.REACTNATIVE, '-', result.payload)
-
     /* Frameworks using Css-Modules */
 
     result = await packProject(reactProjectUIDL, {
@@ -153,6 +107,53 @@ const run = async () => {
 
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
     console.info(ProjectType.GRIDSOME, '-', result.payload)
+
+    /* React JSS */
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextReactJSS],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-react-jss',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
+
+    /* Styled Components */
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.GATSBY,
+      plugins: [pluginGatsbyStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-gatsby-styled-components',
+      },
+    })
+    console.info(
+      ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
+      '-',
+      result.payload
+    )
+
+    result = await packProject(reactProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.NEXT,
+      plugins: [pluginNextStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: 'teleport-project-next-styled-components',
+      },
+    })
+    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACTNATIVE,
+    })
+    console.info(ProjectType.REACTNATIVE, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

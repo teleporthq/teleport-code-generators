@@ -108,7 +108,8 @@ export const generateStyledComponentStyles = (params: {
 export const generateVariantsfromStyleSet = (
   styleSets: Record<string, UIDLStyleSetDefinition>,
   variantPropPrefix: string,
-  variantPropKey: string
+  variantPropKey: string,
+  tokensReferred?: Set<string>
 ) => {
   const variantExpressions = types.objectExpression(
     Object.keys(styleSets).reduce((acc: types.ObjectProperty[], styleId) => {
@@ -117,7 +118,10 @@ export const generateVariantsfromStyleSet = (
 
       const property = types.objectProperty(
         types.stringLiteral(styleId),
-        generateStyledComponentStyles({ styles: content })
+        generateStyledComponentStyles({
+          styles: content,
+          ...(tokensReferred && { tokensReferred }),
+        })
       )
 
       conditions.forEach((cond) => {
@@ -125,7 +129,10 @@ export const generateVariantsfromStyleSet = (
           cond.type === 'screen-size'
             ? types.stringLiteral(`@media(max-width: ${cond.meta.maxWidth}px)`)
             : types.stringLiteral(`&:${cond.meta.state}`),
-          generateStyledComponentStyles({ styles: cond.content })
+          generateStyledComponentStyles({
+            styles: cond.content,
+            ...(tokensReferred && { tokensReferred }),
+          })
         )
 
         if (property.value.type === 'ObjectExpression') {
