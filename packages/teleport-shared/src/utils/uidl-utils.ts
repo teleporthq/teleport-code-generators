@@ -357,9 +357,7 @@ export const cleanupDynamicStyles = (style: UIDLStyleDefinitions): UIDLStyleDefi
 // Traverses the style object and applies the convert funtion to all the dynamic styles
 export const transformDynamicStyles = (
   style: UIDLStyleDefinitions,
-  // tslint:disable-next-line no-any
   transform: (value: UIDLDynamicReference, key?: string) => any
-  // tslint:disable-next-line no-any
 ): Record<string, any> => {
   return Object.keys(style).reduce((resultedStyles: Record<string, unknown>, styleKey) => {
     const styleValue = style[styleKey]

@@ -19,7 +19,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
     const { projectStyleSet } = options
-    const { node, styleSetDefinitions: componentStyleSheet } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -67,9 +67,11 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       const root = jsxNodesLookup[key]
 
       // Generating the string templates for the dynamic styles
-      const styleRules = transformStyle(style)
-      classMap.push(StyleBuilders.createCSSClass(className, styleRules))
-      classNamesToAppend.add(className)
+      if (Object.keys(style).length > 0) {
+        const styleRules = transformStyle(style)
+        classMap.push(StyleBuilders.createCSSClass(className, styleRules))
+        classNamesToAppend.add(className)
+      }
 
       Object.values(referencedStyles).forEach((styleRef) => {
         switch (styleRef.content.mapType) {

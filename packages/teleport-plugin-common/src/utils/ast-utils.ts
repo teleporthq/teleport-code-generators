@@ -448,3 +448,6 @@ export const createStateHookAST = (
     ),
   ])
 }
+
+export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
+  types.objectExpression(properties)
