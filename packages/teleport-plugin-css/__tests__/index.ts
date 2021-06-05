@@ -29,6 +29,7 @@ describe('plugin-css', () => {
 
     it('generates no chunk if no styles exist', async () => {
       const uidlSample = component('CSSPlugin', elementNode('container'))
+      uidlSample.node.content.key = 'element-key'
       const structure: ComponentStructure = {
         uidl: uidlSample,
         options: {},
@@ -37,7 +38,6 @@ describe('plugin-css', () => {
       }
 
       const { chunks } = await plugin(structure)
-
       expect(chunks.length).toBe(1)
     })
 

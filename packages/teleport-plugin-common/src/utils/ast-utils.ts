@@ -170,6 +170,7 @@ export const addAttributeToJSXTag = (
       getProperAttributeValueAssignment(attrValue)
     )
   }
+
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 

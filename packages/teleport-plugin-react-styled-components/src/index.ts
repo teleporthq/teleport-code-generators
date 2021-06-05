@@ -5,6 +5,7 @@ import {
   ChunkType,
   FileType,
   PluginStyledComponent,
+  UIDLCompDynamicReference,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -76,6 +77,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const { key, elementType, referencedStyles } = element
       const propsReferred: Set<string> = new Set()
       const styleReferences: Set<string> = new Set()
+      const staticClasses: Set<string> = new Set()
 
       if (!style && !referencedStyles) {
         return
@@ -122,6 +124,27 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       }
 
       if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
+        const hasMultipleCompReferences = Object.values(referencedStyles).filter((item) => {
+          if (item.content.mapType === 'component-referenced') {
+            const { type, content } = item.content.content as UIDLCompDynamicReference
+            if (
+              type === 'dynamic' &&
+              (content.referenceType === 'prop' || content.referenceType === 'comp')
+            ) {
+              return item
+            }
+          }
+        })
+
+        if (hasMultipleCompReferences.length > 1) {
+          throw new PluginStyledComponent(`Styled Component can have only one refereve per node.
+i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
+            hasMultipleCompReferences,
+            null,
+            2
+          )}`)
+        }
+
         Object.values(referencedStyles).forEach((styleRef) => {
           switch (styleRef.content?.mapType) {
             case 'inlined': {
@@ -171,7 +194,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
             case 'component-referenced': {
               if (styleRef.content.content.type === 'static') {
-                // TODO: Add to the tag using className
+                staticClasses.add(String(styleRef.content.content.content))
               }
 
               if (
@@ -190,16 +213,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'prop'
               ) {
-                if (styleReferences.has(componentVariantPropPrefix)) {
-                  throw new PluginStyledComponent(
-                    `Styled Components can refer to only one variant at one instance,
-                      The node ${root} already has a variant defined ${JSON.stringify(
-                      styleRef.content,
-                      null,
-                      2
-                    )}`
-                  )
-                }
                 styleReferences.add(componentVariantPropPrefix)
                 ASTUtils.addDynamicAttributeToJSXTag(
                   root,
@@ -232,6 +245,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 },
               }
               styleReferences.add(projectVariantPropPrefix)
+
               ASTUtils.addAttributeToJSXTag(root, projectVariantPropKey, content.referenceId)
               return
             }
@@ -248,7 +262,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         })
       }
 
-      if (propsReferred.size > 1) {
+      if (propsReferred.size > 0) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
       }
 

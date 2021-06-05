@@ -60,7 +60,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       const { style = {}, key, referencedStyles = {} } = element
       const className = StringUtils.camelCaseToDashCase(key)
 
-      if (!style && !referencedStyles) {
+      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
       }
 

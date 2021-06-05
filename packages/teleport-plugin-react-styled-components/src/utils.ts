@@ -1,6 +1,11 @@
 import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { UIDLStyleValue, UIDLDependency, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
+import {
+  UIDLStyleValue,
+  UIDLDependency,
+  UIDLStyleSetDefinition,
+  PluginStyledComponent,
+} from '@teleporthq/teleport-types'
 
 export const generateStyledComponent = (params: {
   name: string
@@ -11,9 +16,20 @@ export const generateStyledComponent = (params: {
 }) => {
   const { name, elementType, styles, propsReferred, styleReferences } = params
   let styleExpressions: types.ObjectExpression | types.ArrowFunctionExpression = styles
+  const expressionArguments: Array<
+    types.ObjectExpression | types.ArrowFunctionExpression | types.Identifier
+  > = []
 
   if (propsReferred.size > 0) {
     styleExpressions = types.arrowFunctionExpression([types.identifier('props')], styles)
+  }
+
+  if (styleReferences.size > 0) {
+    expressionArguments.push(...Array.from(styleReferences).map((ref) => types.identifier(ref)))
+  }
+
+  if (styles && styles.properties.length > 0) {
+    expressionArguments.push(styleExpressions)
   }
 
   return types.variableDeclaration('const', [
@@ -21,7 +37,7 @@ export const generateStyledComponent = (params: {
       types.identifier(name),
       types.callExpression(
         types.callExpression(types.identifier('styled'), [types.stringLiteral(elementType)]),
-        [...Array.from(styleReferences).map((ref) => types.identifier(ref)), styleExpressions]
+        expressionArguments
       )
     ),
   ])
@@ -73,13 +89,22 @@ export const generateStyledComponentStyles = (params: {
         acc.push(types.objectProperty(styleKey, styleContent))
       }
 
+      if (style.type === 'dynamic' && style.content.referenceType === 'state') {
+        throw new PluginStyledComponent(`Error running transformDynamicStyles in reactStyledComponentsPlugin. 
+        Unsupported styleValue.content.referenceType value ${style.content.referenceType}`)
+      }
+
       if (style.type === 'dynamic' && style.content.referenceType === 'prop') {
+        const isNestedProp = style.content.id.includes('.')
         acc.push(
           types.objectProperty(
             styleKey,
             types.memberExpression(
               types.identifier(propsPrefix),
-              types.identifier(style.content.id)
+              isNestedProp
+                ? types.identifier(style.content.id)
+                : types.identifier(`'${style.content.id}'`),
+              !isNestedProp
             )
           )
         )

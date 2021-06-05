@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'

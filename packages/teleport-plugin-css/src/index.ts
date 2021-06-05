@@ -93,7 +93,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       if (!style && !referencedStyles) {
         return
       }
-
       const root = templateLookup[key]
 
       const elementClassName = StringUtils.camelCaseToDashCase(key)

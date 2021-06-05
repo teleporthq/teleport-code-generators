@@ -36,13 +36,11 @@ describe('plugin-css-modules', () => {
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
     expect(classNameAttr.value.expression.object.name).toBe('styles')
-    expect(classNameAttr.value.expression.property.name).toBe('container')
+    expect(classNameAttr.value.expression.property.name).toBe(`'container'`)
   })
 
   it('generates a string chunk out of the styles and adds the className between brackets', async () => {
-    const plugin = createCSSModulesPlugin({
-      camelCaseClassNames: true,
-    })
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -57,26 +55,7 @@ describe('plugin-css-modules', () => {
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
     expect(classNameAttr.value.expression.object.name).toBe('styles')
-    expect(classNameAttr.value.expression.property.name).toBe('listContainer')
-  })
-
-  it('generates a string chunk out of the styles and adds the className in camel case', async () => {
-    const plugin = createCSSModulesPlugin({ camelCaseClassNames: false })
-    const structure = setupPluginStructure('list-container')
-    const { chunks } = await plugin(structure)
-
-    expect(chunks.length).toBe(2)
-    expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FileType.CSS)
-    expect(chunks[1].content).toContain('height: 100px;')
-
-    const nodeReference = chunks[0].meta.nodesLookup['list-container']
-    expect(nodeReference.openingElement.attributes.length).toBe(1)
-
-    const classNameAttr = nodeReference.openingElement.attributes[0]
-    expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.object.name).toBe('styles')
-    expect(classNameAttr.value.expression.property.name).toBe("'list-container'")
+    expect(classNameAttr.value.expression.property.name).toBe(`'list-container'`)
   })
 
   it('generates a string chunk out of the styles and adds the class attribute', async () => {
@@ -155,7 +134,7 @@ describe('plugin-css-modules', () => {
     expect(classNameAttr.name.name).toBe('className')
 
     expect(classNameAttr.value.expression.object.name).toBe('styles')
-    expect(classNameAttr.value.expression.property.name).toBe('container')
+    expect(classNameAttr.value.expression.property.name).toBe(`'container'`)
 
     const styleAttr = nodeReference.openingElement.attributes[0]
     expect(styleAttr.name.name).toBe('style')

@@ -3,6 +3,7 @@ import {
   ChunkType,
   FileType,
   ComponentStructure,
+  UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import { createReactStyledComponentsPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
@@ -14,6 +15,7 @@ describe('Referenced Styles on Node', () => {
       nodesLookup: {
         container: {
           openingElement: {
+            attributes: [],
             name: {
               name: '',
             },
@@ -64,19 +66,19 @@ describe('Referenced Styles on Node', () => {
       options: {},
     }
 
-    const result = await plugin(structure)
-    const { chunks, dependencies } = result
+    const { chunks, dependencies } = await plugin(structure)
+    const containerChunk = chunks.find((chunk) => chunk.name === 'Container')
 
-    expect(chunks[1].name).toBe('Container')
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      'display: block'
-    )
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      'display: none'
-    )
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      '@media(max-width: 991px)'
-    )
+    expect(containerChunk).toBeDefined()
+    expect(containerChunk.content.type).toBe('VariableDeclaration')
+
+    const declerationArguments = containerChunk.content.declarations[0].init.arguments
+    expect(declerationArguments.length).toBe(1)
+    expect(declerationArguments[0].name).not.toBe('projectStyleVariants')
+    expect(declerationArguments[0].properties.length).toBe(2)
+    expect(declerationArguments[0].properties[0].key.value).toBe('@media(max-width: 991px)')
+    expect(declerationArguments[0].properties[1].key.value).toBe('&:hover')
+
     expect(Object.keys(dependencies).length).toBe(1)
   })
 
@@ -120,7 +122,7 @@ describe('Referenced Styles on Node', () => {
       options: {},
     }
 
-    const styleSetDefinitions = {
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
       primaryButton: {
         type: 'reusable-project-style-map',
         content: {
@@ -136,22 +138,20 @@ describe('Referenced Styles on Node', () => {
       path: '..',
     }
 
-    const result = await plugin(structure)
-    const { chunks, dependencies } = result
+    const { chunks, dependencies } = await plugin(structure)
+    const containerChunk = chunks.find((chunk) => chunk.name === 'Container')
 
-    expect(chunks[1].name).toBe('Container')
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      'display: block'
-    )
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      'display: none'
-    )
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      '@media(max-width: 991px)'
-    )
-    expect(chunks[1].content.declarations[0].init.quasi.quasis[0].value.raw).toContain(
-      '${PrimaryButton'
-    )
+    expect(containerChunk).toBeDefined()
+    expect(containerChunk.content.type).toBe('VariableDeclaration')
+
+    const declerationArguments = containerChunk.content.declarations[0].init.arguments
+
+    expect(declerationArguments.length).toBe(2)
+    expect(declerationArguments[0].name).toBe('projectStyleVariants')
+    expect(declerationArguments[1].properties.length).toBe(2)
+    expect(declerationArguments[1].properties[0].key.value).toBe('@media(max-width: 991px)')
+    expect(declerationArguments[1].properties[1].key.value).toBe('&:hover')
+
     expect(Object.keys(dependencies).length).toBe(2)
   })
 })

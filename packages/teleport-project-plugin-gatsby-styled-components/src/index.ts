@@ -10,6 +10,8 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import MagicString from 'magic-string'
 import { STYLED_DEPENDENCIES } from './constants'
 
+// TODO: Delete config changes related to post-css which are added by default in gatsby-config
+
 class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure

@@ -108,8 +108,8 @@ describe('Style Sheet from styled components', () => {
     const { chunks, dependencies } = result
     const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
 
-    expect(styleChunks.length).toBe(3)
-    expect(dependencies.css.path).toBe('styled-components')
+    expect(styleChunks.length).toBe(1)
+    expect(dependencies.variant.path).toBe('styled-system')
   })
 
   it('Changes the name of output file, with the name that is passed', async () => {
@@ -143,7 +143,7 @@ describe('Style Sheet from styled components', () => {
     const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
 
     expect(styleChunks.length).toBe(0)
-    expect(dependencies.css.path).toBe('styled-components')
+    expect(dependencies.variant.path).toBe('styled-system')
     expect(result.uidl.outputOptions.fileName).toBe('index')
   })
 })

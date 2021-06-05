@@ -149,75 +149,8 @@ describe('React Styles in Component', () => {
       const jsFile = findFileByType(result.files, FileType.JS)
 
       expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<Container height={props.config.height}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('height: ${(props) => props.height}')
-    })
-
-    it('should send the props in camel-case', async () => {
-      const propDefnitions: Record<string, UIDLPropDefinition> = {
-        backgroundColor: {
-          type: 'string',
-          defaultValue: 'blue',
-        },
-      }
-      const style: UIDLStyleDefinitions = {
-        'background-color': dynamicNode('prop', 'backgroundColor'),
-      }
-      const uidl = component(
-        'ComponentWithSingleDashCaseStyle',
-        elementNode('container', {}, [staticNode('Hello')], null, style),
-        propDefnitions,
-        {}
-      )
-
-      const styledComponentsGenerator = createReactComponentGenerator({
-        variation: ReactStyleVariation.StyledComponents,
-      })
-      const result = await styledComponentsGenerator.generateComponent(uidl)
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
-      expect(jsFile.content).toContain('<Container backgroundColor={props.backgroundColor}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
-    })
-
-    it('should refer the props in camel-case', async () => {
-      const propDefnitions: Record<string, UIDLPropDefinition> = {
-        backgroundColor: {
-          type: 'string',
-          defaultValue: 'blue',
-        },
-        borderColor: {
-          type: 'string',
-          defaultValue: 'red',
-        },
-      }
-      const style: UIDLStyleDefinitions = {
-        'background-color': dynamicNode('prop', 'backgroundColor'),
-        'border-color': dynamicNode('prop', 'borderColor'),
-      }
-      const uidl = component(
-        'ComponentWithSingleDashCaseStyle',
-        elementNode('container', {}, [staticNode('Hello')], null, style),
-        propDefnitions,
-        {}
-      )
-
-      const styledComponentsGenerator = createReactComponentGenerator({
-        variation: ReactStyleVariation.StyledComponents,
-      })
-      const result = await styledComponentsGenerator.generateComponent(uidl)
-
-      const jsFile = findFileByType(result.files, FileType.JS)
-
-      expect(jsFile).toBeDefined()
       expect(jsFile.content).toContain('<Container {...props}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('background-color: ${(props) => props.backgroundColor}')
-      // tslint:disable-next-line:no-invalid-template-strings
-      expect(jsFile.content).toContain('border-color: ${(props) => props.borderColor}')
+      expect(jsFile.content).toContain('height: props.config.height')
     })
 
     it('should inject props only once for styled components', async () => {
@@ -231,11 +164,11 @@ describe('React Styles in Component', () => {
     })
 
     it('should throw error when a state is being refered in generated StyledComponents ', async () => {
-      const styledJSXGenerator = createReactComponentGenerator({
+      const styledComponentsGenerator = createReactComponentGenerator({
         variation: ReactStyleVariation.StyledComponents,
       })
       try {
-        await styledJSXGenerator.generateComponent(ComponentWithInvalidStateStyles)
+        await styledComponentsGenerator.generateComponent(ComponentWithInvalidStateStyles)
         expect(true).toBe(false)
       } catch (e) {
         expect(e.message).toContain(

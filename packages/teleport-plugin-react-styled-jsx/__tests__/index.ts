@@ -44,6 +44,7 @@ describe('plugin-react-styled-jsx', () => {
 
   it('adds nothing on the AST if not styles are defined', async () => {
     const uidlSample = component('StyledJSX', elementNode('container'))
+    uidlSample.node.content.key = 'container'
     const structure: ComponentStructure = {
       uidl: uidlSample,
       options: {},
