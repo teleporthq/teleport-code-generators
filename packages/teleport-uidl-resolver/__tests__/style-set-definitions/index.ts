@@ -5,7 +5,6 @@ import { UIDLStyleSetDefinition, UIDLStyleSetMediaCondition } from '@teleporthq/
 describe('Resolves style-sheet', () => {
   const styleSheet: Record<string, UIDLStyleSetDefinition> = {
     primaryButton: {
-      name: 'primaryButton',
       type: 'reusable-project-style-map' as const,
       conditions: [
         {
@@ -32,7 +31,6 @@ describe('Resolves style-sheet', () => {
       },
     },
     secondaryButton: {
-      name: 'secondaryButton',
       type: 'reusable-project-style-map' as const,
       conditions: [
         {
@@ -75,5 +73,20 @@ describe('Resolves style-sheet', () => {
     expect((result.secondaryButton.conditions[1] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
       767
     )
+  })
+
+  it(`Resolver doesn't throw any error even if conditions are not passed`, () => {
+    const styleSet = {
+      primaryButton: {
+        type: 'reusable-project-style-map' as const,
+        conditions: [],
+        content: {
+          display: staticNode('block'),
+        },
+      },
+    }
+    const result = resolveStyleSetDefinitions(styleSet)
+
+    expect(result).toEqual(styleSet)
   })
 })
