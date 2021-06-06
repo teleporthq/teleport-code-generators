@@ -1,32 +1,16 @@
 import { staticNode, component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
   ChunkDefinition,
-  ChunkType,
   FileType,
   ComponentStructure,
   UIDLReferencedStyles,
 } from '@teleporthq/teleport-types'
-import { styleSetDefinitions } from './mocks'
+import { setUpHASTChunk, setUpJSXComponentChunk, styleSetDefinitions } from './mocks'
 import { createCSSPlugin } from '../src'
 
 describe('Referenced Styles for inlined and project-referenced with Templates (HAST) Nodes', () => {
   const plugin = createCSSPlugin({ templateChunkName: 'template' })
-  const componentChunk: ChunkDefinition = {
-    name: 'template',
-    meta: {
-      nodesLookup: {
-        container: {
-          type: 'element',
-          tagName: 'div',
-          properties: {},
-        },
-      },
-    },
-    fileType: FileType.HTML,
-    type: ChunkType.HAST,
-    linkAfter: [],
-    content: {},
-  }
+  const componentChunk: ChunkDefinition = setUpHASTChunk()
 
   it('Generates media query from referenced styles even styles are not defined on node', async () => {
     const referencedStyles = {
@@ -129,28 +113,7 @@ describe('Referenced Styles for inlined and project-referenced with JSX bases No
     templateChunkName: 'jsx-component',
     componentDecoratorChunkName: 'component-decorator',
   })
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk: ChunkDefinition = setUpJSXComponentChunk()
 
   it('Generates media query from referenced styles even styles are not defined on node', async () => {
     const referencedStyles: UIDLReferencedStyles = {

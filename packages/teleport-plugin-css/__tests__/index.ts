@@ -6,26 +6,12 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { createCSSPlugin } from '../src'
+import { setUpHASTChunk, setUpJSXComponentChunk } from './mocks'
 
 describe('plugin-css', () => {
   describe('on html template based components', () => {
     const plugin = createCSSPlugin({ templateChunkName: 'template' })
-    const componentChunk: ChunkDefinition = {
-      name: 'template',
-      meta: {
-        nodesLookup: {
-          container: {
-            type: 'element',
-            tagName: 'div',
-            properties: {},
-          },
-        },
-      },
-      fileType: FileType.HTML,
-      type: ChunkType.HAST,
-      linkAfter: [],
-      content: {},
-    }
+    const componentChunk: ChunkDefinition = setUpHASTChunk()
 
     it('generates no chunk if no styles exist', async () => {
       const uidlSample = component('CSSPlugin', elementNode('container'))
@@ -74,28 +60,7 @@ describe('plugin-css', () => {
       templateChunkName: 'jsx-component',
       componentDecoratorChunkName: 'component-decorator',
     })
-    const componentChunk: ChunkDefinition = {
-      name: 'jsx-component',
-      meta: {
-        nodesLookup: {
-          container: {
-            openingElement: {
-              name: {
-                name: '',
-              },
-              attributes: [],
-            },
-          },
-        },
-        dynamicRefPrefix: {
-          prop: 'props.',
-        },
-      },
-      type: ChunkType.AST,
-      fileType: FileType.TSX,
-      linkAfter: ['import-local'],
-      content: {},
-    }
+    const componentChunk: ChunkDefinition = setUpJSXComponentChunk()
 
     const decoratorChunk: ChunkDefinition = {
       name: 'component-decorator',

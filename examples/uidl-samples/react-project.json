@@ -800,6 +800,54 @@
     },
     "Navbar": {
       "name": "Navbar",
+      "propDefinitions": {
+        "variant": {
+          "type": "string",
+          "defaultValue": "secondaryButton"
+        }
+      },
+      "styleSetDefinitions": {
+        "primaryButton": {
+          "type": "reusable-component-style-map",
+          "conditions": [
+            { "type": "screen-size",
+              "meta": {
+                "maxWidth": 991
+              },
+              "content": {
+                "background": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "token",
+                    "id": "blue-600"
+                  }
+                }
+              } 
+            }
+          ],
+          "content": {
+            "background": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "blue-500"
+              }
+            },
+            "width": "auto",
+            "color": "#fff",
+            "border": "1px solid #fff"
+          }
+        },
+        "secondaryButton": {
+          "type": "reusable-component-style-map",
+          "content": {
+            "background": "red",
+            "width": "auto",
+            "color": "#fff",
+            "border": "1px solid #fff"
+          }
+        }
+      },
       "node": {
         "type": "element",
         "content": {
@@ -830,17 +878,39 @@
                       "elementType": "li",
                       "name": "home-link",
                       "referencedStyles": {
-                        "5ecf9f48c169f22eb26ce91d": {
+                        "12345678": {
                           "type": "style-map",
                           "content": {
-                            "mapType": "inlined",
-                            "conditions": [
-                              { "conditionType": "element-state", "content": "hover"}
-                            ],
-                            "styles": {
-                              "color": { "type": "static", "content": "red"},
-                              "border-bottom": "3px solid red",
-                              "padding-bottom": "7px"
+                            "mapType": "component-referenced",
+                            "content": {
+                              "type": "static",
+                              "content": "md-8"
+                            }
+                          }
+                        },
+                        "910111213": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "component-referenced",
+                            "content": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "comp",
+                                "id": "primaryButton"
+                              }
+                            }
+                          }
+                        },
+                        "1415161718": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "component-referenced",
+                            "content": {
+                              "type": "dynamic",
+                              "content": {
+                                "referenceType": "prop",
+                                "id": "variant"
+                              }
                             }
                           }
                         }

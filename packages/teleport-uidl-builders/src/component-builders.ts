@@ -68,6 +68,7 @@ export const element = (
   referencedStyles?: UIDLReferencedStyles
 ) => {
   const elementObj: UIDLElement = {
+    key: elementType,
     elementType,
     name: elementType,
     children,
