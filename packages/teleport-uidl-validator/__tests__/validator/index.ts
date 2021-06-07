@@ -43,7 +43,7 @@ describe('Validate UIDL', () => {
   it('Component UIDL with null /  undefined in the JSON', () => {
     const validator = new Validator()
     expect(() =>
-      validator.validateComponentSchema((uidlWithNull as unknown) as Record<string, unknown>)
+      validator.validateComponentSchema(uidlWithNull as unknown as Record<string, unknown>)
     ).toThrow(Error)
   })
 
@@ -51,7 +51,7 @@ describe('Validate UIDL', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponentSchema(
-        (uidl as unknown) as Record<string, unknown>
+        uidl as unknown as Record<string, unknown>
       )
 
       expect(typeof validationResult).toBe('object')

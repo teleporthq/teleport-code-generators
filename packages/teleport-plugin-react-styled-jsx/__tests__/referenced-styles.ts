@@ -1,61 +1,10 @@
-import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-  ComponentStructure,
-} from '@teleporthq/teleport-types'
+import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createReactStyledJSXPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Referenced Styles on Node', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: 'div',
-            },
-            attributes: [],
-          },
-          children: [],
-        },
-        group: {
-          openingElement: {
-            name: {
-              name: 'Fragment',
-            },
-            attributes: [],
-          },
-          children: [],
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {
-      declarations: [
-        {
-          init: {
-            body: {
-              body: [
-                {
-                  argument: {
-                    children: [],
-                  },
-                },
-              ],
-            },
-          },
-        },
-      ],
-    },
-  }
+  const componentChunk = createComponentChunk()
   const uidl = component('MyComponent', elementNode('container', null, [], null, null, null, null))
 
   it('Media and pseudo styles are generated from referencedStyles', async () => {
@@ -93,7 +42,10 @@ describe('Referenced Styles on Node', () => {
 
     const result = await plugin(structure)
     const { chunks } = result
-
-    expect(chunks[0].type).toBe('ast')
+    const jsxComponent = chunks.find((chunk) => chunk.name === 'jsx-component')
+    const styleSheet =
+      jsxComponent.content.declarations[0].init.body.body[0].argument.children[1].children[0]
+        .expression.quasis[0].value
+    expect(styleSheet.raw).toContain(`@media(max-width: 991px)`)
   })
 })

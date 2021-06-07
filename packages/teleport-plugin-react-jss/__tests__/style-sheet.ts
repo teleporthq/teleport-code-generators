@@ -1,37 +1,14 @@
 import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
   ComponentStructure,
   UIDLStyleSetDefinition,
   UIDLDesignTokens,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Style Sheet from react-jss', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
 
   it('Generates a style sheet from the give JSON of styleSet', async () => {
     const plugin = createStyleSheetPlugin()

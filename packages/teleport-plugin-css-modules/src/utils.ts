@@ -1,5 +1,5 @@
 import { StyleBuilders, StyleUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLStyleSetDefinition,
   UIDLStyleSheetContent,
@@ -23,26 +23,12 @@ export const generateStylesFromStyleSetDefinitions = (params: {
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
   cssMap: string[]
   mediaStylesMap: Record<string, Record<string, unknown>>
-  formatClassName?: boolean
-  camelCaseClassNames?: boolean
 }) => {
-  const {
-    styleSetDefinitions,
-    cssMap = [],
-    mediaStylesMap,
-    formatClassName = false,
-    camelCaseClassNames = false,
-  } = params
+  const { styleSetDefinitions, cssMap = [], mediaStylesMap } = params
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [] } = style
-    let className = styleId
-    if (formatClassName) {
-      className = camelCaseClassNames
-        ? StringUtils.dashCaseToCamelCase(styleId)
-        : StringUtils.camelCaseToDashCase(styleId)
-    }
-
+    const className = styleId
     cssMap.push(StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content)))
 
     if (conditions.length === 0) {

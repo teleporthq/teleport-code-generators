@@ -654,19 +654,6 @@
                               }
                             }
                           }
-                        },
-                        "1415161718": {
-                          "type": "style-map",
-                          "content": {
-                            "mapType": "component-referenced",
-                            "content": {
-                              "type": "dynamic",
-                              "content": {
-                                "referenceType": "prop",
-                                "id": "variant"
-                              }
-                            }
-                          }
                         }
                       },
                       "style": {

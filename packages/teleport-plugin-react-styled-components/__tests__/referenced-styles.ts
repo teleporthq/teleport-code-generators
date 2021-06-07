@@ -1,36 +1,10 @@
-import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-  ComponentStructure,
-  UIDLStyleSetDefinition,
-} from '@teleporthq/teleport-types'
+import { ComponentStructure, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import { createReactStyledComponentsPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Referenced Styles on Node', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            attributes: [],
-            name: {
-              name: '',
-            },
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
   const uidl = component('MyComponent', elementNode('container', null, [], null, null, null, null))
 
   it('Media and pseudo styles are generated from referencedStyles', async () => {

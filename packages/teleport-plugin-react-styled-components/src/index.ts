@@ -137,7 +137,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         })
 
         if (hasMultipleCompReferences.length > 1) {
-          throw new PluginStyledComponent(`Styled Component can have only one refereve per node.
+          throw new PluginStyledComponent(`Styled Component can have only one reference per node.
 i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
             hasMultipleCompReferences,
             null,

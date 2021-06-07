@@ -2,9 +2,50 @@ import { UIDLStyleSetDefinition, UIDLStyleSetTokenReference } from '@teleporthq/
 import { UIDLDesignTokens } from '@teleporthq/teleport-types/src'
 import { dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createStyleSheetPlugin } from '../src/style-sheet'
+import { generateStylesFromStyleSetDefinitions } from '../src/utils'
 import { setupPluginStructure } from './mocks'
 
 describe('plugin-css-modules-style-sheet', () => {
+  const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
+    'primary-button': {
+      type: 'reusable-project-style-map',
+      content: {
+        background: staticNode('blue'),
+        color: staticNode('red'),
+      },
+    },
+    secondaryButton: {
+      type: 'reusable-project-style-map',
+      content: {
+        background: staticNode('red'),
+        color: staticNode('blue'),
+      },
+    },
+    conditionalButton: {
+      type: 'reusable-project-style-map',
+      conditions: [
+        {
+          type: 'screen-size',
+          meta: { maxWidth: 991 },
+          content: {
+            background: staticNode('purple'),
+            color: dynamicNode('token', 'red-500') as UIDLStyleSetTokenReference,
+          },
+        },
+        {
+          type: 'element-state',
+          meta: { state: 'hover' },
+          content: {
+            background: dynamicNode('token', 'blue-500') as UIDLStyleSetTokenReference,
+          },
+        },
+      ],
+      content: {
+        background: staticNode('red'),
+        color: staticNode('blue'),
+      },
+    },
+  }
   it('should generate css modules when the styleSetDefinitions are presnet', async () => {
     const plugin = createStyleSheetPlugin()
     const structure = setupPluginStructure()
@@ -20,46 +61,6 @@ describe('plugin-css-modules-style-sheet', () => {
       'red-500': {
         type: 'static',
         content: '#ff9999',
-      },
-    }
-    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-      'primary-button': {
-        type: 'reusable-project-style-map',
-        content: {
-          background: staticNode('blue'),
-          color: staticNode('red'),
-        },
-      },
-      secondaryButton: {
-        type: 'reusable-project-style-map',
-        content: {
-          background: staticNode('red'),
-          color: staticNode('blue'),
-        },
-      },
-      conditionalButton: {
-        type: 'reusable-project-style-map',
-        conditions: [
-          {
-            type: 'screen-size',
-            meta: { maxWidth: 991 },
-            content: {
-              background: staticNode('purple'),
-              color: dynamicNode('token', 'red-500') as UIDLStyleSetTokenReference,
-            },
-          },
-          {
-            type: 'element-state',
-            meta: { state: 'hover' },
-            content: {
-              background: dynamicNode('token', 'blue-500') as UIDLStyleSetTokenReference,
-            },
-          },
-        ],
-        content: {
-          background: staticNode('red'),
-          color: staticNode('blue'),
-        },
       },
     }
     structure.uidl = {
@@ -99,5 +100,14 @@ describe('plugin-css-modules-style-sheet', () => {
     const result = await plugin(structure)
 
     expect(result).toBe(undefined)
+  })
+
+  it('Generates styles from UIDLStyleSetDefinitions', () => {
+    const cssMap: string[] = []
+    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    generateStylesFromStyleSetDefinitions({ styleSetDefinitions, cssMap, mediaStylesMap })
+
+    expect(cssMap.length).toBe(4)
+    expect(Object.keys(mediaStylesMap).length).toBe(1)
   })
 })

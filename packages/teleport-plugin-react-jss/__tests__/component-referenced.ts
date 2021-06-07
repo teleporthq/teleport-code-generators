@@ -1,9 +1,7 @@
-/* tslint:disable no-string-literal */
-import { createCSSModulesPlugin } from '../src'
+import { createReactJSSPlugin } from '../src'
 import { staticNode, elementNode, component } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createComponentChunk } from './mocks'
-import { generateStylesFromStyleSetDefinitions } from '../src/utils'
 
 describe('Component Scoped Styles', () => {
   const uidl = component('MYComponent', elementNode('container', {}, [], null, {}), {}, {})
@@ -25,7 +23,7 @@ describe('Component Scoped Styles', () => {
   }
 
   it('Generates component-scoped style sheet', async () => {
-    const plugin = createCSSModulesPlugin()
+    const plugin = createReactJSSPlugin()
     const structure: ComponentStructure = {
       uidl,
       chunks: [createComponentChunk()],
@@ -33,35 +31,25 @@ describe('Component Scoped Styles', () => {
       options: {},
     }
     const { chunks } = await plugin(structure)
-    const styleChunk = chunks.find((chunk) => chunk.name === 'css-modules')
+    const styleChunk = chunks.find((chunk) => chunk.name === 'jss-style-definition')
+    const expression = styleChunk.content.declarations[0].init
+    const properties = expression.arguments[0].properties
 
-    expect(chunks.length).toBe(2)
     expect(styleChunk).toBeDefined()
-    expect(styleChunk.content).toContain(`primary-navbar`)
-    expect(styleChunk.content).toContain('secondaryNavbar')
+    expect(expression.callee.name).toBe('createUseStyles')
+    expect(properties.length).toBe(2)
+    expect(properties[0].key.value).toBe('primary-navbar')
+    expect(properties[1].key.value).toBe('secondaryNavbar')
   })
 
-  it('Generates style sheet and adds them to the node with JSX template', async () => {
-    const plugin = createCSSModulesPlugin()
+  it(`Generates Component-scoped style sheet and adds to the node`, async () => {
+    const plugin = createReactJSSPlugin()
     uidl.node.content.referencedStyles = {
       '12345678': {
         type: 'style-map',
         content: {
           mapType: 'component-referenced',
           content: staticNode('md-8'),
-        },
-      },
-      '910111213': {
-        type: 'style-map',
-        content: {
-          mapType: 'component-referenced',
-          content: {
-            type: 'dynamic',
-            content: {
-              referenceType: 'comp',
-              id: 'primary-navbar',
-            },
-          },
         },
       },
       '1415161718': {
@@ -86,14 +74,15 @@ describe('Component Scoped Styles', () => {
     }
 
     const { chunks } = await plugin(structure)
-    const jsxComponent = chunks.find((chunk) => chunk.name === 'jsx-component')
-    const jsxExpressions =
-      jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
+    const jsxComp = chunks.find((chunk) => chunk.name === 'jsx-component')
+    const attrs = jsxComp.meta.nodesLookup.container.openingElement.attributes[0]
+    const attrExpressions = attrs.value.expression.expressions
 
-    expect(jsxExpressions.quasis.length).toBe(4)
-    expect(jsxExpressions.expressions[0].name).toBe("'md-8'")
-    expect(jsxExpressions.expressions[1].property.name).toBe("'primary-navbar'")
-    expect(jsxExpressions.expressions[2].property.object.name).toBe('props.')
-    expect(jsxExpressions.expressions[2].property.property.name).toBe('variant')
+    expect(attrs.value.expression.quasis.length).toBe(3)
+    expect(attrExpressions.length).toBe(2)
+    expect(attrExpressions[0].name).toBe("'md-8'")
+    expect(attrExpressions[1].object.name).toBe('classes')
+    expect(attrExpressions[1].property.object.name).toBe('props')
+    expect(attrExpressions[1].property.property.name).toBe('variant')
   })
 })

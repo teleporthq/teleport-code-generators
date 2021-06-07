@@ -1,36 +1,14 @@
 import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
   ComponentStructure,
   UIDLDesignTokens,
   UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Style Sheet from styled components', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
 
   it('Generates a style sheet from the give JSON of styleSet', async () => {
     const plugin = createStyleSheetPlugin()
@@ -140,10 +118,14 @@ describe('Style Sheet from styled components', () => {
 
     const result = await plugin(structure)
     const { chunks, dependencies } = result
-    const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
+    const styleChunk = chunks.find((chunk) => chunk.name === 'index')
+    const declaration = styleChunk.content.declaration.declarations[0]
 
-    expect(styleChunks.length).toBe(0)
+    expect(styleChunk).toBeDefined()
     expect(dependencies.variant.path).toBe('styled-system')
     expect(result.uidl.outputOptions.fileName).toBe('index')
+    expect(declaration.id.name).toBe('projectStyleVariants')
+    expect(declaration.init.arguments[0].properties[0].value.value).toBe('projVariant')
+    expect(declaration.init.arguments[0].properties[1].value.properties.length).toBe(2)
   })
 })
