@@ -43,7 +43,6 @@ describe('styleSetDefinitions in root of Project UIDL', () => {
 
     expect(result.root.styleSetDefinitions).toStrictEqual({
       primaryButton: {
-        name: 'primaryButton',
         type: 'reusable-project-style-map',
         content: {
           background: {
@@ -65,7 +64,6 @@ describe('styleSetDefinitions in root of Project UIDL', () => {
         },
       },
       secondaryButton: {
-        name: 'secondaryButton',
         type: 'reusable-project-style-map',
         content: {
           background: {

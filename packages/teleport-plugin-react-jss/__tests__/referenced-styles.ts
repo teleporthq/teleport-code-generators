@@ -1,4 +1,4 @@
-import { ComponentStructure } from '@teleporthq/teleport-types'
+import { ComponentStructure, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import { createReactJSSPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createComponentChunk } from './mocks'
@@ -74,7 +74,7 @@ describe('Referenced Styles on Node', () => {
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfa1233b8e50f60ea2b64d',
+          referenceId: 'primaryButton',
         },
       },
     }
@@ -87,9 +87,8 @@ describe('Referenced Styles on Node', () => {
       options: {},
     }
 
-    const styleSetDefinitions = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        name: 'primaryButton',
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
+      primaryButton: {
         type: 'reusable-project-style-map' as const,
         content: {
           background: staticNode('blue'),

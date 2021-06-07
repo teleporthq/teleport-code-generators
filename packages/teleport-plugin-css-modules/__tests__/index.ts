@@ -199,8 +199,7 @@ describe('plugin-css-modules', () => {
 
     structure.options.projectStyleSet = {
       styleSetDefinitions: {
-        '5ecfb5c3ce6b220ce8d154a2': {
-          name: 'primaryButton',
+        primaryButton: {
           type: 'reusable-project-style-map',
           content: {
             background: {
@@ -219,7 +218,7 @@ describe('plugin-css-modules', () => {
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfb5c3ce6b220ce8d154a2',
+          referenceId: 'primaryButton',
         },
       },
     }
