@@ -29,6 +29,7 @@ interface StyledComponentsConfig {
   importChunkName?: string
   componentLibrary?: 'react' | 'reactnative'
   illegalComponentNames?: string[]
+  classAttributeName?: string
 }
 
 export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledComponentsConfig> = (
@@ -39,6 +40,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     importChunkName = 'import-local',
     componentLibrary = 'react',
     illegalComponentNames = [],
+    classAttributeName = 'className',
   } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
@@ -77,7 +79,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const { key, elementType, referencedStyles } = element
       const propsReferred: Set<string> = new Set()
       const styleReferences: Set<string> = new Set()
-      const staticClasses: Set<string> = new Set()
+      const staticClasses: Set<types.Identifier> = new Set()
 
       if (!style && !referencedStyles) {
         return
@@ -194,7 +196,7 @@ i.e either a direct static reference from component style sheet or from props. G
 
             case 'component-referenced': {
               if (styleRef.content.content.type === 'static') {
-                staticClasses.add(String(styleRef.content.content.content))
+                staticClasses.add(types.identifier(`'${styleRef.content.content.content}'`))
               }
 
               if (
@@ -264,6 +266,14 @@ i.e either a direct static reference from component style sheet or from props. G
 
       if (propsReferred.size > 0) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
+      }
+
+      if (staticClasses.size > 0) {
+        ASTUtils.addMultipleDynamicAttributesToJSXTag(
+          root,
+          classAttributeName,
+          Array.from(staticClasses)
+        )
       }
 
       ASTUtils.renameJSXTag(root, className)
