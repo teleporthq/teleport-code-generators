@@ -170,7 +170,9 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       originalElement.style && originalElementType === 'navlink' && anchorChild
     if (shouldPassStylesToAnchor) {
       anchorChild.content.style = UIDLUtils.cloneObject(originalElement.style)
+      anchorChild.content.referencedStyles = UIDLUtils.cloneObject(originalElement.referencedStyles)
       originalElement.style = {}
+      originalElement.referencedStyles = {}
     }
   }
 }

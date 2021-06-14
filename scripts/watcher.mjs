@@ -8,7 +8,7 @@ const log = console.log
 
 const ignorePackages = ['teleport-repl-component', 'teleport-test']
 const watcher = chokidar.watch(['packages/**/src/**/*.ts', 'packages/**/src/**/*.json'], {
-  depth: 3,
+  depth: 4,
   persistent: true,
   usePolling: true,
   interval: 500,
