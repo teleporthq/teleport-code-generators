@@ -164,3 +164,9 @@ export class DiskUnexpectedError extends TeleportError {
     )
   }
 }
+
+export class HTMLComponentGeneratorError extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
