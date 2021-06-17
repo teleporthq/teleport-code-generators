@@ -57,23 +57,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     const cssMap: Record<string, types.ObjectExpression> = {}
     const tokensReferred: Set<string> = new Set()
 
-    if (Object.keys(componentStyleSheet).length > 0) {
-      const variants = generateVariantsfromStyleSet(
-        componentStyleSheet,
-        componentVariantPropPrefix,
-        componentVariantPropKey,
-        tokensReferred
-      )
-      chunks.push({
-        name: 'variant',
-        type: ChunkType.AST,
-        content: variants,
-        fileType: FileType.JS,
-        linkAfter: ['jsx-component'],
-      })
-      dependencies.variant = VARIANT_DEPENDENCY
-    }
-
     UIDLUtils.traverseElements(node, (element) => {
       const { style } = element
       const { key, elementType, referencedStyles } = element
@@ -293,6 +276,23 @@ i.e either a direct static reference from component style sheet or from props. G
       }
       chunks.push(code)
     })
+
+    if (Object.keys(componentStyleSheet).length > 0) {
+      const variants = generateVariantsfromStyleSet(
+        componentStyleSheet,
+        componentVariantPropPrefix,
+        componentVariantPropKey,
+        tokensReferred
+      )
+      chunks.push({
+        name: 'variant',
+        type: ChunkType.AST,
+        content: variants,
+        fileType: FileType.JS,
+        linkAfter: ['jsx-component'],
+      })
+      dependencies.variant = VARIANT_DEPENDENCY
+    }
 
     if (Object.keys(cssMap).length === 0) {
       return structure

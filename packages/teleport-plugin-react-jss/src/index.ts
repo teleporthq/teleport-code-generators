@@ -59,15 +59,6 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     const mediaStyles: Record<string, Record<string, unknown>> = {}
     const tokensUsed: string[] = []
 
-    if (Object.keys(componentStyleSheet).length > 0) {
-      generateStylesFromStyleSetDefinitions({
-        styleSetDefinitions: componentStyleSheet,
-        styleSet: jssStyleMap,
-        mediaStyles,
-        tokensUsed,
-      })
-    }
-
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
     const jsxNodesLookup = componentChunk.meta.nodesLookup || {}
     let isProjectReferenced: boolean = false
@@ -221,6 +212,15 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         Array.from(classNamesToAppend)
       )
     })
+
+    if (Object.keys(componentStyleSheet).length > 0) {
+      generateStylesFromStyleSetDefinitions({
+        styleSetDefinitions: componentStyleSheet,
+        styleSet: jssStyleMap,
+        mediaStyles,
+        tokensUsed,
+      })
+    }
 
     const { content: astContent } = componentChunk
     const parser = new ParsedASTNode(astContent)

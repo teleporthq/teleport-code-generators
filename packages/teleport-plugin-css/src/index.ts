@@ -81,10 +81,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     const cssMap: string[] = []
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
 
-    if (Object.keys(componentStyleSet).length > 0) {
-      StyleBuilders.generateStylesFromStyleSetDefinitions(componentStyleSet, cssMap, mediaStylesMap)
-    }
-
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<string> = new Set()
@@ -258,6 +254,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         )
       }
     })
+
+    if (Object.keys(componentStyleSet).length > 0) {
+      StyleBuilders.generateStylesFromStyleSetDefinitions(componentStyleSet, cssMap, mediaStylesMap)
+    }
 
     if (Object.keys(mediaStylesMap).length > 0) {
       cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))

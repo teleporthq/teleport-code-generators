@@ -99,15 +99,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
-    /* Generating component scoped styles */
-    if (Object.keys(componentStyleSheet).length > 0) {
-      StyleBuilders.generateStylesFromStyleSetDefinitions(
-        componentStyleSheet,
-        cssClasses,
-        mediaStylesMap
-      )
-    }
-
     UIDLUtils.traverseElements(node, (element) => {
       const { style, key, referencedStyles } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
@@ -259,6 +250,15 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         Array.from(classNamesToAppend)
       )
     })
+
+    /* Generating component scoped styles */
+    if (Object.keys(componentStyleSheet).length > 0) {
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSheet,
+        cssClasses,
+        mediaStylesMap
+      )
+    }
 
     if (Object.keys(mediaStylesMap).length > 0) {
       cssClasses.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))

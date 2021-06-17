@@ -31,15 +31,6 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
     const classMap: string[] = []
 
-    /* Generating component scoped styles */
-    if (Object.keys(componentStyleSheet).length > 0) {
-      StyleBuilders.generateStylesFromStyleSetDefinitions(
-        componentStyleSheet,
-        classMap,
-        mediaStylesMap
-      )
-    }
-
     const transformStyle = (style: Record<string, UIDLStyleValue>) =>
       UIDLUtils.transformDynamicStyles(style, (styleValue) => {
         switch (styleValue.content.referenceType) {
@@ -158,6 +149,15 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         Array.from(dynamicVariantsToAppend)
       )
     })
+
+    /* Generating component scoped styles */
+    if (Object.keys(componentStyleSheet).length > 0) {
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSheet,
+        classMap,
+        mediaStylesMap
+      )
+    }
 
     if (Object.keys(mediaStylesMap).length > 0) {
       Object.keys(mediaStylesMap)
