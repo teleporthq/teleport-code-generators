@@ -6,7 +6,7 @@ import { buildPackage } from './build.mjs'
 
 const log = console.log
 
-const ignorePackages = ['teleport-repl-component', 'teleport-test']
+const ignorePackages = ['teleport-repl-component', 'teleport-test', 'teleport-cli']
 const watcher = chokidar.watch(['packages/**/src/**/*.ts', 'packages/**/src/**/*.json'], {
   depth: 4,
   persistent: true,

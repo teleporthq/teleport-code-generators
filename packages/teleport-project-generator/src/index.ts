@@ -564,6 +564,10 @@ export class ProjectGenerator {
     this.assemblyLine.addPlugin(plugin)
   }
 
+  public cleanPlugins() {
+    this.assemblyLine.cleanPlugins()
+  }
+
   public getAssetsPath() {
     return this.strategy.static.path
   }

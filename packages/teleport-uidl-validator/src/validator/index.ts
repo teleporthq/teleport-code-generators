@@ -21,10 +21,12 @@ export default class Validator {
     try {
       const cleanedUIDL = utils.validateNulls(input)
       const uidl = componentUIDLDecoder.runWithException(cleanedUIDL)
+
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
-      const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
-      throw new ComponentValidationError(errorMsg)
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(`Component - ${input?.name} \n
+      ${errorMsg}`)
     }
   }
 
@@ -32,10 +34,12 @@ export default class Validator {
     try {
       const cleanedUIDL = utils.validateNulls(input)
       const uidl = rootComponentUIDLDecoder.runWithException(cleanedUIDL)
+
       return { valid: true, errorMsg: '', componentUIDL: uidl }
     } catch (e) {
-      const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
-      throw new ComponentValidationError(errorMsg)
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ComponentValidationError(`Component - ${input?.name}\n
+      ${errorMsg}`)
     }
   }
 
@@ -43,10 +47,12 @@ export default class Validator {
     try {
       const cleanedUIDL = utils.validateNulls(input)
       const uidl = projectUIDLDecoder.runWithException(cleanedUIDL)
+
       return { valid: true, errorMsg: '', projectUIDL: uidl }
     } catch (e) {
-      const errorMsg = utils.formatErrors([{ kind: e.kind, message: String(e), at: e.at }])
-      throw new ComponentValidationError(errorMsg)
+      const errorMsg = utils.formatErrors([{ kind: e.kind, message: e.message, at: e.at }])
+      throw new ProjectValidationError(`${input.name}\n
+      ${errorMsg}`)
     }
   }
 
