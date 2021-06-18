@@ -5,7 +5,6 @@ import {
   ChunkType,
   FileType,
   PluginStyledComponent,
-  UIDLCompDynamicReference,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
@@ -57,14 +56,32 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     const cssMap: Record<string, types.ObjectExpression> = {}
     const tokensReferred: Set<string> = new Set()
 
+    if (Object.keys(componentStyleSheet).length > 0) {
+      const variants = generateVariantsfromStyleSet(
+        componentStyleSheet,
+        componentVariantPropPrefix,
+        componentVariantPropKey,
+        tokensReferred
+      )
+      chunks.push({
+        name: 'variant',
+        type: ChunkType.AST,
+        content: variants,
+        fileType: FileType.JS,
+        linkAfter: ['jsx-component'],
+      })
+      dependencies.variant = VARIANT_DEPENDENCY
+    }
+
     UIDLUtils.traverseElements(node, (element) => {
-      const { style } = element
-      const { key, elementType, referencedStyles } = element
+      const { style = {} } = element
+      const { key, elementType, referencedStyles = {} } = element
       const propsReferred: Set<string> = new Set()
-      const styleReferences: Set<string> = new Set()
+      const componentStyleReferences: Set<string> = new Set()
+      const projectStyleReferences: Set<string> = new Set()
       const staticClasses: Set<types.Identifier> = new Set()
 
-      if (!style && !referencedStyles) {
+      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
       }
 
@@ -109,27 +126,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       }
 
       if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
-        const hasMultipleCompReferences = Object.values(referencedStyles).filter((item) => {
-          if (item.content.mapType === 'component-referenced') {
-            const { type, content } = item.content.content as UIDLCompDynamicReference
-            if (
-              type === 'dynamic' &&
-              (content.referenceType === 'prop' || content.referenceType === 'comp')
-            ) {
-              return item
-            }
-          }
-        })
-
-        if (hasMultipleCompReferences.length > 1) {
-          throw new PluginStyledComponent(`Styled Component can have only one reference per node.
-i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
-            hasMultipleCompReferences,
-            null,
-            2
-          )}`)
-        }
-
         Object.values(referencedStyles).forEach((styleRef) => {
           switch (styleRef.content?.mapType) {
             case 'inlined': {
@@ -178,6 +174,15 @@ i.e either a direct static reference from component style sheet or from props. G
             }
 
             case 'component-referenced': {
+              if (componentStyleReferences.size > 0) {
+                throw new PluginStyledComponent(`Styled Component can have only one reference per node.
+i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
+                  Array.from(componentStyleReferences),
+                  null,
+                  2
+                )}`)
+              }
+
               if (styleRef.content.content.type === 'static') {
                 staticClasses.add(types.identifier(`'${styleRef.content.content.content}'`))
               }
@@ -186,7 +191,7 @@ i.e either a direct static reference from component style sheet or from props. G
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'comp'
               ) {
-                styleReferences.add(componentVariantPropPrefix)
+                componentStyleReferences.add(componentVariantPropPrefix)
                 ASTUtils.addAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
@@ -198,7 +203,7 @@ i.e either a direct static reference from component style sheet or from props. G
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'prop'
               ) {
-                styleReferences.add(componentVariantPropPrefix)
+                componentStyleReferences.add(componentVariantPropPrefix)
                 ASTUtils.addDynamicAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
@@ -229,7 +234,7 @@ i.e either a direct static reference from component style sheet or from props. G
                   namedImport: true,
                 },
               }
-              styleReferences.add(projectVariantPropPrefix)
+              projectStyleReferences.add(projectVariantPropPrefix)
 
               ASTUtils.addAttributeToJSXTag(root, projectVariantPropKey, content.referenceId)
               return
@@ -271,28 +276,12 @@ i.e either a direct static reference from component style sheet or from props. G
           styles: cssMap[className],
           elementType,
           propsReferred,
-          styleReferences,
+          componentStyleReferences,
+          projectStyleReferences,
         }),
       }
       chunks.push(code)
     })
-
-    if (Object.keys(componentStyleSheet).length > 0) {
-      const variants = generateVariantsfromStyleSet(
-        componentStyleSheet,
-        componentVariantPropPrefix,
-        componentVariantPropKey,
-        tokensReferred
-      )
-      chunks.push({
-        name: 'variant',
-        type: ChunkType.AST,
-        content: variants,
-        fileType: FileType.JS,
-        linkAfter: ['jsx-component'],
-      })
-      dependencies.variant = VARIANT_DEPENDENCY
-    }
 
     if (Object.keys(cssMap).length === 0) {
       return structure

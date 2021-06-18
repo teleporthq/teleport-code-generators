@@ -12,9 +12,17 @@ export const generateStyledComponent = (params: {
   elementType: string
   styles: types.ObjectExpression
   propsReferred: Set<string>
-  styleReferences: Set<string>
+  componentStyleReferences: Set<string>
+  projectStyleReferences: Set<string>
 }) => {
-  const { name, elementType, styles, propsReferred, styleReferences } = params
+  const {
+    name,
+    elementType,
+    styles,
+    propsReferred,
+    componentStyleReferences,
+    projectStyleReferences,
+  } = params
   let styleExpressions: types.ObjectExpression | types.ArrowFunctionExpression = styles
   const expressionArguments: Array<
     types.ObjectExpression | types.ArrowFunctionExpression | types.Identifier
@@ -24,12 +32,20 @@ export const generateStyledComponent = (params: {
     styleExpressions = types.arrowFunctionExpression([types.identifier('props')], styles)
   }
 
-  if (styleReferences.size > 0) {
-    expressionArguments.push(...Array.from(styleReferences).map((ref) => types.identifier(ref)))
+  if (projectStyleReferences.size > 0) {
+    expressionArguments.push(
+      ...Array.from(projectStyleReferences).map((ref) => types.identifier(ref))
+    )
   }
 
   if (styles && styles.properties.length > 0) {
     expressionArguments.push(styleExpressions)
+  }
+
+  if (componentStyleReferences.size > 0) {
+    expressionArguments.push(
+      ...Array.from(componentStyleReferences).map((ref) => types.identifier(ref))
+    )
   }
 
   return types.variableDeclaration('const', [
