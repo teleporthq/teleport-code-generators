@@ -78,9 +78,10 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const propKeys = Object.keys(input.propDefinitions || {})
   const stateKeys = Object.keys(input.stateDefinitions || {})
   let importKeys = Object.keys(input.importDefinitions || {})
+  const componentStyleSetKyes = Object.keys(input.styleSetDefinitions || {})
 
-  const importDefinitions: { [key: string]: UIDLExternalDependency } = ((input?.importDefinitions ??
-    {}) as unknown) as { [key: string]: UIDLExternalDependency }
+  const importDefinitions: { [key: string]: UIDLExternalDependency } = (input?.importDefinitions ??
+    {}) as unknown as { [key: string]: UIDLExternalDependency }
 
   if (Object.keys(importKeys).length > 0) {
     importKeys = importKeys.reduce((acc, importRef) => {
@@ -99,8 +100,8 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const errors: string[] = []
 
   UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
-    if (node.type === 'element' && node.content.events) {
-      Object.keys(node.content.events).forEach((eventKey) => {
+    if (node.type === 'element') {
+      Object.keys(node.content?.events || {}).forEach((eventKey) => {
         node.content.events[eventKey].forEach((event) => {
           if (event.type === 'stateChange' && !stateKeys.includes(event.modifies)) {
             const errorMsg = `"${event.modifies}" is used in events, but not defined. Please add it in stateDefinitions`
@@ -116,6 +117,42 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
           }
         })
       })
+
+      const dynamicVariants: string[] = []
+      Object.values(node.content?.referencedStyles || {}).forEach((styleRef) => {
+        if (
+          styleRef.content.mapType === 'component-referenced' &&
+          styleRef.content.content.type === 'dynamic'
+        ) {
+          if (styleRef.content.content.content.referenceType === 'prop') {
+            const referencedProp = styleRef.content.content.content.id
+            if (!dynamicPathExistsInDefinitions(referencedProp, propKeys)) {
+              const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions`
+              errors.push(errorMsg)
+              return
+            }
+            dynamicVariants.push(referencedProp)
+            usedPropKeys.push(referencedProp)
+          }
+
+          if (styleRef.content.content.content.referenceType === 'comp') {
+            const compStyleRefId = styleRef.content.content.content.id
+
+            if (!componentStyleSetKyes.includes(compStyleRefId)) {
+              errors.push(
+                `${compStyleRefId} is used, but not defined in Component Style Sheet in ${input.name}. Please add it in StyleSetDefinitions of the component`
+              )
+            }
+          }
+        }
+      })
+
+      if (dynamicVariants.length > 1) {
+        errors.push(`Node ${
+          node.content?.name || node.content?.key
+        } is using multiple dynamic variants using propDefinitions.
+        We can have only one dynamic variant at once`)
+      }
     }
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {

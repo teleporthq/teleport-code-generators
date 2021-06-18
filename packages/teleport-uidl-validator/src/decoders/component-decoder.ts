@@ -24,6 +24,7 @@ export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
   node: elementNodeDecoder,
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
+  styleSetDefinitions: optional(dict(styleSetDefinitionDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   outputOptions: optional(outputOptionsDecoder),
   seo: optional(componentSeoDecoder),

@@ -18,6 +18,7 @@ import {
   UIDLElementNode,
   UIDLDependency,
   UIDLStyleValue,
+  UIDLStyleSheetContent,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -294,10 +295,9 @@ interface SplitResponse {
   dynamicStyles: UIDLStyleDefinitions
   tokenStyles: UIDLStyleDefinitions
 }
-export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitResponse => {
-  // const staticStyles: UIDLStyleDefinitions = {}
-  // const dynamicStyles: UIDLStyleDefinitions = {}
-
+export const splitDynamicAndStaticStyles = (
+  style: UIDLStyleDefinitions | Record<string, UIDLStyleSheetContent>
+): SplitResponse => {
   const responsePayload: SplitResponse = { staticStyles: {}, dynamicStyles: {}, tokenStyles: {} }
 
   Object.keys(style).reduce((acc: SplitResponse, styleKey) => {
@@ -312,9 +312,11 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
         }
         dynamicStyles[styleKey] = styleValue
         return acc
+
       case 'static':
         staticStyles[styleKey] = styleValue
         return acc
+
       default:
         throw new Error(
           `splitDynamicAndStaticStyles encountered an unknown style definition ${JSON.stringify(
@@ -324,8 +326,6 @@ export const splitDynamicAndStaticStyles = (style: UIDLStyleDefinitions): SplitR
           )}`
         )
     }
-
-    return acc
   }, responsePayload)
 
   return responsePayload

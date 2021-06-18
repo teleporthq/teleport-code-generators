@@ -26,27 +26,21 @@ describe('plugin-css-style-sheet', () => {
       },
     }
     const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),
           color: staticNode('blue'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64c': {
-        id: '5ecfa1233b8e50f60ea2b64c',
-        name: 'conditionalButton',
+      conditionalButton: {
         type: 'reusable-project-style-map',
         conditions: [
           {

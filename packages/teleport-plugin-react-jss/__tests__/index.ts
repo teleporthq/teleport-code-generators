@@ -1,49 +1,13 @@
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
-import {
-  ComponentStructure,
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-} from '@teleporthq/teleport-types'
+import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
 import { createReactJSSPlugin } from '../src/index'
+import { createComponentChunk } from './mocks'
 
 describe('plugin-react-jss', () => {
   const plugin = createReactJSSPlugin({
     styleChunkName: 'jss-chunk',
   })
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {
-      declarations: [
-        {
-          init: {
-            params: [],
-            body: {
-              body: [],
-            },
-          },
-        },
-      ],
-    },
-  }
+  const componentChunk = createComponentChunk()
 
   it('generates no chunk if no styles exist', async () => {
     const uidlSample = component('JSS', elementNode('container'))

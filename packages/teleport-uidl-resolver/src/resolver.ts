@@ -2,6 +2,7 @@ import * as utils from './utils'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleporthq/teleport-types'
 import { resolveAbilities } from './resolvers/abilities'
+import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
 
 /**
@@ -37,6 +38,7 @@ export default class Resolver {
     }
 
     const uidl = UIDLUtils.cloneObject(input)
+    uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions || {})
 
     UIDLUtils.setFriendlyOutputOptions(uidl)
 

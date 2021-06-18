@@ -20,6 +20,7 @@ const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 const stylePlugin = createCSSPlugin({
   inlineStyleAttributeKey: '[ngStyle]',
   declareDependency: 'decorator',
+  dynamicVariantPrefix: '[ngClass]',
 })
 
 const createAngularComponentGenerator: ComponentGeneratorInstance = ({

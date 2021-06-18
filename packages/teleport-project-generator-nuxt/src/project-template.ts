@@ -16,7 +16,7 @@ export default {
     "generate": "nuxt generate"
   },
   "dependencies": {
-    "nuxt": "^2.8.1"
+    "nuxt": "^2.15.6"
   }
 }`,
       fileType: 'json',

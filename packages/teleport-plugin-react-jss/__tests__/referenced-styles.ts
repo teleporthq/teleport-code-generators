@@ -1,53 +1,16 @@
-import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-  ComponentStructure,
-} from '@teleporthq/teleport-types'
+import { ComponentStructure, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import { createReactJSSPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Referenced Styles on Node', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {
-      declarations: [
-        {
-          init: {
-            params: [],
-            body: {
-              body: [],
-            },
-          },
-        },
-      ],
-    },
-  }
+  const componentChunk = createComponentChunk()
   const uidl = component('MyComponent', elementNode('container', null, [], null, null, null, null))
 
   it('Media and pseudo styles are generated from referencedStyles', async () => {
     const plugin = createReactJSSPlugin()
     uidl.node.content.referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -58,7 +21,6 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6382': {
-        id: '5ed659b1732f9b804f7b6382',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -89,7 +51,6 @@ describe('Referenced Styles on Node', () => {
     const plugin = createReactJSSPlugin()
     uidl.node.content.referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -100,7 +61,6 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6382': {
-        id: '5ed659b1732f9b804f7b6382',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -111,11 +71,10 @@ describe('Referenced Styles on Node', () => {
         },
       },
       '5ed659b1732f9b804f7b6384': {
-        id: '5ed659b1732f9b804f7b6384',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfa1233b8e50f60ea2b64d',
+          referenceId: 'primaryButton',
         },
       },
     }
@@ -128,10 +87,8 @@ describe('Referenced Styles on Node', () => {
       options: {},
     }
 
-    const styleSetDefinitions = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+    const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
+      primaryButton: {
         type: 'reusable-project-style-map' as const,
         content: {
           background: staticNode('blue'),
@@ -148,11 +105,14 @@ describe('Referenced Styles on Node', () => {
 
     const result = await plugin(structure)
     const { chunks, dependencies } = result
+    const styleChunk = chunks.find((chunk) => chunk.name === 'jss-style-definition')
+    const properties = styleChunk.content.declarations[0].init.arguments[0]
 
     expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(2)
     expect(dependencies.createUseStyles.path).toBe('react-jss')
     expect(dependencies.useProjectStyles.path).toBe('../style')
     expect(dependencies.useProjectStyles.meta.namedImport).toBe(true)
+    expect(properties.properties[0].value.properties[0].key.value).toBe('&:hover')
   })
 })

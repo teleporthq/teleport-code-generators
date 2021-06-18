@@ -16,6 +16,7 @@ import {
   traverseElements,
   traverseRepeats,
   extractExternalDependencies,
+  splitDynamicAndStaticStyles,
 } from '../../src/utils/uidl-utils'
 import {
   component,
@@ -69,7 +70,7 @@ describe('cleanupDynamicStyles', () => {
 
   it('removes dynamic styles from nested style objects', () => {
     cleanupDynamicStyles(styleObject)
-    const cleanedStyle = (cleanupDynamicStyles(styleObject) as unknown) as UIDLStyleDefinitions
+    const cleanedStyle = cleanupDynamicStyles(styleObject) as unknown as UIDLStyleDefinitions
     expect(cleanedStyle.padding).toBeUndefined()
     expect(cleanedStyle.margin.content).toBe('20px')
   })
@@ -523,5 +524,21 @@ describe('createWebComponentFriendlyName', () => {
 
   it('prefixes with app-', () => {
     expect(createWebComponentFriendlyName('Component')).toBe('app-component')
+  })
+})
+
+describe('splitDynamicAndStaticStyles', () => {
+  it('Splits dynamic, static and token styles from a style object', () => {
+    const style = {
+      width: staticNode('100px'),
+      height: staticNode('50px'),
+      display: dynamicNode('prop', 'display'),
+      color: dynamicNode('token', 'blue'),
+    }
+
+    const { staticStyles, dynamicStyles, tokenStyles } = splitDynamicAndStaticStyles(style)
+    expect(Object.keys(staticStyles).length).toBe(2)
+    expect(Object.keys(dynamicStyles).length).toBe(1)
+    expect(Object.keys(tokenStyles).length).toBe(1)
   })
 })

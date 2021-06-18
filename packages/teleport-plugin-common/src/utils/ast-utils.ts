@@ -8,17 +8,47 @@ import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-ty
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
   classString: string,
-  classAttributeName?: string
+  classAttributeName?: string,
+  dynamicValues: Array<types.MemberExpression | types.Identifier> = []
 ) => {
   const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
-  if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
-    const classArray = classAttribute.value.value.split(' ')
-    classArray.push(classString)
-    classAttribute.value.value = classArray.join(' ').trim()
-  } else {
-    throw new Error(
-      'Attempted to set a class string literral on a jsx tag which had an invalid className attribute'
-    )
+
+  if (dynamicValues.length === 0) {
+    if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
+      const classArray = classAttribute.value.value.split(' ')
+      classArray.push(classString)
+      classAttribute.value.value = classArray.join(' ').trim()
+    } else {
+      throw new Error(
+        'Attempted to set a class string literral on a jsx tag which had an invalid className attribute'
+      )
+    }
+  }
+
+  if (dynamicValues.length) {
+    if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
+      const classArray = classAttribute.value.value.split(' ')
+      const quasis: types.TemplateElement[] = []
+      const expression: Array<types.MemberExpression | types.Identifier> = []
+
+      quasis.push(
+        types.templateElement({
+          raw: classString + classArray.join(' ') + ' ',
+          cooked: classString + classArray.join(' ') + ' ',
+        })
+      )
+
+      dynamicValues.forEach((dynamicVal) => {
+        expression.push(dynamicVal)
+        quasis.push(types.templateElement({ raw: ' ', cooked: ' ' }))
+      })
+
+      classAttribute.value = types.jsxExpressionContainer(types.templateLiteral(quasis, expression))
+    } else {
+      throw new Error(
+        `Attempted to set a dynamic class literral on a jsx tag which had an invalid className attribute`
+      )
+    }
   }
 }
 
@@ -68,22 +98,35 @@ export const addDynamicAttributeToJSXTag = (
   )
 }
 
+/*
+  Use, when we need to add a mix of dynamic and static values to
+  the same attribute at the same time.
+*/
+
 export const addMultipleDynamicAttributesToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
-  values: string[],
+  attrValues: Array<types.MemberExpression | types.Identifier> = [],
   t = types
 ) => {
-  const memberExpressions: types.Identifier[] = []
+  const memberExpressions: Array<types.Identifier | types.MemberExpression> = []
   const templateElements: types.TemplateElement[] = []
 
-  Object.values(values).forEach((item) => {
-    templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
-    memberExpressions.push(t.identifier(item))
-  })
-  templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+  if (attrValues.length === 0) {
+    return
+  }
 
-  const content = t.templateLiteral(templateElements, memberExpressions)
+  let content: types.TemplateLiteral | types.MemberExpression | types.Identifier
+  if (attrValues.length === 1) {
+    content = attrValues[0]
+  } else {
+    attrValues.forEach((attr) => {
+      memberExpressions.push(attr)
+      templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+    })
+    templateElements.push(t.templateElement({ raw: ' ', cooked: ' ' }))
+    content = t.templateLiteral(templateElements, memberExpressions)
+  }
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
@@ -127,6 +170,7 @@ export const addAttributeToJSXTag = (
       getProperAttributeValueAssignment(attrValue)
     )
   }
+
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 
@@ -405,3 +449,6 @@ export const createStateHookAST = (
     ),
   ])
 }
+
+export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
+  types.objectExpression(properties)

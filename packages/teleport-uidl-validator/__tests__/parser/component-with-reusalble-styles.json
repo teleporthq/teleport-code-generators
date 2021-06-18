@@ -1,9 +1,7 @@
 {
     "name": "ComponentWithPrimitiveProps",
     "styleSetDefinitions": {
-        "5ed0d05baa77d97673711820": {
-            "id": "5ed0d05baa77d97673711820",
-            "name": "primaryButton",
+        "primaryButton": {
             "type": "reusable-project-style-map",
             "content": {
               "background": "blue",
@@ -12,9 +10,7 @@
               "border": "1px solid #fff"
             }
         },
-        "5ed0d4923de727e93cb4efa2": {
-            "id": "5ed0d4923de727e93cb4efa2",
-            "name": "secondaryButton",
+        "secondaryButton": {
             "type": "reusable-project-style-map",
             "content": {
                 "background": "red",
@@ -40,7 +36,7 @@
       "type": "element",
       "content": {
         "elementType": "container",
-  
+        "referencedStyles": {},
         "style": {
           "flexDirection": {
             "type": "dynamic",

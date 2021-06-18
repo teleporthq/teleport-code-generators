@@ -10,6 +10,8 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import MagicString from 'magic-string'
 import { STYLED_DEPENDENCIES } from './constants'
 
+// TODO: Delete config changes related to post-css which are added by default in gatsby-config
+
 class PluginGatsbyStyledComponents implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy } = structure
@@ -39,7 +41,11 @@ class PluginGatsbyStyledComponents implements ProjectPlugin {
 
     const parsedFile = configFile.content.replace('/n', '//n')
     const magic = new MagicString(parsedFile)
-    magic.appendRight(parsedFile.length - 10, `,'gatsby-plugin-styled-components'`)
+    magic.appendRight(
+      parsedFile.length - 10,
+      `,
+'gatsby-plugin-styled-components'`
+    )
     const content = magic.toString()
     const formattedCode = prettierJS({ [FileType.JS]: content })
 

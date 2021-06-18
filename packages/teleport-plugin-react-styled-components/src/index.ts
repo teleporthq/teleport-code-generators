@@ -4,23 +4,31 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  PluginStyledComponent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   generateStyledComponent,
-  countPropReferences,
   removeUnusedDependencies,
-  generatePropReferencesSyntax,
-  countPropRefernecesFromReferencedStyles,
+  generateVariantsfromStyleSet,
+  generateStyledComponentStyles,
 } from './utils'
 import { createStyleSheetPlugin } from './style-sheet'
+import {
+  componentVariantPropKey,
+  componentVariantPropPrefix,
+  projectVariantPropKey,
+  projectVariantPropPrefix,
+  VARIANT_DEPENDENCY,
+} from './constants'
 
 interface StyledComponentsConfig {
   componentChunkName: string
   importChunkName?: string
   componentLibrary?: 'react' | 'reactnative'
   illegalComponentNames?: string[]
+  classAttributeName?: string
 }
 
 export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledComponentsConfig> = (
@@ -31,11 +39,12 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     importChunkName = 'import-local',
     componentLibrary = 'react',
     illegalComponentNames = [],
+    classAttributeName = 'className',
   } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, name } = uidl
+    const { node, name, styleSetDefinitions: componentStyleSheet = {} } = uidl
     const { projectStyleSet } = options
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -43,33 +52,45 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
-    // @ts-ignore
-    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
-    const jssStyleMap: Record<string, unknown> = {}
-    const tokensReferred: string[] = []
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
+    const cssMap: Record<string, types.ObjectExpression> = {}
+    const tokensReferred: Set<string> = new Set()
+
+    if (Object.keys(componentStyleSheet).length > 0) {
+      const variants = generateVariantsfromStyleSet(
+        componentStyleSheet,
+        componentVariantPropPrefix,
+        componentVariantPropKey,
+        tokensReferred
+      )
+      chunks.push({
+        name: 'variant',
+        type: ChunkType.AST,
+        content: variants,
+        fileType: FileType.JS,
+        linkAfter: ['jsx-component'],
+      })
+      dependencies.variant = VARIANT_DEPENDENCY
+    }
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style } = element
-      const { key, elementType, referencedStyles } = element
+      const { style = {} } = element
+      const { key, elementType, referencedStyles = {} } = element
+      const propsReferred: Set<string> = new Set()
+      const componentStyleReferences: Set<string> = new Set()
+      const projectStyleReferences: Set<string> = new Set()
+      const staticClasses: Set<types.Identifier> = new Set()
 
-      if (!style && !referencedStyles) {
+      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
       }
 
       const root = jsxNodesLookup[key]
       let className = StringUtils.dashCaseToUpperCamelCase(key)
-      const projectReferencedClassNames: string[] = []
-
-      let timesProsReferred = countPropReferences(style, 0)
-      timesProsReferred = countPropRefernecesFromReferencedStyles(
-        referencedStyles,
-        timesProsReferred
-      )
 
       if (style && Object.keys(style).length > 0) {
         /* Styled components might create an element that
-        clashes with native element (Text, View, Image, etc.) */
-
+          clashes with native element (Text, View, Image, etc.) */
         if (
           illegalComponentNames.includes(className) ||
           StringUtils.dashCaseToUpperCamelCase(key) === name ||
@@ -80,12 +101,13 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
         if (componentLibrary === 'reactnative') {
           if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-            Object.values(referencedStyles).forEach((styleRef) => {
+            Object.keys(referencedStyles).forEach((styleId) => {
+              const styleRef = referencedStyles[styleId]
               if (styleRef.content.mapType === 'inlined') {
-                referencedStyles[styleRef.id] = {
-                  ...referencedStyles[styleRef.id],
+                referencedStyles[styleId] = {
+                  ...referencedStyles[styleId],
                   content: {
-                    ...referencedStyles[styleRef.id].content,
+                    ...referencedStyles[styleId].content,
                     // @ts-ignore
                     styles: styleRef.content.styles,
                   },
@@ -94,13 +116,13 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
             })
           }
         }
-        jssStyleMap[className] = generatePropReferencesSyntax(
-          style,
-          timesProsReferred,
+        cssMap[className] = generateStyledComponentStyles({
+          styles: style,
+          propsReferred,
           tokensReferred,
-          root,
-          propsPrefix
-        )
+          propsPrefix,
+          tokensPrefix: 'TOKENS',
+        })
       }
 
       if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
@@ -110,38 +132,88 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               const { conditions } = styleRef.content
               const [condition] = conditions
 
-              if (styleRef.content?.styles && Object.keys(styleRef.content.styles).length === 0) {
-                return
-              }
-
               if (condition.conditionType === 'screen-size') {
-                jssStyleMap[className] = {
-                  ...(jssStyleMap[className] as Record<string, string>),
-                  [`@media(max-width: ${condition.maxWidth}px)`]: generatePropReferencesSyntax(
-                    styleRef.content.styles,
-                    timesProsReferred,
+                const nodeStyle = cssMap[className]
+                const mediaStyles = types.objectProperty(
+                  types.stringLiteral(`@media(max-width: ${condition.maxWidth}px)`),
+                  generateStyledComponentStyles({
+                    styles: styleRef.content.styles,
+                    propsReferred,
                     tokensReferred,
-                    root,
-                    propsPrefix
-                  ),
+                    propsPrefix,
+                    tokensPrefix: 'TOKENS',
+                  })
+                )
+                if (nodeStyle?.type === 'ObjectExpression') {
+                  nodeStyle.properties.push(mediaStyles)
+                } else {
+                  cssMap[className] = ASTUtils.wrapObjectPropertiesWithExpression([mediaStyles])
                 }
               }
 
               if (condition.conditionType === 'element-state') {
-                jssStyleMap[className] = {
-                  ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: generatePropReferencesSyntax(
-                    styleRef.content.styles,
-                    timesProsReferred,
+                const nodeStyle = cssMap[className]
+                const mediaStyles = types.objectProperty(
+                  types.stringLiteral(`&:${condition.content}`),
+                  generateStyledComponentStyles({
+                    styles: styleRef.content.styles,
+                    propsReferred,
                     tokensReferred,
-                    root,
-                    propsPrefix
-                  ),
+                    propsPrefix,
+                    tokensPrefix: 'TOKENS',
+                  })
+                )
+                if (nodeStyle?.type === 'ObjectExpression') {
+                  nodeStyle.properties.push(mediaStyles)
+                } else {
+                  cssMap[className] = ASTUtils.wrapObjectPropertiesWithExpression([mediaStyles])
                 }
               }
 
               return
             }
+
+            case 'component-referenced': {
+              if (componentStyleReferences.size > 0) {
+                throw new PluginStyledComponent(`Styled Component can have only one reference per node.
+i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
+                  Array.from(componentStyleReferences),
+                  null,
+                  2
+                )}`)
+              }
+
+              if (styleRef.content.content.type === 'static') {
+                staticClasses.add(types.identifier(`'${styleRef.content.content.content}'`))
+              }
+
+              if (
+                styleRef.content.content.type === 'dynamic' &&
+                styleRef.content.content.content.referenceType === 'comp'
+              ) {
+                componentStyleReferences.add(componentVariantPropPrefix)
+                ASTUtils.addAttributeToJSXTag(
+                  root,
+                  componentVariantPropKey,
+                  styleRef.content.content.content.id
+                )
+              }
+
+              if (
+                styleRef.content.content.type === 'dynamic' &&
+                styleRef.content.content.content.referenceType === 'prop'
+              ) {
+                componentStyleReferences.add(componentVariantPropPrefix)
+                ASTUtils.addDynamicAttributeToJSXTag(
+                  root,
+                  componentVariantPropKey,
+                  `${propsPrefix}.${styleRef.content.content.content.id}`
+                )
+              }
+
+              return
+            }
+
             case 'project-referenced': {
               if (!projectStyleSet) {
                 throw new Error(
@@ -149,37 +221,47 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 )
               }
               const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
-                if (!referedStyle) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
-                }
-                const styleName = StringUtils.dashCaseToUpperCamelCase(referedStyle.name)
-                projectReferencedClassNames.push(styleName)
-                dependencies[styleName] = {
-                  type: 'local',
-                  path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
-                  meta: {
-                    namedImport: true,
-                  },
-                }
+              const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
+              if (!referedStyle) {
+                throw new Error(
+                  `Style that is being used for reference is missing - ${content.referenceId}`
+                )
               }
+              dependencies[projectVariantPropPrefix] = {
+                type: 'local',
+                path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+                meta: {
+                  namedImport: true,
+                },
+              }
+              projectStyleReferences.add(projectVariantPropPrefix)
 
+              ASTUtils.addAttributeToJSXTag(root, projectVariantPropKey, content.referenceId)
               return
             }
             default: {
               throw new Error(`
-                We support only inlined and project-referenced styles as of now, received ${styleRef.content}
-              `)
+                  We support only inlined and project-referenced styles as of now, received ${JSON.stringify(
+                    styleRef.content,
+                    null,
+                    2
+                  )}
+                `)
             }
           }
         })
       }
 
-      if (timesProsReferred > 1) {
+      if (propsReferred.size > 0) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
+      }
+
+      if (staticClasses.size > 0) {
+        ASTUtils.addMultipleDynamicAttributesToJSXTag(
+          root,
+          classAttributeName,
+          Array.from(staticClasses)
+        )
       }
 
       ASTUtils.renameJSXTag(root, className)
@@ -189,21 +271,23 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         fileType: FileType.JS,
         name: className,
         linkAfter: [importChunkName],
-        content: generateStyledComponent(
-          className,
+        content: generateStyledComponent({
+          name: className,
+          styles: cssMap[className],
           elementType,
-          jssStyleMap[className] as Record<string, unknown>,
-          projectReferencedClassNames
-        ),
+          propsReferred,
+          componentStyleReferences,
+          projectStyleReferences,
+        }),
       }
       chunks.push(code)
     })
 
-    if (Object.keys(jssStyleMap).length === 0) {
+    if (Object.keys(cssMap).length === 0) {
       return structure
     }
 
-    if (tokensReferred.length > 0) {
+    if (tokensReferred.size > 0) {
       dependencies.TOKENS = {
         type: 'local',
         path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
@@ -216,7 +300,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     dependencies.styled = {
       type: 'package',
       path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
-      version: '4.2.0',
+      version: '^5.3.0',
     }
 
     /* React Native elements are imported from styled-components/native,

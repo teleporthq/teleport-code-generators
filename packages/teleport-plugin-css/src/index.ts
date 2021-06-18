@@ -11,6 +11,7 @@ import {
   HastNode,
   UIDLElementNodeReferenceStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
+  PluginCSS,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 
@@ -23,6 +24,7 @@ interface CSSPluginConfig {
   forceScoping: boolean // class names get the component name prefix
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
+  dynamicVariantPrefix?: string
 }
 
 export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
@@ -35,15 +37,18 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     templateStyle = 'html',
     declareDependency = 'none',
     forceScoping = false,
+    dynamicVariantPrefix,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
+    const { node, styleSetDefinitions: componentStyleSet = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
-    const { styleSetDefinitions = {}, fileName: projectStyleSheetName, path } =
-      projectStyleSet || {}
-
-    const { node } = uidl
+    const {
+      styleSetDefinitions = {},
+      fileName: projectStyleSheetName,
+      path,
+    } = projectStyleSet || {}
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -69,24 +74,21 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       HastNode | types.JSXElement
     >
 
-    // Only JSX based chunks have dynamicRefPrefix (eg: this.props. or props.)
-    // @ts-ignore
     const propsPrefix: string = templateChunk.meta.dynamicRefPrefix
-      ? (templateChunk.meta.dynamicRefPrefix as Record<string, unknown>).prop
-      : ''
+      ? ((templateChunk.meta.dynamicRefPrefix as Record<string, unknown>).prop as string)
+      : ('' as string)
 
-    const jssStylesArray: string[] = []
+    const cssMap: string[] = []
     const mediaStylesMap: Record<string, Record<string, unknown>> = {}
 
     UIDLUtils.traverseElements(node, (element) => {
-      let appendClassName: boolean = false
-      const classNamesToAppend: string[] = []
-      const { style, key, referencedStyles } = element
+      const classNamesToAppend: Set<string> = new Set()
+      const dynamicVariantsToAppend: Set<string> = new Set()
+      const { style = {}, key, referencedStyles = {} } = element
 
       if (!style && !referencedStyles) {
         return
       }
-
       const root = templateLookup[key]
 
       const elementClassName = StringUtils.camelCaseToDashCase(key)
@@ -95,128 +97,173 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         ? `${componentFileName}-${elementClassName}`
         : elementClassName
 
-      if (style) {
-        const { staticStyles, dynamicStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
-          style
-        )
+      const { staticStyles, dynamicStyles, tokenStyles } =
+        UIDLUtils.splitDynamicAndStaticStyles(style)
 
-        if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
-          const collectedStyles = {
-            ...StyleUtils.getContentOfStyleObject(staticStyles),
-            ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-          } as Record<string, string | number>
-          jssStylesArray.push(StyleBuilders.createCSSClass(className, collectedStyles))
-          appendClassName = true
-        }
+      if (Object.keys(staticStyles).length > 0 || Object.keys(tokenStyles).length > 0) {
+        const collectedStyles = {
+          ...StyleUtils.getContentOfStyleObject(staticStyles),
+          ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
+        } as Record<string, string | number>
 
-        if (Object.keys(dynamicStyles).length > 0) {
-          /* If dynamic styles are on nested-styles they are unfortunately lost, 
+        cssMap.push(StyleBuilders.createCSSClass(className, collectedStyles))
+        classNamesToAppend.add(className)
+      }
+
+      if (Object.keys(dynamicStyles).length > 0) {
+        /* If dynamic styles are on nested-styles they are unfortunately lost, 
           since inline style does not support that */
-          if (templateStyle === 'html') {
-            // simple string expression
-            const inlineStyles = createDynamicInlineStyle(dynamicStyles)
-            HASTUtils.addAttributeToNode(
-              root as HastNode,
-              inlineStyleAttributeKey,
-              `{${inlineStyles}}`
-            )
-          } else {
-            // jsx object expression
-            const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
-              StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
-            )
-            ASTUtils.addAttributeToJSXTag(
-              root as types.JSXElement,
-              inlineStyleAttributeKey,
-              inlineStyles
-            )
-          }
-        }
-      }
-
-      if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-        Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
-          switch (styleRef.content.mapType) {
-            case 'inlined': {
-              /* We can't set dynamic styles for conditions in css, 
-              they need be directly applied in the node. */
-              const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(
-                styleRef.content.styles
-              )
-              const collectedStyles = {
-                ...StyleUtils.getContentOfStyleObject(staticStyles),
-                ...StyleUtils.getCSSVariablesContentFromTokenStyles(tokenStyles),
-              } as Record<string, string | number>
-
-              if (Object.keys(staticStyles).length > 0) {
-                const condition = styleRef.content.conditions[0]
-                const { conditionType } = condition
-                if (conditionType === 'screen-size') {
-                  const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-                  mediaStylesMap[maxWidth] = {
-                    ...mediaStylesMap[maxWidth],
-                    [className]: collectedStyles,
-                  }
-                }
-
-                if (condition.conditionType === 'element-state') {
-                  jssStylesArray.push(
-                    StyleBuilders.createCSSClassWithSelector(
-                      className,
-                      `&:${condition.content}`,
-                      collectedStyles
-                    )
-                  )
-                }
-
-                appendClassName = true
-              }
-              return
-            }
-            case 'project-referenced': {
-              const { content } = styleRef
-              if (content.referenceId && !content?.conditions) {
-                const referedStyle = styleSetDefinitions[content.referenceId]
-                if (!referedStyle) {
-                  throw new Error(
-                    `Style that is being used for reference is missing - ${content.referenceId}`
-                  )
-                }
-                classNamesToAppend.push(referedStyle.name)
-              }
-              return
-            }
-            default: {
-              throw new Error(
-                `We support only project-referenced or inlined, received ${styleRef.content}`
-              )
-            }
-          }
-        })
-      }
-
-      if (appendClassName) {
-        classNamesToAppend.push(className)
-      }
-
-      if (classNamesToAppend?.length > 0) {
         if (templateStyle === 'html') {
-          HASTUtils.addClassToNode(root as HastNode, classNamesToAppend.join(' '))
+          const inlineStyles = createDynamicInlineStyle(dynamicStyles)
+          HASTUtils.addAttributeToNode(
+            root as HastNode,
+            inlineStyleAttributeKey,
+            `{${inlineStyles}}`
+          )
         } else {
-          ASTUtils.addClassStringOnJSXTag(
+          const inlineStyles = UIDLUtils.transformDynamicStyles(dynamicStyles, (styleValue) =>
+            StyleBuilders.createDynamicStyleExpression(styleValue, propsPrefix)
+          )
+          ASTUtils.addAttributeToJSXTag(
             root as types.JSXElement,
-            classNamesToAppend.join(' '),
-            classAttributeName
+            inlineStyleAttributeKey,
+            inlineStyles
           )
         }
       }
+
+      Object.values(referencedStyles).forEach((styleRef: UIDLElementNodeReferenceStyles) => {
+        switch (styleRef.content.mapType) {
+          case 'inlined': {
+            const filtredStyles = UIDLUtils.splitDynamicAndStaticStyles(styleRef.content.styles)
+            const collectedStyles = {
+              ...StyleUtils.getContentOfStyleObject(filtredStyles.staticStyles),
+              ...StyleUtils.getCSSVariablesContentFromTokenStyles(filtredStyles.tokenStyles),
+            } as Record<string, string | number>
+
+            const condition = styleRef.content.conditions[0]
+            const { conditionType } = condition
+            if (conditionType === 'screen-size') {
+              const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
+              mediaStylesMap[maxWidth] = {
+                ...mediaStylesMap[maxWidth],
+                [className]: collectedStyles,
+              }
+            }
+
+            if (condition.conditionType === 'element-state') {
+              cssMap.push(
+                StyleBuilders.createCSSClassWithSelector(
+                  className,
+                  `&:${condition.content}`,
+                  collectedStyles
+                )
+              )
+            }
+
+            classNamesToAppend.add(className)
+            return
+          }
+
+          case 'component-referenced': {
+            if (styleRef.content.content.type === 'static') {
+              classNamesToAppend.add(String(styleRef.content.content.content))
+            }
+
+            if (
+              styleRef.content.content.type === 'dynamic' &&
+              styleRef.content.content.content.referenceType === 'prop'
+            ) {
+              if (!dynamicVariantPrefix && templateStyle === 'html') {
+                throw new PluginCSS(
+                  `Node ${
+                    element.name || element.key
+                  } is using dynamic variant based on prop. But "dynamicVariantPrefix" is not defiend.
+                  ${JSON.stringify(styleRef.content.content, null, 2)}`
+                )
+              }
+
+              dynamicVariantsToAppend.add(styleRef.content.content.content.id)
+            }
+
+            if (
+              styleRef.content.content.type === 'dynamic' &&
+              styleRef.content.content.content.referenceType === 'comp'
+            ) {
+              classNamesToAppend.add(styleRef.content.content.content.id)
+            }
+
+            return
+          }
+
+          case 'project-referenced': {
+            const { content } = styleRef
+            const referedStyle = styleSetDefinitions[content.referenceId]
+            if (!referedStyle) {
+              throw new PluginCSS(
+                `Style used from global stylesheet is missing - ${content.referenceId}`
+              )
+            }
+            classNamesToAppend.add(content.referenceId)
+            return
+          }
+
+          default: {
+            throw new PluginCSS(
+              `We support only project-referenced or inlined, received ${JSON.stringify(
+                styleRef.content,
+                null,
+                2
+              )}`
+            )
+          }
+        }
+      })
+
+      if (templateStyle === 'html') {
+        if (classNamesToAppend.size > 0) {
+          HASTUtils.addClassToNode(root as HastNode, Array.from(classNamesToAppend).join(' '))
+        }
+
+        if (dynamicVariantsToAppend.size > 1) {
+          throw new PluginCSS(`Node ${
+            node.content?.name || node.content?.key
+          } is using multiple dynamic variants using propDefinitions.
+          We can have only one dynamic variant at once`)
+        }
+
+        if (dynamicVariantPrefix && dynamicVariantsToAppend.size > 0) {
+          HASTUtils.addAttributeToNode(
+            root as HastNode,
+            dynamicVariantPrefix,
+            Array.from(dynamicVariantsToAppend).join(' ')
+          )
+        }
+      } else {
+        ASTUtils.addClassStringOnJSXTag(
+          root as types.JSXElement,
+          Array.from(classNamesToAppend).join(' '),
+          classAttributeName,
+          Array.from(dynamicVariantsToAppend).map((variant) => {
+            const dynamicAttrValueIdentifier: types.Identifier = dynamicVariantPrefix
+              ? types.identifier(dynamicVariantPrefix)
+              : types.identifier(propsPrefix)
+
+            return types.memberExpression(dynamicAttrValueIdentifier, types.identifier(variant))
+          })
+        )
+      }
     })
 
-    if (Object.keys(mediaStylesMap).length > 0) {
-      jssStylesArray.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
+    if (Object.keys(componentStyleSet).length > 0) {
+      StyleBuilders.generateStylesFromStyleSetDefinitions(componentStyleSet, cssMap, mediaStylesMap)
     }
 
-    if (jssStylesArray.length > 0) {
+    if (Object.keys(mediaStylesMap).length > 0) {
+      cssMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
+    }
+
+    if (cssMap.length > 0) {
       /**
        * Setup an import statement for the styles
        * The name of the file is either in the meta of the component generator
@@ -231,7 +278,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         ASTUtils.addPropertyToASTObject(decoratorParam, 'styleUrls', [
           `${cssFileName}.${FileType.CSS}`,
         ])
-        jssStylesArray.unshift(`:host { \n  display: contents; \n}`)
+        cssMap.unshift(`:host { \n  display: contents; \n}`)
       }
 
       if (declareDependency === 'import') {
@@ -249,7 +296,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         type: ChunkType.STRING,
         name: chunkName,
         fileType: FileType.CSS,
-        content: jssStylesArray.join('\n'),
+        content: cssMap.join('\n'),
         linkAfter: [],
       })
     }

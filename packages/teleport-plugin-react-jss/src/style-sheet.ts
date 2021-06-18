@@ -7,7 +7,7 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { generatePropSyntax } from './utils'
+import { generateStylesFromStyleSetDefinitions, convertMediaAndStylesToObject } from './utils'
 
 interface StyleSheetPlugin {
   fileName?: string
@@ -19,10 +19,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     const { uidl, chunks, dependencies } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (
-      (!styleSetDefinitions && !tokens) ||
-      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
-    ) {
+    if (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0) {
       return structure
     }
 
@@ -37,41 +34,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     )
 
     const styleSet: Record<string, unknown> = {}
+    const mediaStyles: Record<string, Record<string, unknown>> = {}
     if (Object.keys(styleSetDefinitions).length > 0) {
-      Object.values(styleSetDefinitions).forEach((style) => {
-        const { conditions = [], content } = style
-        let styles = {
-          ...generatePropSyntax(content),
-        }
-
-        if (conditions.length > 0) {
-          conditions.forEach((styleRef) => {
-            if (Object.keys(styleRef.content).length === 0) {
-              return
-            }
-            if (styleRef.type === 'screen-size') {
-              styles = {
-                ...styles,
-                ...{
-                  [`@media(max-width: ${styleRef.meta.maxWidth}px)`]: generatePropSyntax(
-                    styleRef.content
-                  ),
-                },
-              }
-            }
-
-            if (styleRef.type === 'element-state') {
-              styles = {
-                ...styles,
-                ...{
-                  [`&:${styleRef.meta.state}`]: generatePropSyntax(styleRef.content),
-                },
-              }
-            }
-          })
-        }
-
-        styleSet[StringUtils.dashCaseToCamelCase(style.name)] = styles
+      generateStylesFromStyleSetDefinitions({
+        styleSetDefinitions,
+        styleSet,
+        mediaStyles,
       })
     }
 
@@ -114,7 +82,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
             t.variableDeclarator(
               t.identifier('useProjectStyles'),
               t.callExpression(t.identifier('createUseStyles'), [
-                ASTUtils.objectToObjectExpression(styleSet),
+                convertMediaAndStylesToObject(styleSet, mediaStyles),
               ])
             ),
           ])

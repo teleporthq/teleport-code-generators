@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
     "clean": "lerna run clean --parallel",
+    "build:notypes": "lerna link && node scripts/build.mjs",
     "build": "yarn clean && lerna link && node scripts/build.mjs && yarn types",
     "dev": "lerna link && yarn types && node scripts/watcher.mjs",
     "types": "lerna run types --stream",

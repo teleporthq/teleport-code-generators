@@ -164,3 +164,40 @@ export class DiskUnexpectedError extends TeleportError {
     )
   }
 }
+
+export class ParserError extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+// Plugin Errors
+export class PluginStyledJSX extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCssModules extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginStyledComponent extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginReactJSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}

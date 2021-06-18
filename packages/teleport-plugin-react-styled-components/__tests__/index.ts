@@ -1,36 +1,11 @@
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
-import {
-  ComponentStructure,
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-} from '@teleporthq/teleport-types'
+import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createReactStyledComponentsPlugin } from '../src/index'
-import { createElementWithStyle } from './mocks'
+import { createComponentChunk, createElementWithStyle } from './mocks'
 
 describe('Testing the functionality for StyledComponents', () => {
   const plugin = createReactStyledComponentsPlugin()
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
 
   it('Should not add styled as dependency', async () => {
     const uidlSample = component('StyledComponents', elementNode('container'))

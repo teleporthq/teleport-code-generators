@@ -4,9 +4,7 @@ import { UIDLStyleSetDefinition, UIDLStyleSetMediaCondition } from '@teleporthq/
 
 describe('Resolves style-sheet', () => {
   const styleSheet: Record<string, UIDLStyleSetDefinition> = {
-    '5ed66ec0b98ab344e6299c7d': {
-      id: '5ed66ec0b98ab344e6299c7d',
-      name: 'primaryButton',
+    primaryButton: {
       type: 'reusable-project-style-map' as const,
       conditions: [
         {
@@ -32,9 +30,7 @@ describe('Resolves style-sheet', () => {
         display: staticNode('block'),
       },
     },
-    '5ed66ec0b98ab344e6299c7c': {
-      id: '5ed66ec0b98ab344e6299c7c',
-      name: 'secondaryButton',
+    secondaryButton: {
       type: 'reusable-project-style-map' as const,
       conditions: [
         {
@@ -65,17 +61,32 @@ describe('Resolves style-sheet', () => {
   it('Sorts the style-sheet in order', () => {
     const result = resolveStyleSetDefinitions(styleSheet)
 
-    expect(
-      (result['5ed66ec0b98ab344e6299c7d'].conditions[0] as UIDLStyleSetMediaCondition).meta.maxWidth
-    ).toBe(991)
-    expect(
-      (result['5ed66ec0b98ab344e6299c7d'].conditions[1] as UIDLStyleSetMediaCondition).meta.maxWidth
-    ).toBe(767)
-    expect(
-      (result['5ed66ec0b98ab344e6299c7c'].conditions[0] as UIDLStyleSetMediaCondition).meta.maxWidth
-    ).toBe(991)
-    expect(
-      (result['5ed66ec0b98ab344e6299c7c'].conditions[1] as UIDLStyleSetMediaCondition).meta.maxWidth
-    ).toBe(767)
+    expect((result.primaryButton.conditions[0] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
+      991
+    )
+    expect((result.primaryButton.conditions[1] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
+      767
+    )
+    expect((result.secondaryButton.conditions[0] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
+      991
+    )
+    expect((result.secondaryButton.conditions[1] as UIDLStyleSetMediaCondition).meta.maxWidth).toBe(
+      767
+    )
+  })
+
+  it(`Resolver doesn't throw any error even if conditions are not passed`, () => {
+    const styleSet = {
+      primaryButton: {
+        type: 'reusable-project-style-map' as const,
+        conditions: [],
+        content: {
+          display: staticNode('block'),
+        },
+      },
+    }
+    const result = resolveStyleSetDefinitions(styleSet)
+
+    expect(result).toEqual(styleSet)
   })
 })

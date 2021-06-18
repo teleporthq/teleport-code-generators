@@ -14,7 +14,6 @@ const findFileByType = (files: GeneratedFile[], type: string = FileType.JS) =>
 describe('Generates media, pseudo and normal styles', () => {
   const referencedStyles: UIDLReferencedStyles = {
     '1234567890': {
-      id: '1234567890',
       type: 'style-map',
       content: {
         mapType: 'inlined',
@@ -45,7 +44,7 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(cssFile.content).toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain('className={styles.container}')
+    expect(jsFile.content).toContain(`className={styles['container']}`)
     expect(jsFile.content).toContain(`import styles from './my-component.module.css`)
   })
 
@@ -70,6 +69,7 @@ describe('Generates media, pseudo and normal styles', () => {
     const generator = createReactComponentGenerator({
       variation: ReactStyleVariation.StyledComponents,
     })
+
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -77,9 +77,9 @@ describe('Generates media, pseudo and normal styles', () => {
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
     expect(jsFile.content).toContain(`<Container>Hello !!</Container>`)
-    expect(jsFile.content).toContain(`const Container = styled.div`)
-    expect(jsFile.content).toContain(`width: 100px`)
-    expect(jsFile.content).toContain(`display: none`)
+    expect(jsFile.content).toContain(`const Container = styled('div')`)
+    expect(jsFile.content).toContain(`width: '100px'`)
+    expect(jsFile.content).toContain(`display: 'none'`)
   })
 
   it('Generates styles using ReactJSS', async () => {
@@ -120,7 +120,6 @@ describe('Generates media, pseudo and normal styles', () => {
 describe('Add referenced styles even when direct styles are not present on node', () => {
   const referencedStyles: UIDLReferencedStyles = {
     '1234567890': {
-      id: '1234567890',
       type: 'style-map',
       content: {
         mapType: 'inlined',
@@ -148,7 +147,7 @@ describe('Add referenced styles even when direct styles are not present on node'
     expect(cssFile.content).not.toContain('width: 100px')
 
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain('className={styles.container}')
+    expect(jsFile.content).toContain(`className={styles['container']}`)
     expect(jsFile.content).toContain(`import styles from './my-component.module.css`)
   })
 
@@ -180,15 +179,16 @@ describe('Add referenced styles even when direct styles are not present on node'
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
     expect(jsFile.content).toContain(`<Container>Hello !!</Container>`)
-    expect(jsFile.content).toContain(`const Container = styled.div`)
-    expect(jsFile.content).not.toContain(`width: 100px`)
-    expect(jsFile.content).toContain(`display: none`)
+    expect(jsFile.content).toContain(`const Container = styled('div')`)
+    expect(jsFile.content).not.toContain(`width: '100px'`)
+    expect(jsFile.content).toContain(`display: 'none'`)
   })
 
   it('Generates styles using ReactJSS', async () => {
     const generator = createReactComponentGenerator({
       variation: ReactStyleVariation.ReactJSS,
     })
+
     const { files } = await generator.generateComponent(uidl)
     const cssFile = findFileByType(files, FileType.CSS)
     const jsFile = findFileByType(files, FileType.JS)
@@ -221,7 +221,6 @@ describe('Add referenced styles even when direct styles are not present on node'
 describe('Throws Error when a node is using project-styles but not present in UIDL', () => {
   const styles: UIDLReferencedStyles = {
     '123456789': {
-      id: '123456789',
       type: 'style-map',
       content: {
         mapType: 'project-referenced',
@@ -250,6 +249,7 @@ describe('Throws Error when a node is using project-styles but not present in UI
     const generator = createReactComponentGenerator({
       variation: ReactStyleVariation.StyledComponents,
     })
+
     await expect(generator.generateComponent(uidl)).rejects.toThrow(Error)
   })
 
@@ -271,11 +271,10 @@ describe('Throws Error when a node is using project-styles but not present in UI
 describe('Referes from project style and adds it to the node, without any styles on the node', () => {
   const styles: UIDLReferencedStyles = {
     '123456789': {
-      id: '123456789',
       type: 'style-map',
       content: {
         mapType: 'project-referenced',
-        referenceId: '987654321',
+        referenceId: 'primaryButton',
       },
     },
   }
@@ -286,10 +285,8 @@ describe('Referes from project style and adds it to the node, without any styles
   const options: GeneratorOptions = {
     projectStyleSet: {
       styleSetDefinitions: {
-        '987654321': {
-          id: '987654321',
+        primaryButton: {
           type: 'reusable-project-style-map',
-          name: 'primaryButton',
           content: {
             background: staticNode('blue'),
           },
@@ -313,7 +310,7 @@ describe('Referes from project style and adds it to the node, without any styles
 
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
-    expect(jsFile.content).toContain('className={projectStyles.primaryButton}')
+    expect(jsFile.content).toContain(`className={projectStyles['primaryButton']}`)
     expect(jsFile.content).toContain(`import projectStyles from '../style.module.css'`)
     expect(jsFile.content).not.toContain(`import styles from './my-component.module.css'`)
   })
@@ -345,10 +342,9 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
 
-    expect(jsFile.content).toContain('<Container>Hello</Container>')
-    expect(jsFile.content).toContain('${PrimaryButton')
-    expect(jsFile.content).toContain(`import { PrimaryButton } from '../style'`)
-    expect(jsFile.content).toContain('const Container = styled.div`')
+    expect(jsFile.content).toContain(`<Container projVariant="primaryButton">Hello</Container>`)
+    expect(jsFile.content).toContain(`import { projectStyleVariants } from '../style'`)
+    expect(jsFile.content).toContain(`const Container = styled('div')(projectStyleVariants)`)
   })
 
   it('Styled JSX', async () => {

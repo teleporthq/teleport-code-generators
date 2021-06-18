@@ -28,6 +28,7 @@ const createStencilComponentGenerator: ComponentGeneratorInstance = ({
     declareDependency: 'decorator',
     templateStyle: 'jsx',
     templateChunkName: 'jsx-component',
+    dynamicVariantPrefix: 'this',
   })
   const prettierJS = createPrettierJSPostProcessor({ fileType: FileType.TSX })
 
