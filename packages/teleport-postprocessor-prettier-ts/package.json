@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-ts",
-  "version": "0.16.3",
+  "version": "0.17.0",
   "description": "A post-processing function that formats ts code chunks using prettier and the ts parser",
   "author": "teleportHQ",
   "license": "MIT",
@@ -29,8 +29,8 @@
     "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.16.3",
-    "@teleporthq/teleport-types": "^0.16.3",
+    "@teleporthq/teleport-shared": "^0.17.0",
+    "@teleporthq/teleport-types": "^0.17.0",
     "prettier": "^2.2.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

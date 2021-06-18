@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-zip",
-  "version": "0.16.3",
+  "version": "0.17.0",
   "description": "Creates an in-memory zip file from the generated project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.16.3",
+    "@teleporthq/teleport-types": "^0.17.0",
     "jszip": "^3.2.2"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

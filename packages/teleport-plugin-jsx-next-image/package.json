@@ -1,37 +1,36 @@
 {
-    "name": "@teleporthq/teleport-plugin-jsx-next-image",
-    "version": "0.16.3",
-    "description": "A Next-JS plugin for using next/image for images with local assets and dimensions.",
-    "author": "teleportHQ",
-    "license": "MIT",
-    "homepage": "https://teleporthq.io/",
-    "main": "dist/cjs/index.js",
-    "types": "dist/cjs/index.d.ts",
-    "module": "dist/esm/index.js",
+  "name": "@teleporthq/teleport-plugin-jsx-next-image",
+  "version": "0.17.0",
+  "description": "A Next-JS plugin for using next/image for images with local assets and dimensions.",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
   "exports": {
     "module": "./dist/esm/index.js",
     "require": "./dist/cjs/index.js",
     "import": "./dist/esm/index.js"
   },
-    "sideEffects": false,
-    "repository": {
-      "type": "git",
-      "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
-    },
-    "bugs": {
-      "url": "https://github.com/teleporthq/teleport-code-generators/issues"
-    },
-    "publishConfig": {
-      "access": "public"
-    },
-    "scripts": {
-      "clean": "rimraf dist",
-      "types": "tsc -p tsconfig.json"
-    },
-    "dependencies": {
-      "@teleporthq/teleport-types": "^0.16.3",
-      "@teleporthq/teleport-shared": "^0.16.3",
-      "@babel/types": "^7.5.5"
-    }
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "types": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-shared": "^0.17.0",
+    "@teleporthq/teleport-types": "^0.17.0"
+  }
 }
-  
