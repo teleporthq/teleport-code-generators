@@ -1,7 +1,9 @@
-import { format } from 'prettier/standalone'
-
-import parserBabel from 'prettier/parser-babel'
-import parserPostCSS from 'prettier/parser-postcss'
+// @ts-ignore
+import { format } from 'prettier/esm/standalone.mjs'
+// @ts-ignore
+import parserBabel from 'prettier/esm/parser-babel.mjs'
+// @ts-ignore
+import parserPostCSS from 'prettier/esm/parser-postcss.mjs'
 
 import { Constants } from '@teleporthq/teleport-shared'
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'

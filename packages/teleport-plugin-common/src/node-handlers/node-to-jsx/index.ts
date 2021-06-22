@@ -1,5 +1,4 @@
-import * as types from '@babel/types'
-
+import * as t from '@babel/types'
 import {
   UIDLElementNode,
   UIDLRepeatNode,
@@ -9,7 +8,7 @@ import {
   UIDLSlotNode,
   UIDLNode,
 } from '@teleporthq/teleport-types'
-
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
 
 import {
@@ -19,8 +18,6 @@ import {
   createConditionalJSXExpression,
   getRepeatSourceIdentifier,
 } from './utils'
-
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   addChildJSXText,
   addChildJSXTag,
@@ -30,7 +27,7 @@ import {
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
 
-const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
+const generateElementNode: NodeToJSX<UIDLElementNode, t.JSXElement> = (
   node,
   params,
   jsxOptions
@@ -113,7 +110,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       } else if (childTag.type === 'JSXExpressionContainer' || childTag.type === 'JSXElement') {
         addChildJSXTag(elementTag, childTag)
       } else {
-        addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
+        addChildJSXTag(elementTag, t.jsxExpressionContainer(childTag))
       }
     })
   }
@@ -163,7 +160,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
   }
 }
 
-const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer> = (
+const generateRepeatNode: NodeToJSX<UIDLRepeatNode, t.JSXExpressionContainer> = (
   node,
   params,
   options
@@ -179,19 +176,19 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
 
   const source = getRepeatSourceIdentifier(dataSource, options)
 
-  const arrowFunctionArguments = [types.identifier(iteratorName)]
+  const arrowFunctionArguments = [t.identifier(iteratorName)]
   if (meta.useIndex) {
-    arrowFunctionArguments.push(types.identifier('index'))
+    arrowFunctionArguments.push(t.identifier('index'))
   }
 
-  return types.jsxExpressionContainer(
-    types.callExpression(types.memberExpression(source, types.identifier('map')), [
-      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
+  return t.jsxExpressionContainer(
+    t.callExpression(t.memberExpression(source, t.identifier('map')), [
+      t.arrowFunctionExpression(arrowFunctionArguments, contentAST),
     ])
   )
 }
 
-const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpression> = (
+const generateConditionalNode: NodeToJSX<UIDLConditionalNode, t.LogicalExpression> = (
   node,
   params,
   options
@@ -209,7 +206,7 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
 }
 
-const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContainer> = (
+const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, t.JSXExpressionContainer> = (
   node: UIDLSlotNode,
   params,
   options
@@ -231,23 +228,17 @@ const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContaine
     // only static dynamic or element are allowed here
     const fallbackNode =
       typeof fallbackContent === 'string'
-        ? types.stringLiteral(fallbackContent)
-        : (fallbackContent as types.JSXElement | types.MemberExpression)
+        ? t.stringLiteral(fallbackContent)
+        : (fallbackContent as t.JSXElement | t.MemberExpression)
 
     // props.children with fallback
-    return types.jsxExpressionContainer(
-      types.logicalExpression('||', childrenExpression, fallbackNode)
-    )
+    return t.jsxExpressionContainer(t.logicalExpression('||', childrenExpression, fallbackNode))
   }
 
-  return types.jsxExpressionContainer(childrenExpression)
+  return t.jsxExpressionContainer(childrenExpression)
 }
 
-const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
-  node,
-  params,
-  options
-) => {
+const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, t.JSXElement> = (node, params, options) => {
   const slotNode = createSelfClosingJSXTag('slot')
 
   if (node.content.name) {
@@ -259,9 +250,9 @@ const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
     if (typeof fallbackContent === 'string') {
       addChildJSXText(slotNode, fallbackContent)
     } else if (fallbackContent.type === 'MemberExpression') {
-      addChildJSXTag(slotNode, types.jsxExpressionContainer(fallbackContent))
+      addChildJSXTag(slotNode, t.jsxExpressionContainer(fallbackContent))
     } else {
-      addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
+      addChildJSXTag(slotNode, fallbackContent as t.JSXElement)
     }
   }
 

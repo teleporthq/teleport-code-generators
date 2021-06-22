@@ -6,6 +6,7 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-repl-component.git"

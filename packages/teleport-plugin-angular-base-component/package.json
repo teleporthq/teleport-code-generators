@@ -4,6 +4,7 @@
   "description": "A plugin for handling the skeleton/baseline of a Angular Component",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
+  "type": "module",
   "license": "MIT",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

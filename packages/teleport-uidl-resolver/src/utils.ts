@@ -169,8 +169,10 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
     const shouldPassStylesToAnchor =
       originalElement.style && originalElementType === 'navlink' && anchorChild
     if (shouldPassStylesToAnchor) {
-      anchorChild.content.style = UIDLUtils.cloneObject(originalElement.style)
-      anchorChild.content.referencedStyles = UIDLUtils.cloneObject(originalElement.referencedStyles)
+      anchorChild.content.style = UIDLUtils.cloneObject(originalElement?.style || {})
+      anchorChild.content.referencedStyles = UIDLUtils.cloneObject(
+        originalElement?.referencedStyles || {}
+      )
       originalElement.style = {}
       originalElement.referencedStyles = {}
     }

@@ -5,6 +5,7 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
+  "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
@@ -31,7 +32,7 @@
   "dependencies": {
     "@teleporthq/teleport-shared": "^0.17.0",
     "@teleporthq/teleport-types": "^0.17.0",
-    "prettier": "^2.2.1"
+    "prettier": "^2.3.1"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
