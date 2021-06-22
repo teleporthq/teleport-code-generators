@@ -48,7 +48,10 @@ export const insertLinks = (
     if (elementType === 'button') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''
-      node.content.attrs = createLinkAttributes(abilities.link, options)
+      node.content.attrs = {
+        ...node.content.attrs,
+        ...createLinkAttributes(abilities.link, options),
+      }
       return node
     }
 
@@ -57,7 +60,10 @@ export const insertLinks = (
     if (elementType === 'text' && semanticType === 'span') {
       node.content.elementType = getLinkElementType(abilities.link)
       node.content.semanticType = ''
-      node.content.attrs = createLinkAttributes(abilities.link, options)
+      node.content.attrs = {
+        ...node.content.attrs,
+        ...createLinkAttributes(abilities.link, options),
+      }
 
       return node
     }
