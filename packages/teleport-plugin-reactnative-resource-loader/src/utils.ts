@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 export const setResourceRequireCall = (attrAST: types.JSXAttribute, path: string) => {
   attrAST.value = types.jsxExpressionContainer(

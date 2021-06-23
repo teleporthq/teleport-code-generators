@@ -4,7 +4,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
   const result = {

@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import t from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ParsedASTNode, ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStyleSetDefinition, UIDLStyleValue } from '@teleporthq/teleport-types'

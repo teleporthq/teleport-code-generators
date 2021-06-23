@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import t from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,

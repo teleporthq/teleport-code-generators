@@ -6,7 +6,7 @@ import {
   FileType,
   ComponentStructure,
 } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 describe('plugin-jsx-next-image', () => {
   const plugin = createNextImagePlugin()

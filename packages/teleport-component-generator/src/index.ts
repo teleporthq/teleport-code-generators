@@ -112,7 +112,7 @@ const createComponentGenerator = ({
   }
 }
 
-export { createComponentGenerator, GeneratorFactoryParams }
+export { createComponentGenerator }
 
 const fileBundler = (
   codeChunks: Record<string, string>,

@@ -1,6 +1,6 @@
-import jss from 'jss'
-import preset from 'jss-preset-default'
-import * as types from '@babel/types'
+import pkgJSS from 'jss'
+// import presetJSS from 'jss-preset-default'
+import types from '@babel/types'
 import { UIDLDynamicReference, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
@@ -9,19 +9,17 @@ import {
   getCSSVariablesContentFromTokenStyles,
 } from '../utils/style-utils'
 
-jss.setup(preset())
+const { createStyleSheet, createRule } = pkgJSS
 
 export const createCSSClass = (key: string, styleObject: Record<string, string | number>) => {
-  return jss
-    .createStyleSheet(
-      {
-        [key]: styleObject,
-      },
-      {
-        generateId: () => key,
-      }
-    )
-    .toString()
+  return createStyleSheet(
+    {
+      [key]: styleObject,
+    },
+    {
+      generateId: () => key,
+    }
+  ).toString()
 }
 
 export const createCSSClassWithSelector = (
@@ -29,29 +27,25 @@ export const createCSSClassWithSelector = (
   selector: string,
   styleObject: Record<string, string | number>
 ) => {
-  return jss
-    .createStyleSheet(
-      {
-        [key]: {
-          [selector]: styleObject,
-        },
+  return createStyleSheet(
+    {
+      [key]: {
+        [selector]: styleObject,
       },
-      {
-        generateId: () => key,
-      }
-    )
-    .toString()
+    },
+    {
+      generateId: () => key,
+    }
+  ).toString()
 }
 
 export const createCSSClassWithMediaQuery = (
   mediaOffset: string,
   styleObject: Record<string, string | number>
 ) => {
-  return jss
-    .createRule(`@media(${mediaOffset})`, styleObject, {
-      generateId: (data) => data.key,
-    })
-    .toString()
+  return createRule(`@media(${mediaOffset})`, styleObject, {
+    generateId: (data) => data.key,
+  }).toString()
 }
 
 export const createDynamicStyleExpression = (

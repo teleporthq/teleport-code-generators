@@ -7,7 +7,7 @@ import {
   createFunctionCall,
   createFunctionalComponent,
 } from '../../src/builders/ast-builders'
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 describe('createConstAssignment', () => {
   it('should creat assignment for a const', () => {

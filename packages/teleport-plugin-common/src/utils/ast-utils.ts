@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'

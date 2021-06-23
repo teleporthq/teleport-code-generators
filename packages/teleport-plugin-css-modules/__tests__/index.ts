@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 import { component, elementNode, dynamicNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, FileType } from '@teleporthq/teleport-types'
 import { createCSSModulesPlugin } from '../src/index'

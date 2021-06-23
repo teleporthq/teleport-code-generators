@@ -42,23 +42,23 @@ export const buildPackage = async (path, packageName) => {
   external.push('fs')
 
   const input = `${path}/src/index.ts`
-  const cjsOutput = `${path}/dist/cjs`
+  // const cjsOutput = `${path}/dist/cjs`
+
+  // await build({
+  //   entryPoints: [input],
+  //   outdir: cjsOutput,
+  //   format: 'cjs',
+  //   target: 'es6',
+  //   bundle: true,
+  //   minify: false,
+  //   external,
+  // }).catch((e) => {
+  //   throw new Error(`CJS Build failed for ${packageName} \n ${e}`)
+  // })
 
   await build({
     entryPoints: [input],
-    outdir: cjsOutput,
-    format: 'cjs',
-    target: 'es6',
-    bundle: true,
-    minify: false,
-    external,
-  }).catch((e) => {
-    throw new Error(`CJS Build failed for ${packageName} \n ${e}`)
-  })
-
-  await build({
-    entryPoints: [`${path}/src/index.ts`],
-    outdir: `${path}/dist/esm`,
+    outdir: `${path}/dist`,
     format: 'esm',
     target: 'es6',
     bundle: true,

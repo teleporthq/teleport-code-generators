@@ -1,6 +1,6 @@
 import { ComponentPluginFactory, ComponentPlugin, UIDLDependency } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 interface NextImagePluginConfig {
   componentChunkName: string
@@ -54,10 +54,9 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
           return
         }
 
-        const jsxTag = ((componentChunk.meta.nodesLookup as unknown) as Record<
-          string,
-          types.JSXElement
-        >)[key]
+        const jsxTag = (
+          componentChunk.meta.nodesLookup as unknown as Record<string, types.JSXElement>
+        )[key]
 
         if (!jsxTag) {
           return

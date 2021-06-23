@@ -5,13 +5,10 @@
   "author": "teleportHQ",
   "license": "MIT",
   "type": "module",
-  "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
-  "module": "dist/esm/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    "module": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.js"
+     ".": "./dist/index.js"
   },
   "sideEffects": false,
   "repository": {

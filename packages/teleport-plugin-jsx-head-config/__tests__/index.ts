@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 import { createJSXHeadConfigPlugin } from '../src'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {

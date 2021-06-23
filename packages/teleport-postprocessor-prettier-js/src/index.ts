@@ -1,5 +1,5 @@
 // @ts-ignore
-import { format } from 'prettier/esm/standalone.mjs'
+import format from 'prettier/esm/standalone.mjs'
 // @ts-ignore
 import parserBabel from 'prettier/esm/parser-babel.mjs'
 import { Constants } from '@teleporthq/teleport-shared'

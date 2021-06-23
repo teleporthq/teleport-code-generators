@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import t from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,

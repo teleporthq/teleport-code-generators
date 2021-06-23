@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 import { convertValueToLiteral } from '../../utils/ast-utils'
 import { StringUtils } from '@teleporthq/teleport-shared'

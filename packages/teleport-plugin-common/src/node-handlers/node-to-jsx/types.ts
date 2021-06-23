@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 
 import { UIDLPropDefinition, UIDLDependency, UIDLStateDefinition } from '@teleporthq/teleport-types'
 

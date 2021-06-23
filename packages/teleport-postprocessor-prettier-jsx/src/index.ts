@@ -1,5 +1,5 @@
 // @ts-ignore
-import { format } from 'prettier/esm/standalone.mjs'
+import format from 'prettier/esm/standalone.mjs'
 // @ts-ignore
 import parserBabel from 'prettier/esm/parser-babel.mjs'
 // @ts-ignore
@@ -16,10 +16,10 @@ interface PostProcessorFactoryOptions {
 export const createPrettierJSXPostProcessor = (options: PostProcessorFactoryOptions = {}) => {
   const fileType = options.fileType || FileType.JS
   const formatOptions = { ...Constants.PRETTIER_CONFIG, ...options.formatOptions }
-
   const plugins = [parserBabel, parserPostCSS]
 
   const processor: PostProcessor = (codeChunks) => {
+    console.log(codeChunks[fileType])
     if (codeChunks[fileType]) {
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,

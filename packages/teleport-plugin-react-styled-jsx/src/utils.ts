@@ -1,4 +1,4 @@
-import * as types from '@babel/types'
+import types from '@babel/types'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 
 export const generateStyledJSXTag = (content: string): types.JSXElement => {

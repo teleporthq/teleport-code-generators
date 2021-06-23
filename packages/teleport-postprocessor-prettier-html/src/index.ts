@@ -1,5 +1,5 @@
 // @ts-ignore
-import { format } from 'prettier/esm/standalone.mjs'
+import format from 'prettier/esm/standalone.mjs'
 // @ts-ignore
 import parserHTML from 'prettier/esm/parser-html.mjs'
 

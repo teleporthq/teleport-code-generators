@@ -7,7 +7,7 @@
   - Styles present in the component style sheeet.
 */
 
-import * as types from '@babel/types'
+import types from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
 import {

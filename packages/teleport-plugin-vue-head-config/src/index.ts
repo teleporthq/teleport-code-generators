@@ -1,5 +1,5 @@
 import { ComponentPluginFactory, ComponentPlugin, UIDLMetaTag } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
+import types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface VueMetaPluginConfig {
