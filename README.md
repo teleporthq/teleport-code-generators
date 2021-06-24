@@ -34,9 +34,15 @@ We are not far from the **first official version** of the code generators, but m
 
 <h2 id="what">🤔 What is this?</h2>
 
-The **code generators** are a part of the **teleportHQ** ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
+[teleportHQ](https://teleporthq.io/?ref=github) is a low-code platform that enables teams to build applications via a familiar design tool interface, in real-time.
 
-The code generators are used by the online **visual editor**, a platform that lets you build applications via a familiar design tool interface. The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
+This repository holds the code generators that power the [visual editor](https://play.teleporthq.io/?ref=github) of the platform.
+
+https://user-images.githubusercontent.com/3997538/123211638-63efaa00-d4cc-11eb-90b1-49bd61a95732.mp4
+
+The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/?ref=github). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
+
+These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
 
 The philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence the focus on component generation
