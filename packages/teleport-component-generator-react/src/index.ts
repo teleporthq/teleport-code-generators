@@ -12,11 +12,9 @@ import {
   ComponentGenerator,
   ReactStyleVariation,
   ComponentGeneratorInstance,
-} from '@teleporthq/teleport-types'
-import {
-  createComponentGenerator,
   GeneratorFactoryParams,
-} from '@teleporthq/teleport-component-generator'
+} from '@teleporthq/teleport-types'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import { ReactMapping } from './react-mapping'
 
