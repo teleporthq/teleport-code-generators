@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-gatsby",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "description": "Project generator using Gatsby",
   "author": "teleportHQ",
   "license": "MIT",
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-component-generator": "^0.17.1",
+    "@teleporthq/teleport-component-generator": "^0.17.2",
     "@teleporthq/teleport-plugin-common": "^0.17.0",
     "@teleporthq/teleport-plugin-css-modules": "^0.17.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.17.0",
@@ -41,7 +41,7 @@
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.17.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.17.0",
     "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.17.0",
-    "@teleporthq/teleport-project-generator": "^0.17.1",
+    "@teleporthq/teleport-project-generator": "^0.17.2",
     "@teleporthq/teleport-shared": "^0.17.0",
     "@teleporthq/teleport-types": "^0.17.0",
     "@teleporthq/teleport-uidl-validator": "^0.17.0"

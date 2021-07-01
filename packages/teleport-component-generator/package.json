@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "description": "Bare-bone component generator on top of which you can add plugins, mappings and post processing functions",
   "author": "teleportHQ",
   "license": "MIT",
