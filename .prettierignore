@@ -4,5 +4,8 @@
 **/*.js
 **/*.svg
 **/*.yml
+.all-contributorsrc
+.prettierignore
+*.lock
 
 packages/teleport-repl-component/src/components.d.ts

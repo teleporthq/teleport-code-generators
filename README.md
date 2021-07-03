@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/development/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.16 - Beta!</h2>
+<h2 align="center">Code Generators v0.17 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -34,9 +34,15 @@ We are not far from the **first official version** of the code generators, but m
 
 <h2 id="what">🤔 What is this?</h2>
 
-The **code generators** are a part of the **teleportHQ** ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
+[teleportHQ](https://teleporthq.io/?ref=github) is a low-code platform that enables teams to build applications via a familiar design tool interface, in real-time.
 
-The code generators are used by the online **visual editor**, a platform that lets you build applications via a familiar design tool interface. The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
+This repository holds the code generators that power the [visual editor](https://play.teleporthq.io/?ref=github) of the platform.
+
+https://user-images.githubusercontent.com/3997538/123211638-63efaa00-d4cc-11eb-90b1-49bd61a95732.mp4
+
+The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/?ref=github). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
+
+These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
 
 The philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence the focus on component generation
@@ -298,7 +304,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/ovidiuionut94"><img src="https://avatars3.githubusercontent.com/u/11486739?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ovidiuionut94</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=ovidiuionut94" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/alexpausan"><img src="https://avatars0.githubusercontent.com/u/3284064?v=4?s=100" width="100px;" alt=""/><br /><sub><b>alexpausan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexpausan" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/mihaisampaleanu"><img src="https://avatars1.githubusercontent.com/u/6763756?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mihai Sampaleanu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaisampaleanu" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/mihaisampaleanu"><img src="https://avatars1.githubusercontent.com/u/6763756?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mihai Sampaleanu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaisampaleanu" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Amihaisampaleanu" title="Bug reports">🐛</a></td>
     <td align="center"><a href="http://utwo.ro"><img src="https://avatars1.githubusercontent.com/u/282668?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Utwo</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=Utwo" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/andreiTnu"><img src="https://avatars1.githubusercontent.com/u/51601382?v=4?s=100" width="100px;" alt=""/><br /><sub><b>andreiTnu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=andreiTnu" title="Code">💻</a></td>
     <td align="center"><a href="https://codepen.io/xavxyz"><img src="https://avatars0.githubusercontent.com/u/13962779?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Xavier Cazalot</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=xavxyz" title="Code">💻</a></td>

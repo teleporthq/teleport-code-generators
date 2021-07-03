@@ -19,7 +19,6 @@ export const createPrettierJSXPostProcessor = (options: PostProcessorFactoryOpti
   const plugins = [parserBabel, parserPostCSS]
 
   const processor: PostProcessor = (codeChunks) => {
-    console.log(codeChunks[fileType])
     if (codeChunks[fileType]) {
       codeChunks[fileType] = format(codeChunks[fileType], {
         ...formatOptions,
