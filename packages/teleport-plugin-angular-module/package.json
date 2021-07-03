@@ -27,7 +27,7 @@
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@babel/types": "^7.5.5",
+    "@babel/types": "^7.14.5",
     "@teleporthq/teleport-shared": "^0.17.0",
     "@teleporthq/teleport-types": "^0.17.0"
   },

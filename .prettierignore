@@ -7,5 +7,6 @@
 .all-contributorsrc
 .prettierignore
 *.lock
+.gitignore
 
 packages/teleport-repl-component/src/components.d.ts

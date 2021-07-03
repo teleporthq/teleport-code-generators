@@ -16,7 +16,7 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import PathResolver from 'path'
+import PathResolver from 'path-browserify'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'

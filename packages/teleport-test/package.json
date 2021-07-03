@@ -22,7 +22,9 @@
   "scripts": {
     "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
     "standalone": "node --experimental-json-modules --loader ts-node/esm ./src/standalone.ts",
-    "bundle": "webpack --config webpack.config.js"
+    "bundle": "yarn bundle:webpack && yarn bundle:rollup",
+    "bundle:webpack": "webpack --config webpack.config.js",
+    "bundle:rollup": "rollup -c"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.17.2",
@@ -46,7 +48,13 @@
     "@teleporthq/teleport-types": "^0.17.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^19.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
     "cross-env": "^7.0.2",
+    "html-webpack-plugin": "^5.3.2",
+    "rollup": "^2.52.7",
+    "rollup-plugin-terser": "^7.0.2",
     "ts-node": "^10.0.0",
     "webpack": "^5.42.0",
     "webpack-bundle-analyzer": "^3.5.1",

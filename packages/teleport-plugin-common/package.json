@@ -9,7 +9,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-     ".": "./dist/index.js"
+    ".": "./dist/index.js"
   },
   "sideEffects": false,
   "repository": {
@@ -27,11 +27,12 @@
     "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@babel/types": "^7.5.5",
+    "@babel/types": "^7.14.5",
     "@teleporthq/teleport-shared": "^0.17.0",
     "@teleporthq/teleport-types": "^0.17.0",
-    "jss": "^10.0.0",
-    "jss-preset-default": "^10.0.0"
+    "jss": "^10.7.1",
+    "jss-preset-default": "^10.7.1"
   },
-  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0",
+  "devDependencies": {}
 }

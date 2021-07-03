@@ -1,4 +1,4 @@
-import PathResolver from 'path'
+import PathResolver from 'path-browserify'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {

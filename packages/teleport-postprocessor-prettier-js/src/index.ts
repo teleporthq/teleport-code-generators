@@ -1,7 +1,6 @@
-// @ts-ignore
-import format from 'prettier/esm/standalone.mjs'
-// @ts-ignore
-import parserBabel from 'prettier/esm/parser-babel.mjs'
+import standalone from 'prettier/standalone.js'
+const { format } = standalone
+import parserBabel from 'prettier/parser-babel.js'
 import { Constants } from '@teleporthq/teleport-shared'
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'
 

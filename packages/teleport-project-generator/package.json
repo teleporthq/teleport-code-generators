@@ -9,7 +9,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-     ".": "./dist/index.js"
+    ".": "./dist/index.js"
   },
   "sideEffects": false,
   "repository": {
@@ -27,6 +27,7 @@
     "types": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "path-browserify": "^1.0.1",
     "@teleporthq/teleport-component-generator": "^0.17.2",
     "@teleporthq/teleport-plugin-common": "^0.17.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.17.0",

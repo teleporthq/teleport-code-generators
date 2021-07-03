@@ -1,18 +1,35 @@
-const path = require('path');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+import { fileURLToPath } from 'url';
+import * as path from 'path'
+import { createRequire } from 'module';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
+import  HTMLWebpackPlugin from 'html-webpack-plugin'
+import webpack from 'webpack';
+
+const { ProvidePlugin } = webpack
+const { resolve, dirname } = path
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
 
 
-module.exports = {
-  entry: './src/client.js',
+export default  {
+  entry: './src/client.mjs',
   output: {
     filename: 'bundled.js',
-    path: path.resolve(__dirname, 'dist')
+    path: resolve(__dirname, 'dist-webpack')
+  },
+  resolve: {
+    fallback: {
+      fs: false,
+      process: require.resolve('process/browser')
+    }
   },
   mode: 'production',
-  node: {
-    fs: 'empty'
-  },
   plugins: [
-    new BundleAnalyzerPlugin()
-  ]
+    new ProvidePlugin({
+      process: require.resolve('process/browser')
+    }),
+    new BundleAnalyzerPlugin(),
+    new HTMLWebpackPlugin()
+  ],
+  target: 'web'
 };
