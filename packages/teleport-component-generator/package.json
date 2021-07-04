@@ -35,8 +35,5 @@
     "@teleporthq/teleport-uidl-resolver": "^0.17.1",
     "@teleporthq/teleport-uidl-validator": "^0.17.0"
   },
-  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0",
-  "peerDependencies": {
-    "process": "^0.11.10"
-  }
+  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

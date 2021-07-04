@@ -4,8 +4,6 @@
 *.pyc
 build/
 dist/
-dist-rollup/
-dist-webpack/
 lib/
 coverage/
 *.log*

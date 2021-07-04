@@ -124,6 +124,7 @@ const templates = {
   [ProjectType.GATSBY]: GatsbyTemplate,
 }
 
+/* tslint:disable ban-types */
 const projectPublisherFactories: Omit<Record<PublisherType, Function>, PublisherType.DISK> = {
   [PublisherType.ZIP]: createZipPublisher,
   [PublisherType.VERCEL]: createVercelPublisher,

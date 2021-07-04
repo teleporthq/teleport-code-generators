@@ -15,6 +15,7 @@ import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-j
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
+/* tslint:disable variable-name */
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
