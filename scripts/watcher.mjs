@@ -25,7 +25,7 @@ watcher.on('change', async (filePath) => {
 
   log(chalk.yellow(`Changes detected in ${fileName}`))
 
-  exec(`yarn types`, { cwd: location }, (err, stdout, stderr) => {
+  exec(`yarn build`, { cwd: location }, (err, stdout, stderr) => {
     if (!err || err === null) {
       log(chalk.greenBright(`${splitPath[1]}'s types was successfully re-built`))
     } else {
