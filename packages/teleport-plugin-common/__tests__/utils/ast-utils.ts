@@ -10,7 +10,7 @@ import {
 } from '../../src/utils/ast-utils'
 import ParsedASTNode from '../../src/utils/parsed-ast'
 import { createJSXTag } from '../../src/builders/ast-builders'
-import types from '@babel/types'
+import * as types from '@babel/types'
 
 describe('stringAsTemplateLiteral', () => {
   it('returns TemplateLiteral', () => {

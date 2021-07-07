@@ -7,7 +7,7 @@ import {
   PluginStyledJSX,
 } from '@teleporthq/teleport-types'
 import { generateStyledJSXTag } from './utils'
-import types from '@babel/types'
+import * as types from '@babel/types'
 
 interface StyledJSXConfig {
   componentChunkName: string

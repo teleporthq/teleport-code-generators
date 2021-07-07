@@ -1,6 +1,6 @@
 import { create } from 'jss'
 import preset from 'jss-preset-default'
-import types from '@babel/types'
+import * as types from '@babel/types'
 import { UIDLDynamicReference, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
@@ -8,7 +8,7 @@ import {
   getContentOfStyleObject,
   getCSSVariablesContentFromTokenStyles,
 } from '../utils/style-utils'
-const jss = create(preset.default())
+const jss = create(preset)
 
 export const createCSSClass = (key: string, styleObject: Record<string, string | number>) => {
   return jss

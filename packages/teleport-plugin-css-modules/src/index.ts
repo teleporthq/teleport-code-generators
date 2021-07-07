@@ -17,7 +17,7 @@
 
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
-import types from '@babel/types'
+import * as types from '@babel/types'
 import {
   ComponentPluginFactory,
   ComponentPlugin,

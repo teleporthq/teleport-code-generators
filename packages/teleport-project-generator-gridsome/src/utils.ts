@@ -4,7 +4,7 @@ import {
   FileType,
   ChunkType,
 } from '@teleporthq/teleport-types'
-import types from '@babel/types'
+import * as types from '@babel/types'
 // @ts-ignore
 export const configContentGenerator = (options: FrameWorkConfigOptions, t = types) => {
   const content: unknown[] = []

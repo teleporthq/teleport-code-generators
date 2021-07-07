@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'

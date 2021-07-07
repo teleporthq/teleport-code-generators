@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 import componentUIDLSample from '../../../../../examples/test-samples/component-sample.json'
 import generateJSXSyntax from '../../../src/node-handlers/node-to-jsx'
 

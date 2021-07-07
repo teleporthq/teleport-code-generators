@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 

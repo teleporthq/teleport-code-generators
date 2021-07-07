@@ -1,6 +1,6 @@
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
-import types from '@babel/types'
+import * as types from '@babel/types'
 
 interface JSXHeadPluginConfig {
   componentChunkName?: string

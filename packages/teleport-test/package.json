@@ -6,7 +6,6 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "repository": {
@@ -21,8 +20,8 @@
   },
   "scripts": {
     "packer": "node --experimental-json-modules --loader ts-node/esm ./src/packer.ts",
-    "standalone": "node --experimental-json-modules --loader ts-node/esm ./src/standalone.ts",
-    "bundle": "rimraf dist-webpack && webpack --config webpack.config.js"
+    "standalone": "ts-node ./src/standalone.ts",
+    "bundle": "rimraf dist/webpack && webpack --config webpack.config.mjs"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.17.2",

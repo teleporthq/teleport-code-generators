@@ -1,8 +1,6 @@
 import chokidar from 'chokidar'
 import chalk from 'chalk'
 import { exec } from 'child_process'
-import { join } from 'path'
-import { buildPackage } from './build.mjs'
 
 const log = console.log
 
@@ -26,7 +24,6 @@ watcher.on('change', async (filePath) => {
   }
 
   log(chalk.yellow(`Changes detected in ${fileName}`))
-  await buildPackage(join(process.cwd(), `packages/${fileName}`), fileName)
 
   exec(`yarn types`, { cwd: location }, (err, stdout, stderr) => {
     if (!err || err === null) {

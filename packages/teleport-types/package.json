@@ -5,12 +5,9 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-     ".": "./dist/index.js"
-  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -24,7 +21,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "types": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

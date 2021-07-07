@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 
 export const createDOMInjectionNode = (content: string) => {
   return types.jsxElement(

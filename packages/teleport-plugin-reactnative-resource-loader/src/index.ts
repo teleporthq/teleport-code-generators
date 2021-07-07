@@ -1,4 +1,4 @@
-import types from '@babel/types'
+import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import { setResourceURIObject, setResourceRequireCall } from './utils'

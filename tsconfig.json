@@ -2,7 +2,7 @@
   "compilerOptions": {
     "incremental": true,
     "module": "esnext",
-    "target": "ES6",
+    "target": "ES5",
     "declaration": true,
     "lib": ["es2015", "dom"],
     "sourceMap": true,
@@ -12,7 +12,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

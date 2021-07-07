@@ -4,13 +4,10 @@
   "description": "Project generator for a standard stencil project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
-  "type": "module",
   "license": "MIT",
-  "main": "dist/index.js",
-  "exports": {
-     ".": "./dist/index.js"
-  },
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
@@ -21,7 +18,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "types": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "bugs": {
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
