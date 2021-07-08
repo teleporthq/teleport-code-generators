@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "description": "Bare-bone component generator on top of which you can add plugins, mappings and post processing functions",
   "author": "teleportHQ",
   "license": "MIT",
@@ -27,10 +27,10 @@
     "@babel/generator": "^7.5.5",
     "@babel/types": "^7.5.5",
     "@starptech/prettyhtml-hast-to-html": "^0.10.0",
-    "@teleporthq/teleport-shared": "^0.17.0",
-    "@teleporthq/teleport-types": "^0.17.0",
-    "@teleporthq/teleport-uidl-resolver": "^0.17.1",
-    "@teleporthq/teleport-uidl-validator": "^0.17.0"
+    "@teleporthq/teleport-shared": "^0.17.3",
+    "@teleporthq/teleport-types": "^0.17.3",
+    "@teleporthq/teleport-uidl-resolver": "^0.17.3",
+    "@teleporthq/teleport-uidl-validator": "^0.17.3"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

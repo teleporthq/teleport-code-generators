@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-vercel",
-  "version": "0.17.0",
+  "version": "0.17.3",
   "description": "Publishes a generated folder structure to vercel",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.17.0",
+    "@teleporthq/teleport-types": "^0.17.3",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
