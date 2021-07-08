@@ -5,7 +5,7 @@ const resolvedElement = resolveUIDLElement({ elementType: 'container' })
 console.log(resolvedElement)
 
 const run = async () => {
-  import('./codegen.mjs').then((service) => {
+  import('./codegen').then((service) => {
     generate(service.default)
   })
 }
