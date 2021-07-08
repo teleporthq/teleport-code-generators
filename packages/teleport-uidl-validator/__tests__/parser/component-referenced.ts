@@ -1,4 +1,3 @@
-import { ParserError } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { parseComponentJSON } from '../../src/parser'
 
@@ -13,8 +12,10 @@ describe('Parses referenced Styles and parsers static or number', () => {
         type: 'style-map',
         content: {
           mapType: 'component-referenced',
-          // @ts-ignore
-          content: 'md-8',
+          content: {
+            type: 'static',
+            content: 'md-8',
+          },
         },
       },
     }
@@ -43,7 +44,7 @@ describe('Parses referenced Styles and parsers static or number', () => {
     }
 
     expect(() => parseComponentJSON(componentUIDL as unknown as Record<string, unknown>)).toThrow(
-      ParserError
+      'Un-expected mapType passed in referencedStyles - invalid-type'
     )
   })
 })

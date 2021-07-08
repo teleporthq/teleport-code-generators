@@ -1,5 +1,6 @@
 import { existsSync, mkdir, writeFile } from 'fs'
-import { join } from 'path'
+import PathResolver from 'path-browserify'
+const { join } = PathResolver
 
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 

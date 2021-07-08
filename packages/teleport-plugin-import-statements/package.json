@@ -6,13 +6,8 @@
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
-  "exports": {
-    "module": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.js"
-  },
+  "types": "dist/cjs/index.d.ts",
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -26,7 +21,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "types": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
     "@teleporthq/teleport-plugin-common": "^0.17.0",

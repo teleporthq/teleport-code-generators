@@ -54,10 +54,9 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
           return
         }
 
-        const jsxTag = ((componentChunk.meta.nodesLookup as unknown) as Record<
-          string,
-          types.JSXElement
-        >)[key]
+        const jsxTag = (
+          componentChunk.meta.nodesLookup as unknown as Record<string, types.JSXElement>
+        )[key]
 
         if (!jsxTag) {
           return

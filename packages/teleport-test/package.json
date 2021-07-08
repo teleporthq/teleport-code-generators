@@ -19,9 +19,9 @@
     "access": "public"
   },
   "scripts": {
-    "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
-    "standalone": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
-    "bundle": "webpack --config webpack.config.js"
+    "packer": "node --experimental-json-modules --loader ts-node/esm ./src/packer.ts",
+    "standalone": "ts-node ./src/standalone.ts",
+    "bundle": "rimraf dist/webpack && webpack --config webpack.config.mjs"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.17.2",
@@ -46,9 +46,11 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.2",
+    "html-webpack-plugin": "^5.3.2",
+    "node-polyfill-webpack-plugin": "^1.1.4",
     "ts-node": "^10.0.0",
-    "webpack": "^4.40.2",
+    "webpack": "^5.42.0",
     "webpack-bundle-analyzer": "^3.5.1",
-    "webpack-cli": "^3.3.9"
+    "webpack-cli": "^4.7.2"
   }
 }

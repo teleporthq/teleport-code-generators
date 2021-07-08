@@ -1,6 +1,6 @@
-import { format } from 'prettier/standalone'
-
-import parserHTML from 'prettier/parser-html'
+import standalone from 'prettier/standalone.js'
+const { format } = standalone
+import parserHTML from 'prettier/parser-html.js'
 
 import { Constants } from '@teleporthq/teleport-shared'
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'

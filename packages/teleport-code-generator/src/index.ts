@@ -67,7 +67,6 @@ import {
 } from '@teleporthq/teleport-project-generator-gatsby'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
-import { createDiskPublisher } from '@teleporthq/teleport-publisher-disk'
 import { createVercelPublisher } from '@teleporthq/teleport-publisher-vercel'
 import { createNetlifyPublisher } from '@teleporthq/teleport-publisher-netlify'
 import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
@@ -79,6 +78,7 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
+import { isNodeProcess } from './utils'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -124,9 +124,9 @@ const templates = {
   [ProjectType.GATSBY]: GatsbyTemplate,
 }
 
-const projectPublisherFactories = {
+/* tslint:disable ban-types */
+const projectPublisherFactories: Omit<Record<PublisherType, Function>, PublisherType.DISK> = {
   [PublisherType.ZIP]: createZipPublisher,
-  [PublisherType.DISK]: createDiskPublisher,
   [PublisherType.VERCEL]: createVercelPublisher,
   [PublisherType.NETLIFY]: createNetlifyPublisher,
   [PublisherType.GITHUB]: createGithubPublisher,
@@ -135,11 +135,24 @@ const projectPublisherFactories = {
 
 export const packProject: PackProjectFunction = async (
   projectUIDL,
-  { projectType, publisher, publishOptions = {}, assets = [], plugins = [] }
+  { projectType, publisher: publisherType, publishOptions = {}, assets = [], plugins = [] }
 ) => {
   const packer = createProjectPacker()
-  const projectGeneratorFactory = projectGeneratorFactories[projectType]
+  let publisher
+  if (publisherType === PublisherType.DISK) {
+    if (isNodeProcess()) {
+      const createDiskPublisher = await import('@teleporthq/teleport-publisher-disk').then(
+        (mod) => mod.createDiskPublisher
+      )
+      publisher = createDiskPublisher
+    } else {
+      throw Error(`${PublisherType.DISK} can only be used inside node environments`)
+    }
+  } else {
+    publisher = projectPublisherFactories[publisherType]
+  }
 
+  const projectGeneratorFactory = projectGeneratorFactories[projectType]
   if (plugins?.length > 0) {
     projectGeneratorFactory.cleanPlugins()
     plugins.forEach((plugin: ProjectPlugin) => {
@@ -148,7 +161,7 @@ export const packProject: PackProjectFunction = async (
   }
 
   const projectTemplate =
-    projectType === ProjectType.PREACT && publisher === PublisherType.CODESANDBOX
+    projectType === ProjectType.PREACT && publisherType === PublisherType.CODESANDBOX
       ? PreactCodesandBoxTemplate
       : templates[projectType]
 
@@ -156,8 +169,8 @@ export const packProject: PackProjectFunction = async (
     throw new InvalidProjectTypeError(projectType)
   }
 
-  if (publisher && !projectPublisherFactories[publisher]) {
-    throw new InvalidPublisherTypeError(publisher)
+  if (publisherType && !publisher) {
+    throw new InvalidPublisherTypeError(publisherType)
   }
 
   packer.setAssets({
@@ -169,8 +182,8 @@ export const packProject: PackProjectFunction = async (
   packer.setTemplate(projectTemplate)
 
   // If no publisher is provided, the packer will return the generated project
-  if (publisher) {
-    const publisherFactory = projectPublisherFactories[publisher]
+  if (publisherType) {
+    const publisherFactory = publisher
     const projectPublisher = publisherFactory(publishOptions)
     // @ts-ignore
     packer.setPublisher(projectPublisher)

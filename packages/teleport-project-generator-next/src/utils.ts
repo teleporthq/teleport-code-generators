@@ -1,8 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-
 import * as types from '@babel/types'
-
 import {
   ProjectUIDL,
   ChunkDefinition,

@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import * as types from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ParsedASTNode, ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStyleSetDefinition, UIDLStyleValue } from '@teleporthq/teleport-types'
@@ -66,7 +66,9 @@ export const generateStylesFromStyleObj = (
       case 'token':
         const token = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(styleValue.content.id))
         tokensUsed?.push(token)
-        return new ParsedASTNode(t.memberExpression(t.identifier('TOKENS'), t.identifier(token)))
+        return new ParsedASTNode(
+          types.memberExpression(types.identifier('TOKENS'), types.identifier(token))
+        )
       default:
         throw new Error(
           `Error running transformDynamicStyles in reactJSSComponentStyleChunksPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
@@ -78,14 +80,13 @@ export const generateStylesFromStyleObj = (
 export const createStylesHookDecleration = (
   assignee: string,
   hookName: string,
-  dynamicValueIdentifier?: string,
-  types = t
+  dynamicValueIdentifier?: string
 ) =>
   types.variableDeclaration('const', [
     types.variableDeclarator(
-      t.identifier(assignee),
-      t.callExpression(
-        t.identifier(hookName),
+      types.identifier(assignee),
+      types.callExpression(
+        types.identifier(hookName),
         dynamicValueIdentifier ? [types.identifier(dynamicValueIdentifier)] : []
       )
     ),
@@ -94,13 +95,13 @@ export const createStylesHookDecleration = (
 export const convertMediaAndStylesToObject = (
   styleSet: Record<string, unknown>,
   mediaStyles: Record<string, Record<string, unknown>>
-): t.ObjectExpression => {
+): types.ObjectExpression => {
   const styles = ASTUtils.objectToObjectExpression(styleSet)
 
   Object.keys(mediaStyles).forEach((mediaKey: string) => {
     styles.properties.push(
-      t.objectProperty(
-        t.identifier(`'@media(max-width: ${mediaKey}px)'`),
+      types.objectProperty(
+        types.identifier(`'@media(max-width: ${mediaKey}px)'`),
         ASTUtils.objectToObjectExpression(mediaStyles[mediaKey])
       )
     )

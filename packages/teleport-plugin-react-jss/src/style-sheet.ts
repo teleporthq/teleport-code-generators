@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPlugin,
@@ -60,10 +60,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         name: 'tokens-chunk',
         type: ChunkType.AST,
         fileType: FileType.JS,
-        content: t.exportNamedDeclaration(
-          t.variableDeclaration('const', [
-            t.variableDeclarator(
-              t.identifier('TOKENS'),
+        content: types.exportNamedDeclaration(
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('TOKENS'),
               ASTUtils.objectToObjectExpression(tokensMap)
             ),
           ])
@@ -77,11 +77,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         name: fileName,
         type: ChunkType.AST,
         fileType: FileType.JS,
-        content: t.exportNamedDeclaration(
-          t.variableDeclaration('const', [
-            t.variableDeclarator(
-              t.identifier('useProjectStyles'),
-              t.callExpression(t.identifier('createUseStyles'), [
+        content: types.exportNamedDeclaration(
+          types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('useProjectStyles'),
+              types.callExpression(types.identifier('createUseStyles'), [
                 convertMediaAndStylesToObject(styleSet, mediaStyles),
               ])
             ),

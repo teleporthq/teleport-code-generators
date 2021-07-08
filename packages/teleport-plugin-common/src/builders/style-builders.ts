@@ -8,7 +8,6 @@ import {
   getContentOfStyleObject,
   getCSSVariablesContentFromTokenStyles,
 } from '../utils/style-utils'
-
 jss.setup(preset())
 
 export const createCSSClass = (key: string, styleObject: Record<string, string | number>) => {
