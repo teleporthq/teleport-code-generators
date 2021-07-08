@@ -1,6 +1,5 @@
-import { readFileSync, mkdirSync, rmSync } from 'fs'
+import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
-// import { fileURLToPath } from 'url'
 import { packProject } from '@teleporthq/teleport-code-generator'
 import {
   ProjectUIDL,
@@ -15,8 +14,6 @@ import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-j
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-/* tslint:disable variable-name */
-// const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -45,7 +42,7 @@ const packerOptions: PackerOptions = {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmSync('dist', { recursive: true })
+      rmdirSync('dist', { recursive: true })
       mkdirSync('dist')
     }
 
