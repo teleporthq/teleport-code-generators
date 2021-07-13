@@ -10,8 +10,6 @@ import {
   VercelRateLimiterError,
   VercelProjectTooBigError,
 } from '@teleporthq/teleport-types'
-// @ts-ignore /* Import-maps are not yet supported in typscript */
-import { encryptFileData } from '#crypto'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
 const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
@@ -87,8 +85,10 @@ export const uploadFile = async (
   content: string,
   token: string
 ): Promise<{ digest: string; fileSize: number; result: unknown }> => {
-  const enc = new TextEncoder()
+  // @ts-ignore /* Import-maps are not yet supported in typescript */
+  const encryptFileData = await import('#crypto').then((mod) => mod.encryptFileData)
 
+  const enc = new TextEncoder()
   const fileData = enc.encode(content)
   const digest = await encryptFileData(fileData)
   const hashArray = Array.from(new Uint8Array(digest))
