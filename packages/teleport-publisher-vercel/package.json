@@ -8,6 +8,14 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/cjs/index.d.ts",
+  "imports": {
+    "#crypto": {
+      "default": {
+        "node": "./dist/cjs/crypto-node.js",
+        "default": "./dist/cjs/crypto.js"
+      }
+    }
+  },
   "sideEffects": false,
   "repository": {
     "type": "git",
