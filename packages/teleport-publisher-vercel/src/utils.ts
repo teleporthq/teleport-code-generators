@@ -12,9 +12,9 @@ import {
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
-const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
-const UPLOAD_FILES_URL = 'https://api.vercel.com/v10/now/files'
-const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v10/now/deployments/get?url='
+const CREATE_DEPLOY_URL = 'https://api.vercel.com/v12/now/deployments'
+const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/now/files'
+const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v11/now/deployments/get?url='
 
 type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
 
@@ -97,8 +97,8 @@ export const uploadFile = async (
   const response = await fetch(UPLOAD_FILES_URL, {
     method: 'POST',
     headers: {
-      'x-vercel-digest': stringSHA,
       Authorization: `Bearer ${token}`,
+      'x-now-digest': stringSHA,
     },
     body: content,
   })
