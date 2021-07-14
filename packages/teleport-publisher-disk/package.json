@@ -25,7 +25,8 @@
   },
   "dependencies": {
     "@teleporthq/teleport-types": "^0.17.3",
-    "path-browserify": "^1.0.1"
+    "path-browserify": "^1.0.1",
+    "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
