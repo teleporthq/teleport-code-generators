@@ -15,7 +15,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     componentChunkName = 'jsx-component',
     configTagIdentifier = 'Helmet',
     configTagDependencyPath = 'react-helmet',
-    configTagDependencyVersion = '^6.1.0',
+    configTagDependencyVersion = '^6.2.0',
     isExternalPackage = true,
   } = config || {}
 
@@ -77,6 +77,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
         type: isExternalPackage ? 'package' : 'library',
         path: configTagDependencyPath,
         version: configTagDependencyVersion,
+        meta: {
+          namedImport: true,
+        },
       }
     }
 

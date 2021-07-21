@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -12,8 +13,9 @@ import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-ga
 import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
 import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
-import projectJSON from '../../../examples/uidl-samples/project.json'
+import projectJSON from '../../../examples/uidl-samples/New Project-uidl.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -24,17 +26,26 @@ const packerOptions: PackerOptions = {
   projectType: ProjectType.REACT,
   publishOptions: {
     outputPath: 'dist',
+    // individualUpload: true,
+    // accessToken: 'jXzdOJzcDo6ICUklAguLRi3l',
   },
   assets: [
     {
       fileType: 'png',
       name: 'icons-192',
       content: base64File,
+      contentEncoding: 'base64',
     },
     {
       fileType: 'png',
       name: 'icons-512',
       content: base64File,
+      contentEncoding: 'base64',
+    },
+    {
+      content: 'https://placekitten.com/500/300',
+      name: 'kitten.png',
+      location: 'remote',
     },
   ],
 }
@@ -42,8 +53,8 @@ const packerOptions: PackerOptions = {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmdirSync('dist', { recursive: true })
-      mkdirSync('dist')
+      // rmdirSync('dist', { recursive: true })
+      // mkdirSync('dist')
     }
 
     let result
@@ -57,28 +68,28 @@ const run = async () => {
 
     /* Frameworks using Css-Modules */
 
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.GATSBY,
-    })
-    console.info(ProjectType.GATSBY, '-', result.payload)
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.GATSBY,
+    // })
+    // console.info(ProjectType.GATSBY, '-', result.payload)
 
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.PREACT,
-    })
-    console.info(ProjectType.PREACT, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.PREACT,
+    // })
+    // console.info(ProjectType.PREACT, '-', result.payload)
 
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextReactCSSModules],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-css-modules',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT,
+    //   plugins: [pluginNextReactCSSModules],
+    //   publishOptions: {
+    //     ...packerOptions.publishOptions,
+    //     projectSlug: 'teleport-project-next-css-modules',
+    //   },
+    // })
+    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
@@ -86,72 +97,82 @@ const run = async () => {
     })
     console.info(ProjectType.REACT, '-', result.payload)
 
-    /* Frameworks use CSS */
+    // /* Frameworks use CSS */
 
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
-    console.info(ProjectType.STENCIL, '-', result.payload)
+    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
+    // console.info(ProjectType.STENCIL, '-', result.payload)
 
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
-    console.info(ProjectType.NUXT, '-', result.payload)
+    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
+    // console.info(ProjectType.NUXT, '-', result.payload)
 
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
-    console.info(ProjectType.VUE, '-', result.payload)
+    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+    // console.info(ProjectType.VUE, '-', result.payload)
 
-    result = await packProject(projectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.ANGULAR,
-    })
-    console.info(ProjectType.ANGULAR, '-', result.payload)
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.ANGULAR,
+    // })
+    // console.info(ProjectType.ANGULAR, '-', result.payload)
 
-    result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
-    console.info(ProjectType.GRIDSOME, '-', result.payload)
+    // result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
+    // console.info(ProjectType.GRIDSOME, '-', result.payload)
 
-    /* React JSS */
+    // /* React JSS */
 
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextReactJSS],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-react-jss',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT,
+    //   plugins: [pluginNextReactJSS],
+    //   publishOptions: {
+    //     ...packerOptions.publishOptions,
+    //     projectSlug: 'teleport-project-next-react-jss',
+    //   },
+    // })
+    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
-    /* Styled Components */
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.GATSBY,
-      plugins: [pluginGatsbyStyledComponents],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-gatsby-styled-components',
-      },
-    })
-    console.info(
-      ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
-      '-',
-      result.payload
-    )
-
-    result = await packProject(reactProjectUIDL, {
-      ...packerOptions,
-      projectType: ProjectType.NEXT,
-      plugins: [pluginNextStyledComponents],
-      publishOptions: {
-        ...packerOptions.publishOptions,
-        projectSlug: 'teleport-project-next-styled-components',
-      },
-    })
-    console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+    // /* Styled Components */
 
     result = await packProject(projectUIDL, {
       ...packerOptions,
-      projectType: ProjectType.REACTNATIVE,
+      projectType: ProjectType.REACT,
+      plugins: [pluginReactStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: `teleport-project-react-styled-components`,
+      },
     })
-    console.info(ProjectType.REACTNATIVE, '-', result.payload)
+
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.GATSBY,
+    //   plugins: [pluginGatsbyStyledComponents],
+    //   publishOptions: {
+    //     ...packerOptions.publishOptions,
+    //     projectSlug: 'teleport-project-gatsby-styled-components',
+    //   },
+    // })
+    // console.info(
+    //   ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
+    //   '-',
+    //   result.payload
+    // )
+
+    // result = await packProject(reactProjectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.NEXT,
+    //   plugins: [pluginNextStyledComponents],
+    //   publishOptions: {
+    //     ...packerOptions.publishOptions,
+    //     projectSlug: 'teleport-project-next-styled-components',
+    //   },
+    // })
+    // console.info(ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents, '-', result.payload)
+
+    // result = await packProject(projectUIDL, {
+    //   ...packerOptions,
+    //   projectType: ProjectType.REACTNATIVE,
+    // })
+    // console.info(ProjectType.REACTNATIVE, '-', result.payload)
   } catch (e) {
     console.info(e)
   }

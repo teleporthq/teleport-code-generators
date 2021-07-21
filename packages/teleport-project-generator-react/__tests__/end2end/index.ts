@@ -11,7 +11,7 @@ describe('React Project Generator', () => {
 
   it('runs without crashing', async () => {
     const outputFolder = await generator.generateProject(
-      (uidlSample as unknown) as Record<string, unknown>,
+      uidlSample as unknown as Record<string, unknown>,
       template
     )
     const assetsPath = generator.getAssetsPath()
@@ -35,7 +35,7 @@ describe('React Project Generator', () => {
 
   it('runs without crashing with external dependencies', async () => {
     const outputFolder = await generator.generateProject(
-      (uidlSampleWithExternalDependencies as unknown) as Record<string, unknown>,
+      uidlSampleWithExternalDependencies as unknown as Record<string, unknown>,
       template
     )
     const assetsPath = generator.getAssetsPath()
@@ -72,7 +72,7 @@ describe('React Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
-    "react-helmet": "^6.1.0",
+    "react-helmet": "^6.2.0",
     "prop-types": "15.7.2",
     "antd": "4.5.4"
   }
