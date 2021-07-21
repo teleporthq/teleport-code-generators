@@ -7,7 +7,7 @@ export const ReactProjectMapping: Mapping = {
       dependency: {
         type: 'library',
         path: 'react-router-dom',
-        version: '4.3.1',
+        version: '^5.2.0',
         meta: {
           namedImport: true,
         },

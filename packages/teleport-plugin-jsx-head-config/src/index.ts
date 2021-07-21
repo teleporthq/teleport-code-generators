@@ -77,6 +77,9 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
         type: isExternalPackage ? 'package' : 'library',
         path: configTagDependencyPath,
         version: configTagDependencyVersion,
+        meta: {
+          namedImport: true,
+        },
       }
     }
 
