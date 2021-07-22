@@ -8,6 +8,14 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/cjs/index.d.ts",
+  "imports": {
+    "#upload": {
+      "default": {
+        "node": "./dist/cjs/node.js",
+        "default": "./dist/cjs/browser.js"
+      }
+    }
+  },
   "sideEffects": false,
   "repository": {
     "type": "git",

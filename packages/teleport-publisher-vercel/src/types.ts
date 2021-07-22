@@ -17,6 +17,9 @@ export interface VercelFile {
 
 export interface VercelPayload {
   files: VercelFile[]
+  projectSettings: {
+    framework: string
+  }
   name: string
   version: number
   public?: boolean

@@ -88,6 +88,9 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       version,
       public: publicDeploy,
       target,
+      projectSettings: {
+        framework: 'nextjs',
+      },
     }
 
     vercelPayload.alias =

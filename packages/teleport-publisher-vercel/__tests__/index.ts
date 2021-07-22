@@ -1,6 +1,5 @@
 import { createVercelPublisher } from '../src'
 import project from './project-files.json'
-
 const token = 'deploy-token'
 
 describe('teleport publisher vercel', () => {

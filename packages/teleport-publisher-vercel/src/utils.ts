@@ -12,9 +12,9 @@ import {
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
-const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
-const UPLOAD_FILES_URL = 'https://api.vercel.com/v10/now/files'
-const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v10/now/deployments/get?url='
+const CREATE_DEPLOY_URL = 'https://api.vercel.com/v12/now/deployments'
+const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/now/files'
+const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v11/now/deployments/get?url='
 
 type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
 
@@ -46,9 +46,12 @@ const destructureProjectFiles = async (
       ? `${folderToPutFileTo}${file.name}.${file.fileType}`
       : `${folderToPutFileTo}${file.name}`
 
-    if (individualUpload && file.contentEncoding !== 'base64') {
-      // All non-images are uploaded separately
-      const { digest, fileSize } = await uploadFile(file.content, token)
+    if (individualUpload) {
+      /* Jest doesn't support import-maps yet and even in type-script. 
+      So, making it dynamic import and ts-ignore. To, unclock the tests. */
+      // @ts-ignore
+      const uploadFile = await import('#upload').then((mod) => mod.uploadFile)
+      const { digest, fileSize } = await uploadFile(file, token)
       const vercelFile: VercelFile = {
         file: fileName,
         sha: digest,
@@ -79,39 +82,6 @@ const destructureProjectFiles = async (
   }
 
   return files
-}
-
-export const uploadFile = async (
-  content: string,
-  token: string
-): Promise<{ digest: string; fileSize: number; result: unknown }> => {
-  const enc = new TextEncoder()
-
-  const fileData = enc.encode(content)
-  const digest = await crypto.subtle.digest('SHA-1', fileData)
-  const hashArray = Array.from(new Uint8Array(digest))
-  const stringSHA = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-
-  const response = await fetch(UPLOAD_FILES_URL, {
-    method: 'POST',
-    headers: {
-      'x-vercel-digest': stringSHA,
-      Authorization: `Bearer ${token}`,
-    },
-    body: content,
-  })
-
-  if (response.status >= 500) {
-    throw new VercelServerError()
-  }
-
-  const result = await response.json()
-
-  return {
-    digest: stringSHA,
-    fileSize: hashArray.length,
-    result,
-  }
 }
 
 export const createDeployment = async (
@@ -195,4 +165,33 @@ export const checkDeploymentReady = async (deploymentURL: string): Promise<Deplo
     console.warn(err)
     return 'ERROR'
   }
+}
+
+export const computeHashArray = (digest: Buffer | ArrayBuffer) => Array.from(new Uint8Array(digest))
+
+export const computeSHA = (hashArray: number[]) => {
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+export const makeRequest = async (
+  token: string,
+  stringSHA: string,
+  content: string | Buffer | ArrayBuffer,
+  isBuffer = false
+) => {
+  const response = await fetch(UPLOAD_FILES_URL, {
+    method: 'POST',
+    headers: {
+      ...(isBuffer && { 'Content-Type': 'application/octet-stream' }),
+      Authorization: `Bearer ${token}`,
+      'x-now-digest': stringSHA,
+    },
+    body: content,
+  })
+
+  if (response.status >= 500) {
+    throw new VercelServerError()
+  }
+
+  return response
 }
