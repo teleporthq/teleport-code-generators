@@ -9,6 +9,7 @@ import {
   VercelDeploymentTimeoutError,
   VercelRateLimiterError,
   VercelProjectTooBigError,
+  GeneratedFile,
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
@@ -47,10 +48,6 @@ const destructureProjectFiles = async (
       : `${folderToPutFileTo}${file.name}`
 
     if (individualUpload) {
-      /* Jest doesn't support import-maps yet and even in type-script. 
-      So, making it dynamic import and ts-ignore. To, unclock the tests. */
-      // @ts-ignore
-      const uploadFile = await import('#upload').then((mod) => mod.uploadFile)
       const { digest, fileSize } = await uploadFile(file, token)
       const vercelFile: VercelFile = {
         file: fileName,
@@ -82,6 +79,65 @@ const destructureProjectFiles = async (
   }
 
   return files
+}
+
+const uploadFile = async (
+  file: GeneratedFile,
+  token: string
+): Promise<{ digest: string; fileSize: number; result: unknown }> => {
+  // @ts-ignore
+  const module: typeof import('./browser') = await import('#builtins').then((mod) => mod)
+  const { getImageBufferFromRemoteUrl, getSHA, getImageBufferFromase64 } = module
+
+  if (file.contentEncoding === 'base64') {
+    const image = getImageBufferFromase64(file.content)
+    const { hash } = await getSHA(image)
+
+    const uploadResponse = await makeRequest(token, hash, image, true)
+    const uploadResponseResult = await uploadResponse.json()
+
+    return {
+      digest: hash,
+      fileSize: image.length,
+      result: uploadResponseResult,
+    }
+  }
+
+  if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
+    const image = await getImageBufferFromRemoteUrl(file.content)
+    const { hash: digest } = await getSHA(image)
+
+    const uploadResponse = await makeRequest(token, digest, image, true)
+    if (uploadResponse.status >= 500) {
+      throw new VercelServerError()
+    }
+
+    const uploadResponseResult = await uploadResponse.json()
+
+    return {
+      digest,
+      fileSize: image.byteLength,
+      result: uploadResponseResult,
+    }
+  }
+
+  const enc = new TextEncoder()
+  const fileData = enc.encode(file.content)
+  const { hash: shaHash, hashLength } = await getSHA(fileData)
+
+  const response = await makeRequest(token, shaHash, file.content)
+
+  if (response.status >= 500) {
+    throw new VercelServerError()
+  }
+
+  const result = await response.json()
+
+  return {
+    digest: shaHash,
+    fileSize: hashLength,
+    result,
+  }
 }
 
 export const createDeployment = async (
@@ -167,12 +223,6 @@ export const checkDeploymentReady = async (deploymentURL: string): Promise<Deplo
   }
 }
 
-export const computeHashArray = (digest: Buffer | ArrayBuffer) => Array.from(new Uint8Array(digest))
-
-export const computeSHA = (hashArray: number[]) => {
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
 export const makeRequest = async (
   token: string,
   stringSHA: string,
@@ -184,7 +234,7 @@ export const makeRequest = async (
     headers: {
       ...(isBuffer && { 'Content-Type': 'application/octet-stream' }),
       Authorization: `Bearer ${token}`,
-      'x-now-digest': stringSHA,
+      'x-vercel-digest': stringSHA,
     },
     body: content,
   })

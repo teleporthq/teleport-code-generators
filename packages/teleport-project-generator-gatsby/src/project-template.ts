@@ -23,7 +23,7 @@ export default {
     "prop-types": "15.7.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "react-helmet": "^6.2.0"
+    "react-helmet": "^6.1.0"
   },
   "devDependencies": {
     "prettier": "^1.19.1"

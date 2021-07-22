@@ -48,7 +48,7 @@ describe('Preact Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
-    "react-helmet": "^6.2.0",
+    "react-helmet": "^6.1.0",
     "prop-types": "15.7.2",
     "antd": "4.5.4"
   }

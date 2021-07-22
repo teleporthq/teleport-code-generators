@@ -40,6 +40,7 @@
     "@teleporthq/teleport-project-plugin-next-css-modules": "^0.17.3",
     "@teleporthq/teleport-project-plugin-next-react-jss": "^0.17.3",
     "@teleporthq/teleport-project-plugin-next-styled-components": "^0.17.3",
+    "@teleporthq/teleport-project-plugin-react-styled-components": "^0.17.3",
     "@teleporthq/teleport-publisher-codesandbox": "^0.17.3",
     "@teleporthq/teleport-publisher-disk": "^0.17.3",
     "@teleporthq/teleport-types": "^0.17.3"

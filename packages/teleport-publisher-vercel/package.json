@@ -9,7 +9,7 @@
   "module": "dist/esm/index.js",
   "types": "dist/cjs/index.d.ts",
   "imports": {
-    "#upload": {
+    "#builtins": {
       "default": {
         "node": "./dist/cjs/node.js",
         "default": "./dist/cjs/browser.js"
