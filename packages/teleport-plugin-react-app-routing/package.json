@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-app-routing",
-  "version": "0.17.3",
+  "version": "0.17.4",
   "description": "A plugin for handling the routing file of a React project",
   "author": "teleportHQ",
   "license": "MIT",
