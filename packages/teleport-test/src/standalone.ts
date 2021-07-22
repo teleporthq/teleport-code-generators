@@ -94,7 +94,7 @@ const run = async () => {
     })
     console.info(ProjectType.REACT, '-', result.payload)
 
-    // /* Frameworks use CSS */
+    /* Frameworks use CSS */
 
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.STENCIL })
     console.info(ProjectType.STENCIL, '-', result.payload)
@@ -114,7 +114,7 @@ const run = async () => {
     result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.GRIDSOME })
     console.info(ProjectType.GRIDSOME, '-', result.payload)
 
-    // /* React JSS */
+    /* React JSS */
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,
@@ -127,7 +127,7 @@ const run = async () => {
     })
     console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
-    // /* Styled Components */
+    /* Styled Components */
 
     result = await packProject(projectUIDL, {
       ...packerOptions,
