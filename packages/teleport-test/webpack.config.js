@@ -4,6 +4,9 @@ const HTMLWebpackPlugin = require('html-webpack-plugin')
 const NodePolyfillsPlugin = require('node-polyfill-webpack-plugin')
 
 module.exports =  {
+  devServer: {
+    contentBase: path.resolve(__dirname, 'dist/webpack'),
+  },
   entry: './src/client',
   output: {
     filename: 'bundled.js',

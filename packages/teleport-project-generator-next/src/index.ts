@@ -17,6 +17,7 @@ const createNextProjectGenerator = () => {
     configTagIdentifier: 'Head',
     configTagDependencyPath: 'next/head',
     isExternalPackage: false,
+    isDefaultImport: true,
   })
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'style',

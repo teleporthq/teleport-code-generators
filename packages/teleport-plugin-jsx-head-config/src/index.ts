@@ -8,6 +8,7 @@ interface JSXHeadPluginConfig {
   configTagDependencyPath?: string
   configTagDependencyVersion?: string
   isExternalPackage?: boolean
+  isDefaultImport?: boolean
 }
 
 export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConfig> = (config) => {
@@ -17,6 +18,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     configTagDependencyPath = 'react-helmet',
     configTagDependencyVersion = '^6.1.0',
     isExternalPackage = true,
+    isDefaultImport = false,
   } = config || {}
 
   const jsxHeadConfigPlugin: ComponentPlugin = async (structure) => {
@@ -77,9 +79,11 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
         type: isExternalPackage ? 'package' : 'library',
         path: configTagDependencyPath,
         version: configTagDependencyVersion,
-        meta: {
-          namedImport: true,
-        },
+        ...(!isDefaultImport && {
+          meta: {
+            namedImport: true,
+          },
+        }),
       }
     }
 

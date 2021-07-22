@@ -21,7 +21,7 @@
   "scripts": {
     "packer": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/packer.ts",
     "standalone": "cross-env TS_NODE_FILES=true ts-node --project tsconfig.json ./src/standalone.ts",
-    "bundle": "rimraf dist/webpack && webpack --config webpack.config.js"
+    "bundle": "webpack --config webpack.config.js"
   },
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.17.3",
@@ -40,6 +40,7 @@
     "@teleporthq/teleport-project-plugin-next-css-modules": "^0.17.3",
     "@teleporthq/teleport-project-plugin-next-react-jss": "^0.17.3",
     "@teleporthq/teleport-project-plugin-next-styled-components": "^0.17.3",
+    "@teleporthq/teleport-project-plugin-react-styled-components": "^0.17.3",
     "@teleporthq/teleport-publisher-codesandbox": "^0.17.3",
     "@teleporthq/teleport-publisher-disk": "^0.17.3",
     "@teleporthq/teleport-types": "^0.17.3"
@@ -51,6 +52,7 @@
     "ts-node": "^8.6.2",
     "webpack": "^5.42.0",
     "webpack-bundle-analyzer": "^3.5.1",
-    "webpack-cli": "^4.7.2"
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2"
   }
 }

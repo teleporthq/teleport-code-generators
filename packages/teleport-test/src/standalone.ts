@@ -12,6 +12,7 @@ import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-ga
 import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
 import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
+import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 
@@ -30,11 +31,18 @@ const packerOptions: PackerOptions = {
       fileType: 'png',
       name: 'icons-192',
       content: base64File,
+      contentEncoding: 'base64',
     },
     {
       fileType: 'png',
       name: 'icons-512',
       content: base64File,
+      contentEncoding: 'base64',
+    },
+    {
+      content: 'https://placekitten.com/500/300',
+      name: 'kitten.png',
+      location: 'remote',
     },
   ],
 }
@@ -120,6 +128,16 @@ const run = async () => {
     console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
 
     /* Styled Components */
+
+    result = await packProject(projectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.REACT,
+      plugins: [pluginReactStyledComponents],
+      publishOptions: {
+        ...packerOptions.publishOptions,
+        projectSlug: `teleport-project-react-styled-components`,
+      },
+    })
 
     result = await packProject(reactProjectUIDL, {
       ...packerOptions,

@@ -1,21 +1,13 @@
 {
-  "name": "@teleporthq/teleport-publisher-vercel",
+  "name": "@teleporthq/teleport-project-plugin-react-styled-components",
   "version": "0.17.3",
-  "description": "Publishes a generated folder structure to vercel",
+  "description": "A plugin for generating a react project using styled-components",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/cjs/index.d.ts",
-  "imports": {
-    "#builtins": {
-      "default": {
-        "node": "./dist/cjs/node.js",
-        "default": "./dist/cjs/browser.js"
-      }
-    }
-  },
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -32,8 +24,9 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
+    "@teleporthq/teleport-plugin-import-statements": "^0.17.3",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.17.3",
     "@teleporthq/teleport-types": "^0.17.3",
-    "cross-fetch": "^3.0.4"
-  },
-  "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.17.3"
+  }
 }
