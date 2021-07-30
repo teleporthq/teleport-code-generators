@@ -18,6 +18,7 @@ const defaultPublisherParams: VercelPublisherParams = {
   target: 'production',
   alias: [],
   individualUpload: false,
+  framework: 'nextjs',
 }
 
 export interface VercelPublisherParams extends PublisherFactoryParams {
@@ -30,6 +31,7 @@ export interface VercelPublisherParams extends PublisherFactoryParams {
   target?: string
   alias?: string[]
   individualUpload?: boolean
+  framework?: string
 }
 
 export interface VercelPublisher extends Publisher<VercelPublisherParams, VercelDeployResponse> {
@@ -41,6 +43,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
   params: VercelPublisherParams = defaultPublisherParams
 ): VercelPublisher => {
   let { project, accessToken } = params
+  const { framework } = params
 
   const getProject = (): GeneratedFolder => project
   const setProject = (projectToSet: GeneratedFolder): void => {
@@ -59,7 +62,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       ...options,
     }
 
-    const projectToPublish = options.project || project
+    const projectToPublish = options?.project || project
     if (!projectToPublish) {
       throw new MissingProjectUIDLError()
     }
@@ -89,7 +92,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       public: publicDeploy,
       target,
       projectSettings: {
-        framework: 'nextjs',
+        framework,
       },
     }
 
