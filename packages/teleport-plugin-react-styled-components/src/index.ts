@@ -229,7 +229,7 @@ i.e either a direct static reference from component style sheet or from props. G
               }
               dependencies[projectVariantPropPrefix] = {
                 type: 'local',
-                path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+                path: `${projectStyleSet.path}${projectStyleSet.fileName}`,
                 meta: {
                   namedImport: true,
                 },
@@ -290,7 +290,7 @@ i.e either a direct static reference from component style sheet or from props. G
     if (tokensReferred.size > 0) {
       dependencies.TOKENS = {
         type: 'local',
-        path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+        path: `${projectStyleSet.path}${projectStyleSet.fileName}`,
         meta: {
           namedImport: true,
         },

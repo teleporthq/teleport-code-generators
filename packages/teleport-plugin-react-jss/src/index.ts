@@ -239,7 +239,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     if (tokensUsed.length > 0) {
       dependencies.TOKENS = {
         type: 'local',
-        path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+        path: `${projectStyleSet.path}${projectStyleSet.fileName}`,
         meta: {
           namedImport: true,
         },
@@ -249,7 +249,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
     if (isProjectReferenced) {
       dependencies.useProjectStyles = {
         type: 'local',
-        path: `${projectStyleSet.path}/${projectStyleSet.fileName}`,
+        path: `${projectStyleSet.path}${projectStyleSet.fileName}`,
         meta: {
           namedImport: true,
         },

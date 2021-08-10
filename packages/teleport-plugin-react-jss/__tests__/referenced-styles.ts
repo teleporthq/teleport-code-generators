@@ -100,7 +100,7 @@ describe('Referenced Styles on Node', () => {
     structure.options.projectStyleSet = {
       styleSetDefinitions,
       fileName: 'style',
-      path: '..',
+      path: '../',
     }
 
     const result = await plugin(structure)

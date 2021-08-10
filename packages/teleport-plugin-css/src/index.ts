@@ -47,14 +47,14 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     const {
       styleSetDefinitions = {},
       fileName: projectStyleSheetName,
-      path,
+      path: projectStyleSheetPath,
     } = projectStyleSet || {}
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
         dependencies[projectStyleSheetName] = {
           type: 'local',
-          path: `${path}/${projectStyleSheetName}.${FileType.CSS}`,
+          path: `${projectStyleSheetPath}${projectStyleSheetName}.${FileType.CSS}`,
           meta: {
             importJustPath: true,
           },

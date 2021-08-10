@@ -293,7 +293,7 @@ describe('Referes from project style and adds it to the node, without any styles
         },
       },
       fileName: 'style',
-      path: '..',
+      path: '../',
     },
   }
 
