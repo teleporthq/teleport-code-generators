@@ -1,4 +1,3 @@
-import PathResolver from 'path-browserify'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
@@ -23,6 +22,7 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
+  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -229,12 +229,10 @@ export class ProjectGenerator {
       const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
       })
-
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,
         files,
       })
-
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
@@ -247,26 +245,16 @@ export class ProjectGenerator {
       }
 
       let pageOptions = options
-      const pagesPath = this.strategy.pages.path
       if (this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet =
-          PathResolver.relative(
-            /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-            this.strategy.pages.options?.createFolderForEachComponent
-              ? [...pagesPath, pageUIDL.name].join('/')
-              : pagesPath.join('/'),
-            this.strategy.projectStyleSheet.path.join('/')
-          ) || '.'
-        /* If relative path resolver returns empty string, then both the files are in the same
-        folder. */
-
         pageOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: relativePathForProjectStyleSheet,
+            path: generateLocalDependenciesPrefix(
+              this.strategy.pages.path,
+              this.strategy.projectStyleSheet.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
@@ -333,25 +321,15 @@ export class ProjectGenerator {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet =
-          PathResolver.relative(
-            /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-            this.strategy.components.options?.createFolderForEachComponent
-              ? [...this.strategy.components.path, componentName].join('/')
-              : this.strategy.components.path.join('/'),
-            this.strategy.projectStyleSheet.path.join('/')
-          ) || '.'
-
-        /* If relative path resolver returns empty string, then both the files are in the same
-        folder. */
-
         componentOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: relativePathForProjectStyleSheet,
+            path: generateLocalDependenciesPrefix(
+              this.strategy.components.path,
+              this.strategy.projectStyleSheet.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
@@ -420,11 +398,10 @@ export class ProjectGenerator {
           fileName,
           fileType,
           globalStyles: {
-            path:
-              PathResolver.relative(
-                framework.config.path.join('/'),
-                this.strategy.projectStyleSheet.path.join('/')
-              ) || '.',
+            path: generateLocalDependenciesPrefix(
+              framework.config.path,
+              this.strategy.projectStyleSheet.path
+            ),
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
               : '',

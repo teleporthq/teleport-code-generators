@@ -163,7 +163,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       fileType: FileType.JS,
       content: t.importDeclaration(
         [],
-        t.stringLiteral(`${options.globalStyles.path}/${options.globalStyles.sheetName}.css`)
+        t.stringLiteral(`${options.globalStyles.path}${options.globalStyles.sheetName}.css`)
       ),
       linkAfter: [],
     })

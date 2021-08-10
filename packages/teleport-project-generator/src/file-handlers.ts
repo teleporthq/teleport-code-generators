@@ -16,7 +16,6 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import PathResolver from 'path-browserify'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
@@ -93,19 +92,12 @@ export const createRouterFile = async (
   }
 
   if (projectStyleSheet) {
-    const relativePathForProjectStyleSheet =
-      PathResolver.relative(
-        /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-        strategy.router.path.join('/'),
-        strategy.projectStyleSheet.path.join('/')
-      ) || '.'
     options = {
       ...options,
       projectStyleSet: {
         styleSetDefinitions: root?.styleSetDefinitions,
         fileName: projectStyleSheet.fileName,
-        path: relativePathForProjectStyleSheet,
+        path: generateLocalDependenciesPrefix(routerFilePath, strategy.projectStyleSheet.path),
         importFile: projectStyleSheet?.importFile || false,
       },
     }

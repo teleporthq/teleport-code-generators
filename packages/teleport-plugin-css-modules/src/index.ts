@@ -67,7 +67,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     const {
       styleSetDefinitions: globalStyleSheet = {},
       fileName: projectStyleSheetName,
-      path,
+      path: projectStyleSheetPath,
       importFile = false,
     } = projectStyleSet || {}
 
@@ -76,7 +76,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
         dependencies[globalStyleSheetPrefix] = {
           type: 'local',
-          path: `${path}/${fileName}.${FileType.CSS}`,
+          path: `${projectStyleSheetPath}${fileName}.${FileType.CSS}`,
           meta: {
             importJustPath: true,
           },
@@ -292,7 +292,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
       dependencies[globalStyleSheetPrefix] = {
         type: 'local',
-        path: `${path}/${fileName}.${FileType.CSS}`,
+        path: `${projectStyleSheetPath}${fileName}.${FileType.CSS}`,
       }
     }
 
