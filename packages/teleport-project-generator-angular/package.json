@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-angular",
-  "version": "0.17.3",
+  "version": "0.17.6",
   "description": "Project generator for a standard Angular project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -25,13 +25,13 @@
   },
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.17.3",
-    "@teleporthq/teleport-component-generator-angular": "^0.17.3",
+    "@teleporthq/teleport-component-generator-angular": "^0.17.6",
     "@teleporthq/teleport-plugin-angular-module": "^0.17.3",
-    "@teleporthq/teleport-plugin-css": "^0.17.3",
+    "@teleporthq/teleport-plugin-css": "^0.17.6",
     "@teleporthq/teleport-plugin-import-statements": "^0.17.3",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.17.3",
     "@teleporthq/teleport-postprocessor-prettier-ts": "^0.17.3",
-    "@teleporthq/teleport-project-generator": "^0.17.3",
+    "@teleporthq/teleport-project-generator": "^0.17.6",
     "@teleporthq/teleport-shared": "^0.17.3",
     "@teleporthq/teleport-types": "^0.17.3"
   },
