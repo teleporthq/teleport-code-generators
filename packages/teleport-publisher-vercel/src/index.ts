@@ -40,10 +40,10 @@ export interface VercelPublisher extends Publisher<VercelPublisherParams, Vercel
 }
 
 export const createVercelPublisher: PublisherFactory<VercelPublisherParams, VercelPublisher> = (
-  params: VercelPublisherParams = defaultPublisherParams
+  params: VercelPublisherParams
 ): VercelPublisher => {
-  let { project, accessToken } = params
-  const { framework } = params
+  let { project, accessToken } = { ...defaultPublisherParams, ...(params && params) }
+  const { framework } = { ...defaultPublisherParams, ...(params && params) }
 
   const getProject = (): GeneratedFolder => project
   const setProject = (projectToSet: GeneratedFolder): void => {
