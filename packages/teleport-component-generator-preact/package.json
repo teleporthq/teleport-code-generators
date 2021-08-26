@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-preact",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "description": "Component generator customization, capable of creating Preact components with CSS-Modules styling",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,15 +24,15 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.17.3",
-    "@teleporthq/teleport-plugin-css": "^0.17.6",
-    "@teleporthq/teleport-plugin-css-modules": "^0.17.6",
-    "@teleporthq/teleport-plugin-import-statements": "^0.17.3",
-    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.17.3",
-    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.17.3",
-    "@teleporthq/teleport-plugin-preact-base-component": "^0.17.3",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.17.3",
-    "@teleporthq/teleport-types": "^0.17.3"
+    "@teleporthq/teleport-component-generator": "^0.17.7",
+    "@teleporthq/teleport-plugin-css": "^0.17.7",
+    "@teleporthq/teleport-plugin-css-modules": "^0.17.7",
+    "@teleporthq/teleport-plugin-import-statements": "^0.17.7",
+    "@teleporthq/teleport-plugin-jsx-inline-styles": "^0.17.7",
+    "@teleporthq/teleport-plugin-jsx-proptypes": "^0.17.7",
+    "@teleporthq/teleport-plugin-preact-base-component": "^0.17.7",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.17.7",
+    "@teleporthq/teleport-types": "^0.17.7"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

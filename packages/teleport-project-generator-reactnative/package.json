@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-reactnative",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "description": "Project generator using React Native and Navigator",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,14 +24,14 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.17.3",
-    "@teleporthq/teleport-component-generator-reactnative": "^0.17.6",
-    "@teleporthq/teleport-plugin-import-statements": "^0.17.3",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.17.6",
-    "@teleporthq/teleport-plugin-reactnative-app-routing": "^0.17.3",
-    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.17.3",
-    "@teleporthq/teleport-project-generator": "^0.17.6",
-    "@teleporthq/teleport-shared": "^0.17.3",
-    "@teleporthq/teleport-types": "^0.17.3"
+    "@teleporthq/teleport-component-generator": "^0.17.7",
+    "@teleporthq/teleport-component-generator-reactnative": "^0.17.7",
+    "@teleporthq/teleport-plugin-import-statements": "^0.17.7",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.17.7",
+    "@teleporthq/teleport-plugin-reactnative-app-routing": "^0.17.7",
+    "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.17.7",
+    "@teleporthq/teleport-project-generator": "^0.17.7",
+    "@teleporthq/teleport-shared": "^0.17.7",
+    "@teleporthq/teleport-types": "^0.17.7"
   }
 }

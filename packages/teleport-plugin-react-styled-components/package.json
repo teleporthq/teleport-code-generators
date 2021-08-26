@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-react-styled-components",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "description": "A plugin for injecting the styles through styled-components inside React components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.17.3",
-    "@teleporthq/teleport-shared": "^0.17.3",
-    "@teleporthq/teleport-types": "^0.17.3"
+    "@teleporthq/teleport-plugin-common": "^0.17.7",
+    "@teleporthq/teleport-shared": "^0.17.7",
+    "@teleporthq/teleport-types": "^0.17.7"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
