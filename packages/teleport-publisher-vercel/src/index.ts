@@ -92,7 +92,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       public: publicDeploy,
       target,
       projectSettings: {
-        framework,
+        framework: publishOptions?.framework || framework,
       },
     }
 

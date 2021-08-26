@@ -419,6 +419,7 @@ interface VercelOptions {
   projectSlug?: string
   domainAlias?: string // used by the Vercel publisher
   individualUpload?: boolean
+  framework?: string
 }
 
 export interface PackerOptions {
