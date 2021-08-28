@@ -254,7 +254,7 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
     constant('object'),
     constant('children')
   ),
-  defaultValue: stateOrPropDefinitionDecoder,
+  defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
 })
 
