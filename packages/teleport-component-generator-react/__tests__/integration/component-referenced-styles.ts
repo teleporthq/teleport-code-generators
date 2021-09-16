@@ -110,8 +110,8 @@ describe('Generates media, pseudo and normal styles', () => {
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className="container"`)
-    expect(jsFile.content).toContain(`.container {`)
+    expect(jsFile.content).toContain(`className="my-component-container"`)
+    expect(jsFile.content).toContain(`.my-component-container {`)
     expect(jsFile.content).toContain(`width: 100px`)
     expect(jsFile.content).toContain(`display: none`)
   })
@@ -211,7 +211,7 @@ describe('Add referenced styles even when direct styles are not present on node'
 
     expect(cssFile).not.toBeDefined()
     expect(jsFile).toBeDefined()
-    expect(jsFile.content).toContain(`className="container"`)
+    expect(jsFile.content).toContain(`className="my-component-container"`)
     expect(jsFile.content).toContain(`container {`)
     expect(jsFile.content).not.toContain(`width: '100px'`)
     expect(jsFile.content).toContain(`display: none`)
