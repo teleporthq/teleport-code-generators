@@ -11,10 +11,11 @@ import * as types from '@babel/types'
 
 interface StyledJSXConfig {
   componentChunkName: string
+  forceScoping: boolean
 }
 
 export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig> = (config) => {
-  const { componentChunkName = 'jsx-component' } = config || {}
+  const { componentChunkName = 'jsx-component', forceScoping = false } = config || {}
 
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
@@ -49,7 +50,12 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
       const { style = {}, key, referencedStyles = {} } = element
-      const className = StringUtils.camelCaseToDashCase(key)
+      const elementClassName = StringUtils.camelCaseToDashCase(key)
+      const className = forceScoping
+        ? `${StringUtils.camelCaseToDashCase(
+            UIDLUtils.getComponentClassName(uidl)
+          )}-${elementClassName}`
+        : elementClassName
 
       if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
