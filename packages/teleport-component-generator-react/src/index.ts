@@ -4,7 +4,7 @@ import reactJSSPlugin from '@teleporthq/teleport-plugin-react-jss'
 import { createCSSModulesPlugin } from '@teleporthq/teleport-plugin-css-modules'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import reactStyledComponentsPlugin from '@teleporthq/teleport-plugin-react-styled-components'
-import reactStyledJSXPlugin from '@teleporthq/teleport-plugin-react-styled-jsx'
+import { createReactStyledJSXPlugin } from '@teleporthq/teleport-plugin-react-styled-jsx'
 import propTypesPlugin from '@teleporthq/teleport-plugin-jsx-proptypes'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
@@ -33,6 +33,8 @@ const createReactComponentGenerator: ComponentGeneratorInstance = ({
   })
 
   const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
+
+  const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: true })
 
   const stylePlugins = {
     [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
