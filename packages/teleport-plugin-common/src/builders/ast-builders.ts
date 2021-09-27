@@ -7,9 +7,9 @@ import {
 } from '../utils/ast-utils'
 import {
   ImportIdentifier,
-  UIDLEventHandlerStatement,
   EntryFileOptions,
   UIDLGlobalAsset,
+  UIDLStateModifierEvent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -164,7 +164,7 @@ export const createComponentDecorator = (params: Record<string, unknown>, t = ty
   )
 }
 
-export const createStateChangeStatement = (statement: UIDLEventHandlerStatement, t = types) => {
+export const createStateChangeStatement = (statement: UIDLStateModifierEvent, t = types) => {
   const { modifies, newState } = statement
 
   const rightOperand =
@@ -188,7 +188,10 @@ export const appendAssetsAST = (
   bodyNode: types.JSXElement
 ) => {
   assets.forEach((asset) => {
-    const assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+    let assetPath
+    if ('path' in asset) {
+      assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+    }
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
@@ -207,7 +210,7 @@ export const appendAssetsAST = (
     }
 
     // inline style
-    if (asset.type === 'style' && asset.content) {
+    if (asset.type === 'style' && 'content' in asset) {
       const styleTag = createJSXTag('style')
       addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
       addChildJSXTag(headNode, styleTag)
@@ -217,6 +220,7 @@ export const appendAssetsAST = (
     if (asset.type === 'script') {
       const scriptTag = createJSXTag('script')
       addAttributeToJSXTag(scriptTag, 'type', 'text/javascript')
+
       if (assetPath) {
         addAttributeToJSXTag(scriptTag, 'src', assetPath)
         if (asset.options && asset.options.defer) {
@@ -225,7 +229,7 @@ export const appendAssetsAST = (
         if (asset.options && asset.options.async) {
           addAttributeToJSXTag(scriptTag, 'async', true)
         }
-      } else if (asset.content) {
+      } else if ('content' in asset) {
         addAttributeToJSXTag(scriptTag, 'dangerouslySetInnerHTML', {
           __html: asset.content,
         })

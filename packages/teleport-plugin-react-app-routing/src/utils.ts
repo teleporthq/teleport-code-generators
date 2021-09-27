@@ -51,7 +51,7 @@ export const registerReactRouterDeps = (dependencies: Record<string, UIDLDepende
   dependencies.Router = {
     type: 'library',
     path: 'react-router-dom',
-    version: '4.3.1',
+    version: '^5.2.0',
     meta: {
       namedImport: true,
       originalName: 'BrowserRouter',
@@ -61,7 +61,7 @@ export const registerReactRouterDeps = (dependencies: Record<string, UIDLDepende
   dependencies.Route = {
     type: 'library',
     path: 'react-router-dom',
-    version: '4.3.1',
+    version: '^5.2.0',
     meta: {
       namedImport: true,
     },

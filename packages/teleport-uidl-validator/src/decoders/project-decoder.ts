@@ -1,6 +1,6 @@
 import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
 import { UIDLGlobalProjectValues, WebManifest, VProjectUIDL } from '@teleporthq/teleport-types'
-import { globalAssetsValidator } from './utils'
+import { globalAssetsDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -27,7 +27,7 @@ export const globalProjectValuesDecoder: Decoder<UIDLGlobalProjectValues> = obje
     })
   ),
   meta: array(dict(string())),
-  assets: array(globalAssetsValidator),
+  assets: array(globalAssetsDecoder),
   manifest: optional(webManifestDecoder),
   variables: optional(dict(string())),
 })

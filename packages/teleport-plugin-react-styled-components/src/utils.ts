@@ -1,97 +1,74 @@
-import * as t from '@babel/types'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLStyleValue, UIDLDependency, UIDLReferencedStyles } from '@teleporthq/teleport-types'
+import * as types from '@babel/types'
+import { StringUtils } from '@teleporthq/teleport-shared'
+import {
+  UIDLStyleValue,
+  UIDLDependency,
+  UIDLStyleSetDefinition,
+  PluginStyledComponent,
+} from '@teleporthq/teleport-types'
 
-export const generateStyledComponent = (
-  name: string,
-  type: string,
-  styles: Record<string, unknown>,
-  projectReferencedStyles?: string[]
-) => {
-  return t.variableDeclaration('const', [
-    t.variableDeclarator(
-      t.identifier(name),
-      t.taggedTemplateExpression(
-        t.memberExpression(t.identifier('styled'), t.identifier(type)),
-        projectReferencedStyles?.length > 0
-          ? ASTUtils.stringAsTemplateLiteral(
-              `${projectReferencedStyles.map((item) => `\$\{${item}\};`)} ${mapStyles(styles)}`
-            )
-          : ASTUtils.stringAsTemplateLiteral(mapStyles(styles))
+export const generateStyledComponent = (params: {
+  name: string
+  elementType: string
+  styles: types.ObjectExpression
+  propsReferred: Set<string>
+  componentStyleReferences: Set<string>
+  projectStyleReferences: Set<string>
+}) => {
+  const {
+    name,
+    elementType,
+    styles,
+    propsReferred,
+    componentStyleReferences,
+    projectStyleReferences,
+  } = params
+  let styleExpressions: types.ObjectExpression | types.ArrowFunctionExpression = styles
+  const expressionArguments: Array<
+    types.ObjectExpression | types.ArrowFunctionExpression | types.Identifier
+  > = []
+
+  if (propsReferred.size > 0) {
+    styleExpressions = types.arrowFunctionExpression([types.identifier('props')], styles)
+  }
+
+  if (projectStyleReferences.size > 0) {
+    expressionArguments.push(
+      ...Array.from(projectStyleReferences).map((ref) => types.identifier(ref))
+    )
+  }
+
+  if (styles && styles.properties.length > 0) {
+    expressionArguments.push(styleExpressions)
+  }
+
+  if (componentStyleReferences.size > 0) {
+    expressionArguments.push(
+      ...Array.from(componentStyleReferences).map((ref) => types.identifier(ref))
+    )
+  }
+
+  return types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(name),
+      types.callExpression(
+        types.callExpression(types.identifier('styled'), [types.stringLiteral(elementType)]),
+        expressionArguments
       )
     ),
   ])
-}
-
-export const generateCSSInterpolate = (name: string, styles: Record<string, unknown>) => {
-  return t.variableDeclaration('const', [
-    t.variableDeclarator(
-      t.identifier(name),
-      t.taggedTemplateExpression(
-        t.identifier('css'),
-        ASTUtils.stringAsTemplateLiteral(mapStyles(styles))
-      )
-    ),
-  ])
-}
-
-export const generateExportablCSSInterpolate = (name: string, styles: Record<string, unknown>) => {
-  return t.exportNamedDeclaration(generateCSSInterpolate(name, styles))
-}
-
-const mapStyles = (styles: Record<string, unknown>): string => {
-  return Object.keys(styles || {}).reduce((acc: string, item) => {
-    const value = styles[item]
-    acc =
-      typeof value === 'string' || typeof value === 'number'
-        ? `${acc} ${StringUtils.camelCaseToDashCase(item)}: ${value}; \n`
-        : `${acc} ${item} {\n ${mapStyles(value as Record<string, unknown>)}};`
-    return acc
-  }, ``)
-}
-
-export const countPropReferences = (
-  style: Record<string, UIDLStyleValue>,
-  timesReferred: number
-) => {
-  if (style && Object.keys(style).length > 0) {
-    Object.keys(style).map((item) => {
-      const styleAttr = style[item]
-      if (styleAttr.type === 'dynamic' && styleAttr.content.referenceType === 'prop') {
-        timesReferred++
-      }
-    })
-    return timesReferred
-  }
-  return timesReferred
-}
-
-export const countPropRefernecesFromReferencedStyles = (
-  styles: UIDLReferencedStyles,
-  timesReferred: number
-) => {
-  let propsCount = 0
-  if (styles && Object.keys(styles).length > 0) {
-    Object.values(styles).forEach((styleRef) => {
-      if (styleRef.content.mapType === 'inlined') {
-        propsCount = countPropReferences(styleRef.content.styles, 0)
-      }
-    })
-  }
-  return timesReferred + propsCount
 }
 
 export const removeUnusedDependencies = (
   dependencies: Record<string, UIDLDependency>,
-  jsxNodesLookup: Record<string, t.JSXElement>
+  jsxNodesLookup: Record<string, types.JSXElement>
 ) => {
   Object.keys(dependencies).forEach((depKey) => {
     const dependency = dependencies[depKey]
     if (dependency.type === 'library' && dependency.path === 'react-native') {
       const dependencyIsStillNeeded = Object.keys(jsxNodesLookup).some((elementKey) => {
         const jsxNode = jsxNodesLookup[elementKey]
-        return (jsxNode.openingElement.name as t.JSXIdentifier).name === depKey
+        return (jsxNode.openingElement.name as types.JSXIdentifier).name === depKey
       })
 
       if (!dependencyIsStillNeeded) {
@@ -101,37 +78,123 @@ export const removeUnusedDependencies = (
   })
 }
 
-export const generatePropReferencesSyntax = (
-  style: Record<string, UIDLStyleValue>,
-  timesPropsReferred?: number,
-  tokensReferred?: string[],
-  root?: t.JSXElement,
-  propsPrefix?: unknown
-) => {
-  return UIDLUtils.transformDynamicStyles(style, (styleValue, attribute) => {
-    switch (styleValue.content.referenceType) {
-      case 'prop': {
-        const dashCaseAttribute = StringUtils.dashCaseToCamelCase(attribute)
-        if (timesPropsReferred && timesPropsReferred === 1 && root && propsPrefix) {
-          ASTUtils.addDynamicAttributeToJSXTag(
-            root,
-            dashCaseAttribute,
-            styleValue.content.id,
-            propsPrefix as string
-          )
-          return `\$\{props => props.${dashCaseAttribute}\}`
-        }
-        return `\$\{props => props.${styleValue.content.id}\}`
+export const generateStyledComponentStyles = (params: {
+  styles: Record<string, UIDLStyleValue>
+  propsReferred?: Set<string>
+  tokensReferred?: Set<string>
+  propsPrefix?: string
+  tokensPrefix?: string
+}): types.ObjectExpression => {
+  const {
+    styles,
+    tokensReferred,
+    propsReferred,
+    propsPrefix = 'props',
+    tokensPrefix = 'TOKENS',
+  } = params
+  const properties: types.ObjectProperty[] = Object.keys(styles).reduce(
+    (acc: types.ObjectProperty[], styleId) => {
+      const style = styles[styleId]
+      const styleKey = types.stringLiteral(StringUtils.camelCaseToDashCase(styleId))
+
+      if (style.type === 'static') {
+        const styleContent =
+          typeof style.content === 'string'
+            ? types.stringLiteral(style.content)
+            : types.numericLiteral(Number(style.content))
+        acc.push(types.objectProperty(styleKey, styleContent))
       }
-      case 'token':
-        const token = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(styleValue.content.id))
-        tokensReferred?.push(token)
-        return `\$\{TOKENS.${token}\}`
-      default:
-        throw new Error(
-          `Error running transformDynamicStyles in reactStyledComponentsPlugin. 
-          Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+
+      if (style.type === 'dynamic' && style.content.referenceType === 'state') {
+        throw new PluginStyledComponent(`Error running transformDynamicStyles in reactStyledComponentsPlugin. 
+        Unsupported styleValue.content.referenceType value ${style.content.referenceType}`)
+      }
+
+      if (style.type === 'dynamic' && style.content.referenceType === 'prop') {
+        const isNestedProp = style.content.id.includes('.')
+        acc.push(
+          types.objectProperty(
+            styleKey,
+            types.memberExpression(
+              types.identifier(propsPrefix),
+              isNestedProp
+                ? types.identifier(style.content.id)
+                : types.identifier(`'${style.content.id}'`),
+              !isNestedProp
+            )
+          )
         )
-    }
-  })
+        propsReferred?.add(style.content.id)
+      }
+
+      if (style.type === 'dynamic' && style.content.referenceType === 'token') {
+        const usedToken = StringUtils.capitalize(StringUtils.dashCaseToCamelCase(style.content.id))
+        acc.push(
+          types.objectProperty(
+            styleKey,
+            types.memberExpression(types.identifier(tokensPrefix), types.identifier(usedToken))
+          )
+        )
+        tokensReferred?.add(usedToken)
+      }
+
+      return acc
+    },
+    []
+  )
+
+  return types.objectExpression(properties)
+}
+
+export const generateVariantsfromStyleSet = (
+  styleSets: Record<string, UIDLStyleSetDefinition>,
+  variantPropPrefix: string,
+  variantPropKey: string,
+  tokensReferred?: Set<string>
+) => {
+  const variantExpressions = types.objectExpression(
+    Object.keys(styleSets).reduce((acc: types.ObjectProperty[], styleId) => {
+      const style = styleSets[styleId]
+      const { content = {}, conditions = [] } = style
+
+      const property = types.objectProperty(
+        types.stringLiteral(styleId),
+        generateStyledComponentStyles({
+          styles: content,
+          ...(tokensReferred && { tokensReferred }),
+        })
+      )
+
+      conditions.forEach((cond) => {
+        const mediaProperty = types.objectProperty(
+          cond.type === 'screen-size'
+            ? types.stringLiteral(`@media(max-width: ${cond.meta.maxWidth}px)`)
+            : types.stringLiteral(`&:${cond.meta.state}`),
+          generateStyledComponentStyles({
+            styles: cond.content,
+            ...(tokensReferred && { tokensReferred }),
+          })
+        )
+
+        if (property.value.type === 'ObjectExpression') {
+          property.value.properties.push(mediaProperty)
+        }
+      })
+
+      acc.push(property)
+      return acc
+    }, [])
+  )
+
+  return types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier(variantPropPrefix),
+      types.callExpression(types.identifier('variant'), [
+        types.objectExpression([
+          types.objectProperty(types.identifier('prop'), types.stringLiteral(variantPropKey)),
+          types.objectProperty(types.identifier('variants'), variantExpressions),
+        ]),
+      ])
+    ),
+  ])
 }

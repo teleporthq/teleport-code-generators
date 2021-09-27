@@ -1,8 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-
 import * as types from '@babel/types'
-
 import {
   ProjectUIDL,
   ChunkDefinition,
@@ -11,7 +9,6 @@ import {
   ChunkType,
   FrameWorkConfigOptions,
 } from '@teleporthq/teleport-types'
-// import MagicString from 'magic-string'
 
 export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
   const { settings, meta, assets, manifest, customCode } = uidl.globals
@@ -166,7 +163,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       fileType: FileType.JS,
       content: t.importDeclaration(
         [],
-        t.stringLiteral(`${options.globalStyles.path}/${options.globalStyles.sheetName}.css`)
+        t.stringLiteral(`${options.globalStyles.path}${options.globalStyles.sheetName}.css`)
       ),
       linkAfter: [],
     })

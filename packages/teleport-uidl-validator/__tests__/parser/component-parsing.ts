@@ -8,6 +8,7 @@ import componentStyleSetsInputJSON from './component-with-reusalble-styles.json'
 import componentWithReferencedStylesJSON from './componennt-with-referenced-styles.json'
 
 import { parseComponentJSON, parseProjectJSON } from '../../src/parser'
+import { ComponentUIDL } from '@teleporthq/teleport-types'
 
 describe('parseComponentJSON', () => {
   it('transforms primitive component values', () => {
@@ -41,9 +42,7 @@ describe('styleSetDefinitions in root of Project UIDL', () => {
     })
 
     expect(result.root.styleSetDefinitions).toStrictEqual({
-      '5ed0d05baa77d97673711820': {
-        id: '5ed0d05baa77d97673711820',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: {
@@ -64,9 +63,7 @@ describe('styleSetDefinitions in root of Project UIDL', () => {
           },
         },
       },
-      '5ed0d4923de727e93cb4efa2': {
-        id: '5ed0d4923de727e93cb4efa2',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: {
@@ -101,38 +98,19 @@ describe('RefernecedStyles for ComponentUIDL', () => {
   })
 
   it('Parses referencedStyles with project-referenced nodes', () => {
-    const uidl = componentStyleSetsInputJSON
+    const uidl = componentStyleSetsInputJSON as unknown as ComponentUIDL
     uidl.node.content.referencedStyles = {
       ...uidl.node.content.referencedStyles,
       '5ed6146d471fde6d6a47ba16': {
-        id: '5ed6146d471fde6d6a47ba16',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ed6146d471fde6d6a47ba1b',
+          referenceId: 'secondaryButton',
         },
       },
     }
 
-    const result = parseComponentJSON(uidl)
+    const result = parseComponentJSON(uidl as unknown as Record<string, unknown>)
     expect(result).toEqual(result)
-  })
-
-  it('Parses referencedStyles with project-referenced nodes and throws if they are applied conditionally', () => {
-    const uidl = componentStyleSetsInputJSON
-    uidl.node.content.referencedStyles = {
-      ...uidl.node.content.referencedStyles,
-      '5ed6146d471fde6d6a47ba16': {
-        id: '5ed6146d471fde6d6a47ba16',
-        type: 'style-map',
-        content: {
-          mapType: 'project-referenced',
-          conditions: [],
-          referenceId: '5ed6146d471fde6d6a47ba1b',
-        },
-      },
-    }
-
-    expect(() => parseComponentJSON(uidl)).toThrow()
   })
 })

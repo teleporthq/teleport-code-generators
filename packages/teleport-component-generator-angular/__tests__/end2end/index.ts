@@ -9,6 +9,7 @@ import {
   GeneratedFile,
   UIDLEventDefinitions,
   UIDLPropDefinition,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import {
   component,
@@ -90,6 +91,12 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       defaultValue: '() => {}',
     },
   }
+  const stateDefinitions: Record<string, UIDLStateDefinition> = {
+    fakeState: {
+      type: 'boolean',
+      defaultValue: true,
+    },
+  }
   const events: UIDLEventDefinitions = {
     click: [
       {
@@ -99,7 +106,7 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       {
         type: 'stateChange',
         modifies: 'fakeState',
-        newState: false,
+        newState: '$toggle',
       },
     ],
   }
@@ -109,7 +116,8 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
       dynamicNode('prop', 'message'),
       elementNode('button', {}, [staticNode('close')], null, null, events),
     ]),
-    propDefinitions
+    propDefinitions,
+    stateDefinitions
   )
 
   it('Adds EmitEmitter to the import', async () => {
@@ -121,6 +129,7 @@ describe('Should add EventEmitter and Emit events when a fun is sent via prop', 
     expect(tsFile.content).toContain(`Output, EventEmitter`)
     expect(tsFile.content).toContain(`@Output`)
     expect(tsFile.content).toContain(`onClose: EventEmitter<any> = new EventEmitter()`)
+    expect(tsFile.content).toContain(`this.fakeState = !this.fakeState`)
     expect(tsFile.content).toContain(`this.onClose.emit()`)
     expect(htmlFile.content).toContain(`(click)="handleButtonClick()"`)
   })

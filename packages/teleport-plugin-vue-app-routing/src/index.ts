@@ -1,4 +1,4 @@
-import * as t from '@babel/types'
+import * as types from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
@@ -35,12 +35,12 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
       version: '^2.2.1',
     }
 
-    const routerDeclaration = t.expressionStatement(
-      t.callExpression(t.identifier('Vue.use'), [t.identifier('Router')])
+    const routerDeclaration = types.expressionStatement(
+      types.callExpression(types.identifier('Vue.use'), [types.identifier('Router')])
     )
 
-    const metaDeclaration = t.expressionStatement(
-      t.callExpression(t.identifier('Vue.use'), [t.identifier('Meta')])
+    const metaDeclaration = types.expressionStatement(
+      types.callExpression(types.identifier('Vue.use'), [types.identifier('Meta')])
     )
 
     const routes = UIDLUtils.extractRoutes(uidl)
@@ -69,18 +69,18 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
         path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
       }
 
-      return t.objectExpression([
-        t.objectProperty(t.identifier('name'), t.stringLiteral(pageKey)),
-        t.objectProperty(t.identifier('path'), t.stringLiteral(navLink)),
-        t.objectProperty(t.identifier('component'), t.identifier(componentName)),
+      return types.objectExpression([
+        types.objectProperty(types.identifier('name'), types.stringLiteral(pageKey)),
+        types.objectProperty(types.identifier('path'), types.stringLiteral(navLink)),
+        types.objectProperty(types.identifier('component'), types.identifier(componentName)),
       ])
     })
 
-    const exportStatement = t.exportDefaultDeclaration(
-      t.newExpression(t.identifier('Router'), [
-        t.objectExpression([
-          t.objectProperty(t.identifier('mode'), t.stringLiteral('history')),
-          t.objectProperty(t.identifier('routes'), t.arrayExpression(routesAST)),
+    const exportStatement = types.exportDefaultDeclaration(
+      types.newExpression(types.identifier('Router'), [
+        types.objectExpression([
+          types.objectProperty(types.identifier('mode'), types.stringLiteral('history')),
+          types.objectProperty(types.identifier('routes'), types.arrayExpression(routesAST)),
         ]),
       ])
     )

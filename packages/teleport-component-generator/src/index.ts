@@ -38,7 +38,7 @@ const createComponentGenerator = ({
       const schemaValidationResult = schemaValidator(input)
       const { componentUIDL, valid } = schemaValidationResult
       if (valid && componentUIDL) {
-        cleanedUIDL = (componentUIDL as unknown) as Record<string, unknown>
+        cleanedUIDL = componentUIDL as unknown as Record<string, unknown>
       } else {
         throw new Error(schemaValidationResult.errorMsg)
       }
@@ -112,7 +112,7 @@ const createComponentGenerator = ({
   }
 }
 
-export { createComponentGenerator, GeneratorFactoryParams }
+export { createComponentGenerator }
 
 const fileBundler = (
   codeChunks: Record<string, string>,

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "module": "commonjs",
-    "target": "es5",
+    "module": "esnext",
+    "target": "ES5",
     "declaration": true,
     "lib": ["es2015", "dom"],
     "sourceMap": true,
@@ -11,12 +11,13 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "resolveJsonModule": true,
     "moduleResolution": "node",
     "noImplicitAny": true,
+    "baseUrl": "src",
     "typeRoots" : [
       "node_modules/@types"
     ]

@@ -19,18 +19,61 @@ export interface UIDLGlobalProjectValues {
   manifest?: WebManifest
   variables?: Record<string, string>
 }
-export interface UIDLGlobalAsset {
-  type: 'script' | 'style' | 'font' | 'canonical' | 'icon'
-  path?: string
-  content?: string
+
+export interface UIDLAssetBase {
   options?: {
     async?: boolean
     defer?: boolean
     target?: string
+  }
+}
+
+export interface UIDLScriptInlineAsset extends UIDLAssetBase {
+  type: 'script'
+  content: string
+}
+export interface UIDLScriptExternalAsset extends UIDLAssetBase {
+  type: 'script'
+  path: string
+}
+
+export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
+
+export interface UIDLStyleInlineAsset {
+  type: 'style'
+  content: string
+}
+export interface UIDLStyleExternalAsset {
+  type: 'style'
+  path: string
+}
+
+export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
+
+export interface UIDLFontAsset {
+  type: 'font'
+  path: string
+}
+export interface UIDLCanonicalAsset {
+  type: 'canonical'
+  path: string
+}
+export interface UIDLIconAsset {
+  type: 'icon'
+  path: string
+  options?: {
     iconType?: string
     iconSizes?: string
   }
 }
+
+export type UIDLGlobalAsset =
+  | UIDLScriptAsset
+  | UIDLStyleInlineAsset
+  | UIDLStyleExternalAsset
+  | UIDLFontAsset
+  | UIDLCanonicalAsset
+  | UIDLIconAsset
 
 export interface ComponentUIDL {
   name: string
@@ -69,6 +112,9 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  meta?: {
+    target: 'style'
+  }
 }
 
 export interface UIDLStateDefinition {
@@ -244,13 +290,19 @@ export type UIDLLinkNode =
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
 
-export interface UIDLEventHandlerStatement {
-  type: string
-  modifies?: string
-  newState?: string | number | boolean
-  calls?: string
+export interface UIDLPropCallEvent {
+  type: 'propCall'
+  calls: string
   args?: Array<string | number | boolean>
 }
+
+export interface UIDLStateModifierEvent {
+  type: 'stateChange'
+  modifies: string
+  newState: string | number | boolean
+}
+
+export type UIDLEventHandlerStatement = UIDLPropCallEvent | UIDLStateModifierEvent
 
 export type UIDLDependency = UIDLLocalDependency | UIDLExternalDependency
 
@@ -307,24 +359,38 @@ export type UIDLReferencedStyles = Record<string, UIDLElementNodeReferenceStyles
 export type UIDLElementNodeReferenceStyles =
   | UIDLElementNodeProjectReferencedStyle
   | UIDLElementNodeInlineReferencedStyle
+  | UIDLElementNodeCompReferencedStyle
 
 export type UIDLProjectReferencedStyleID = string
+
+export interface UIDLElementNodeCompReferencedStyle {
+  type: 'style-map'
+  content: {
+    mapType: 'component-referenced'
+    content: UIDLStaticValue | UIDLCompDynamicReference
+  }
+}
 export interface UIDLElementNodeProjectReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'project-referenced'
-    conditions?: UIDLStyleConditions[]
     referenceId: UIDLProjectReferencedStyleID
   }
 }
 export interface UIDLElementNodeInlineReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'inlined'
     conditions: UIDLStyleConditions[]
     styles: Record<string, UIDLStyleValue>
+  }
+}
+
+export type UIDLCompDynamicReference = {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop' | 'comp'
+    id: string
   }
 }
 
@@ -343,15 +409,24 @@ export interface UIDLStyleStateCondition {
   content: UIDLElementStyleStates
 }
 
-export type UIDLElementStyleStates = 'hover' | 'active' | 'focus' | 'disabled'
+export type UIDLElementStyleStates =
+  | 'hover'
+  | 'active'
+  | 'focus'
+  | 'focus-within'
+  | 'focus-visible'
+  | 'disabled'
+  | 'visited'
+  | 'checked'
+  | 'link'
 
 export interface UIDLStyleSetDefinition {
-  id: string
-  name: string
-  type: 'reusable-project-style-map'
+  type: 'reusable-project-style-map' | 'reusable-component-style-map'
   conditions?: UIDLStyleSetConditions[]
-  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+  content: Record<string, UIDLStyleSheetContent>
 }
+
+export type UIDLStyleSheetContent = UIDLStaticValue | UIDLStyleSetTokenReference
 
 export interface UIDLStyleSetTokenReference {
   type: 'dynamic'

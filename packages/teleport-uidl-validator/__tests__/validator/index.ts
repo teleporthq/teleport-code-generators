@@ -1,6 +1,10 @@
 import { Validator } from '../../src'
 
 // @ts-ignore
+import ComponentUidlElementWithEmptyName from './component-element-with-empty-name.json'
+// @ts-ignore
+import componentUidlWithEventModifierUndefined from './component-uidl-with-event-modifier-undefined.json'
+// @ts-ignore
 import invalidComponentUidlSample from './component-invalid-sample.json'
 // @ts-ignore
 import projectUidlSample from './project-sample.json'
@@ -39,7 +43,7 @@ describe('Validate UIDL', () => {
   it('Component UIDL with null /  undefined in the JSON', () => {
     const validator = new Validator()
     expect(() =>
-      validator.validateComponentSchema((uidlWithNull as unknown) as Record<string, unknown>)
+      validator.validateComponentSchema(uidlWithNull as unknown as Record<string, unknown>)
     ).toThrow(Error)
   })
 
@@ -47,7 +51,7 @@ describe('Validate UIDL', () => {
     it('returns object with valid=true and errorMsg="" if uidl is valid', () => {
       const validator = new Validator()
       const validationResult = validator.validateComponentSchema(
-        (uidl as unknown) as Record<string, unknown>
+        uidl as unknown as Record<string, unknown>
       )
 
       expect(typeof validationResult).toBe('object')
@@ -110,6 +114,33 @@ describe('Validate UIDL', () => {
       expect(validationResult.valid).toEqual(true)
       expect(validationResult.errorMsg).toEqual('')
       expect(warn).toHaveBeenCalled()
+    })
+
+    it('throws an error if event is modifying the state, which is not defined in stateDefinitions', () => {
+      const validator = new Validator()
+      // @ts-ignore
+      expect(() =>
+        validator.validateComponentContent(componentUidlWithEventModifierUndefined)
+      ).toThrow(Error)
+
+      // expect(validationResult.errorMsg).toBe(
+      //   `\nUIDL Component Content Validation Error. Please check the following:
+      //    "isOpen" is used in events, but not defined. Please add it in stateDefinitions
+      // )
+    })
+
+    it('throws an error if event name is empty string', () => {
+      const validator = new Validator()
+      // @ts-ignore
+      expect(() => validator.validateComponentSchema(ComponentUidlElementWithEmptyName)).toThrow(
+        Error
+      )
+
+      // expect(validationResult.errorMsg).toBe(
+      //  UIDL Format Validation Error. Please check the following:
+      //  - Path undefined: Error: Name attribute cannot be empty.
+      //  is a undefined
+      // )
     })
   })
 

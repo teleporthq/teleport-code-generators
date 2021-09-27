@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-plugin-jsx-next-image",
+  "version": "0.17.7",
+  "description": "A Next-JS plugin for using next/image for images with local assets and dimensions.",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-shared": "^0.17.7",
+    "@teleporthq/teleport-types": "^0.17.7"
+  }
+}

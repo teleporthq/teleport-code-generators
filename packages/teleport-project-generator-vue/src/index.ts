@@ -6,11 +6,10 @@ import { createVueHeadConfigPlugin } from '@teleporthq/teleport-plugin-vue-head-
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import { Mapping } from '@teleporthq/teleport-types'
 import pluginCSS, { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 
 import VueTemplate from './project-template'
-import VueProjectMapping from './vue-project-mapping.json'
+import { VueProjectMapping } from './vue-project-mapping'
 
 const createVueProjectGenerator = () => {
   const vueHeadConfigPlugin = createVueHeadConfigPlugin({ metaObjectKey: 'metaInfo' })
@@ -19,13 +18,13 @@ const createVueProjectGenerator = () => {
     id: 'teleport-project-vue',
     components: {
       generator: createVueComponentGenerator,
-      mappings: [VueProjectMapping as Mapping],
+      mappings: [VueProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createVueComponentGenerator,
       plugins: [vueHeadConfigPlugin],
-      mappings: [VueProjectMapping as Mapping],
+      mappings: [VueProjectMapping],
       path: ['src', 'views'],
     },
     projectStyleSheet: {

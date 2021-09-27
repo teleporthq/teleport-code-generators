@@ -1,39 +1,23 @@
 import { staticNode, component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import {
   ChunkDefinition,
-  ChunkType,
   FileType,
   ComponentStructure,
+  UIDLReferencedStyles,
 } from '@teleporthq/teleport-types'
-import { styleSetDefinitions } from './mocks'
+import { setUpHASTChunk, setUpJSXComponentChunk, styleSetDefinitions } from './mocks'
 import { createCSSPlugin } from '../src'
 
 describe('Referenced Styles for inlined and project-referenced with Templates (HAST) Nodes', () => {
   const plugin = createCSSPlugin({ templateChunkName: 'template' })
-  const componentChunk: ChunkDefinition = {
-    name: 'template',
-    meta: {
-      nodesLookup: {
-        container: {
-          type: 'element',
-          tagName: 'div',
-          properties: {},
-        },
-      },
-    },
-    fileType: FileType.HTML,
-    type: ChunkType.HAST,
-    linkAfter: [],
-    content: {},
-  }
+  const componentChunk: ChunkDefinition = setUpHASTChunk()
 
   it('Generates media query from referenced styles even styles are not defined on node', async () => {
     const referencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
-          mapType: 'inlined',
+          mapType: 'inlined' as const,
           conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
           styles: {
             display: staticNode('none'),
@@ -66,9 +50,8 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
   })
 
   it('Referes a style from proejct style sheet and add the inlined style too', async () => {
-    const referencedStyles = {
+    const referencedStyles: UIDLReferencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -79,11 +62,10 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
         },
       },
       '5ed669aae53af30300760743': {
-        id: '5ed669aae53af30300760743',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfa1233b8e50f60ea2b64d',
+          referenceId: 'primaryButton',
         },
       },
     }
@@ -118,7 +100,7 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
     expect(cssFile).toBeDefined()
     expect(cssFile.content).toContain('width')
     expect(cssFile.content).toContain('@media(max-width: 991px)')
-    expect(nodeReference.properties.class).toBe('primaryButton container')
+    expect(nodeReference.properties.class).toBe('container primaryButton')
   })
 })
 
@@ -131,34 +113,12 @@ describe('Referenced Styles for inlined and project-referenced with JSX bases No
     templateChunkName: 'jsx-component',
     componentDecoratorChunkName: 'component-decorator',
   })
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk: ChunkDefinition = setUpJSXComponentChunk()
 
   it('Generates media query from referenced styles even styles are not defined on node', async () => {
-    const referencedStyles = {
+    const referencedStyles: UIDLReferencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
           mapType: 'inlined',
           conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
@@ -190,10 +150,9 @@ describe('Referenced Styles for inlined and project-referenced with JSX bases No
   })
 
   it('Referes a style from proejct style sheet and add the inlined style too', async () => {
-    const referencedStyles = {
+    const referencedStyles: UIDLReferencedStyles = {
       '5ed659b1732f9b804f7b6381': {
-        id: '5ed659b1732f9b804f7b6381',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
           mapType: 'inlined',
           conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
@@ -203,11 +162,10 @@ describe('Referenced Styles for inlined and project-referenced with JSX bases No
         },
       },
       '5ed669aae53af30300760743': {
-        id: '5ed669aae53af30300760743',
-        type: 'style-map',
+        type: 'style-map' as const,
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfa1233b8e50f60ea2b64d',
+          referenceId: 'primaryButton',
         },
       },
     }

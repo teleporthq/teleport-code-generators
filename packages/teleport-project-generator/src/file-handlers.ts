@@ -16,7 +16,6 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import PathResolver from 'path'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
 import { generateLocalDependenciesPrefix } from './utils'
@@ -93,19 +92,12 @@ export const createRouterFile = async (
   }
 
   if (projectStyleSheet) {
-    const relativePathForProjectStyleSheet =
-      PathResolver.relative(
-        /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-        strategy.router.path.join('/'),
-        strategy.projectStyleSheet.path.join('/')
-      ) || '.'
     options = {
       ...options,
       projectStyleSet: {
         styleSetDefinitions: root?.styleSetDefinitions,
         fileName: projectStyleSheet.fileName,
-        path: relativePathForProjectStyleSheet,
+        path: generateLocalDependenciesPrefix(routerFilePath, strategy.projectStyleSheet.path),
         importFile: projectStyleSheet?.importFile || false,
       },
     }
@@ -221,7 +213,10 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
   })
 
   assets.forEach((asset) => {
-    const assetPath = UIDLUtils.prefixAssetsPath(assetsPrefix, asset.path)
+    let assetPath
+    if ('path' in asset) {
+      assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+    }
 
     // link canonical for SEO
     if (asset.type === 'canonical' && assetPath) {
@@ -240,7 +235,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
     }
 
     // inline style
-    if (asset.type === 'style' && asset.content) {
+    if (asset.type === 'style' && 'content' in asset) {
       const styleTag = HASTBuilders.createHTMLNode('style')
       HASTUtils.addTextNode(styleTag, asset.content)
       HASTUtils.addChildNode(headNode, styleTag)
@@ -251,6 +246,7 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
       const scriptInBody = (asset.options && asset.options.target === 'body') || false
       const scriptTag = HASTBuilders.createHTMLNode('script')
       HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
+
       if (assetPath) {
         HASTUtils.addAttributeToNode(scriptTag, 'src', assetPath)
         if (asset.options && asset.options.defer) {
@@ -259,9 +255,10 @@ const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions)
         if (asset.options && asset.options.async) {
           HASTUtils.addBooleanAttributeToNode(scriptTag, 'async')
         }
-      } else if (asset.content) {
+      } else if ('content' in asset) {
         HASTUtils.addTextNode(scriptTag, asset.content)
       }
+
       if (scriptInBody) {
         HASTUtils.addChildNode(bodyNode, scriptTag)
       } else {

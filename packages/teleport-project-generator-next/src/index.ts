@@ -3,12 +3,13 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import { Mapping, ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
+import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import nextImagePlugin from '@teleporthq/teleport-plugin-jsx-next-image'
 
 import { createDocumentFileChunks, configContentGenerator } from './utils'
-import NextMapping from './next-mapping.json'
+import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 
 const createNextProjectGenerator = () => {
@@ -16,6 +17,7 @@ const createNextProjectGenerator = () => {
     configTagIdentifier: 'Head',
     configTagDependencyPath: 'next/head',
     isExternalPackage: false,
+    isDefaultImport: true,
   })
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'style',
@@ -26,14 +28,15 @@ const createNextProjectGenerator = () => {
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      mappings: [NextMapping as Mapping],
+      plugins: [nextImagePlugin],
+      mappings: [NextProjectMapping],
       path: ['components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [headConfigPlugin],
-      mappings: [NextMapping as Mapping],
+      plugins: [nextImagePlugin, headConfigPlugin],
+      mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,
       },
@@ -76,4 +79,4 @@ const createNextProjectGenerator = () => {
   return generator
 }
 
-export { createNextProjectGenerator, NextMapping, NextTemplate }
+export { createNextProjectGenerator, NextProjectMapping, NextTemplate }

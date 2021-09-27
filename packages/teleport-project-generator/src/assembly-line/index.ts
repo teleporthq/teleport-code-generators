@@ -58,6 +58,10 @@ class ProjectAssemblyLine {
     return this.plugins
   }
 
+  public cleanPlugins() {
+    this.plugins = []
+  }
+
   public addPlugin(plugin: ProjectPlugin) {
     this.plugins.push(plugin)
   }

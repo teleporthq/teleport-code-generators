@@ -1,3 +1,4 @@
+import * as types from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
@@ -20,10 +21,8 @@ export const createInlineStylesPlugin: ComponentPluginFactory<InlineStyleConfig>
       const { style, key } = element
 
       if (style && Object.keys(style).length > 0) {
-        // @ts-ignore
-        const jsxASTTag = componentChunk.meta.nodesLookup[key]
-        // @ts-ignore
-        const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop
+        const jsxASTTag = componentChunk.meta.nodesLookup[key] as types.JSXElement
+        const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
         if (!jsxASTTag) {
           return
         }

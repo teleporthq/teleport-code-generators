@@ -17,7 +17,7 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
   params: GithubFactoryParams = {}
 ): GithubPublisher => {
   const { authMeta } = params
-  let { project, repository, repositoryOwner, masterBranch, commitBranch, commitMessage } = params
+  let { project, repository, repositoryOwner, mainBranch, commitBranch, commitMessage } = params
 
   const getProject = () => project
   const setProject = (projectToSet: GeneratedFolder) => {
@@ -29,9 +29,9 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     repository = repo
   }
 
-  const getMasterBranchName = () => masterBranch
-  const setMasterBranchName = (branch: string) => {
-    masterBranch = branch
+  const getMainBranchName = () => mainBranch
+  const setMainBranchName = (branch: string) => {
+    mainBranch = branch
   }
 
   const getCommitBranchName = () => commitBranch
@@ -67,15 +67,15 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
 
     const repoOwner = findRepositoryOwner(auth, options)
 
-    const masterBranchName = options.masterBranch || masterBranch
-    const master = masterBranchName ? masterBranch : 'master'
+    const mainBranchName = options.mainBranch || mainBranch
+    const main = mainBranchName ? mainBranch : 'main'
     const commitBranchName = options.commitBranch || commitBranch
     const commitMsg = options.commitMessage || commitMessage
 
     const githubPublishMeta: GithubPublishMeta = {
       authMeta: auth,
-      masterBranch: master,
-      commitBranch: commitBranchName ? commitBranchName : master,
+      mainBranch: main,
+      commitBranch: commitBranchName ? commitBranchName : main,
       commitMessage: commitMsg,
       repository: repo,
       repositoryOwner: repoOwner,
@@ -112,8 +112,8 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     setProject,
     getRepository,
     setRepository,
-    getMasterBranchName,
-    setMasterBranchName,
+    getMainBranchName,
+    setMainBranchName,
     getCommitBranchName,
     setCommitBranchName,
     getCommitMessage,

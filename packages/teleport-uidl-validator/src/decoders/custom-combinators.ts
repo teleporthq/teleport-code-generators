@@ -16,8 +16,10 @@ export class CustomCombinators<A> {
       const componentNameRegex = new RegExp('^[A-Z]+[a-zA-Z0-9]*$')
       if (json && typeof json === 'string' && componentNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        throw new Error(`Component Name cannot be empty`)
       }
-      return Result.err({ message: `Invalid Component name, got ${json}` })
+      throw new Error(`Invalid Component name, got ${json}`)
     })
   }
 
@@ -27,7 +29,7 @@ export class CustomCombinators<A> {
       if (json && typeof json === 'string' && navLinkRegex.test(json)) {
         return Result.ok(json)
       }
-      return Result.err({ message: `Invalid link attribute, received ${json}` })
+      throw new Error(`Invalid link attribute, received ${json}`)
     })
   }
 
@@ -36,8 +38,10 @@ export class CustomCombinators<A> {
       const fileNameRegex = new RegExp('^[a-zA-Z0-9-_.]*$')
       if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        throw new Error(`File Name cannot be empty`)
       }
-      return Result.err({ message: `Invalid link attribute, received ${json}` })
+      throw new Error(`Invalid File name, received ${json}`)
     })
   }
 
@@ -46,8 +50,10 @@ export class CustomCombinators<A> {
       const fileNameRegex = new RegExp('^[a-zA-Z]+[a-zA-Z0-9-_]*$')
       if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
+      } else if (json.length === 0) {
+        throw new Error(`Name attribute cannot be empty`)
       }
-      return Result.err({ message: `Invalid link attribute, received ${json}` })
+      throw new Error(`Invalid name attribute, received ${json}`)
     })
   }
 }

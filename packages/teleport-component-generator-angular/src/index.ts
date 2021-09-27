@@ -1,7 +1,4 @@
-import {
-  createComponentGenerator,
-  GeneratorFactoryParams,
-} from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import angularComponentPlugin from '@teleporthq/teleport-plugin-angular-base-component'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
@@ -9,17 +6,19 @@ import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statement
 import prettierTS from '@teleporthq/teleport-postprocessor-prettier-ts'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-import AngularMapping from './angular-mapping.json'
+import { AngularMapping } from './angular-mapping'
 import {
   ComponentGenerator,
   FileType,
   ComponentGeneratorInstance,
+  GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
 
 const importStatementsPlugin = createImportPlugin({ fileType: FileType.TS })
 const stylePlugin = createCSSPlugin({
   inlineStyleAttributeKey: '[ngStyle]',
   declareDependency: 'decorator',
+  dynamicVariantPrefix: '[ngClass]',
 })
 
 const createAngularComponentGenerator: ComponentGeneratorInstance = ({

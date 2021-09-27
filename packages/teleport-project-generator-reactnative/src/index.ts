@@ -5,9 +5,8 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import reactNativeAppRoutingPlugin from '@teleporthq/teleport-plugin-reactnative-app-routing'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJSX from '@teleporthq/teleport-postprocessor-prettier-jsx'
-import { Mapping } from '@teleporthq/teleport-types'
 
-import ReactNativeProjectMapping from './reactnative-project-mapping.json'
+import { ReactNativeProjectMapping } from './reactnative-project-mapping'
 import ReactNativeTemplate from './reactnative-project-template'
 
 const createReactNativeProjectGenerator = () => {
@@ -15,12 +14,12 @@ const createReactNativeProjectGenerator = () => {
     id: 'teleport-project-react-native',
     components: {
       generator: createReactNativeComponentGenerator,
-      mappings: [ReactNativeProjectMapping as Mapping],
+      mappings: [ReactNativeProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createReactNativeComponentGenerator,
-      mappings: [ReactNativeProjectMapping as Mapping],
+      mappings: [ReactNativeProjectMapping],
       path: ['src', 'screens'],
     },
     router: {

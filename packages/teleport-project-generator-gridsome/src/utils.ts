@@ -30,7 +30,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       t.importDeclaration(
         [],
         t.stringLiteral(
-          `~/${options.globalStyles.path}/${options.globalStyles.sheetName}.${FileType.CSS}`
+          `~/${options.globalStyles.path}${options.globalStyles.sheetName}.${FileType.CSS}`
         )
       )
     )

@@ -36,7 +36,12 @@ export interface ChunkDefinition {
   type: ChunkType
   name: string
   fileType: FileType
-  meta?: Record<string, unknown>
+  meta?: {
+    nodesLookup?: {
+      container?: Record<string, unknown>
+    } & Record<string, unknown>
+    dynamicRefPrefix?: Record<string, unknown>
+  } & Record<string, unknown>
   content: ChunkContent
   linkAfter: string[]
 }
@@ -414,6 +419,7 @@ interface VercelOptions {
   projectSlug?: string
   domainAlias?: string // used by the Vercel publisher
   individualUpload?: boolean
+  framework?: string
 }
 
 export interface PackerOptions {
@@ -421,6 +427,7 @@ export interface PackerOptions {
   publisher?: PublisherType
   publishOptions?: GithubOptions | VercelOptions | PublisherOptions
   assets?: GeneratedFile[]
+  plugins?: ProjectPlugin[]
 }
 
 export interface GenerateOptions {
@@ -473,10 +480,6 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
-  NEXT_REACT_JSS = 'Next-React-JSS',
-  NEXT_CSS_MODULES = 'Next-CSSModules',
-  NEXT_STYLED_COMPONENTS = 'Next-StyledComponents',
-  GATSBY_STYLED_COMPONENTS = 'Gatsby-StyledComponents',
 }
 
 export enum ComponentType {

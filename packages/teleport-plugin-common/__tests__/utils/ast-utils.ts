@@ -10,19 +10,7 @@ import {
 } from '../../src/utils/ast-utils'
 import ParsedASTNode from '../../src/utils/parsed-ast'
 import { createJSXTag } from '../../src/builders/ast-builders'
-import {
-  JSXSpreadAttribute,
-  JSXIdentifier,
-  JSXAttribute,
-  StringLiteral,
-  JSXExpressionContainer,
-  Identifier,
-  NumberLiteral,
-  ObjectExpression,
-  ArrayExpression,
-  BooleanLiteral,
-  ObjectProperty,
-} from '@babel/types'
+import * as types from '@babel/types'
 
 describe('stringAsTemplateLiteral', () => {
   it('returns TemplateLiteral', () => {
@@ -40,7 +28,7 @@ describe('addSpreadAttributeToJSXTag', () => {
 
     const attr = tag.openingElement.attributes[0]
     expect(attr.type).toBe('JSXSpreadAttribute')
-    expect((attr as JSXSpreadAttribute).argument).toHaveProperty('name', 'randomString')
+    expect((attr as types.JSXSpreadAttribute).argument).toHaveProperty('name', 'randomString')
   })
 })
 
@@ -49,8 +37,8 @@ describe('renameJSXTag', () => {
     const tag = createJSXTag('random')
     renameJSXTag(tag, 'NewName')
 
-    const openTag = tag.openingElement.name as JSXIdentifier
-    const closeTag = tag.closingElement.name as JSXIdentifier
+    const openTag = tag.openingElement.name as types.JSXIdentifier
+    const closeTag = tag.closingElement.name as types.JSXIdentifier
     expect(openTag.name).toBe('NewName')
     expect(closeTag.name).toBe('NewName')
   })
@@ -63,9 +51,9 @@ describe('addClassStringOnJSXTag', () => {
     addClassStringOnJSXTag(tag, 'primary')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('className')
-    expect((classAttr.value as StringLiteral).value).toBe('primary')
+    expect((classAttr.value as types.StringLiteral).value).toBe('primary')
   })
 
   it('adds a class on an element with existing classes', () => {
@@ -75,9 +63,9 @@ describe('addClassStringOnJSXTag', () => {
     addClassStringOnJSXTag(tag, 'primary')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('className')
-    expect((classAttr.value as StringLiteral).value).toBe('button primary')
+    expect((classAttr.value as types.StringLiteral).value).toBe('button primary')
   })
 })
 
@@ -88,7 +76,7 @@ describe('addAttributeToJSXTag', () => {
     addAttributeToJSXTag(tag, 'disabled')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('disabled')
     expect(classAttr.value).toBe(null)
   })
@@ -99,11 +87,11 @@ describe('addAttributeToJSXTag', () => {
     addAttributeToJSXTag(tag, 'disabled', false)
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('disabled')
-    expect(((classAttr.value as JSXExpressionContainer).expression as BooleanLiteral).value).toBe(
-      false
-    )
+    expect(
+      ((classAttr.value as types.JSXExpressionContainer).expression as types.BooleanLiteral).value
+    ).toBe(false)
   })
 
   it('adds an attribute with the selected value', () => {
@@ -112,9 +100,9 @@ describe('addAttributeToJSXTag', () => {
     addAttributeToJSXTag(tag, 'data-attr', 'random-value')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('data-attr')
-    expect((classAttr.value as StringLiteral).value).toBe('random-value')
+    expect((classAttr.value as types.StringLiteral).value).toBe('random-value')
   })
 
   it('adds an attribute as a JSX expression when non-string', () => {
@@ -123,9 +111,14 @@ describe('addAttributeToJSXTag', () => {
     addAttributeToJSXTag(tag, 'data-attr', 1)
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const classAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(classAttr.name.name).toBe('data-attr')
-    expect(((classAttr.value as JSXExpressionContainer).expression as NumberLiteral).value).toBe(1)
+    expect(
+      (
+        (classAttr.value as types.JSXExpressionContainer)
+          .expression as unknown as types.NumericLiteral
+      ).value
+    ).toBe(1)
   })
 })
 
@@ -136,11 +129,11 @@ describe('addDynamicAttributeToJSXTag', () => {
     addDynamicAttributeToJSXTag(tag, 'dynamicValue', 'title')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const dynamicAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const dynamicAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(dynamicAttr.value.type).toBe('JSXExpressionContainer')
-    expect(((dynamicAttr.value as JSXExpressionContainer).expression as Identifier).name).toBe(
-      'title'
-    )
+    expect(
+      ((dynamicAttr.value as types.JSXExpressionContainer).expression as types.Identifier).name
+    ).toBe('title')
   })
 
   it('adds the dynamic JSX expression on the opening tag with prefix', () => {
@@ -149,9 +142,11 @@ describe('addDynamicAttributeToJSXTag', () => {
     addDynamicAttributeToJSXTag(tag, 'dynamicValue', 'title', 'props')
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
-    const dynamicAttr = tag.openingElement.attributes[0] as JSXAttribute
+    const dynamicAttr = tag.openingElement.attributes[0] as types.JSXAttribute
     expect(dynamicAttr.value.type).toBe('JSXExpressionContainer')
-    expect((dynamicAttr.value as JSXExpressionContainer).expression.type).toBe('MemberExpression')
+    expect((dynamicAttr.value as types.JSXExpressionContainer).expression.type).toBe(
+      'MemberExpression'
+    )
   })
 })
 
@@ -166,7 +161,7 @@ describe('ParsedASTNode', () => {
 })
 describe('convertValueToLiteral', () => {
   it('should convert value to literal', () => {
-    const result = convertValueToLiteral('test') as StringLiteral
+    const result = convertValueToLiteral('test') as types.StringLiteral
 
     expect(typeof result).toBe('object')
     expect(result).toHaveProperty('type')
@@ -175,7 +170,7 @@ describe('convertValueToLiteral', () => {
     expect(result.value).toEqual('test')
   })
   it('should convert number value to numerical literal', () => {
-    const result = convertValueToLiteral(2, 'number') as NumberLiteral
+    const result = convertValueToLiteral(2, 'number') as types.NumericLiteral
 
     expect(typeof result).toBe('object')
     expect(result).toHaveProperty('type')
@@ -184,7 +179,7 @@ describe('convertValueToLiteral', () => {
     expect(result.value).toEqual(2)
   })
   it('should convert boolean value to boolean literal', () => {
-    const result = convertValueToLiteral(true, 'boolean') as BooleanLiteral
+    const result = convertValueToLiteral(true, 'boolean') as types.BooleanLiteral
 
     expect(typeof result).toBe('object')
     expect(result).toHaveProperty('type')
@@ -193,24 +188,25 @@ describe('convertValueToLiteral', () => {
     expect(result.value).toEqual(true)
   })
   it('should convert object value to boolean literal', () => {
-    const result = convertValueToLiteral({ test: true }, 'object') as ObjectExpression
+    const result = convertValueToLiteral({ test: true }, 'object') as types.ObjectExpression
 
     expect(typeof result).toBe('object')
     expect(result).toHaveProperty('type')
     expect(result).toHaveProperty('properties')
     expect(result.type).toEqual('ObjectExpression')
     expect(result.properties.length).toEqual(1)
-    const property = result.properties[0] as ObjectProperty
+    const property = result.properties[0] as types.ObjectProperty
     expect(property).toHaveProperty('key')
     expect(property.key.type).toBe('StringLiteral')
+    // @ts-ignore
     expect(property.key.value).toBe('test')
     expect(property).toHaveProperty('value')
     expect(property.value.type).toBe('BooleanLiteral')
-    expect((property.value as BooleanLiteral).value).toBe(true)
+    expect((property.value as types.BooleanLiteral).value).toBe(true)
   })
   it('should convert array value to literals', () => {
     const testArray = ['test', 'testAgain', 'andAgain']
-    const result = convertValueToLiteral(testArray) as ArrayExpression
+    const result = convertValueToLiteral(testArray) as types.ArrayExpression
 
     expect(typeof result).toBe('object')
     expect(result).toHaveProperty('type')

@@ -1,36 +1,14 @@
 import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
   ComponentStructure,
   UIDLDesignTokens,
   UIDLStyleSetDefinition,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Style Sheet from styled components', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
 
   it('Generates a style sheet from the give JSON of styleSet', async () => {
     const plugin = createStyleSheetPlugin()
@@ -57,27 +35,21 @@ describe('Style Sheet from styled components', () => {
     }
 
     const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),
           color: staticNode('blue'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64c': {
-        id: '5ecfa1233b8e50f60ea2b64c',
-        name: 'conditionalButton',
+      conditionalButton: {
         type: 'reusable-project-style-map',
         conditions: [
           {
@@ -114,8 +86,8 @@ describe('Style Sheet from styled components', () => {
     const { chunks, dependencies } = result
     const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
 
-    expect(styleChunks.length).toBe(3)
-    expect(dependencies.css.path).toBe('styled-components')
+    expect(styleChunks.length).toBe(1)
+    expect(dependencies.variant.path).toBe('styled-system')
   })
 
   it('Changes the name of output file, with the name that is passed', async () => {
@@ -128,18 +100,14 @@ describe('Style Sheet from styled components', () => {
       dependencies: {},
     }
     structure.uidl.styleSetDefinitions = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),
@@ -150,10 +118,14 @@ describe('Style Sheet from styled components', () => {
 
     const result = await plugin(structure)
     const { chunks, dependencies } = result
-    const styleChunks = chunks.filter((chunk) => chunk.name === 'style')
+    const styleChunk = chunks.find((chunk) => chunk.name === 'index')
+    const declaration = styleChunk.content.declaration.declarations[0]
 
-    expect(styleChunks.length).toBe(0)
-    expect(dependencies.css.path).toBe('styled-components')
+    expect(styleChunk).toBeDefined()
+    expect(dependencies.variant.path).toBe('styled-system')
     expect(result.uidl.outputOptions.fileName).toBe('index')
+    expect(declaration.id.name).toBe('projectStyleVariants')
+    expect(declaration.init.arguments[0].properties[0].value.value).toBe('projVariant')
+    expect(declaration.init.arguments[0].properties[1].value.properties.length).toBe(2)
   })
 })

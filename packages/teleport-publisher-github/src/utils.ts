@@ -42,12 +42,12 @@ export const generateProjectFiles = (folderInfo: ProjectFolderInfo): GithubFile[
 }
 
 export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMeta) => {
-  const { authMeta, masterBranch, commitBranch, commitMessage, repository, repositoryOwner } = meta
+  const { authMeta, mainBranch, commitBranch, commitMessage, repository, repositoryOwner } = meta
 
   const repositoryIdentity: RepositoryIdentity = {
     username: repositoryOwner,
     repo: repository,
-    ref: masterBranch,
+    ref: mainBranch,
   }
 
   const gitCommitMeta: GithubCommitMeta = {

@@ -1,5 +1,4 @@
 import * as types from '@babel/types'
-
 import {
   UIDLElementNode,
   UIDLRepeatNode,
@@ -9,7 +8,7 @@ import {
   UIDLSlotNode,
   UIDLNode,
 } from '@teleporthq/teleport-types'
-
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
 
 import {
@@ -19,8 +18,6 @@ import {
   createConditionalJSXExpression,
   getRepeatSourceIdentifier,
 } from './utils'
-
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   addChildJSXText,
   addChildJSXTag,
