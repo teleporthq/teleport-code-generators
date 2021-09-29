@@ -2,11 +2,12 @@ import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import htmlBasePlugin from '@teleporthq/teleport-plugin-html-base-component'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements-html'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-import { ComponentGenerator, ComponentGeneratorInstance } from '@teleporthq/teleport-types'
 import {
-  createComponentGenerator,
+  ComponentGenerator,
+  ComponentGeneratorInstance,
   GeneratorFactoryParams,
-} from '@teleporthq/teleport-component-generator'
+} from '@teleporthq/teleport-types'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 const createHTMLComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
@@ -24,7 +25,6 @@ const createHTMLComponentGenerator: ComponentGeneratorInstance = ({
   )
   mappings.forEach((mapping) => generator.addMapping(mapping))
   plugins.forEach((plugin) => generator.addPlugin(plugin))
-
   generator.addPlugin(importStatementsPlugin)
 
   postprocessors.forEach((postProcessor) => generator.addPostProcessor(postProcessor))

@@ -201,3 +201,9 @@ export class PluginReactJSS extends TeleportError {
     super(error)
   }
 }
+
+export class HTMLComponentGeneratorError extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}

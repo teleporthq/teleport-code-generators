@@ -28,12 +28,12 @@ export const createHTMLImportStatementsPlugin = () => {
       )
     }
     const htmlTag = htmlChunk.content as HastNode
+    const tags: HastNode[] = []
 
     if (Object.keys(dependencies).length === 0) {
       return structure
     }
 
-    const headTag = HASTBuilders.createHTMLNode('head')
     Object.keys(dependencies).forEach((item) => {
       const dependency = dependencies[item]
       if (dependency.meta?.importJustPath) {
@@ -41,7 +41,7 @@ export const createHTMLImportStatementsPlugin = () => {
           const linkTag = HASTBuilders.createHTMLNode('link')
           HASTUtils.addAttributeToNode(linkTag, 'href', dependency.path)
           HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
-          HASTUtils.addChildNode(headTag, linkTag)
+          tags.push(linkTag)
         } else {
           const scriptTag = HASTBuilders.createHTMLNode('script')
           HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
@@ -55,7 +55,7 @@ export const createHTMLImportStatementsPlugin = () => {
       if (title) {
         const titleTag = HASTBuilders.createHTMLNode('title')
         HASTUtils.addTextNode(titleTag, StringUtils.encode(title))
-        HASTUtils.addChildNode(headTag, titleTag)
+        tags.push(titleTag)
       }
 
       if (metaTags.length > 0) {
@@ -64,7 +64,7 @@ export const createHTMLImportStatementsPlugin = () => {
           Object.keys(meta).forEach((key) => {
             HASTUtils.addAttributeToNode(metaTag, key, meta[key])
           })
-          HASTUtils.addChildNode(headTag, metaTag)
+          tags.push(metaTag)
         })
       }
 
@@ -74,13 +74,13 @@ export const createHTMLImportStatementsPlugin = () => {
             const linkTag = HASTBuilders.createHTMLNode('link')
             HASTUtils.addAttributeToNode(linkTag, 'rel', 'canonical')
             HASTUtils.addAttributeToNode(linkTag, 'href', asset.path)
-            HASTUtils.addChildNode(headTag, linkTag)
+            HASTUtils.addChildNode(htmlTag, linkTag)
           }
         })
       }
     }
 
-    htmlTag.children = [headTag, ...htmlTag.children]
+    htmlTag.children = [...tags, ...htmlTag.children]
 
     chunks.splice(chunkIndex, 1)
     chunks.push({
