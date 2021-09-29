@@ -12,6 +12,16 @@
       },
       "children": [
         {
+            "type": "element",
+            "content": {
+              "elementType": "component",
+              "semanticType": "sample",
+              "dependency": {
+                "type": "local"
+              }
+            }
+        },
+        {
           "type": "element",
           "content": {
             "elementType": "ul",

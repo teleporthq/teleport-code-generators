@@ -8,6 +8,8 @@ import {
   UIDLStateDefinition,
   UIDLDynamicReference,
   UIDLStyleDefinitions,
+  HastText,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -17,14 +19,16 @@ type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
   templatesLookUp: Record<string, unknown>,
   propDefinitions: Record<string, UIDLPropDefinition>,
-  stateDefinitions: Record<string, UIDLStateDefinition>
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  externals: Record<string, ComponentUIDL>
 ) => ReturnType
 
-export const generateHtmlSynatx = (
-  node: UIDLNode,
-  templatesLookUp: Record<string, unknown>,
-  propDefinitions: Record<string, UIDLPropDefinition>,
-  stateDefinitions: Record<string, UIDLStateDefinition>
+export const generateHtmlSynatx: NodeToHTML<UIDLNode, HastNode | HastText> = (
+  node,
+  templatesLookUp,
+  propDefinitions,
+  stateDefinitions,
+  externals
 ) => {
   switch (node.type) {
     case 'raw':
@@ -34,10 +38,16 @@ export const generateHtmlSynatx = (
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
 
     case 'element':
-      return generatElementNode(node, templatesLookUp, propDefinitions, stateDefinitions)
+      return generatElementNode(node, templatesLookUp, propDefinitions, stateDefinitions, externals)
 
     case 'dynamic':
-      return generateDynamicNode(node, templatesLookUp, propDefinitions, stateDefinitions)
+      return generateDynamicNode(
+        node,
+        templatesLookUp,
+        propDefinitions,
+        stateDefinitions,
+        externals
+      )
 
     default:
       throw new HTMLComponentGeneratorError(
@@ -50,28 +60,67 @@ export const generateHtmlSynatx = (
   }
 }
 
-const generatElementNode: NodeToHTML<UIDLElementNode, HastNode> = (
+const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
   node,
   templatesLookUp,
   propDefinitions,
-  stateDefinitions
+  stateDefinitions,
+  externals
 ) => {
-  const { elementType, children, key, attrs = {}, style = {}, referencedStyles = {} } = node.content
+  const {
+    elementType,
+    children,
+    key,
+    attrs = {},
+    style = {},
+    referencedStyles = {},
+    dependency,
+  } = node.content
+  if (dependency && dependency?.type === 'local') {
+    const comp = externals[StringUtils.dashCaseToUpperCamelCase(elementType)]
 
-  const htmlNode = HASTBuilders.createHTMLNode(elementType)
+    if (!comp) {
+      throw new HTMLComponentGeneratorError(
+        `External component that is referred is missing. Received ${JSON.stringify(
+          dependency,
+          null,
+          2
+        )} with ${elementType} \n
+        But received externals ${Object.keys(externals)}`
+      )
+    }
+
+    const compTag = generateHtmlSynatx(
+      comp.node,
+      templatesLookUp,
+      { ...propDefinitions, ...comp.propDefinitions },
+      { ...stateDefinitions, ...comp.stateDefinitions },
+      externals
+    )
+
+    return compTag
+  }
+
+  const elementNode = HASTBuilders.createHTMLNode(elementType)
 
   if (children) {
     children.forEach((child) => {
-      const childTag = generateHtmlSynatx(child, templatesLookUp, propDefinitions, stateDefinitions)
+      const childTag = generateHtmlSynatx(
+        child,
+        templatesLookUp,
+        propDefinitions,
+        stateDefinitions,
+        externals
+      )
 
       if (!childTag) {
         return
       }
 
       if (typeof childTag === 'string') {
-        HASTUtils.addTextNode(htmlNode, childTag)
+        HASTUtils.addTextNode(elementNode, childTag)
       } else {
-        HASTUtils.addChildNode(htmlNode, childTag as HastNode)
+        HASTUtils.addChildNode(elementNode, childTag as HastNode)
       }
     })
   }
@@ -90,11 +139,11 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode> = (
   }
 
   if (attrs) {
-    handleAttributes(htmlNode, attrs, propDefinitions, stateDefinitions)
+    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions)
   }
 
-  templatesLookUp[key] = htmlNode
-  return htmlNode
+  templatesLookUp[key] = elementNode
+  return elementNode
 }
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (

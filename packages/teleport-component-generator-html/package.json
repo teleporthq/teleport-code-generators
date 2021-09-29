@@ -31,6 +31,7 @@
     "@teleporthq/teleport-plugin-import-statements-html": "^0.17.7",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.17.7",
     "@teleporthq/teleport-plugin-css": "^0.17.7",
+    "@teleporthq/teleport-shared": "^0.17.7",
     "@teleporthq/teleport-types": "^0.17.7"
   }
 }
