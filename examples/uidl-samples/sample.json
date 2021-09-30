@@ -1,0 +1,3984 @@
+{
+  "name": "JKrishna-DEV",
+  "globals": {
+    "settings": {
+      "title": "JKrishna-DEV",
+      "language": "en"
+    },
+    "assets": [
+      {
+        "type": "style",
+        "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6 {  margin: 0;  padding: 0;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}"
+      },
+      {
+        "type": "style",
+        "content": "\n  body {\n    font-family: Inter;\n    font-size: 16px;\n    font-weight: 200;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.3;\n    color: var(--dl-color-gray-content);\n    background-color: var(--dl-color-primary-primary);\n    \n  }\n\n  \n"
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
+        "name": "Inter"
+      }
+    ],
+    "meta": [
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1.0"
+      },
+      {
+        "charSet": "utf-8"
+      },
+      {
+        "property": "twitter:card",
+        "content": "summary_large_image"
+      }
+    ],
+    "customCode": {}
+  },
+  "root": {
+    "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-color-danger-500": {
+          "type": "static",
+          "content": "#BF2626"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-size-size-maxwidth": {
+          "type": "static",
+          "content": "1400px"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-size-size-xxlarge": {
+          "type": "static",
+          "content": "288px"
+        },
+        "--dl-color-gray-content": {
+          "type": "static",
+          "content": "#e6e0e0ff"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
+        "--dl-space-space-fourunits": {
+          "type": "static",
+          "content": "64px"
+        },
+        "--dl-size-size-xlarge": {
+          "type": "static",
+          "content": "192px"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-size-size-medium": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-color-danger-300": {
+          "type": "static",
+          "content": "#A22020"
+        },
+        "--dl-color-gray-700": {
+          "type": "static",
+          "content": "#999999"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-space-space-sixunits": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-color-primary-heading": {
+          "type": "static",
+          "content": "#ffcd0eff"
+        },
+        "--dl-space-space-unit": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-space-space-twounits": {
+          "type": "static",
+          "content": "32px"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
+        },
+        "--dl-radius-radius-round": {
+          "type": "static",
+          "content": "50%"
+        },
+        "--dl-color-primary-primary": {
+          "type": "static",
+          "content": "#1a202cff"
+        },
+        "--dl-color-primary-700": {
+          "type": "static",
+          "content": "#85DCFF"
+        }
+      }
+    },
+    "styleSetDefinitions": {
+      "thqLink": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "underline"
+          }
+        }
+      },
+      "button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "display": {
+            "type": "static",
+            "content": "inline-block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-primary-primary"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "input": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-primary-primary"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "textarea": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-content"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-primary-primary"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "heading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "32px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "smallHeading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "24px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "content": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "200"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.3"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "route": {
+        "type": "string",
+        "defaultValue": "Home",
+        "values": [
+          {
+            "value": "Gallery",
+            "seo": {
+              "title": "Gallery - JKrishna-DEV",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Gallery - JKrishna-DEV"
+                }
+              ]
+            }
+          },
+          {
+            "value": "Home",
+            "seo": {
+              "title": "JKrishna-DEV",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "JKrishna-DEV"
+                }
+              ]
+            }
+          },
+          {
+            "value": "Varkala",
+            "seo": {
+              "title": "Varkala - JKrishna-DEV",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Varkala - JKrishna-DEV"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "height": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "name": "Gallery",
+                        "referencedStyles": {
+                          "2e30ccfa-fc2a-4304-9301-c8d486606343": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "paddingLeft": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                },
+                                "paddingRight": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "6cdf91d5-9b40-42ef-bde1-0ca4b7fc9b8f": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "padding": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "maxWidth": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-size-size-maxwidth"
+                            }
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "paddingTop": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-twounits"
+                            }
+                          },
+                          "paddingLeft": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "paddingRight": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          },
+                          "paddingBottom": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-unit"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-primary-heading"
+                                  }
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "3rem"
+                                },
+                                "textAlign": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Gallery"
+                                }
+                              ],
+                              "semanticType": "h1"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {
+                                "17a9f9cc-e35e-480a-9ef8-5c22a6627b41": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 767,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "paddingLeft": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-unit"
+                                        }
+                                      },
+                                      "paddingRight": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-unit"
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "4f0e2343-34cc-44bb-98ad-ed8c7a717aa6": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "textAlign": {
+                                        "type": "static",
+                                        "content": "center"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-gray-700"
+                                  }
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                },
+                                "textAlign": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "paddingLeft": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-threeunits"
+                                  }
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                },
+                                "paddingRight": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-threeunits"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non volutpat turpis. "
+                                            },
+                                            {
+                                              "type": "raw",
+                                              "content": " "
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": " "
+                                            },
+                                            {
+                                              "type": "raw",
+                                              "content": " "
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ],
+                                    "semanticType": "span"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "br",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [],
+                                    "semanticType": "br"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": "Mauris luctus rutrum mi ut rhoncus. Integer in dignissim tortor. "
+                                            },
+                                            {
+                                              "type": "raw",
+                                              "content": " "
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": " "
+                                            },
+                                            {
+                                              "type": "raw",
+                                              "content": " "
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ],
+                                    "semanticType": "span"
+                                  }
+                                }
+                              ],
+                              "semanticType": "span"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "name": "Gallery",
+                        "referencedStyles": {
+                          "a27c21be-cbd9-4c53-ab55-487c2180103f": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "paddingLeft": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                },
+                                "paddingRight": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "a853821b-b2c4-43ef-8b8b-aa3daa76b268": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "padding": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "1000px"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "maxWidth": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-size-size-maxwidth"
+                            }
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "paddingTop": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-twounits"
+                            }
+                          },
+                          "paddingLeft": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "paddingRight": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "paddingBottom": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-twounits"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "referencedStyles": {
+                                "f6837e02-ddf1-44c1-b290-267fd7aa1a87": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 479,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "auto"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "flex": {
+                                  "type": "static",
+                                  "content": "3"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "referencedStyles": {
+                                      "c30b87c6-8606-4a4b-9d94-932d1f853a10": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 767,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "flexDirection": {
+                                              "type": "static",
+                                              "content": "column"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "abilities": {},
+                                    "style": {
+                                      "flex": {
+                                        "type": "static",
+                                        "content": "1"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "height": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "flex-start"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "row"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "style": {
+                                            "flex": {
+                                              "type": "static",
+                                              "content": "1"
+                                            },
+                                            "height": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            },
+                                            "display": {
+                                              "type": "static",
+                                              "content": "flex"
+                                            },
+                                            "padding": {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "token",
+                                                "id": "--dl-space-space-halfunit"
+                                              }
+                                            },
+                                            "alignItems": {
+                                              "type": "static",
+                                              "content": "center"
+                                            },
+                                            "flexDirection": {
+                                              "type": "static",
+                                              "content": "column"
+                                            },
+                                            "justifyContent": {
+                                              "type": "static",
+                                              "content": "center"
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "component",
+                                                "dependency": {
+                                                  "type": "local"
+                                                },
+                                                "name": "GalleryCard2",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "attrs": {
+                                                  "image_src": {
+                                                    "type": "static",
+                                                    "content": "https://zealous-shirley-0851c9.netlify.app/static/images/varkala/2.jpg"
+                                                  },
+                                                  "rootClassName": {
+                                                    "type": "static",
+                                                    "content": "rootClassName2"
+                                                  }
+                                                },
+                                                "children": [],
+                                                "semanticType": "GalleryCard2"
+                                              }
+                                            }
+                                          ],
+                                          "semanticType": "div"
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "style": {
+                                            "flex": {
+                                              "type": "static",
+                                              "content": "1"
+                                            },
+                                            "height": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            },
+                                            "display": {
+                                              "type": "static",
+                                              "content": "flex"
+                                            },
+                                            "padding": {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "token",
+                                                "id": "--dl-space-space-halfunit"
+                                              }
+                                            },
+                                            "alignItems": {
+                                              "type": "static",
+                                              "content": "center"
+                                            },
+                                            "flexDirection": {
+                                              "type": "static",
+                                              "content": "column"
+                                            },
+                                            "justifyContent": {
+                                              "type": "static",
+                                              "content": "center"
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "component",
+                                                "dependency": {
+                                                  "type": "local"
+                                                },
+                                                "name": "GalleryCard2",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "attrs": {
+                                                  "image_src": {
+                                                    "type": "static",
+                                                    "content": "https://zealous-shirley-0851c9.netlify.app/static/images/varkala/stars.jpeg"
+                                                  },
+                                                  "rootClassName": {
+                                                    "type": "static",
+                                                    "content": "rootClassName3"
+                                                  }
+                                                },
+                                                "children": [],
+                                                "semanticType": "GalleryCard2"
+                                              }
+                                            }
+                                          ],
+                                          "semanticType": "div"
+                                        }
+                                      }
+                                    ],
+                                    "semanticType": "div"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "flex": {
+                                        "type": "static",
+                                        "content": "1"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "padding": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "flex-start"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "component",
+                                          "dependency": {
+                                            "type": "local"
+                                          },
+                                          "name": "GalleryCard2",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "attrs": {
+                                            "image_src": {
+                                              "type": "static",
+                                              "content": "https://zealous-shirley-0851c9.netlify.app/static/images/aaraku/1.jpeg"
+                                            },
+                                            "rootClassName": {
+                                              "type": "static",
+                                              "content": "rootClassName"
+                                            }
+                                          },
+                                          "children": [],
+                                          "semanticType": "GalleryCard2"
+                                        }
+                                      }
+                                    ],
+                                    "semanticType": "div"
+                                  }
+                                }
+                              ],
+                              "semanticType": "div"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "referencedStyles": {
+                                "2f9693d4-9241-48dc-afa1-16995f18a60d": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "flex": {
+                                  "type": "static",
+                                  "content": "2"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "padding": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-halfunit"
+                                  }
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard2",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/aaraku/4.jpeg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName4"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard2"
+                                  }
+                                }
+                              ],
+                              "semanticType": "div"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "name": "Gallery",
+                        "referencedStyles": {
+                          "2b560006-4239-47b9-b07a-291975280bfa": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "paddingLeft": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                },
+                                "paddingRight": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-twounits"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "c7a2816d-89d3-44b2-ba6d-23f3295e1fed": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "padding": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "maxWidth": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-size-size-maxwidth"
+                            }
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "paddingTop": {
+                            "type": "static",
+                            "content": "0px"
+                          },
+                          "paddingLeft": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "paddingRight": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-threeunits"
+                            }
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          },
+                          "paddingBottom": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-twounits"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "referencedStyles": {
+                                "1552277f-233c-4a20-829d-cfc6488fac9e": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "gridTemplateColumns": {
+                                        "type": "static",
+                                        "content": "1fr 1fr 1fr"
+                                      }
+                                    }
+                                  }
+                                },
+                                "3bd41854-1177-4ab9-8ba3-9b708c8f02b0": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 767,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "gridTemplateColumns": {
+                                        "type": "static",
+                                        "content": "1fr 1fr"
+                                      }
+                                    }
+                                  }
+                                },
+                                "48a76906-60c4-43f6-a0b8-6ef45d2639bf": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 479,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "gridTemplateColumns": {
+                                        "type": "static",
+                                        "content": "1fr"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "grid"
+                                },
+                                "gridGap": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                },
+                                "gridTemplateColumns": {
+                                  "type": "static",
+                                  "content": "1fr 1fr 1fr"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/banglore/4.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/brahmatal/1.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName1"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/brahmatal/3.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName3"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/coorg/3.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName2"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/jawadhihills/clouds.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName4"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/jawadhihills/detour.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName5"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/kedarkantha/1.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName6"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/kedarkantha/4.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName7"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/kedarkantha/2.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName8"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/udaipur/2.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName9"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/rishikesh/1.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName10"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "name": "GalleryCard3",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "image_src": {
+                                        "type": "static",
+                                        "content": "https://zealous-shirley-0851c9.netlify.app/static/images/udaipur/1.jpg"
+                                      },
+                                      "rootClassName": {
+                                        "type": "static",
+                                        "content": "rootClassName11"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "GalleryCard3"
+                                  }
+                                }
+                              ],
+                              "semanticType": "div"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Gallery",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {
+                    "7307ab35-b7e5-4a0f-ba36-52bf7b1ce58e": {
+                      "type": "style-map",
+                      "content": {
+                        "conditions": [
+                          {
+                            "maxWidth": 767,
+                            "conditionType": "screen-size"
+                          }
+                        ],
+                        "mapType": "inlined",
+                        "styles": {
+                          "flexWrap": {
+                            "type": "static",
+                            "content": "wrap"
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          },
+                          "justifyContent": {
+                            "type": "static",
+                            "content": "center"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "height": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    },
+                    "backgroundColor": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "token",
+                        "id": "--dl-color-primary-primary"
+                      }
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "component",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "children": [],
+                        "semanticType": "Header"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "referencedStyles": {
+                          "fcf98127-5344-48af-94ad-c878a290728a": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "height": {
+                                  "type": "static",
+                                  "content": "auto"
+                                },
+                                "flexWrap": {
+                                  "type": "static",
+                                  "content": "wrap"
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "400px"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "maxWidth": {
+                            "type": "static",
+                            "content": "991px"
+                          },
+                          "transform": {
+                            "type": "static",
+                            "content": "translateY(50%)"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "row"
+                          },
+                          "justifyContent": {
+                            "type": "static",
+                            "content": "center"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "referencedStyles": {
+                                "6ec4b460-322f-44e8-9522-ffce11f63359": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 767,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "flex": {
+                                        "type": "static",
+                                        "content": "1"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "flex": {
+                                  "type": "static",
+                                  "content": "1"
+                                },
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "image",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "attrs": {
+                                      "alt": {
+                                        "type": "static",
+                                        "content": "image"
+                                      },
+                                      "src": {
+                                        "type": "static",
+                                        "content": "https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/ae3766eb-649e-430e-ad72-8442f122e306/b18bdd61-3919-4dfd-bd42-cdbcd1366094?org_if_sml=1"
+                                      }
+                                    },
+                                    "style": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "350px"
+                                      },
+                                      "height": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "objectFit": {
+                                        "type": "static",
+                                        "content": "cover"
+                                      }
+                                    },
+                                    "children": []
+                                  }
+                                }
+                              ],
+                              "semanticType": "div"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "referencedStyles": {
+                                "6d46f5d3-fb5e-4537-8df2-65316af76d23": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 767,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "marginTop": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "flex": {
+                                  "type": "static",
+                                  "content": "1"
+                                },
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "marginBottom": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-unit"
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Heading"
+                                      }
+                                    ],
+                                    "semanticType": "h1"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {
+                                      "52d23fc1-ce8a-4726-92e6-fb37ae4581ec": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 767,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "marginLeft": {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "token",
+                                                "id": "--dl-space-space-unit"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "5c45c3fe-00f6-4e10-8909-34c628f78f40": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "mapType": "project-referenced",
+                                          "referenceId": "content"
+                                        }
+                                      }
+                                    },
+                                    "abilities": {},
+                                    "style": {
+                                      "marginRight": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-unit"
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": "I am a JavaScript developer, currently working at "
+                                            },
+                                            {
+                                              "type": "raw",
+                                              "content": " "
+                                            }
+                                          ],
+                                          "semanticType": "span"
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {
+                                            "54d6a4b6-4303-4176-b558-62b47c9e6b51": {
+                                              "type": "style-map",
+                                              "content": {
+                                                "mapType": "project-referenced",
+                                                "referenceId": "thqLink"
+                                              }
+                                            }
+                                          },
+                                          "abilities": {
+                                            "link": {
+                                              "type": "url",
+                                              "content": {
+                                                "url": {
+                                                  "type": "static",
+                                                  "content": "https://jkrishna.dev/generators"
+                                                },
+                                                "newTab": true
+                                              }
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "text",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                  "color": {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                      "referenceType": "token",
+                                                      "id": "--dl-color-primary-heading"
+                                                    }
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "static",
+                                                    "content": "@teleportHQ"
+                                                  }
+                                                ],
+                                                "semanticType": "span"
+                                              }
+                                            }
+                                          ],
+                                          "semanticType": "span"
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": ". and maintaining Code Generators. I like open source software, JavaScript and travelling. I ocassionally share my thoughts at conferences and meetup's too."
+                                            }
+                                          ],
+                                          "semanticType": "span"
+                                        }
+                                      }
+                                    ],
+                                    "semanticType": "span"
+                                  }
+                                }
+                              ],
+                              "semanticType": "div"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Home",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "height": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "component",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "rootClassName": {
+                            "type": "static",
+                            "content": "rootClassName"
+                          }
+                        },
+                        "children": [],
+                        "semanticType": "Header"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "style": {
+                          "flex": {
+                            "type": "static",
+                            "content": "0 0 auto"
+                          },
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "maxWidth": {
+                            "type": "static",
+                            "content": "991px"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {
+                                "4e408a94-7ec6-434e-8cc8-e7f7d7a6d109": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "mapType": "project-referenced",
+                                    "referenceId": "heading"
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-primary-heading"
+                                  }
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Varkala"
+                                      }
+                                    ],
+                                    "semanticType": "span"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": ""
+                                      }
+                                    ],
+                                    "semanticType": "span"
+                                  }
+                                }
+                              ],
+                              "semanticType": "h1"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Varkala is a small town from the southern part of Kerala. It is famous for its beaches and is home to the only cliff beach in India."
+                                }
+                              ],
+                              "semanticType": "p"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "image",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "attrs": {
+                                "alt": {
+                                  "type": "static",
+                                  "content": "image"
+                                },
+                                "src": {
+                                  "type": "static",
+                                  "content": "https://zealous-shirley-0851c9.netlify.app/static/images/varkala/3.jpg"
+                                }
+                              },
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "350px"
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-oneandhalfunits"
+                                  }
+                                },
+                                "objectFit": {
+                                  "type": "static",
+                                  "content": "cover"
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-oneandhalfunits"
+                                  }
+                                }
+                              },
+                              "children": []
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Are you a beach lover? Ever wished that you'd get to spend your entire day near the waves? And watch the sunset, then retreat to your cozy little room only to wake up to the view of the beach again? If so, then Varkala is the place for you."
+                                }
+                              ],
+                              "semanticType": "p"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-oneandhalfunits"
+                                  }
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-oneandhalfunits"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "When I got to know about this place and saw the pictures, I immediately added it to my list. After several attempts, I was finally able to make it on the February of 2020, with two other friends."
+                                }
+                              ],
+                              "semanticType": "p"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {
+                                "ec8f78be-1217-4211-8ef5-e34953f09260": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "mapType": "project-referenced",
+                                    "referenceId": "smallHeading"
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-primary-heading"
+                                  }
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "How did we reach there ?"
+                                }
+                              ],
+                              "semanticType": "h1"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Varkala",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "GalleryCard3": {
+      "propDefinitions": {
+        "title": {
+          "id": "295aec13-7e42-4669-9b3c-b7a4a7b547dd",
+          "defaultValue": "Project Title",
+          "type": "string"
+        },
+        "image_alt": {
+          "id": "712de053-31ec-4529-90b5-b70e097162de",
+          "defaultValue": "image",
+          "type": "string"
+        },
+        "image_src": {
+          "id": "8e4e1004-a9f9-4b66-8562-316af1994af1",
+          "defaultValue": "https://images.unsplash.com/photo-1523755231516-e43fd2e8dca5?ixid=Mnw5MTMyMXwwfDF8c2VhcmNofDF8fG1pbmltYWxpc20lMjBjb3VjaHxlbnwwfHx8fDE2MjY0NDg1NTk&ixlib=rb-1.2.1&h=1000",
+          "type": "string"
+        },
+        "subtitle": {
+          "id": "a970c56f-90b7-4a90-83ef-6a4433f974f9",
+          "defaultValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
+          "type": "string"
+        },
+        "rootClassName": {
+          "id": "fdeb0060-ad27-4482-a2d4-83aed9ab5667",
+          "defaultValue": "",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "name": "GalleryCard",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "height": {
+              "type": "static",
+              "content": "100%"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "flex-start"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "justifyContent": {
+              "type": "static",
+              "content": "center"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "alt": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image_alt"
+                    }
+                  },
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image_src"
+                    }
+                  }
+                },
+                "style": {
+                  "top": {
+                    "type": "static",
+                    "content": "0px"
+                  },
+                  "left": {
+                    "type": "static",
+                    "content": "0px"
+                  },
+                  "right": {
+                    "type": "static",
+                    "content": "auto"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "bottom": {
+                    "type": "static",
+                    "content": "auto"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "position": {
+                    "type": "static",
+                    "content": "absolute"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "referencedStyles": {
+                  "e02015e9-0b8b-4c4d-b7cc-92ec794aa87e": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "content": "hover",
+                          "conditionType": "element-state"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "opacity": {
+                          "type": "static",
+                          "content": "1"
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "300px"
+                  },
+                  "zIndex": {
+                    "type": "static",
+                    "content": "1"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "opacity": {
+                    "type": "static",
+                    "content": "0"
+                  },
+                  "padding": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "transition": {
+                    "type": "static",
+                    "content": "0.3s"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  },
+                  "justifyContent": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "backgroundImage": {
+                    "type": "static",
+                    "content": "linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.9));"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {
+                        "5dbb28e1-7f12-4975-b841-7bb10ee67e4f": {
+                          "type": "style-map",
+                          "content": {
+                            "conditions": [
+                              {
+                                "maxWidth": 479,
+                                "conditionType": "screen-size"
+                              }
+                            ],
+                            "mapType": "inlined",
+                            "styles": {
+                              "alignSelf": {
+                                "type": "static",
+                                "content": "center"
+                              },
+                              "marginBottom": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-space-space-unit"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "abilities": {},
+                      "style": {
+                        "color": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-white"
+                          }
+                        },
+                        "fontSize": {
+                          "type": "static",
+                          "content": "1.5rem"
+                        },
+                        "textAlign": {
+                          "type": "static",
+                          "content": "center"
+                        },
+                        "fontWeight": {
+                          "type": "static",
+                          "content": "500"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-oneandhalfunits"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "title",
+                            "referenceType": "prop"
+                          }
+                        }
+                      ],
+                      "semanticType": "h1"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "color": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-gray-white"
+                          }
+                        },
+                        "textAlign": {
+                          "type": "static",
+                          "content": "center"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "subtitle",
+                            "referenceType": "prop"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  }
+                ],
+                "semanticType": "div"
+              }
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "GalleryCard3",
+      "styleSetDefinitions": {}
+    },
+    "GalleryCard2": {
+      "propDefinitions": {
+        "description": {
+          "id": "3d909a36-b229-472c-b00c-13c35a9ac6c2",
+          "defaultValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
+          "type": "string"
+        },
+        "rootClassName": {
+          "id": "66415e42-6c5c-418b-92aa-f96e4ec4021e",
+          "defaultValue": "",
+          "type": "string"
+        },
+        "image_alt": {
+          "id": "76b56147-2742-4e6e-93c6-1f0e7feb0d38",
+          "defaultValue": "image",
+          "type": "string"
+        },
+        "image_src": {
+          "id": "7a120cd9-cc4e-4cbe-bf89-129fa034295f",
+          "defaultValue": "https://images.unsplash.com/photo-1484980972926-edee96e0960d?ixid=Mnw5MTMyMXwwfDF8c2VhcmNofDI0fHxmb29kfGVufDB8fHx8MTYyNjQ0OTIzNQ&ixlib=rb-1.2.1&h=1000",
+          "type": "string"
+        },
+        "title": {
+          "id": "a18af4b6-b658-4b56-8911-4bed0e91ec62",
+          "defaultValue": "Project Title",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "name": "GalleryCard",
+          "referencedStyles": {
+            "90ca8750-696b-4a1d-9e48-02f50a3838ab": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 767,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                }
+              }
+            }
+          },
+          "abilities": {},
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "height": {
+              "type": "static",
+              "content": "100%"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "justifyContent": {
+              "type": "static",
+              "content": "center"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "referencedStyles": {
+                  "9b82225b-6a95-43de-86cc-eac4d8f10916": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "content": "hover",
+                          "conditionType": "element-state"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "opacity": {
+                          "type": "static",
+                          "content": "1"
+                        }
+                      }
+                    }
+                  },
+                  "e9a4d07f-4bcd-46c4-ac35-89455c791cad": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 479,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "maxWidth": {
+                          "type": "static",
+                          "content": "auto"
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "zIndex": {
+                    "type": "static",
+                    "content": "1"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "opacity": {
+                    "type": "static",
+                    "content": "0"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "flex-start"
+                  },
+                  "transition": {
+                    "type": "static",
+                    "content": "0.3s"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  },
+                  "justifyContent": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "backgroundColor": {
+                    "type": "static",
+                    "content": "#00000096"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "container",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "width": {
+                          "type": "static",
+                          "content": "100%"
+                        },
+                        "height": {
+                          "type": "static",
+                          "content": "100%"
+                        },
+                        "display": {
+                          "type": "static",
+                          "content": "flex"
+                        },
+                        "padding": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-twounits"
+                          }
+                        },
+                        "alignItems": {
+                          "type": "static",
+                          "content": "center"
+                        },
+                        "flexDirection": {
+                          "type": "static",
+                          "content": "column"
+                        },
+                        "justifyContent": {
+                          "type": "static",
+                          "content": "center"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "text",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "style": {
+                              "color": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-color-gray-white"
+                                }
+                              },
+                              "fontStyle": {
+                                "type": "static",
+                                "content": "normal"
+                              },
+                              "textAlign": {
+                                "type": "static",
+                                "content": "center"
+                              },
+                              "fontWeight": {
+                                "type": "static",
+                                "content": "500"
+                              },
+                              "marginBottom": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-space-space-oneandhalfunits"
+                                }
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "dynamic",
+                                "content": {
+                                  "id": "title",
+                                  "referenceType": "prop"
+                                }
+                              }
+                            ],
+                            "semanticType": "h2"
+                          }
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "text",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "style": {
+                              "color": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-color-gray-white"
+                                }
+                              },
+                              "textAlign": {
+                                "type": "static",
+                                "content": "center"
+                              },
+                              "marginBottom": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-space-space-oneandhalfunits"
+                                }
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "dynamic",
+                                "content": {
+                                  "id": "description",
+                                  "referenceType": "prop"
+                                }
+                              }
+                            ],
+                            "semanticType": "span"
+                          }
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "text",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "style": {
+                              "color": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "token",
+                                  "id": "--dl-color-gray-white"
+                                }
+                              },
+                              "fontStyle": {
+                                "type": "static",
+                                "content": "normal"
+                              },
+                              "fontWeight": {
+                                "type": "static",
+                                "content": "700"
+                              },
+                              "textTransform": {
+                                "type": "static",
+                                "content": "uppercase"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "static",
+                                "content": "SHOW MORE"
+                              }
+                            ],
+                            "semanticType": "span"
+                          }
+                        }
+                      ],
+                      "semanticType": "div"
+                    }
+                  }
+                ],
+                "semanticType": "div"
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {
+                  "ea1e6c7a-003d-40f1-9415-99a0a07f09e2": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 479,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "top": {
+                          "type": "static",
+                          "content": "0px"
+                        },
+                        "left": {
+                          "type": "static",
+                          "content": "0px"
+                        },
+                        "right": {
+                          "type": "static",
+                          "content": "auto"
+                        },
+                        "bottom": {
+                          "type": "static",
+                          "content": "auto"
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "attrs": {
+                  "alt": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image_alt"
+                    }
+                  },
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image_src"
+                    }
+                  }
+                },
+                "style": {
+                  "top": {
+                    "type": "static",
+                    "content": "0px"
+                  },
+                  "left": {
+                    "type": "static",
+                    "content": "auto"
+                  },
+                  "right": {
+                    "type": "static",
+                    "content": "0px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "bottom": {
+                    "type": "static",
+                    "content": "auto"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "position": {
+                    "type": "static",
+                    "content": "absolute"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "GalleryCard2",
+      "styleSetDefinitions": {}
+    },
+    "Header": {
+      "propDefinitions": {
+        "text": {
+          "id": "afe81f1d-7093-4da0-a843-f30020cc2a0c",
+          "defaultValue": "Gallery",
+          "type": "string"
+        },
+        "text1": {
+          "id": "176784b2-fd78-48fe-9740-b8e60d07c84a",
+          "defaultValue": "Features",
+          "type": "string"
+        },
+        "text2": {
+          "id": "1190c6d7-90fc-4390-9af8-6f7ff8f38b06",
+          "defaultValue": "Pricing",
+          "type": "string"
+        },
+        "text3": {
+          "id": "7c562950-2142-4e0f-85f3-ad38d69a65a1",
+          "defaultValue": "Team",
+          "type": "string"
+        },
+        "text4": {
+          "id": "c4184252-7e65-4ee6-8d05-aaf5d1a0e6c7",
+          "defaultValue": "Blog",
+          "type": "string"
+        },
+        "rootClassName": {
+          "id": "f399e886-260b-4369-8e00-f71f4822bb97",
+          "defaultValue": "",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "name": "Header",
+          "referencedStyles": {
+            "74b7dea1-1d6e-454d-96a3-839a2dda43ce": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 479,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "padding": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  }
+                }
+              }
+            },
+            "b2ea05a0-2e9f-4da7-9502-6425b6d04e98": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 767,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "paddingLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  },
+                  "paddingRight": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "abilities": {},
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "maxWidth": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "--dl-size-size-maxwidth"
+              }
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            },
+            "paddingTop": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "--dl-space-space-twounits"
+              }
+            },
+            "paddingLeft": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "--dl-space-space-threeunits"
+              }
+            },
+            "paddingRight": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "--dl-space-space-threeunits"
+              }
+            },
+            "paddingBottom": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "token",
+                "id": "--dl-space-space-twounits"
+              }
+            },
+            "justifyContent": {
+              "type": "static",
+              "content": "space-between"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "flex": {
+                    "type": "static",
+                    "content": "0 0 auto"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "50px"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "50px"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "flex-start"
+                  }
+                },
+                "children": [],
+                "semanticType": "div"
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "name": "Nav",
+                "referencedStyles": {
+                  "08729252-b6d8-42c6-a4bb-a1ad44bbc2aa": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "display": {
+                          "type": "static",
+                          "content": "none"
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "flex": {
+                    "type": "static",
+                    "content": "0 0 auto"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "row"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {
+                        "c07cc23b-ec7c-422f-9eb8-1e9b2bb25959": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "project-referenced",
+                            "referenceId": "thqLink"
+                          }
+                        }
+                      },
+                      "abilities": {
+                        "link": {
+                          "type": "navlink",
+                          "content": {
+                            "routeName": "Gallery"
+                          }
+                        }
+                      },
+                      "style": {
+                        "color": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-color-primary-heading"
+                          }
+                        },
+                        "textDecoration": {
+                          "type": "static",
+                          "content": "none"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "text"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "marginLeft": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-twounits"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "text1"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "marginLeft": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-twounits"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "text2"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "marginLeft": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-twounits"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "text3"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "marginLeft": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-twounits"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "text4"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  }
+                ],
+                "semanticType": "nav"
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "icon",
+                "referencedStyles": {
+                  "579734fa-1774-4180-b1ca-595eab2e1826": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 991,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "display": {
+                          "type": "static",
+                          "content": "none"
+                        }
+                      }
+                    }
+                  },
+                  "5c2f8f7e-c809-4e35-981a-64c5bd31e2a3": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "display": {
+                          "type": "static",
+                          "content": "flex"
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "attrs": {
+                  "viewBox": {
+                    "type": "static",
+                    "content": "0 0 1024 1024"
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-size-size-xsmall"
+                    }
+                  },
+                  "height": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-size-size-xsmall"
+                    }
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "none"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "icon",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "attrs": {
+                        "d": {
+                          "type": "static",
+                          "content": "M128 554.667h768c23.552 0 42.667-19.115 42.667-42.667s-19.115-42.667-42.667-42.667h-768c-23.552 0-42.667 19.115-42.667 42.667s19.115 42.667 42.667 42.667zM128 298.667h768c23.552 0 42.667-19.115 42.667-42.667s-19.115-42.667-42.667-42.667h-768c-23.552 0-42.667 19.115-42.667 42.667s19.115 42.667 42.667 42.667zM128 810.667h768c23.552 0 42.667-19.115 42.667-42.667s-19.115-42.667-42.667-42.667h-768c-23.552 0-42.667 19.115-42.667 42.667s19.115 42.667 42.667 42.667z"
+                        }
+                      },
+                      "children": [],
+                      "semanticType": "path"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "semanticType": "header"
+        }
+      },
+      "name": "Header",
+      "styleSetDefinitions": {
+        "rootClassName": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-map"
+        }
+      }
+    }
+  }
+}

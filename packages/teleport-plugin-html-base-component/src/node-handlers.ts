@@ -13,6 +13,9 @@ import {
   ChunkType,
   FileType,
   ChunkDefinition,
+  UIDLDependency,
+  UIDLStyleValue,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -26,7 +29,11 @@ type NodeToHTML<NodeType, ReturnType> = (
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   externals: Record<string, ComponentUIDL>,
-  chunks: ChunkDefinition[]
+  structure: {
+    chunks: ChunkDefinition[]
+    dependencies: Record<string, UIDLDependency>
+    options: GeneratorOptions
+  }
 ) => ReturnType
 
 export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
@@ -35,7 +42,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
-  chunks
+  structure
 ) => {
   switch (node.type) {
     case 'raw':
@@ -51,7 +58,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
-        chunks
+        structure
       )
 
     case 'dynamic':
@@ -61,7 +68,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
-        chunks
+        structure
       )
 
     default:
@@ -81,7 +88,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
-  chunks
+  structure
 ) => {
   const {
     elementType,
@@ -92,6 +99,11 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     referencedStyles = {},
     dependency,
   } = node.content
+  const { dependencies, chunks, options } = structure
+
+  if (dependency && dependency?.type !== 'local') {
+    dependencies[dependency.path] = dependency
+  }
 
   if (dependency && dependency?.type === 'local') {
     const comp = externals[StringUtils.dashCaseToUpperCamelCase(elementType)]
@@ -141,14 +153,15 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       {}
     )
 
-    const compTag = generateHtmlSynatx(
+    const compTag = await generateHtmlSynatx(
       comp.node,
       templatesLookUp,
       propsForInstance,
       statesForInstance,
       externals,
-      chunks
+      structure
     )
+    templatesLookUp[key] = compTag
 
     const chunk = chunks.find((item) => item.name === comp.name)
     if (!chunk) {
@@ -158,7 +171,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         forceScoping: true,
         chunkName: comp.name,
       })
-
       const result = await cssPlugin({
         uidl: comp,
         chunks: [
@@ -173,11 +185,10 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
             },
           },
         ],
-        dependencies: {},
-        options: {},
+        dependencies,
+        options,
       })
-
-      const styleChunk = result.chunks.find((item) => item.name === comp.name)
+      const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
       chunks.push(styleChunk)
     }
 
@@ -195,7 +206,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
-        chunks
+        structure
       )
 
       if (!childTag) {
@@ -210,7 +221,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     }
   }
 
-  if (referencedStyles) {
+  if (Object.keys(referencedStyles).length > 0) {
     Object.keys(referencedStyles).forEach((styleRef) => {
       const refStyle = referencedStyles[styleRef]
       if (refStyle.content.mapType === 'inlined') {
@@ -219,11 +230,11 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     })
   }
 
-  if (style) {
+  if (Object.keys(style).length > 0) {
     handleStyles(node, style, propDefinitions, stateDefinitions)
   }
 
-  if (attrs) {
+  if (Object.keys(attrs).length > 0) {
     handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions)
   }
 
@@ -253,13 +264,14 @@ const handleStyles = (
   stateDefinitions: Record<string, UIDLStateDefinition>
 ) => {
   Object.keys(styles).forEach((styleKey) => {
-    const style = styles[styleKey]
+    let style: string | UIDLStyleValue = styles[styleKey]
     if (style.type === 'dynamic') {
-      const value =
-        style.content.referenceType === 'prop'
-          ? getValueFromReference(style.content.id, propDefinitions)
-          : getValueFromReference(style.content.id, stateDefinitions)
-      node.content.style[styleKey] = staticNode(String(value))
+      if (style.content.referenceType === 'prop') {
+        style = getValueFromReference(style.content.id, propDefinitions)
+      } else if (style.content.referenceType === 'state') {
+        style = getValueFromReference(style.content.id, stateDefinitions)
+      }
+      node.content.style[styleKey] = typeof style === 'string' ? staticNode(style) : style
     }
   })
 }
@@ -290,8 +302,17 @@ const handleAttributes = (
   })
 }
 
-const getValueFromReference = (key: string, definitions: Record<string, UIDLPropDefinition>) => {
+const getValueFromReference = (
+  key: string,
+  definitions: Record<string, UIDLPropDefinition>
+): string => {
   const usedReferenceValue = definitions[key]
+
+  if (!usedReferenceValue) {
+    throw new HTMLComponentGeneratorError(
+      `Definition for ${key} is missing from ${JSON.stringify(definitions, null, 2)}`
+    )
+  }
 
   if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
     throw new HTMLComponentGeneratorError(
@@ -313,5 +334,5 @@ const getValueFromReference = (key: string, definitions: Record<string, UIDLProp
     )
   }
 
-  return usedReferenceValue.defaultValue
+  return String(usedReferenceValue.defaultValue)
 }

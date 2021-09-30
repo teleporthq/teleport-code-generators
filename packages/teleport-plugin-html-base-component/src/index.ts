@@ -24,7 +24,7 @@ type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>)
 
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
   const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = true } = config || {}
-  let externals: Record<string, ComponentUIDL>
+  let externals: Record<string, ComponentUIDL> = {}
 
   const addExternals = (list?: Record<string, ComponentUIDL>) => {
     externals = {
@@ -34,7 +34,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
   }
 
   const htmlComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
+    const { uidl, chunks, dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {} } = uidl
 
     const templatesLookUp: Record<string, unknown> = {}
@@ -48,7 +48,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       propDefinitions,
       stateDefinitions,
       externals,
-      chunks
+      { chunks, dependencies, options }
     )
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)
 

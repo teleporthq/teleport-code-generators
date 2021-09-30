@@ -65,6 +65,7 @@ import {
   createGatsbyProjectGenerator,
   GatsbyTemplate,
 } from '@teleporthq/teleport-project-generator-gatsby'
+import { createHTMLProjectGenerator } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createVercelPublisher } from '@teleporthq/teleport-publisher-vercel'
@@ -78,6 +79,10 @@ import { createVueComponentGenerator } from '@teleporthq/teleport-component-gene
 import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
+import {
+  createHTMLComponentGenerator,
+  PlainHTMLMapping,
+} from '@teleporthq/teleport-component-generator-html'
 import { isNodeProcess } from './utils'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
@@ -87,6 +92,7 @@ const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInsta
   [ComponentType.VUE]: createVueComponentGenerator,
   [ComponentType.STENCIL]: createStencilComponentGenerator,
   [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
+  [ComponentType.HTML]: createHTMLComponentGenerator,
 }
 
 const componentGeneratorProjectMappings = {
@@ -96,6 +102,7 @@ const componentGeneratorProjectMappings = {
   [ComponentType.VUE]: VueProjectMapping,
   [ComponentType.STENCIL]: StencilProjectMapping,
   [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
+  [ComponentType.HTML]: PlainHTMLMapping,
 }
 
 const projectGeneratorFactories = {
@@ -109,6 +116,7 @@ const projectGeneratorFactories = {
   [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
   [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
   [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
+  [ProjectType.HTML]: createHTMLProjectGenerator(),
 }
 
 const templates = {
@@ -122,6 +130,7 @@ const templates = {
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
   [ProjectType.GATSBY]: GatsbyTemplate,
+  [ProjectType.HTML]: ReactTemplate,
 }
 
 /* tslint:disable ban-types */

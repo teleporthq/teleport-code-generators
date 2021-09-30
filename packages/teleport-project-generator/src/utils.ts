@@ -56,11 +56,8 @@ const createPageUIDL = (
     !pagesStrategyOptions.useFileNameForNavigation &&
     pagesStrategyOptions.createFolderForEachComponent
 
-  const {
-    customComponentFileName,
-    customStyleFileName,
-    customTemplateFileName,
-  } = pagesStrategyOptions
+  const { customComponentFileName, customStyleFileName, customTemplateFileName } =
+    pagesStrategyOptions
 
   // a page can be: 'about-us.js' or `about-us/index.js`
   const outputOptions = createFolderForEachComponent
@@ -200,11 +197,8 @@ export const prepareComponentOutputOptions = (
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
     const folderPath = UIDLUtils.getComponentFolderPath(component)
 
-    const {
-      customComponentFileName,
-      customStyleFileName,
-      customTemplateFileName,
-    } = componentStrategyOptions
+    const { customComponentFileName, customStyleFileName, customTemplateFileName } =
+      componentStrategyOptions
 
     // If the component has its own folder, name is 'index' or an override from the strategy.
     // In this case, the file name (dash converted) is used as the folder name

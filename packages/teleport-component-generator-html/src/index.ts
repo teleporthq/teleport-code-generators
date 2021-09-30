@@ -3,22 +3,16 @@ import { createHTMLBasePlugin } from '@teleporthq/teleport-plugin-html-base-comp
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements-html'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import {
-  ComponentGenerator,
+  HTMLComponentGeneratorInstance,
+  HTMLComponentGenerator,
   ComponentUIDL,
   GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { Parser } from '@teleporthq/teleport-uidl-validator'
-import { HTMLMapping, Resolver } from '@teleporthq/teleport-uidl-resolver'
-
-interface HTMLComponentGenerator extends ComponentGenerator {
-  addExternalComponents: (params: {
-    externals: Record<string, ComponentUIDL>
-    skipValidation?: boolean
-  }) => void
-}
-type HTMLComponentGeneratorInstance = (params?: GeneratorFactoryParams) => HTMLComponentGenerator
+import { Resolver } from '@teleporthq/teleport-uidl-resolver'
+import { PlainHTMLMapping } from './plain-html-mapping'
 
 const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   mappings = [],
@@ -27,7 +21,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
 }: GeneratorFactoryParams = {}): HTMLComponentGenerator => {
   const generator = createComponentGenerator()
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
-  const resolver = new Resolver(HTMLMapping)
+  const resolver = new Resolver(PlainHTMLMapping)
 
   Object.defineProperty(generator, 'addExternalComponents', {
     value: (params: { externals: Record<string, ComponentUIDL>; skipValidation?: boolean }) => {
@@ -53,7 +47,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       forceScoping: true,
     })
   )
-  generator.addMapping(HTMLMapping)
+
+  generator.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
   plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
@@ -64,4 +59,4 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   return generator as HTMLComponentGenerator
 }
 
-export { createHTMLComponentGenerator }
+export { createHTMLComponentGenerator, PlainHTMLMapping }
