@@ -10,25 +10,32 @@ import {
   UIDLStyleDefinitions,
   HastText,
   ComponentUIDL,
+  ChunkType,
+  FileType,
+  ChunkDefinition,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
 type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
   templatesLookUp: Record<string, unknown>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  externals: Record<string, ComponentUIDL>
+  externals: Record<string, ComponentUIDL>,
+  chunks: ChunkDefinition[]
 ) => ReturnType
 
-export const generateHtmlSynatx: NodeToHTML<UIDLNode, HastNode | HastText> = (
+export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
   node,
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
-  externals
+  externals,
+  chunks
 ) => {
   switch (node.type) {
     case 'raw':
@@ -38,7 +45,14 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, HastNode | HastText> = (
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
 
     case 'element':
-      return generatElementNode(node, templatesLookUp, propDefinitions, stateDefinitions, externals)
+      return generatElementNode(
+        node,
+        templatesLookUp,
+        propDefinitions,
+        stateDefinitions,
+        externals,
+        chunks
+      )
 
     case 'dynamic':
       return generateDynamicNode(
@@ -46,7 +60,8 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, HastNode | HastText> = (
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
-        externals
+        externals,
+        chunks
       )
 
     default:
@@ -60,12 +75,13 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, HastNode | HastText> = (
   }
 }
 
-const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
+const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
   node,
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
-  externals
+  externals,
+  chunks
 ) => {
   const {
     elementType,
@@ -76,6 +92,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
     referencedStyles = {},
     dependency,
   } = node.content
+
   if (dependency && dependency?.type === 'local') {
     const comp = externals[StringUtils.dashCaseToUpperCamelCase(elementType)]
 
@@ -90,27 +107,95 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
       )
     }
 
+    const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
+    const propsForInstance = Object.keys(combinedProps).reduce(
+      (acc: Record<string, UIDLPropDefinition>, propKey) => {
+        if (attrs[propKey]) {
+          acc[propKey] = {
+            ...combinedProps[propKey],
+            defaultValue: attrs[propKey].content,
+          }
+        } else {
+          acc[propKey] = combinedProps[propKey]
+        }
+
+        return acc
+      },
+      {}
+    )
+
+    const combinedStates = { ...stateDefinitions, ...(comp?.stateDefinitions || {}) }
+    const statesForInstance = Object.keys(combinedStates).reduce(
+      (acc: Record<string, UIDLStateDefinition>, propKey) => {
+        if (attrs[propKey]) {
+          acc[propKey] = {
+            ...combinedStates[propKey],
+            defaultValue: attrs[propKey].content,
+          }
+        } else {
+          acc[propKey] = combinedStates[propKey]
+        }
+
+        return acc
+      },
+      {}
+    )
+
     const compTag = generateHtmlSynatx(
       comp.node,
       templatesLookUp,
-      { ...propDefinitions, ...comp.propDefinitions },
-      { ...stateDefinitions, ...comp.stateDefinitions },
-      externals
+      propsForInstance,
+      statesForInstance,
+      externals,
+      chunks
     )
+
+    const chunk = chunks.find((item) => item.name === comp.name)
+    if (!chunk) {
+      const cssPlugin = createCSSPlugin({
+        templateChunkName: 'html-template',
+        declareDependency: 'import',
+        forceScoping: true,
+        chunkName: comp.name,
+      })
+
+      const result = await cssPlugin({
+        uidl: comp,
+        chunks: [
+          {
+            type: ChunkType.HAST,
+            fileType: FileType.HTML,
+            name: DEFAULT_COMPONENT_CHUNK_NAME,
+            linkAfter: [],
+            content: compTag,
+            meta: {
+              nodesLookup: templatesLookUp,
+            },
+          },
+        ],
+        dependencies: {},
+        options: {},
+      })
+
+      const styleChunk = result.chunks.find((item) => item.name === comp.name)
+      chunks.push(styleChunk)
+    }
 
     return compTag
   }
 
   const elementNode = HASTBuilders.createHTMLNode(elementType)
+  templatesLookUp[key] = elementNode
 
   if (children) {
-    children.forEach((child) => {
-      const childTag = generateHtmlSynatx(
+    for (const child of children) {
+      const childTag = await generateHtmlSynatx(
         child,
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
-        externals
+        externals,
+        chunks
       )
 
       if (!childTag) {
@@ -122,7 +207,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
       } else {
         HASTUtils.addChildNode(elementNode, childTag as HastNode)
       }
-    })
+    }
   }
 
   if (referencedStyles) {
@@ -142,69 +227,39 @@ const generatElementNode: NodeToHTML<UIDLElementNode, HastNode | HastText> = (
     handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions)
   }
 
-  templatesLookUp[key] = elementNode
   return elementNode
 }
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
   node,
-  templateLookup,
+  _,
   propDefinitions,
   stateDefinitions
 ) => {
   const spanTag = HASTBuilders.createHTMLNode('span')
-  const usedReferenceValue = propDefinitions[node.content.id] || stateDefinitions[node.content.id]
+  const usedReferenceValue =
+    node.content.referenceType === 'prop'
+      ? getValueFromReference(node.content.id, propDefinitions)
+      : getValueFromReference(node.content.id, stateDefinitions)
 
-  if (!usedReferenceValue?.defaultValue) {
-    throw new HTMLComponentGeneratorError(
-      `Dynamic node which i used don't have a defaultValue, received ${JSON.stringify(
-        usedReferenceValue,
-        null,
-        1
-      )}`
-    )
-  }
-
-  if (usedReferenceValue.type === 'string' || usedReferenceValue.type === 'number') {
-    HASTUtils.addTextNode(spanTag, String(usedReferenceValue.defaultValue))
-  }
-
-  templateLookup[`span-${node.content.id}`] = spanTag
+  HASTUtils.addTextNode(spanTag, String(usedReferenceValue))
   return spanTag
 }
 
 const handleStyles = (
   node: UIDLElementNode,
-  style: UIDLStyleDefinitions,
+  styles: UIDLStyleDefinitions,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>
 ) => {
-  Object.keys(style).forEach((styleKey) => {
-    const value = style[styleKey]
-    if (value.type === 'dynamic' && value.content.referenceType === 'prop') {
-      const usedReferenceValue =
-        propDefinitions[value.content.id] || stateDefinitions[value.content.id]
-
-      if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
-        throw new HTMLComponentGeneratorError(
-          `Default value is missing from dynamic reference - ${JSON.stringify(
-            usedReferenceValue,
-            null,
-            2
-          )}`
-        )
-      }
-
-      if (!['string', 'number'].includes(usedReferenceValue.type)) {
-        throw new HTMLComponentGeneratorError(
-          `Dynamic value used for ${styleKey} is not supported. Recieved ${JSON.stringify(
-            usedReferenceValue,
-            null,
-            2
-          )}`
-        )
-      }
-      node.content.style[styleKey] = staticNode(String(usedReferenceValue.defaultValue))
+  Object.keys(styles).forEach((styleKey) => {
+    const style = styles[styleKey]
+    if (style.type === 'dynamic') {
+      const value =
+        style.content.referenceType === 'prop'
+          ? getValueFromReference(style.content.id, propDefinitions)
+          : getValueFromReference(style.content.id, stateDefinitions)
+      node.content.style[styleKey] = staticNode(String(value))
     }
   })
 }
@@ -219,30 +274,11 @@ const handleAttributes = (
     const attrValue = attrs[attrKey]
 
     if (attrValue.type === 'dynamic') {
-      const usedReferenceValue =
-        propDefinitions[attrValue.content.id] || stateDefinitions[attrValue.content.id]
-
-      if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
-        throw new HTMLComponentGeneratorError(
-          `Default value is missing from dynamic reference - ${JSON.stringify(
-            usedReferenceValue,
-            null,
-            2
-          )}`
-        )
-      }
-
-      if (!['string', 'number'].includes(usedReferenceValue?.type)) {
-        throw new HTMLComponentGeneratorError(
-          `Attribute is using dynamic value, but received of type ${JSON.stringify(
-            usedReferenceValue,
-            null,
-            2
-          )}`
-        )
-      }
-
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(usedReferenceValue.defaultValue))
+      const value =
+        attrValue.content.referenceType === 'prop'
+          ? getValueFromReference(attrValue.content.id, propDefinitions)
+          : getValueFromReference(attrValue.content.id, stateDefinitions)
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value))
       return
     }
 
@@ -252,4 +288,30 @@ const handleAttributes = (
       HASTUtils.addAttributeToNode(htmlNode, attrKey, StringUtils.encode(String(attrValue.content)))
     }
   })
+}
+
+const getValueFromReference = (key: string, definitions: Record<string, UIDLPropDefinition>) => {
+  const usedReferenceValue = definitions[key]
+
+  if (!usedReferenceValue.hasOwnProperty('defaultValue')) {
+    throw new HTMLComponentGeneratorError(
+      `Default value is missing from dynamic reference - ${JSON.stringify(
+        usedReferenceValue,
+        null,
+        2
+      )}`
+    )
+  }
+
+  if (!['string', 'number'].includes(usedReferenceValue?.type)) {
+    throw new HTMLComponentGeneratorError(
+      `Attribute is using dynamic value, but received of type ${JSON.stringify(
+        usedReferenceValue,
+        null,
+        2
+      )}`
+    )
+  }
+
+  return usedReferenceValue.defaultValue
 }

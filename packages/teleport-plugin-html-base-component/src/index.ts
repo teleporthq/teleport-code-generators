@@ -3,13 +3,12 @@ import {
   FileType,
   ChunkType,
   HastNode,
-  UIDLElementNode,
   ComponentDefaultPluginParams,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
+import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 import { generateHtmlSynatx } from './node-handlers'
-import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface HtmlPluginConfig {
   componentChunkName: string
@@ -35,7 +34,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
   }
 
   const htmlComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl } = structure
+    const { uidl, chunks } = structure
     const { propDefinitions = {}, stateDefinitions = {} } = uidl
 
     const templatesLookUp: Record<string, unknown> = {}
@@ -43,16 +42,17 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       ? HASTBuilders.createHTMLNode('body')
       : HASTBuilders.createHTMLNode('div')
 
-    const bodyContent = generateHtmlSynatx(
+    const bodyContent = await generateHtmlSynatx(
       uidl.node,
       templatesLookUp,
       propDefinitions,
       stateDefinitions,
-      externals
+      externals,
+      chunks
     )
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)
 
-    structure.chunks.push({
+    chunks.push({
       type: ChunkType.HAST,
       fileType: FileType.HTML,
       name: componentChunkName,

@@ -183,6 +183,19 @@
               }
             ]
           }
+        },
+        {
+          "type": "element",
+          "content": {
+            "elementType": "component",
+            "semanticType": "sample",
+            "attrs": {
+              "heading": "Studio"
+            },
+            "dependency": {
+              "type": "local"
+            }
+          }
         }
       ]
     }

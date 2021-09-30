@@ -6,7 +6,6 @@ import {
   ComponentGenerator,
   ComponentUIDL,
   GeneratorFactoryParams,
-  UIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -14,7 +13,10 @@ import { Parser } from '@teleporthq/teleport-uidl-validator'
 import { HTMLMapping, Resolver } from '@teleporthq/teleport-uidl-resolver'
 
 interface HTMLComponentGenerator extends ComponentGenerator {
-  addExternalComponents: (externals: Record<string, ComponentUIDL>) => void
+  addExternalComponents: (params: {
+    externals: Record<string, ComponentUIDL>
+    skipValidation?: boolean
+  }) => void
 }
 type HTMLComponentGeneratorInstance = (params?: GeneratorFactoryParams) => HTMLComponentGenerator
 
@@ -28,11 +30,14 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   const resolver = new Resolver(HTMLMapping)
 
   Object.defineProperty(generator, 'addExternalComponents', {
-    value: (list: Record<string, UIDLElementNode>) => {
+    value: (params: { externals: Record<string, ComponentUIDL>; skipValidation?: boolean }) => {
+      const { externals = {}, skipValidation = false } = params
       addExternals(
-        Object.keys(list).reduce((acc: Record<string, ComponentUIDL>, ext) => {
+        Object.keys(externals).reduce((acc: Record<string, ComponentUIDL>, ext) => {
           acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolver.resolveUIDL(
-            Parser.parseComponentJSON(list[ext] as unknown as Record<string, unknown>)
+            skipValidation
+              ? externals[ext]
+              : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
           )
           return acc
         }, {})

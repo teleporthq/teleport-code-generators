@@ -1,13 +1,21 @@
 import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-generator-html'
-import componentJSON from '../../../examples/test-samples/component-basic.json'
-import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import componentJSON from '../../../examples/test-samples/component-html.json'
+import { component, dynamicNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { writeFile } from 'fs'
 import { join } from 'path'
 
 const run = async () => {
   const generator = createHTMLComponentGenerator()
   generator.addExternalComponents({
-    sample: component('Sample', elementNode('container', {}, [staticNode('Hello World')])),
+    externals: {
+      sample: component(
+        'Sample',
+        elementNode('container', {}, [staticNode('Hello'), dynamicNode('prop', 'heading')], null, {
+          width: staticNode('100px'),
+        }),
+        { heading: { type: 'string', defaultValue: 'TeleportHQ' } }
+      ),
+    },
   })
 
   const { files } = await generator.generateComponent(componentJSON)
