@@ -43,7 +43,6 @@ type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 export class ProjectGenerator {
   public componentGenerator: ComponentGenerator | HTMLComponentGenerator
   public pageGenerator: ComponentGenerator | HTMLComponentGenerator
-  public entryGenerator: ComponentGenerator
   public routerGenerator: ComponentGenerator
   public styleSheetGenerator: ComponentGenerator
   private strategy: ProjectStrategy
@@ -176,10 +175,6 @@ export class ProjectGenerator {
 
       if (this.strategy.pages?.generator) {
         this.pageGenerator = bootstrapGenerator(this.strategy.pages, this.strategy.style)
-      }
-
-      if (this.strategy.entry?.generator) {
-        this.entryGenerator = bootstrapGenerator(this.strategy.entry, this.strategy.style)
       }
 
       if (this.strategy.projectStyleSheet?.generator) {
@@ -479,7 +474,7 @@ export class ProjectGenerator {
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
-      const entryFile = await createEntryFile(uidl, this.strategy, this.entryGenerator, {
+      const entryFile = await createEntryFile(uidl, this.strategy, {
         assetsPrefix,
       })
       inMemoryFilesMap.set('entry', {

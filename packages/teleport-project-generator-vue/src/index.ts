@@ -42,7 +42,6 @@ const createVueProjectGenerator = () => {
       fileName: 'router',
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       path: ['public'],
     },

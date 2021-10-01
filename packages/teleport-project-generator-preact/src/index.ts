@@ -58,7 +58,6 @@ const createPreactProjectGenerator = () => {
       importFile: true,
     },
     entry: {
-      generator: createComponentGenerator,
       path: ['src'],
       fileName: 'index',
       options: {

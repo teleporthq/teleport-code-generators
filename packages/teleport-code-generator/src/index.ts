@@ -65,7 +65,10 @@ import {
   createGatsbyProjectGenerator,
   GatsbyTemplate,
 } from '@teleporthq/teleport-project-generator-gatsby'
-import { createHTMLProjectGenerator } from '@teleporthq/teleport-project-generator-html'
+import {
+  createHTMLProjectGenerator,
+  HTMLTemplate,
+} from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
 import { createVercelPublisher } from '@teleporthq/teleport-publisher-vercel'
@@ -130,7 +133,7 @@ const templates = {
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.GRIDSOME]: GridsomeTemplate,
   [ProjectType.GATSBY]: GatsbyTemplate,
-  [ProjectType.HTML]: ReactTemplate,
+  [ProjectType.HTML]: HTMLTemplate,
 }
 
 /* tslint:disable ban-types */

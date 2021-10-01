@@ -16,6 +16,15 @@ describe('plugin-css', () => {
     it('generates no chunk if no styles exist', async () => {
       const uidlSample = component('CSSPlugin', elementNode('container'))
       uidlSample.node.content.key = 'element-key'
+      componentChunk.meta.nodesLookup = {
+        ...componentChunk.meta.nodesLookup,
+        'element-key': {
+          type: 'element',
+          tagName: 'div',
+          properties: {},
+        },
+      }
+
       const structure: ComponentStructure = {
         uidl: uidlSample,
         options: {},

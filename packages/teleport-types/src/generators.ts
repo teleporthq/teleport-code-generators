@@ -228,8 +228,6 @@ export interface ProjectStrategy {
     fileName?: string
   }
   entry?: {
-    generator: ComponentGeneratorInstance
-    plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
     path: string[]

@@ -15,10 +15,12 @@ import {
   FileType,
   ChunkType,
   ComponentGenerator,
+  PostProcessor,
 } from '@teleporthq/teleport-types'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
-import { generateLocalDependenciesPrefix } from './utils'
+import { bootstrapGenerator, generateLocalDependenciesPrefix } from './utils'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 export const createPage = async (
   pageUIDL: ComponentUIDL,
@@ -112,12 +114,16 @@ export const createRouterFile = async (
 export const createEntryFile = async (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy,
-  entryFileGenerator: ComponentGenerator,
   entryFileOptions: GeneratorOptions
 ) => {
+  const generator = bootstrapGenerator({
+    generator: createComponentGenerator,
+    postprocessors: strategy.entry?.postprocessors,
+    mappings: strategy.entry?.mappings,
+  })
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
   const chunkGenerationFunction =
-    strategy.entry.chunkGenerationFunction || createHTMLEntryFileChunks
+    strategy.entry?.chunkGenerationFunction || createHTMLEntryFileChunks
   const { assetsPrefix } = entryFileOptions
   const options = { ...strategy.entry?.options, ...entryFileOptions }
 
@@ -133,12 +139,21 @@ export const createEntryFile = async (
     customTags,
   })
 
-  const result = entryFileGenerator.linkCodeChunks(chunks, entryFileName)
+  if (strategy.entry.postprocessors?.length > 0) {
+    strategy.entry?.postprocessors.forEach((processor: PostProcessor) =>
+      generator.addPostProcessor(processor)
+    )
+  }
+
+  const result = generator.linkCodeChunks(chunks, entryFileName)
   return result
 }
 
 // Default function used to generate the html file based on the global settings in the ProjectUIDL
-const createHTMLEntryFileChunks = (uidl: ProjectUIDL, options: EntryFileOptions) => {
+const createHTMLEntryFileChunks = (
+  uidl: ProjectUIDL,
+  options: EntryFileOptions
+): Record<string, ChunkDefinition[]> => {
   const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest, customCode } = uidl.globals
 

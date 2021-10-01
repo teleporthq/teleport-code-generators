@@ -39,7 +39,6 @@ const createGatsbyProjectGenerator = () => {
       },
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierJS],
       path: ['src'],
       fileName: 'html',

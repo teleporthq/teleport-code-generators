@@ -2,6 +2,8 @@ import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-generator-html'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import HTMLTemplate from './project-template'
 
 const createHTMLProjectGenerator = () => {
   const generator = createProjectGenerator({
@@ -25,9 +27,27 @@ const createHTMLProjectGenerator = () => {
       path: ['src'],
       importFile: true,
     },
+    entry: {
+      postprocessors: [prettierHTML],
+      fileName: 'index',
+      path: [''],
+      options: {
+        appRootOverride: `<div>Entry file of the project</div>`,
+        customTags: [
+          {
+            tagName: 'link',
+            targetTag: 'head',
+            attributes: [
+              { attributeKey: 'href', attributeValue: './src/style.css' },
+              { attributeKey: 'rel', attributeValue: 'stylesheet' },
+            ],
+          },
+        ],
+      },
+    },
   })
 
   return generator
 }
 
-export { createHTMLProjectGenerator }
+export { createHTMLProjectGenerator, HTMLTemplate }

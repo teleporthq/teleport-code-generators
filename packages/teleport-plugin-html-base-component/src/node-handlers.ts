@@ -163,31 +163,32 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     )
     templatesLookUp[key] = compTag
 
+    const cssPlugin = createCSSPlugin({
+      templateChunkName: 'html-template',
+      declareDependency: 'import',
+      forceScoping: true,
+      chunkName: comp.name,
+    })
+    const result = await cssPlugin({
+      uidl: comp,
+      chunks: [
+        {
+          type: ChunkType.HAST,
+          fileType: FileType.HTML,
+          name: DEFAULT_COMPONENT_CHUNK_NAME,
+          linkAfter: [],
+          content: compTag,
+          meta: {
+            nodesLookup: templatesLookUp,
+          },
+        },
+      ],
+      dependencies,
+      options,
+    })
+
     const chunk = chunks.find((item) => item.name === comp.name)
     if (!chunk) {
-      const cssPlugin = createCSSPlugin({
-        templateChunkName: 'html-template',
-        declareDependency: 'import',
-        forceScoping: true,
-        chunkName: comp.name,
-      })
-      const result = await cssPlugin({
-        uidl: comp,
-        chunks: [
-          {
-            type: ChunkType.HAST,
-            fileType: FileType.HTML,
-            name: DEFAULT_COMPONENT_CHUNK_NAME,
-            linkAfter: [],
-            content: compTag,
-            meta: {
-              nodesLookup: templatesLookUp,
-            },
-          },
-        ],
-        dependencies,
-        options,
-      })
       const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
       chunks.push(styleChunk)
     }
