@@ -227,6 +227,24 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       const refStyle = referencedStyles[styleRef]
       if (refStyle.content.mapType === 'inlined') {
         handleStyles(node, refStyle.content.styles, propDefinitions, stateDefinitions)
+        return
+      }
+
+      if (
+        refStyle.content.mapType === 'component-referenced' &&
+        refStyle.content.content.type === 'dynamic'
+      ) {
+        const dynamicVal = refStyle.content.content.content
+        if (dynamicVal.referenceType === 'prop') {
+          node.content.referencedStyles[styleRef] = {
+            type: 'style-map',
+            content: {
+              mapType: 'component-referenced',
+              content: staticNode(getValueFromReference(dynamicVal.id, propDefinitions)),
+            },
+          }
+          return
+        }
       }
     })
   }

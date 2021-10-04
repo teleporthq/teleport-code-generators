@@ -23,7 +23,7 @@ interface HtmlPlugin {
 type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>) => HtmlPlugin
 
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
-  const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = true } = config || {}
+  const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = false } = config || {}
   let externals: Record<string, ComponentUIDL> = {}
 
   const addExternals = (list?: Record<string, ComponentUIDL>) => {

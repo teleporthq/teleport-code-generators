@@ -3073,6 +3073,21 @@
           "id": "7f96ada3-8798-458a-ab59-3b4f229278f3",
           "defaultValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.",
           "type": "string"
+        },
+        "variant": {
+          "type": "string",
+          "defaultValue": "secondaryButton"
+        }
+      },
+      "styleSetDefinitions": {
+        "secondaryButton": {
+          "type": "reusable-component-style-map",
+          "content": {
+            "background": "red",
+            "width": "auto",
+            "color": "#fff",
+            "border": "1px solid #fff"
+          }
         }
       },
       "node": {
@@ -3080,6 +3095,19 @@
         "content": {
           "elementType": "container",
           "referencedStyles": {
+            "a8908330-41f6-43f2-b76b-8357b49e6656":{
+              "type":"style-map",
+              "content":{
+                "mapType":"component-referenced",
+                "content":{
+                  "type":"dynamic",
+                  "content":{
+                    "referenceType":"prop",
+                    "id":"variant"
+                  }
+                }
+              }
+            },
             "a8908330-41f6-43f2-b76b-8357b49e6657": {
               "type": "style-map",
               "content": {
@@ -3330,8 +3358,7 @@
           "semanticType": "div"
         }
       },
-      "name": "PlaceCard",
-      "styleSetDefinitions": {}
+      "name": "PlaceCard"
     }
   }
 }

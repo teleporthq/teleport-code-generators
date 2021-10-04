@@ -63,6 +63,7 @@ const run = async () => {
       ...packerOptions,
       projectType: ProjectType.HTML,
     })
+    console.info(ProjectType.HTML, '-', result.payload)
 
     /* Styled JSX */
 
