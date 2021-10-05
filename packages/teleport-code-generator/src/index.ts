@@ -14,6 +14,7 @@ import {
   ComponentGenerator,
   ComponentGeneratorInstance,
   ProjectPlugin,
+  HTMLComponentGenerator,
 } from '@teleporthq/teleport-types'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -219,6 +220,12 @@ export const generateComponent: GenerateComponentFunction = async (
   const generator = createComponentGenerator(componentType, styleVariation)
   const projectMapping = componentGeneratorProjectMappings[componentType]
   generator.addMapping(projectMapping as Mapping)
+
+  if (componentType === ComponentType.HTML) {
+    const { moduleComponents } = componentGeneratorOptions
+    ;(generator as HTMLComponentGenerator).addExternalComponents({ externals: moduleComponents })
+  }
+
   return generator.generateComponent(componentUIDL, componentGeneratorOptions)
 }
 

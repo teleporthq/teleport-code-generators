@@ -106,7 +106,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (dependency && dependency?.type === 'local') {
-    const comp = externals[StringUtils.dashCaseToUpperCamelCase(elementType)]
+    const comp = externals[elementType]
 
     if (!comp) {
       throw new HTMLComponentGeneratorError(
@@ -169,6 +169,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       forceScoping: true,
       chunkName: comp.name,
     })
+
     const result = await cssPlugin({
       uidl: comp,
       chunks: [
@@ -302,7 +303,15 @@ const handleAttributes = (
   stateDefinitions: Record<string, UIDLStateDefinition>
 ) => {
   Object.keys(attrs).forEach((attrKey) => {
-    const attrValue = attrs[attrKey]
+    let attrValue = attrs[attrKey]
+
+    if (
+      attrKey === 'href' &&
+      attrValue.type === 'static' &&
+      String(attrValue.content).startsWith('/')
+    ) {
+      attrValue = staticNode(`${attrValue.content}.html`)
+    }
 
     if (attrValue.type === 'dynamic') {
       const value =
