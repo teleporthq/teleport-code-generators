@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-vue-head-config",
-  "version": "0.17.7",
+  "version": "0.18.0",
   "description": "A plugin for generating `<head>` tags inside regular vue components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.17.7",
-    "@teleporthq/teleport-types": "^0.17.7"
+    "@teleporthq/teleport-plugin-common": "^0.18.0",
+    "@teleporthq/teleport-types": "^0.18.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
