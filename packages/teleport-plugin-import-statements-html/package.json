@@ -1,0 +1,31 @@
+{
+  "name": "@teleporthq/teleport-plugin-import-statements-html",
+  "version": "0.17.7",
+  "description": "A plugin for handling import statements in HTML",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "module": "dist/esm/index.js",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-plugin-common": "^0.17.7",
+    "@teleporthq/teleport-types": "^0.17.7",
+    "@teleporthq/teleport-shared": "^0.17.7"
+  }
+}

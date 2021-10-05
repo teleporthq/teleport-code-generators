@@ -48,7 +48,6 @@ const createNextProjectGenerator = () => {
       path: ['pages'],
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierJS],
       path: ['pages'],
       fileName: '_document',

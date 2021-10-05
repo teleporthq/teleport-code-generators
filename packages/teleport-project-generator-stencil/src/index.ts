@@ -52,7 +52,6 @@ const createStencilProjectGenerator = () => {
       fileName: 'app-root',
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       path: ['src'],
       fileName: 'index',

@@ -49,7 +49,6 @@ const createReactProjectGenerator = () => {
       path: ['src'],
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       fileName: 'index',
       path: ['public'],

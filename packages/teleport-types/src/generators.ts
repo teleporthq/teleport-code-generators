@@ -169,6 +169,16 @@ export interface GeneratorFactoryParams {
 
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
 
+export interface HTMLComponentGenerator extends ComponentGenerator {
+  addExternalComponents: (params: {
+    externals: Record<string, ComponentUIDL>
+    skipValidation?: boolean
+  }) => void
+}
+export type HTMLComponentGeneratorInstance = (
+  params?: GeneratorFactoryParams
+) => HTMLComponentGenerator
+
 export interface ProjectStrategy {
   id: string
   style?: StyleVariation
@@ -218,8 +228,6 @@ export interface ProjectStrategy {
     fileName?: string
   }
   entry?: {
-    generator: ComponentGeneratorInstance
-    plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
     path: string[]
@@ -480,6 +488,7 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
+  HTML = 'Html',
 }
 
 export enum ComponentType {
@@ -489,6 +498,7 @@ export enum ComponentType {
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
   REACTNATIVE = 'React-Native',
+  HTML = 'Html',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
@@ -498,6 +508,7 @@ export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null>
   [ComponentType.VUE]: null,
   [ComponentType.STENCIL]: null,
   [ComponentType.ANGULAR]: null,
+  [ComponentType.HTML]: null,
 }
 
 export type StyleVariation =

@@ -13,6 +13,7 @@ import {
   InMemoryFileRecord,
   TeleportError,
   GeneratorFactoryParams,
+  HTMLComponentGenerator,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -40,9 +41,8 @@ import ProjectAssemblyLine from './assembly-line'
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
 export class ProjectGenerator {
-  public componentGenerator: ComponentGenerator
-  public pageGenerator: ComponentGenerator
-  public entryGenerator: ComponentGenerator
+  public componentGenerator: ComponentGenerator | HTMLComponentGenerator
+  public pageGenerator: ComponentGenerator | HTMLComponentGenerator
   public routerGenerator: ComponentGenerator
   public styleSheetGenerator: ComponentGenerator
   private strategy: ProjectStrategy
@@ -177,10 +177,6 @@ export class ProjectGenerator {
         this.pageGenerator = bootstrapGenerator(this.strategy.pages, this.strategy.style)
       }
 
-      if (this.strategy.entry?.generator) {
-        this.entryGenerator = bootstrapGenerator(this.strategy.entry, this.strategy.style)
-      }
-
       if (this.strategy.projectStyleSheet?.generator) {
         this.styleSheetGenerator = bootstrapGenerator(
           this.strategy.projectStyleSheet,
@@ -261,6 +257,13 @@ export class ProjectGenerator {
         }
       }
 
+      if ((this.pageGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+        ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+        })
+      }
+
       const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
@@ -334,6 +337,13 @@ export class ProjectGenerator {
           },
           designLanguage: uidl.root?.designLanguage,
         }
+      }
+
+      if ((this.componentGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+        ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+        })
       }
 
       const componentUIDL = components[componentName]
@@ -464,7 +474,7 @@ export class ProjectGenerator {
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
-      const entryFile = await createEntryFile(uidl, this.strategy, this.entryGenerator, {
+      const entryFile = await createEntryFile(uidl, this.strategy, {
         assetsPrefix,
       })
       inMemoryFilesMap.set('entry', {

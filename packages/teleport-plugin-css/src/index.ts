@@ -90,6 +90,9 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         return
       }
       const root = templateLookup[key]
+      if (!root) {
+        throw new PluginCSS(`Node - ${key} is missing from the template chunk`)
+      }
 
       const elementClassName = StringUtils.camelCaseToDashCase(key)
       const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming

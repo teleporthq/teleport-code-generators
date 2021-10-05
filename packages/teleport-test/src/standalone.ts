@@ -15,6 +15,7 @@ import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-
 import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
+import simpleHTMLJSON from '../../../examples/uidl-samples/simple-html.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -55,6 +56,15 @@ const run = async () => {
     }
 
     let result
+
+    /* Plain Html Generator */
+
+    result = await packProject(simpleHTMLJSON as unknown as ProjectUIDL, {
+      ...packerOptions,
+      projectType: ProjectType.HTML,
+    })
+    console.info(ProjectType.HTML, '-', result.payload)
+
     /* Styled JSX */
 
     result = await packProject(projectUIDL, {
