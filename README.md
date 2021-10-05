@@ -159,6 +159,7 @@ In the docs, you'll find a complete guide on how to [build your custom component
 * `teleport-component-generator-preact` - similar to `react`, with a bunch of styling options
 * `teleport-component-generator-stencil` - (experimental) - generates `.tsx` files and standard `.css` files
 * `teleport-component-generator-react-native` - (experimental)
+* `teleport-component-generator-html` - (experimental)
 * `teleport-component-generator-svelte` - (coming soon)
 
 #### Capabilities
@@ -189,7 +190,7 @@ Check the official guides on [how to use an existing project generator](https://
 * `teleport-project-generator-gridsome`
 * `teleport-project-generator-stencil` (experimental)
 * `teleport-project-generator-react-native` (experimental)
-* `teleport-project-generator-static` (coming soon)
+* `teleport-project-generator-html` (experimental)
 
 #### Capabilities
 Besides the regular files and folders generated at the end of the process, project generators are also taking care of:
