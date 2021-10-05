@@ -1,3 +1,156 @@
+## v0.18.0 (2021-10-05)
+
+#### :earth_asia: Core
+* `teleport-code-generator`, `teleport-component-generator-html`, `teleport-component-generator`, `teleport-plugin-css`, `teleport-plugin-html-base-component`, `teleport-plugin-import-statements-html`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-gridsome`, `teleport-project-generator-html`, `teleport-project-generator-next`, `teleport-project-generator-nuxt`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-stencil`, `teleport-project-generator-vue`, `teleport-project-generator`, `teleport-test`, `teleport-types`
+  * [#539](https://github.com/teleporthq/teleport-code-generators/pull/539) feat(comp-html): HTML Component and Project Generator ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 2
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- murakami ([@MurakamiKennzo](https://github.com/MurakamiKennzo))
+
+
+## v0.17.6 (2021-08-10)
+
+#### :earth_asia: Core
+* `teleport-component-generator-react`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-project-generator-gridsome`, `teleport-project-generator-next`, `teleport-project-generator`
+  * [#596](https://github.com/teleporthq/teleport-code-generators/pull/596) fix(proj-generators): fix for resolving style-sheet from local path ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.17.5 (2021-07-30)
+
+#### :package: Project Packer
+* `teleport-publisher-vercel`
+  * [#593](https://github.com/teleporthq/teleport-code-generators/pull/593) Exposing framework attr from vercel publisher ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.17.2 (2021-07-01)
+
+#### :bug: Bug Fix
+* `teleport-component-generator-angular`, `teleport-component-generator-react`, `teleport-component-generator-stencil`, `teleport-component-generator-vue`, `teleport-component-generator`
+  * [#588](https://github.com/teleporthq/teleport-code-generators/pull/588) fix(esm-build): don't export anything imported from external packages ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.17.1 (2021-06-22)
+
+#### :bug: Bug Fix
+* `teleport-test`, `teleport-uidl-resolver`
+  * [#584](https://github.com/teleporthq/teleport-code-generators/pull/584) fix(resolver): Resolve attrs on buttons and elements with links ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.17.0 (2021-06-18)
+
+#### :rocket: New Features
+* `teleport-plugin-jsx-next-image`, `teleport-project-generator-next`, `teleport-types`
+  * [#575](https://github.com/teleporthq/teleport-code-generators/pull/575) feat(next-image): a JSX plugin to use next/image for loading images efficiently ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :nail_care: Style Flavours
+* `teleport-code-generator`, `teleport-component-generator-angular`, `teleport-component-generator-react`, `teleport-component-generator-stencil`, `teleport-component-generator-vue`, `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-jsx-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-nuxt`, `teleport-project-generator-react`, `teleport-project-generator`, `teleport-project-plugin-gatsby-styled-components`, `teleport-project-plugin-next-css-modules`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#579](https://github.com/teleporthq/teleport-code-generators/pull/579) Component scoped style-sets.  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :earth_asia: Core
+* `teleport-code-generator`, `teleport-component-generator-angular`, `teleport-component-generator-react`, `teleport-component-generator-stencil`, `teleport-component-generator-vue`, `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-jsx-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-nuxt`, `teleport-project-generator-react`, `teleport-project-generator`, `teleport-project-plugin-gatsby-styled-components`, `teleport-project-plugin-next-css-modules`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#579](https://github.com/teleporthq/teleport-code-generators/pull/579) Component scoped style-sets.  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :crystal_ball: UIDL
+* `teleport-code-generator`, `teleport-component-generator-angular`, `teleport-component-generator-react`, `teleport-component-generator-stencil`, `teleport-component-generator-vue`, `teleport-plugin-common`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-jsx-inline-styles`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-plugin-react-styled-jsx`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-nuxt`, `teleport-project-generator-react`, `teleport-project-generator`, `teleport-project-plugin-gatsby-styled-components`, `teleport-project-plugin-next-css-modules`, `teleport-shared`, `teleport-test`, `teleport-types`, `teleport-uidl-builders`, `teleport-uidl-resolver`, `teleport-uidl-validator`
+  * [#579](https://github.com/teleporthq/teleport-code-generators/pull/579) Component scoped style-sets.  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 2
+- Chavda Bhavik ([@chavda-bhavik](https://github.com/chavda-bhavik))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.16.3 (2021-05-10)
+
+#### :crystal_ball: UIDL
+* `teleport-plugin-common`, `teleport-project-generator`, `teleport-types`, `teleport-uidl-validator`
+  * [#564](https://github.com/teleporthq/teleport-code-generators/pull/564) Improve UIDL validation for global assets ([@chavda-bhavik](https://github.com/chavda-bhavik))
+
+#### :fire: Refactoring
+* `teleport-plugin-common`, `teleport-project-generator`, `teleport-types`, `teleport-uidl-validator`
+  * [#564](https://github.com/teleporthq/teleport-code-generators/pull/564) Improve UIDL validation for global assets ([@chavda-bhavik](https://github.com/chavda-bhavik))
+
+#### Committers: 2
+- Chavda Bhavik ([@chavda-bhavik](https://github.com/chavda-bhavik))
+- Eliza Nitoi ([@elizamaria](https://github.com/elizamaria))
+
+
+## v0.16.2 (2021-04-28)
+
+#### :earth_asia: Core
+* `teleport-component-generator`
+  * [#563](https://github.com/teleporthq/teleport-code-generators/pull/563) fix(generator): enable jsec encoding to support special characters in AST to code transformation ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :crystal_ball: UIDL
+* `teleport-component-generator-angular`, `teleport-component-generator-vue`, `teleport-plugin-angular-base-component`, `teleport-plugin-common`, `teleport-plugin-vue-base-component`, `teleport-types`, `teleport-uidl-validator`
+  * [#560](https://github.com/teleporthq/teleport-code-generators/pull/560) (refactor): Extending validations for events in UIDL ([@chavda-bhavik](https://github.com/chavda-bhavik))
+
+#### :fire: Refactoring
+* `teleport-component-generator`
+  * [#563](https://github.com/teleporthq/teleport-code-generators/pull/563) fix(generator): enable jsec encoding to support special characters in AST to code transformation ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 3
+- Chavda Bhavik ([@chavda-bhavik](https://github.com/chavda-bhavik))
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+- Oana Muntean ([@oanamun](https://github.com/oanamun))
+
+
+## v0.16.1 (2021-04-21)
+
+#### :package: Project Packer
+* `teleport-publisher-github`
+  * [#555](https://github.com/teleporthq/teleport-code-generators/pull/555) fix(github-publisher): changing default branch to main instead of master ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :bug: Bug Fix
+* `teleport-plugin-css`
+  * [#558](https://github.com/teleporthq/teleport-code-generators/pull/558) fix(plugin-css): add contents by default for shadow DOM and custom elments based frameworks ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-publisher-github`
+  * [#555](https://github.com/teleporthq/teleport-code-generators/pull/555) fix(github-publisher): changing default branch to main instead of master ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
+## v0.16.0 (2021-02-04)
+
+#### :rocket: New Features
+* `teleport-code-generator`, `teleport-component-generator-angular`, `teleport-component-generator-preact`, `teleport-component-generator-react`, `teleport-component-generator-reactnative`, `teleport-component-generator-stencil`, `teleport-component-generator-vue`, `teleport-component-generator`, `teleport-plugin-react-styled-components`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-gridsome`, `teleport-project-generator-next`, `teleport-project-generator-nuxt`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-reactnative`, `teleport-project-generator-stencil`, `teleport-project-generator-vue`, `teleport-project-generator`, `teleport-project-plugin-gatsby-styled-components`, `teleport-project-plugin-next-css-modules`, `teleport-project-plugin-next-react-jss`, `teleport-project-plugin-next-styled-components`, `teleport-test`, `teleport-types`, `teleport-uidl-resolver`
+  * [#514](https://github.com/teleporthq/teleport-code-generators/pull/514) (feat): Plugins for project-generators  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :nail_care: Style Flavours
+* `teleport-component-generator-react`, `teleport-component-generator`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-plugin-react-jss`, `teleport-plugin-react-styled-components`, `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-next`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-vue`, `teleport-project-generator`, `teleport-test`, `teleport-types`
+  * [#530](https://github.com/teleporthq/teleport-code-generators/pull/530) fix(styles): Fix for importing and handling project-stylesheet if only tokens are used.  ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-component-generator-react`, `teleport-plugin-react-jss`
+  * [#526](https://github.com/teleporthq/teleport-code-generators/pull/526) refactor(react-jss): React JSS will use hooks add styles to nodes. ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :bug: Bug Fix
+* `teleport-component-generator-react`, `teleport-component-generator-vue`, `teleport-plugin-css-modules`, `teleport-plugin-css`, `teleport-uidl-validator`
+  * [#537](https://github.com/teleporthq/teleport-code-generators/pull/537) fix(css): importing global style sheet by default in the root of the project ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-uidl-validator`
+  * [#528](https://github.com/teleporthq/teleport-code-generators/pull/528) fix(validator): Throwing error if the UIDL has 'null' or 'undefined' ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+* `teleport-plugin-css`
+  * [#525](https://github.com/teleporthq/teleport-code-generators/pull/525) fix(plugin-css): Add styles when only token is used to style a element ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### :house: Dev Experience
+* `teleport-project-generator-angular`, `teleport-project-generator-gatsby`, `teleport-project-generator-gridsome`, `teleport-project-generator-next`, `teleport-project-generator-nuxt`, `teleport-project-generator-preact`, `teleport-project-generator-react`, `teleport-project-generator-reactnative`, `teleport-project-generator-stencil`, `teleport-project-generator-vue`, `teleport-project-plugin-gatsby-styled-components`, `teleport-project-plugin-next-css-modules`, `teleport-project-plugin-next-react-jss`, `teleport-project-plugin-next-styled-components`, `teleport-test`, `teleport-types`
+  * [#534](https://github.com/teleporthq/teleport-code-generators/pull/534) feat(proj-plugins): cross-check for project-plugins and project-generators ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+#### Committers: 1
+- Jaya Krishna Namburu ([@JayaKrishnaNamburu](https://github.com/JayaKrishnaNamburu))
+
+
 ## v0.15.0 (2020-12-11)
 
 #### :nail_care: Style Flavours
