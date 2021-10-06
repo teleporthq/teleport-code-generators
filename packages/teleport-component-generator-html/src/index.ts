@@ -21,7 +21,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
 }: GeneratorFactoryParams = {}): HTMLComponentGenerator => {
   const generator = createComponentGenerator()
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
-  const resolver = new Resolver(PlainHTMLMapping)
+  const resolver = new Resolver()
+  resolver.addMapping(PlainHTMLMapping)
 
   Object.defineProperty(generator, 'addExternalComponents', {
     value: (params: { externals: Record<string, ComponentUIDL>; skipValidation?: boolean }) => {
@@ -48,8 +49,9 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
     })
   )
 
-  generator.addMapping(PlainHTMLMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
+  generator.addMapping(PlainHTMLMapping)
+
   plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
 

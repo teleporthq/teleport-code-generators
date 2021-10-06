@@ -12,4 +12,5 @@ export const PlainHTMLMapping: Mapping = {
       },
     },
   },
+  illegalClassNames: [],
 }
