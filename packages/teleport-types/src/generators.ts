@@ -488,7 +488,7 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
-  HTML = 'Html',
+  HTML = 'HTML',
 }
 
 export enum ComponentType {
@@ -498,7 +498,7 @@ export enum ComponentType {
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
   REACTNATIVE = 'React-Native',
-  HTML = 'Html',
+  HTML = 'HTML',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
