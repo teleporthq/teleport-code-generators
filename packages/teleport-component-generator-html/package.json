@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-html",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "Component generator customization, capable of creating plain html",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@teleporthq/teleport-component-generator": "^0.18.1",
     "@teleporthq/teleport-plugin-css": "^0.18.1",
-    "@teleporthq/teleport-plugin-html-base-component": "^0.18.1",
+    "@teleporthq/teleport-plugin-html-base-component": "^0.18.2",
     "@teleporthq/teleport-plugin-import-statements-html": "^0.18.1",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.18.1",
     "@teleporthq/teleport-shared": "^0.18.1",
