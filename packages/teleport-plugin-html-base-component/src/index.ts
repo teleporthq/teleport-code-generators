@@ -9,6 +9,7 @@ import {
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 import { generateHtmlSynatx } from './node-handlers'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface HtmlPluginConfig {
   componentChunkName: string
@@ -47,7 +48,13 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       templatesLookUp,
       propDefinitions,
       stateDefinitions,
-      externals,
+      Object.values(externals).reduce((acc: Record<string, ComponentUIDL>, comp: ComponentUIDL) => {
+        UIDLUtils.setFriendlyOutputOptions(comp)
+        comp.name = StringUtils.removeIllegalCharacters(comp.name) || 'AppComponent'
+        comp.name = UIDLUtils.getComponentClassName(comp)
+        acc[comp.name] = comp
+        return acc
+      }, {}),
       { chunks, dependencies, options }
     )
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)

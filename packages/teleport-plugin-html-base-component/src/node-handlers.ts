@@ -98,7 +98,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     style = {},
     referencedStyles = {},
     dependency,
-    semanticType,
   } = node.content
   const { dependencies, chunks, options } = structure
 
@@ -107,17 +106,11 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (dependency && dependency?.type === 'local') {
-    let compName = elementType
-    let comp = externals[compName]
+    const comp = externals[elementType]
 
     if (!comp) {
-      compName = semanticType === 'AppComponent' ? 'Component' : elementType
-      comp = externals[compName]
-      if (!comp) {
-        throw new HTMLComponentGeneratorError(
-          `${compName} is missing from externals -  ${Object.keys(externals)}`
-        )
-      }
+      throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
+Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
     }
 
     const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
