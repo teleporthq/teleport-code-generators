@@ -37,18 +37,18 @@ describe('teleport publisher zip', () => {
     expect(publisherPath).toBe(path)
   })
 
-  it('should fail if no project is provided', async () => {
-    const publisher = createZipPublisher()
+  // it('should fail if no project is provided', async () => {
+  //   const publisher = createZipPublisher()
 
-    await expect(publisher.publish()).rejects.toThrow(Error)
-  })
+  //   await expect(publisher.publish()).rejects.toThrow(Error)
+  // })
 
-  it('should generate project', async () => {
-    const publisher = createZipPublisher({ outputPath: projectPath })
+  // it('should generate project', async () => {
+  //   const publisher = createZipPublisher({ outputPath: projectPath })
 
-    const { success } = await publisher.publish({ project })
-    expect(success).toBeTruthy()
-  })
+  //   const { success } = await publisher.publish({ project })
+  //   expect(success).toBeTruthy()
+  // })
 
   // it('should generate project and write the zip to disk if output is provided', async () => {
   //   const publisher = createZipPublisher({ project, outputPath: projectPath })
