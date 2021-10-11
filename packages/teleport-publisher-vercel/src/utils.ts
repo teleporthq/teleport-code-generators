@@ -247,7 +247,7 @@ export const makeRequest = async (
   return response
 }
 
-function throwErrorFromVercelResponse(result: any) {
+function throwErrorFromVercelResponse(result: { error: { code: string; message?: string } }) {
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,
