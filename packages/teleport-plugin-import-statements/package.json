@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-import-statements",
-  "version": "0.18.1",
+  "version": "0.19.0",
   "description": "A plugin for handling import statements in JavaScript code",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-common": "^0.18.1",
-    "@teleporthq/teleport-types": "^0.18.1"
+    "@teleporthq/teleport-plugin-common": "^0.19.0",
+    "@teleporthq/teleport-types": "^0.19.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
