@@ -1,6 +1,6 @@
 import { createReactStyledComponentsPlugin } from '../src'
 import { staticNode, elementNode, component } from '@teleporthq/teleport-uidl-builders'
-import { ComponentStructure, PluginStyledComponent } from '@teleporthq/teleport-types'
+import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createComponentChunk } from './mocks'
 
 describe('Component Scoped Styles', () => {
@@ -109,6 +109,6 @@ describe('Component Scoped Styles', () => {
       options: {},
     }
 
-    expect(plugin(structure)).rejects.toThrow(PluginStyledComponent)
+    await expect(plugin(structure)).rejects.toThrow(Error)
   })
 })

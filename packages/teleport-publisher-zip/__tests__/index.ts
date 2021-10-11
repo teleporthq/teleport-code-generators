@@ -1,6 +1,5 @@
 import { join } from 'path'
 import { existsSync, readdirSync, unlinkSync, rmdirSync, statSync } from 'fs'
-import JSZip from 'jszip'
 
 import { createZipPublisher } from '../src'
 import project from './project-files.json'
