@@ -7,7 +7,12 @@ import {
   MissingProjectUIDLError,
   VercelMissingTokenError,
 } from '@teleporthq/teleport-types'
-import { generateProjectFiles, createDeployment, checkDeploymentStatus } from './utils'
+import {
+  generateProjectFiles,
+  createDeployment,
+  checkDeploymentStatus,
+  removeProject,
+} from './utils'
 import { VercelPayload } from './types'
 
 const defaultPublisherParams: VercelPublisherParams = {
@@ -34,9 +39,16 @@ export interface VercelPublisherParams extends PublisherFactoryParams {
   framework?: string
 }
 
+export interface VercelDeleteProject {
+  projectSlug: string
+  accessToken: string
+  teamId?: string
+}
+
 export interface VercelPublisher extends Publisher<VercelPublisherParams, VercelDeployResponse> {
   getAccessToken: () => string
   setAccessToken: (token: string) => void
+  deleteProject: (options?: VercelDeleteProject) => Promise<boolean>
 }
 
 export const createVercelPublisher: PublisherFactory<VercelPublisherParams, VercelPublisher> = (
@@ -53,6 +65,19 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
   const getAccessToken = (): string => accessToken
   const setAccessToken = (token: string) => {
     accessToken = token
+  }
+
+  const deleteProject = async (options?: VercelDeleteProject): Promise<boolean> => {
+    const publishOptions = {
+      ...defaultPublisherParams,
+      ...params,
+      ...options,
+    }
+    return removeProject(
+      publishOptions.accessToken,
+      publishOptions.projectSlug,
+      publishOptions.teamId
+    )
   }
 
   const publish = async (options?: VercelPublisherParams) => {
@@ -111,6 +136,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
 
   return {
     publish,
+    deleteProject,
     getProject,
     setProject,
     getAccessToken,
