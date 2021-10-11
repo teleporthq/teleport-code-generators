@@ -13,7 +13,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
           node-version: "16.x"
 
@@ -28,8 +28,8 @@ jobs:
       - name: Authenticate with Registry
         run: |
           yarn logout
-          echo "@teleporthq:registry=http://registry.npmjs.org/" > .npmrc
-          echo "registry=http://registry.npmjs.org/" >> .npmrc
+          echo "@teleporthq:registry=https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
           npm whoami
         env:
