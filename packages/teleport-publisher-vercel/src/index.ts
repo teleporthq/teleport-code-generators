@@ -6,6 +6,7 @@ import {
   VercelDeployResponse,
   MissingProjectUIDLError,
   VercelMissingTokenError,
+  VercelDeleteProject,
 } from '@teleporthq/teleport-types'
 import {
   generateProjectFiles,
@@ -37,12 +38,6 @@ export interface VercelPublisherParams extends PublisherFactoryParams {
   alias?: string[]
   individualUpload?: boolean
   framework?: string
-}
-
-export interface VercelDeleteProject {
-  projectSlug: string
-  accessToken: string
-  teamId?: string
 }
 
 export interface VercelPublisher extends Publisher<VercelPublisherParams, VercelDeployResponse> {
