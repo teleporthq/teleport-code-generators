@@ -364,6 +364,12 @@ export interface VercelDeployResponse {
   alias: string[]
 }
 
+export interface VercelDeleteProject {
+  projectSlug: string
+  accessToken: string
+  teamId?: string
+}
+
 /**
  * Interfaces used in the packers
  */

@@ -3,21 +3,16 @@ import {
   GeneratedFolder,
   VercelDeployResponse,
   VercelServerError,
-  VercelInvalidTokenError,
-  VercelUnexpectedError,
   VercelDeploymentError,
   VercelDeploymentTimeoutError,
-  VercelRateLimiterError,
-  VercelProjectTooBigError,
   GeneratedFile,
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
 const CREATE_DEPLOY_URL = 'https://api.vercel.com/v12/now/deployments'
+const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
 const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/now/files'
 const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v11/now/deployments/get?url='
-
-type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
 
 export const generateProjectFiles = async (
   project: GeneratedFolder,
@@ -156,29 +151,43 @@ export const createDeployment = async (
     body: JSON.stringify(payload),
   })
 
-  if (response.status >= 500) {
-    throw new VercelServerError()
-  }
-
   const result = await response.json()
   if (result.error) {
-    switch (result.error.code) {
-      case 'forbidden':
-        throw new VercelInvalidTokenError()
-      // TODO: needs validation / checking
-      case 'rate_limited':
-        throw new VercelRateLimiterError()
-      case 'payload_too_large':
-        throw new VercelProjectTooBigError()
-      default:
-        throw new VercelUnexpectedError(result.error)
-    }
+    throwErrorFromVercelResponse(result)
   }
 
   return {
     url: result.url,
     alias: result.alias,
   }
+}
+
+export const removeProject = async (
+  token: string,
+  projectSlug: string,
+  teamId?: string
+): Promise<boolean> => {
+  const vercelDeployURL = teamId
+    ? `${DELETE_PROJECT_URL}/${projectSlug}?teamId=${teamId}`
+    : `${DELETE_PROJECT_URL}/${projectSlug}`
+
+  const response = await fetch(vercelDeployURL, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (response.status === 204) {
+    return true
+  }
+
+  const result = await response.json()
+  if (result.error) {
+    throwErrorFromVercelResponse(result)
+  }
+
+  return false
 }
 
 export const checkDeploymentStatus = async (deploymentURL: string) => {
@@ -188,13 +197,20 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
     const clearHook = setInterval(async () => {
       retries = retries - 1
 
-      const readyState = await checkDeploymentReady(deploymentURL)
-      if (readyState === 'READY') {
+      const vercelUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+      const result = await fetch(vercelUrl)
+      const response = await result.json()
+
+      if (response.error) {
+        throwErrorFromVercelResponse(response)
+      }
+
+      if (response.readyState === 'READY') {
         clearInterval(clearHook)
         return resolve()
       }
 
-      if (readyState === 'ERROR') {
+      if (response.readyState === 'ERROR') {
         clearInterval(clearHook)
         reject(new VercelDeploymentError())
       }
@@ -205,22 +221,6 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
       }
     }, 5000)
   })
-}
-
-export const checkDeploymentReady = async (deploymentURL: string): Promise<DeploymentStatus> => {
-  try {
-    const vercelUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
-    const result = await fetch(vercelUrl)
-    const jsonResult = await result.json()
-    if (jsonResult.readyState) {
-      return jsonResult.readyState
-    } else {
-      return 'ERROR'
-    }
-  } catch (err) {
-    console.warn(err)
-    return 'ERROR'
-  }
 }
 
 export const makeRequest = async (
@@ -239,9 +239,19 @@ export const makeRequest = async (
     body: content,
   })
 
-  if (response.status >= 500) {
-    throw new VercelServerError()
+  if (response.status !== 200) {
+    const result = await response.json()
+    throwErrorFromVercelResponse(result)
   }
 
   return response
+}
+
+function throwErrorFromVercelResponse(result: { error: { code: string; message?: string } }) {
+  // https://vercel.com/docs/rest-api#api-basics/errors
+  // message fields are designed to be neutral,
+  // not contain sensitive information,
+  // and can be safely passed down to user interfaces
+  const message = result.error.message ? result.error.message : result.error.code
+  throw new Error(message)
 }
