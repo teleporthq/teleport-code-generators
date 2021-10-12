@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-disk",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "Project disk publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.19.0",
+    "@teleporthq/teleport-types": "^0.19.1",
     "cross-fetch": "^3.0.4",
     "path-browserify": "^1.0.1"
   },
