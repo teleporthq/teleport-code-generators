@@ -17,7 +17,8 @@ const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v11/now/deployments/get?ur
 export const generateProjectFiles = async (
   project: GeneratedFolder,
   token: string,
-  individualUpload: boolean
+  individualUpload: boolean,
+  teamId?: string
 ): Promise<VercelFile[]> => {
   return destructureProjectFiles(
     {
@@ -25,14 +26,16 @@ export const generateProjectFiles = async (
       ignoreFolder: true,
     },
     token,
-    individualUpload
+    individualUpload,
+    teamId
   )
 }
 
 const destructureProjectFiles = async (
   folderInfo: ProjectFolderInfo,
   token: string,
-  individualUpload: boolean
+  individualUpload: boolean,
+  teamId?: string
 ): Promise<VercelFile[]> => {
   const { folder, prefix = '', files = [], ignoreFolder = false } = folderInfo
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
@@ -43,7 +46,7 @@ const destructureProjectFiles = async (
       : `${folderToPutFileTo}${file.name}`
 
     if (individualUpload) {
-      const { digest, fileSize } = await uploadFile(file, token)
+      const { digest, fileSize } = await uploadFile(file, token, teamId)
       const vercelFile: VercelFile = {
         file: fileName,
         sha: digest,
@@ -69,7 +72,8 @@ const destructureProjectFiles = async (
         prefix: folderToPutFileTo,
       },
       token,
-      individualUpload
+      individualUpload,
+      teamId
     )
   }
 
@@ -78,7 +82,8 @@ const destructureProjectFiles = async (
 
 const uploadFile = async (
   file: GeneratedFile,
-  token: string
+  token: string,
+  teamId?: string
 ): Promise<{ digest: string; fileSize: number; result: unknown }> => {
   // @ts-ignore
   const module: typeof import('./browser') = await import('#builtins').then((mod) => mod)
@@ -88,7 +93,7 @@ const uploadFile = async (
     const image = getImageBufferFromase64(file.content)
     const { hash } = await getSHA(image)
 
-    const uploadResponse = await makeRequest(token, hash, image, true)
+    const uploadResponse = await makeRequest(token, hash, image, true, teamId)
     const uploadResponseResult = await uploadResponse.json()
 
     return {
@@ -102,7 +107,7 @@ const uploadFile = async (
     const image = await getImageBufferFromRemoteUrl(file.content)
     const { hash: digest } = await getSHA(image)
 
-    const uploadResponse = await makeRequest(token, digest, image, true)
+    const uploadResponse = await makeRequest(token, digest, image, true, teamId)
     if (uploadResponse.status >= 500) {
       throw new VercelServerError()
     }
@@ -120,7 +125,7 @@ const uploadFile = async (
   const fileData = enc.encode(file.content)
   const { hash: shaHash, hashLength } = await getSHA(fileData)
 
-  const response = await makeRequest(token, shaHash, file.content)
+  const response = await makeRequest(token, shaHash, file.content, false, teamId)
 
   if (response.status >= 500) {
     throw new VercelServerError()
@@ -227,9 +232,12 @@ export const makeRequest = async (
   token: string,
   stringSHA: string,
   content: string | Buffer | ArrayBuffer,
-  isBuffer = false
+  isBuffer = false,
+  teamId?: string
 ) => {
-  const response = await fetch(UPLOAD_FILES_URL, {
+  const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
+
+  const response = await fetch(vercelUploadFilesURL, {
     method: 'POST',
     headers: {
       ...(isBuffer && { 'Content-Type': 'application/octet-stream' }),
