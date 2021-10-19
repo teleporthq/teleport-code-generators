@@ -24,9 +24,11 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
+    "node-html-parser":"^5.0.0",
     "@teleporthq/teleport-component-generator": "^0.19.1",
     "@teleporthq/teleport-component-generator-html": "^0.19.1",
     "@teleporthq/teleport-plugin-css": "^0.19.1",
-    "@teleporthq/teleport-project-generator": "^0.19.1"
+    "@teleporthq/teleport-project-generator": "^0.19.1",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.19.1"
   }
 }

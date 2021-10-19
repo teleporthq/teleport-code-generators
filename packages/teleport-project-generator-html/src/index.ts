@@ -4,8 +4,11 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import HTMLTemplate from './project-template'
+import { pluginHtmlGenerators } from './utils'
 
-const createHTMLProjectGenerator = () => {
+const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) => {
+  const { individualEntyFile } = config || { individualEntyFile: true }
+
   const generator = createProjectGenerator({
     id: 'teleport-project-html',
     components: {
@@ -31,21 +34,12 @@ const createHTMLProjectGenerator = () => {
       postprocessors: [prettierHTML],
       fileName: 'index',
       path: [''],
-      options: {
-        appRootOverride: `<div>Entry file of the project</div>`,
-        customTags: [
-          {
-            tagName: 'link',
-            targetTag: 'head',
-            attributes: [
-              { attributeKey: 'href', attributeValue: './src/style.css' },
-              { attributeKey: 'rel', attributeValue: 'stylesheet' },
-            ],
-          },
-        ],
-      },
     },
   })
+
+  if (individualEntyFile) {
+    generator.addPlugin(pluginHtmlGenerators)
+  }
 
   return generator
 }
