@@ -8,12 +8,23 @@ import {
   UIDLStateDefinition,
   UIDLStyleDefinitions,
 } from '@teleporthq/teleport-types'
+const { parse, join, relative, isAbsolute } = PathResolver
 
 class ProjectPluginImageResolution implements ProjectPlugin {
+  private relativePath: string
+
   async runBefore(structure: ProjectPluginStructure) {
-    const { uidl } = structure
+    const { uidl, strategy } = structure
+    const assetsPath = join(strategy.id, strategy.static.path.join('/'))
+    const pagesPath = join(strategy.id, strategy.pages.path.join('/'))
+    this.relativePath = relative(pagesPath, assetsPath)
 
     UIDLUtils.traverseElements(uidl.root.node, this.imageResolver)
+    Object.values(uidl?.root?.styleSetDefinitions || {}).forEach((styleSet) => {
+      this.resolveFromStyles(styleSet.content)
+    })
+
+    this.relativePath = relative(join(strategy.id, strategy.components.path.join('/')), assetsPath)
 
     Object.values(uidl.components || {}).forEach((component) => {
       UIDLUtils.traverseElements(component.node, this.imageResolver)
@@ -24,9 +35,6 @@ class ProjectPluginImageResolution implements ProjectPlugin {
       this.resolvePropsAndStates(component.propDefinitions)
     })
 
-    Object.values(uidl?.root?.styleSetDefinitions || {}).forEach((styleSet) => {
-      this.resolveFromStyles(styleSet.content)
-    })
     return structure
   }
 
@@ -44,11 +52,11 @@ class ProjectPluginImageResolution implements ProjectPlugin {
         propValue.type === 'string' &&
         propValue?.defaultValue &&
         typeof propValue?.defaultValue === 'string' &&
-        PathResolver.parse(propValue?.defaultValue as string).dir.startsWith('/')
+        parse(propValue?.defaultValue as string).dir.startsWith('/')
       ) {
         defs[propKey] = {
           ...defs[propKey],
-          defaultValue: PathResolver.join('../../public', propValue.defaultValue),
+          defaultValue: join(this.relativePath, propValue.defaultValue),
         }
       }
     })
@@ -67,8 +75,8 @@ class ProjectPluginImageResolution implements ProjectPlugin {
       const regex = /(?:\(['"]?)(.*?)(?:['"]?\))/
       const matches = regex.exec(bgImage)
 
-      if (matches && matches?.length > 0 && PathResolver.isAbsolute(matches[1])) {
-        style.backgroundImage.content = `url("${PathResolver.join('../../public', matches[1])}")`
+      if (matches && matches?.length > 0 && isAbsolute(matches[1])) {
+        style.backgroundImage.content = `url("${join(this.relativePath, matches[1])}")`
       }
     }
   }
@@ -86,10 +94,10 @@ class ProjectPluginImageResolution implements ProjectPlugin {
       element?.elementType === 'image' &&
       element.attrs?.src?.type === 'static' &&
       typeof element.attrs.src.content === 'string' &&
-      PathResolver.isAbsolute(element.attrs.src.content) &&
+      isAbsolute(element.attrs.src.content) &&
       !element.attrs.src.content.startsWith('http')
     ) {
-      element.attrs.src.content = PathResolver.join('../../public', element.attrs.src.content)
+      element.attrs.src.content = join(this.relativePath, element.attrs.src.content)
     }
 
     if (element.elementType === 'component') {
@@ -100,9 +108,9 @@ class ProjectPluginImageResolution implements ProjectPlugin {
           typeof attrValue.content === 'string' &&
           !attrValue.content.startsWith('http')
         ) {
-          const resolvedPath = PathResolver.parse(attrValue.content)
+          const resolvedPath = parse(attrValue.content)
           if (resolvedPath.dir.startsWith('/')) {
-            element.attrs[attrKey].content = PathResolver.join('../../public', attrValue.content)
+            element.attrs[attrKey].content = join(this.relativePath, attrValue.content)
           }
         }
       })
@@ -110,4 +118,4 @@ class ProjectPluginImageResolution implements ProjectPlugin {
   }
 }
 
-export const pluginImageResolution = Object.freeze(new ProjectPluginImageResolution())
+export const pluginImageResolution = new ProjectPluginImageResolution()

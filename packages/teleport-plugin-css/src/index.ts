@@ -86,9 +86,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       const dynamicVariantsToAppend: Set<string> = new Set()
       const { style = {}, key, referencedStyles = {} } = element
 
-      if (!style && !referencedStyles) {
+      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
       }
+
       const root = templateLookup[key]
       if (!root) {
         throw new PluginCSS(`Node - ${key} is missing from the template chunk`)

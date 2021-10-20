@@ -93,24 +93,23 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   const {
     elementType,
     children,
-    key,
     attrs = {},
     style = {},
     referencedStyles = {},
     dependency,
+    key,
   } = node.content
-  const { dependencies, chunks, options } = structure
+  const elementNode = HASTBuilders.createHTMLNode(elementType)
+  templatesLookUp[key] = elementNode
 
-  if (dependency && dependency?.type !== 'local') {
-    dependencies[dependency.path] = dependency
-  }
+  const { dependencies, chunks, options } = structure
 
   if (dependency && dependency?.type === 'local') {
     const comp = externals[elementType]
 
     if (!comp) {
       throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
-Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
+  Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
     }
 
     const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
@@ -147,15 +146,15 @@ Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
       {}
     )
 
+    const lookupTemplate: Record<string, unknown> = {}
     const compTag = await generateHtmlSynatx(
       comp.node,
-      templatesLookUp,
+      lookupTemplate,
       propsForInstance,
       statesForInstance,
       externals,
       structure
     )
-    templatesLookUp[key] = compTag
 
     const cssPlugin = createCSSPlugin({
       templateChunkName: 'html-template',
@@ -174,7 +173,7 @@ Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
           linkAfter: [],
           content: compTag,
           meta: {
-            nodesLookup: templatesLookUp,
+            nodesLookup: lookupTemplate,
           },
         },
       ],
@@ -191,8 +190,9 @@ Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
     return compTag
   }
 
-  const elementNode = HASTBuilders.createHTMLNode(elementType)
-  templatesLookUp[key] = elementNode
+  if (dependency && dependency?.type !== 'local') {
+    dependencies[dependency.path] = dependency
+  }
 
   if (children) {
     for (const child of children) {
@@ -302,7 +302,8 @@ const handleAttributes = (
     if (
       attrKey === 'href' &&
       attrValue.type === 'static' &&
-      String(attrValue.content).startsWith('/')
+      String(attrValue.content).startsWith('/') &&
+      String(attrValue.content).length > 1
     ) {
       attrValue = staticNode(`${attrValue.content}.html`)
     }
