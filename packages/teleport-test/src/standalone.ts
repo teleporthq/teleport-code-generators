@@ -41,7 +41,7 @@ const packerOptions: PackerOptions = {
       contentEncoding: 'base64',
     },
     {
-      content: 'https://placekitten.com/500/300',
+      content: 'https://placekitten.com/800/400',
       name: 'kitten.png',
       location: 'remote',
     },

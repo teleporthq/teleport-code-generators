@@ -11,10 +11,7 @@ export default {
     "dependencies": {
         "parcel-bundler": "^1.6.1"
     },
-    "scripts": {
-        "start": "parcel index.html --open",
-        "build": "parcel build index.html"
-    }
+    "scripts": {}
   }`,
       fileType: 'json',
     },

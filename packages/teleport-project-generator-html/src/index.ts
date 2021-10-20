@@ -4,7 +4,8 @@ import { createComponentGenerator } from '@teleporthq/teleport-component-generat
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import HTMLTemplate from './project-template'
-import { pluginHtmlGenerators } from './utils'
+import { pluginCloneGlobals } from './plugin-clone-globals'
+import { pluginImageResolution } from './plugin-image-resolution'
 
 const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) => {
   const { individualEntyFile } = config || { individualEntyFile: true }
@@ -37,8 +38,9 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
     },
   })
 
+  generator.addPlugin(pluginImageResolution)
   if (individualEntyFile) {
-    generator.addPlugin(pluginHtmlGenerators)
+    generator.addPlugin(pluginCloneGlobals)
   }
 
   return generator

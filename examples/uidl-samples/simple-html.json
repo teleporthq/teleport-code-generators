@@ -449,7 +449,7 @@
                           },
                           "backgroundImage": {
                             "type": "static",
-                            "content": "url(\"https://images.unsplash.com/photo-1484627147104-f5197bcd6651?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1000\")"
+                            "content": "url(\"/playground_assets/kitten.png\")"
                           },
                           "backgroundPosition": {
                             "type": "static",
@@ -1305,6 +1305,15 @@
                           {
                             "type": "element",
                             "content": {
+                              "elementType": "image",
+                              "attrs": {
+                                "src": "/playground_assets/kitten.png"
+                              }
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
                               "elementType": "text",
                               "referencedStyles": {},
                               "abilities": {},
@@ -1435,7 +1444,7 @@
                                       },
                                       "image": {
                                         "type": "static",
-                                        "content": "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&h=1000"
+                                        "content": "/playground_assets/kitten.png"
                                       }
                                     },
                                     "children": [],
@@ -3083,7 +3092,6 @@
         "secondaryButton": {
           "type": "reusable-component-style-map",
           "content": {
-            "background": "red",
             "width": "auto",
             "color": "#fff",
             "border": "1px solid #fff"
