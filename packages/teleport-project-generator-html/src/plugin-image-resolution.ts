@@ -50,7 +50,6 @@ class ProjectPluginImageResolution implements ProjectPlugin {
 
       if (
         propValue.type === 'string' &&
-        propValue?.defaultValue &&
         typeof propValue?.defaultValue === 'string' &&
         parse(propValue?.defaultValue as string).dir.startsWith('/')
       ) {

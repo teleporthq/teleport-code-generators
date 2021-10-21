@@ -89,7 +89,18 @@ describe('Image Resolution project-plugin', () => {
       files,
       dependencies: {},
       template: ProjectTemplate,
-      strategy: {} as ProjectStrategy,
+      strategy: {
+        id: 'teleport-project-html',
+        pages: {
+          path: ['src', 'pages'],
+        },
+        components: {
+          path: ['src', 'components'],
+        },
+        static: {
+          path: ['public'],
+        },
+      } as ProjectStrategy,
       devDependencies: {},
       rootFolder: UIDLUtils.cloneObject(ProjectTemplate),
     }
