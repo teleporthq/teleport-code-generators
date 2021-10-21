@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-vue",
-  "version": "0.19.1",
+  "version": "0.19.4",
   "description": "Component generator customization, capable of creating Vue components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.19.1",
-    "@teleporthq/teleport-plugin-css": "^0.19.1",
+    "@teleporthq/teleport-component-generator": "^0.19.4",
+    "@teleporthq/teleport-plugin-css": "^0.19.4",
     "@teleporthq/teleport-plugin-import-statements": "^0.19.1",
     "@teleporthq/teleport-plugin-vue-app-routing": "^0.19.1",
     "@teleporthq/teleport-plugin-vue-base-component": "^0.19.1",

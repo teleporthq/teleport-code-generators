@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-html-base-component",
-  "version": "0.19.1",
+  "version": "0.19.4",
   "description": "A plugin for handling the skeleton/baseline of a base html component",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-plugin-common": "^0.19.1",
-    "@teleporthq/teleport-plugin-css": "^0.19.1",
+    "@teleporthq/teleport-plugin-css": "^0.19.4",
     "@teleporthq/teleport-shared": "^0.19.1",
     "@teleporthq/teleport-types": "^0.19.1",
     "@teleporthq/teleport-uidl-builders": "^0.19.1"
