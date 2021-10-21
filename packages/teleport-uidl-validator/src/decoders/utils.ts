@@ -12,6 +12,7 @@ import {
   lazy,
   oneOf,
   intersection,
+  withDefault,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -359,7 +360,7 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   type: constant('url'),
   content: object({
     url: union(attributeValueDecoder, string()),
-    newTab: boolean(),
+    newTab: withDefault(false, boolean()),
   }),
 })
 

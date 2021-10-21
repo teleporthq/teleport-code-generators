@@ -7,7 +7,7 @@ import {
 import { parse, HTMLElement } from 'node-html-parser'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 
-class ProjectPluginHTMLGeneratprs implements ProjectPlugin {
+class ProjectPluginCloneGlobals implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     return structure
   }
@@ -51,4 +51,4 @@ class ProjectPluginHTMLGeneratprs implements ProjectPlugin {
   }
 }
 
-export const pluginHtmlGenerators = Object.freeze(new ProjectPluginHTMLGeneratprs())
+export const pluginCloneGlobals = Object.freeze(new ProjectPluginCloneGlobals())
