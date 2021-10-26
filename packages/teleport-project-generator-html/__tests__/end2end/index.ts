@@ -9,7 +9,6 @@ describe('Html Project Generator', () => {
 
   it('runs without crasing', async () => {
     const { name, files, subFolders } = await generator.generateProject(uidlSample, HTMLTemplate)
-    // const pages = subFolders[0]?.subFolders.find((folder) => folder.name === 'pages')
     const aboutPage = subFolders[0]?.files.find(
       (page) => page.name === 'about' && page.fileType === FileType.HTML
     )
@@ -35,7 +34,6 @@ describe('Html Project Generator', () => {
       uidlSample,
       HTMLTemplate
     )
-    // const pages = subFolders[0]?.subFolders.find((folder) => folder.name === 'pages')
     const aboutPage = subFolders[0]?.files.find(
       (page) => page.name === 'about' && page.fileType === FileType.HTML
     )
