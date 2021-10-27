@@ -25,12 +25,12 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
 
     if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
       const head = result.querySelector('head')
-      head.appendChild(new HTMLElement('link', {}, 'rel="stylesheet" href="../style.css"', result))
+      head.appendChild(new HTMLElement('link', {}, 'rel="stylesheet" href="./style.css"', result))
     }
 
     files.forEach((fileId, key) => {
       const { path } = fileId
-      if (path.includes('pages')) {
+      if (path[0] === '') {
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
           if (file.fileType === FileType.HTML) {
             body.innerHTML = file.content

@@ -14,11 +14,11 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
     id: 'teleport-project-html',
     components: {
       generator: createHTMLComponentGenerator,
-      path: ['src', 'components'],
+      path: ['components'],
     },
     pages: {
       generator: createHTMLComponentGenerator,
-      path: ['src', 'pages'],
+      path: [''],
     },
     static: {
       prefix: '',
@@ -28,7 +28,7 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
       generator: createComponentGenerator,
       plugins: [createStyleSheetPlugin()],
       fileName: 'style',
-      path: ['src'],
+      path: [''],
       importFile: true,
     },
     entry: {
