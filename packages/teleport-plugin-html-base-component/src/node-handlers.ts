@@ -279,7 +279,7 @@ const handleStyles = (
 ) => {
   Object.keys(styles).forEach((styleKey) => {
     let style: string | UIDLStyleValue = styles[styleKey]
-    if (style.type === 'dynamic') {
+    if (style.type === 'dynamic' && style.content?.referenceType !== 'token') {
       if (style.content.referenceType === 'prop') {
         style = getValueFromReference(style.content.id, propDefinitions)
       } else if (style.content.referenceType === 'state') {
