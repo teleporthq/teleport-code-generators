@@ -127,7 +127,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
 
     // Makes requests to the deployment URL until the deployment is ready
-    await checkDeploymentStatus(deploymentResult.url)
+    await checkDeploymentStatus(deploymentResult.url, teamId)
 
     // If productionAlias is empty, the deploymentURL is the fallback
     // TODO: return all links from vercel

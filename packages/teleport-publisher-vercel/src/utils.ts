@@ -195,14 +195,16 @@ export const removeProject = async (
   return false
 }
 
-export const checkDeploymentStatus = async (deploymentURL: string) => {
+export const checkDeploymentStatus = async (deploymentURL: string, teamId?: string) => {
   await new Promise<void>((resolve, reject) => {
     let retries = 60
 
     const clearHook = setInterval(async () => {
       retries = retries - 1
 
-      const vercelUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+      const vercelUrl = teamId
+        ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
+        : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
       const result = await fetch(vercelUrl)
       const response = await result.json()
 
