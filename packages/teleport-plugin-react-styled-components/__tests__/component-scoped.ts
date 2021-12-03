@@ -45,13 +45,6 @@ describe('Component Scoped Styles', () => {
   it(`Generates Component-scoped style sheet and adds to the node`, async () => {
     const plugin = createReactStyledComponentsPlugin()
     uidl.node.content.referencedStyles = {
-      '12345678': {
-        type: 'style-map',
-        content: {
-          mapType: 'component-referenced',
-          content: staticNode('md-8'),
-        },
-      },
       '1415161718': {
         type: 'style-map',
         content: {

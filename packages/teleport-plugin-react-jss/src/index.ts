@@ -128,7 +128,13 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.add(types.identifier(`'${classContent.content}'`))
+                classNamesToAppend.add(
+                  types.memberExpression(
+                    types.identifier(styleObjectImportName),
+                    types.identifier(`'${classContent.content}'`),
+                    true
+                  )
+                )
                 return
               }
 

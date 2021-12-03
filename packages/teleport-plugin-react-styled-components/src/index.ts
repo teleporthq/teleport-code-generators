@@ -39,7 +39,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     importChunkName = 'import-local',
     componentLibrary = 'react',
     illegalComponentNames = [],
-    classAttributeName = 'className',
   } = config || {}
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
@@ -79,7 +78,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
       const propsReferred: Set<string> = new Set()
       const componentStyleReferences: Set<string> = new Set()
       const projectStyleReferences: Set<string> = new Set()
-      const staticClasses: Set<types.Identifier> = new Set()
 
       if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
@@ -175,16 +173,19 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
             case 'component-referenced': {
               if (componentStyleReferences.size > 0) {
-                throw new PluginStyledComponent(`Styled Component can have only one reference per node.
-i.e either a direct static reference from component style sheet or from props. Got both. ${JSON.stringify(
-                  Array.from(componentStyleReferences),
-                  null,
-                  2
-                )}`)
+                throw new PluginStyledComponent(
+                  `Styled Components can have only one component-reference. Recevied more than one \n
+                  ${JSON.stringify(referencedStyles, null, 2)}`
+                )
               }
 
               if (styleRef.content.content.type === 'static') {
-                staticClasses.add(types.identifier(`'${styleRef.content.content.content}'`))
+                componentStyleReferences.add(componentVariantPropPrefix)
+                ASTUtils.addAttributeToJSXTag(
+                  root,
+                  componentVariantPropKey,
+                  styleRef.content.content.content
+                )
               }
 
               if (
@@ -254,14 +255,6 @@ i.e either a direct static reference from component style sheet or from props. G
 
       if (propsReferred.size > 0) {
         ASTUtils.addSpreadAttributeToJSXTag(root, propsPrefix)
-      }
-
-      if (staticClasses.size > 0) {
-        ASTUtils.addMultipleDynamicAttributesToJSXTag(
-          root,
-          classAttributeName,
-          Array.from(staticClasses)
-        )
       }
 
       ASTUtils.renameJSXTag(root, className)

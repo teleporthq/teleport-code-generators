@@ -180,7 +180,13 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.add(types.identifier(`'${String(classContent.content)}'`))
+                classNamesToAppend.add(
+                  types.memberExpression(
+                    types.identifier(styleObjectImportName),
+                    types.identifier(`'${String(classContent.content)}'`),
+                    true
+                  )
+                )
                 return
               }
 
