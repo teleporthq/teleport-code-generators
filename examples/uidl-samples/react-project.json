@@ -878,16 +878,6 @@
                       "elementType": "li",
                       "name": "home-link",
                       "referencedStyles": {
-                        "12345678": {
-                          "type": "style-map",
-                          "content": {
-                            "mapType": "component-referenced",
-                            "content": {
-                              "type": "static",
-                              "content": "md-8"
-                            }
-                          }
-                        },
                         "1415161718":{
                           "type":"style-map",
                           "content":{
@@ -941,6 +931,16 @@
                               "color": { "type": "static", "content": "red"},
                               "border-bottom": "3px solid red",
                               "padding-bottom": "7px"
+                            }
+                          }
+                        },
+                        "12345678": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "component-referenced",
+                            "content": {
+                              "type": "static",
+                              "content": "md-8"
                             }
                           }
                         }
