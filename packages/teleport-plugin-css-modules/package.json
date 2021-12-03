@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-css-modules",
-  "version": "0.19.1",
+  "version": "0.19.7",
   "description": "A plugin for handling the styles as a separate css-module file for JSX based components",
   "author": "teleportHQ",
   "license": "MIT",
