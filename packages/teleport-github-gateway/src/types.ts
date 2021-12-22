@@ -24,6 +24,21 @@ export interface GithubCommitMeta {
   commitMessage?: string
 }
 
+export interface RepositoryCommitMeta {
+  repo: string
+  owner: string
+  ref: string
+}
+
+export interface RepositoryCommitsListMeta {
+  repo: string
+  owner: string
+  perPage?: number
+  page?: number
+  sha?: string
+  path?: string
+}
+
 export interface RepositoryContentResponse {
   data: GithubFile | GithubFile[]
   status: number
@@ -39,6 +54,7 @@ export interface GithubFile {
   git_url?: string
   sha?: string
   size?: number
+  status?: string
 }
 
 export interface GithubFileMeta {

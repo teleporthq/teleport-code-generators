@@ -20,6 +20,7 @@ export const generateProjectFiles = (folderInfo: ProjectFolderInfo): GithubFile[
     const githubFile: GithubFile = {
       name: fileName,
       content: file.content,
+      status: file.status,
     }
 
     if (file.contentEncoding) {
