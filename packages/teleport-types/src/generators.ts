@@ -338,6 +338,7 @@ export interface GeneratedFile {
   contentEncoding?: FileEncoding
   fileType?: string
   location?: FileLocation
+  status?: string
 }
 
 /**
