@@ -9,6 +9,8 @@ import {
   GithubFile,
   NewRepository,
   GithubCommitMeta,
+  RepositoryCommitsListMeta,
+  RepositoryCommitMeta,
 } from './types'
 
 export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
@@ -41,6 +43,21 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return githubInstance.commitFilesToRepo(commitMeta)
   }
 
+  const getRepositoryCommits = async (meta: RepositoryCommitsListMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.getRepositoryCommits(meta)
+  }
+
+  const getRepositoryBranches = async (owner: string, repo: string, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.getRepositoryBranches(owner, repo)
+  }
+
+  const getCommitData = async (meta: RepositoryCommitMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.getCommitData(meta)
+  }
+
   const authorizeGithubInstance = (authData?: ServiceAuth): void => {
     if (!authData) {
       return
@@ -52,8 +69,11 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     getRepository,
     getUserRepositories,
     createRepository,
+    getRepositoryCommits,
+    getRepositoryBranches,
     commitFilesToRepo,
+    getCommitData,
   }
 }
 
-export { GithubFile, RepositoryIdentity, GithubCommitMeta }
+export { GithubFile, RepositoryIdentity, GithubCommitMeta, RepositoryCommitMeta }
