@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-import-statements-html",
-  "version": "0.19.1",
+  "version": "0.19.8",
   "description": "A plugin for handling import statements in HTML",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-common": "^0.19.1",
-    "@teleporthq/teleport-shared": "^0.19.1",
-    "@teleporthq/teleport-types": "^0.19.1"
+    "@teleporthq/teleport-plugin-common": "^0.19.8",
+    "@teleporthq/teleport-shared": "^0.19.8",
+    "@teleporthq/teleport-types": "^0.19.8"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-next",
-  "version": "0.19.7",
+  "version": "0.19.8",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,17 +25,17 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-component-generator": "^0.19.4",
-    "@teleporthq/teleport-component-generator-react": "^0.19.7",
-    "@teleporthq/teleport-plugin-common": "^0.19.1",
-    "@teleporthq/teleport-plugin-css": "^0.19.4",
-    "@teleporthq/teleport-plugin-import-statements": "^0.19.1",
-    "@teleporthq/teleport-plugin-jsx-head-config": "^0.19.1",
-    "@teleporthq/teleport-plugin-jsx-next-image": "^0.19.1",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.19.1",
-    "@teleporthq/teleport-project-generator": "^0.19.4",
-    "@teleporthq/teleport-shared": "^0.19.1",
-    "@teleporthq/teleport-types": "^0.19.1"
+    "@teleporthq/teleport-component-generator": "^0.19.8",
+    "@teleporthq/teleport-component-generator-react": "^0.19.8",
+    "@teleporthq/teleport-plugin-common": "^0.19.8",
+    "@teleporthq/teleport-plugin-css": "^0.19.8",
+    "@teleporthq/teleport-plugin-import-statements": "^0.19.8",
+    "@teleporthq/teleport-plugin-jsx-head-config": "^0.19.8",
+    "@teleporthq/teleport-plugin-jsx-next-image": "^0.19.8",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.19.8",
+    "@teleporthq/teleport-project-generator": "^0.19.8",
+    "@teleporthq/teleport-shared": "^0.19.8",
+    "@teleporthq/teleport-types": "^0.19.8"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

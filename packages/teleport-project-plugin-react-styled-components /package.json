@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-react-styled-components",
-  "version": "0.19.7",
+  "version": "0.19.8",
   "description": "A plugin for generating a react project using styled-components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,9 +24,9 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.19.1",
-    "@teleporthq/teleport-plugin-react-app-routing": "^0.19.1",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.19.7",
-    "@teleporthq/teleport-types": "^0.19.1"
+    "@teleporthq/teleport-plugin-import-statements": "^0.19.8",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.19.8",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.19.8",
+    "@teleporthq/teleport-types": "^0.19.8"
   }
 }
