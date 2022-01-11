@@ -1,3 +1,4 @@
+/* tslint:disable no-any */
 import { ServiceAuth, GeneratedFolder, FileEncoding } from '@teleporthq/teleport-types'
 import GithubInstance from './github-instance'
 
