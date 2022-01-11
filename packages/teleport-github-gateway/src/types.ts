@@ -8,6 +8,10 @@ export interface GithubGateway {
   getUserRepositories: (username: string, auth?: ServiceAuth) => Promise<GithubRepositoryData[]>
   commitFilesToRepo: (commitMeta: GithubCommitMeta, auth?: ServiceAuth) => Promise<string>
   createRepository: (repository: NewRepository, auth?: ServiceAuth) => Promise<GithubRepositoryData>
+  getRepositoryCommits: (meta: RepositoryCommitsListMeta, authData: ServiceAuth) => Promise<any>
+  getRepositoryBranches: (owner: string, repo: string, authData: ServiceAuth) => Promise<any>
+  getCommitData: (meta: RepositoryCommitMeta, authData: ServiceAuth) => Promise<any>
+  authorizeGithubInstance: (authData?: ServiceAuth) => void
 }
 
 export interface RepositoryIdentity {
