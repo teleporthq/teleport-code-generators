@@ -73,6 +73,7 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     getRepositoryBranches,
     commitFilesToRepo,
     getCommitData,
+    authorizeGithubInstance,
   }
 }
 
