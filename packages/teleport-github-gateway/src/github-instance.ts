@@ -22,6 +22,7 @@ import {
   GithubFile,
   RepositoryCommitsListMeta,
   RepositoryCommitMeta,
+  CreateBranchMeta,
 } from './types'
 import { createBase64GithubFileBlob } from './utils'
 
@@ -63,6 +64,16 @@ export default class GithubInstance {
     const user = await this.githubApi.getUser(username)
     const { data } = await user.listRepos()
     return data
+  }
+
+  public async createBranch(meta: CreateBranchMeta) {
+    const { repo, owner, sourceBranch, newBranch } = meta
+    const repository = await this.githubApi.getRepo(owner, repo)
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    return repository.createBranch(sourceBranch, newBranch)
   }
 
   public async createRepository(repository: NewRepository): Promise<GithubRepositoryData> {
