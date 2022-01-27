@@ -19,23 +19,47 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
       return structure
     }
 
-    const result = parse(entryFile.files[0].content)
-    const body = result.querySelector('body')
+    const parsedEntryFile = parse(entryFile.files[0].content)
+    const body = parsedEntryFile.querySelector('body')
+    const head = parsedEntryFile.querySelector('head')
+    /* script tags are injected using customCode field of UIDL */
+    const scriptTags = body.querySelectorAll('script')
+
     body.childNodes = []
 
     if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
-      const head = result.querySelector('head')
-      head.appendChild(new HTMLElement('link', {}, 'rel="stylesheet" href="./style.css"', result))
+      head.appendChild(
+        new HTMLElement('link', {}, 'rel="stylesheet" href="./style.css"', parsedEntryFile)
+      )
     }
 
     files.forEach((fileId, key) => {
       const { path } = fileId
       if (path[0] === '') {
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
-          if (file.fileType === FileType.HTML) {
-            body.innerHTML = file.content
+          if (file.fileType === FileType.HTML && file.name !== entryFile.files[0].name) {
+            const parsedIndividualFile = parse(file.content)
+            const metaTags = parsedIndividualFile.getElementsByTagName('meta')
+            const titleTags = parsedIndividualFile.getElementsByTagName('title')
+
+            metaTags.forEach((metaTag) => {
+              head.childNodes.unshift(metaTag)
+              metaTag.remove()
+            })
+            titleTags.forEach((titleTag) => {
+              const inheritedHeadTags = head.getElementsByTagName('title')
+              if (inheritedHeadTags.length > 0) {
+                head.removeChild(head.getElementsByTagName('title')[0])
+              }
+              head.childNodes.unshift(titleTag)
+              titleTag.remove()
+            })
+
+            body.appendChild(parsedIndividualFile)
+            body.childNodes.push(...scriptTags)
+
             const prettyFile = prettierHTML({
-              [FileType.HTML]: result.toString(),
+              [FileType.HTML]: parsedEntryFile.toString(),
             })
 
             return { name: file.name, content: prettyFile[FileType.HTML], fileType: FileType.HTML }

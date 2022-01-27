@@ -9,7 +9,7 @@ import {
 import { element, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import ProjectTemplate from '../src/project-template'
-import { pluginImageResolution } from '../src/plugin-image-resolution'
+import { pluginImageResolver } from '../src/plugin-image-resolution'
 
 describe('Image Resolution project-plugin', () => {
   const files = new Map<string, InMemoryFileRecord>()
@@ -105,7 +105,7 @@ describe('Image Resolution project-plugin', () => {
       rootFolder: UIDLUtils.cloneObject(ProjectTemplate),
     }
 
-    const result = await pluginImageResolution.runBefore(structrue)
+    const result = await pluginImageResolver.runBefore(structrue)
     const { uidl } = result
     const rootNode = uidl.root.node.content
 
