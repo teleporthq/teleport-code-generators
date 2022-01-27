@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-code-generator",
-  "version": "0.19.10",
+  "version": "0.19.11",
   "description": "A standalone version of the teleport ecosystem with all the project and component generators installed",
   "author": "teleportHQ",
   "license": "MIT",
@@ -33,7 +33,7 @@
     "@teleporthq/teleport-project-generator-angular": "^0.19.8",
     "@teleporthq/teleport-project-generator-gatsby": "^0.19.8",
     "@teleporthq/teleport-project-generator-gridsome": "^0.19.8",
-    "@teleporthq/teleport-project-generator-html": "^0.19.8",
+    "@teleporthq/teleport-project-generator-html": "^0.19.11",
     "@teleporthq/teleport-project-generator-next": "^0.19.8",
     "@teleporthq/teleport-project-generator-nuxt": "^0.19.8",
     "@teleporthq/teleport-project-generator-preact": "^0.19.8",
