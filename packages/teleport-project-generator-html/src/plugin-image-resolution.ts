@@ -10,7 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 const { parse, join, relative, isAbsolute } = PathResolver
 
-class ProjectPluginImageResolution implements ProjectPlugin {
+class ProjectPluginImageResolver implements ProjectPlugin {
   private relativePath: string
 
   async runBefore(structure: ProjectPluginStructure) {
@@ -117,4 +117,4 @@ class ProjectPluginImageResolution implements ProjectPlugin {
   }
 }
 
-export const pluginImageResolution = new ProjectPluginImageResolution()
+export const pluginImageResolver = new ProjectPluginImageResolver()
