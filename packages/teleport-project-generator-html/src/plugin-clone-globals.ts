@@ -37,7 +37,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
       const { path } = fileId
       if (path[0] === '') {
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
-          if (file.fileType === FileType.HTML && file.name !== entryFile.files[0].name) {
+          if (file.fileType === FileType.HTML) {
             const parsedIndividualFile = parse(file.content)
             const metaTags = parsedIndividualFile.getElementsByTagName('meta')
             const titleTags = parsedIndividualFile.getElementsByTagName('title')
@@ -55,7 +55,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
               titleTag.remove()
             })
 
-            body.appendChild(parsedIndividualFile)
+            body.innerHTML = parsedIndividualFile.toString()
             body.childNodes.push(...scriptTags)
 
             const prettyFile = prettierHTML({
