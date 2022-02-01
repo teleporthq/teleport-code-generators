@@ -9,10 +9,10 @@ import {
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
-const CREATE_DEPLOY_URL = 'https://api.vercel.com/v12/now/deployments'
+const CREATE_DEPLOY_URL = 'https://api.vercel.com/v13/deployments'
 const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
-const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/now/files'
-const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v11/now/deployments/get?url='
+const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/files'
+const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v13/deployments/get?url='
 
 export const generateProjectFiles = async (
   project: GeneratedFolder,
