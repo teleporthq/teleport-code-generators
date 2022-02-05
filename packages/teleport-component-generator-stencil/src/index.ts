@@ -3,15 +3,13 @@ import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
 import { createPrettierJSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-js'
 
-import {
-  createComponentGenerator,
-  GeneratorFactoryParams,
-} from '@teleporthq/teleport-component-generator'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 import {
   ComponentGenerator,
   FileType,
   ComponentGeneratorInstance,
+  GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
 
 import { StencilMapping } from './stencil-mapping'
@@ -28,6 +26,7 @@ const createStencilComponentGenerator: ComponentGeneratorInstance = ({
     declareDependency: 'decorator',
     templateStyle: 'jsx',
     templateChunkName: 'jsx-component',
+    dynamicVariantPrefix: 'this',
   })
   const prettierJS = createPrettierJSPostProcessor({ fileType: FileType.TSX })
 

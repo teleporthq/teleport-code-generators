@@ -6,8 +6,14 @@ import {
   VercelDeployResponse,
   MissingProjectUIDLError,
   VercelMissingTokenError,
+  VercelDeleteProject,
 } from '@teleporthq/teleport-types'
-import { generateProjectFiles, createDeployment, checkDeploymentStatus } from './utils'
+import {
+  generateProjectFiles,
+  createDeployment,
+  checkDeploymentStatus,
+  removeProject,
+} from './utils'
 import { VercelPayload } from './types'
 
 const defaultPublisherParams: VercelPublisherParams = {
@@ -18,6 +24,7 @@ const defaultPublisherParams: VercelPublisherParams = {
   target: 'production',
   alias: [],
   individualUpload: false,
+  framework: 'nextjs',
 }
 
 export interface VercelPublisherParams extends PublisherFactoryParams {
@@ -30,17 +37,20 @@ export interface VercelPublisherParams extends PublisherFactoryParams {
   target?: string
   alias?: string[]
   individualUpload?: boolean
+  framework?: string
 }
 
 export interface VercelPublisher extends Publisher<VercelPublisherParams, VercelDeployResponse> {
   getAccessToken: () => string
   setAccessToken: (token: string) => void
+  deleteProject: (options?: VercelDeleteProject) => Promise<boolean>
 }
 
 export const createVercelPublisher: PublisherFactory<VercelPublisherParams, VercelPublisher> = (
-  params: VercelPublisherParams = defaultPublisherParams
+  params: VercelPublisherParams
 ): VercelPublisher => {
-  let { project, accessToken } = params
+  let { project, accessToken } = { ...defaultPublisherParams, ...(params && params) }
+  const { framework } = { ...defaultPublisherParams, ...(params && params) }
 
   const getProject = (): GeneratedFolder => project
   const setProject = (projectToSet: GeneratedFolder): void => {
@@ -52,6 +62,19 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     accessToken = token
   }
 
+  const deleteProject = async (options?: VercelDeleteProject): Promise<boolean> => {
+    const publishOptions = {
+      ...defaultPublisherParams,
+      ...params,
+      ...options,
+    }
+    return removeProject(
+      publishOptions.accessToken,
+      publishOptions.projectSlug,
+      publishOptions.teamId
+    )
+  }
+
   const publish = async (options?: VercelPublisherParams) => {
     const publishOptions = {
       ...defaultPublisherParams,
@@ -59,7 +82,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       ...options,
     }
 
-    const projectToPublish = options.project || project
+    const projectToPublish = options?.project || project
     if (!projectToPublish) {
       throw new MissingProjectUIDLError()
     }
@@ -80,7 +103,12 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       throw new VercelMissingTokenError()
     }
 
-    const files = await generateProjectFiles(projectToPublish, vercelAccessToken, individualUpload)
+    const files = await generateProjectFiles(
+      projectToPublish,
+      vercelAccessToken,
+      individualUpload,
+      teamId
+    )
 
     const vercelPayload: VercelPayload = {
       files,
@@ -88,6 +116,9 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
       version,
       public: publicDeploy,
       target,
+      projectSettings: {
+        framework: publishOptions?.framework || framework,
+      },
     }
 
     vercelPayload.alias =
@@ -96,7 +127,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
 
     // Makes requests to the deployment URL until the deployment is ready
-    await checkDeploymentStatus(deploymentResult.url)
+    await checkDeploymentStatus(deploymentResult.url, teamId)
 
     // If productionAlias is empty, the deploymentURL is the fallback
     // TODO: return all links from vercel
@@ -105,6 +136,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
 
   return {
     publish,
+    deleteProject,
     getProject,
     setProject,
     getAccessToken,

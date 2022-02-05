@@ -8,18 +8,14 @@ import {
 } from '@teleporthq/teleport-types'
 
 export const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-  '5ecfa1233b8e50f60ea2b64d': {
-    id: '5ecfa1233b8e50f60ea2b64d',
-    name: 'primaryButton',
+  primaryButton: {
     type: 'reusable-project-style-map',
     content: {
       background: staticNode('blue'),
       color: staticNode('red'),
     },
   },
-  '5ecfa1233b8e50f60ea2b64b': {
-    id: '5ecfa1233b8e50f60ea2b64b',
-    name: 'secondaryButton',
+  secondaryButton: {
     type: 'reusable-project-style-map',
     content: {
       background: staticNode('red'),
@@ -28,23 +24,47 @@ export const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
   },
 }
 
-export const setUpStructureWithHASTChunk = () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'template',
-    meta: {
-      nodesLookup: {
-        container: {
-          type: 'element',
-          tagName: 'div',
-          properties: {},
+export const setUpJSXComponentChunk = (): ChunkDefinition => ({
+  name: 'jsx-component',
+  meta: {
+    nodesLookup: {
+      container: {
+        openingElement: {
+          name: {
+            name: '',
+          },
+          attributes: [],
         },
       },
     },
-    fileType: FileType.HTML,
-    type: ChunkType.HAST,
-    linkAfter: [],
-    content: {},
-  }
+    dynamicRefPrefix: {
+      prop: 'props.',
+    },
+  },
+  type: ChunkType.AST,
+  fileType: FileType.TSX,
+  linkAfter: ['import-local'],
+  content: {},
+})
+
+export const setUpHASTChunk = (): ChunkDefinition => ({
+  name: 'template',
+  meta: {
+    nodesLookup: {
+      container: {
+        type: 'element',
+        tagName: 'div',
+        properties: {},
+      },
+    },
+  },
+  fileType: FileType.HTML,
+  type: ChunkType.HAST,
+  linkAfter: [],
+  content: {},
+})
+
+export const setUpStructureWithHASTChunk = () => {
   const style = {
     display: staticNode('display'),
   }
@@ -53,7 +73,7 @@ export const setUpStructureWithHASTChunk = () => {
   const structure: ComponentStructure = {
     uidl: uidlSample,
     options: {},
-    chunks: [componentChunk],
+    chunks: [setUpHASTChunk()],
     dependencies: {},
   }
   return structure

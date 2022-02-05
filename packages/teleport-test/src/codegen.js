@@ -2,7 +2,7 @@ import { packProject, generateComponent } from '@teleporthq/teleport-code-genera
 
 const service = {
   packProject,
-  generateComponent
+  generateComponent,
 }
 
 export default service

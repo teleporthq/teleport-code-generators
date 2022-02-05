@@ -58,7 +58,7 @@ export default class Validator {
 
   public validateComponentContent(input: ComponentUIDL): ValidationResult {
     const errorsInDefinitions = utils.checkDynamicDefinitions(
-      (input as unknown) as Record<string, unknown>
+      input as unknown as Record<string, unknown>
     )
     const errorsWithLocalVariables = utils.checkForLocalVariables(input)
 

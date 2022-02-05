@@ -1,5 +1,6 @@
 // @ts-ignore
 import Github from 'github-api'
+import fetch from 'cross-fetch'
 
 import { ServiceAuth } from '@teleporthq/teleport-types'
 
@@ -19,6 +20,9 @@ import {
   GithubCommitMeta,
   RepositoryIdentity,
   GithubFile,
+  RepositoryCommitsListMeta,
+  RepositoryCommitMeta,
+  CreateBranchMeta,
 } from './types'
 import { createBase64GithubFileBlob } from './utils'
 
@@ -62,6 +66,16 @@ export default class GithubInstance {
     return data
   }
 
+  public async createBranch(meta: CreateBranchMeta) {
+    const { repo, owner, sourceBranch, newBranch } = meta
+    const repository = await this.githubApi.getRepo(owner, repo)
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    return repository.createBranch(sourceBranch, newBranch)
+  }
+
   public async createRepository(repository: NewRepository): Promise<GithubRepositoryData> {
     const { username, meta } = repository
     const user = await this.githubApi.getUser(username)
@@ -73,6 +87,51 @@ export default class GithubInstance {
 
     const { data } = await user.createRepo(meta)
     return data
+  }
+
+  public async getRepositoryCommits(meta: RepositoryCommitsListMeta) {
+    const { owner, repo } = meta
+    const repository = await this.githubApi.getRepo(owner, repo)
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    const params = {
+      ...meta,
+      per_page: meta.perPage ?? undefined,
+    }
+
+    return repository.listCommits(params)
+  }
+
+  public async getCommitData(meta: RepositoryCommitMeta) {
+    const { owner, repo, ref } = meta
+    const repository = await this.githubApi.getRepo(owner, repo)
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    const commitDetails = await repository.getSingleCommit(ref)
+
+    const fileContentPromises = commitDetails.data.files.map(async (file: { raw_url: string }) => {
+      const response = await fetch(file.raw_url)
+      return response.text()
+    })
+    const fileContents = await Promise.all(fileContentPromises)
+
+    commitDetails.data.files.forEach((file: { content?: string }, index: number) => {
+      file.content = fileContents[index] as string
+    })
+
+    return commitDetails
+  }
+
+  public async getRepositoryBranches(owner: string, repo: string) {
+    const repository = await this.githubApi.getRepo(owner, repo)
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+    return repository.listBranches()
   }
 
   public async commitFilesToRepo(commitMeta: GithubCommitMeta): Promise<string> {
@@ -171,7 +230,7 @@ export default class GithubInstance {
         : await repo.createBlob(file.content)
 
     return {
-      sha: data.sha,
+      sha: file.status === 'deleted' ? null : data.sha,
       path: file.name,
       mode: '100644',
       type: 'blob',

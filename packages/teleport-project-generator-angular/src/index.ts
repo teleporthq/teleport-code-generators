@@ -5,7 +5,7 @@ import {
   AngularMapping,
 } from '@teleporthq/teleport-component-generator-angular'
 import { createPrettierTSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-ts'
-import { createPrettierHTMLPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-html'
+import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
 import { Mapping, FileType } from '@teleporthq/teleport-types'
@@ -73,8 +73,7 @@ const createAngularProjectGenerator = () => {
       fileName: 'app.module',
     },
     entry: {
-      generator: createComponentGenerator,
-      postprocessors: [createPrettierHTMLPostProcessor()],
+      postprocessors: [prettierHTML],
       path: ['src'],
       fileName: 'index',
       options: {

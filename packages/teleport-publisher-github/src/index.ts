@@ -13,7 +13,7 @@ import {
 import { publishToGithub, generateProjectFiles } from './utils'
 import { GithubFactoryParams, GithubPublisher, GithubPublishMeta } from './types'
 
-export const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublisher> = (
+const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublisher> = (
   params: GithubFactoryParams = {}
 ): GithubPublisher => {
   const { authMeta } = params
@@ -123,3 +123,5 @@ export const createGithubPublisher: PublisherFactory<GithubFactoryParams, Github
     publish,
   }
 }
+
+export { createGithubPublisher, GithubFactoryParams, GithubPublishMeta, GithubPublisher }

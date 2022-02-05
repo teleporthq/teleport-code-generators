@@ -33,7 +33,6 @@ const createNuxtProjectGenerator = () => {
       },
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       fileName: 'app',
       path: [],

@@ -17,6 +17,7 @@ const createNextProjectGenerator = () => {
     configTagIdentifier: 'Head',
     configTagDependencyPath: 'next/head',
     isExternalPackage: false,
+    isDefaultImport: true,
   })
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'style',
@@ -47,7 +48,6 @@ const createNextProjectGenerator = () => {
       path: ['pages'],
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierJS],
       path: ['pages'],
       fileName: '_document',

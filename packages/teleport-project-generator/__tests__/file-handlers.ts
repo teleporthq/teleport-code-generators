@@ -2,7 +2,6 @@ import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../s
 import { PackageJSON } from '../src/types'
 import { GeneratedFolder, ProjectUIDL, FileType } from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createStrategyWithCommonGenerator } from './mocks'
 
 import uidlSample from '../../../examples/test-samples/project-sample.json'
@@ -14,9 +13,8 @@ describe('createHtmlIndexFile', () => {
       appRootOverride: '{{root-placeholder}}',
     }
     const [entryFile] = await createEntryFile(
-      (uidlSample as unknown) as ProjectUIDL,
+      uidlSample as unknown as ProjectUIDL,
       createStrategyWithCommonGenerator(),
-      createComponentGenerator(),
       options
     )
 
@@ -28,7 +26,7 @@ describe('createHtmlIndexFile', () => {
 describe('createManifestJSONFile', () => {
   it('returns manifest file with prefixed assets', () => {
     const assetsPrefix = 'playground'
-    const result = createManifestJSONFile((uidlSample as unknown) as ProjectUIDL, assetsPrefix)
+    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL, assetsPrefix)
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
@@ -36,7 +34,7 @@ describe('createManifestJSONFile', () => {
   })
 
   it('returns manifest file with no prefixed assets', () => {
-    const result = createManifestJSONFile((uidlSample as unknown) as ProjectUIDL)
+    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL)
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')

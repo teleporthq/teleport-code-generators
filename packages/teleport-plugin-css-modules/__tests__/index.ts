@@ -35,13 +35,12 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe('styles.container')
+    expect(classNameAttr.value.expression.object.name).toBe('styles')
+    expect(classNameAttr.value.expression.property.name).toBe(`'container'`)
   })
 
   it('generates a string chunk out of the styles and adds the className between brackets', async () => {
-    const plugin = createCSSModulesPlugin({
-      camelCaseClassNames: true,
-    })
+    const plugin = createCSSModulesPlugin()
     const structure = setupPluginStructure('list-container')
     const { chunks } = await plugin(structure)
 
@@ -55,25 +54,8 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe('styles.listContainer')
-  })
-
-  it('generates a string chunk out of the styles and adds the className in camel case', async () => {
-    const plugin = createCSSModulesPlugin({ camelCaseClassNames: false })
-    const structure = setupPluginStructure('list-container')
-    const { chunks } = await plugin(structure)
-
-    expect(chunks.length).toBe(2)
-    expect(chunks[1].type).toBe('string')
-    expect(chunks[1].fileType).toBe(FileType.CSS)
-    expect(chunks[1].content).toContain('height: 100px;')
-
-    const nodeReference = chunks[0].meta.nodesLookup['list-container']
-    expect(nodeReference.openingElement.attributes.length).toBe(1)
-
-    const classNameAttr = nodeReference.openingElement.attributes[0]
-    expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
+    expect(classNameAttr.value.expression.object.name).toBe('styles')
+    expect(classNameAttr.value.expression.property.name).toBe(`'list-container'`)
   })
 
   it('generates a string chunk out of the styles and adds the class attribute', async () => {
@@ -91,7 +73,9 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[0]
     expect(classNameAttr.name.name).toBe('class')
-    expect(classNameAttr.value.expression.name).toBe("styles['list-container']")
+
+    expect(classNameAttr.value.expression.object.name).toBe('styles')
+    expect(classNameAttr.value.expression.property.name).toBe("'list-container'")
   })
 
   it('generates a string chunk of type CSS', async () => {
@@ -148,7 +132,9 @@ describe('plugin-css-modules', () => {
 
     const classNameAttr = nodeReference.openingElement.attributes[1]
     expect(classNameAttr.name.name).toBe('className')
-    expect(classNameAttr.value.expression.name).toBe('styles.container')
+
+    expect(classNameAttr.value.expression.object.name).toBe('styles')
+    expect(classNameAttr.value.expression.property.name).toBe(`'container'`)
 
     const styleAttr = nodeReference.openingElement.attributes[0]
     expect(styleAttr.name.name).toBe('style')
@@ -178,7 +164,6 @@ describe('plugin-css-modules', () => {
 
     structure.uidl.node.content.referencedStyles = {
       '5ecfb3b6f2be3a6e09ff4ad3': {
-        id: '5ecfb3b6f2be3a6e09ff4ad3',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -189,7 +174,6 @@ describe('plugin-css-modules', () => {
         },
       },
       '5ecfb3b6f2be3a6e09ff4ad4': {
-        id: '5ecfb3b6f2be3a6e09ff4ad4',
         type: 'style-map',
         content: {
           mapType: 'inlined',
@@ -215,9 +199,7 @@ describe('plugin-css-modules', () => {
 
     structure.options.projectStyleSet = {
       styleSetDefinitions: {
-        '5ecfb5c3ce6b220ce8d154a2': {
-          id: '5ecfb5c3ce6b220ce8d154a2',
-          name: 'primaryButton',
+        primaryButton: {
           type: 'reusable-project-style-map',
           content: {
             background: {
@@ -233,11 +215,10 @@ describe('plugin-css-modules', () => {
 
     structure.uidl.node.content.referencedStyles = {
       '5ecfb3b6f2be3a6e09ff4ad3': {
-        id: '5ecfb3b6f2be3a6e09ff4ad3',
         type: 'style-map',
         content: {
           mapType: 'project-referenced',
-          referenceId: '5ecfb5c3ce6b220ce8d154a2',
+          referenceId: 'primaryButton',
         },
       },
     }

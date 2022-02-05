@@ -24,6 +24,8 @@ import {
   UIDLStyleSetMediaCondition,
   UIDLStyleSetStateCondition,
   UIDLStyleSetTokenReference,
+  UIDLElementNodeCompReferencedStyle,
+  UIDLCompDynamicReference,
 } from './uidl'
 
 type Modify<T, R> = Omit<T, keyof R> & R
@@ -74,7 +76,9 @@ export type VUIDLElement = Modify<
     attrs?: Record<string, UIDLAttributeValue | string | number>
     referencedStyles: Record<
       string,
-      UIDLElementNodeProjectReferencedStyle | VUIDLElementNodeInlineReferencedStyle
+      | UIDLElementNodeProjectReferencedStyle
+      | VUIDLElementNodeInlineReferencedStyle
+      | VUIDLElementNodeClassReferencedStyle
     >
   }
 >
@@ -86,6 +90,16 @@ export type VUIDLElementNodeInlineReferencedStyle = Modify<
       mapType: 'inlined'
       conditions: UIDLStyleConditions[]
       styles: Record<string, UIDLAttributeValue | string | number>
+    }
+  }
+>
+
+export type VUIDLElementNodeClassReferencedStyle = Modify<
+  UIDLElementNodeCompReferencedStyle,
+  {
+    content: {
+      mapType: 'component-referenced'
+      content: string | UIDLStaticValue | UIDLCompDynamicReference
     }
   }
 >
@@ -111,10 +125,7 @@ export type VRootComponentUIDL = Modify<
   }
 >
 
-export type VComponentUIDL = Omit<
-  VRootComponentUIDL,
-  'peerDefinitions' | 'styleSetDefinitions' | 'designLanguage'
->
+export type VComponentUIDL = Omit<VRootComponentUIDL, 'peerDefinitions' | 'designLanguage'>
 
 export type VProjectUIDL = Modify<
   ProjectUIDL,

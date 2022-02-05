@@ -1,7 +1,5 @@
-import PathResolver from 'path'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
-import { resolveStyleSetDefinitions } from '@teleporthq/teleport-uidl-resolver'
 import {
   GeneratorOptions,
   GeneratedFolder,
@@ -15,6 +13,7 @@ import {
   InMemoryFileRecord,
   TeleportError,
   GeneratorFactoryParams,
+  HTMLComponentGenerator,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -24,6 +23,7 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
+  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -41,9 +41,8 @@ import ProjectAssemblyLine from './assembly-line'
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
 export class ProjectGenerator {
-  public componentGenerator: ComponentGenerator
-  public pageGenerator: ComponentGenerator
-  public entryGenerator: ComponentGenerator
+  public componentGenerator: ComponentGenerator | HTMLComponentGenerator
+  public pageGenerator: ComponentGenerator | HTMLComponentGenerator
   public routerGenerator: ComponentGenerator
   public styleSheetGenerator: ComponentGenerator
   private strategy: ProjectStrategy
@@ -148,13 +147,6 @@ export class ProjectGenerator {
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
 
-    /* Style sets contains only on project level. So passing them through componentcycle
-    just resolves for that component alone and don't have any impact for other components.
-    So, resolving happens here and is passed to all components. */
-    if (uidl.root?.styleSetDefinitions) {
-      uidl.root.styleSetDefinitions = resolveStyleSetDefinitions(uidl.root.styleSetDefinitions)
-    }
-
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
@@ -183,10 +175,6 @@ export class ProjectGenerator {
 
       if (this.strategy.pages?.generator) {
         this.pageGenerator = bootstrapGenerator(this.strategy.pages, this.strategy.style)
-      }
-
-      if (this.strategy.entry?.generator) {
-        this.entryGenerator = bootstrapGenerator(this.strategy.entry, this.strategy.style)
       }
 
       if (this.strategy.projectStyleSheet?.generator) {
@@ -237,12 +225,10 @@ export class ProjectGenerator {
       const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
       })
-
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,
         files,
       })
-
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
@@ -255,30 +241,27 @@ export class ProjectGenerator {
       }
 
       let pageOptions = options
-      const pagesPath = this.strategy.pages.path
       if (this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet =
-          PathResolver.relative(
-            /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-            this.strategy.pages.options?.createFolderForEachComponent
-              ? [...pagesPath, pageUIDL.name].join('/')
-              : pagesPath.join('/'),
-            this.strategy.projectStyleSheet.path.join('/')
-          ) || '.'
-        /* If relative path resolver returns empty string, then both the files are in the same
-        folder. */
-
         pageOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: relativePathForProjectStyleSheet,
+            path: generateLocalDependenciesPrefix(
+              this.strategy.pages.path,
+              this.strategy.projectStyleSheet.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
         }
+      }
+
+      if ((this.pageGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+        ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+        })
       }
 
       const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
@@ -341,29 +324,26 @@ export class ProjectGenerator {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const relativePathForProjectStyleSheet =
-          PathResolver.relative(
-            /* When each page is created inside a another folder then we just need to 
-          add one more element to the path resolver to maintian the hierarcy */
-            this.strategy.components.options?.createFolderForEachComponent
-              ? [...this.strategy.components.path, componentName].join('/')
-              : this.strategy.components.path.join('/'),
-            this.strategy.projectStyleSheet.path.join('/')
-          ) || '.'
-
-        /* If relative path resolver returns empty string, then both the files are in the same
-        folder. */
-
         componentOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: relativePathForProjectStyleSheet,
+            path: generateLocalDependenciesPrefix(
+              this.strategy.components.path,
+              this.strategy.projectStyleSheet.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
         }
+      }
+
+      if ((this.componentGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+        ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+        })
       }
 
       const componentUIDL = components[componentName]
@@ -428,11 +408,10 @@ export class ProjectGenerator {
           fileName,
           fileType,
           globalStyles: {
-            path:
-              PathResolver.relative(
-                framework.config.path.join('/'),
-                this.strategy.projectStyleSheet.path.join('/')
-              ) || '.',
+            path: generateLocalDependenciesPrefix(
+              framework.config.path,
+              this.strategy.projectStyleSheet.path
+            ),
             sheetName: this.strategy.projectStyleSheet
               ? this.strategy.projectStyleSheet.fileName
               : '',
@@ -495,7 +474,7 @@ export class ProjectGenerator {
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
-      const entryFile = await createEntryFile(uidl, this.strategy, this.entryGenerator, {
+      const entryFile = await createEntryFile(uidl, this.strategy, {
         assetsPrefix,
       })
       inMemoryFilesMap.set('entry', {

@@ -75,24 +75,6 @@ export class VercelMissingTokenError extends TeleportError {
   }
 }
 
-export class VercelInvalidTokenError extends TeleportError {
-  constructor() {
-    super('The vercel token you have provided is invalid')
-  }
-}
-
-export class VercelProjectTooBigError extends TeleportError {
-  constructor() {
-    super('Project size exceeds 6MB, the maximum allowed for a vercel deploy')
-  }
-}
-
-export class VercelRateLimiterError extends TeleportError {
-  constructor() {
-    super('Too many requests to vercel. Please try again later')
-  }
-}
-
 export class VercelDeploymentError extends TeleportError {
   constructor() {
     super('The vercel deployment returned an ERROR status')
@@ -102,12 +84,6 @@ export class VercelDeploymentError extends TeleportError {
 export class VercelDeploymentTimeoutError extends TeleportError {
   constructor() {
     super('Vercel deployment timed out')
-  }
-}
-
-export class VercelUnexpectedError extends TeleportError {
-  constructor(errorObj: Record<string, unknown>) {
-    super(`Unexpected error when publishing to Vercel\nReceived: ${JSON.stringify(errorObj)}`)
   }
 }
 
@@ -162,5 +138,48 @@ export class DiskUnexpectedError extends TeleportError {
     super(
       `Unexpected error when writing the project to disk\nReceived: ${JSON.stringify(errorObj)}`
     )
+  }
+}
+
+export class ParserError extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+// Plugin Errors
+export class PluginStyledJSX extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCssModules extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginCSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginStyledComponent extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class PluginReactJSS extends TeleportError {
+  constructor(error: string) {
+    super(error)
+  }
+}
+
+export class HTMLComponentGeneratorError extends TeleportError {
+  constructor(error: string) {
+    super(error)
   }
 }

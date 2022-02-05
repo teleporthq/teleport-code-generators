@@ -40,8 +40,8 @@ const createReactProjectGenerator = () => {
     router: {
       generator: createComponentGenerator,
       plugins: [
-        reactAppRoutingPlugin,
         createCSSModulesPlugin({ moduleExtension: true }),
+        reactAppRoutingPlugin,
         importStatementsPlugin,
       ],
       postprocessors: [prettierJS],
@@ -49,7 +49,6 @@ const createReactProjectGenerator = () => {
       path: ['src'],
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       fileName: 'index',
       path: ['public'],

@@ -3,25 +3,22 @@ import {
   GeneratedFolder,
   VercelDeployResponse,
   VercelServerError,
-  VercelInvalidTokenError,
-  VercelUnexpectedError,
   VercelDeploymentError,
   VercelDeploymentTimeoutError,
-  VercelRateLimiterError,
-  VercelProjectTooBigError,
+  GeneratedFile,
 } from '@teleporthq/teleport-types'
 import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
 
-const CREATE_DEPLOY_URL = 'https://api.vercel.com/v10/now/deployments'
-const UPLOAD_FILES_URL = 'https://api.vercel.com/v10/now/files'
-const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v10/now/deployments/get?url='
-
-type DeploymentStatus = 'READY' | 'QUEUED' | 'BUILDING' | 'ERROR'
+const CREATE_DEPLOY_URL = 'https://api.vercel.com/v13/deployments'
+const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
+const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/files'
+const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v13/deployments/get?url='
 
 export const generateProjectFiles = async (
   project: GeneratedFolder,
   token: string,
-  individualUpload: boolean
+  individualUpload: boolean,
+  teamId?: string
 ): Promise<VercelFile[]> => {
   return destructureProjectFiles(
     {
@@ -29,14 +26,16 @@ export const generateProjectFiles = async (
       ignoreFolder: true,
     },
     token,
-    individualUpload
+    individualUpload,
+    teamId
   )
 }
 
 const destructureProjectFiles = async (
   folderInfo: ProjectFolderInfo,
   token: string,
-  individualUpload: boolean
+  individualUpload: boolean,
+  teamId?: string
 ): Promise<VercelFile[]> => {
   const { folder, prefix = '', files = [], ignoreFolder = false } = folderInfo
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
@@ -46,9 +45,8 @@ const destructureProjectFiles = async (
       ? `${folderToPutFileTo}${file.name}.${file.fileType}`
       : `${folderToPutFileTo}${file.name}`
 
-    if (individualUpload && file.contentEncoding !== 'base64') {
-      // All non-images are uploaded separately
-      const { digest, fileSize } = await uploadFile(file.content, token)
+    if (individualUpload) {
+      const { digest, fileSize } = await uploadFile(file, token, teamId)
       const vercelFile: VercelFile = {
         file: fileName,
         sha: digest,
@@ -74,32 +72,60 @@ const destructureProjectFiles = async (
         prefix: folderToPutFileTo,
       },
       token,
-      individualUpload
+      individualUpload,
+      teamId
     )
   }
 
   return files
 }
 
-export const uploadFile = async (
-  content: string,
-  token: string
+const uploadFile = async (
+  file: GeneratedFile,
+  token: string,
+  teamId?: string
 ): Promise<{ digest: string; fileSize: number; result: unknown }> => {
+  // @ts-ignore
+  const module: typeof import('./browser') = await import('#builtins').then((mod) => mod)
+  const { getImageBufferFromRemoteUrl, getSHA, getImageBufferFromase64 } = module
+
+  if (file.contentEncoding === 'base64') {
+    const image = getImageBufferFromase64(file.content)
+    const { hash } = await getSHA(image)
+
+    const uploadResponse = await makeRequest(token, hash, image, true, teamId)
+    const uploadResponseResult = await uploadResponse.json()
+
+    return {
+      digest: hash,
+      fileSize: image.length,
+      result: uploadResponseResult,
+    }
+  }
+
+  if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
+    const image = await getImageBufferFromRemoteUrl(file.content)
+    const { hash: digest } = await getSHA(image)
+
+    const uploadResponse = await makeRequest(token, digest, image, true, teamId)
+    if (uploadResponse.status >= 500) {
+      throw new VercelServerError()
+    }
+
+    const uploadResponseResult = await uploadResponse.json()
+
+    return {
+      digest,
+      fileSize: image.byteLength,
+      result: uploadResponseResult,
+    }
+  }
+
   const enc = new TextEncoder()
+  const fileData = enc.encode(file.content)
+  const { hash: shaHash, hashLength } = await getSHA(fileData)
 
-  const fileData = enc.encode(content)
-  const digest = await crypto.subtle.digest('SHA-1', fileData)
-  const hashArray = Array.from(new Uint8Array(digest))
-  const stringSHA = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-
-  const response = await fetch(UPLOAD_FILES_URL, {
-    method: 'POST',
-    headers: {
-      'x-vercel-digest': stringSHA,
-      Authorization: `Bearer ${token}`,
-    },
-    body: content,
-  })
+  const response = await makeRequest(token, shaHash, file.content, false, teamId)
 
   if (response.status >= 500) {
     throw new VercelServerError()
@@ -108,8 +134,8 @@ export const uploadFile = async (
   const result = await response.json()
 
   return {
-    digest: stringSHA,
-    fileSize: hashArray.length,
+    digest: shaHash,
+    fileSize: hashLength,
     result,
   }
 }
@@ -130,23 +156,9 @@ export const createDeployment = async (
     body: JSON.stringify(payload),
   })
 
-  if (response.status >= 500) {
-    throw new VercelServerError()
-  }
-
   const result = await response.json()
   if (result.error) {
-    switch (result.error.code) {
-      case 'forbidden':
-        throw new VercelInvalidTokenError()
-      // TODO: needs validation / checking
-      case 'rate_limited':
-        throw new VercelRateLimiterError()
-      case 'payload_too_large':
-        throw new VercelProjectTooBigError()
-      default:
-        throw new VercelUnexpectedError(result.error)
-    }
+    throwErrorFromVercelResponse(result)
   }
 
   return {
@@ -155,20 +167,57 @@ export const createDeployment = async (
   }
 }
 
-export const checkDeploymentStatus = async (deploymentURL: string) => {
+export const removeProject = async (
+  token: string,
+  projectSlug: string,
+  teamId?: string
+): Promise<boolean> => {
+  const vercelDeployURL = teamId
+    ? `${DELETE_PROJECT_URL}/${projectSlug}?teamId=${teamId}`
+    : `${DELETE_PROJECT_URL}/${projectSlug}`
+
+  const response = await fetch(vercelDeployURL, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (response.status === 204) {
+    return true
+  }
+
+  const result = await response.json()
+  if (result.error) {
+    throwErrorFromVercelResponse(result)
+  }
+
+  return false
+}
+
+export const checkDeploymentStatus = async (deploymentURL: string, teamId?: string) => {
   await new Promise<void>((resolve, reject) => {
     let retries = 60
 
     const clearHook = setInterval(async () => {
       retries = retries - 1
 
-      const readyState = await checkDeploymentReady(deploymentURL)
-      if (readyState === 'READY') {
+      const vercelUrl = teamId
+        ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
+        : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+      const result = await fetch(vercelUrl)
+      const response = await result.json()
+
+      if (response.error) {
+        throwErrorFromVercelResponse(response)
+      }
+
+      if (response.readyState === 'READY') {
         clearInterval(clearHook)
         return resolve()
       }
 
-      if (readyState === 'ERROR') {
+      if (response.readyState === 'ERROR') {
         clearInterval(clearHook)
         reject(new VercelDeploymentError())
       }
@@ -181,18 +230,38 @@ export const checkDeploymentStatus = async (deploymentURL: string) => {
   })
 }
 
-export const checkDeploymentReady = async (deploymentURL: string): Promise<DeploymentStatus> => {
-  try {
-    const vercelUrl = `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
-    const result = await fetch(vercelUrl)
-    const jsonResult = await result.json()
-    if (jsonResult.readyState) {
-      return jsonResult.readyState
-    } else {
-      return 'ERROR'
-    }
-  } catch (err) {
-    console.warn(err)
-    return 'ERROR'
+export const makeRequest = async (
+  token: string,
+  stringSHA: string,
+  content: string | Buffer | ArrayBuffer,
+  isBuffer = false,
+  teamId?: string
+) => {
+  const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
+
+  const response = await fetch(vercelUploadFilesURL, {
+    method: 'POST',
+    headers: {
+      ...(isBuffer && { 'Content-Type': 'application/octet-stream' }),
+      Authorization: `Bearer ${token}`,
+      'x-vercel-digest': stringSHA,
+    },
+    body: content,
+  })
+
+  if (response.status !== 200) {
+    const result = await response.json()
+    throwErrorFromVercelResponse(result)
   }
+
+  return response
+}
+
+function throwErrorFromVercelResponse(result: { error: { code: string; message?: string } }) {
+  // https://vercel.com/docs/rest-api#api-basics/errors
+  // message fields are designed to be neutral,
+  // not contain sensitive information,
+  // and can be safely passed down to user interfaces
+  const message = result.error.message ? result.error.message : result.error.code
+  throw new Error(message)
 }

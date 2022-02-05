@@ -1,7 +1,6 @@
-import { format } from 'prettier/standalone'
-
-import parserBabel from 'prettier/parser-babel'
-
+import standalone from 'prettier/standalone.js'
+const { format } = standalone
+import parserBabel from 'prettier/parser-babel.js'
 import { Constants } from '@teleporthq/teleport-shared'
 import { PostProcessor, PrettierFormatOptions, FileType } from '@teleporthq/teleport-types'
 

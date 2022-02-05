@@ -36,7 +36,7 @@ describe('Generic Project Generator', () => {
 
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
-      const uidl = (projectUIDL as unknown) as ProjectUIDL
+      const uidl = projectUIDL as unknown as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -52,7 +52,6 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         })
       )
-      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
       expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {
@@ -97,7 +96,7 @@ describe('Generic Project Generator', () => {
 
     it('calls the generators according to the strategy', async () => {
       await generator.generateProject(projectUIDL)
-      const uidl = (projectUIDL as unknown) as ProjectUIDL
+      const uidl = projectUIDL as unknown as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -124,7 +123,6 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
 
       const routerUIDL = {
         ...uidl.root,
@@ -155,7 +153,7 @@ describe('Generic Project Generator', () => {
     it('calls the generators according to the strategy', async () => {
       const result = await generator.generateProject(projectUIDL)
 
-      const uidl = (projectUIDL as unknown) as ProjectUIDL
+      const uidl = projectUIDL as unknown as ProjectUIDL
 
       // This adds the local dependencies on the UIDL, so we can proper assert below
       resolveLocalDependencies([], uidl.components, strategy)
@@ -172,7 +170,6 @@ describe('Generic Project Generator', () => {
           skipValidation: true,
         }
       )
-      expect(generator.entryGenerator.linkCodeChunks).toBeCalledTimes(1)
       expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
       const routerUIDL = {

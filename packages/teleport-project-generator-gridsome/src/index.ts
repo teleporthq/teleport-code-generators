@@ -50,7 +50,6 @@ const createGridsomeProjectGenerator = () => {
       },
     },
     entry: {
-      generator: createComponentGenerator,
       postprocessors: [prettierHTML],
       path: ['src'],
     },

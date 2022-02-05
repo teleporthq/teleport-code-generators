@@ -6,7 +6,6 @@ import {
   ComponentGenerator,
   CompiledComponent,
   PostProcessor,
-  Mapping,
   FileType,
   GeneratorOptions,
   GeneratorFactoryParams,
@@ -20,7 +19,7 @@ const createComponentGenerator = ({
   postprocessors = [],
 }: Omit<GeneratorFactoryParams, 'variation'> = {}): ComponentGenerator => {
   const validator = new Validator()
-  const resolver = new Resolver([HTMLMapping as Mapping, ...mappings])
+  const resolver = new Resolver([HTMLMapping, ...mappings])
   const assemblyLine = new AssemblyLine(plugins)
   const chunksLinker = new Builder()
   const processors: PostProcessor[] = postprocessors
@@ -112,7 +111,7 @@ const createComponentGenerator = ({
   }
 }
 
-export { createComponentGenerator, GeneratorFactoryParams }
+export { createComponentGenerator }
 
 const fileBundler = (
   codeChunks: Record<string, string>,

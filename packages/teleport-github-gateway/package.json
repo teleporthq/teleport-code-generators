@@ -1,18 +1,13 @@
 {
   "name": "@teleporthq/teleport-github-gateway",
-  "version": "0.16.3",
+  "version": "0.19.10",
   "description": "Teleport github gateway - use this package if you require a github integration",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
-  "exports": {
-    "module": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.js"
-  },
+  "types": "dist/cjs/index.d.ts",
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -26,10 +21,10 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "types": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.16.3",
+    "@teleporthq/teleport-types": "^0.19.8",
     "cross-fetch": "^3.0.4",
     "github-api": "^3.2.2"
   },

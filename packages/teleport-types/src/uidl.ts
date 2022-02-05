@@ -112,6 +112,9 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  meta?: {
+    target: 'style'
+  }
 }
 
 export interface UIDLStateDefinition {
@@ -356,24 +359,38 @@ export type UIDLReferencedStyles = Record<string, UIDLElementNodeReferenceStyles
 export type UIDLElementNodeReferenceStyles =
   | UIDLElementNodeProjectReferencedStyle
   | UIDLElementNodeInlineReferencedStyle
+  | UIDLElementNodeCompReferencedStyle
 
 export type UIDLProjectReferencedStyleID = string
+
+export interface UIDLElementNodeCompReferencedStyle {
+  type: 'style-map'
+  content: {
+    mapType: 'component-referenced'
+    content: UIDLStaticValue | UIDLCompDynamicReference
+  }
+}
 export interface UIDLElementNodeProjectReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'project-referenced'
-    conditions?: UIDLStyleConditions[]
     referenceId: UIDLProjectReferencedStyleID
   }
 }
 export interface UIDLElementNodeInlineReferencedStyle {
-  id: string
   type: 'style-map'
   content: {
     mapType: 'inlined'
     conditions: UIDLStyleConditions[]
     styles: Record<string, UIDLStyleValue>
+  }
+}
+
+export type UIDLCompDynamicReference = {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop' | 'comp'
+    id: string
   }
 }
 
@@ -404,12 +421,12 @@ export type UIDLElementStyleStates =
   | 'link'
 
 export interface UIDLStyleSetDefinition {
-  id: string
-  name: string
-  type: 'reusable-project-style-map'
+  type: 'reusable-project-style-map' | 'reusable-component-style-map'
   conditions?: UIDLStyleSetConditions[]
-  content: Record<string, UIDLStaticValue | UIDLStyleSetTokenReference>
+  content: Record<string, UIDLStyleSheetContent>
 }
+
+export type UIDLStyleSheetContent = UIDLStaticValue | UIDLStyleSetTokenReference
 
 export interface UIDLStyleSetTokenReference {
   type: 'dynamic'

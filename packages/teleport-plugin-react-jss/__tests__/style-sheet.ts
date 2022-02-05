@@ -1,37 +1,14 @@
 import {
-  ChunkDefinition,
-  ChunkType,
-  FileType,
   ComponentStructure,
   UIDLStyleSetDefinition,
   UIDLDesignTokens,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '../src'
 import { component, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { createComponentChunk } from './mocks'
 
 describe('Style Sheet from react-jss', () => {
-  const componentChunk: ChunkDefinition = {
-    name: 'jsx-component',
-    meta: {
-      nodesLookup: {
-        container: {
-          openingElement: {
-            name: {
-              name: '',
-            },
-            attributes: [],
-          },
-        },
-      },
-      dynamicRefPrefix: {
-        prop: 'props.',
-      },
-    },
-    type: ChunkType.AST,
-    fileType: FileType.JS,
-    linkAfter: ['import-local'],
-    content: {},
-  }
+  const componentChunk = createComponentChunk()
 
   it('Generates a style sheet from the give JSON of styleSet', async () => {
     const plugin = createStyleSheetPlugin()
@@ -57,27 +34,21 @@ describe('Style Sheet from react-jss', () => {
       dependencies: {},
     }
     const styleSetDefinitions: Record<string, UIDLStyleSetDefinition> = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),
           color: staticNode('blue'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64c': {
-        id: '5ecfa1233b8e50f60ea2b64c',
-        name: 'conditionalButton',
+      conditionalButton: {
         type: 'reusable-project-style-map',
         conditions: [
           {
@@ -127,18 +98,14 @@ describe('Style Sheet from react-jss', () => {
       dependencies: {},
     }
     structure.uidl.styleSetDefinitions = {
-      '5ecfa1233b8e50f60ea2b64d': {
-        id: '5ecfa1233b8e50f60ea2b64d',
-        name: 'primaryButton',
+      primaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
       },
-      '5ecfa1233b8e50f60ea2b64b': {
-        id: '5ecfa1233b8e50f60ea2b64b',
-        name: 'secondaryButton',
+      secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),

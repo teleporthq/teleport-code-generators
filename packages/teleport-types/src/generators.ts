@@ -36,7 +36,12 @@ export interface ChunkDefinition {
   type: ChunkType
   name: string
   fileType: FileType
-  meta?: Record<string, unknown> // TODO: updates types here
+  meta?: {
+    nodesLookup?: {
+      container?: Record<string, unknown>
+    } & Record<string, unknown>
+    dynamicRefPrefix?: Record<string, unknown>
+  } & Record<string, unknown>
   content: ChunkContent
   linkAfter: string[]
 }
@@ -164,6 +169,16 @@ export interface GeneratorFactoryParams {
 
 export type ComponentGeneratorInstance = (params?: GeneratorFactoryParams) => ComponentGenerator
 
+export interface HTMLComponentGenerator extends ComponentGenerator {
+  addExternalComponents: (params: {
+    externals: Record<string, ComponentUIDL>
+    skipValidation?: boolean
+  }) => void
+}
+export type HTMLComponentGeneratorInstance = (
+  params?: GeneratorFactoryParams
+) => HTMLComponentGenerator
+
 export interface ProjectStrategy {
   id: string
   style?: StyleVariation
@@ -213,8 +228,6 @@ export interface ProjectStrategy {
     fileName?: string
   }
   entry?: {
-    generator: ComponentGeneratorInstance
-    plugins?: ComponentPlugin[]
     postprocessors?: PostProcessor[]
     mappings?: Mapping[]
     path: string[]
@@ -325,6 +338,7 @@ export interface GeneratedFile {
   contentEncoding?: FileEncoding
   fileType?: string
   location?: FileLocation
+  status?: string
 }
 
 /**
@@ -349,6 +363,12 @@ export interface PublisherResponse<T> {
 export interface VercelDeployResponse {
   url: string
   alias: string[]
+}
+
+export interface VercelDeleteProject {
+  projectSlug: string
+  accessToken: string
+  teamId?: string
 }
 
 /**
@@ -414,6 +434,7 @@ interface VercelOptions {
   projectSlug?: string
   domainAlias?: string // used by the Vercel publisher
   individualUpload?: boolean
+  framework?: string
 }
 
 export interface PackerOptions {
@@ -474,6 +495,7 @@ export enum ProjectType {
   GATSBY = 'Gatsby',
   GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
+  HTML = 'HTML',
 }
 
 export enum ComponentType {
@@ -483,6 +505,7 @@ export enum ComponentType {
   STENCIL = 'Stencil',
   ANGULAR = 'Angular',
   REACTNATIVE = 'React-Native',
+  HTML = 'HTML',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
@@ -492,6 +515,7 @@ export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null>
   [ComponentType.VUE]: null,
   [ComponentType.STENCIL]: null,
   [ComponentType.ANGULAR]: null,
+  [ComponentType.HTML]: null,
 }
 
 export type StyleVariation =

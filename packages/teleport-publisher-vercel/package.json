@@ -1,17 +1,20 @@
 {
   "name": "@teleporthq/teleport-publisher-vercel",
-  "version": "0.16.3",
+  "version": "0.19.8",
   "description": "Publishes a generated folder structure to vercel",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
   "main": "dist/cjs/index.js",
-  "types": "dist/cjs/index.d.ts",
   "module": "dist/esm/index.js",
-  "exports": {
-    "module": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.js"
+  "types": "dist/cjs/index.d.ts",
+  "imports": {
+    "#builtins": {
+      "default": {
+        "node": "./dist/cjs/node.js",
+        "default": "./dist/cjs/browser.js"
+      }
+    }
   },
   "sideEffects": false,
   "repository": {
@@ -26,10 +29,10 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "types": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.16.3",
+    "@teleporthq/teleport-types": "^0.19.8",
     "cross-fetch": "^3.0.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

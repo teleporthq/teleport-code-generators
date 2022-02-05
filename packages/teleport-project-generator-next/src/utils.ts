@@ -1,8 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, ASTBuilders } from '@teleporthq/teleport-plugin-common'
-
 import * as types from '@babel/types'
-
 import {
   ProjectUIDL,
   ChunkDefinition,
@@ -165,7 +163,7 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
       fileType: FileType.JS,
       content: t.importDeclaration(
         [],
-        t.stringLiteral(`${options.globalStyles.path}/${options.globalStyles.sheetName}.css`)
+        t.stringLiteral(`${options.globalStyles.path}${options.globalStyles.sheetName}.css`)
       ),
       linkAfter: [],
     })
