@@ -24,7 +24,6 @@ export default async function (options: { url: string; targetPath: string; force
       name: nameFromSnapshot,
       snapshot: { data },
     } = await fetchSnapshotFromPlayground(opts[4])
-    nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
     if (opts.length >= 7) {
       try {
@@ -32,6 +31,7 @@ export default async function (options: { url: string; targetPath: string; force
 
         const mapper = new MapSnapshotToUIDL(data)
         uidl = mapper.pageToUIDL(opts[6])
+        nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
         if (!uidl) {
           throw new Error('Failed in Generating UIDL')
@@ -56,6 +56,7 @@ export default async function (options: { url: string; targetPath: string; force
     try {
       const mapper = new MapSnapshotToUIDL(data)
       uidl = mapper.toProjectUIDL()
+      nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
       if (!uidl) {
         throw new Error('Failed in Generating UIDL')

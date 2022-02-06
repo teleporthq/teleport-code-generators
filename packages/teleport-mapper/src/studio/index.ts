@@ -32,7 +32,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
   snapshot: ProjectSnapshot
 
   constructor(snapshot: Record<string, unknown>) {
-    this.snapshot = (snapshot as unknown) as ProjectSnapshot
+    this.snapshot = snapshot as unknown as ProjectSnapshot
   }
 
   getDefaultStylesFromTokens() {
@@ -150,10 +150,10 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     return Object.keys(attrs).reduce((acc: UIDLAttributeValue, attrId) => {
       const attr = attrs[attrId]
       if (attr.type === 'static') {
-        acc[attrId] = ({
+        acc[attrId] = {
           type: 'static',
           content: String(attr.content),
-        } as unknown) as UIDLStaticValue
+        } as unknown as UIDLStaticValue
       }
 
       if (attr.type === 'dynamic' && attr.content.referenceType === 'prop') {
@@ -173,7 +173,7 @@ export class MapSnapshotToUIDL implements MapSnapshowToUIDLInterface {
     }, {})
   }
 
-  stylesToUIDL(nodeId: string) {
+  stylesToUIDL(nodeId: string): Record<string, VUIDLStyleSetDefnition> {
     const styles = this.snapshot.nodes.byId[nodeId]?.styles || {}
     const { tokensById = {}, categoriesById = {} } = this.snapshot.designLanguage
 

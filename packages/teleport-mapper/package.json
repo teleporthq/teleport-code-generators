@@ -27,7 +27,8 @@
     "scripts": {
       "clean": "rimraf dist",
       "types": "tsc -p tsconfig.json",
-      "prepare": "npm run build"
+      "prepare": "npm run build",
+      "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
     },
     "dependencies": {
       "@teleporthq/teleport-types": "0.16.3"
