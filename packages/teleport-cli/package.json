@@ -9,38 +9,37 @@
     "sideEffects": false,
     "main": "dist/cjs/src/index.js",
     "bin": {
-      "teleport": "dist/cjs/src/index.js"
+        "teleport": "dist/cjs/src/index.js"
     },
     "repository": {
-      "type": "git",
-      "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+        "type": "git",
+        "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
     },
     "bugs": {
-      "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+        "url": "https://github.com/teleporthq/teleport-code-generators/issues"
     },
     "publishConfig": {
-      "access": "public"
+        "access": "public"
     },
     "scripts": {
-      "clean": "rimraf dist",
-      "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs",
-      "types": "tsc -p tsconfig.json"
+        "clean": "rimraf dist",
+        "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs",
+        "types": "tsc -p tsconfig.json"
     },
     "dependencies": {
-      "@teleporthq/teleport-code-generator": "^0.16.3",
-      "@teleporthq/teleport-postprocessor-prettier-html": "^0.16.3",
-      "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.16.3",
-      "@teleporthq/teleport-postprocessor-prettier-ts": "^0.16.3",
-      "@teleporthq/teleport-postprocessor-vue-file": "^0.16.3",
-      "@teleporthq/teleport-types": "^0.16.3",
-      "@teleporthq/teleport-mapper": "^0.16.3",
-      "chalk": "^4.1.1",
-      "commander": "^7.2.0",
-      "diff": "^5.0.0",
-      "fs-extra": "^9.1.0",
-      "minimist": "^1.2.5",
-      "node-fetch": "^2.6.1",
-      "ora": "^5.4.0"
+        "@teleporthq/teleport-code-generator": "^0.19.12",
+        "@teleporthq/teleport-mapper": "https://gitlab.com/teleporthq/playground/teleport-mapper.git#2d2e2424dbd70a1d226fc3fcd6de76505589ffc7",
+        "@teleporthq/teleport-postprocessor-prettier-html": "^0.19.8",
+        "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.19.8",
+        "@teleporthq/teleport-postprocessor-prettier-ts": "^0.19.8",
+        "@teleporthq/teleport-postprocessor-vue-file": "^0.19.8",
+        "@teleporthq/teleport-types": "^0.19.8",
+        "chalk": "^4.1.1",
+        "commander": "^7.2.0",
+        "diff": "^5.0.0",
+        "fs-extra": "^9.1.0",
+        "minimist": "^1.2.5",
+        "node-fetch": "^2.6.1",
+        "ora": "^5.4.0"
     }
-  }
-  
+}

@@ -16,12 +16,12 @@ import { generateComponent, packProject } from '@teleporthq/teleport-code-genera
 import { injectFilesFromSubFolder, injectFilesToPath, findFileByName } from './file'
 import {
   BASE_URL,
-  STUDIO_URL,
   UUDID_REGEX,
   CONFIG_FILE_NAME,
   DEFALT_CONFIG_TEMPLATE,
   DefaultConfigTemplate,
   DEFAULT_CONFIG_FILE_NAME,
+  HOST_NAME_MAP,
 } from '../constants'
 import { getPackageJSON } from '../utils'
 
@@ -35,10 +35,15 @@ export const fetchUIDLFromREPL = async (url: string): Promise<Record<string, unk
   return JSON.parse(jsonData.uidl)
 }
 
-export const fetchSnapshotFromPlayground = async (slug: string) => {
-  const result = await fetch(`${STUDIO_URL}${slug}/snapshot`)
-  const jsonData = await result.json()
-  return jsonData
+export const fetchSnapshot = async (slug: string, host: string) => {
+  try {
+    const url = `${HOST_NAME_MAP[host]}/${slug}/snapshot`
+    const result = await fetch(url)
+    const jsonData = await result.json()
+    return jsonData
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 export const generateComponentFromUIDL = async (
