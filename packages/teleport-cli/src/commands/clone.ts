@@ -53,6 +53,7 @@ export default async function (options: { url: string; targetPath: string; force
       } catch (e) {
         spinner.text = 'Failed in generating component'
         spinner.fail()
+        /* tslint:disable-next-line:no-console */
         console.trace(e)
       }
       return
@@ -84,6 +85,7 @@ export default async function (options: { url: string; targetPath: string; force
     } catch (e) {
       spinner.text = `Project Generation Failed`
       spinner.fail()
+      /* tslint:disable-next-line:no-console */
       console.trace(e)
     }
   }

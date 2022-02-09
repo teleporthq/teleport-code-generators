@@ -42,6 +42,7 @@ export const fetchSnapshot = async (slug: string, host: string) => {
     const jsonData = await result.json()
     return jsonData
   } catch (e) {
+    /* tslint:disable-next-line:no-console */
     console.error(e)
   }
 }
