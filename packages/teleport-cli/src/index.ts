@@ -9,15 +9,15 @@ import format from './commands/format'
 import sync from './commands/sync'
 import init from './commands/init'
 import packageJSON from '../package.json'
-import { DEFAULT_CONFIG_FILE_NAME } from './constants'
+import { LOCKFILE } from './constants'
 
 program.version(`v${packageJSON.version}`)
 
-program.command('init').description(`Creates a ${DEFAULT_CONFIG_FILE_NAME}`).action(init)
+program.command('init').description(`Creates a ${LOCKFILE}`).action(init)
 
 program
   .command('sync')
-  .description(`Sync's all the components defined in ${DEFAULT_CONFIG_FILE_NAME}`)
+  .description(`Sync's all the components defined in ${LOCKFILE}`)
   .option('-f --force')
   .action(() => {
     const flags = minimist(process.argv.slice(2))
@@ -46,7 +46,6 @@ program
   .command('clone')
   .description('Pull a component from REPL / Studio')
   .option('-l --link')
-  .option('-s --studio <studio-url>')
   .option('-p --path <path-url>')
   .action(() => {
     const flags = minimist(process.argv.slice(2))

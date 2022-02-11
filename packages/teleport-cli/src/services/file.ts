@@ -42,6 +42,7 @@ export const injectFilesToPath = (params: {
     files.map((file) => {
       const fileName = `${file.name}.${file.fileType}`
       const filePath = path.join(rootFolder, targetPath, fileName)
+
       if (force) {
         writeFileSync(filePath, file.content, 'utf-8')
         return

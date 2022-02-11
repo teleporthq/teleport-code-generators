@@ -23,8 +23,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs",
-        "types": "tsc -p tsconfig.json"
+        "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
     },
     "dependencies": {
         "@teleporthq/teleport-code-generator": "^0.19.12",

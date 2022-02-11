@@ -1,11 +1,6 @@
-// @ts-nocheck
 import { ProjectType, VComponentUIDL, VProjectUIDL } from '@teleporthq/teleport-types'
-import {
-  fetchSnapshot,
-  fetchUIDLFromREPL,
-  generateComponentFromUIDL,
-  generateProjectFromUIDL,
-} from '../services/code'
+import { generateComponentFromUIDL, generateProjectFromUIDL } from '../services/code'
+import { fetchSnapshot, fetchUIDLFromREPL } from '../services/network'
 import { injectFilesToPath } from '../services/file'
 import { HOST_NAME_MAP } from '../constants'
 import { getComponentType, updateConfigFile } from '../utils'
@@ -14,7 +9,7 @@ import ora from 'ora'
 
 export default async function (options: { url: string; targetPath: string; force?: boolean }) {
   const { url, targetPath, force = false } = options
-  const name = 'teleport-project'
+  let name = 'teleport-project'
   const spinner = ora()
   spinner.start()
 
@@ -39,7 +34,6 @@ export default async function (options: { url: string; targetPath: string; force
         if (!uidl) {
           throw new Error('Failed in Generating UIDL')
         }
-
         nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
         const { files } = await generateComponentFromUIDL(uidl, getComponentType())
@@ -60,13 +54,14 @@ export default async function (options: { url: string; targetPath: string; force
     }
 
     try {
+      const customModeFiles = data.projectFiles.local.main.byId
+      data.title = nameFromSnapshot
       const mapper = new MapSnapshotToUIDL(data)
       const uidl = mapper.toProjectUIDL()
       if (!uidl) {
         throw new Error('Failed in Generating UIDL')
       }
-
-      nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
+      name = nameFromSnapshot ? (uidl.name = nameFromSnapshot) : (uidl.name = name)
 
       const fileName = await generateProjectFromUIDL({
         uidl,
@@ -74,10 +69,7 @@ export default async function (options: { url: string; targetPath: string; force
         targetPath,
         url,
         force,
-      })
-
-      updateConfigFile((content) => {
-        content.project.name = fileName
+        customModeFiles,
       })
 
       spinner.text = `Project Generated Successfully ${fileName}`
@@ -91,7 +83,6 @@ export default async function (options: { url: string; targetPath: string; force
   }
 
   if (host === 'repl.teleporthq.io') {
-    /* Generating projects */
     if (url.includes('project')) {
       try {
         spinner.text = `Fetching project from repl \n`
@@ -99,15 +90,12 @@ export default async function (options: { url: string; targetPath: string; force
         const uidl = (await fetchUIDLFromREPL(url)) as VProjectUIDL
         const fileName = await generateProjectFromUIDL({
           uidl,
-          projectType: ProjectType.NEXT,
+          projectType: ProjectType.REACT,
           targetPath,
           url,
           force,
         })
 
-        updateConfigFile((content) => {
-          content.project.name = fileName
-        })
         spinner.text = `Project Generated Successfully ${fileName}`
         spinner.succeed()
       } catch (e) {

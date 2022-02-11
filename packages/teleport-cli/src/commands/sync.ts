@@ -1,13 +1,13 @@
 import chalk from 'chalk'
-import { DefaultConfigTemplate, DEFAULT_CONFIG_FILE_NAME } from '../constants'
+import { DefaultConfigTemplate, LOCKFILE } from '../constants'
 import { findFileByName } from '../services/file'
 import clone from './clone'
 
 /* By default sync only components specified ? */
 export default async function sync({ force }: { force: boolean }) {
-  const config = findFileByName(DEFAULT_CONFIG_FILE_NAME)
+  const config = findFileByName(LOCKFILE)
   if (!config) {
-    console.warn(chalk.yellow(`${DEFAULT_CONFIG_FILE_NAME} is missing from project.`))
+    console.warn(chalk.yellow(`${LOCKFILE} is missing from project.`))
   }
 
   const { components = {}, project } = JSON.parse(config) as DefaultConfigTemplate

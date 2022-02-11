@@ -1,13 +1,13 @@
 import ora from 'ora'
 import { findFileByName } from '../services/file'
-import { DEFAULT_CONFIG_FILE_NAME } from '../constants'
+import { LOCKFILE } from '../constants'
 import { extractCompIdsFromURls } from '../utils'
 
 /* Watch takes a set of components defined and tried to observe for changes.
 And loads then on request */
 
 export default async function () {
-  const content = JSON.parse(findFileByName(DEFAULT_CONFIG_FILE_NAME))
+  const content = JSON.parse(findFileByName(LOCKFILE))
   const { components = [] } = content || {}
   if (components.length === 0) {
     return

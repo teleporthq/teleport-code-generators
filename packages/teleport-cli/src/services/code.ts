@@ -1,5 +1,4 @@
-import path from 'path'
-import fetch from 'node-fetch'
+import path, { join } from 'path'
 import { ensureDirSync } from 'fs-extra'
 import {
   CompiledComponent,
@@ -10,41 +9,31 @@ import {
   VComponentUIDL,
   VProjectUIDL,
   GeneratedFolder,
-  FileType,
+  GeneratedFile,
+  ProjectPlugin,
 } from '@teleporthq/teleport-types'
 import { generateComponent, packProject } from '@teleporthq/teleport-code-generator'
-import { injectFilesFromSubFolder, injectFilesToPath, findFileByName } from './file'
+import { injectFilesFromSubFolder, injectFilesToPath } from './file'
 import {
-  BASE_URL,
-  UUDID_REGEX,
-  CONFIG_FILE_NAME,
-  DEFALT_CONFIG_TEMPLATE,
+  LOCK_FILE_NAME,
+  LOCK_FILE_TEMPLATE,
   DefaultConfigTemplate,
-  DEFAULT_CONFIG_FILE_NAME,
-  HOST_NAME_MAP,
+  LOCK_FILE_EXTENSION,
 } from '../constants'
-import { getPackageJSON } from '../utils'
+import { pluginCustomMode } from './custom-mode-project-plugin'
+import { pack } from './helper'
 
-export const fetchUIDLFromREPL = async (url: string): Promise<Record<string, unknown>> => {
-  const id = url.match(UUDID_REGEX)[0]
-  const result = await fetch(`${BASE_URL}fetch-uidl/${id}`)
-  if (result.status !== 200) {
-    throw new Error(`Failed in fetch UIDL - ${JSON.stringify(result, null, 2)}`)
-  }
-  const jsonData = await result.json()
-  return JSON.parse(jsonData.uidl)
+export interface TeleportCLIPluginParams {
+  folder: GeneratedFolder
 }
 
-export const fetchSnapshot = async (slug: string, host: string) => {
-  try {
-    const url = `${HOST_NAME_MAP[host]}/${slug}/snapshot`
-    const result = await fetch(url)
-    const jsonData = await result.json()
-    return jsonData
-  } catch (e) {
-    /* tslint:disable-next-line:no-console */
-    console.error(e)
-  }
+export interface TeleportCLIPlugin {
+  runBefore: () => Promise<{ projectPlugins: ProjectPlugin[] }>
+  runAfter: (params: TeleportCLIPluginParams) => Promise<TeleportCLIPluginParams>
+}
+
+export interface TeleportCLIConfig {
+  plugins: TeleportCLIPlugin[]
 }
 
 export const generateComponentFromUIDL = async (
@@ -57,74 +46,102 @@ export const generateComponentFromUIDL = async (
   return result
 }
 
-export const generateProjectFromUIDL = async ({
-  uidl,
-  projectType,
-  targetPath,
-  url,
-  force = false,
-}: {
+export const generateProjectFromUIDL = async (params: {
   uidl: VProjectUIDL
   projectType: ProjectType
   targetPath: string
   url: string
   force?: boolean
+  customModeFiles?: Record<string, { code: string }>
 }): Promise<string> => {
+  const { uidl, projectType, targetPath, url, customModeFiles = {} } = params
   ensureDirSync(path.join(process.cwd(), targetPath))
+
+  const plugins: ProjectPlugin[] = []
+  let customConfig: TeleportCLIConfig
+  try {
+    customConfig = (await import(`${join(process.cwd(), 'teleport.config')}`)) as TeleportCLIConfig
+    for (const plugin of customConfig.plugins) {
+      const { projectPlugins = [] } = await plugin.runBefore()
+      plugins.push(...projectPlugins)
+    }
+  } catch (e) {
+    /* Config doesn't exist */
+  }
+
+  if (Object.keys(customModeFiles).length > 0) {
+    plugins.push(pluginCustomMode)
+  }
 
   const { success, payload } = (await packProject(uidl as ProjectUIDL, {
     projectType,
     publishOptions: {
       outputPath: targetPath,
     },
-  })) as { success: boolean; payload: GeneratedFolder }
+    plugins,
+  })) as unknown as { success: boolean; payload: GeneratedFolder }
 
   if (success) {
-    const { files, subFolders } = payload as GeneratedFolder
-    let { name } = payload as GeneratedFolder
-    const packageJSON = getPackageJSON()
-    const teleportConfig = findFileByName(DEFAULT_CONFIG_FILE_NAME)
+    const { name } = payload
+    injectGeneratedFolderInto({ folder: payload, url, targetPath }, customConfig)
 
-    if (uidl?.name) {
-      name = uidl.name
+    if (customModeFiles) {
+      injectGeneratedFolderInto({ folder: pack(customModeFiles), url, targetPath })
     }
-
-    if (packageJSON?.name) {
-      name = packageJSON?.name as string
-    }
-
-    if (teleportConfig && (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project?.name) {
-      name = (JSON.parse(teleportConfig) as DefaultConfigTemplate)?.project.name
-    }
-
-    files.push({
-      name: CONFIG_FILE_NAME,
-      fileType: FileType.JSON,
-      content: JSON.stringify(
-        {
-          ...DEFALT_CONFIG_TEMPLATE,
-          project: { url, projectType, name },
-        } as DefaultConfigTemplate,
-        null,
-        2
-      ),
-    })
-
-    injectFilesFromSubFolder({
-      folder: subFolders,
-      targetPath: path.join(targetPath, name),
-      force,
-    })
-
-    files.forEach((file) => {
-      injectFilesToPath({
-        rootFolder: process.cwd(),
-        targetPath: path.join(targetPath, name),
-        files: [file],
-        force,
-      })
-    })
 
     return name
   }
+}
+
+export const injectGeneratedFolderInto = async (
+  params: {
+    folder: GeneratedFolder
+    targetPath: string
+    force?: boolean
+    url: string
+  },
+  customConfig?: TeleportCLIConfig
+) => {
+  const { force = false, url, targetPath } = params
+  let { folder } = params
+
+  if (customConfig) {
+    try {
+      for (const plugin of customConfig.plugins) {
+        const result = await plugin.runAfter({ folder })
+        folder = result.folder
+      }
+    } catch (e) {
+      /* tslint:disable-next-line:no-console */
+      console.error(e)
+    }
+  }
+
+  folder.files.push({
+    name: LOCK_FILE_NAME,
+    fileType: LOCK_FILE_EXTENSION,
+    content: JSON.stringify(
+      {
+        ...LOCK_FILE_TEMPLATE,
+        project: { url, projectType: ProjectType.REACT },
+      } as DefaultConfigTemplate,
+      null,
+      2
+    ),
+  })
+
+  injectFilesFromSubFolder({
+    folder: folder.subFolders,
+    targetPath: path.join(targetPath, ''),
+    force,
+  })
+
+  folder.files.forEach((file: GeneratedFile) => {
+    injectFilesToPath({
+      rootFolder: process.cwd(),
+      targetPath: path.join(targetPath, ''),
+      files: [file],
+      force,
+    })
+  })
 }

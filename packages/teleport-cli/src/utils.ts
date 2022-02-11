@@ -2,23 +2,20 @@ import path from 'path'
 import chalk from 'chalk'
 import { writeFileSync } from 'fs-extra'
 import { ComponentType } from '@teleporthq/teleport-types'
-import { DEFAULT_CONFIG_FILE_NAME, DefaultConfigTemplate, UUDID_REGEX } from './constants'
+import { LOCK_FILE_NAME, DefaultConfigTemplate, UUDID_REGEX, LOCKFILE } from './constants'
 import { findFileByName } from './services/file'
 
 export const updateConfigFile = (
   fn: (content: DefaultConfigTemplate) => void,
   customPath?: string
 ) => {
-  const fileContent = findFileByName(DEFAULT_CONFIG_FILE_NAME)
+  const fileContent = findFileByName(LOCK_FILE_NAME)
   if (!fileContent) {
     return
   }
   const content = JSON.parse(fileContent) as DefaultConfigTemplate
   fn(content)
-  writeFileSync(
-    customPath || path.join(process.cwd(), DEFAULT_CONFIG_FILE_NAME),
-    JSON.stringify(content, null, 2)
-  )
+  writeFileSync(customPath || path.join(process.cwd(), LOCKFILE), JSON.stringify(content, null, 2))
 }
 
 export const getComponentType = (): ComponentType => {
@@ -27,8 +24,8 @@ export const getComponentType = (): ComponentType => {
   return findFlavourByDependencies(
     Object.keys(
       {
-        ...(((packageJSON?.dependencies as unknown) as Record<string, string>) || {}),
-        ...(((packageJSON?.devDependencies as unknown) as Record<string, string>) || {}),
+        ...((packageJSON?.dependencies as unknown as Record<string, string>) || {}),
+        ...((packageJSON?.devDependencies as unknown as Record<string, string>) || {}),
       } || {}
     )
   )
