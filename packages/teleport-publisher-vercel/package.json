@@ -33,7 +33,11 @@
   },
   "dependencies": {
     "@teleporthq/teleport-types": "^0.19.8",
-    "cross-fetch": "^3.0.4"
+    "cross-fetch": "^3.0.4",
+    "async-retry": "^1.3.3"
+  },
+  "devDependencies": {
+    "@types/async-retry": "1.4.3"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }

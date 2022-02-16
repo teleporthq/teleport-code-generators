@@ -1,8 +1,8 @@
 import fetch from 'cross-fetch'
+import retry from 'async-retry'
 import {
   GeneratedFolder,
   VercelDeployResponse,
-  VercelServerError,
   VercelDeploymentError,
   VercelDeploymentTimeoutError,
   GeneratedFile,
@@ -14,13 +14,19 @@ const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
 const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/files'
 const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v13/deployments/get?url='
 
+type FileSha = GeneratedFile & {
+  sha: string
+  size: number
+  isBuffer: boolean
+}
+
 export const generateProjectFiles = async (
   project: GeneratedFolder,
   token: string,
   individualUpload: boolean,
   teamId?: string
 ): Promise<VercelFile[]> => {
-  return destructureProjectFiles(
+  const projectFilesArray = destructureProjectFiles(
     {
       folder: project,
       ignoreFolder: true,
@@ -29,14 +35,81 @@ export const generateProjectFiles = async (
     individualUpload,
     teamId
   )
+
+  if (!individualUpload) {
+    return projectFilesArray.map((file) => ({
+      file: file.name,
+      data: file.content,
+      encoding: file.contentEncoding,
+    }))
+  }
+
+  const promises = projectFilesArray.map((key) => generateSha(key))
+  const shaProjectFiles: FileSha[] = await Promise.all(promises)
+
+  const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
+
+  shaProjectFiles.map((shaFile): void => {
+    retry(
+      async (bail): Promise<void> => {
+        let err
+
+        try {
+          const res = await fetch(vercelUploadFilesURL, {
+            method: 'POST',
+            headers: {
+              ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
+              Authorization: `Bearer ${token}`,
+              'x-vercel-digest': shaFile.sha,
+            },
+            body: shaFile.content,
+          })
+          if (res.status === 200) {
+            return
+          } else if (res.status > 200 && res.status < 500) {
+            // If something is wrong with our request, we don't retry
+            const { error } = await res.json()
+            err = new Error(error)
+          } else {
+            // If something is wrong with the server, we retry
+            const { error } = await res.json()
+            throw new Error(error)
+          }
+        } catch (e) {
+          err = new Error(e)
+        }
+
+        if (err) {
+          if (isClientNetworkError(err)) {
+            // If it's a network error, we retry
+            throw err
+          } else {
+            // Otherwise we bail
+            return bail(err)
+          }
+        }
+      },
+      {
+        retries: 5,
+        factor: 6,
+        minTimeout: 10,
+      }
+    )
+  })
+
+  return shaProjectFiles.map((file) => ({
+    file: file.name,
+    sha: file.sha,
+    size: file.size,
+  }))
 }
 
-const destructureProjectFiles = async (
+const destructureProjectFiles = (
   folderInfo: ProjectFolderInfo,
   token: string,
   individualUpload: boolean,
   teamId?: string
-): Promise<VercelFile[]> => {
+): GeneratedFile[] => {
   const { folder, prefix = '', files = [], ignoreFolder = false } = folderInfo
   const folderToPutFileTo = ignoreFolder ? '' : `${prefix}${folder.name}/`
 
@@ -45,27 +118,12 @@ const destructureProjectFiles = async (
       ? `${folderToPutFileTo}${file.name}.${file.fileType}`
       : `${folderToPutFileTo}${file.name}`
 
-    if (individualUpload) {
-      const { digest, fileSize } = await uploadFile(file, token, teamId)
-      const vercelFile: VercelFile = {
-        file: fileName,
-        sha: digest,
-        size: fileSize,
-      }
-
-      files.push(vercelFile)
-      continue
-    }
-
-    files.push({
-      file: fileName,
-      data: file.content,
-      encoding: file.contentEncoding,
-    })
+    file.name = fileName
+    files.push(file)
   }
 
   for (const subFolder of folder.subFolders) {
-    await destructureProjectFiles(
+    destructureProjectFiles(
       {
         files,
         folder: subFolder,
@@ -80,11 +138,7 @@ const destructureProjectFiles = async (
   return files
 }
 
-const uploadFile = async (
-  file: GeneratedFile,
-  token: string,
-  teamId?: string
-): Promise<{ digest: string; fileSize: number; result: unknown }> => {
+const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
   // @ts-ignore
   const module: typeof import('./browser') = await import('#builtins').then((mod) => mod)
   const { getImageBufferFromRemoteUrl, getSHA, getImageBufferFromase64 } = module
@@ -93,50 +147,33 @@ const uploadFile = async (
     const image = getImageBufferFromase64(file.content)
     const { hash } = await getSHA(image)
 
-    const uploadResponse = await makeRequest(token, hash, image, true, teamId)
-    const uploadResponseResult = await uploadResponse.json()
-
     return {
-      digest: hash,
-      fileSize: image.length,
-      result: uploadResponseResult,
+      sha: hash,
+      size: image.length,
+      isBuffer: true,
+      ...file,
     }
-  }
-
-  if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
+  } else if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
     const image = await getImageBufferFromRemoteUrl(file.content)
-    const { hash: digest } = await getSHA(image)
-
-    const uploadResponse = await makeRequest(token, digest, image, true, teamId)
-    if (uploadResponse.status >= 500) {
-      throw new VercelServerError()
-    }
-
-    const uploadResponseResult = await uploadResponse.json()
+    const { hash } = await getSHA(image)
 
     return {
-      digest,
-      fileSize: image.byteLength,
-      result: uploadResponseResult,
+      sha: hash,
+      size: image.byteLength,
+      isBuffer: true,
+      ...file,
     }
-  }
+  } else {
+    const enc = new TextEncoder()
+    const fileData = enc.encode(file.content)
+    const { hash, hashLength } = await getSHA(fileData)
 
-  const enc = new TextEncoder()
-  const fileData = enc.encode(file.content)
-  const { hash: shaHash, hashLength } = await getSHA(fileData)
-
-  const response = await makeRequest(token, shaHash, file.content, false, teamId)
-
-  if (response.status >= 500) {
-    throw new VercelServerError()
-  }
-
-  const result = await response.json()
-
-  return {
-    digest: shaHash,
-    fileSize: hashLength,
-    result,
+    return {
+      sha: hash,
+      size: hashLength,
+      isBuffer: false,
+      ...file,
+    }
   }
 }
 
@@ -230,33 +267,6 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
   })
 }
 
-export const makeRequest = async (
-  token: string,
-  stringSHA: string,
-  content: string | Buffer | ArrayBuffer,
-  isBuffer = false,
-  teamId?: string
-) => {
-  const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
-
-  const response = await fetch(vercelUploadFilesURL, {
-    method: 'POST',
-    headers: {
-      ...(isBuffer && { 'Content-Type': 'application/octet-stream' }),
-      Authorization: `Bearer ${token}`,
-      'x-vercel-digest': stringSHA,
-    },
-    body: content,
-  })
-
-  if (response.status !== 200) {
-    const result = await response.json()
-    throwErrorFromVercelResponse(result)
-  }
-
-  return response
-}
-
 function throwErrorFromVercelResponse(result: { error: { code: string; message?: string } }) {
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
@@ -264,4 +274,21 @@ function throwErrorFromVercelResponse(result: { error: { code: string; message?:
   // and can be safely passed down to user interfaces
   const message = result.error.message ? result.error.message : result.error.code
   throw new Error(message)
+}
+
+const isClientNetworkError = (err: Error) => {
+  if (err.message) {
+    // These are common network errors that may happen occasionally and we should retry if we encounter these
+    return (
+      err.message.includes('ETIMEDOUT') ||
+      err.message.includes('ECONNREFUSED') ||
+      err.message.includes('ENOTFOUND') ||
+      err.message.includes('ECONNRESET') ||
+      err.message.includes('EAI_FAIL') ||
+      err.message.includes('socket hang up') ||
+      err.message.includes('network socket disconnected')
+    )
+  }
+
+  return false
 }

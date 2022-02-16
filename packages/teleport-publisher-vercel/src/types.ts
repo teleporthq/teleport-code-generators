@@ -1,9 +1,9 @@
-import { GeneratedFolder } from '@teleporthq/teleport-types'
+import { GeneratedFile, GeneratedFolder } from '@teleporthq/teleport-types'
 
 export interface ProjectFolderInfo {
   folder: GeneratedFolder
   prefix?: string
-  files?: VercelFile[]
+  files?: GeneratedFile[]
   ignoreFolder?: boolean
 }
 
