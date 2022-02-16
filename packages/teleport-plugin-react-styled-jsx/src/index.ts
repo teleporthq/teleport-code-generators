@@ -161,7 +161,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       StyleBuilders.generateStylesFromStyleSetDefinitions(
         componentStyleSheet,
         classMap,
-        mediaStylesMap
+        mediaStylesMap,
+        UIDLUtils.getComponentClassName(uidl)
       )
     }
 

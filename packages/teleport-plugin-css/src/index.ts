@@ -49,6 +49,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       fileName: projectStyleSheetName,
       path: projectStyleSheetPath,
     } = projectStyleSet || {}
+    const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -84,7 +85,14 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<string> = new Set()
-      const { style = {}, key, referencedStyles = {} } = element
+      const { style = {}, key, referencedStyles = {}, dependency } = element
+
+      if (dependency?.type === 'local') {
+        const rootNode = templateLookup[key] as types.JSXElement
+        if (forceScoping && rootNode) {
+          console.log(rootNode.openingElement?.attributes)
+        }
+      }
 
       if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
@@ -96,7 +104,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       }
 
       const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
       const className = forceScoping // when the framework doesn't provide automating scoping for classNames
         ? `${componentFileName}-${elementClassName}`
         : elementClassName
@@ -171,7 +178,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              classNamesToAppend.add(String(styleRef.content.content.content))
+              const className =
+                forceScoping && styleRef.content.content.content
+                  ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
+                      String(styleRef.content.content.content)
+                    )}`
+                  : styleRef.content.content.content
+              classNamesToAppend.add(String(className))
             }
 
             if (
@@ -260,7 +273,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     })
 
     if (Object.keys(componentStyleSet).length > 0) {
-      StyleBuilders.generateStylesFromStyleSetDefinitions(componentStyleSet, cssMap, mediaStylesMap)
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSet,
+        cssMap,
+        mediaStylesMap,
+        componentFileName,
+        forceScoping
+      )
     }
 
     if (Object.keys(mediaStylesMap).length > 0) {

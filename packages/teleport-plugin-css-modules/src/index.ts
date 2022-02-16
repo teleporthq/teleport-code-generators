@@ -262,7 +262,8 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
       StyleBuilders.generateStylesFromStyleSetDefinitions(
         componentStyleSheet,
         cssClasses,
-        mediaStylesMap
+        mediaStylesMap,
+        UIDLUtils.getComponentClassName(uidl)
       )
     }
 

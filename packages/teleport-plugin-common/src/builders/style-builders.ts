@@ -99,12 +99,16 @@ export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string,
 export const generateStylesFromStyleSetDefinitions = (
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>,
   cssMap: string[],
-  mediaStylesMap: Record<string, Record<string, unknown>>
+  mediaStylesMap: Record<string, Record<string, unknown>>,
+  componentFileName: string,
+  forceScoping: boolean = false
 ) => {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [] } = style
-    const className = styleId
+    const className = forceScoping
+      ? `${componentFileName}-${StringUtils.camelCaseToDashCase(styleId)}`
+      : styleId
 
     const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
     const collectedStyles = {
