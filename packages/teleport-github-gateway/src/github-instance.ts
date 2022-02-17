@@ -60,8 +60,8 @@ export default class GithubInstance {
     return repository.getContents(ref, path)
   }
 
-  public async getUserRepositories(username: string): Promise<GithubRepositoryData[]> {
-    const user = await this.githubApi.getUser(username)
+  public async getUserRepositories(): Promise<GithubRepositoryData[]> {
+    const user = await this.githubApi.getUser()
     const { data } = await user.listRepos()
     return data
   }
@@ -77,8 +77,8 @@ export default class GithubInstance {
   }
 
   public async createRepository(repository: NewRepository): Promise<GithubRepositoryData> {
-    const { username, meta } = repository
-    const user = await this.githubApi.getUser(username)
+    const { meta } = repository
+    const user = await this.githubApi.getUser()
 
     // Auto initialize repository by creating an initial commit with empty README
     if (typeof meta.auto_init === 'undefined' || meta.auto_init === null) {
@@ -137,6 +137,7 @@ export default class GithubInstance {
   public async commitFilesToRepo(commitMeta: GithubCommitMeta): Promise<string> {
     const {
       branchName,
+      isPrivate,
       files,
       repositoryIdentity,
       commitMessage = DEFAULT_COMMIT_MESSAGE,
@@ -152,7 +153,7 @@ export default class GithubInstance {
     }
 
     // Step 0: Create repository if it does not exist
-    await this.ensureRepoExists(username, repo)
+    await this.ensureRepoExists(username, repo, isPrivate)
     const repository: GithubRepository = await this.githubApi.getRepo(username, repo)
 
     // Step 1: Create branch if it does not exist
@@ -180,12 +181,16 @@ export default class GithubInstance {
     return `${GITHUB_REPOSITORY_BASE_URL}/${repository.__fullname}`
   }
 
-  private async ensureRepoExists(username: string, repo: string): Promise<void> {
-    const repositories = await this.getUserRepositories(username)
+  private async ensureRepoExists(
+    username: string,
+    repo: string,
+    isPrivate: boolean
+  ): Promise<void> {
+    const repositories = await this.getUserRepositories()
     const repoExists = repositories.some((repoMeta: GithubRepositoryData) => repoMeta.name === repo)
 
     if (!repoExists) {
-      await this.createRepository({ username, meta: { name: repo } })
+      await this.createRepository({ username, meta: { name: repo, private: isPrivate } })
     }
   }
 
