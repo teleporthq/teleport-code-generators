@@ -29,9 +29,9 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return fetchFilesContent(data as GithubFile[], emptyFolder, filesFetcherMeta)
   }
 
-  const getUserRepositories = async (username: string, authData?: ServiceAuth) => {
+  const getUserRepositories = async (authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
-    return githubInstance.getUserRepositories(username)
+    return githubInstance.getUserRepositories()
   }
 
   const createRepository = async (repository: NewRepository, authData?: ServiceAuth) => {

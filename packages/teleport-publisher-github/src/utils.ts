@@ -43,7 +43,15 @@ export const generateProjectFiles = (folderInfo: ProjectFolderInfo): GithubFile[
 }
 
 export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMeta) => {
-  const { authMeta, mainBranch, commitBranch, commitMessage, repository, repositoryOwner } = meta
+  const {
+    authMeta,
+    mainBranch,
+    commitBranch,
+    commitMessage,
+    repository,
+    repositoryOwner,
+    isPrivate,
+  } = meta
 
   const repositoryIdentity: RepositoryIdentity = {
     username: repositoryOwner,
@@ -56,6 +64,7 @@ export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMe
     files,
     branchName: commitBranch,
     commitMessage,
+    isPrivate,
   }
 
   const githubGateway = createGithubGateway(authMeta)
