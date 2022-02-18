@@ -14,10 +14,11 @@ const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
 const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/files'
 const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v13/deployments/get?url='
 
-type FileSha = GeneratedFile & {
+type FileSha = Omit<GeneratedFile, 'content'> & {
   sha: string
   size: number
   isBuffer: boolean
+  content: string | ArrayBuffer | Uint8Array
 }
 
 export const generateProjectFiles = async (
@@ -49,54 +50,56 @@ export const generateProjectFiles = async (
 
   const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
 
-  shaProjectFiles.map((shaFile): void => {
-    retry(
-      async (bail): Promise<void> => {
-        let err
+  const shaPromises = shaProjectFiles.map(
+    async (shaFile): Promise<void> =>
+      retry(
+        async (bail): Promise<void> => {
+          let err
 
-        try {
-          const res = await fetch(vercelUploadFilesURL, {
-            method: 'POST',
-            headers: {
-              ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
-              Authorization: `Bearer ${token}`,
-              'x-vercel-digest': shaFile.sha,
-            },
-            body: shaFile.content,
-          })
-          if (res.status === 200) {
-            return
-          } else if (res.status > 200 && res.status < 500) {
-            // If something is wrong with our request, we don't retry
-            const { error } = await res.json()
-            err = new Error(error)
-          } else {
-            // If something is wrong with the server, we retry
-            const { error } = await res.json()
-            throw new Error(error)
+          try {
+            const res = await fetch(vercelUploadFilesURL, {
+              method: 'POST',
+              headers: {
+                ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
+                Authorization: `Bearer ${token}`,
+                'x-vercel-digest': shaFile.sha,
+              },
+              body: shaFile.content,
+            })
+            if (res.status === 200) {
+              return
+            } else if (res.status > 200 && res.status < 500) {
+              // If something is wrong with our request, we don't retry
+              const { error } = await res.json()
+              err = new Error(error.message)
+            } else {
+              // If something is wrong with the server, we retry
+              const { error } = await res.json()
+              throw new Error(error.message)
+            }
+          } catch (e) {
+            err = new Error(e)
           }
-        } catch (e) {
-          err = new Error(e)
-        }
 
-        if (err) {
-          if (isClientNetworkError(err)) {
-            // If it's a network error, we retry
-            throw err
-          } else {
-            // Otherwise we bail
-            return bail(err)
+          if (err) {
+            if (isClientNetworkError(err)) {
+              // If it's a network error, we retry
+              throw err
+            } else {
+              // Otherwise we bail
+              return bail(err)
+            }
           }
+        },
+        {
+          retries: 5,
+          factor: 6,
+          minTimeout: 10,
         }
-      },
-      {
-        retries: 5,
-        factor: 6,
-        minTimeout: 10,
-      }
-    )
-  })
+      )
+  )
 
+  await Promise.all(shaPromises)
   return shaProjectFiles.map((file) => ({
     file: file.name,
     sha: file.sha,
@@ -148,20 +151,22 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
     const { hash } = await getSHA(image)
 
     return {
+      ...file,
       sha: hash,
       size: image.length,
       isBuffer: true,
-      ...file,
+      content: image,
     }
   } else if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
     const image = await getImageBufferFromRemoteUrl(file.content)
     const { hash } = await getSHA(image)
 
     return {
+      ...file,
       sha: hash,
       size: image.byteLength,
       isBuffer: true,
-      ...file,
+      content: image,
     }
   } else {
     const enc = new TextEncoder()
@@ -169,10 +174,10 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
     const { hash, hashLength } = await getSHA(fileData)
 
     return {
+      ...file,
       sha: hash,
       size: hashLength,
       isBuffer: false,
-      ...file,
     }
   }
 }

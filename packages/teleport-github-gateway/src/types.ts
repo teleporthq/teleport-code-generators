@@ -6,7 +6,7 @@ export type GithubGatewayFactory = (auth?: ServiceAuth) => GithubGateway
 
 export interface GithubGateway {
   getRepository: (repo: RepositoryIdentity, auth?: ServiceAuth) => Promise<GeneratedFolder>
-  getUserRepositories: (username: string, auth?: ServiceAuth) => Promise<GithubRepositoryData[]>
+  getUserRepositories: (auth?: ServiceAuth) => Promise<GithubRepositoryData[]>
   commitFilesToRepo: (commitMeta: GithubCommitMeta, auth?: ServiceAuth) => Promise<string>
   createRepository: (repository: NewRepository, auth?: ServiceAuth) => Promise<GithubRepositoryData>
   getRepositoryCommits: (meta: RepositoryCommitsListMeta, authData: ServiceAuth) => Promise<any>
@@ -28,6 +28,7 @@ export interface GithubCommitMeta {
   repositoryIdentity: RepositoryIdentity
   branchName: string
   commitMessage?: string
+  isPrivate?: boolean
 }
 
 export interface CreateBranchMeta {
