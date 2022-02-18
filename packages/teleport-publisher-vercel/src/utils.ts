@@ -14,10 +14,11 @@ const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
 const UPLOAD_FILES_URL = 'https://api.vercel.com/v2/files'
 const CHECK_DEPLOY_BASE_URL = 'https://api.vercel.com/v13/deployments/get?url='
 
-type FileSha = GeneratedFile & {
+type FileSha = Omit<GeneratedFile, 'content'> & {
   sha: string
   size: number
   isBuffer: boolean
+  content: string | ArrayBuffer | Uint8Array
 }
 
 export const generateProjectFiles = async (
@@ -154,7 +155,7 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
       sha: hash,
       size: image.length,
       isBuffer: true,
-      content: image.toString(),
+      content: image,
     }
   } else if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
     const image = await getImageBufferFromRemoteUrl(file.content)
@@ -165,7 +166,7 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
       sha: hash,
       size: image.byteLength,
       isBuffer: true,
-      content: image.toString(),
+      content: image,
     }
   } else {
     const enc = new TextEncoder()
