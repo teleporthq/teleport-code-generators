@@ -185,7 +185,7 @@ export const resolveChildren = (mappedChildren: UIDLNode[], originalChildren: UI
   let placeholderFound = false
   newChildren.forEach((childNode) => {
     UIDLUtils.traverseNodes(childNode, (node, parentNode) => {
-      if (!isPlaceholderNode(node)) {
+      if (node.type !== 'comp-style' && !isPlaceholderNode(node)) {
         return // we're only interested in placeholder nodes
       }
 

@@ -71,6 +71,7 @@ import {
   UIDLAssetBase,
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
+  UIDLComponentStyleReference,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -329,8 +330,14 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
-  importReferenceDecoder
+  importReferenceDecoder,
+  lazy(() => uidlComponentStyleReference)
 )
+
+export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
+  type: constant('comp-style'),
+  content: string(),
+})
 
 export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
   staticValueDecoder,

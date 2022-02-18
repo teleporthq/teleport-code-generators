@@ -239,7 +239,7 @@ export type UIDLNode =
   | UIDLImportReference
 
 export interface UIDLComponentStyleReference {
-  type: 'component-style'
+  type: 'comp-style'
   content: string
 }
 

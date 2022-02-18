@@ -85,16 +85,58 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<string> = new Set()
-      const { style = {}, key, referencedStyles = {}, dependency } = element
+      const {
+        style = {},
+        key,
+        referencedStyles = {},
+        dependency,
+        attrs = {},
+        elementType,
+      } = element
 
-      if (dependency?.type === 'local') {
-        const rootNode = templateLookup[key] as types.JSXElement
-        if (forceScoping && rootNode) {
-          console.log(rootNode.openingElement?.attributes)
-        }
+      if (forceScoping && dependency?.type === 'local') {
+        Object.keys(attrs).forEach((attr) => {
+          if (attrs[attr].type === 'comp-style') {
+            const compStyleName = StringUtils.camelCaseToDashCase(elementType)
+
+            if (templateStyle === 'jsx') {
+              const compInstanceNode = templateLookup[key] as types.JSXElement
+              compInstanceNode.openingElement?.attributes.forEach(
+                (attribute: types.JSXAttribute) => {
+                  if (
+                    attribute.name?.name === attr &&
+                    (attribute.value as types.StringLiteral)?.value
+                  ) {
+                    ;(
+                      attribute.value as types.StringLiteral
+                    ).value = `${compStyleName}-${StringUtils.camelCaseToDashCase(
+                      (attribute.value as types.StringLiteral).value
+                    )}`
+                  }
+                }
+              )
+            }
+
+            if (templateStyle === 'html') {
+              const compInstanceNode = templateLookup[key] as HastNode
+              if (!compInstanceNode?.properties[attr]) {
+                return
+              }
+              compInstanceNode.properties[
+                attr
+              ] = `${compStyleName}-${StringUtils.camelCaseToDashCase(
+                String(compInstanceNode.properties[attr])
+              )}`
+            }
+          }
+        })
       }
 
-      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
+      if (
+        Object.keys(style).length === 0 &&
+        Object.keys(referencedStyles).length === 0 &&
+        Object.keys(componentStyleSet).length === 0
+      ) {
         return
       }
 
@@ -178,13 +220,15 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              const className =
-                forceScoping && styleRef.content.content.content
-                  ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
-                      String(styleRef.content.content.content)
-                    )}`
-                  : styleRef.content.content.content
-              classNamesToAppend.add(String(className))
+              classNamesToAppend.add(
+                String(
+                  forceScoping && styleRef.content.content.content
+                    ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
+                        String(styleRef.content.content.content)
+                      )}`
+                    : styleRef.content.content.content
+                )
+              )
             }
 
             if (
