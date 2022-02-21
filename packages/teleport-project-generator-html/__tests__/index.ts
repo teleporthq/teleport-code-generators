@@ -1,4 +1,5 @@
 import {
+  FileType,
   InMemoryFileRecord,
   ProjectPluginStructure,
   ProjectStrategy,
@@ -10,6 +11,26 @@ import { element, elementNode, staticNode } from '@teleporthq/teleport-uidl-buil
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import ProjectTemplate from '../src/project-template'
 import { pluginImageResolver } from '../src/plugin-image-resolution'
+import { createHTMLProjectGenerator } from '../src'
+import uidlWithCompStyleOverrides from '../../../examples/test-samples/comp-style-overrides.json'
+
+describe('Passes the rootClass which using the component', () => {
+  it('run without crashing while using with HTML', async () => {
+    const generator = createHTMLProjectGenerator()
+
+    const result = await generator.generateProject(uidlWithCompStyleOverrides)
+    const srcFolder = result.subFolders.find((folder) => folder.name === '')
+    const mainFile = srcFolder.files.find(
+      (file) => file.name === 'landing-page' && file.fileType === FileType.HTML
+    )
+    const styleFile = srcFolder.files.find(
+      (file) => file.name === 'landing-page' && file.fileType === FileType.CSS
+    )
+
+    expect(mainFile.content).toContain(`place-card-root-class-name`)
+    expect(styleFile.content).toContain(`place-card-root-class-name`)
+  })
+})
 
 describe('Image Resolution project-plugin', () => {
   const files = new Map<string, InMemoryFileRecord>()
