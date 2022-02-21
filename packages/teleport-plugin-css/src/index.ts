@@ -49,6 +49,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       fileName: projectStyleSheetName,
       path: projectStyleSheetPath,
     } = projectStyleSet || {}
+    const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -84,9 +85,58 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<string> = new Set()
-      const { style = {}, key, referencedStyles = {} } = element
+      const {
+        style = {},
+        key,
+        referencedStyles = {},
+        dependency,
+        attrs = {},
+        elementType,
+      } = element
 
-      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
+      if (forceScoping && dependency?.type === 'local') {
+        Object.keys(attrs).forEach((attr) => {
+          if (attrs[attr].type === 'comp-style') {
+            const compStyleName = StringUtils.camelCaseToDashCase(elementType)
+
+            if (templateStyle === 'jsx') {
+              const compInstanceNode = templateLookup[key] as types.JSXElement
+              compInstanceNode.openingElement?.attributes.forEach(
+                (attribute: types.JSXAttribute) => {
+                  if (
+                    attribute.name?.name === attr &&
+                    (attribute.value as types.StringLiteral)?.value
+                  ) {
+                    ;(
+                      attribute.value as types.StringLiteral
+                    ).value = `${compStyleName}-${StringUtils.camelCaseToDashCase(
+                      (attribute.value as types.StringLiteral).value
+                    )}`
+                  }
+                }
+              )
+            }
+
+            if (templateStyle === 'html') {
+              const compInstanceNode = templateLookup[key] as HastNode
+              if (!compInstanceNode?.properties[attr]) {
+                return
+              }
+              compInstanceNode.properties[
+                attr
+              ] = `${compStyleName}-${StringUtils.camelCaseToDashCase(
+                String(compInstanceNode.properties[attr])
+              )}`
+            }
+          }
+        })
+      }
+
+      if (
+        Object.keys(style).length === 0 &&
+        Object.keys(referencedStyles).length === 0 &&
+        Object.keys(componentStyleSet).length === 0
+      ) {
         return
       }
 
@@ -96,7 +146,6 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       }
 
       const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
       const className = forceScoping // when the framework doesn't provide automating scoping for classNames
         ? `${componentFileName}-${elementClassName}`
         : elementClassName
@@ -171,7 +220,15 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              classNamesToAppend.add(String(styleRef.content.content.content))
+              classNamesToAppend.add(
+                String(
+                  forceScoping && styleRef.content.content.content
+                    ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
+                        String(styleRef.content.content.content)
+                      )}`
+                    : styleRef.content.content.content
+                )
+              )
             }
 
             if (
@@ -260,7 +317,13 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     })
 
     if (Object.keys(componentStyleSet).length > 0) {
-      StyleBuilders.generateStylesFromStyleSetDefinitions(componentStyleSet, cssMap, mediaStylesMap)
+      StyleBuilders.generateStylesFromStyleSetDefinitions(
+        componentStyleSet,
+        cssMap,
+        mediaStylesMap,
+        componentFileName,
+        forceScoping
+      )
     }
 
     if (Object.keys(mediaStylesMap).length > 0) {

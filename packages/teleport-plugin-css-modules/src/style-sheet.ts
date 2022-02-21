@@ -5,6 +5,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
@@ -48,7 +49,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       StyleBuilders.generateStylesFromStyleSetDefinitions(
         styleSetDefinitions,
         cssMap,
-        mediaStylesMap
+        mediaStylesMap,
+        UIDLUtils.getComponentClassName(uidl)
       )
     }
 

@@ -26,6 +26,13 @@ export const handleAttribute = (
     case 'import':
       hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
       break
+    case 'comp-style':
+      hastUtils.addAttributeToNode(
+        htmlNode,
+        attrKey,
+        StringUtils.encode(attrValue.content.toString())
+      )
+      break
     case 'static':
       if (Array.isArray(attrValue.content)) {
         // This handles the cases when arrays are sent as props or passed as attributes

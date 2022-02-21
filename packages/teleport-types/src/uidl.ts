@@ -238,7 +238,16 @@ export type UIDLNode =
   | UIDLSlotNode
   | UIDLImportReference
 
-export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue | UIDLImportReference
+export interface UIDLComponentStyleReference {
+  type: 'comp-style'
+  content: string
+}
+
+export type UIDLAttributeValue =
+  | UIDLDynamicReference
+  | UIDLStaticValue
+  | UIDLImportReference
+  | UIDLComponentStyleReference
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 

@@ -1,10 +1,37 @@
-import { FileType } from '@teleporthq/teleport-types'
+import { FileType, ProjectStrategy, ReactStyleVariation } from '@teleporthq/teleport-types'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import uidlWithCompStyleOverrides from '../../../../examples/test-samples/comp-style-overrides.json'
 import template from './template-definition.json'
 import { createReactProjectGenerator } from '../../src'
+
+describe('Passes the rootClass which using the component', () => {
+  it('run without crashing while using with React + CSS', async () => {
+    const strategy: Partial<ProjectStrategy> = {
+      style: ReactStyleVariation.CSS,
+    }
+    const generator = createReactProjectGenerator()
+    generator.updateStrategy(strategy)
+
+    const result = await generator.generateProject(uidlWithCompStyleOverrides)
+    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
+    const views = srcFolder.subFolders.find((folder) => folder.name === 'views')
+    const components = srcFolder.subFolders.find((folder) => folder.name === 'components')
+    const mainFile = views.files.find(
+      (file) => file.name === 'landing-page' && file.fileType === FileType.JS
+    )
+    const styleFile = components.files.find(
+      (file) => file.name === 'place-card' && file.fileType === FileType.CSS
+    )
+
+    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name\"`)
+    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name1\"`)
+    expect(styleFile.content).toContain(`.place-card-root-class-name {`)
+    expect(styleFile.content).toContain(`.place-card-root-class-name1 {`)
+  })
+})
 
 describe('React Project Generator', () => {
   const generator = createReactProjectGenerator()
