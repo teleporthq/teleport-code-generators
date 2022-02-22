@@ -14,7 +14,16 @@ export const buildDefaultPropsAst = (
   const defaultValuesSearch = Object.keys(propDefinitions).reduce(
     // tslint:disable-next-line no-any
     (acc: any, key) => {
-      const { defaultValue } = propDefinitions[key]
+      const { defaultValue, type } = propDefinitions[key]
+
+      if (type === 'func') {
+        acc.values[key] = new ParsedASTNode(
+          types.arrowFunctionExpression([], types.blockStatement([]))
+        )
+        acc.count++
+        return acc
+      }
+
       if (typeof defaultValue !== 'undefined') {
         acc.values[key] = defaultValue
         acc.count++

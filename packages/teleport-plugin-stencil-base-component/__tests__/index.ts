@@ -1,11 +1,46 @@
 import { createStencilComponentPlugin } from '../src/index'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure, ChunkType } from '@teleporthq/teleport-types'
+import type { ClassDeclaration, ClassProperty, ExportNamedDeclaration } from '@babel/types'
 
 describe('plugin-stencil-base-component', () => {
   const plugin = createStencilComponentPlugin({
     componentChunkName: 'component-chunk',
     componentDecoratorChunkName: 'decorator-chunk',
+  })
+
+  it('creates default void function for props with type as func', async () => {
+    const structure: ComponentStructure = {
+      chunks: [],
+      options: {},
+      uidl: component(
+        'Test',
+        elementNode(
+          'container',
+          null,
+          [],
+          null,
+          {},
+          { click: [{ type: 'propCall', calls: 'onChange' }] }
+        ),
+        {
+          onChange: {
+            type: 'func',
+          },
+        }
+      ),
+      dependencies: {},
+    }
+    const { chunks } = await plugin(structure)
+    const componentChunk = chunks.find((chunk) => chunk.name === 'component-chunk')
+    const contentBody = (
+      (componentChunk.content as ExportNamedDeclaration).declaration as ClassDeclaration
+    ).body.body
+    const classProperty = contentBody.find((body) => body.type === 'ClassProperty') as ClassProperty
+
+    expect(componentChunk).toBeDefined()
+    expect(contentBody.length).toBe(2)
+    expect(classProperty.value.type).toBe('ArrowFunctionExpression')
   })
 
   it('outputs two AST chunks with the corresponding chunk names', async () => {
