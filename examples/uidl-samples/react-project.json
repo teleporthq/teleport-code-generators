@@ -1238,6 +1238,12 @@
     },
     "ContactForm": {
       "name": "ContactForm",
+      "propDefinitions": {
+        "isClicked": {
+          "type": "func",
+          "defaultValue": "() => {}"
+        }
+      },
       "node": {
         "type": "element",
         "content": {
@@ -1245,6 +1251,14 @@
           "attrs": {
             "type": "get",
             "url": "/"
+          },
+          "events": {
+            "click": [
+              {
+                "type": "propCall",
+                "calls": "isClicked"
+              }
+            ]
           },
           "style": {
             "margin": "20px",
