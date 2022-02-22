@@ -1,6 +1,8 @@
 import { createVueComponentPlugin } from '../src/index'
 import { structure } from './mocks'
-import { ChunkType } from '@teleporthq/teleport-types'
+import { ChunkType, ComponentStructure } from '@teleporthq/teleport-types'
+import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import type { ExportDefaultDeclaration, ObjectExpression, ObjectProperty } from '@babel/types'
 
 describe('vue-base-component-plugin', () => {
   const plugin = createVueComponentPlugin({
@@ -25,5 +27,41 @@ describe('vue-base-component-plugin', () => {
 
     // Dependencies
     expect(Object.keys(result.dependencies).length).toBe(0)
+  })
+
+  it('creates default void function for props with type as func', async () => {
+    const defaultFuncStructure: ComponentStructure = {
+      chunks: [],
+      options: {},
+      uidl: component(
+        'Test',
+        elementNode(
+          'container',
+          null,
+          [],
+          null,
+          {},
+          { click: [{ type: 'propCall', calls: 'onChange' }] }
+        ),
+        {
+          onChange: {
+            type: 'func',
+            defaultValue: '() => {}',
+          },
+        }
+      ),
+      dependencies: {},
+    }
+    const { chunks } = await plugin(defaultFuncStructure)
+    const jsChunk = chunks.find((chunk) => chunk.name === 'component-js')
+    const properties = (
+      (jsChunk.content as ExportDefaultDeclaration).declaration as ObjectExpression
+    ).properties
+    const defaultFunc = ((properties[1] as ObjectProperty).value as ObjectExpression).properties
+    const funcProperty = ((defaultFunc[0] as ObjectProperty).value as ObjectExpression)
+      .properties[0] as ObjectProperty
+
+    expect(jsChunk).toBeDefined()
+    expect(funcProperty.value.type).toBe('ArrowFunctionExpression')
   })
 })
