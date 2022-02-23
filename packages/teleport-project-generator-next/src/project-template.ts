@@ -18,7 +18,7 @@ export default {
   "author": "TeleportHQ",
   "license": "MIT",
   "dependencies": {
-    "next": "^10.2.0",
+    "next": "^12.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   }

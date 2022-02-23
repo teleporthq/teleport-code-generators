@@ -113,7 +113,7 @@ export const componentDependency = (
   }
 }
 
-export const staticNode = (content: string): UIDLStaticValue => {
+export const staticNode = (content: string | boolean | number): UIDLStaticValue => {
   return {
     type: 'static',
     content,
