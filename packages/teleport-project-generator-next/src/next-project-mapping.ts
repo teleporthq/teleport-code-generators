@@ -7,7 +7,7 @@ export const NextProjectMapping: Mapping = {
       dependency: {
         type: 'library',
         path: 'next/link',
-        version: '^10.2.0',
+        version: '^12.1.0',
       },
       attrs: {
         href: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
