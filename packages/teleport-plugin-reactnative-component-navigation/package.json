@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-reactnative-component-navigation",
-  "version": "0.19.8",
+  "version": "0.19.17",
   "description": "A plugin for solving the calls to the navigator api in reactnative components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.19.8",
-    "@teleporthq/teleport-shared": "^0.19.8",
-    "@teleporthq/teleport-types": "^0.19.8"
+    "@teleporthq/teleport-plugin-common": "^0.19.17",
+    "@teleporthq/teleport-shared": "^0.19.17",
+    "@teleporthq/teleport-types": "^0.19.17"
   }
 }
