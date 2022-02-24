@@ -74,7 +74,6 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     const pureComponent = ASTUtils.createPureComponent(
       componentName,
       stateDefinitions,
-      propDefinitions,
       jsxTagStructure
     )
 
