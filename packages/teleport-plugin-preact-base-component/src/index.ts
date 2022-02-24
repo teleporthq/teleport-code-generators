@@ -73,7 +73,6 @@ export const createPreactComponentPlugin: ComponentPluginFactory<PreactPluginCon
     const preactComponent = ASTUtils.createPureComponent(
       componentName,
       stateDefinitions,
-      propDefinitions,
       jsxTagStructure
     )
 
