@@ -32,7 +32,7 @@ export const fetchFilesContent = async (
     const { name, path } = directory
 
     const directoryFilesParams = { ...userRepositoryIdentity, path }
-    const { data } = await githubInstance.getRepoContent(directoryFilesParams)
+    const data = await githubInstance.getRepoContent(directoryFilesParams)
 
     const newFolder = createEmptyFolder(name)
     const folderWithFiles = await fetchFilesContent(data as GithubFile[], newFolder, meta)
@@ -79,7 +79,7 @@ const getFileContent = async (
   const { ref = DEFAULT_REF } = userRepositoryIdentity
 
   const githubFileMetadata = { ...userRepositoryIdentity, ref, path }
-  const { data } = await githubInstance.getRepoContent(githubFileMetadata)
+  const data = await githubInstance.getRepoContent(githubFileMetadata)
 
   let { content, encoding } = data as GithubFile
 

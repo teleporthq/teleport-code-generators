@@ -54,7 +54,7 @@ export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMe
   } = meta
 
   const repositoryIdentity: RepositoryIdentity = {
-    username: repositoryOwner,
+    owner: repositoryOwner,
     repo: repository,
     ref: mainBranch,
   }
