@@ -382,7 +382,7 @@ export interface AssetsDefinition {
 
 export interface RemoteTemplateDefinition {
   provider: 'github'
-  username: string
+  owner: string
   repo: string
   auth?: ServiceAuth
 }

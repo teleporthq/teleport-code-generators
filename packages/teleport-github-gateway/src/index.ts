@@ -12,6 +12,8 @@ import {
   RepositoryCommitsListMeta,
   RepositoryCommitMeta,
   CreateBranchMeta,
+  RepositoryMergeMeta,
+  RemoveBranchMeta,
 } from './types'
 
 export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
@@ -20,7 +22,7 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
   const getRepository = async (repoIdentity: RepositoryIdentity, authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
 
-    const { data } = await githubInstance.getRepoContent(repoIdentity)
+    const data = await githubInstance.getRepoContent(repoIdentity)
 
     const { repo } = repoIdentity
     const emptyFolder = createEmptyFolder(repo)
@@ -54,9 +56,19 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return githubInstance.createBranch(meta)
   }
 
+  const mergeRepositoryBranches = async (meta: RepositoryMergeMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.mergeRepositoryBranches(meta)
+  }
+
   const getRepositoryBranches = async (owner: string, repo: string, authData: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.getRepositoryBranches(owner, repo)
+  }
+
+  const deleteRepositoryBranch = async (meta: RemoveBranchMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.deleteBranch(meta)
   }
 
   const getCommitData = async (meta: RepositoryCommitMeta, authData: ServiceAuth) => {
@@ -78,6 +90,8 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     getRepositoryCommits,
     createBranch,
     getRepositoryBranches,
+    mergeRepositoryBranches,
+    deleteRepositoryBranch,
     commitFilesToRepo,
     getCommitData,
     authorizeGithubInstance,

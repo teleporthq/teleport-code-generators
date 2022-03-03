@@ -1,6 +1,5 @@
-// @ts-ignore
-import Github from 'github-api'
 import fetch from 'cross-fetch'
+import { Octokit } from 'octokit'
 
 import { ServiceAuth } from '@teleporthq/teleport-types'
 
@@ -12,23 +11,22 @@ import {
 } from './constants'
 
 import {
-  RepositoryContentResponse,
   GithubFileMeta,
   GithubRepositoryData,
   NewRepository,
-  GithubRepository,
   GithubCommitMeta,
   RepositoryIdentity,
   GithubFile,
   RepositoryCommitsListMeta,
   RepositoryCommitMeta,
   CreateBranchMeta,
+  RepositoryMergeMeta,
+  RemoveBranchMeta,
 } from './types'
 import { createBase64GithubFileBlob } from './utils'
 
 export default class GithubInstance {
-  // @ts-ignore
-  private githubApi = null
+  private octokit: Octokit | null = null
   private auth: ServiceAuth = null
 
   constructor(auth: ServiceAuth = {}) {
@@ -39,59 +37,77 @@ export default class GithubInstance {
     this.auth = auth
 
     if (auth.basic) {
-      this.githubApi = new Github({ ...auth.basic })
+      this.octokit = new Octokit({ auth: auth.basic })
+
       return
     }
 
     if (auth.token) {
-      this.githubApi = new Github({ token: auth.token })
+      this.octokit = new Octokit({ auth: auth.token })
       return
     }
 
-    this.githubApi = new Github()
+    this.octokit = new Octokit()
   }
 
   public async getRepoContent(
     repoIdentity: RepositoryIdentity
-  ): Promise<RepositoryContentResponse> {
-    const { username, repo, ref = DEFAULT_REF, path = DEFAULT_PATH } = repoIdentity
+  ): Promise<GithubFile | GithubFile[]> {
+    const { owner: username, repo, ref = DEFAULT_REF, path = DEFAULT_PATH } = repoIdentity
 
-    const repository = await this.githubApi.getRepo(username, repo)
-    return repository.getContents(ref, path)
+    const content = await this.octokit.rest.repos.getContent({ owner: username, repo, ref, path })
+    return content.data as GithubFile | GithubFile[]
   }
 
   public async getUserRepositories(): Promise<GithubRepositoryData[]> {
-    const user = await this.githubApi.getUser()
-    const { data } = await user.listRepos()
-    return data
+    let page = 1
+    const allRepos = []
+    let currentPageRepos = await this.octokit.rest.repos.listForAuthenticatedUser({
+      page,
+      per_page: 50,
+    })
+
+    while (currentPageRepos.data.length) {
+      page++
+      allRepos.push(...currentPageRepos.data)
+      currentPageRepos = await this.octokit.rest.repos.listForAuthenticatedUser({
+        page,
+        per_page: 50,
+      })
+    }
+
+    return allRepos as GithubRepositoryData[]
   }
 
   public async createBranch(meta: CreateBranchMeta) {
     const { repo, owner, sourceBranch, newBranch } = meta
-    const repository = await this.githubApi.getRepo(owner, repo)
-    if (!repository) {
-      throw new Error('Repository does not exist')
-    }
+    const ref = await this.octokit.rest.git.getRef({ owner, repo, ref: `heads/${sourceBranch}` })
 
-    return repository.createBranch(sourceBranch, newBranch)
+    const { data } = await this.octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${newBranch}`,
+      sha: ref.data.object.sha,
+    })
+
+    return data
   }
 
   public async createRepository(repository: NewRepository): Promise<GithubRepositoryData> {
     const { meta } = repository
-    const user = await this.githubApi.getUser()
 
     // Auto initialize repository by creating an initial commit with empty README
     if (typeof meta.auto_init === 'undefined' || meta.auto_init === null) {
       meta.auto_init = true
     }
 
-    const { data } = await user.createRepo(meta)
-    return data
+    const result = await this.octokit.rest.repos.createForAuthenticatedUser(meta)
+    return result.data as GithubRepositoryData
   }
 
   public async getRepositoryCommits(meta: RepositoryCommitsListMeta) {
     const { owner, repo } = meta
-    const repository = await this.githubApi.getRepo(owner, repo)
+    const repository = await this.octokit.rest.repos.get({ owner, repo })
     if (!repository) {
       throw new Error('Repository does not exist')
     }
@@ -101,37 +117,83 @@ export default class GithubInstance {
       per_page: meta.perPage ?? undefined,
     }
 
-    return repository.listCommits(params)
+    const commits = await this.octokit.rest.repos.listCommits(params)
+    return commits.data
+  }
+
+  public async mergeRepositoryBranches(meta: RepositoryMergeMeta) {
+    const { owner, repo } = meta
+    const repository = await this.octokit.rest.repos.get({ owner, repo })
+
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    const { base, head } = meta
+    const mergeResult = await this.octokit.rest.repos.merge({ owner, repo, base, head })
+    return mergeResult.data
+  }
+
+  public async deleteBranch(meta: RemoveBranchMeta) {
+    const { owner, repo } = meta
+    const repository = await this.octokit.rest.repos.get({ owner, repo })
+
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    const removeResult = await this.octokit.rest.git.deleteRef({
+      owner,
+      repo,
+      ref: `heads/${meta.branch}`,
+    })
+    return removeResult.status
   }
 
   public async getCommitData(meta: RepositoryCommitMeta) {
     const { owner, repo, ref } = meta
-    const repository = await this.githubApi.getRepo(owner, repo)
+    const repository = await this.octokit.rest.repos.get({ owner, repo })
     if (!repository) {
       throw new Error('Repository does not exist')
     }
 
-    const commitDetails = await repository.getSingleCommit(ref)
-
-    const fileContentPromises = commitDetails.data.files.map(async (file: { raw_url: string }) => {
+    const commitDetails = await this.octokit.rest.repos.getCommit({ ref, repo, owner })
+    const fileContentPromises = commitDetails.data.files?.map(async (file: { raw_url: string }) => {
       const response = await fetch(file.raw_url)
       return response.text()
     })
-    const fileContents = await Promise.all(fileContentPromises)
 
-    commitDetails.data.files.forEach((file: { content?: string }, index: number) => {
-      file.content = fileContents[index] as string
+    const fileContents = await Promise.all(fileContentPromises)
+    commitDetails.data.files.forEach((file, index: number) => {
+      Object.assign(file, { content: fileContents[index] })
     })
 
-    return commitDetails
+    return commitDetails.data
   }
 
   public async getRepositoryBranches(owner: string, repo: string) {
-    const repository = await this.githubApi.getRepo(owner, repo)
-    if (!repository) {
-      throw new Error('Repository does not exist')
+    let page = 1
+
+    const allBranches = []
+    let currentPageBranches = await this.octokit.rest.repos.listBranches({
+      owner,
+      repo,
+      page,
+      per_page: 50,
+    })
+
+    while (currentPageBranches.data.length) {
+      page++
+      allBranches.push(...currentPageBranches.data)
+      currentPageBranches = await this.octokit.rest.repos.listBranches({
+        owner,
+        repo,
+        page,
+        per_page: 50,
+      })
     }
-    return repository.listBranches()
+
+    return allBranches
   }
 
   public async commitFilesToRepo(commitMeta: GithubCommitMeta): Promise<string> {
@@ -145,94 +207,117 @@ export default class GithubInstance {
     const { repo, ref = DEFAULT_REF } = repositoryIdentity
 
     // Step -1: Make a separate request for the username if it is not provided
-    let username = repositoryIdentity.username
-    if (!username) {
-      const user = await this.githubApi.getUser()
-      const profile = await user.getProfile()
-      username = profile.data.login
+    let owner = repositoryIdentity.owner
+    if (!owner) {
+      const user = await this.octokit.rest.users.getAuthenticated()
+      owner = user.data.login
     }
 
     // Step 0: Create repository if it does not exist
-    await this.ensureRepoExists(username, repo, isPrivate)
-    const repository: GithubRepository = await this.githubApi.getRepo(username, repo)
+    const repository = await this.ensureRepoExists(owner, repo, isPrivate)
 
     // Step 1: Create branch if it does not exist
-    await this.ensureBranchExists(repository, ref, branchName)
+    await this.ensureBranchExists(owner, repo, ref, branchName)
 
     // Step 2: Get branch commit SHA
-    const commitSHA = await this.getBranchHeadCommitSHA(repository, branchName)
+    const commitSHA = await this.getBranchHeadCommitSHA(owner, repo, branchName)
 
     // Step 3: Get current tree SHA
-    const treeSHA = await this.getCommitTreeSHA(repository, commitSHA)
+    const treeSHA = await this.getCommitTreeSHA(owner, repo, commitSHA)
 
     // Step 4: Prepare files for github
-    const filesForGithub = await this.createFiles(repository, files)
+    const filesForGithub = await this.createFiles(owner, repo, files)
 
     // Step 5: Create new github tree
-    const newTreeSHA = await this.createTree(repository, filesForGithub, treeSHA)
+    const newTreeSHA = await this.createTree(owner, repo, filesForGithub, treeSHA)
 
     // Step 6: Create commit
-    const newCommit = await repository.commit(commitSHA, newTreeSHA, commitMessage)
+    const newCommit = await this.octokit.rest.git.createCommit({
+      owner,
+      repo,
+      message: commitMessage,
+      parents: [commitSHA],
+      tree: newTreeSHA,
+    })
     const newCommitSHA = newCommit.data.sha
 
     // Step 7: Update head
-    await repository.updateHead(`heads/${branchName}`, newCommitSHA)
+    await this.octokit.rest.git.updateRef({
+      owner,
+      repo,
+      ref: `heads/${branchName}`,
+      sha: newCommitSHA,
+    })
 
-    return `${GITHUB_REPOSITORY_BASE_URL}/${repository.__fullname}`
+    return `${GITHUB_REPOSITORY_BASE_URL}/${repository.full_name}`
   }
 
   private async ensureRepoExists(
     username: string,
     repo: string,
     isPrivate: boolean
-  ): Promise<void> {
+  ): Promise<GithubRepositoryData> {
     const repositories = await this.getUserRepositories()
-    const repoExists = repositories.some((repoMeta: GithubRepositoryData) => repoMeta.name === repo)
-
-    if (!repoExists) {
-      await this.createRepository({ username, meta: { name: repo, private: isPrivate } })
+    const existingRepo = repositories.find(
+      (repoMeta: GithubRepositoryData) => repoMeta.name === repo
+    )
+    if (existingRepo) {
+      return existingRepo
     }
+
+    return this.createRepository({ username, meta: { name: repo, private: isPrivate } })
   }
 
-  private async ensureBranchExists(
-    repo: GithubRepository,
-    ref: string,
-    branch: string
-  ): Promise<void> {
-    const { data } = await repo.listBranches()
-    const branchExists = data.some((branchMeta) => branchMeta.name === branch)
+  private async ensureBranchExists(owner: string, repo: string, ref: string, branch: string) {
+    const existingBranches = await this.getRepositoryBranches(owner, repo)
+    const branchExists = existingBranches.some((branchMeta) => branchMeta.name === branch)
 
     if (!branchExists) {
-      await repo.createBranch(ref, branch)
+      this.octokit.rest.git.createRef({
+        owner,
+        repo,
+        ref: `refs/heads/${branch}`,
+        sha: ref,
+      })
     }
   }
 
-  private async getBranchHeadCommitSHA(repo: GithubRepository, branch: string): Promise<string> {
-    const { data } = await repo.getRef(`heads/${branch}`)
+  private async getBranchHeadCommitSHA(
+    owner: string,
+    repo: string,
+    branch: string
+  ): Promise<string> {
+    const { data } = await this.octokit.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })
     return data.object.sha
   }
 
-  private async getCommitTreeSHA(repo: GithubRepository, commitSHA: string): Promise<string> {
-    const { data } = await repo.getCommit(commitSHA)
+  private async getCommitTreeSHA(owner: string, repo: string, commitSHA: string): Promise<string> {
+    const { data } = await this.octokit.rest.git.getCommit({
+      owner,
+      repo,
+      commit_sha: commitSHA,
+    })
+
     return data.tree.sha
   }
 
   private async createFiles(
-    repo: GithubRepository,
+    owner: string,
+    repo: string,
     files: GithubFile[]
   ): Promise<GithubFileMeta[]> {
     const promises = files.map((file) => {
-      return this.createFile(repo, file)
+      return this.createFile(owner, repo, file)
     })
 
     return Promise.all(promises)
   }
 
-  private async createFile(repo: GithubRepository, file: GithubFile): Promise<GithubFileMeta> {
+  private async createFile(owner: string, repo: string, file: GithubFile): Promise<GithubFileMeta> {
     const { data } =
       file.encoding === 'base64'
-        ? await createBase64GithubFileBlob(file, repo.__fullname, this.auth)
-        : await repo.createBlob(file.content)
+        ? await createBase64GithubFileBlob(file, repo, this.auth)
+        : await this.octokit.rest.git.createBlob({ owner, repo, content: file.content })
 
     return {
       sha: file.status === 'deleted' ? null : data.sha,
@@ -243,11 +328,18 @@ export default class GithubInstance {
   }
 
   private async createTree(
-    repo: GithubRepository,
+    owner: string,
+    repo: string,
     files: GithubFileMeta[],
     treeSHA?: string
   ): Promise<string> {
-    const tree = await repo.createTree(files, treeSHA)
+    const tree = await this.octokit.rest.git.createTree({
+      owner,
+      repo,
+      base_tree: treeSHA,
+      // @ts-ignore
+      tree: files,
+    })
     return tree.data.sha
   }
 }

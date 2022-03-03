@@ -11,13 +11,15 @@ export interface GithubGateway {
   createRepository: (repository: NewRepository, auth?: ServiceAuth) => Promise<GithubRepositoryData>
   getRepositoryCommits: (meta: RepositoryCommitsListMeta, authData: ServiceAuth) => Promise<any>
   createBranch: (meta: CreateBranchMeta, authData: ServiceAuth) => Promise<any>
+  mergeRepositoryBranches: (meta: RepositoryMergeMeta, authData: ServiceAuth) => Promise<any>
+  deleteRepositoryBranch: (meta: RemoveBranchMeta, authData: ServiceAuth) => Promise<any>
   getRepositoryBranches: (owner: string, repo: string, authData: ServiceAuth) => Promise<any>
   getCommitData: (meta: RepositoryCommitMeta, authData: ServiceAuth) => Promise<any>
   authorizeGithubInstance: (authData?: ServiceAuth) => void
 }
 
 export interface RepositoryIdentity {
-  username: string
+  owner: string
   repo: string
   ref?: string
   path?: string
@@ -53,9 +55,17 @@ export interface RepositoryCommitsListMeta {
   path?: string
 }
 
-export interface RepositoryContentResponse {
-  data: GithubFile | GithubFile[]
-  status: number
+export interface RepositoryMergeMeta {
+  repo: string
+  owner: string
+  base: string
+  head: string
+}
+
+export interface RemoveBranchMeta {
+  repo: string
+  owner: string
+  branch: string
 }
 
 export interface GithubFile {
@@ -76,7 +86,6 @@ export interface GithubFileMeta {
   path: string
   mode: string
   type: string
-  encoding?: FileEncoding
 }
 
 export interface NewRepository {
@@ -106,41 +115,8 @@ export interface FilesFetcherMeta {
   githubInstance: GithubInstance
 }
 
-export interface GithubRepository {
-  __fullname: string
-  getContents: (ref: string, path: string) => Promise<RepositoryContentResponse>
-  listBranches: () => Promise<GithubBranchesResponse>
-  createBranch: (ref: string, branchName: string) => Promise<GithubCreateResponse>
-  getRef: (url: string) => Promise<GithubGetRefResponse>
-  getCommit: (sha: string) => Promise<GithubGetCommitResponse>
-  createTree: (files: GithubFileMeta[], sha?: string) => Promise<GithubCreateResponse>
-  commit: (parentSHA: string, treeSHA: string, message: string) => Promise<GithubCreateResponse>
-  updateHead: (ref: string, commitSHA: string) => Promise<void>
-  createBlob: (fileContent: string) => Promise<GithubCreateResponse>
-}
-
 export interface GithubCreateResponse {
   data: {
     sha: string
-  }
-}
-
-interface GithubBranchesResponse {
-  data: Array<Record<string, string>>
-}
-
-interface GithubGetRefResponse {
-  data: {
-    object: {
-      sha: string
-    }
-  }
-}
-
-interface GithubGetCommitResponse {
-  data: {
-    tree: {
-      sha: string
-    }
   }
 }
