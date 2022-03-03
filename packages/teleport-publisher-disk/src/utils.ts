@@ -1,8 +1,7 @@
-import { existsSync, mkdir, writeFile } from 'fs'
+import { existsSync, mkdir, writeFile, WriteFileOptions } from 'fs'
 import PathResolver from 'path-browserify'
 import fetch from 'cross-fetch'
 const { join } = PathResolver
-
 import { GeneratedFolder, GeneratedFile } from '@teleporthq/teleport-types'
 
 export const writeFolder = async (
@@ -66,7 +65,7 @@ const createDirectory = (pathToDir: string): Promise<void> => {
 const writeContentToFile = (
   filePath: string,
   fileContent: string | Buffer,
-  encoding: string = 'utf8'
+  encoding: WriteFileOptions = 'utf8'
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     writeFile(filePath, fileContent, encoding, (err) => {
