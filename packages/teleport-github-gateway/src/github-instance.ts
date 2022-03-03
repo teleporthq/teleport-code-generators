@@ -21,6 +21,7 @@ import {
   RepositoryCommitMeta,
   CreateBranchMeta,
   RepositoryMergeMeta,
+  RemoveBranchMeta,
 } from './types'
 import { createBase64GithubFileBlob } from './utils'
 
@@ -131,6 +132,22 @@ export default class GithubInstance {
     const { base, head } = meta
     const mergeResult = await this.octokit.rest.repos.merge({ owner, repo, base, head })
     return mergeResult.data
+  }
+
+  public async deleteBranch(meta: RemoveBranchMeta) {
+    const { owner, repo } = meta
+    const repository = await this.octokit.rest.repos.get({ owner, repo })
+
+    if (!repository) {
+      throw new Error('Repository does not exist')
+    }
+
+    const removeResult = await this.octokit.rest.git.deleteRef({
+      owner,
+      repo,
+      ref: `heads/${meta.branch}`,
+    })
+    return removeResult.status
   }
 
   public async getCommitData(meta: RepositoryCommitMeta) {

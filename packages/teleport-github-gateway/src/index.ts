@@ -13,6 +13,7 @@ import {
   RepositoryCommitMeta,
   CreateBranchMeta,
   RepositoryMergeMeta,
+  RemoveBranchMeta,
 } from './types'
 
 export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
@@ -65,6 +66,11 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return githubInstance.getRepositoryBranches(owner, repo)
   }
 
+  const deleteRepositoryBranch = async (meta: RemoveBranchMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.deleteBranch(meta)
+  }
+
   const getCommitData = async (meta: RepositoryCommitMeta, authData: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.getCommitData(meta)
@@ -85,6 +91,7 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     createBranch,
     getRepositoryBranches,
     mergeRepositoryBranches,
+    deleteRepositoryBranch,
     commitFilesToRepo,
     getCommitData,
     authorizeGithubInstance,
