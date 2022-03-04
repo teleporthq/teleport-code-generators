@@ -112,13 +112,35 @@ export default class GithubInstance {
       throw new Error('Repository does not exist')
     }
 
-    const params = {
-      ...meta,
-      per_page: meta.perPage ?? undefined,
+    if (meta.page || meta.perPage) {
+      const params = {
+        ...meta,
+        per_page: meta.perPage ?? undefined,
+      }
+
+      const commits = await this.octokit.rest.repos.listCommits(params)
+      return commits.data
     }
 
-    const commits = await this.octokit.rest.repos.listCommits(params)
-    return commits.data
+    const allCommits = []
+    let page = 1
+    let currentPageCommits = await this.octokit.rest.repos.listCommits({
+      ...meta,
+      page,
+      per_page: 50,
+    })
+
+    while (currentPageCommits.data.length) {
+      page++
+      allCommits.push(...currentPageCommits.data)
+      currentPageCommits = await this.octokit.rest.repos.listCommits({
+        ...meta,
+        page,
+        per_page: 50,
+      })
+    }
+
+    return allCommits
   }
 
   public async mergeRepositoryBranches(meta: RepositoryMergeMeta) {
@@ -158,8 +180,15 @@ export default class GithubInstance {
     }
 
     const commitDetails = await this.octokit.rest.repos.getCommit({ ref, repo, owner })
-    const fileContentPromises = commitDetails.data.files?.map(async (file: { raw_url: string }) => {
-      const response = await fetch(file.raw_url)
+    const fileContentPromises = commitDetails.data.files?.map(async (file) => {
+      const { data } = await this.octokit.rest.repos.getContent({
+        repo,
+        owner,
+        ref,
+        path: file.filename,
+      })
+
+      const response = await fetch((data as { download_url: string }).download_url)
       return response.text()
     })
 
