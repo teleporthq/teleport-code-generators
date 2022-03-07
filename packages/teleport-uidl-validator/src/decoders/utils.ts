@@ -205,6 +205,7 @@ export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = inte
 
 export const inlineStyletAssetDecoder: Decoder<UIDLStyleInlineAsset> = object({
   type: constant('style' as const),
+  attrs: optional(dict(staticValueDecoder)),
   content: string(),
 })
 
@@ -215,6 +216,7 @@ export const externalStyleAssetDecoder: Decoder<UIDLStyleExternalAsset> = object
 
 export const fontAssetDecoder: Decoder<UIDLFontAsset> = object({
   type: constant('font' as const),
+  attrs: optional(dict(staticValueDecoder)),
   path: string(),
 })
 

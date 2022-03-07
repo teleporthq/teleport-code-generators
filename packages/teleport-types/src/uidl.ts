@@ -42,6 +42,7 @@ export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
 export interface UIDLStyleInlineAsset {
   type: 'style'
   content: string
+  attrs?: Record<string, UIDLStaticValue>
 }
 export interface UIDLStyleExternalAsset {
   type: 'style'
@@ -53,6 +54,7 @@ export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
 export interface UIDLFontAsset {
   type: 'font'
   path: string
+  attrs?: Record<string, UIDLStaticValue>
 }
 export interface UIDLCanonicalAsset {
   type: 'canonical'
