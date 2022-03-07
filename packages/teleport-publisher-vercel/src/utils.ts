@@ -272,12 +272,16 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
   })
 }
 
-function throwErrorFromVercelResponse(result: { error: { code: string; message?: string } }) {
+function throwErrorFromVercelResponse(result: {
+  error: { code: string; message?: string; errors?: [] }
+}) {
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,
   // and can be safely passed down to user interfaces
-  const message = result.error.message ? result.error.message : result.error.code
+  const message = result.error.message
+    ? result.error.message + JSON.stringify(result.error?.errors)
+    : result.error.code
   throw new Error(message)
 }
 
