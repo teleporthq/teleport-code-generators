@@ -26,6 +26,14 @@ import {
   UIDLStyleSetTokenReference,
   UIDLElementNodeCompReferencedStyle,
   UIDLCompDynamicReference,
+  UIDLStyleInlineAsset,
+  UIDLFontAsset,
+  UIDLComponentSEO,
+  UIDLGlobalProjectValues,
+  UIDLScriptAsset,
+  UIDLStyleExternalAsset,
+  UIDLCanonicalAsset,
+  UIDLIconAsset,
 } from './uidl'
 
 type Modify<T, R> = Omit<T, keyof R> & R
@@ -117,6 +125,7 @@ export type VUIDLDesignTokens = Record<string, UIDLStaticValue | string | number
 export type VRootComponentUIDL = Modify<
   ComponentUIDL,
   {
+    seo?: VUIDLComponentSEO
     styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
     node: VUIDLElementNode
     designLanguage: {
@@ -130,6 +139,7 @@ export type VComponentUIDL = Omit<VRootComponentUIDL, 'peerDefinitions' | 'desig
 export type VProjectUIDL = Modify<
   ProjectUIDL,
   {
+    globals: VUIDLGlobalProjectValues
     root: VRootComponentUIDL
     components?: Record<string, VComponentUIDL>
   }
@@ -186,3 +196,39 @@ export type VUIDLLinkNode =
   | UIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
+
+export type VUIDLGlobalAsset =
+  | UIDLScriptAsset
+  | UIDLStyleExternalAsset
+  | UIDLCanonicalAsset
+  | UIDLIconAsset
+  | VUIDLStyleInlineAsset
+  | VUIDLFontAsset
+
+export type VUIDLStyleInlineAsset = Modify<
+  UIDLStyleInlineAsset,
+  {
+    attrs?: Record<string, UIDLStaticValue | string | boolean | number>
+  }
+>
+
+export type VUIDLFontAsset = Modify<
+  UIDLFontAsset,
+  {
+    attrs?: Record<string, UIDLStaticValue | string | boolean | number>
+  }
+>
+
+export type VUIDLComponentSEO = Modify<
+  UIDLComponentSEO,
+  {
+    assets?: VUIDLGlobalAsset[]
+  }
+>
+
+export type VUIDLGlobalProjectValues = Modify<
+  UIDLGlobalProjectValues,
+  {
+    assets: VUIDLGlobalAsset[]
+  }
+>
