@@ -52,10 +52,16 @@
       },
       {
         "type": "font",
+        "attrs": {
+          "data-type": "default-font"
+        },
         "path": "https://fonts.googleapis.com/css?family=Roboto"
       },
       {
         "type": "style",
+        "attrs": {
+          "data-type": "default-styles"
+        },
         "content": "body{font-family: 'Roboto', sans-serif;}"
       },
       {

@@ -23,6 +23,8 @@ import {
   dynamicNode,
   elementNode,
 } from '@teleporthq/teleport-uidl-builders'
+import { ComponentUIDL, UIDLStyleInlineAsset } from '@teleporthq/teleport-types'
+import { parseProjectJSON } from '../../src/parser'
 
 const uidl = component(
   'Repeat Component',
@@ -120,7 +122,7 @@ describe('Validate UIDL', () => {
       const validator = new Validator()
       // @ts-ignore
       expect(() =>
-        validator.validateComponentContent(componentUidlWithEventModifierUndefined)
+        validator.validateComponentContent(componentUidlWithEventModifierUndefined as ComponentUIDL)
       ).toThrow(Error)
 
       // expect(validationResult.errorMsg).toBe(
@@ -212,5 +214,12 @@ describe('Validate UIDL', () => {
       //   `\nUIDL Project Content Validation Error. Please check the following: Route is not defined in stateDefinitions`
       // )
     })
+  })
+})
+
+describe('Parses UIDL and then converts the key-values to key-static-nodes', () => {
+  it('Parsers key-values in attrs and converts to UIDL nodes', () => {
+    const parsedUIDL = parseProjectJSON(projectUidlSample)
+    expect((parsedUIDL.globals.assets[0] as UIDLStyleInlineAsset)?.attrs).toBeDefined()
   })
 })

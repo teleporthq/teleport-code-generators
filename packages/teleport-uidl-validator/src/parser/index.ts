@@ -239,11 +239,12 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 }
 
 export const parseAssets = (asset: VUIDLGlobalAsset): UIDLGlobalAsset => {
-  if (asset.type === 'style' && 'attrs' in asset) {
+  if ('attrs' in asset) {
     asset.attrs = UIDLUtils.transformAttributesAssignmentsToJson(asset.attrs) as Record<
       string,
       UIDLStaticValue
     >
   }
+
   return asset as UIDLGlobalAsset
 }
