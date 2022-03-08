@@ -46,11 +46,14 @@ describe('React Project Generator', () => {
     const publicFolder = outputFolder.subFolders[1]
     const packageJSON = outputFolder.files[0]
     const componentsFoler = srcFolder.subFolders[0]
+    const indexContent = publicFolder.files[1].content
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
     expect(packageJSON.name).toBe('package')
     expect(srcFolder.files[0].name).toBe('index')
+    expect(indexContent).toContain(`<style data-type="default-styles">`)
+    expect(indexContent).toContain(`data-type="default-font"`)
     expect(srcFolder.files[0].fileType).toBe('js')
     expect(publicFolder.files[0].name).toBe('manifest')
     expect(publicFolder.files[0].fileType).toBe('json')

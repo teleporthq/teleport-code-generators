@@ -246,6 +246,18 @@ const createHTMLEntryFileChunks = (
       const linkTag = HASTBuilders.createHTMLNode('link')
       HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
       HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
+
+      if ('attrs' in asset) {
+        Object.keys(asset.attrs || {}).forEach((attrId) => {
+          const value = asset.attrs[attrId].content
+          if (typeof value === 'boolean') {
+            HASTUtils.addBooleanAttributeToNode(linkTag, attrId, value)
+            return
+          }
+          HASTUtils.addAttributeToNode(linkTag, attrId, String(value))
+        })
+      }
+
       HASTUtils.addChildNode(headNode, linkTag)
     }
 
@@ -254,6 +266,16 @@ const createHTMLEntryFileChunks = (
       const styleTag = HASTBuilders.createHTMLNode('style')
       HASTUtils.addTextNode(styleTag, asset.content)
       HASTUtils.addChildNode(headNode, styleTag)
+      if ('attrs' in asset) {
+        Object.keys(asset.attrs || {}).forEach((attrId) => {
+          const value = asset.attrs[attrId].content
+          if (typeof value === 'boolean') {
+            HASTUtils.addBooleanAttributeToNode(styleTag, attrId, value)
+            return
+          }
+          HASTUtils.addAttributeToNode(styleTag, attrId, String(value))
+        })
+      }
     }
 
     // script (external or inline)

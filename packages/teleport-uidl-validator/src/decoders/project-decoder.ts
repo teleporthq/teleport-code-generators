@@ -1,5 +1,5 @@
 import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
-import { UIDLGlobalProjectValues, WebManifest, VProjectUIDL } from '@teleporthq/teleport-types'
+import { VUIDLGlobalProjectValues, WebManifest, VProjectUIDL } from '@teleporthq/teleport-types'
 import { globalAssetsDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -15,7 +15,7 @@ export const webManifestDecoder: Decoder<WebManifest> = object({
   theme_color: optional(string()),
 })
 
-export const globalProjectValuesDecoder: Decoder<UIDLGlobalProjectValues> = object({
+export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = object({
   settings: object({
     title: string(),
     language: string(),

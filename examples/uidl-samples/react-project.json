@@ -12,6 +12,9 @@
       },
       {
         "type": "style",
+        "attrs": {
+          "data-type": "default-styles"
+        },
         "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;} a{color:inherit; text-decoration: none}"
       },
       {
