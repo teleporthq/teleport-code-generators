@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-css-modules",
-  "version": "0.19.19",
+  "version": "0.19.21",
   "description": "A plugin for handling the styles as a separate css-module file for JSX based components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.19.19",
-    "@teleporthq/teleport-shared": "^0.19.19",
-    "@teleporthq/teleport-types": "^0.19.19"
+    "@teleporthq/teleport-plugin-common": "^0.19.21",
+    "@teleporthq/teleport-shared": "^0.19.21",
+    "@teleporthq/teleport-types": "^0.19.21"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
