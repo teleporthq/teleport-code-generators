@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-stencil",
-  "version": "0.19.21",
+  "version": "0.19.22",
   "description": "Project generator for a standard stencil project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -24,16 +24,16 @@
     "url": "https://github.com/teleporthq/teleport-code-generators/issues"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.19.21",
-    "@teleporthq/teleport-component-generator-stencil": "^0.19.21",
-    "@teleporthq/teleport-plugin-css": "^0.19.21",
-    "@teleporthq/teleport-plugin-import-statements": "^0.19.21",
-    "@teleporthq/teleport-plugin-stencil-app-routing": "^0.19.21",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.19.21",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.19.21",
-    "@teleporthq/teleport-project-generator": "^0.19.21",
-    "@teleporthq/teleport-shared": "^0.19.21",
-    "@teleporthq/teleport-types": "^0.19.21",
+    "@teleporthq/teleport-component-generator": "^0.19.22",
+    "@teleporthq/teleport-component-generator-stencil": "^0.19.22",
+    "@teleporthq/teleport-plugin-css": "^0.19.22",
+    "@teleporthq/teleport-plugin-import-statements": "^0.19.22",
+    "@teleporthq/teleport-plugin-stencil-app-routing": "^0.19.22",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.19.22",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.19.22",
+    "@teleporthq/teleport-project-generator": "^0.19.22",
+    "@teleporthq/teleport-shared": "^0.19.22",
+    "@teleporthq/teleport-types": "^0.19.22",
     "magic-string": "^0.25.4"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
