@@ -204,6 +204,7 @@ export const createDeployment = async (
   }
 
   return {
+    id: result.id,
     url: result.url,
     alias: result.alias,
   }

@@ -361,6 +361,7 @@ export interface PublisherResponse<T> {
 }
 
 export interface VercelDeployResponse {
+  id: string
   url: string
   alias: string[]
 }
