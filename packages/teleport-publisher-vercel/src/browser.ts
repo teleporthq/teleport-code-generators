@@ -12,8 +12,8 @@ export const getSHA = async (image: Uint8Array | ArrayBuffer) => {
 export const getImageBufferFromase64 = (content: string) =>
   Uint8Array.from(atob(content), (c) => c.charCodeAt(0))
 
-export const getImageBufferFromRemoteUrl = async (content: string) => {
-  const response = await fetch(content)
+export const getImageBufferFromRemoteUrl = async (content: string, options?: RequestInit) => {
+  const response = await fetch(content, options)
   const imageBuffer = await response.arrayBuffer()
   return imageBuffer
 }

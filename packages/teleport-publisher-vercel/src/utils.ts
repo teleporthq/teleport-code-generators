@@ -158,7 +158,11 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
       content: image,
     }
   } else if (file.location === 'remote' && !file.fileType && !file.contentEncoding) {
-    const image = await getImageBufferFromRemoteUrl(file.content)
+    const image = await getImageBufferFromRemoteUrl(file.content, {
+      headers: {
+        accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+    })
     const { hash } = await getSHA(image)
 
     return {
