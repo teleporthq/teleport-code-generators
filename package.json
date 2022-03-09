@@ -7,10 +7,9 @@
   "description": "Code generators and UIDL definition library",
   "scripts": {
     "lint": "tslint -p . -c tslint.json",
-    "clean": "lerna run clean --parallel",
-    "link": "lerna link",
-    "build": "yarn clean && yarn run link && lerna run build ",
-    "dev": "yarn run link && lerna run build && node scripts/watcher.mjs",
+    "clean": "turbo run clean --parallel --no-cache",
+    "build": "turbo run build ",
+    "dev": "yarn run build && node scripts/watcher.mjs",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
     "test:watch": "jest --watch",
@@ -38,6 +37,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
   },
+  "packageManager": "yarn@1.22.0",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -62,11 +62,13 @@
     "ts-jest": "^26.5.6",
     "tslint": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
+    "turbo": "^1.1.5",
     "typescript": "^4.3.5"
   },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
-  }
+  },
+  "version": "0.0.0"
 }
