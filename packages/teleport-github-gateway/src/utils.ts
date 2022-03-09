@@ -1,13 +1,7 @@
-import fetch from 'cross-fetch'
-import {
-  GeneratedFolder,
-  GeneratedFile,
-  ServiceAuth,
-  FileEncoding,
-} from '@teleporthq/teleport-types'
-import { GithubFile, FilesFetcherMeta, GithubCreateResponse } from './types'
+import { GeneratedFolder, GeneratedFile, FileEncoding } from '@teleporthq/teleport-types'
+import { GithubFile, FilesFetcherMeta } from './types'
 
-import { DEFAULT_REF, GITHUB_API_BASE_URL, FILE_EXTENTIONS_TO_DECODE } from './constants'
+import { DEFAULT_REF, FILE_EXTENTIONS_TO_DECODE } from './constants'
 
 export const createEmptyFolder = (name: string): GeneratedFolder => {
   return { files: [], subFolders: [], name }
@@ -106,47 +100,4 @@ const fileMustBeDecoded = (fileType: string, encoding: FileEncoding): boolean =>
 
 const decodeBase64Content = (base64Content: string): string => {
   return new Buffer(base64Content, 'base64').toString()
-}
-
-// We need with method in order to commit base64 encoded files (assets) to github
-// The library we are using (github-api) does not currently support binary files commits
-export const createBase64GithubFileBlob = async (
-  file: GeneratedFile,
-  repository: string,
-  auth?: ServiceAuth
-): Promise<GithubCreateResponse> => {
-  const url = `${GITHUB_API_BASE_URL}/repos/${repository}/git/blobs`
-
-  const authHeader = createAuthHeader(auth)
-  const payload = JSON.stringify({ content: file.content, encoding: 'base64' })
-
-  const response = await makeRequest(url, payload, authHeader)
-
-  const data = await response.json()
-  return { data }
-}
-
-const createAuthHeader = (auth?: ServiceAuth): string => {
-  if (!auth) {
-    return null
-  }
-
-  if (auth.token) {
-    return `token ${auth.token}`
-  }
-
-  if (!auth.basic) {
-    return null
-  }
-
-  const basicAuthToken = `${auth.basic.username}:${auth.basic.password}`
-  return `Basic ${Buffer.from(basicAuthToken).toString('base64')}`
-}
-
-const makeRequest = (url: string, body: string, authHeader: string, method: string = 'POST') => {
-  return fetch(url, {
-    method,
-    body,
-    headers: { Authorization: authHeader },
-  })
 }

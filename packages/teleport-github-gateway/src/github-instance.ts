@@ -23,19 +23,15 @@ import {
   RepositoryMergeMeta,
   RemoveBranchMeta,
 } from './types'
-import { createBase64GithubFileBlob } from './utils'
 
 export default class GithubInstance {
   private octokit: Octokit | null = null
-  private auth: ServiceAuth = null
 
   constructor(auth: ServiceAuth = {}) {
     this.authorize(auth)
   }
 
   public authorize(auth: ServiceAuth = {}) {
-    this.auth = auth
-
     if (auth.basic) {
       this.octokit = new Octokit({ auth: auth.basic })
 
@@ -343,10 +339,12 @@ export default class GithubInstance {
   }
 
   private async createFile(owner: string, repo: string, file: GithubFile): Promise<GithubFileMeta> {
-    const { data } =
-      file.encoding === 'base64'
-        ? await createBase64GithubFileBlob(file, repo, this.auth)
-        : await this.octokit.rest.git.createBlob({ owner, repo, content: file.content })
+    const { data } = await this.octokit.rest.git.createBlob({
+      owner,
+      repo,
+      content: file.content,
+      encoding: file.encoding,
+    })
 
     return {
       sha: file.status === 'deleted' ? null : data.sha,
