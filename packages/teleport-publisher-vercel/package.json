@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-vercel",
-  "version": "0.19.22",
+  "version": "0.19.23",
   "description": "Publishes a generated folder structure to vercel",
   "author": "teleportHQ",
   "license": "MIT",
