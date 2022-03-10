@@ -15,7 +15,6 @@ import {
   FileType,
   ChunkType,
   ComponentGenerator,
-  PostProcessor,
 } from '@teleporthq/teleport-types'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
@@ -138,12 +137,6 @@ export const createEntryFile = async (
     customHeadContent,
     customTags,
   })
-
-  if (strategy.entry.postprocessors?.length > 0) {
-    strategy.entry?.postprocessors.forEach((processor: PostProcessor) =>
-      generator.addPostProcessor(processor)
-    )
-  }
 
   const result = generator.linkCodeChunks(chunks, entryFileName)
   return result

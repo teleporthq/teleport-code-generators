@@ -257,7 +257,7 @@ export class ProjectGenerator {
         }
       }
 
-      if ((this.pageGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+      if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,
@@ -339,7 +339,7 @@ export class ProjectGenerator {
         }
       }
 
-      if ((this.componentGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+      if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,

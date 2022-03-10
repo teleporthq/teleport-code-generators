@@ -43,6 +43,11 @@ export const insertLinks = (
       return node
     }
 
+    /* type attribute is not valid for `anchor` tags */
+    if (node.content?.attrs?.type) {
+      delete node.content.attrs.type
+    }
+
     /* We repalce buttons with link to use <a> tag's, to make the generated
     code to be semantically correct. */
     if (elementType === 'button') {
