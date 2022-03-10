@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import { join } from 'path'
 import {
   ProjectUIDL,
   EntryFileOptions,
@@ -236,7 +237,10 @@ export const styleSheetDependentConfigGenerator = (options: FrameWorkConfigOptio
       type: ChunkType.AST,
       name: 'import-js-chunk',
       fileType: FileType.JS,
-      content: t.importDeclaration([], t.stringLiteral(`./${path}/${sheetName}.module.css`)),
+      content: t.importDeclaration(
+        [],
+        t.stringLiteral(`${join(path, sheetName).substring(1)}.module.css`)
+      ),
       linkAfter: [],
     })
   }

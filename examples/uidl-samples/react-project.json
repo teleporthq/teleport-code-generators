@@ -438,7 +438,43 @@
                                 "Here are some of them, shown below as examples"
                               ]
                           }
-                        }, 
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "button",
+                            "abilities": {
+                              "link": {
+                                "type": "url",
+                                "content": {
+                                  "url": {
+                                    "type": "static",
+                                    "content": "https://www.google.com"
+                                  },
+                                  "newTab": true
+                                }
+                              }
+                            },
+                            "attrs": {
+                              "type": {
+                                "type": "static",
+                                "content": "button"
+                              }
+                            },
+                            "style": {
+                              "textDecoration": {
+                                "type": "static",
+                                "content": "none"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "static",
+                                "content": "Button with links and type attr"
+                              }
+                            ]
+                          }
+                        },
                         {
                           "type": "element",
                           "content": {

@@ -51,8 +51,16 @@ export const createAngularComponentPlugin: ComponentPluginFactory<AngularPluginC
       dependencies.Meta = ANGULAR_PLATFORM_BROWSER
     }
 
-    if (Object.keys(propDefinitions).length > 0) {
-      dependencies.Input = ANGULAR_CORE_DEPENDENCY
+    const props = Object.values(propDefinitions)
+    if (props.length > 0) {
+      const functionalProps = props.filter((prop) => prop.type === 'func')
+      if (functionalProps.length > 0) {
+        dependencies.Output = ANGULAR_CORE_DEPENDENCY
+        dependencies.EventEmitter = ANGULAR_CORE_DEPENDENCY
+      }
+      if (props.length - functionalProps.length > 0) {
+        dependencies.Input = ANGULAR_CORE_DEPENDENCY
+      }
     }
 
     const templateLookup: { [key: string]: unknown } = {}
