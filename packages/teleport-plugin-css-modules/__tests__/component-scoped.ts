@@ -3,7 +3,6 @@ import { createCSSModulesPlugin } from '../src'
 import { staticNode, elementNode, component } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
 import { createComponentChunk } from './mocks'
-import { generateStylesFromStyleSetDefinitions } from '../src/utils'
 
 describe('Component Scoped Styles', () => {
   const uidl = component('MYComponent', elementNode('container', {}, [], null, {}), {}, {})
