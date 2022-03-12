@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-react-styled-components",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "A plugin for generating a react project using styled-components",
   "author": "teleportHQ",
   "license": "MIT",
