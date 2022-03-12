@@ -55,7 +55,7 @@ const log = async (cb: () => Promise<ProjectType>) => {
   const t2 = performance.now()
 
   const time = t2 - t1
-  console.info(chalk.greenBright(`${framework} -  ${time}`))
+  console.info(chalk.greenBright(`${framework} -  ${time.toFixed(2)}`))
 }
 
 const run = async () => {

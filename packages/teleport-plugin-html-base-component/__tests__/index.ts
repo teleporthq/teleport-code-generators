@@ -39,7 +39,7 @@ describe('plugin-html-base-component', () => {
 
     expect(chunks.length).toEqual(2)
     expect(((chunks[1].content as HastNode).children[0] as HastNode).properties.href).toBe(
-      '/about.html'
+      'about.html'
     )
   })
 

@@ -302,10 +302,10 @@ const handleAttributes = (
     if (
       attrKey === 'href' &&
       attrValue.type === 'static' &&
-      String(attrValue.content).startsWith('/') &&
-      String(attrValue.content).length > 1
+      typeof attrValue.content === 'string' &&
+      attrValue.content.startsWith('/')
     ) {
-      attrValue = staticNode(`${attrValue.content}.html`)
+      attrValue = staticNode(`${attrValue.content.split('/').pop()}.html`)
     }
 
     if (attrValue.type === 'dynamic') {
