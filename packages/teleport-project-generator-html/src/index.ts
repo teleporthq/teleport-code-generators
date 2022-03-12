@@ -46,4 +46,4 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
   return generator
 }
 
-export { createHTMLProjectGenerator, HTMLTemplate }
+export { createHTMLProjectGenerator, HTMLTemplate, pluginCloneGlobals, pluginImageResolver }

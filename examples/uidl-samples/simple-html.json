@@ -617,7 +617,14 @@
                                               "content": {
                                                 "elementType": "text",
                                                 "referencedStyles": {},
-                                                "abilities": {},
+                                                "abilities": {
+                                                  "link": {
+                                                    "type": "navlink",
+                                                    "content": {
+                                                      "routeName": "About"
+                                                    }
+                                                  }
+                                                },
                                                 "style": {
                                                   "marginRight": {
                                                     "type": "dynamic",

@@ -35,6 +35,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
 
     files.forEach((fileId, key) => {
       const { path } = fileId
+
       if (path[0] === '') {
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
           if (file.fileType === FileType.HTML) {

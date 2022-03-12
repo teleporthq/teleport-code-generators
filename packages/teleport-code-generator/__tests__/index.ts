@@ -59,10 +59,11 @@ describe('Performance tests for the code-generator', () => {
         projectType: ProjectType.REACT,
       })
       const t2 = performance.now()
-      totalTime = totalTime + (t2 - t1)
+      const timeTaken = Number((t2 - t1).toFixed(2))
+      totalTime = totalTime + timeTaken
     }
 
-    expect(totalTime / runs).toBeLessThan(150)
+    expect(totalTime / runs).toBeLessThan(500)
   })
 
   it('Runs HTML project generaotr multiple times and tests for memory leaks', async () => {
@@ -73,10 +74,11 @@ describe('Performance tests for the code-generator', () => {
         projectType: ProjectType.HTML,
       })
       const t2 = performance.now()
-      totalTime = totalTime + (t2 - t1)
+      const timeTaken = Number((t2 - t1).toFixed(2))
+      totalTime = totalTime + timeTaken
     }
 
-    expect(totalTime / runs).toBeLessThan(275)
+    expect(totalTime / runs).toBeLessThan(500)
   })
 })
 

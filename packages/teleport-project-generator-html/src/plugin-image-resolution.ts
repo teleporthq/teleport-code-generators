@@ -24,8 +24,6 @@ class ProjectPluginImageResolver implements ProjectPlugin {
       this.resolveFromStyles(styleSet.content)
     })
 
-    this.relativePath = relative(join(strategy.id, strategy.components.path.join('/')), assetsPath)
-
     Object.values(uidl.components || {}).forEach((component) => {
       UIDLUtils.traverseElements(component.node, this.imageResolver)
       Object.values(component?.styleSetDefinitions || {}).forEach((styleSet) => {
