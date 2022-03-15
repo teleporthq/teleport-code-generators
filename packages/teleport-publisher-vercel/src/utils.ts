@@ -53,7 +53,7 @@ export const generateProjectFiles = async (
 
   const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
 
-  const semaphore = new Sema(5, { capacity: 5 })
+  const semaphore = new Sema(10, { capacity: 10 })
   const agent = new Agent({ keepAlive: true })
 
   const shaPromises = shaProjectFiles.map((shaFile) =>
@@ -81,20 +81,17 @@ export const generateProjectFiles = async (
             return
           } else if (res.status > 200 && res.status < 500) {
             // If something is wrong with our request, we don't retry
-            const { error } = (await res.json()) as any
-            console.error('1', error.message)
+            /* tslint:disable */
+            const { error } = (await res.json()) as Record<string, any>
 
             err = new Error(error.message)
           } else {
             // If something is wrong with the server, we retry
-            const { error } = (await res.json()) as any
-            console.error('2', error.message)
+            const { error } = (await res.json()) as Record<string, any>
 
             throw new Error(error.message)
           }
         } catch (e) {
-          console.error('10', e.message)
-
           err = new Error(e)
         } finally {
           semaphore.release()
@@ -103,13 +100,9 @@ export const generateProjectFiles = async (
         if (err) {
           if (isClientNetworkError(err)) {
             // If it's a network error, we retry
-            console.error('11', err)
-
-            console.log(shaFile.name, shaFile.size)
             throw err
           } else {
             // Otherwise we bail
-            console.log('bailing')
             return bail(err)
           }
         }
@@ -122,9 +115,7 @@ export const generateProjectFiles = async (
     )
   )
 
-  console.time('fetchvercelUploadFilesURLPromise')
   await Promise.all(shaPromises)
-  console.timeEnd('fetchvercelUploadFilesURLPromise')
 
   return shaProjectFiles.map((file) => ({
     file: file.name,
@@ -224,9 +215,9 @@ export const createDeployment = async (
     body: JSON.stringify(payload),
   })
 
-  const result = (await response.json()) as any
+  /* tslint:disable */
+  const result = (await response.json()) as Record<string, any>
   if (result.error) {
-    console.error('3', result.error)
     throwErrorFromVercelResponse(result)
   }
 
@@ -257,7 +248,8 @@ export const removeProject = async (
     return true
   }
 
-  const result = (await response.json()) as any
+  /* tslint:disable */
+  const result = (await response.json()) as Record<string, any>
   if (result.error) {
     throwErrorFromVercelResponse(result)
   }
@@ -276,7 +268,9 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
         ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
         : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
       const result = await fetch(vercelUrl)
-      const response = (await result.json()) as any
+
+      /* tslint:disable */
+      const response = (await result.json()) as Record<string, any>
 
       if (response.error) {
         throwErrorFromVercelResponse(response)
@@ -300,9 +294,7 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
   })
 }
 
-function throwErrorFromVercelResponse(result: {
-  error: { code: string; message?: string; errors?: [] }
-}) {
+function throwErrorFromVercelResponse(result: Record<string, any>) {
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,

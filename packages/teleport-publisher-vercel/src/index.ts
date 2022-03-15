@@ -102,16 +102,12 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     if (!vercelAccessToken) {
       throw new VercelMissingTokenError()
     }
-    console.log('generateProjectFiles')
-    console.time('generateProjectFiles')
     const files = await generateProjectFiles(
       projectToPublish,
       vercelAccessToken,
       individualUpload,
       teamId
     )
-    console.timeEnd('generateProjectFiles')
-    console.log('end:generateProjectFiles')
 
     const vercelPayload: VercelPayload = {
       files,
@@ -127,18 +123,10 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     vercelPayload.alias =
       alias.length === 0 && domainAlias ? [`${projectSlug}.${domainAlias}`] : alias
 
-    console.log('createDeployment')
-    console.time('createDeployment')
     const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
-    console.timeEnd('createDeployment')
-    console.log('END:createDeployment')
 
-    console.log('checkDeploymentStatus')
-    console.time('checkDeploymentStatus')
     // Makes requests to the deployment URL until the deployment is ready
     await checkDeploymentStatus(deploymentResult.url, teamId)
-    console.timeEnd('checkDeploymentStatus')
-    console.log('END:checkDeploymentStatus')
 
     return { success: true, payload: deploymentResult }
   }
