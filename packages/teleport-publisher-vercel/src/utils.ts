@@ -1,5 +1,7 @@
-import fetch from 'cross-fetch'
+import fetch from 'node-fetch'
 import retry from 'async-retry'
+import { Agent } from 'https'
+import { Sema } from 'async-sema'
 import {
   GeneratedFolder,
   VercelDeployResponse,
@@ -7,7 +9,8 @@ import {
   VercelDeploymentTimeoutError,
   GeneratedFile,
 } from '@teleporthq/teleport-types'
-import { ProjectFolderInfo, VercelFile, VercelPayload } from './types'
+import { ProjectFolderInfo, VercelError, VercelFile, VercelPayload, VercelResponse } from './types'
+import { getImageBufferFromRemoteUrl, getSHA } from './hash'
 
 const CREATE_DEPLOY_URL = 'https://api.vercel.com/v13/deployments'
 const DELETE_PROJECT_URL = 'https://api.vercel.com/v8/projects'
@@ -18,7 +21,7 @@ type FileSha = Omit<GeneratedFile, 'content'> & {
   sha: string
   size: number
   isBuffer: boolean
-  content: string | ArrayBuffer | Uint8Array
+  content: Buffer | string
 }
 
 export const generateProjectFiles = async (
@@ -50,56 +53,67 @@ export const generateProjectFiles = async (
 
   const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
 
-  const shaPromises = shaProjectFiles.map(
-    async (shaFile): Promise<void> =>
-      retry(
-        async (bail): Promise<void> => {
-          let err
+  const semaphore = new Sema(10, { capacity: 10 })
+  const agent = new Agent({ keepAlive: true })
 
-          try {
-            const res = await fetch(vercelUploadFilesURL, {
-              method: 'POST',
-              headers: {
-                ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
-                Authorization: `Bearer ${token}`,
-                'x-vercel-digest': shaFile.sha,
-              },
-              body: shaFile.content,
-            })
-            if (res.status === 200) {
-              return
-            } else if (res.status > 200 && res.status < 500) {
-              // If something is wrong with our request, we don't retry
-              const { error } = await res.json()
-              err = new Error(error.message)
-            } else {
-              // If something is wrong with the server, we retry
-              const { error } = await res.json()
-              throw new Error(error.message)
-            }
-          } catch (e) {
-            err = new Error(e)
-          }
+  const shaPromises = shaProjectFiles.map((shaFile) =>
+    retry(
+      async (bail): Promise<void> => {
+        let err
 
-          if (err) {
-            if (isClientNetworkError(err)) {
-              // If it's a network error, we retry
-              throw err
-            } else {
-              // Otherwise we bail
-              return bail(err)
-            }
+        try {
+          await semaphore.acquire()
+          const res = await fetch(vercelUploadFilesURL, {
+            agent,
+            method: 'POST',
+            headers: {
+              ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
+              Authorization: `Bearer ${token}`,
+              accept: 'application/json',
+              'Content-Length': shaFile.size.toString(),
+              'x-now-digest': shaFile.sha,
+              'x-now-size': shaFile.size.toString(),
+            },
+            body: shaFile.content,
+          })
+
+          if (res.status === 200) {
+            return
+          } else if (res.status > 200 && res.status < 500) {
+            const { error } = (await res.json()) as VercelError
+
+            err = new Error(error.message)
+          } else {
+            // If something is wrong with the server, we retry
+            const { error } = (await res.json()) as VercelError
+            throw new Error(error.message)
           }
-        },
-        {
-          retries: 5,
-          factor: 6,
-          minTimeout: 10,
+        } catch (e) {
+          err = new Error(e)
+        } finally {
+          semaphore.release()
         }
-      )
+
+        if (err) {
+          if (isClientNetworkError(err)) {
+            // If it's a network error, we retry
+            throw err
+          } else {
+            // Otherwise we bail
+            return bail(err)
+          }
+        }
+      },
+      {
+        retries: 5,
+        factor: 6,
+        minTimeout: 10,
+      }
+    )
   )
 
   await Promise.all(shaPromises)
+
   return shaProjectFiles.map((file) => ({
     file: file.name,
     sha: file.sha,
@@ -142,13 +156,9 @@ const destructureProjectFiles = (
 }
 
 const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
-  // @ts-ignore
-  const module: typeof import('./browser') = await import('#builtins').then((mod) => mod)
-  const { getImageBufferFromRemoteUrl, getSHA, getImageBufferFromase64 } = module
-
   if (file.contentEncoding === 'base64') {
-    const image = getImageBufferFromase64(file.content)
-    const { hash } = await getSHA(image)
+    const image = Buffer.from(file.content, 'base64')
+    const hash = await getSHA(image)
 
     return {
       ...file,
@@ -163,7 +173,7 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
         accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
       },
     })
-    const { hash } = await getSHA(image)
+    const hash = await getSHA(image)
 
     return {
       ...file,
@@ -174,13 +184,13 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
     }
   } else {
     const enc = new TextEncoder()
-    const fileData = enc.encode(file.content)
-    const { hash, hashLength } = await getSHA(fileData)
+    const fileData = Buffer.from(enc.encode(file.content))
+    const hash = await getSHA(fileData)
 
     return {
       ...file,
       sha: hash,
-      size: hashLength,
+      size: hash.length,
       isBuffer: false,
     }
   }
@@ -202,15 +212,17 @@ export const createDeployment = async (
     body: JSON.stringify(payload),
   })
 
-  const result = await response.json()
-  if (result.error) {
+  const result = (await response.json()) as VercelResponse
+  if ('error' in result) {
     throwErrorFromVercelResponse(result)
   }
 
+  const { id, url, alias } = result as VercelDeployResponse
+
   return {
-    id: result.id,
-    url: result.url,
-    alias: result.alias,
+    id,
+    url,
+    alias,
   }
 }
 
@@ -234,8 +246,8 @@ export const removeProject = async (
     return true
   }
 
-  const result = await response.json()
-  if (result.error) {
+  const result = (await response.json()) as VercelResponse
+  if ('error' in result) {
     throwErrorFromVercelResponse(result)
   }
 
@@ -252,19 +264,19 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
       const vercelUrl = teamId
         ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
         : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
-      const result = await fetch(vercelUrl)
-      const response = await result.json()
+      const response = await fetch(vercelUrl)
+      const result = (await response.json()) as VercelResponse
 
-      if (response.error) {
-        throwErrorFromVercelResponse(response)
+      if ('error' in result) {
+        throwErrorFromVercelResponse(result)
       }
 
-      if (response.readyState === 'READY') {
+      if ('readyState' in result && result.readyState === 'READY') {
         clearInterval(clearHook)
         return resolve()
       }
 
-      if (response.readyState === 'ERROR') {
+      if ('readyState' in result && result.readyState === 'ERROR') {
         clearInterval(clearHook)
         reject(new VercelDeploymentError())
       }
@@ -277,9 +289,7 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
   })
 }
 
-function throwErrorFromVercelResponse(result: {
-  error: { code: string; message?: string; errors?: [] }
-}) {
+function throwErrorFromVercelResponse(result: VercelError) {
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,

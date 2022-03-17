@@ -102,7 +102,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     if (!vercelAccessToken) {
       throw new VercelMissingTokenError()
     }
-
     const files = await generateProjectFiles(
       projectToPublish,
       vercelAccessToken,
