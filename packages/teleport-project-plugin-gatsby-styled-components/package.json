@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-gatsby-styled-components",
-  "version": "0.20.0",
+  "version": "0.20.3",
   "description": "A plugin for generating a gatsby project using styled-components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,10 +24,10 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.20.0",
-    "@teleporthq/teleport-plugin-react-styled-components": "^0.20.0",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.20.0",
-    "@teleporthq/teleport-types": "^0.20.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.20.3",
+    "@teleporthq/teleport-plugin-react-styled-components": "^0.20.3",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.20.3",
+    "@teleporthq/teleport-types": "^0.20.3",
     "magic-string": "^0.25.4"
   }
 }
