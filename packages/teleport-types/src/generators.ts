@@ -364,6 +364,7 @@ export interface VercelDeployResponse {
   id: string
   url: string
   alias: string[]
+  readyState?: string
 }
 
 export interface VercelDeleteProject {
