@@ -22,6 +22,7 @@ import {
   CreateBranchMeta,
   RepositoryMergeMeta,
   RemoveBranchMeta,
+  CompareBranchesMeta,
 } from './types'
 
 export default class GithubInstance {
@@ -166,6 +167,30 @@ export default class GithubInstance {
       ref: `heads/${meta.branch}`,
     })
     return removeResult.status
+  }
+
+  public async compareBranches(meta: CompareBranchesMeta) {
+    const { owner, repo, base, head } = meta
+    const compare = await this.octokit.rest.repos.compareCommits({ owner, repo, base, head })
+
+    const fileContentPromises = compare.data.files?.map(async (file) => {
+      const { data } = await this.octokit.rest.repos.getContent({
+        repo,
+        owner,
+        ref: head,
+        path: file.filename,
+      })
+
+      const response = await fetch((data as { download_url: string }).download_url)
+      return response.text()
+    })
+
+    const fileContents = await Promise.all(fileContentPromises)
+    compare.data.files.forEach((file, index: number) => {
+      Object.assign(file, { content: fileContents[index] })
+    })
+
+    return compare.data
   }
 
   public async getCommitData(meta: RepositoryCommitMeta) {
