@@ -190,7 +190,7 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
     return {
       ...file,
       sha: hash,
-      size: hash.length,
+      size: file.content.length,
       isBuffer: false,
     }
   }
