@@ -183,14 +183,14 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
       content: image,
     }
   } else {
-    const enc = new TextEncoder()
-    const fileData = Buffer.from(enc.encode(file.content))
+    const enc = new TextEncoder().encode(file.content)
+    const fileData = Buffer.from(enc)
     const hash = await getSHA(fileData)
 
     return {
       ...file,
       sha: hash,
-      size: file.content.length,
+      size: enc.length,
       isBuffer: false,
     }
   }
