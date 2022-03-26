@@ -53,7 +53,7 @@ export const generateProjectFiles = async (
 
   const vercelUploadFilesURL = teamId ? `${UPLOAD_FILES_URL}?teamId=${teamId}` : UPLOAD_FILES_URL
 
-  const semaphore = new Sema(10, { capacity: 10 })
+  const semaphore = new Sema(50, { capacity: 50 })
   const agent = new Agent({ keepAlive: true })
 
   const shaPromises = shaProjectFiles.map((shaFile) =>
@@ -67,8 +67,8 @@ export const generateProjectFiles = async (
             agent,
             method: 'POST',
             headers: {
-              ...(shaFile.isBuffer && { 'Content-Type': 'application/octet-stream' }),
-              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/octet-stream',
+              authorization: `Bearer ${token}`,
               accept: 'application/json',
               'Content-Length': shaFile.size.toString(),
               'x-now-digest': shaFile.sha,
@@ -77,13 +77,11 @@ export const generateProjectFiles = async (
             body: shaFile.content,
           })
 
-          if (res.status === 200) {
-            return
-          } else if (res.status > 200 && res.status < 500) {
+          if (res.status > 200 && res.status < 500) {
             const { error } = (await res.json()) as VercelError
 
             err = new Error(error.message)
-          } else {
+          } else if (res.status !== 200) {
             // If something is wrong with the server, we retry
             const { error } = (await res.json()) as VercelError
             throw new Error(error.message)
