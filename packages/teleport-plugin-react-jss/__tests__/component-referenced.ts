@@ -38,7 +38,7 @@ describe('Component Scoped Styles', () => {
     expect(styleChunk).toBeDefined()
     expect(expression.callee.name).toBe('createUseStyles')
     expect(properties.length).toBe(2)
-    expect(properties[0].key.value).toBe('primary-navbar')
+    expect(properties[0].key.value).toBe('primaryNavbar')
     expect(properties[1].key.value).toBe('secondaryNavbar')
   })
 

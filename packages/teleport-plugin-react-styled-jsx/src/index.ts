@@ -138,7 +138,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               )
             }
 
-            classNamesToAppend.add(content.referenceId)
+            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
             return
           }
 

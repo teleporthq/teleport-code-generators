@@ -32,7 +32,7 @@ const createReactComponentGenerator: ComponentGeneratorInstance = ({
     forceScoping: true,
   })
   const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
-  const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: false })
+  const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: true })
 
   const stylePlugins = {
     [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,

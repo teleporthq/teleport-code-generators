@@ -265,7 +265,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                 `Style used from global stylesheet is missing - ${content.referenceId}`
               )
             }
-            classNamesToAppend.add(content.referenceId)
+            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
             return
           }
 

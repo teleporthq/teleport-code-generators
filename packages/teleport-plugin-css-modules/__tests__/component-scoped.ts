@@ -1,4 +1,3 @@
-/* tslint:disable no-string-literal */
 import { createCSSModulesPlugin } from '../src'
 import { staticNode, elementNode, component } from '@teleporthq/teleport-uidl-builders'
 import { ComponentStructure } from '@teleporthq/teleport-types'
@@ -37,7 +36,7 @@ describe('Component Scoped Styles', () => {
     expect(chunks.length).toBe(2)
     expect(styleChunk).toBeDefined()
     expect(styleChunk.content).toContain(`primary-navbar`)
-    expect(styleChunk.content).toContain('secondaryNavbar')
+    expect(styleChunk.content).toContain('secondary-navbar')
   })
 
   it('Generates style sheet and adds them to the node with JSX template', async () => {
