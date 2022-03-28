@@ -8,18 +8,11 @@ export const generateStylesFromStyleSetDefinitions = (params: {
   styleSet: Record<string, unknown>
   mediaStyles: Record<string, Record<string, unknown>>
   tokensUsed?: string[]
-  formatClassName?: boolean
 }) => {
-  const {
-    styleSetDefinitions,
-    styleSet,
-    tokensUsed,
-    formatClassName = false,
-    mediaStyles = {},
-  } = params
+  const { styleSetDefinitions, styleSet, tokensUsed, mediaStyles = {} } = params
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
-    const className = formatClassName ? StringUtils.dashCaseToCamelCase(styleId) : styleId
+    const className = StringUtils.dashCaseToCamelCase(styleId)
     const { conditions = [], content } = style
     styleSet[className] = generateStylesFromStyleObj(content, tokensUsed)
 

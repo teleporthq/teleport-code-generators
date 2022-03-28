@@ -9,10 +9,11 @@ import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface StyleSheetPlugin {
   fileName?: string
+  forceScoping?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName } = config || { fileName: 'style' }
+  const { fileName, forceScoping = false } = config || { fileName: 'style', forceScoping: false }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
@@ -42,7 +43,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         styleSetDefinitions,
         cssMap,
         mediaStylesMap,
-        UIDLUtils.getComponentClassName(uidl)
+        UIDLUtils.getComponentClassName(uidl),
+        forceScoping
       )
     }
 

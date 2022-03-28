@@ -142,7 +142,7 @@ describe('Referes from project style and adds it to the node, without any styles
 
     expect(files.length).toBe(2)
     expect(cssFile).not.toBeDefined()
-    expect(htmlFile.content).toContain(`class="primaryButton\"`)
+    expect(htmlFile.content).toContain(`class="primary-button\"`)
     expect(tsFile.content).not.toContain(`my-component.css`)
     expect(tsFile.content).not.toContain(`import '../style.css`)
   })

@@ -15,7 +15,7 @@
   ProjectStyle sheet are lost. Since, css-modules can have dynamic values only in inline.
 */
 
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -234,7 +234,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier(globalStyleSheetPrefix),
-                  types.identifier(`'${content.referenceId}'`),
+                  types.identifier(`'${StringUtils.camelCaseToDashCase(content.referenceId)}'`),
                   true
                 )
               )

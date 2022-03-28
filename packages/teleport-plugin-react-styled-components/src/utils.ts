@@ -158,7 +158,7 @@ export const generateVariantsfromStyleSet = (
       const { content = {}, conditions = [] } = style
 
       const property = types.objectProperty(
-        types.stringLiteral(styleId),
+        types.stringLiteral(StringUtils.dashCaseToCamelCase(styleId)),
         generateStyledComponentStyles({
           styles: content,
           ...(tokensReferred && { tokensReferred }),

@@ -32,9 +32,7 @@ describe('Generates NEXT-JS project with plugins', () => {
 
     expect(result.files.length).toBe(2)
     expect(packageJSON).toBeDefined()
-    expect(packageJSON.content).toContain(`@zeit/next-css`)
     expect(nextConfig).toBeDefined()
-    expect(nextConfig.content).toContain(`const withCSS = require('@zeit/next-css')`)
     expect(pages.files.length).toBe(6)
     expect(styleModule).toBeDefined()
     expect(styleModule.name).toBe('style.module')

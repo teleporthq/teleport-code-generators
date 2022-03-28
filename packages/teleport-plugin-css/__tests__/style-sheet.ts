@@ -84,14 +84,14 @@ describe('plugin-css-style-sheet', () => {
   --blue-600: #6b7db3;
 }
 `)
-    expect(content).toContain(`.conditionalButton:hover {
+    expect(content).toContain(`.conditional-button:hover {
   background: var(--blue-500);
 }
 `)
     expect(content).toContain(`color: var(--red-500)`)
-    expect(content).toContain('.primaryButton')
-    expect(content).toContain('secondaryButton')
-    expect(content).toContain('.conditionalButton:hover')
+    expect(content).toContain('.primary-button')
+    expect(content).toContain('secondary-button')
+    expect(content).toContain('.conditional-button:hover')
     expect(content).toContain('@media(max-width: 991px)')
     expect(content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })

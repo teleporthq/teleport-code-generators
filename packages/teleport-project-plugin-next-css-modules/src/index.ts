@@ -28,7 +28,7 @@ class PluginNextCSSModules implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { files, devDependencies } = structure
+    const { files } = structure
     const appFileContent = files.get('_app').files[0].content
     const content = `import "./style.module.css" \n
     ${appFileContent}
@@ -48,10 +48,41 @@ class PluginNextCSSModules implements ProjectPlugin {
     })
 
     const nextContent = prettierJS({
-      [FileType.JS]: `const withCSS = require('@zeit/next-css')
-    module.exports = withCSS({
-      cssModules: true
-    })`,
+      [FileType.JS]: `const regexEqual = (x, y) => {
+  return (
+    x instanceof RegExp &&
+    y instanceof RegExp &&
+    x.source === y.source &&
+    x.global === y.global &&
+    x.ignoreCase === y.ignoreCase &&
+    x.multiline === y.multiline
+  );
+};
+
+module.exports = {
+  webpack: (config) => {
+    const oneOf = config.module.rules.find(
+      (rule) => typeof rule.oneOf === 'object'
+    );
+
+    if (oneOf) {
+      const moduleCssRule = oneOf.oneOf.find(
+        (rule) => regexEqual(rule.test, /\\.module\\.css$/)
+      );
+
+      if (moduleCssRule) {
+        const cssLoader = moduleCssRule.use.find(({ loader }) =>
+          loader.includes('css-loader')
+        );
+        if (cssLoader) {
+          cssLoader.options.modules.mode = 'local';
+        }
+      }
+    }
+
+    return config;
+  },
+};`,
     })
 
     files.set('next.config', {
@@ -65,7 +96,6 @@ class PluginNextCSSModules implements ProjectPlugin {
       ],
     })
 
-    devDependencies['@zeit/next-css'] = '^1.0.1'
     return structure
   }
 }

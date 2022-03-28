@@ -100,7 +100,7 @@ describe('Referenced Styles for inlined and project-referenced with Templates (H
     expect(cssFile).toBeDefined()
     expect(cssFile.content).toContain('width')
     expect(cssFile.content).toContain('@media(max-width: 991px)')
-    expect(nodeReference.properties.class).toBe('container primaryButton')
+    expect(nodeReference.properties.class).toBe('container primary-button')
   })
 })
 

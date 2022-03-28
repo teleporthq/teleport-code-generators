@@ -192,7 +192,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier('projectStyles'),
-                  types.identifier(`'${content.referenceId}'`),
+                  types.identifier(`'${StringUtils.dashCaseToCamelCase(content.referenceId)}'`),
                   true
                 )
               )

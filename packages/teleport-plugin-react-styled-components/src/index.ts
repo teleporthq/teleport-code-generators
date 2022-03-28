@@ -237,7 +237,11 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               }
               projectStyleReferences.add(projectVariantPropPrefix)
 
-              ASTUtils.addAttributeToJSXTag(root, projectVariantPropKey, content.referenceId)
+              ASTUtils.addAttributeToJSXTag(
+                root,
+                projectVariantPropKey,
+                StringUtils.dashCaseToCamelCase(content.referenceId)
+              )
               return
             }
             default: {

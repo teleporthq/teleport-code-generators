@@ -106,9 +106,8 @@ export const generateStylesFromStyleSetDefinitions = (
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [] } = style
-    const className = forceScoping
-      ? `${componentFileName}-${StringUtils.camelCaseToDashCase(styleId)}`
-      : styleId
+    const styleName = StringUtils.camelCaseToDashCase(styleId)
+    const className = forceScoping ? `${componentFileName}-${styleName}` : styleName
 
     const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
     const collectedStyles = {

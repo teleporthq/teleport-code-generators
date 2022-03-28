@@ -310,7 +310,7 @@ describe('Referes from project style and adds it to the node, without any styles
 
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
-    expect(jsFile.content).toContain(`className={projectStyles['primaryButton']}`)
+    expect(jsFile.content).toContain(`className={projectStyles['primary-button']}`)
     expect(jsFile.content).toContain(`import projectStyles from '../style.module.css'`)
     expect(jsFile.content).not.toContain(`import styles from './my-component.module.css'`)
   })
@@ -329,7 +329,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
 
-    expect(jsFile.content).toContain('className="primaryButton"')
+    expect(jsFile.content).toContain('className="primary-button"')
     expect(jsFile.content).not.toContain(`import '../style.css'`)
     expect(jsFile.content).not.toContain(`import './my-component.css'`)
   })
@@ -355,7 +355,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const { files } = await generator.generateComponent(uidl, options)
     const jsFile = findFileByType(files, FileType.JS)
     // Styled JSX is used only with NextJS, for NextJS we don't need to import anything
-    expect(jsFile.content).toContain('<div className="primaryButton">')
+    expect(jsFile.content).toContain('<div className="primary-button">')
   })
 
   it('React JSS', async () => {
