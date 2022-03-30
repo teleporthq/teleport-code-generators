@@ -30,6 +30,7 @@ export interface GithubCommitMeta {
   files: GithubFile[]
   repositoryIdentity: RepositoryIdentity
   branchName: string
+  extraBranchParents?: string[]
   commitMessage?: string
   isPrivate?: boolean
 }

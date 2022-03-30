@@ -50,6 +50,7 @@ export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMe
     commitMessage,
     repository,
     repositoryOwner,
+    extraBranchParents,
     isPrivate,
   } = meta
 
@@ -65,6 +66,7 @@ export const publishToGithub = async (files: GithubFile[], meta: GithubPublishMe
     branchName: commitBranch,
     commitMessage,
     isPrivate,
+    extraBranchParents,
   }
 
   const githubGateway = createGithubGateway(authMeta)
