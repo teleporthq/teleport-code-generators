@@ -47,7 +47,7 @@ export const createCSSClassWithMediaQuery = (
   styleObject: Record<string, string | number>
 ) => {
   return jss
-    .createRule(`@media(${mediaOffset})`, styleObject, {
+    .createRule(mediaOffset, styleObject, {
       generateId: (data) => data.key,
     })
     .toString()
@@ -87,13 +87,31 @@ export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string,
     .forEach((mediaOffset: string) => {
       styles.push(
         createCSSClassWithMediaQuery(
-          `max-width: ${mediaOffset}px`,
+          mediaOffset,
           // @ts-ignore
           mediaStylesMap[mediaOffset]
         )
       )
     })
   return styles
+}
+
+export const getMediaSelectorFromSizes = (params: {
+  maxWidth: number
+  minWidth?: number
+  maxHeight?: number
+  minHeight?: number
+  [x: string]: unknown
+}) => {
+  const { maxWidth, minWidth } = params
+
+  if (maxWidth && minWidth) {
+    return `@media (min-width: ${minWidth}px) and (max-width: ${maxWidth}px)`
+  }
+
+  if (maxWidth && !minWidth) {
+    return `@media (max-width: ${maxWidth}px)`
+  }
 }
 
 export const generateStylesFromStyleSetDefinitions = (
@@ -134,8 +152,9 @@ export const generateStylesFromStyleSetDefinitions = (
       }
 
       if (styleRef.type === 'screen-size') {
-        mediaStylesMap[styleRef.meta.maxWidth] = {
-          ...mediaStylesMap[styleRef.meta.maxWidth],
+        const mediaSelector = getMediaSelectorFromSizes(styleRef.meta)
+        mediaStylesMap[mediaSelector] = {
+          ...mediaStylesMap[mediaSelector],
           [className]: collecedMediaStyles,
         }
       }

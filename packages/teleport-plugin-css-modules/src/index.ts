@@ -24,7 +24,6 @@ import {
   FileType,
   ChunkType,
   UIDLElementNodeReferenceStyles,
-  UIDLStyleMediaQueryScreenSizeCondition,
   PluginCssModules,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
@@ -151,14 +150,13 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             case 'inlined': {
               /* Dynamic values for media-queries are not supported */
               const collectedStyles = generateStyledFromStyleContent(styleRef.content.styles)
-
               const condition = styleRef.content.conditions[0]
               const { conditionType } = condition
 
               if (conditionType === 'screen-size') {
-                const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-                mediaStylesMap[maxWidth] = {
-                  ...mediaStylesMap[maxWidth],
+                const mediaSelector = StyleBuilders.getMediaSelectorFromSizes({ ...condition })
+                mediaStylesMap[mediaSelector] = {
+                  ...mediaStylesMap[mediaSelector],
                   [className]: collectedStyles,
                 }
               }

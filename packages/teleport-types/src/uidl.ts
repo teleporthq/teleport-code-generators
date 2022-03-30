@@ -412,7 +412,7 @@ export interface UIDLStyleMediaQueryScreenSizeCondition {
   minHeight?: number
   maxHeight?: number
   minWidth?: number
-  maxWidth?: number
+  maxWidth: number
 }
 
 export interface UIDLStyleStateCondition {

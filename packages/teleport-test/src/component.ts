@@ -12,9 +12,15 @@ const run = async () => {
     externals: {
       sample: component(
         'Sample',
-        elementNode('container', {}, [staticNode('Hello'), dynamicNode('prop', 'heading')], null, {
-          width: staticNode('100px'),
-        }),
+        elementNode(
+          'container',
+          {},
+          [elementNode('container', {}), dynamicNode('prop', 'heading')],
+          null,
+          {
+            width: staticNode('100px'),
+          }
+        ),
         { heading: { type: 'string', defaultValue: 'TeleportHQ' } }
       ),
     },
@@ -25,7 +31,66 @@ const run = async () => {
 
   const reactGenerator = createReactComponentGenerator()
   const { files: reactFiles } = await reactGenerator.generateComponent(
-    component('Test Component', elementNode('input', { autoFocus: staticNode(true) }))
+    component(
+      'Test Component',
+      elementNode(
+        'container',
+        {},
+        [
+          elementNode(
+            'container',
+            {},
+            [],
+            null,
+            {
+              width: staticNode('50px'),
+              color: staticNode('pink'),
+            },
+            null,
+            {
+              '5ed0cb9ff4fd989551c4edc0': {
+                type: 'style-map',
+                content: {
+                  mapType: 'inlined',
+                  conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
+                  styles: {
+                    color: staticNode('orange'),
+                  },
+                },
+              },
+              '5ed0cb9ff4fd989551c4edc1': {
+                type: 'style-map',
+                content: {
+                  mapType: 'inlined',
+                  conditions: [{ conditionType: 'screen-size', maxWidth: 1440, minWidth: 1200 }],
+                  styles: {
+                    color: staticNode('orange'),
+                  },
+                },
+              },
+            }
+          ),
+        ],
+        null,
+        {
+          width: staticNode('100px'),
+          color: staticNode('blue'),
+        },
+        null,
+        {
+          '5ed0cb9ff4fd989551c4edc0': {
+            type: 'style-map',
+            content: {
+              mapType: 'inlined',
+              conditions: [{ conditionType: 'screen-size', maxWidth: 991 }],
+              styles: {
+                color: staticNode('green'),
+              },
+            },
+          },
+        }
+      )
+    )
   )
   addfilesToDisk(reactFiles)
 }
