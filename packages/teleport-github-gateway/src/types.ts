@@ -15,6 +15,7 @@ export interface GithubGateway {
   deleteRepositoryBranch: (meta: RemoveBranchMeta, authData: ServiceAuth) => Promise<any>
   getRepositoryBranches: (owner: string, repo: string, authData: ServiceAuth) => Promise<any>
   getCommitData: (meta: RepositoryCommitMeta, authData: ServiceAuth) => Promise<any>
+  compare: (meta: CompareBranchesMeta, authData: ServiceAuth) => Promise<any>
   authorizeGithubInstance: (authData?: ServiceAuth) => void
 }
 
@@ -29,6 +30,7 @@ export interface GithubCommitMeta {
   files: GithubFile[]
   repositoryIdentity: RepositoryIdentity
   branchName: string
+  extraBranchParents?: string[]
   commitMessage?: string
   isPrivate?: boolean
 }
@@ -66,6 +68,13 @@ export interface RemoveBranchMeta {
   repo: string
   owner: string
   branch: string
+}
+
+export interface CompareBranchesMeta {
+  repo: string
+  owner: string
+  base: string
+  head: string
 }
 
 export interface GithubFile {

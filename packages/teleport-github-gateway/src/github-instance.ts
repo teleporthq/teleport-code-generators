@@ -22,6 +22,7 @@ import {
   CreateBranchMeta,
   RepositoryMergeMeta,
   RemoveBranchMeta,
+  CompareBranchesMeta,
 } from './types'
 
 export default class GithubInstance {
@@ -168,6 +169,34 @@ export default class GithubInstance {
     return removeResult.status
   }
 
+  public async compareBranches(meta: CompareBranchesMeta) {
+    const { owner, repo, base, head } = meta
+    const compare = await this.octokit.rest.repos.compareCommits({ owner, repo, base, head })
+
+    const fileContentPromises = compare.data.files?.map(async (file) => {
+      try {
+        const { data } = await this.octokit.rest.repos.getContent({
+          repo,
+          owner,
+          ref: head,
+          path: file.filename,
+        })
+
+        const response = await fetch((data as { download_url: string }).download_url)
+        return response.text()
+      } catch (error) {
+        return Promise.resolve(null)
+      }
+    })
+
+    const fileContents = await Promise.all(fileContentPromises)
+    compare.data.files.forEach((file, index: number) => {
+      Object.assign(file, { content: fileContents[index] })
+    })
+
+    return compare.data
+  }
+
   public async getCommitData(meta: RepositoryCommitMeta) {
     const { owner, repo, ref } = meta
     const repository = await this.octokit.rest.repos.get({ owner, repo })
@@ -226,6 +255,7 @@ export default class GithubInstance {
       branchName,
       isPrivate,
       files,
+      extraBranchParents = [],
       repositoryIdentity,
       commitMessage = DEFAULT_COMMIT_MESSAGE,
     } = commitMeta
@@ -246,6 +276,11 @@ export default class GithubInstance {
 
     // Step 2: Get branch commit SHA
     const commitSHA = await this.getBranchHeadCommitSHA(owner, repo, branchName)
+    const extraParentsShaPromises = extraBranchParents.map((branch) =>
+      this.getBranchHeadCommitSHA(owner, repo, branch)
+    )
+    const extraSHAs = await Promise.all(extraParentsShaPromises)
+    const parents = [commitSHA, ...extraSHAs]
 
     // Step 3: Get current tree SHA
     const treeSHA = await this.getCommitTreeSHA(owner, repo, commitSHA)
@@ -260,8 +295,8 @@ export default class GithubInstance {
     const newCommit = await this.octokit.rest.git.createCommit({
       owner,
       repo,
+      parents,
       message: commitMessage,
-      parents: [commitSHA],
       tree: newTreeSHA,
     })
     const newCommitSHA = newCommit.data.sha
