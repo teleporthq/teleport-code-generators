@@ -147,7 +147,11 @@ export const tokenReferenceDecoder: Decoder<UIDLStyleSetTokenReference> = object
 })
 
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
-  type: union(constant('reusable-project-style-map'), constant('reusable-component-style-map')),
+  type: union(
+    constant('reusable-project-style-map'),
+    constant('reusable-component-style-map'),
+    constant('reusable-component-style-override')
+  ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
 })

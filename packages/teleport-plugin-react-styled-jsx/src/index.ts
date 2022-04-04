@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders, ASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
@@ -138,7 +139,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               )
             }
 
-            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
+            classNamesToAppend.add(content.referenceId)
             return
           }
 

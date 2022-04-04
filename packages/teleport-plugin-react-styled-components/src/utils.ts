@@ -6,6 +6,7 @@ import {
   UIDLStyleSetDefinition,
   PluginStyledComponent,
 } from '@teleporthq/teleport-types'
+import { componentVariantPropPrefix } from './constants'
 
 export const generateStyledComponent = (params: {
   name: string
@@ -32,19 +33,24 @@ export const generateStyledComponent = (params: {
     styleExpressions = types.arrowFunctionExpression([types.identifier('props')], styles)
   }
 
-  if (projectStyleReferences.size > 0) {
-    expressionArguments.push(
-      ...Array.from(projectStyleReferences).map((ref) => types.identifier(ref))
-    )
-  }
-
   if (styles && styles.properties.length > 0) {
     expressionArguments.push(styleExpressions)
   }
 
   if (componentStyleReferences.size > 0) {
-    expressionArguments.push(
-      ...Array.from(componentStyleReferences).map((ref) => types.identifier(ref))
+    const isOverride = Array.from(componentStyleReferences).some(
+      (ref) => ref === 'reusable-component-style-override'
+    )
+    if (isOverride) {
+      expressionArguments.push(types.identifier(componentVariantPropPrefix))
+    } else {
+      expressionArguments.unshift(types.identifier(componentVariantPropPrefix))
+    }
+  }
+
+  if (projectStyleReferences.size > 0) {
+    expressionArguments.unshift(
+      ...Array.from(projectStyleReferences).map((ref) => types.identifier(ref))
     )
   }
 

@@ -432,7 +432,10 @@ export type UIDLElementStyleStates =
   | 'link'
 
 export interface UIDLStyleSetDefinition {
-  type: 'reusable-project-style-map' | 'reusable-component-style-map'
+  type:
+    | 'reusable-project-style-map'
+    | 'reusable-component-style-map'
+    | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
 }

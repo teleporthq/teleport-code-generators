@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
@@ -27,7 +28,7 @@ interface CSSPluginConfig {
   dynamicVariantPrefix?: string
 }
 
-export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
+const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
   const {
     chunkName = 'style-chunk',
     templateChunkName = 'template-chunk',
@@ -80,7 +81,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       : ('' as string)
 
     const cssMap: string[] = []
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
 
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
@@ -107,11 +111,12 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                     attribute.name?.name === attr &&
                     (attribute.value as types.StringLiteral)?.value
                   ) {
-                    ;(
-                      attribute.value as types.StringLiteral
-                    ).value = `${compStyleName}-${StringUtils.camelCaseToDashCase(
-                      (attribute.value as types.StringLiteral).value
-                    )}`
+                    ;(attribute.value as types.StringLiteral).value = forceScoping
+                      ? `${compStyleName}-${StringUtils.camelCaseToDashCase(
+                          (attribute.value as types.StringLiteral).value
+                        )}`
+                      : StringUtils.camelCaseToDashCase(attribute.value as types.StringLiteral)
+                          .value
                   }
                 }
               )
@@ -198,10 +203,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             const { conditionType } = condition
             if (conditionType === 'screen-size') {
               const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-              mediaStylesMap[maxWidth] = {
-                ...mediaStylesMap[maxWidth],
-                [className]: collectedStyles,
+              if (!mediaStylesMap[String(maxWidth)]) {
+                mediaStylesMap[String(maxWidth)] = []
               }
+              mediaStylesMap[String(maxWidth)].push({ [className]: collectedStyles })
             }
 
             if (condition.conditionType === 'element-state') {
@@ -220,15 +225,12 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              classNamesToAppend.add(
-                String(
-                  forceScoping && styleRef.content.content.content
-                    ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
-                        String(styleRef.content.content.content)
-                      )}`
-                    : styleRef.content.content.content
-                )
-              )
+              const compRefName = forceScoping
+                ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
+                    String(styleRef.content.content.content)
+                  )}`
+                : StringUtils.camelCaseToDashCase(String(styleRef.content.content.content))
+              classNamesToAppend.add(compRefName)
             }
 
             if (
@@ -265,7 +267,8 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                 `Style used from global stylesheet is missing - ${content.referenceId}`
               )
             }
-            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
+
+            classNamesToAppend.add(content.referenceId)
             return
           }
 
@@ -321,8 +324,11 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        componentFileName,
-        forceScoping
+        (styleId: string) => {
+          return forceScoping
+            ? `${componentFileName}-${StringUtils.camelCaseToDashCase(String(styleId))}`
+            : StringUtils.camelCaseToDashCase(String(styleId))
+        }
       )
     }
 
@@ -374,7 +380,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
   return cssPlugin
 }
 
-export { createStyleSheetPlugin }
+export { createStyleSheetPlugin, createCSSPlugin }
 
 export default createCSSPlugin()
 

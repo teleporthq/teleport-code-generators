@@ -95,7 +95,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     const cssClasses: string[] = []
     let isProjectStyleReferred: boolean = false
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
     const astNodesLookup = componentChunk.meta.nodesLookup || {}
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
@@ -157,10 +160,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
               if (conditionType === 'screen-size') {
                 const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-                mediaStylesMap[maxWidth] = {
-                  ...mediaStylesMap[maxWidth],
-                  [className]: collectedStyles,
+                if (!mediaStylesMap[String(maxWidth)]) {
+                  mediaStylesMap[String(maxWidth)] = []
                 }
+                mediaStylesMap[String(maxWidth)].push({ [className]: collectedStyles })
               }
 
               if (condition.conditionType === 'element-state') {
@@ -234,7 +237,11 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier(globalStyleSheetPrefix),
-                  types.identifier(`'${StringUtils.camelCaseToDashCase(content.referenceId)}'`),
+                  types.identifier(
+                    `'${StringUtils.removeIllegalCharacters(
+                      StringUtils.camelCaseToDashCase(content.referenceId)
+                    )}'`
+                  ),
                   true
                 )
               )
@@ -263,13 +270,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         componentStyleSheet,
         cssClasses,
         mediaStylesMap,
-        UIDLUtils.getComponentClassName(uidl)
+        (styleId: string) => StringUtils.camelCaseToDashCase(styleId)
       )
     }
 
     if (Object.keys(mediaStylesMap).length > 0) {
       cssClasses.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
+
     /**
      * If no classes were added, we don't need to import anything or to alter any code
      */

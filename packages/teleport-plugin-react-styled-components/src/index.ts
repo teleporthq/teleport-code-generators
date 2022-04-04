@@ -192,7 +192,12 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'comp'
               ) {
-                componentStyleReferences.add(componentVariantPropPrefix)
+                const usedCompStyle = componentStyleSheet[styleRef.content.content.content.id]
+                if (!usedCompStyle) {
+                  throw new Error(`${styleRef.content.content.content.id} is missing from props`)
+                }
+                componentStyleReferences.add(usedCompStyle.type)
+
                 ASTUtils.addAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
@@ -204,7 +209,12 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'prop'
               ) {
-                componentStyleReferences.add(componentVariantPropPrefix)
+                const usedCompStyle = componentStyleSheet[styleRef.content.content.content.id]
+                if (!usedCompStyle) {
+                  throw new Error(`${styleRef.content.content.content.id} is missing from props`)
+                }
+                componentStyleReferences.add(usedCompStyle.type)
+
                 ASTUtils.addDynamicAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
