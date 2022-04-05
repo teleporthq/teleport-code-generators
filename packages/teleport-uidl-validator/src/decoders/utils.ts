@@ -150,7 +150,7 @@ export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object
   type: union(
     constant('reusable-project-style-map'),
     constant('reusable-component-style-map'),
-    constant('reusable-component-style-override')
+    constant('reusable-component-style-variant')
   ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),

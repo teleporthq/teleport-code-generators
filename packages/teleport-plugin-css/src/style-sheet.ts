@@ -44,7 +44,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         styleSetDefinitions,
         cssMap,
         mediaStylesMap,
-        (styleId: string) => styleId
+        (styleName: string) => styleName
       )
     }
 

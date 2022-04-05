@@ -435,7 +435,7 @@ export interface UIDLStyleSetDefinition {
   type:
     | 'reusable-project-style-map'
     | 'reusable-component-style-map'
-    | 'reusable-component-style-override'
+    | 'reusable-component-style-variant'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
 }

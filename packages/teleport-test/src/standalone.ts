@@ -50,7 +50,7 @@ const packerOptions: PackerOptions = {
   ],
 }
 
-const log = async (cb: () => Promise<ProjectType>) => {
+const log = async (cb: () => Promise<string>) => {
   const t1 = performance.now()
   const framework = await cb()
   const t2 = performance.now()
@@ -62,8 +62,8 @@ const log = async (cb: () => Promise<ProjectType>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
@@ -80,14 +80,14 @@ const run = async () => {
     // })
 
     /* Styled JSX */
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return ProjectType.NEXT
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
+    })
 
     /* Frameworks using Css-Modules */
 
@@ -97,7 +97,7 @@ const run = async () => {
     //     projectType: ProjectType.GATSBY,
     //   })
     //   console.info(ProjectType.GATSBY, '-', result.payload)
-    //   return ProjectType.GATSBY
+    //   return `Gatsy - CSSModules`
     // })
 
     await log(async () => {
@@ -120,13 +120,13 @@ const run = async () => {
     //     },
     //   })
     //   console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
-    //   return ProjectType.NEXT
+    //   return `Next - CSSModules`
     // })
 
     /* Frameworks use CSS */
 
     await log(async () => {
-      result = await packProject(projectJSON, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
       })
@@ -149,11 +149,11 @@ const run = async () => {
     //   return ProjectType.NUXT
     // })
 
-    await log(async () => {
-      result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
-      console.info(ProjectType.VUE, '-', result.payload)
-      return ProjectType.VUE
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+    //   console.info(ProjectType.VUE, '-', result.payload)
+    //   return ProjectType.VUE
+    // })
 
     // await log(async () => {
     //   result = await packProject(projectUIDL, {
@@ -185,22 +185,22 @@ const run = async () => {
         },
       })
       console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
-      return ProjectType.NEXT
+      return `NEXT - React-JSS`
     })
 
     /* Styled Components */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.REACT,
-        plugins: [pluginReactStyledComponents],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-react-styled-components`,
-        },
-      })
-      return `React - Styled Components`
-    })
+    // await log(async () => {
+    //   result = await packProject(reactProjectJSON, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.REACT,
+    //     plugins: [pluginReactStyledComponents],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: `teleport-project-react-styled-components`,
+    //     },
+    //   })
+    //   return `React - StyledComponents`
+    // })
 
     // await log(async () => {
     //   result = await packProject(reactProjectUIDL, {
@@ -217,26 +217,26 @@ const run = async () => {
     //     '-',
     //     result.payload
     //   )
-    //   return ProjectType.GATSBY
+    //   return `Gatsby - StyledComponents`
     // })
 
-    // await log(async () => {
-    //   result = await packProject(reactProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     plugins: [pluginNextStyledComponents],
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-next-styled-components',
-    //     },
-    //   })
-    //   console.info(
-    //     ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents,
-    //     '-',
-    //     result.payload
-    //   )
-    //   return ProjectType.NEXT
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [pluginNextStyledComponents],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-styled-components',
+        },
+      })
+      console.info(
+        ProjectType.NEXT + '-' + ReactStyleVariation.StyledComponents,
+        '-',
+        result.payload
+      )
+      return `Next - StyledComponents`
+    })
 
     // await log(async () => {
     //   result = await packProject(projectUIDL, {

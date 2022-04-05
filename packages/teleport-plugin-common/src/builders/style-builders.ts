@@ -1,8 +1,12 @@
-// @ts-nocheck
 import jss from 'jss'
 import preset from 'jss-preset-default'
 import * as types from '@babel/types'
-import { UIDLDynamicReference, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
+import {
+  HastNode,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
+  UIDLStyleSetDefinition,
+} from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
@@ -91,10 +95,13 @@ export const generateMediaStyle = (
       styles.push(
         createCSSClassWithMediaQuery(
           `max-width: ${mediaOffset}px`,
-          (styleMap[String(mediaOffset)] || []).reduce((acc, style) => {
-            Object.assign(acc, style)
-            return acc
-          }, {})
+          (styleMap[String(mediaOffset)] || []).reduce(
+            (acc: Record<string, string | number>, style) => {
+              Object.assign(acc, style)
+              return acc
+            },
+            {}
+          )
         )
       )
     })
@@ -161,5 +168,39 @@ export const generateStylesFromStyleSetDefinitions = (
         }
       }
     })
+  })
+}
+
+export const setPropValueForCompStyle = (params: {
+  attrs: Record<string, UIDLAttributeValue>
+  key: string
+  jsxNodesLookup: Record<string, types.JSXElement | HastNode>
+  templateStyle?: 'jsx' | 'html'
+  getClassName: (str: string) => string
+}) => {
+  const { attrs, jsxNodesLookup, key, templateStyle = 'jsx', getClassName } = params
+  Object.keys(attrs).forEach((attr) => {
+    if (attrs[attr].type !== 'comp-style') {
+      return
+    }
+
+    if (templateStyle === 'jsx') {
+      const compInstanceNode = jsxNodesLookup[key] as types.JSXElement
+      compInstanceNode.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
+        if (attribute.name?.name === attr && (attribute.value as types.StringLiteral)?.value) {
+          ;(attribute.value as types.StringLiteral).value = getClassName(
+            (attribute.value as types.StringLiteral).value
+          )
+        }
+      })
+    }
+
+    if (templateStyle === 'html') {
+      const compInstanceNode = jsxNodesLookup[key] as HastNode
+      if (!compInstanceNode?.properties[attr]) {
+        return
+      }
+      compInstanceNode.properties[attr] = getClassName(String(compInstanceNode.properties[attr]))
+    }
   })
 }

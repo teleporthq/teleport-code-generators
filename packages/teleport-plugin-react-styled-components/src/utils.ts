@@ -39,7 +39,7 @@ export const generateStyledComponent = (params: {
 
   if (componentStyleReferences.size > 0) {
     const isOverride = Array.from(componentStyleReferences).some(
-      (ref) => ref === 'reusable-component-style-override'
+      (ref) => ref === 'reusable-component-style-variant'
     )
     if (isOverride) {
       expressionArguments.push(types.identifier(componentVariantPropPrefix))

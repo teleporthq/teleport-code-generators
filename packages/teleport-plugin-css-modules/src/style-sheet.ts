@@ -21,6 +21,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     ...defaultConfig,
     ...config,
   }
+
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl

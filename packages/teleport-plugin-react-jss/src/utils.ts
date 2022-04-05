@@ -3,41 +3,49 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { ParsedASTNode, ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLStyleSetDefinition, UIDLStyleValue } from '@teleporthq/teleport-types'
 
-export const generateStylesFromStyleSetDefinitions = (params: {
+export const generateProjectStyleSheet = (params: {
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>
-  styleSet: Record<string, unknown>
-  mediaStyles: Record<string, Record<string, unknown>>
+  jssStyleMap: Array<Record<string, unknown>>
+  mediaStyles: Record<string, Array<{ [x: string]: Record<string, string | number> }>>
   tokensUsed?: string[]
 }) => {
-  const { styleSetDefinitions, styleSet, tokensUsed, mediaStyles = {} } = params
+  const { styleSetDefinitions = {}, jssStyleMap, tokensUsed, mediaStyles = {} } = params
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const className = StringUtils.dashCaseToCamelCase(styleId)
     const { conditions = [], content } = style
-    styleSet[className] = generateStylesFromStyleObj(content, tokensUsed)
+    jssStyleMap.push({ [className]: generateStylesFromStyleObj(content, tokensUsed) })
 
     if (conditions.length > 0) {
-      conditions.forEach((styleRef) => {
-        if (Object.keys(styleRef.content).length === 0) {
+      conditions.forEach(({ content: styleContent, meta, type }) => {
+        if (Object.keys(styleContent).length === 0) {
           return
         }
-        if (styleRef.type === 'screen-size') {
-          mediaStyles[styleRef.meta.maxWidth] = {
-            ...mediaStyles[styleRef.meta.maxWidth],
-            [className]: generateStylesFromStyleObj(styleRef.content, tokensUsed),
+
+        if (type === 'screen-size') {
+          if (!mediaStyles[String(meta.maxWidth)]) {
+            mediaStyles[String(meta.maxWidth)] = []
+          }
+
+          if (style.type === 'reusable-component-style-map') {
+            mediaStyles[String(meta.maxWidth)].unshift({
+              [className]: generateStylesFromStyleObj(styleContent, tokensUsed),
+            })
+          } else {
+            mediaStyles[String(meta.maxWidth)].push({
+              [className]: generateStylesFromStyleObj(styleContent, tokensUsed),
+            })
           }
         }
 
-        if (styleRef.type === 'element-state') {
-          styleSet[className] = {
-            ...((styleSet[className] as Record<string, unknown>) || {}),
-            ...{
-              [`&:${styleRef.meta.state}`]: generateStylesFromStyleObj(
-                styleRef.content,
-                tokensUsed
-              ),
-            },
-          }
+        if (type === 'element-state') {
+          jssStyleMap.find((item) => {
+            if (style.hasOwnProperty(className)) {
+              Object.assign(item[className], {
+                [`&:${meta.state}`]: generateStylesFromStyleObj(styleContent, tokensUsed),
+              })
+            }
+          })
         }
       })
     }
@@ -86,19 +94,30 @@ export const createStylesHookDecleration = (
   ])
 
 export const convertMediaAndStylesToObject = (
-  styleSet: Record<string, unknown>,
-  mediaStyles: Record<string, Record<string, unknown>>
+  jssStyleMap: Array<Record<string, unknown>>,
+  mediaStyles: Record<string, Array<{ [x: string]: Record<string, string | number> }>>
 ): types.ObjectExpression => {
-  const styles = ASTUtils.objectToObjectExpression(styleSet)
+  const styles = ASTUtils.objectToObjectExpression(convertArraytoObject(jssStyleMap))
 
-  Object.keys(mediaStyles).forEach((mediaKey: string) => {
-    styles.properties.push(
-      types.objectProperty(
-        types.identifier(`'@media(max-width: ${mediaKey}px)'`),
-        ASTUtils.objectToObjectExpression(mediaStyles[mediaKey])
+  Object.keys(mediaStyles)
+    .map((id) => Number(id))
+    .sort((a, b) => b - a)
+    .forEach((mediaOffset) => {
+      styles.properties.push(
+        types.objectProperty(
+          types.identifier(`'@media(max-width: ${mediaOffset}px)'`),
+          ASTUtils.objectToObjectExpression(
+            convertArraytoObject(mediaStyles[String(mediaOffset)] || [])
+          )
+        )
       )
-    )
-  }, [])
+    }, [])
 
   return styles
 }
+
+const convertArraytoObject = (list: Array<Record<string, unknown>>): Record<string, unknown> =>
+  list.reduce((acc, item) => {
+    Object.assign(acc, item)
+    return acc
+  }, {})

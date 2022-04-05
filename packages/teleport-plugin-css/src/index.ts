@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { StyleUtils, StyleBuilders, HASTUtils, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
@@ -43,7 +42,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSet = {}, propDefinitions } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions = {},
@@ -97,43 +96,16 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         attrs = {},
         elementType,
       } = element
+      const elementClassName = StringUtils.camelCaseToDashCase(key)
 
       if (forceScoping && dependency?.type === 'local') {
-        Object.keys(attrs).forEach((attr) => {
-          if (attrs[attr].type === 'comp-style') {
-            const compStyleName = StringUtils.camelCaseToDashCase(elementType)
-
-            if (templateStyle === 'jsx') {
-              const compInstanceNode = templateLookup[key] as types.JSXElement
-              compInstanceNode.openingElement?.attributes.forEach(
-                (attribute: types.JSXAttribute) => {
-                  if (
-                    attribute.name?.name === attr &&
-                    (attribute.value as types.StringLiteral)?.value
-                  ) {
-                    ;(attribute.value as types.StringLiteral).value = forceScoping
-                      ? `${compStyleName}-${StringUtils.camelCaseToDashCase(
-                          (attribute.value as types.StringLiteral).value
-                        )}`
-                      : StringUtils.camelCaseToDashCase(attribute.value as types.StringLiteral)
-                          .value
-                  }
-                }
-              )
-            }
-
-            if (templateStyle === 'html') {
-              const compInstanceNode = templateLookup[key] as HastNode
-              if (!compInstanceNode?.properties[attr]) {
-                return
-              }
-              compInstanceNode.properties[
-                attr
-              ] = `${compStyleName}-${StringUtils.camelCaseToDashCase(
-                String(compInstanceNode.properties[attr])
-              )}`
-            }
-          }
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          key,
+          jsxNodesLookup: templateLookup,
+          templateStyle,
+          getClassName: (styleName: string) =>
+            getClassName(forceScoping, StringUtils.camelCaseToDashCase(elementType), styleName),
         })
       }
 
@@ -150,10 +122,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         throw new PluginCSS(`Node - ${key} is missing from the template chunk`)
       }
 
-      const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const className = forceScoping // when the framework doesn't provide automating scoping for classNames
-        ? `${componentFileName}-${elementClassName}`
-        : elementClassName
+      const className = getClassName(forceScoping, componentFileName, elementClassName)
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)
@@ -225,12 +194,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              const compRefName = forceScoping
-                ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
-                    String(styleRef.content.content.content)
-                  )}`
-                : StringUtils.camelCaseToDashCase(String(styleRef.content.content.content))
-              classNamesToAppend.add(compRefName)
+              classNamesToAppend.add(String(styleRef.content.content.content))
             }
 
             if (
@@ -245,15 +209,37 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   ${JSON.stringify(styleRef.content.content, null, 2)}`
                 )
               }
-
               dynamicVariantsToAppend.add(styleRef.content.content.content.id)
+              const defaultPropValue =
+                propDefinitions[styleRef.content.content.content.id]?.defaultValue
+              if (!defaultPropValue) {
+                return
+              }
+              /* Changing the default value of the prop. 
+              When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
+              propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                forceScoping,
+                componentFileName,
+                String(defaultPropValue)
+              )
             }
 
             if (
               styleRef.content.content.type === 'dynamic' &&
               styleRef.content.content.content.referenceType === 'comp'
             ) {
-              classNamesToAppend.add(styleRef.content.content.content.id)
+              if (!componentStyleSet[styleRef.content.content.content.id]) {
+                throw new PluginCSS(
+                  `Node ${elementType} is referring to a comp style instance ${styleRef.content.content.content.id} which is missing.`
+                )
+              }
+              classNamesToAppend.add(
+                getClassName(
+                  forceScoping,
+                  componentFileName,
+                  String(styleRef.content.content.content.id)
+                )
+              )
             }
 
             return
@@ -274,11 +260,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
 
           default: {
             throw new PluginCSS(
-              `We support only project-referenced or inlined, received ${JSON.stringify(
-                styleRef.content,
-                null,
-                2
-              )}`
+              `Un-supported style reference ${JSON.stringify(styleRef.content, null, 2)}`
             )
           }
         }
@@ -324,11 +306,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        (styleId: string) => {
-          return forceScoping
-            ? `${componentFileName}-${StringUtils.camelCaseToDashCase(String(styleId))}`
-            : StringUtils.camelCaseToDashCase(String(styleId))
-        }
+        (styleName: string) => getClassName(forceScoping, componentFileName, styleName)
       )
     }
 
@@ -390,4 +368,9 @@ const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
       return `${styleKey}: ${(styles[styleKey] as UIDLDynamicReference).content.id}`
     })
     .join(', ')
+}
+
+const getClassName = (scoping: boolean, compFileName: string, nodeStyleName: string) => {
+  const name = StringUtils.camelCaseToDashCase(nodeStyleName)
+  return scoping ? `${compFileName}-${name}` : name
 }
