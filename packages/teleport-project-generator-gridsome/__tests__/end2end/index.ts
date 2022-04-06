@@ -37,7 +37,7 @@ describe('Gridsome Project Generator', () => {
     expect(mainFile.content).toContain(`import \"~/./assets/style.css`)
     expect(assetsFoler.files.length).toBe(1)
     expect(assetsFoler.files[0].name).toBe('style')
-    expect(assetsFoler.files[0].content).toContain(`.primary-button`)
+    expect(assetsFoler.files[0].content).toContain(`.primaryButton`)
   })
 
   it('runs without crashing with external dependencies with supported syntaxes', async () => {

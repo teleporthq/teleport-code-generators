@@ -138,7 +138,7 @@ describe('Referes from project style and adds it to the node, without any styles
     const vueFile = findFileByType(files, FileType.VUE)
 
     expect(vueFile).toBeDefined()
-    expect(vueFile.content).toContain(`class="primary-button"`)
+    expect(vueFile.content).toContain(`class="primaryButton\"`)
     expect(vueFile.content).not.toContain(`import '../style.css'`)
   })
 })

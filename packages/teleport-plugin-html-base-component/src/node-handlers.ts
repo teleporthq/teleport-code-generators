@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   UIDLNode,
   UIDLElementNode,
@@ -19,7 +20,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { staticNode } from '@teleporthq/teleport-uidl-builders'
+import { element, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
@@ -104,12 +105,12 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
 
   const { dependencies, chunks, options } = structure
 
-  if (dependency && dependency?.type === 'local') {
+  if (dependency?.type === 'local') {
     const comp = externals[elementType]
 
     if (!comp) {
       throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
-  Received externals ${JSON.stringify(Object.keys(externals), null, 2)}`)
+        Received ${JSON.stringify(Object.keys(externals), null, 2)}`)
     }
 
     const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
@@ -157,14 +158,20 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     )
 
     const cssPlugin = createCSSPlugin({
+      templateStyle: 'html',
       templateChunkName: 'html-template',
       declareDependency: 'import',
       forceScoping: true,
       chunkName: comp.name,
+      staticPropReferences: true,
     })
 
     const result = await cssPlugin({
-      uidl: comp,
+      uidl: {
+        ...comp,
+        propDefinitions: propsForInstance,
+        stateDefinitions: statesForInstance,
+      },
       chunks: [
         {
           type: ChunkType.HAST,
@@ -223,23 +230,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       if (refStyle.content.mapType === 'inlined') {
         handleStyles(node, refStyle.content.styles, propDefinitions, stateDefinitions)
         return
-      }
-
-      if (
-        refStyle.content.mapType === 'component-referenced' &&
-        refStyle.content.content.type === 'dynamic'
-      ) {
-        const dynamicVal = refStyle.content.content.content
-        if (dynamicVal.referenceType === 'prop') {
-          node.content.referencedStyles[styleRef] = {
-            type: 'style-map',
-            content: {
-              mapType: 'component-referenced',
-              content: staticNode(getValueFromReference(dynamicVal.id, propDefinitions)),
-            },
-          }
-          return
-        }
       }
     })
   }

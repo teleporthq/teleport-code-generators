@@ -105,14 +105,11 @@ describe('Referenced Styles on Node', () => {
 
     const result = await plugin(structure)
     const { chunks, dependencies } = result
-    const styleChunk = chunks.find((chunk) => chunk.name === 'jss-style-definition')
-    const properties = styleChunk.content.declarations[0].init.arguments[0]
 
     expect(chunks.length).toBe(2)
     expect(Object.keys(dependencies).length).toBe(2)
     expect(dependencies.createUseStyles.path).toBe('react-jss')
     expect(dependencies.useProjectStyles.path).toBe('../style')
     expect(dependencies.useProjectStyles.meta.namedImport).toBe(true)
-    expect(properties.properties[0].value.properties[0].key.value).toBe('&:hover')
   })
 })

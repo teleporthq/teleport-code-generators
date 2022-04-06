@@ -25,6 +25,7 @@ interface CSSPluginConfig {
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
   dynamicVariantPrefix?: string
+  staticPropReferences?: boolean
 }
 
 const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
@@ -38,11 +39,12 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
     declareDependency = 'none',
     forceScoping = false,
     dynamicVariantPrefix,
+    staticPropReferences = false,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSet = {}, propDefinitions } = uidl
+    const { node, styleSetDefinitions: componentStyleSet = {}, propDefinitions = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions = {},
@@ -201,27 +203,31 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
               styleRef.content.content.type === 'dynamic' &&
               styleRef.content.content.content.referenceType === 'prop'
             ) {
-              if (!dynamicVariantPrefix && templateStyle === 'html') {
-                throw new PluginCSS(
-                  `Node ${
-                    element.name || element.key
-                  } is using dynamic variant based on prop. But "dynamicVariantPrefix" is not defiend.
-                  ${JSON.stringify(styleRef.content.content, null, 2)}`
-                )
-              }
-              dynamicVariantsToAppend.add(styleRef.content.content.content.id)
               const defaultPropValue =
                 propDefinitions[styleRef.content.content.content.id]?.defaultValue
-              if (!defaultPropValue) {
-                return
+
+              if (defaultPropValue) {
+                /* Changing the default value of the prop. 
+                  When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
+                propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                  forceScoping,
+                  componentFileName,
+                  String(defaultPropValue)
+                )
               }
-              /* Changing the default value of the prop. 
-              When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
-              propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
-                forceScoping,
-                componentFileName,
-                String(defaultPropValue)
-              )
+
+              if (staticPropReferences) {
+                if (!defaultPropValue) {
+                  return
+                }
+                if (staticPropReferences) {
+                  classNamesToAppend.add(
+                    getClassName(forceScoping, componentFileName, String(defaultPropValue))
+                  )
+                }
+              } else {
+                dynamicVariantsToAppend.add(styleRef.content.content.content.id)
+              }
             }
 
             if (

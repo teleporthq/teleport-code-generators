@@ -5433,42 +5433,42 @@
         "rootClassName": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName1": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName2": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName3": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName4": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName5": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName6": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName7": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         }
       }
     },
@@ -6408,7 +6408,7 @@
         "rootClassName": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         }
       }
     },
@@ -7475,7 +7475,7 @@
             }
           },
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName1": {
           "content": {
@@ -7485,12 +7485,12 @@
             }
           },
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName2": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName3": {
           "content": {
@@ -7503,7 +7503,7 @@
             }
           },
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "root-class-name-4": {
           "content": {
@@ -7513,7 +7513,7 @@
             }
           },
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         }
       }
     },
@@ -10121,62 +10121,62 @@
         "rootClassName": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName1": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName2": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName3": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName4": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName5": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName6": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName7": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName8": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName9": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName10": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         },
         "rootClassName11": {
           "content": {},
           "conditions": [],
-          "type": "reusable-component-style-variant"
+          "type": "reusable-component-style-override"
         }
       }
     }

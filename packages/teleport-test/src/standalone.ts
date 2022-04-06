@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -18,7 +17,6 @@ import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-
 import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-import simpleHTMLJSON from '../../../examples/uidl-samples/simple-html.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -70,14 +68,14 @@ const run = async () => {
 
     /* Plain Html Generator */
 
-    // await log(async () => {
-    //   result = await packProject(simpleHTMLJSON as unknown as ProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.HTML,
-    //   })
-    //   console.info(ProjectType.HTML, '-', result.payload)
-    //   return ProjectType.HTML
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.HTML,
+      })
+      console.info(ProjectType.HTML, '-', result.payload)
+      return ProjectType.HTML
+    })
 
     /* Styled JSX */
     await log(async () => {
@@ -91,14 +89,14 @@ const run = async () => {
 
     /* Frameworks using Css-Modules */
 
-    // await log(async () => {
-    //   result = await packProject(reactProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.GATSBY,
-    //   })
-    //   console.info(ProjectType.GATSBY, '-', result.payload)
-    //   return `Gatsy - CSSModules`
-    // })
+    await log(async () => {
+      result = await packProject(reactProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.GATSBY,
+      })
+      console.info(ProjectType.GATSBY, '-', result.payload)
+      return `Gatsy - CSSModules`
+    })
 
     await log(async () => {
       result = await packProject(projectUIDL, {
@@ -109,19 +107,19 @@ const run = async () => {
       return ProjectType.PREACT
     })
 
-    // await log(async () => {
-    //   result = await packProject(reactProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     plugins: [pluginNextReactCSSModules],
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-next-css-modules',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
-    //   return `Next - CSSModules`
-    // })
+    await log(async () => {
+      result = await packProject(reactProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [pluginNextReactCSSModules],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-css-modules',
+        },
+      })
+      console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
+      return `Next - CSSModules`
+    })
 
     /* Frameworks use CSS */
 
@@ -134,44 +132,44 @@ const run = async () => {
       return ProjectType.REACT
     })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.STENCIL,
-    //   })
-    //   console.info(ProjectType.STENCIL, '-', result.payload)
-    //   return ProjectType.STENCIL
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.STENCIL,
+      })
+      console.info(ProjectType.STENCIL, '-', result.payload)
+      return ProjectType.STENCIL
+    })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
-    //   console.info(ProjectType.NUXT, '-', result.payload)
-    //   return ProjectType.NUXT
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
+      console.info(ProjectType.NUXT, '-', result.payload)
+      return ProjectType.NUXT
+    })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
-    //   console.info(ProjectType.VUE, '-', result.payload)
-    //   return ProjectType.VUE
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+      console.info(ProjectType.VUE, '-', result.payload)
+      return ProjectType.VUE
+    })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.ANGULAR,
-    //   })
-    //   console.info(ProjectType.ANGULAR, '-', result.payload)
-    //   return ProjectType.ANGULAR
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.ANGULAR,
+      })
+      console.info(ProjectType.ANGULAR, '-', result.payload)
+      return ProjectType.ANGULAR
+    })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.GRIDSOME,
-    //   })
-    //   console.info(ProjectType.GRIDSOME, '-', result.payload)
-    //   return ProjectType.GRIDSOME
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.GRIDSOME,
+      })
+      console.info(ProjectType.GRIDSOME, '-', result.payload)
+      return ProjectType.GRIDSOME
+    })
 
     /* React JSS */
     await log(async () => {
@@ -189,36 +187,36 @@ const run = async () => {
     })
 
     /* Styled Components */
-    // await log(async () => {
-    //   result = await packProject(reactProjectJSON, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.REACT,
-    //     plugins: [pluginReactStyledComponents],
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: `teleport-project-react-styled-components`,
-    //     },
-    //   })
-    //   return `React - StyledComponents`
-    // })
+    await log(async () => {
+      result = await packProject(reactProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.REACT,
+        plugins: [pluginReactStyledComponents],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: `teleport-project-react-styled-components`,
+        },
+      })
+      return `React - StyledComponents`
+    })
 
-    // await log(async () => {
-    //   result = await packProject(reactProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.GATSBY,
-    //     plugins: [pluginGatsbyStyledComponents],
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-gatsby-styled-components',
-    //     },
-    //   })
-    //   console.info(
-    //     ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
-    //     '-',
-    //     result.payload
-    //   )
-    //   return `Gatsby - StyledComponents`
-    // })
+    await log(async () => {
+      result = await packProject(reactProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.GATSBY,
+        plugins: [pluginGatsbyStyledComponents],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-gatsby-styled-components',
+        },
+      })
+      console.info(
+        ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
+        '-',
+        result.payload
+      )
+      return `Gatsby - StyledComponents`
+    })
 
     await log(async () => {
       result = await packProject(projectUIDL, {
@@ -238,14 +236,14 @@ const run = async () => {
       return `Next - StyledComponents`
     })
 
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.REACTNATIVE,
-    //   })
-    //   console.info(ProjectType.REACTNATIVE, '-', result.payload)
-    //   return ProjectType.REACTNATIVE
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.REACTNATIVE,
+      })
+      console.info(ProjectType.REACTNATIVE, '-', result.payload)
+      return ProjectType.REACTNATIVE
+    })
   } catch (e) {
     console.info(e)
   }

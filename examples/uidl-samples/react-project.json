@@ -850,7 +850,7 @@
       },
       "styleSetDefinitions": {
         "primaryButton": {
-          "type": "reusable-component-style-variant",
+          "type": "reusable-component-style-override",
           "conditions": [
             { "type": "screen-size",
               "meta": {
@@ -881,7 +881,7 @@
           }
         },
         "secondaryButton": {
-          "type": "reusable-component-style-variant",
+          "type": "reusable-component-style-override",
           "content": {
             "background": "red",
             "width": "auto",
