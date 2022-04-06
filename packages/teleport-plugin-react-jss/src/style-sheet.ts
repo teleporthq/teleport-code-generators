@@ -7,7 +7,7 @@ import {
   FileType,
 } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { generateStylesFromStyleSetDefinitions, convertMediaAndStylesToObject } from './utils'
+import { convertMediaAndStylesToObject, generateProjectStyleSheet } from './utils'
 
 interface StyleSheetPlugin {
   fileName?: string
@@ -33,12 +33,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       {}
     )
 
-    const styleSet: Record<string, unknown> = {}
-    const mediaStyles: Record<string, Record<string, unknown>> = {}
+    const jssStyleMap: Array<Record<string, unknown>> = []
+    const mediaStyles: Record<string, Array<{ [x: string]: Record<string, string | number> }>> = {}
     if (Object.keys(styleSetDefinitions).length > 0) {
-      generateStylesFromStyleSetDefinitions({
+      generateProjectStyleSheet({
         styleSetDefinitions,
-        styleSet,
+        jssStyleMap,
         mediaStyles,
       })
     }
@@ -72,7 +72,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       })
     }
 
-    if (Object.keys(styleSet).length > 0) {
+    if (jssStyleMap.length > 0) {
       chunks.push({
         name: fileName,
         type: ChunkType.AST,
@@ -82,7 +82,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
             types.variableDeclarator(
               types.identifier('useProjectStyles'),
               types.callExpression(types.identifier('createUseStyles'), [
-                convertMediaAndStylesToObject(styleSet, mediaStyles),
+                convertMediaAndStylesToObject(jssStyleMap, mediaStyles),
               ])
             ),
           ])

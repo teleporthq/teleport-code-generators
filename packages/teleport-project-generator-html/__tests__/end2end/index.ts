@@ -1,4 +1,4 @@
-import uidlSample from '../../../../examples/uidl-samples/simple-html.json'
+import uidlSample from '../../../../examples/uidl-samples/project.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import { createHTMLProjectGenerator } from '../../src'
 import HTMLTemplate from '../../src/project-template'
@@ -12,11 +12,8 @@ describe('Html Project Generator', () => {
     const aboutPage = subFolders[0]?.files.find(
       (page) => page.name === 'about' && page.fileType === FileType.HTML
     )
-    const homePage = subFolders[0]?.files.find(
-      (page) => page.name === 'landing-page' && page.fileType === FileType.HTML
-    )
-    const homeCSS = subFolders[0]?.files.find(
-      (page) => page.name === 'landing-page' && page.fileType === FileType.CSS
+    const aboutCSS = subFolders[0]?.files.find(
+      (page) => page.name === 'about' && page.fileType === FileType.CSS
     )
 
     expect(name).toBe('teleport-project-html')
@@ -24,8 +21,8 @@ describe('Html Project Generator', () => {
     expect(subFolders.length).toBe(2)
     expect(aboutPage.content).toContain('head')
     expect(aboutPage.content).toContain('html')
-    expect(homePage.content).toContain('public/playground_assets/kitten.png')
-    expect(homeCSS.content).toContain('public/playground_assets/kitten.png')
+    expect(aboutPage.content).toContain('public/playground_assets/kitten.png')
+    expect(aboutCSS.content).toContain('public/playground_assets/kitten.png')
   })
 
   it('run withut crashing and appends entry things into single index.html', async () => {
@@ -37,20 +34,17 @@ describe('Html Project Generator', () => {
     const aboutPage = subFolders[0]?.files.find(
       (page) => page.name === 'about' && page.fileType === FileType.HTML
     )
-    const homePage = subFolders[0]?.files.find(
-      (page) => page.name === 'landing-page' && page.fileType === FileType.HTML
-    )
-    const homeCSS = subFolders[0]?.files.find(
-      (page) => page.name === 'landing-page' && page.fileType === FileType.CSS
+    const aboutCSS = subFolders[0]?.files.find(
+      (page) => page.name === 'about' && page.fileType === FileType.CSS
     )
 
     expect(name).toBe('teleport-project-html')
     expect(files.length).toBe(1)
     expect(subFolders.length).toBe(2)
-    expect(aboutPage.content).not.toContain('head')
-    expect(aboutPage.content).not.toContain('html')
-    expect(homePage.content).toContain('public/playground_assets/kitten.png')
-    expect(homeCSS.content).toContain('public/playground_assets/kitten.png')
+    expect(aboutPage.content).not.toContain('<head>')
+    expect(aboutPage.content).not.toContain('<html>')
+    expect(aboutPage.content).toContain('public/playground_assets/kitten.png')
+    expect(aboutCSS.content).toContain('public/playground_assets/kitten.png')
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

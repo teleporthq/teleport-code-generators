@@ -562,6 +562,9 @@
                       "content": {
                         "elementType": "component",
                         "semanticType": "Navbar",
+                        "attrs": {
+
+                        },
                         "dependency": {
                           "type": "local"
                         }
@@ -847,7 +850,7 @@
       },
       "styleSetDefinitions": {
         "primaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "conditions": [
             { "type": "screen-size",
               "meta": {
@@ -878,13 +881,29 @@
           }
         },
         "secondaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "content": {
             "background": "red",
             "width": "auto",
             "color": "#fff",
             "border": "1px solid #fff"
-          }
+          },
+          "conditions": [
+            { "type": "screen-size",
+              "meta": {
+                "maxWidth": 991
+              },
+              "content": {
+                "background": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "token",
+                    "id": "blue-600"
+                  }
+                }
+              } 
+            }
+          ]
         }
       },
       "node": {
@@ -927,6 +946,20 @@
                                 "referenceType":"prop",
                                 "id":"variant"
                               }
+                            }
+                          }
+                        },
+                        "5ecfa07284d8848f05ef9c2d": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "screen-size", "maxWidth": 991}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
                             }
                           }
                         }

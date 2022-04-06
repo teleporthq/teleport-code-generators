@@ -25,9 +25,10 @@ interface CSSPluginConfig {
   templateStyle: 'html' | 'jsx'
   declareDependency: 'import' | 'decorator' | 'none'
   dynamicVariantPrefix?: string
+  staticPropReferences?: boolean
 }
 
-export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
+const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
   const {
     chunkName = 'style-chunk',
     templateChunkName = 'template-chunk',
@@ -38,18 +39,18 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
     declareDependency = 'none',
     forceScoping = false,
     dynamicVariantPrefix,
+    staticPropReferences = false,
   } = config || {}
 
   const cssPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSet = {}, propDefinitions = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions = {},
       fileName: projectStyleSheetName,
       path: projectStyleSheetPath,
     } = projectStyleSet || {}
-    const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -80,7 +81,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
       : ('' as string)
 
     const cssMap: string[] = []
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
 
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
@@ -93,42 +97,16 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         attrs = {},
         elementType,
       } = element
+      const elementClassName = StringUtils.camelCaseToDashCase(key)
 
       if (forceScoping && dependency?.type === 'local') {
-        Object.keys(attrs).forEach((attr) => {
-          if (attrs[attr].type === 'comp-style') {
-            const compStyleName = StringUtils.camelCaseToDashCase(elementType)
-
-            if (templateStyle === 'jsx') {
-              const compInstanceNode = templateLookup[key] as types.JSXElement
-              compInstanceNode.openingElement?.attributes.forEach(
-                (attribute: types.JSXAttribute) => {
-                  if (
-                    attribute.name?.name === attr &&
-                    (attribute.value as types.StringLiteral)?.value
-                  ) {
-                    ;(
-                      attribute.value as types.StringLiteral
-                    ).value = `${compStyleName}-${StringUtils.camelCaseToDashCase(
-                      (attribute.value as types.StringLiteral).value
-                    )}`
-                  }
-                }
-              )
-            }
-
-            if (templateStyle === 'html') {
-              const compInstanceNode = templateLookup[key] as HastNode
-              if (!compInstanceNode?.properties[attr]) {
-                return
-              }
-              compInstanceNode.properties[
-                attr
-              ] = `${compStyleName}-${StringUtils.camelCaseToDashCase(
-                String(compInstanceNode.properties[attr])
-              )}`
-            }
-          }
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          key,
+          jsxNodesLookup: templateLookup,
+          templateStyle,
+          getClassName: (styleName: string) =>
+            getClassName(forceScoping, StringUtils.camelCaseToDashCase(elementType), styleName),
         })
       }
 
@@ -145,10 +123,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         throw new PluginCSS(`Node - ${key} is missing from the template chunk`)
       }
 
-      const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const className = forceScoping // when the framework doesn't provide automating scoping for classNames
-        ? `${componentFileName}-${elementClassName}`
-        : elementClassName
+      const className = getClassName(forceScoping, uidl.name, elementClassName)
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)
@@ -198,10 +173,10 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
             const { conditionType } = condition
             if (conditionType === 'screen-size') {
               const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-              mediaStylesMap[maxWidth] = {
-                ...mediaStylesMap[maxWidth],
-                [className]: collectedStyles,
+              if (!mediaStylesMap[String(maxWidth)]) {
+                mediaStylesMap[String(maxWidth)] = []
               }
+              mediaStylesMap[String(maxWidth)].push({ [className]: collectedStyles })
             }
 
             if (condition.conditionType === 'element-state') {
@@ -220,38 +195,52 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
 
           case 'component-referenced': {
             if (styleRef.content.content.type === 'static') {
-              classNamesToAppend.add(
-                String(
-                  forceScoping && styleRef.content.content.content
-                    ? `${componentFileName}-${StringUtils.camelCaseToDashCase(
-                        String(styleRef.content.content.content)
-                      )}`
-                    : styleRef.content.content.content
-                )
-              )
+              classNamesToAppend.add(String(styleRef.content.content.content))
             }
 
             if (
               styleRef.content.content.type === 'dynamic' &&
               styleRef.content.content.content.referenceType === 'prop'
             ) {
-              if (!dynamicVariantPrefix && templateStyle === 'html') {
-                throw new PluginCSS(
-                  `Node ${
-                    element.name || element.key
-                  } is using dynamic variant based on prop. But "dynamicVariantPrefix" is not defiend.
-                  ${JSON.stringify(styleRef.content.content, null, 2)}`
+              const defaultPropValue =
+                propDefinitions[styleRef.content.content.content.id]?.defaultValue
+
+              if (defaultPropValue) {
+                /* Changing the default value of the prop. 
+                  When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
+                propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                  forceScoping,
+                  uidl.name,
+                  String(defaultPropValue)
                 )
               }
 
-              dynamicVariantsToAppend.add(styleRef.content.content.content.id)
+              if (staticPropReferences) {
+                if (!defaultPropValue) {
+                  return
+                }
+                if (staticPropReferences) {
+                  classNamesToAppend.add(
+                    getClassName(forceScoping, uidl.name, String(defaultPropValue))
+                  )
+                }
+              } else {
+                dynamicVariantsToAppend.add(styleRef.content.content.content.id)
+              }
             }
 
             if (
               styleRef.content.content.type === 'dynamic' &&
               styleRef.content.content.content.referenceType === 'comp'
             ) {
-              classNamesToAppend.add(styleRef.content.content.content.id)
+              if (!componentStyleSet[styleRef.content.content.content.id]) {
+                throw new PluginCSS(
+                  `Node ${elementType} is referring to a comp style instance ${styleRef.content.content.content.id} which is missing.`
+                )
+              }
+              classNamesToAppend.add(
+                getClassName(forceScoping, uidl.name, String(styleRef.content.content.content.id))
+              )
             }
 
             return
@@ -265,17 +254,14 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
                 `Style used from global stylesheet is missing - ${content.referenceId}`
               )
             }
-            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
+
+            classNamesToAppend.add(content.referenceId)
             return
           }
 
           default: {
             throw new PluginCSS(
-              `We support only project-referenced or inlined, received ${JSON.stringify(
-                styleRef.content,
-                null,
-                2
-              )}`
+              `Un-supported style reference ${JSON.stringify(styleRef.content, null, 2)}`
             )
           }
         }
@@ -321,8 +307,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        componentFileName,
-        forceScoping
+        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
       )
     }
 
@@ -374,7 +359,7 @@ export const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config)
   return cssPlugin
 }
 
-export { createStyleSheetPlugin }
+export { createStyleSheetPlugin, createCSSPlugin }
 
 export default createCSSPlugin()
 
@@ -384,4 +369,10 @@ const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
       return `${styleKey}: ${(styles[styleKey] as UIDLDynamicReference).content.id}`
     })
     .join(', ')
+}
+
+const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
+  return scoping
+    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

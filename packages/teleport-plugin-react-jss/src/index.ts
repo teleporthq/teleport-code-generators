@@ -9,18 +9,24 @@
 
 import * as types from '@babel/types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils, ASTBuilders, ParsedASTNode } from '@teleporthq/teleport-plugin-common'
+import {
+  ASTUtils,
+  ASTBuilders,
+  ParsedASTNode,
+  StyleBuilders,
+} from '@teleporthq/teleport-plugin-common'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkType,
   FileType,
   PluginReactJSS,
+  UIDLElementNodeInlineReferencedStyle,
 } from '@teleporthq/teleport-types'
 import {
   generateStylesFromStyleObj,
   createStylesHookDecleration,
-  generateStylesFromStyleSetDefinitions,
+  generateProjectStyleSheet,
   convertMediaAndStylesToObject,
 } from './utils'
 import { createStyleSheetPlugin } from './style-sheet'
@@ -48,25 +54,38 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
   const reactJSSPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
     const { projectStyleSet } = options
-    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
 
     const componentChunk = chunks.find((chunkItem) => chunkItem.name === componentChunkName)
     if (!componentChunk) {
       return structure
     }
 
-    const jssStyleMap: Record<string, unknown> = {}
-    const mediaStyles: Record<string, Record<string, unknown>> = {}
+    const jssStyleMap: Array<Record<string, unknown>> = []
+    const mediaStyles: Record<string, Array<{ [x: string]: Record<string, string | number> }>> = {}
     const tokensUsed: string[] = []
 
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
-    const jsxNodesLookup = componentChunk.meta.nodesLookup || {}
+    const jsxNodesLookup: Record<string, types.JSXElement> =
+      (componentChunk.meta.nodesLookup as Record<string, types.JSXElement>) || {}
     let isProjectReferenced: boolean = false
     const propsUsed: string[] = []
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style, key, referencedStyles } = element
-      if (!style && !referencedStyles) {
+      const { style, key, referencedStyles, dependency, attrs = {} } = element
+      if (dependency?.type === 'local') {
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          key,
+          jsxNodesLookup,
+          getClassName,
+        })
+      }
+
+      if (
+        Object.keys(style || {}).length === 0 &&
+        Object.keys(referencedStyles || {}).length === 0
+      ) {
         return
       }
 
@@ -75,7 +94,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
         return
       }
 
-      const className = StringUtils.camelCaseToDashCase(key)
+      const className = getClassName(key)
       const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
       const nodeStyleIdentifier = types.memberExpression(
         types.identifier(styleObjectImportName),
@@ -84,7 +103,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       )
 
       if (Object.keys(style || {}).length > 0) {
-        jssStyleMap[className] = generateStylesFromStyleObj(style, tokensUsed, propsUsed)
+        jssStyleMap.push({ [className]: generateStylesFromStyleObj(style, tokensUsed, propsUsed) })
         classNamesToAppend.add(nodeStyleIdentifier)
       }
 
@@ -100,25 +119,32 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               }
 
               if (condition.conditionType === 'screen-size') {
-                mediaStyles[condition.maxWidth] = {
-                  ...mediaStyles[condition.maxWidth],
+                if (!mediaStyles[String(condition.maxWidth)]) {
+                  mediaStyles[String(condition.maxWidth)] = []
+                }
+
+                mediaStyles[String(condition.maxWidth)].push({
                   [className]: generateStylesFromStyleObj(
                     styleRef.content.styles,
                     tokensUsed,
                     propsUsed
                   ),
-                }
+                })
               }
 
               if (condition.conditionType === 'element-state') {
-                jssStyleMap[className] = {
-                  ...(jssStyleMap[className] as Record<string, string>),
-                  [`&:${condition.content}`]: generateStylesFromStyleObj(
-                    styleRef.content.styles,
-                    tokensUsed,
-                    propsUsed
-                  ),
-                }
+                const { content } = condition
+                jssStyleMap.find((item) => {
+                  if (item.hasOwnProperty(className)) {
+                    Object.assign(item[className], {
+                      [`&:${content}`]: generateStylesFromStyleObj(
+                        (styleRef as UIDLElementNodeInlineReferencedStyle).content.styles,
+                        tokensUsed,
+                        propsUsed
+                      ),
+                    })
+                  }
+                })
               }
 
               classNamesToAppend.add(nodeStyleIdentifier)
@@ -152,6 +178,18 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                     true
                   )
                 )
+
+                const defaultPropValue = propDefinitions[classContent.content.id]?.defaultValue
+                if (!defaultPropValue) {
+                  return
+                }
+                /*
+                  Changing the default value of the prop. 
+                  When forceScoping is enabled the classnames change. So, we need to change the default prop too.
+                */
+                propDefinitions[classContent.content.id].defaultValue = getClassName(
+                  String(defaultPropValue)
+                )
               }
 
               if (
@@ -161,7 +199,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                 classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
-                    types.identifier(`'${classContent.content.id}'`),
+                    types.identifier(`'${getClassName(classContent.content.id)}'`),
                     true
                   )
                 )
@@ -192,7 +230,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier('projectStyles'),
-                  types.identifier(`'${StringUtils.dashCaseToCamelCase(content.referenceId)}'`),
+                  types.identifier(`'${getClassName(content.referenceId)}'`),
                   true
                 )
               )
@@ -201,11 +239,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
             }
             default: {
               throw new PluginReactJSS(`
-                We support only inlined and project-referenced styles as of now, received ${JSON.stringify(
-                  styleRef.content,
-                  null,
-                  2
-                )}
+                Un-supported stlyle reference received ${JSON.stringify(styleRef.content, null, 2)}
               `)
             }
           }
@@ -219,14 +253,12 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       )
     })
 
-    if (Object.keys(componentStyleSheet).length > 0) {
-      generateStylesFromStyleSetDefinitions({
-        styleSetDefinitions: componentStyleSheet,
-        styleSet: jssStyleMap,
-        mediaStyles,
-        tokensUsed,
-      })
-    }
+    generateProjectStyleSheet({
+      styleSetDefinitions: componentStyleSheet,
+      jssStyleMap,
+      mediaStyles,
+      tokensUsed,
+    })
 
     const { content: astContent } = componentChunk
     const parser = new ParsedASTNode(astContent)
@@ -265,7 +297,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       )
     }
 
-    if (!Object.keys(jssStyleMap).length && !Object.keys(mediaStyles).length) {
+    if (jssStyleMap.length === 0 && Object.keys(mediaStyles).length === 0) {
       return structure
     }
 
@@ -306,3 +338,5 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
 export { createStyleSheetPlugin }
 
 export default createReactJSSPlugin()
+
+const getClassName = (str: string) => StringUtils.dashCaseToCamelCase(str)

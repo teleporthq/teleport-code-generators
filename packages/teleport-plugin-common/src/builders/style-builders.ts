@@ -1,7 +1,12 @@
 import jss from 'jss'
 import preset from 'jss-preset-default'
 import * as types from '@babel/types'
-import { UIDLDynamicReference, UIDLStyleSetDefinition } from '@teleporthq/teleport-types'
+import {
+  HastNode,
+  UIDLAttributeValue,
+  UIDLDynamicReference,
+  UIDLStyleSetDefinition,
+} from '@teleporthq/teleport-types'
 import ParsedASTNode from '../utils/parsed-ast'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
@@ -79,17 +84,24 @@ export const createDynamicStyleExpression = (
   }
 }
 
-export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string, unknown>>) => {
+export const generateMediaStyle = (
+  styleMap: Record<string, Array<{ [x: string]: Record<string, string | number> }>>
+) => {
   const styles: string[] = []
-  Object.keys(mediaStylesMap)
-    .sort((a: string, b: string) => Number(a) - Number(b))
-    .reverse()
-    .forEach((mediaOffset: string) => {
+  Object.keys(styleMap)
+    .map((id) => Number(id))
+    .sort((a, b) => b - a)
+    .forEach((mediaOffset) => {
       styles.push(
         createCSSClassWithMediaQuery(
           `max-width: ${mediaOffset}px`,
-          // @ts-ignore
-          mediaStylesMap[mediaOffset]
+          (styleMap[String(mediaOffset)] || []).reduce(
+            (acc: Record<string, string | number>, style) => {
+              Object.assign(acc, style)
+              return acc
+            },
+            {}
+          )
         )
       )
     })
@@ -99,22 +111,25 @@ export const generateMediaStyle = (mediaStylesMap: Record<string, Record<string,
 export const generateStylesFromStyleSetDefinitions = (
   styleSetDefinitions: Record<string, UIDLStyleSetDefinition>,
   cssMap: string[],
-  mediaStylesMap: Record<string, Record<string, unknown>>,
-  componentFileName: string,
-  forceScoping: boolean = false
+  mediaStylesMap: Record<string, Array<{ [x: string]: Record<string, string | number> }>>,
+  className: (val: string) => string
 ) => {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
-    const { content, conditions = [] } = style
-    const styleName = StringUtils.camelCaseToDashCase(styleId)
-    const className = forceScoping ? `${componentFileName}-${styleName}` : styleName
+    const { content, conditions = [], type } = style
+    const name = className(styleId)
 
     const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
     const collectedStyles = {
       ...getContentOfStyleObject(staticStyles),
       ...getCSSVariablesContentFromTokenStyles(tokenStyles),
     } as Record<string, string | number>
-    cssMap.push(createCSSClass(className, collectedStyles))
+
+    if (type === 'reusable-component-style-map') {
+      cssMap.unshift(createCSSClass(name, collectedStyles))
+    } else {
+      cssMap.push(createCSSClass(name, collectedStyles))
+    }
 
     if (conditions.length === 0) {
       return
@@ -122,23 +137,70 @@ export const generateStylesFromStyleSetDefinitions = (
     conditions.forEach((styleRef) => {
       const { staticStyles: staticValues, tokenStyles: tokenValues } =
         UIDLUtils.splitDynamicAndStaticStyles(styleRef.content)
+
       const collecedMediaStyles = {
         ...getContentOfStyleObject(staticValues),
         ...getCSSVariablesContentFromTokenStyles(tokenValues),
       } as Record<string, string | number>
 
       if (styleRef.type === 'element-state') {
-        cssMap.push(
-          createCSSClassWithSelector(className, `&:${styleRef.meta.state}`, collecedMediaStyles)
-        )
+        if (type === 'reusable-component-style-map') {
+          cssMap.unshift(
+            createCSSClassWithSelector(name, `&:${styleRef.meta.state}`, collecedMediaStyles)
+          )
+        } else {
+          cssMap.push(
+            createCSSClassWithSelector(name, `&:${styleRef.meta.state}`, collecedMediaStyles)
+          )
+        }
       }
 
       if (styleRef.type === 'screen-size') {
-        mediaStylesMap[styleRef.meta.maxWidth] = {
-          ...mediaStylesMap[styleRef.meta.maxWidth],
-          [className]: collecedMediaStyles,
+        const { maxWidth } = styleRef.meta
+        if (!mediaStylesMap[String(maxWidth)]) {
+          mediaStylesMap[String(maxWidth)] = []
+        }
+
+        if (type === 'reusable-component-style-map') {
+          mediaStylesMap[String(maxWidth)].unshift({ [name]: collecedMediaStyles })
+        } else {
+          mediaStylesMap[String(maxWidth)].push({ [name]: collecedMediaStyles })
         }
       }
     })
+  })
+}
+
+export const setPropValueForCompStyle = (params: {
+  attrs: Record<string, UIDLAttributeValue>
+  key: string
+  jsxNodesLookup: Record<string, types.JSXElement | HastNode>
+  templateStyle?: 'jsx' | 'html'
+  getClassName: (str: string) => string
+}) => {
+  const { attrs, jsxNodesLookup, key, templateStyle = 'jsx', getClassName } = params
+  Object.keys(attrs).forEach((attr) => {
+    if (attrs[attr].type !== 'comp-style') {
+      return
+    }
+
+    if (templateStyle === 'jsx') {
+      const compInstanceNode = jsxNodesLookup[key] as types.JSXElement
+      compInstanceNode.openingElement?.attributes.forEach((attribute: types.JSXAttribute) => {
+        if (attribute.name?.name === attr && (attribute.value as types.StringLiteral)?.value) {
+          ;(attribute.value as types.StringLiteral).value = getClassName(
+            (attribute.value as types.StringLiteral).value
+          )
+        }
+      })
+    }
+
+    if (templateStyle === 'html') {
+      const compInstanceNode = jsxNodesLookup[key] as HastNode
+      if (!compInstanceNode?.properties[attr]) {
+        return
+      }
+      compInstanceNode.properties[attr] = getClassName(String(compInstanceNode.properties[attr]))
+    }
   })
 }

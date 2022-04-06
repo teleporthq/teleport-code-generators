@@ -26,6 +26,7 @@ import {
   UIDLElementNodeReferenceStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
   PluginCssModules,
+  HastNode,
 } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from './style-sheet'
 import { generateStyledFromStyleContent } from './utils'
@@ -62,7 +63,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
   const cssModulesPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
     const { projectStyleSet, designLanguage: { tokens = {} } = {}, isRootComponent } = options || {}
     const {
       styleSetDefinitions: globalStyleSheet = {},
@@ -95,14 +96,27 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
     const cssClasses: string[] = []
     let isProjectStyleReferred: boolean = false
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
-    const astNodesLookup = componentChunk.meta.nodesLookup || {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
+    const astNodesLookup: Record<string, HastNode | types.JSXElement> =
+      (componentChunk.meta.nodesLookup as Record<string, HastNode | types.JSXElement>) || {}
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style, key, referencedStyles } = element
+      const { style, key, referencedStyles, dependency, attrs = {} } = element
       const jsxTag = astNodesLookup[key] as types.JSXElement
       const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
+
+      if (dependency?.type === 'local') {
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          key,
+          jsxNodesLookup: astNodesLookup,
+          getClassName: (styleName: string) => StringUtils.camelCaseToDashCase(styleName),
+        })
+      }
 
       if (!jsxTag) {
         return
@@ -112,7 +126,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         return
       }
 
-      const className = key
+      const className = StringUtils.camelCaseToDashCase(key)
       const classReferenceIdentifier = types.memberExpression(
         types.identifier(styleObjectImportName),
         types.identifier(`'${className}'`),
@@ -157,10 +171,10 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 
               if (conditionType === 'screen-size') {
                 const { maxWidth } = condition as UIDLStyleMediaQueryScreenSizeCondition
-                mediaStylesMap[maxWidth] = {
-                  ...mediaStylesMap[maxWidth],
-                  [className]: collectedStyles,
+                if (!mediaStylesMap[String(maxWidth)]) {
+                  mediaStylesMap[String(maxWidth)] = []
                 }
+                mediaStylesMap[String(maxWidth)].push({ [className]: collectedStyles })
               }
 
               if (condition.conditionType === 'element-state') {
@@ -183,7 +197,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
-                    types.identifier(`'${String(classContent.content)}'`),
+                    types.identifier(`'${getClassName(String(classContent.content))}'`),
                     true
                   )
                 )
@@ -204,6 +218,18 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                     true
                   )
                 )
+
+                const defaultPropValue = propDefinitions[classContent.content.id]?.defaultValue
+                if (!defaultPropValue) {
+                  return
+                }
+                /* 
+                  Changing the default value of the prop. 
+                   When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
+                propDefinitions[classContent.content.id].defaultValue = getClassName(
+                  String(defaultPropValue)
+                )
+
                 return
               }
 
@@ -214,7 +240,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
                 classNamesToAppend.add(
                   types.memberExpression(
                     types.identifier(styleObjectImportName),
-                    types.identifier(`'${classContent.content.id}'`),
+                    types.identifier(`'${getClassName(classContent.content.id)}'`),
                     true
                   )
                 )
@@ -234,7 +260,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
               classNamesToAppend.add(
                 types.memberExpression(
                   types.identifier(globalStyleSheetPrefix),
-                  types.identifier(`'${StringUtils.camelCaseToDashCase(content.referenceId)}'`),
+                  types.identifier(`'${getClassName(content.referenceId)}'`),
                   true
                 )
               )
@@ -242,9 +268,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
             }
 
             default: {
-              throw new PluginCssModules(
-                `We support only project-referenced or inlined, received ${styleRef.content}`
-              )
+              throw new PluginCssModules(`Un-supported style reference ${styleRef.content}`)
             }
           }
         })
@@ -263,13 +287,14 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
         componentStyleSheet,
         cssClasses,
         mediaStylesMap,
-        UIDLUtils.getComponentClassName(uidl)
+        (styleId: string) => StringUtils.camelCaseToDashCase(styleId)
       )
     }
 
     if (Object.keys(mediaStylesMap).length > 0) {
       cssClasses.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
+
     /**
      * If no classes were added, we don't need to import anything or to alter any code
      */
@@ -327,3 +352,6 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
 export { createStyleSheetPlugin }
 
 export default createCSSModulesPlugin()
+
+const getClassName = (str: string) =>
+  StringUtils.removeIllegalCharacters(StringUtils.camelCaseToDashCase(str))

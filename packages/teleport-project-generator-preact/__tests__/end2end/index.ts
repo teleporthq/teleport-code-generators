@@ -77,9 +77,8 @@ describe('Preact Project Generator', () => {
 
   it('runs without crashing and using only tokens', async () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
-    const routes = result.subFolders[0].subFolders.find((folder) => folder.name === 'routes')
-    const styleSheet = routes.files.find(
-      (file) => file.name === 'style' && file.fileType === FileType.CSS
+    const styleSheet = result.subFolders[0].files.find(
+      (file) => file.name === 'global-style' && file.fileType === FileType.CSS
     )
     const components = result.subFolders[0].subFolders.find(
       (folder) => folder.name === 'components'
@@ -91,7 +90,7 @@ describe('Preact Project Generator', () => {
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
-    expect(index.content).toContain(`import '../routes/style.css'`)
+    expect(index.content).toContain(`import '../global-style.css'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -20,7 +20,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
   const reactStyledJSXPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
     const { projectStyleSet } = options
-    const { node, styleSetDefinitions: componentStyleSheet = {} } = uidl
+    const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -29,7 +29,10 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
     const classMap: string[] = []
 
     const transformStyle = (style: Record<string, UIDLStyleValue>) =>
@@ -41,7 +44,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
             return `\$\{${propsPrefix}.${styleValue.content.id}\}`
           default:
             throw new PluginStyledJSX(
-              `Error running transformDynamicStyles in reactStyledJSXChunkPlugin. Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
+              `Error running transformDynamicStyles in reactStyledJSXChunkPlugin.\n
+              Unsupported styleValue.content.referenceType value ${styleValue.content.referenceType}`
             )
         }
       })
@@ -49,13 +53,26 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     UIDLUtils.traverseElements(node, (element) => {
       const classNamesToAppend: Set<string> = new Set()
       const dynamicVariantsToAppend: Set<types.Identifier | types.MemberExpression> = new Set()
-      const { style = {}, key, referencedStyles = {} } = element
+      const {
+        style = {},
+        key,
+        referencedStyles = {},
+        attrs = {},
+        dependency,
+        elementType,
+      } = element
       const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const className = forceScoping
-        ? `${StringUtils.camelCaseToDashCase(
-            UIDLUtils.getComponentClassName(uidl)
-          )}-${elementClassName}`
-        : elementClassName
+      const className = getClassName(forceScoping, uidl.name, elementClassName)
+
+      if (forceScoping && dependency?.type === 'local') {
+        StyleBuilders.setPropValueForCompStyle({
+          key,
+          jsxNodesLookup,
+          attrs,
+          getClassName: (str: string) =>
+            getClassName(forceScoping, StringUtils.camelCaseToDashCase(elementType), str),
+        })
+      }
 
       if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
         return
@@ -73,26 +90,29 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       Object.values(referencedStyles).forEach((styleRef) => {
         switch (styleRef.content.mapType) {
           case 'inlined': {
-            const { conditions } = styleRef.content
-            if (conditions[0].conditionType === 'screen-size') {
-              mediaStylesMap[conditions[0].maxWidth] = {
-                ...mediaStylesMap[conditions[0].maxWidth],
-                [className]: transformStyle(styleRef.content.styles),
+            const condition = styleRef.content.conditions[0]
+            if (condition.conditionType === 'screen-size') {
+              const { maxWidth } = condition
+              if (!mediaStylesMap[String(maxWidth)]) {
+                mediaStylesMap[String(maxWidth)] = []
               }
+
+              mediaStylesMap[String(maxWidth)].push({
+                [className]: transformStyle(styleRef.content.styles),
+              })
             }
 
-            if (conditions[0].conditionType === 'element-state') {
+            if (condition.conditionType === 'element-state') {
               classMap.push(
                 StyleBuilders.createCSSClassWithSelector(
                   className,
-                  `&:${conditions[0].content}`,
+                  `&:${condition.content}`,
                   transformStyle(styleRef.content.styles)
                 )
               )
             }
 
             classNamesToAppend.add(className)
-
             return
           }
 
@@ -111,39 +131,46 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
                   types.identifier(styleRef.content.content.content.id)
                 )
               )
+              const defaultPropValue =
+                propDefinitions[styleRef.content.content.content.id]?.defaultValue
+              if (!defaultPropValue) {
+                return
+              }
+
+              propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                forceScoping,
+                uidl.name,
+                String(defaultPropValue)
+              )
             }
 
             if (
               styleRef.content.content.type === 'dynamic' &&
               styleRef.content.content.content.referenceType === 'comp'
             ) {
-              classNamesToAppend.add(styleRef.content.content.content.id)
+              classNamesToAppend.add(
+                getClassName(forceScoping, uidl.name, styleRef.content.content.content.id)
+              )
             }
 
             return
           }
 
           case 'project-referenced': {
-            if (!projectStyleSet) {
-              throw new PluginStyledJSX(
-                `Project Style Sheet is missing, but the node is referring to it ${element}`
-              )
-            }
-
             const { content } = styleRef
             const referedStyle = projectStyleSet.styleSetDefinitions[content.referenceId]
             if (!referedStyle) {
-              throw new PluginStyledJSX(
-                `Style that is being used for reference is missing - ${content.referenceId}`
-              )
+              throw new PluginStyledJSX(`Project style - ${content.referenceId} is missing`)
             }
 
-            classNamesToAppend.add(StringUtils.camelCaseToDashCase(content.referenceId))
+            classNamesToAppend.add(content.referenceId)
             return
           }
 
           default: {
-            throw new PluginStyledJSX('We support only project-referneced and inlined for now.')
+            throw new PluginStyledJSX(
+              `Un-supported style reference ${JSON.stringify(styleRef.content, null, 2)}`
+            )
           }
         }
       })
@@ -162,25 +189,15 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         componentStyleSheet,
         classMap,
         mediaStylesMap,
-        UIDLUtils.getComponentClassName(uidl)
+        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
       )
     }
 
     if (Object.keys(mediaStylesMap).length > 0) {
-      Object.keys(mediaStylesMap)
-        .sort((a: string, b: string) => Number(a) - Number(b))
-        .reverse()
-        .forEach((mediaOffset: string) => {
-          classMap.push(
-            StyleBuilders.createCSSClassWithMediaQuery(
-              `max-width: ${mediaOffset}px`,
-              mediaStylesMap[mediaOffset] as Record<string, string | number>
-            )
-          )
-        })
+      classMap.push(...StyleBuilders.generateMediaStyle(mediaStylesMap))
     }
 
-    if (!classMap || !classMap.length) {
+    if (classMap.length === 0) {
       return structure
     }
 
@@ -211,3 +228,9 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 }
 
 export default createReactStyledJSXPlugin()
+
+const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
+  return scoping
+    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    : StringUtils.camelCaseToDashCase(nodeStyleName)
+}

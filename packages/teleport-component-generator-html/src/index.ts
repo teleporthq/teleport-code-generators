@@ -46,6 +46,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       templateChunkName: 'html-template',
       declareDependency: 'import',
       forceScoping: true,
+      templateStyle: 'html',
+      staticPropReferences: true,
     })
   )
 

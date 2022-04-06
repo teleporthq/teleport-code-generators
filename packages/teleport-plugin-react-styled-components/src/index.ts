@@ -7,7 +7,7 @@ import {
   PluginStyledComponent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   generateStyledComponent,
   removeUnusedDependencies,
@@ -43,7 +43,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
   const reactStyledComponentsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
-    const { node, name, styleSetDefinitions: componentStyleSheet = {} } = uidl
+    const { node, name, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
     const { projectStyleSet } = options
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -73,13 +73,24 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
     }
 
     UIDLUtils.traverseElements(node, (element) => {
-      const { style = {} } = element
-      const { key, elementType, referencedStyles = {} } = element
+      const { key, elementType, referencedStyles, dependency, style, attrs = {} } = element
       const propsReferred: Set<string> = new Set()
       const componentStyleReferences: Set<string> = new Set()
       const projectStyleReferences: Set<string> = new Set()
 
-      if (Object.keys(style).length === 0 && Object.keys(referencedStyles).length === 0) {
+      if (dependency?.type === 'local') {
+        StyleBuilders.setPropValueForCompStyle({
+          attrs,
+          key,
+          jsxNodesLookup,
+          getClassName,
+        })
+      }
+
+      if (
+        Object.keys(style || {}).length === 0 &&
+        Object.keys(referencedStyles || {}).length === 0
+      ) {
         return
       }
 
@@ -114,6 +125,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
             })
           }
         }
+
         cssMap[className] = generateStyledComponentStyles({
           styles: style,
           propsReferred,
@@ -192,11 +204,16 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'comp'
               ) {
-                componentStyleReferences.add(componentVariantPropPrefix)
+                const usedCompStyle = componentStyleSheet[styleRef.content.content.content.id]
+                if (!usedCompStyle) {
+                  throw new Error(`${styleRef.content.content.content.id} is missing from props`)
+                }
+                componentStyleReferences.add(usedCompStyle.type)
+
                 ASTUtils.addAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
-                  styleRef.content.content.content.id
+                  getClassName(styleRef.content.content.content.id)
                 )
               }
 
@@ -204,7 +221,21 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'prop'
               ) {
-                componentStyleReferences.add(componentVariantPropPrefix)
+                const prop = propDefinitions[styleRef.content.content.content.id]
+                if (prop?.defaultValue) {
+                  const usedCompStyle = componentStyleSheet[String(prop.defaultValue)]
+                  componentStyleReferences.add(usedCompStyle.type)
+                  /*
+                  Changing the default value of the prop. 
+                  When forceScoping is enabled the classnames change. So, we need to change the default prop too.
+                */
+                  propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                    String(prop.defaultValue)
+                  )
+                } else {
+                  componentStyleReferences.add(componentVariantPropPrefix)
+                }
+
                 ASTUtils.addDynamicAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
@@ -240,7 +271,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               ASTUtils.addAttributeToJSXTag(
                 root,
                 projectVariantPropKey,
-                StringUtils.dashCaseToCamelCase(content.referenceId)
+                getClassName(content.referenceId)
               )
               return
             }
@@ -316,3 +347,5 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 export { createStyleSheetPlugin }
 
 export default createReactStyledComponentsPlugin()
+
+const getClassName = (str: string) => StringUtils.dashCaseToCamelCase(str)

@@ -17,7 +17,6 @@ import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-
 import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-import simpleHTMLJSON from '../../../examples/uidl-samples/simple-html.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -49,7 +48,7 @@ const packerOptions: PackerOptions = {
   ],
 }
 
-const log = async (cb: () => Promise<ProjectType>) => {
+const log = async (cb: () => Promise<string>) => {
   const t1 = performance.now()
   const framework = await cb()
   const t2 = performance.now()
@@ -70,7 +69,7 @@ const run = async () => {
     /* Plain Html Generator */
 
     await log(async () => {
-      result = await packProject(simpleHTMLJSON as unknown as ProjectUIDL, {
+      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.HTML,
       })
@@ -96,7 +95,7 @@ const run = async () => {
         projectType: ProjectType.GATSBY,
       })
       console.info(ProjectType.GATSBY, '-', result.payload)
-      return ProjectType.GATSBY
+      return `Gatsy - CSSModules`
     })
 
     await log(async () => {
@@ -109,7 +108,7 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         plugins: [pluginNextReactCSSModules],
@@ -119,19 +118,19 @@ const run = async () => {
         },
       })
       console.info(ProjectType.NEXT + '-' + ReactStyleVariation.CSSModules, '-', result.payload)
-      return ProjectType.NEXT
+      return `Next - CSSModules`
     })
 
+    /* Frameworks use CSS */
+
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
       })
       console.info(ProjectType.REACT, '-', result.payload)
       return ProjectType.REACT
     })
-
-    /* Frameworks use CSS */
 
     await log(async () => {
       result = await packProject(projectUIDL, {
@@ -174,7 +173,7 @@ const run = async () => {
 
     /* React JSS */
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         plugins: [pluginNextReactJSS],
@@ -184,12 +183,12 @@ const run = async () => {
         },
       })
       console.info(ProjectType.NEXT + '-' + ReactStyleVariation.ReactJSS, '-', result.payload)
-      return ProjectType.NEXT
+      return `NEXT - React-JSS`
     })
 
     /* Styled Components */
     await log(async () => {
-      result = await packProject(projectUIDL, {
+      result = await packProject(reactProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
         plugins: [pluginReactStyledComponents],
@@ -198,7 +197,7 @@ const run = async () => {
           projectSlug: `teleport-project-react-styled-components`,
         },
       })
-      return ProjectType.REACT
+      return `React - StyledComponents`
     })
 
     await log(async () => {
@@ -216,11 +215,11 @@ const run = async () => {
         '-',
         result.payload
       )
-      return ProjectType.GATSBY
+      return `Gatsby - StyledComponents`
     })
 
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         plugins: [pluginNextStyledComponents],
@@ -234,7 +233,7 @@ const run = async () => {
         '-',
         result.payload
       )
-      return ProjectType.NEXT
+      return `Next - StyledComponents`
     })
 
     await log(async () => {

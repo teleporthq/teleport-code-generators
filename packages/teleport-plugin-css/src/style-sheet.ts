@@ -5,15 +5,13 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
 
 interface StyleSheetPlugin {
   fileName?: string
-  forceScoping?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName, forceScoping = false } = config || { fileName: 'style', forceScoping: false }
+  const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
@@ -26,7 +24,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     const cssMap: string[] = []
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
 
     if (Object.keys(tokens).length > 0) {
       cssMap.push(
@@ -43,8 +44,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         styleSetDefinitions,
         cssMap,
         mediaStylesMap,
-        UIDLUtils.getComponentClassName(uidl),
-        forceScoping
+        (styleName: string) => styleName
       )
     }
 

@@ -21,7 +21,6 @@ const createNextProjectGenerator = () => {
   })
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'style',
-    forceScoping: false,
   })
 
   const generator = createProjectGenerator({
