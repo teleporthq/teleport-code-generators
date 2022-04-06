@@ -51,7 +51,6 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       fileName: projectStyleSheetName,
       path: projectStyleSheetPath,
     } = projectStyleSet || {}
-    const componentFileName = UIDLUtils.getComponentFileName(uidl) // Filename used to enforce dash case naming
 
     if (isRootComponent) {
       if (Object.keys(tokens).length > 0 || Object.keys(styleSetDefinitions).length > 0) {
@@ -124,7 +123,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         throw new PluginCSS(`Node - ${key} is missing from the template chunk`)
       }
 
-      const className = getClassName(forceScoping, componentFileName, elementClassName)
+      const className = getClassName(forceScoping, uidl.name, elementClassName)
 
       const { staticStyles, dynamicStyles, tokenStyles } =
         UIDLUtils.splitDynamicAndStaticStyles(style)
@@ -211,7 +210,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
                 propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
                   forceScoping,
-                  componentFileName,
+                  uidl.name,
                   String(defaultPropValue)
                 )
               }
@@ -222,7 +221,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 }
                 if (staticPropReferences) {
                   classNamesToAppend.add(
-                    getClassName(forceScoping, componentFileName, String(defaultPropValue))
+                    getClassName(forceScoping, uidl.name, String(defaultPropValue))
                   )
                 }
               } else {
@@ -240,11 +239,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 )
               }
               classNamesToAppend.add(
-                getClassName(
-                  forceScoping,
-                  componentFileName,
-                  String(styleRef.content.content.content.id)
-                )
+                getClassName(forceScoping, uidl.name, String(styleRef.content.content.content.id))
               )
             }
 
@@ -312,7 +307,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
         componentStyleSet,
         cssMap,
         mediaStylesMap,
-        (styleName: string) => getClassName(forceScoping, componentFileName, styleName)
+        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
       )
     }
 
@@ -376,7 +371,8 @@ const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
     .join(', ')
 }
 
-const getClassName = (scoping: boolean, compFileName: string, nodeStyleName: string) => {
-  const name = StringUtils.camelCaseToDashCase(nodeStyleName)
-  return scoping ? `${compFileName}-${name}` : name
+const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
+  return scoping
+    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

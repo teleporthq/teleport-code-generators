@@ -221,24 +221,25 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                 styleRef.content.content.type === 'dynamic' &&
                 styleRef.content.content.content.referenceType === 'prop'
               ) {
-                componentStyleReferences.add(componentVariantPropPrefix)
+                const prop = propDefinitions[styleRef.content.content.content.id]
+                if (prop?.defaultValue) {
+                  const usedCompStyle = componentStyleSheet[String(prop.defaultValue)]
+                  componentStyleReferences.add(usedCompStyle.type)
+                  /*
+                  Changing the default value of the prop. 
+                  When forceScoping is enabled the classnames change. So, we need to change the default prop too.
+                */
+                  propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
+                    String(prop.defaultValue)
+                  )
+                } else {
+                  componentStyleReferences.add(componentVariantPropPrefix)
+                }
+
                 ASTUtils.addDynamicAttributeToJSXTag(
                   root,
                   componentVariantPropKey,
                   `${propsPrefix}.${styleRef.content.content.content.id}`
-                )
-
-                const defaultPropValue =
-                  propDefinitions[styleRef.content.content.content.id]?.defaultValue
-                if (!defaultPropValue) {
-                  return
-                }
-                /*
-                  Changing the default value of the prop. 
-                  When forceScoping is enabled the classnames change. So, we need to change the default prop too.
-                */
-                propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
-                  String(defaultPropValue)
                 )
               }
 

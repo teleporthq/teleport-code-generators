@@ -27,7 +27,6 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       return structure
     }
 
-    const componentFileName = UIDLUtils.getComponentFileName(uidl)
     const jsxNodesLookup = componentChunk.meta.nodesLookup as Record<string, types.JSXElement>
     const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
     const mediaStylesMap: Record<
@@ -63,7 +62,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         elementType,
       } = element
       const elementClassName = StringUtils.camelCaseToDashCase(key)
-      const className = getClassName(forceScoping, componentFileName, elementClassName)
+      const className = getClassName(forceScoping, uidl.name, elementClassName)
 
       if (forceScoping && dependency?.type === 'local') {
         StyleBuilders.setPropValueForCompStyle({
@@ -140,7 +139,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
               propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
                 forceScoping,
-                componentFileName,
+                uidl.name,
                 String(defaultPropValue)
               )
             }
@@ -150,7 +149,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               styleRef.content.content.content.referenceType === 'comp'
             ) {
               classNamesToAppend.add(
-                getClassName(forceScoping, componentFileName, styleRef.content.content.content.id)
+                getClassName(forceScoping, uidl.name, styleRef.content.content.content.id)
               )
             }
 
@@ -190,7 +189,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
         componentStyleSheet,
         classMap,
         mediaStylesMap,
-        (styleName: string) => getClassName(forceScoping, componentFileName, styleName)
+        (styleName: string) => getClassName(forceScoping, uidl.name, styleName)
       )
     }
 
@@ -230,7 +229,8 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
 export default createReactStyledJSXPlugin()
 
-const getClassName = (scoping: boolean, compFileName: string, nodeStyleName: string) => {
-  const name = StringUtils.camelCaseToDashCase(nodeStyleName)
-  return scoping ? `${compFileName}-${name}` : name
+const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
+  return scoping
+    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

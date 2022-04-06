@@ -108,7 +108,7 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
+      result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         plugins: [pluginNextReactCSSModules],
