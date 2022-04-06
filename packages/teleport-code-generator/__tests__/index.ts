@@ -2,7 +2,6 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 import { performance } from 'perf_hooks'
 import projectJson from '../../../examples/test-samples/project-sample.json'
-import simpleHtml from '../../../examples/uidl-samples/simple-html.json'
 import {
   ProjectUIDL,
   GenerateOptions,
@@ -57,21 +56,6 @@ describe('Performance tests for the code-generator', () => {
       const t1 = performance.now()
       await packProject(projectUIDL as unknown as ProjectUIDL, {
         projectType: ProjectType.REACT,
-      })
-      const t2 = performance.now()
-      const timeTaken = Number((t2 - t1).toFixed(2))
-      totalTime = totalTime + timeTaken
-    }
-
-    expect(totalTime / runs).toBeLessThan(500)
-  })
-
-  it('Runs HTML project generaotr multiple times and tests for memory leaks', async () => {
-    totalTime = 0
-    for (let i = 0; i <= runs; i++) {
-      const t1 = performance.now()
-      await packProject(simpleHtml as unknown as ProjectUIDL, {
-        projectType: ProjectType.HTML,
       })
       const t2 = performance.now()
       const timeTaken = Number((t2 - t1).toFixed(2))
