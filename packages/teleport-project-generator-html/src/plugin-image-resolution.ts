@@ -50,15 +50,17 @@ class ProjectPluginImageResolver implements ProjectPlugin {
       if (!defaultRoute) {
         return structure
       }
-      const pageName = StringUtils.camelCaseToDashCase(
-        StringUtils.removeIllegalCharacters(defaultRoute.content.value as string)
+      const sanitizedName = StringUtils.removeIllegalCharacters(
+        defaultRoute.content.value as string
       )
+      const pageName = StringUtils.camelCaseToDashCase(sanitizedName)
 
       if (pageName === 'index') {
         return structure
       }
 
-      const homeFile = files.get(defaultRoute.content.value as string)
+      const component = StringUtils.dashCaseToUpperCamelCase(sanitizedName)
+      const homeFile = files.get(component)
       if (!homeFile) {
         return structure
       }
@@ -82,7 +84,7 @@ class ProjectPluginImageResolver implements ProjectPlugin {
           },
         ],
       })
-      files.delete(defaultRoute.content.value as string)
+      files.delete(component)
     }
 
     return structure
