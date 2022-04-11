@@ -20,13 +20,15 @@ describe('Passes the rootClass which using the component', () => {
 
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
     const srcFolder = result.subFolders.find((folder) => folder.name === '')
+
     const mainFile = srcFolder.files.find(
-      (file) => file.name === 'landing-page' && file.fileType === FileType.HTML
+      (file) => file.name === 'index' && file.fileType === FileType.HTML
     )
     const styleFile = srcFolder.files.find(
       (file) => file.name === 'landing-page' && file.fileType === FileType.CSS
     )
 
+    expect(mainFile).toBeDefined()
     expect(mainFile.content).toContain(`place-card-root-class-name`)
     expect(styleFile.content).toContain(`place-card-root-class-name`)
   })

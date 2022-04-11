@@ -1,6 +1,8 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import PathResolver from 'path-browserify'
 import {
+  FileType,
+  GeneratedFile,
   ProjectPlugin,
   ProjectPluginStructure,
   UIDLElement,
@@ -15,6 +17,7 @@ class ProjectPluginImageResolver implements ProjectPlugin {
 
   async runBefore(structure: ProjectPluginStructure) {
     const { uidl, strategy } = structure
+
     const assetsPath = join(strategy.id, strategy.static.path.join('/'))
     const pagesPath = join(strategy.id, strategy.pages.path.join('/'))
     this.relativePath = relative(pagesPath, assetsPath)
@@ -37,6 +40,53 @@ class ProjectPluginImageResolver implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
+    const { uidl, files } = structure
+    const { stateDefinitions } = uidl.root
+
+    if (stateDefinitions?.route) {
+      const { defaultValue } = stateDefinitions.route
+      const routes = UIDLUtils.extractRoutes(uidl.root)
+      const defaultRoute = routes.find((route) => route.content?.value === defaultValue)
+      if (!defaultRoute) {
+        return structure
+      }
+      const sanitizedName = StringUtils.removeIllegalCharacters(
+        defaultRoute.content.value as string
+      )
+      const pageName = StringUtils.camelCaseToDashCase(sanitizedName)
+
+      if (pageName === 'index') {
+        return structure
+      }
+
+      const component = StringUtils.dashCaseToUpperCamelCase(sanitizedName)
+      const homeFile = files.get(component)
+      if (!homeFile) {
+        return structure
+      }
+
+      const htmlFile = homeFile.files.find(
+        ({ name, fileType }: GeneratedFile) => name === pageName && fileType === FileType.HTML
+      )
+      if (!htmlFile) {
+        return structure
+      }
+
+      files.set('index', {
+        path: homeFile.path,
+        files: [
+          ...homeFile.files.filter(
+            ({ name, fileType }) => name === pageName && fileType !== FileType.HTML
+          ),
+          {
+            ...htmlFile,
+            name: 'index',
+          },
+        ],
+      })
+      files.delete(component)
+    }
+
     return structure
   }
 
