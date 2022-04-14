@@ -13,6 +13,8 @@ export interface GithubFactoryParams extends PublisherFactoryParams {
   mainBranch?: string
   commitBranch?: string
   commitMessage?: string
+  isPrivate?: boolean
+  extraBranchParents?: string[]
 }
 
 export interface GithubPublisher extends Publisher<GithubFactoryParams, string> {
@@ -29,12 +31,14 @@ export interface GithubPublisher extends Publisher<GithubFactoryParams, string> 
 }
 
 export interface GithubPublishMeta {
+  isPrivate: boolean
   authMeta: ServiceAuth
   repository: string
   repositoryOwner: string
   mainBranch?: string
   commitBranch?: string
   commitMessage?: string
+  extraBranchParents?: string[]
 }
 
 export interface ProjectFolderInfo {

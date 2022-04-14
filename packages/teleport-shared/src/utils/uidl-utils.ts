@@ -19,6 +19,7 @@ import {
   UIDLDependency,
   UIDLStyleValue,
   UIDLStyleSheetContent,
+  UIDLComponentStyleReference,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: ComponentUIDL) => {
@@ -135,8 +136,8 @@ export const cloneObject = <T>(node: T): T => JSON.parse(JSON.stringify(node))
 // This function parses all the UIDLNodes in a tree structure
 // enabling a function to be applied to each individual node
 export const traverseNodes = (
-  node: UIDLNode,
-  fn: (node: UIDLNode, parentNode: UIDLNode) => void,
+  node: UIDLNode | UIDLComponentStyleReference,
+  fn: (node: UIDLNode | UIDLComponentStyleReference, parentNode: UIDLNode) => void,
   parent: UIDLNode | null = null
 ) => {
   fn(node, parent)
@@ -190,6 +191,7 @@ export const traverseNodes = (
       break
 
     case 'static':
+    case 'comp-style':
     case 'dynamic':
     case 'import':
     case 'raw':
@@ -483,7 +485,7 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import'].indexOf(type as string) !== -1) {
+      if (['dynamic', 'static', 'import', 'comp-style'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }

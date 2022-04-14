@@ -15,7 +15,6 @@ import {
   FileType,
   ChunkType,
   ComponentGenerator,
-  PostProcessor,
 } from '@teleporthq/teleport-types'
 import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
@@ -139,12 +138,6 @@ export const createEntryFile = async (
     customTags,
   })
 
-  if (strategy.entry.postprocessors?.length > 0) {
-    strategy.entry?.postprocessors.forEach((processor: PostProcessor) =>
-      generator.addPostProcessor(processor)
-    )
-  }
-
   const result = generator.linkCodeChunks(chunks, entryFileName)
   return result
 }
@@ -246,6 +239,18 @@ const createHTMLEntryFileChunks = (
       const linkTag = HASTBuilders.createHTMLNode('link')
       HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
       HASTUtils.addAttributeToNode(linkTag, 'href', assetPath)
+
+      if ('attrs' in asset) {
+        Object.keys(asset.attrs || {}).forEach((attrId) => {
+          const value = asset.attrs[attrId].content
+          if (typeof value === 'boolean') {
+            HASTUtils.addBooleanAttributeToNode(linkTag, attrId, value)
+            return
+          }
+          HASTUtils.addAttributeToNode(linkTag, attrId, String(value))
+        })
+      }
+
       HASTUtils.addChildNode(headNode, linkTag)
     }
 
@@ -254,6 +259,16 @@ const createHTMLEntryFileChunks = (
       const styleTag = HASTBuilders.createHTMLNode('style')
       HASTUtils.addTextNode(styleTag, asset.content)
       HASTUtils.addChildNode(headNode, styleTag)
+      if ('attrs' in asset) {
+        Object.keys(asset.attrs || {}).forEach((attrId) => {
+          const value = asset.attrs[attrId].content
+          if (typeof value === 'boolean') {
+            HASTUtils.addBooleanAttributeToNode(styleTag, attrId, value)
+            return
+          }
+          HASTUtils.addAttributeToNode(styleTag, attrId, String(value))
+        })
+      }
     }
 
     // script (external or inline)

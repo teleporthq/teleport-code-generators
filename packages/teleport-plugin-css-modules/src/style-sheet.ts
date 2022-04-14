@@ -5,6 +5,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { StringUtils } from '@teleporthq/teleport-shared'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
@@ -20,6 +21,7 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     ...defaultConfig,
     ...config,
   }
+
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
@@ -32,7 +34,10 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     }
 
     const cssMap: string[] = []
-    const mediaStylesMap: Record<string, Record<string, unknown>> = {}
+    const mediaStylesMap: Record<
+      string,
+      Array<{ [x: string]: Record<string, string | number> }>
+    > = {}
 
     if (Object.keys(tokens).length > 0) {
       cssMap.push(
@@ -48,7 +53,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       StyleBuilders.generateStylesFromStyleSetDefinitions(
         styleSetDefinitions,
         cssMap,
-        mediaStylesMap
+        mediaStylesMap,
+        (styleId: string) =>
+          StringUtils.removeIllegalCharacters(StringUtils.camelCaseToDashCase(styleId))
       )
     }
 

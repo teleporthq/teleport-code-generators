@@ -10,6 +10,7 @@ import {
   EntryFileOptions,
   UIDLGlobalAsset,
   UIDLStateModifierEvent,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -206,6 +207,17 @@ export const appendAssetsAST = (
       const linkTag = createJSXTag('link')
       addAttributeToJSXTag(linkTag, 'rel', 'stylesheet')
       addAttributeToJSXTag(linkTag, 'href', assetPath)
+
+      if ('attrs' in asset) {
+        Object.keys((asset.attrs || {}) as Record<string, UIDLStaticValue>).forEach(
+          (assetId: string) => {
+            const value = (asset.attrs as unknown as Record<string, UIDLStaticValue>)[assetId]
+              .content
+            addAttributeToJSXTag(linkTag, assetId, value)
+          }
+        )
+      }
+
       addChildJSXTag(headNode, linkTag)
     }
 
@@ -213,6 +225,17 @@ export const appendAssetsAST = (
     if (asset.type === 'style' && 'content' in asset) {
       const styleTag = createJSXTag('style')
       addAttributeToJSXTag(styleTag, 'dangerouslySetInnerHTML', { __html: asset.content })
+
+      if ('attrs' in asset) {
+        Object.keys((asset.attrs || {}) as Record<string, UIDLStaticValue>).forEach(
+          (assetId: string) => {
+            const value = (asset.attrs as unknown as Record<string, UIDLStaticValue>)[assetId]
+              .content
+            addAttributeToJSXTag(styleTag, assetId, value)
+          }
+        )
+      }
+
       addChildJSXTag(headNode, styleTag)
     }
 

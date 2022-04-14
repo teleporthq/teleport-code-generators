@@ -81,6 +81,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
         case 'import':
           addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
           break
+        case 'comp-style':
         case 'static':
           const { content } = attributeValue
           addAttributeToJSXTag(elementTag, attrKey, content)

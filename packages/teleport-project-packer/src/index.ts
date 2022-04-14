@@ -19,9 +19,7 @@ export interface PackerFactoryParams {
   assets?: AssetsDefinition
 }
 
-export type PackerFactory = (
-  params?: PackerFactoryParams
-) => {
+export type PackerFactory = (params?: PackerFactoryParams) => {
   pack: (
     projectUIDL?: ProjectUIDL,
     params?: PackerFactoryParams

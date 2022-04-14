@@ -13,6 +13,9 @@ import {
   UIDLStyleSetConditions,
   UIDLDesignTokens,
   ParserError,
+  UIDLComponentSEO,
+  VUIDLGlobalAsset,
+  UIDLGlobalAsset,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -25,7 +28,7 @@ export const parseComponentJSON = (
 ): ComponentUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
-  if (input?.styleSetDefinitions) {
+  if (safeInput?.styleSetDefinitions) {
     const { styleSetDefinitions } = safeInput
 
     Object.values(styleSetDefinitions).forEach((styleRef) => {
@@ -40,6 +43,13 @@ export const parseComponentJSON = (
         })
       }
     })
+  }
+
+  if (safeInput?.seo) {
+    const { seo } = safeInput
+    const { assets = [] } = (seo as UIDLComponentSEO) || { assets: [] }
+
+    assets.forEach(parseAssets)
   }
 
   const node = safeInput.node as Record<string, unknown>
@@ -67,6 +77,8 @@ export const parseProjectJSON = (
     ...(safeInput as unknown as ProjectUIDL),
   }
   result.root = parseComponentJSON(root, { noClone: true })
+
+  result.globals?.assets?.forEach(parseAssets)
 
   if (result.root?.designLanguage) {
     const { tokens = {} } = result.root.designLanguage
@@ -224,4 +236,15 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
     default:
       throw new ParserError(`parseComponentNode attempted to parsed invalid node type ${node.type}`)
   }
+}
+
+export const parseAssets = (asset: VUIDLGlobalAsset): UIDLGlobalAsset => {
+  if ('attrs' in asset) {
+    asset.attrs = UIDLUtils.transformAttributesAssignmentsToJson(asset.attrs) as Record<
+      string,
+      UIDLStaticValue
+    >
+  }
+
+  return asset as UIDLGlobalAsset
 }

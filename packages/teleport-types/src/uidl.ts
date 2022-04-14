@@ -42,6 +42,7 @@ export type UIDLScriptAsset = UIDLScriptExternalAsset | UIDLScriptInlineAsset
 export interface UIDLStyleInlineAsset {
   type: 'style'
   content: string
+  attrs?: Record<string, UIDLStaticValue>
 }
 export interface UIDLStyleExternalAsset {
   type: 'style'
@@ -53,6 +54,7 @@ export type UIDLStyleAsset = UIDLStyleExternalAsset | UIDLStyleInlineAsset
 export interface UIDLFontAsset {
   type: 'font'
   path: string
+  attrs?: Record<string, UIDLStaticValue>
 }
 export interface UIDLCanonicalAsset {
   type: 'canonical'
@@ -238,7 +240,16 @@ export type UIDLNode =
   | UIDLSlotNode
   | UIDLImportReference
 
-export type UIDLAttributeValue = UIDLDynamicReference | UIDLStaticValue | UIDLImportReference
+export interface UIDLComponentStyleReference {
+  type: 'comp-style'
+  content: string
+}
+
+export type UIDLAttributeValue =
+  | UIDLDynamicReference
+  | UIDLStaticValue
+  | UIDLImportReference
+  | UIDLComponentStyleReference
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
@@ -421,7 +432,10 @@ export type UIDLElementStyleStates =
   | 'link'
 
 export interface UIDLStyleSetDefinition {
-  type: 'reusable-project-style-map' | 'reusable-component-style-map'
+  type:
+    | 'reusable-project-style-map'
+    | 'reusable-component-style-map'
+    | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
 }

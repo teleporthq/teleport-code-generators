@@ -7,10 +7,7 @@ import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { ReactStyleVariation } from '@teleporthq/teleport-types'
-import {
-  createStyleSheetPlugin,
-  createCSSModulesPlugin,
-} from '@teleporthq/teleport-plugin-css-modules'
+import { createStyleSheetPlugin, createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 
 import { ReactProjectMapping } from './react-project-mapping'
 import ReactTemplate from './project-template'
@@ -18,7 +15,7 @@ import ReactTemplate from './project-template'
 const createReactProjectGenerator = () => {
   const generator = createProjectGenerator({
     id: 'teleport-project-react',
-    style: ReactStyleVariation.CSSModules,
+    style: ReactStyleVariation.CSS,
     components: {
       generator: createReactComponentGenerator,
       mappings: [ReactProjectMapping],
@@ -32,7 +29,7 @@ const createReactProjectGenerator = () => {
     },
     projectStyleSheet: {
       generator: createComponentGenerator,
-      plugins: [createStyleSheetPlugin({ moduleExtension: true })],
+      plugins: [createStyleSheetPlugin()],
       fileName: 'style',
       path: ['src'],
       importFile: true,
@@ -40,7 +37,13 @@ const createReactProjectGenerator = () => {
     router: {
       generator: createComponentGenerator,
       plugins: [
-        createCSSModulesPlugin({ moduleExtension: true }),
+        createCSSPlugin({
+          templateChunkName: 'jsx-component',
+          templateStyle: 'jsx',
+          declareDependency: 'import',
+          classAttributeName: 'className',
+          forceScoping: true,
+        }),
         reactAppRoutingPlugin,
         importStatementsPlugin,
       ],

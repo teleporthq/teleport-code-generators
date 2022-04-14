@@ -101,6 +101,27 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
   UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
     if (node.type === 'element') {
+      const { content } = node
+      const compStyleReference = Object.values(content?.attrs || {}).find(
+        (attr) => attr.type === 'comp-style'
+      )
+
+      if (
+        compStyleReference &&
+        content.elementType !== 'component' &&
+        content?.dependency?.type === 'local'
+      ) {
+        const errorMsg = `${JSON.stringify(
+          compStyleReference,
+          null,
+          2
+        )} can only be assigned on a local component instances. Tried to assign on ${content}`
+
+        errors.push(errorMsg)
+      }
+    }
+
+    if (node.type === 'element') {
       Object.keys(node.content?.events || {}).forEach((eventKey) => {
         node.content.events[eventKey].forEach((event) => {
           if (event.type === 'stateChange' && !stateKeys.includes(event.modifies)) {

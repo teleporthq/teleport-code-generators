@@ -69,6 +69,8 @@ import {
 import {
   createHTMLProjectGenerator,
   HTMLTemplate,
+  pluginCloneGlobals,
+  pluginImageResolver,
 } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
@@ -166,8 +168,14 @@ export const packProject: PackProjectFunction = async (
   }
 
   const projectGeneratorFactory = projectGeneratorFactories[projectType]
+  projectGeneratorFactory.cleanPlugins()
+
+  if (projectType === ProjectType.HTML) {
+    projectGeneratorFactory.addPlugin(pluginImageResolver)
+    projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+  }
+
   if (plugins?.length > 0) {
-    projectGeneratorFactory.cleanPlugins()
     plugins.forEach((plugin: ProjectPlugin) => {
       projectGeneratorFactory.addPlugin(plugin)
     })

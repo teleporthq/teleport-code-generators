@@ -102,7 +102,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     if (!vercelAccessToken) {
       throw new VercelMissingTokenError()
     }
-
     const files = await generateProjectFiles(
       projectToPublish,
       vercelAccessToken,
@@ -129,8 +128,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     // Makes requests to the deployment URL until the deployment is ready
     await checkDeploymentStatus(deploymentResult.url, teamId)
 
-    // If productionAlias is empty, the deploymentURL is the fallback
-    // TODO: return all links from vercel
     return { success: true, payload: deploymentResult }
   }
 

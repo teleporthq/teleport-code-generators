@@ -12,6 +12,9 @@
       },
       {
         "type": "style",
+        "attrs": {
+          "data-type": "default-styles"
+        },
         "content": "body{font-family: 'Roboto', sans-serif; color: #2c3e50; -webkit-font-smoothing: antialiased; font-size: 16px;} a{color:inherit; text-decoration: none}"
       },
       {
@@ -435,7 +438,43 @@
                                 "Here are some of them, shown below as examples"
                               ]
                           }
-                        }, 
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "button",
+                            "abilities": {
+                              "link": {
+                                "type": "url",
+                                "content": {
+                                  "url": {
+                                    "type": "static",
+                                    "content": "https://www.google.com"
+                                  },
+                                  "newTab": true
+                                }
+                              }
+                            },
+                            "attrs": {
+                              "type": {
+                                "type": "static",
+                                "content": "button"
+                              }
+                            },
+                            "style": {
+                              "textDecoration": {
+                                "type": "static",
+                                "content": "none"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "static",
+                                "content": "Button with links and type attr"
+                              }
+                            ]
+                          }
+                        },
                         {
                           "type": "element",
                           "content": {
@@ -523,6 +562,9 @@
                       "content": {
                         "elementType": "component",
                         "semanticType": "Navbar",
+                        "attrs": {
+
+                        },
                         "dependency": {
                           "type": "local"
                         }
@@ -808,7 +850,7 @@
       },
       "styleSetDefinitions": {
         "primaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "conditions": [
             { "type": "screen-size",
               "meta": {
@@ -839,13 +881,29 @@
           }
         },
         "secondaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "content": {
             "background": "red",
             "width": "auto",
             "color": "#fff",
             "border": "1px solid #fff"
-          }
+          },
+          "conditions": [
+            { "type": "screen-size",
+              "meta": {
+                "maxWidth": 991
+              },
+              "content": {
+                "background": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "token",
+                    "id": "blue-600"
+                  }
+                }
+              } 
+            }
+          ]
         }
       },
       "node": {
@@ -888,6 +946,20 @@
                                 "referenceType":"prop",
                                 "id":"variant"
                               }
+                            }
+                          }
+                        },
+                        "5ecfa07284d8848f05ef9c2d": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "screen-size", "maxWidth": 991}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
                             }
                           }
                         }
@@ -1238,6 +1310,12 @@
     },
     "ContactForm": {
       "name": "ContactForm",
+      "propDefinitions": {
+        "isClicked": {
+          "type": "func",
+          "defaultValue": "() => {}"
+        }
+      },
       "node": {
         "type": "element",
         "content": {
@@ -1245,6 +1323,14 @@
           "attrs": {
             "type": "get",
             "url": "/"
+          },
+          "events": {
+            "click": [
+              {
+                "type": "propCall",
+                "calls": "isClicked"
+              }
+            ]
           },
           "style": {
             "margin": "20px",

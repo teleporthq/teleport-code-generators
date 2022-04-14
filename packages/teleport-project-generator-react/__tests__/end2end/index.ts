@@ -1,10 +1,37 @@
-import { FileType } from '@teleporthq/teleport-types'
+import { FileType, ProjectStrategy, ReactStyleVariation } from '@teleporthq/teleport-types'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import uidlWithCompStyleOverrides from '../../../../examples/test-samples/comp-style-overrides.json'
 import template from './template-definition.json'
 import { createReactProjectGenerator } from '../../src'
+
+describe('Passes the rootClass which using the component', () => {
+  it('run without crashing while using with React + CSS', async () => {
+    const strategy: Partial<ProjectStrategy> = {
+      style: ReactStyleVariation.CSS,
+    }
+    const generator = createReactProjectGenerator()
+    generator.updateStrategy(strategy)
+
+    const result = await generator.generateProject(uidlWithCompStyleOverrides)
+    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
+    const views = srcFolder.subFolders.find((folder) => folder.name === 'views')
+    const components = srcFolder.subFolders.find((folder) => folder.name === 'components')
+    const mainFile = views.files.find(
+      (file) => file.name === 'landing-page' && file.fileType === FileType.JS
+    )
+    const styleFile = components.files.find(
+      (file) => file.name === 'place-card' && file.fileType === FileType.CSS
+    )
+
+    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name\"`)
+    expect(mainFile.content).toContain(`rootClassName=\"place-card-root-class-name1\"`)
+    expect(styleFile.content).toContain(`.place-card-root-class-name {`)
+    expect(styleFile.content).toContain(`.place-card-root-class-name1 {`)
+  })
+})
 
 describe('React Project Generator', () => {
   const generator = createReactProjectGenerator()
@@ -19,11 +46,14 @@ describe('React Project Generator', () => {
     const publicFolder = outputFolder.subFolders[1]
     const packageJSON = outputFolder.files[0]
     const componentsFoler = srcFolder.subFolders[0]
+    const indexContent = publicFolder.files[1].content
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
     expect(packageJSON.name).toBe('package')
     expect(srcFolder.files[0].name).toBe('index')
+    expect(indexContent).toContain(`<style data-type="default-styles">`)
+    expect(indexContent).toContain(`data-type="default-font"`)
     expect(srcFolder.files[0].fileType).toBe('js')
     expect(publicFolder.files[0].name).toBe('manifest')
     expect(publicFolder.files[0].fileType).toBe('json')
@@ -51,7 +81,7 @@ describe('React Project Generator', () => {
     expect(packageJSON.name).toBe('package')
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('js')
-    expect(srcFolder.files[0].content).not.toContain(`import './style.module.css'`)
+    expect(srcFolder.files[0].content).not.toContain(`import './style.css'`)
     expect(publicFolder.files[0].name).toBe('manifest')
     expect(publicFolder.files[0].fileType).toBe('json')
     expect(publicFolder.files[1].name).toBe('index')
@@ -94,7 +124,7 @@ describe('React Project Generator', () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
     const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
     const styleSheet = srcFolder.files.find(
-      (file) => file.name === 'style.module' && file.fileType === FileType.CSS
+      (file) => file.name === 'style' && file.fileType === FileType.CSS
     )
     const index = srcFolder.files.find(
       (file) => file.name === 'index' && file.fileType === FileType.JS
@@ -103,7 +133,7 @@ describe('React Project Generator', () => {
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
-    expect(index.content).toContain(`import './style.module.css'`)
+    expect(index.content).toContain(`import './style.css'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -10,14 +10,17 @@ export const createClassDeclaration = (
   jsxTagTree: types.JSXElement,
   t = types
 ) => {
-  const propDeclaration = Object.keys(propDefinitions).map((propKey) =>
-    t.classProperty(
+  const propDeclaration = Object.keys(propDefinitions).map((propKey) => {
+    const { defaultValue, type } = propDefinitions[propKey]
+    return t.classProperty(
       t.identifier(propKey),
-      ASTUtils.convertValueToLiteral(propDefinitions[propKey].defaultValue),
-      types.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(propDefinitions[propKey].type)),
+      type === 'func'
+        ? types.arrowFunctionExpression([], types.blockStatement([]))
+        : ASTUtils.convertValueToLiteral(defaultValue),
+      types.tsTypeAnnotation(ASTUtils.getTSAnnotationForType(type)),
       [t.decorator(t.callExpression(t.identifier('Prop'), []))]
     )
-  )
+  })
 
   const stateDeclaration = Object.keys(stateDefinitions).map((stateKey) =>
     t.classProperty(

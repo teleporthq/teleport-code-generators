@@ -12,6 +12,9 @@ import {
   RepositoryCommitsListMeta,
   RepositoryCommitMeta,
   CreateBranchMeta,
+  RepositoryMergeMeta,
+  RemoveBranchMeta,
+  CompareBranchesMeta,
 } from './types'
 
 export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
@@ -20,7 +23,7 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
   const getRepository = async (repoIdentity: RepositoryIdentity, authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
 
-    const { data } = await githubInstance.getRepoContent(repoIdentity)
+    const data = await githubInstance.getRepoContent(repoIdentity)
 
     const { repo } = repoIdentity
     const emptyFolder = createEmptyFolder(repo)
@@ -29,9 +32,9 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return fetchFilesContent(data as GithubFile[], emptyFolder, filesFetcherMeta)
   }
 
-  const getUserRepositories = async (username: string, authData?: ServiceAuth) => {
+  const getUserRepositories = async (authData?: ServiceAuth) => {
     authorizeGithubInstance(authData)
-    return githubInstance.getUserRepositories(username)
+    return githubInstance.getUserRepositories()
   }
 
   const createRepository = async (repository: NewRepository, authData?: ServiceAuth) => {
@@ -54,14 +57,29 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return githubInstance.createBranch(meta)
   }
 
+  const mergeRepositoryBranches = async (meta: RepositoryMergeMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.mergeRepositoryBranches(meta)
+  }
+
   const getRepositoryBranches = async (owner: string, repo: string, authData: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.getRepositoryBranches(owner, repo)
   }
 
+  const deleteRepositoryBranch = async (meta: RemoveBranchMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.deleteBranch(meta)
+  }
+
   const getCommitData = async (meta: RepositoryCommitMeta, authData: ServiceAuth) => {
     authorizeGithubInstance(authData)
     return githubInstance.getCommitData(meta)
+  }
+
+  const compare = async (meta: CompareBranchesMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.compareBranches(meta)
   }
 
   const authorizeGithubInstance = (authData?: ServiceAuth): void => {
@@ -78,8 +96,11 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     getRepositoryCommits,
     createBranch,
     getRepositoryBranches,
+    mergeRepositoryBranches,
+    deleteRepositoryBranch,
     commitFilesToRepo,
     getCommitData,
+    compare,
     authorizeGithubInstance,
   }
 }

@@ -1,5 +1,5 @@
 import { createVercelPublisher } from '../src'
-import project from './project-files.json'
+import { projectFiles } from './mocks'
 const token = 'deploy-token'
 
 describe('teleport publisher vercel', () => {
@@ -14,10 +14,23 @@ describe('teleport publisher vercel', () => {
 
   it('should set project', () => {
     const publisher = createVercelPublisher()
-    publisher.setProject(project)
+    publisher.setProject(projectFiles)
 
     const publisherProject = JSON.stringify(publisher.getProject())
-    expect(publisherProject).toBe(JSON.stringify(project))
+    expect(publisherProject).toBe(JSON.stringify(projectFiles))
+  })
+
+  it.skip('should deploy project', async () => {
+    jest.setTimeout(80000)
+    const publisher = createVercelPublisher()
+    const publishedProject = await publisher.publish({
+      projectSlug: 'aaa',
+      project: projectFiles,
+      framework: 'nextjs',
+      individualUpload: true,
+      accessToken: token,
+    })
+    expect(publishedProject.success).toBeTruthy()
   })
 
   it('should set deploy token', () => {

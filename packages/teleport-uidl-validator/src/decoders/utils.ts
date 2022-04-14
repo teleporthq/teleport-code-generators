@@ -37,8 +37,8 @@ import {
   UIDLStyleMediaQueryScreenSizeCondition,
   UIDLStyleConditions,
   UIDLElementNodeProjectReferencedStyle,
-  UIDLComponentSEO,
-  UIDLGlobalAsset,
+  VUIDLComponentSEO,
+  VUIDLGlobalAsset,
   UIDLExternalDependency,
   UIDLLocalDependency,
   UIDLPeerDependency,
@@ -63,14 +63,15 @@ import {
   UIDLStateModifierEvent,
   UIDLScriptExternalAsset,
   UIDLScriptInlineAsset,
-  UIDLStyleInlineAsset,
+  VUIDLStyleInlineAsset,
   UIDLStyleExternalAsset,
-  UIDLFontAsset,
+  VUIDLFontAsset,
   UIDLCanonicalAsset,
   UIDLIconAsset,
   UIDLAssetBase,
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
+  UIDLComponentStyleReference,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -146,7 +147,11 @@ export const tokenReferenceDecoder: Decoder<UIDLStyleSetTokenReference> = object
 })
 
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
-  type: union(constant('reusable-project-style-map'), constant('reusable-component-style-map')),
+  type: union(
+    constant('reusable-project-style-map'),
+    constant('reusable-component-style-map'),
+    constant('reusable-component-style-override')
+  ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
 })
@@ -166,7 +171,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   fileName: optional(isValidFileName() as unknown as Decoder<string>),
 })
 
-export const globalAssetsDecoder: Decoder<UIDLGlobalAsset> = union(
+export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
   lazy(() => inlineScriptAssetDecoder),
   lazy(() => externalScriptAssetDecoder),
   lazy(() => inlineStyletAssetDecoder),
@@ -202,8 +207,9 @@ export const externalScriptAssetDecoder: Decoder<UIDLScriptExternalAsset> = inte
   optional(baseAssetDecoder)
 )
 
-export const inlineStyletAssetDecoder: Decoder<UIDLStyleInlineAsset> = object({
+export const inlineStyletAssetDecoder: Decoder<VUIDLStyleInlineAsset> = object({
   type: constant('style' as const),
+  attrs: optional(dict(union(staticValueDecoder, string(), boolean(), number()))),
   content: string(),
 })
 
@@ -212,8 +218,9 @@ export const externalStyleAssetDecoder: Decoder<UIDLStyleExternalAsset> = object
   path: string(),
 })
 
-export const fontAssetDecoder: Decoder<UIDLFontAsset> = object({
+export const fontAssetDecoder: Decoder<VUIDLFontAsset> = object({
   type: constant('font' as const),
+  attrs: optional(dict(union(staticValueDecoder, string(), boolean(), number()))),
   path: string(),
 })
 
@@ -233,7 +240,7 @@ export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
   ),
 })
 
-export const componentSeoDecoder: Decoder<UIDLComponentSEO> = object({
+export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   title: optional(string()),
   metaTags: optional(array(dict(string()))),
   assets: optional(array(globalAssetsDecoder)),
@@ -329,8 +336,14 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
-  importReferenceDecoder
+  importReferenceDecoder,
+  lazy(() => uidlComponentStyleReference)
 )
+
+export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
+  type: constant('comp-style'),
+  content: string(),
+})
 
 export const styleValueDecoder: Decoder<UIDLStyleValue> = union(
   staticValueDecoder,

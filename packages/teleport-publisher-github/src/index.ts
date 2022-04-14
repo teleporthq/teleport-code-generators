@@ -71,14 +71,17 @@ const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublish
     const main = mainBranchName ? mainBranch : 'main'
     const commitBranchName = options.commitBranch || commitBranch
     const commitMsg = options.commitMessage || commitMessage
+    const isPrivate = options.isPrivate || false
 
     const githubPublishMeta: GithubPublishMeta = {
+      isPrivate,
       authMeta: auth,
       mainBranch: main,
       commitBranch: commitBranchName ? commitBranchName : main,
       commitMessage: commitMsg,
       repository: repo,
       repositoryOwner: repoOwner,
+      extraBranchParents: options.extraBranchParents || [],
     }
 
     const projectFiles = generateProjectFiles({ folder: projectToPublish, ignoreFolder: true })

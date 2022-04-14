@@ -37,6 +37,7 @@ import {
 } from './file-handlers'
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
+import { join } from 'path'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -242,22 +243,25 @@ export class ProjectGenerator {
 
       let pageOptions = options
       if (this.strategy.projectStyleSheet) {
+        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+          this.strategy.pages.path,
+          this.strategy.projectStyleSheet.path
+        )
         pageOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: generateLocalDependenciesPrefix(
-              this.strategy.pages.path,
-              this.strategy.projectStyleSheet.path
-            ),
+            path: this.strategy.pages.options?.createFolderForEachComponent
+              ? join('..', globalStyleSheetPath)
+              : globalStyleSheetPath,
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
         }
       }
 
-      if ((this.pageGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+      if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,
@@ -324,22 +328,25 @@ export class ProjectGenerator {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
+        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+          this.strategy.components.path,
+          this.strategy.projectStyleSheet.path
+        )
         componentOptions = {
           ...options,
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
-            path: generateLocalDependenciesPrefix(
-              this.strategy.components.path,
-              this.strategy.projectStyleSheet.path
-            ),
+            path: this.strategy.components?.options?.createFolderForEachComponent
+              ? join('..', globalStyleSheetPath)
+              : globalStyleSheetPath,
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,
         }
       }
 
-      if ((this.componentGenerator as HTMLComponentGenerator)?.addExternalComponents) {
+      if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,

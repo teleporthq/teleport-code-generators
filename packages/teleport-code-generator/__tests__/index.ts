@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync } from 'fs'
 import { join } from 'path'
-
+import { performance } from 'perf_hooks'
 import projectJson from '../../../examples/test-samples/project-sample.json'
 import {
   ProjectUIDL,
@@ -33,7 +33,7 @@ const assets = [
   },
 ]
 
-const projectUIDL = (projectJson as unknown) as ProjectUIDL
+const projectUIDL = projectJson as unknown as ProjectUIDL
 const componentUIDL = projectUIDL.components.ExpandableArea
 
 afterAll(() => {
@@ -44,6 +44,26 @@ afterAll(() => {
   removeDirectory(nuxtProjectPath)
   removeDirectory(stencilProjectPath)
   removeDirectory(preactProjectPath)
+})
+
+describe('Performance tests for the code-generator', () => {
+  const runs = 20
+  let totalTime = 0
+
+  it('Runs React project generaotr multiple times and tests for memory leaks', async () => {
+    totalTime = 0
+    for (let i = 0; i <= runs; i++) {
+      const t1 = performance.now()
+      await packProject(projectUIDL as unknown as ProjectUIDL, {
+        projectType: ProjectType.REACT,
+      })
+      const t2 = performance.now()
+      const timeTaken = Number((t2 - t1).toFixed(2))
+      totalTime = totalTime + timeTaken
+    }
+
+    expect(totalTime / runs).toBeLessThan(500)
+  })
 })
 
 describe('code generator', () => {

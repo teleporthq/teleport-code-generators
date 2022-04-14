@@ -361,8 +361,10 @@ export interface PublisherResponse<T> {
 }
 
 export interface VercelDeployResponse {
+  id: string
   url: string
   alias: string[]
+  readyState?: string
 }
 
 export interface VercelDeleteProject {
@@ -382,7 +384,7 @@ export interface AssetsDefinition {
 
 export interface RemoteTemplateDefinition {
   provider: 'github'
-  username: string
+  owner: string
   repo: string
   auth?: ServiceAuth
 }

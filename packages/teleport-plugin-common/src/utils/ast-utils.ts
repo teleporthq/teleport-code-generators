@@ -393,18 +393,11 @@ export const createClassComponent = (
 export const createPureComponent = (
   name: string,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  propDefinitions: Record<string, UIDLPropDefinition>,
   jsxTagTree: types.JSXElement,
   t = types
 ): types.VariableDeclaration => {
   const arrowFunctionBody = createReturnExpressionSyntax(stateDefinitions, jsxTagTree)
-  const arrowFunctionProps = []
-
-  if (Object.keys(propDefinitions).length > 0) {
-    arrowFunctionProps.push(t.identifier('props'))
-  }
-
-  const arrowFunction = t.arrowFunctionExpression(arrowFunctionProps, arrowFunctionBody)
+  const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
   const component = t.variableDeclaration('const', [declarator])
