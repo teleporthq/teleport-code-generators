@@ -295,7 +295,10 @@ const handleAttributes = (
       typeof attrValue.content === 'string' &&
       attrValue.content.startsWith('/')
     ) {
-      attrValue = staticNode(`${attrValue.content.split('/').pop()}.html`)
+      attrValue =
+        attrValue.content === '/'
+          ? staticNode('index.html')
+          : staticNode(`${attrValue.content.split('/').pop()}.html`)
     }
 
     if (attrValue.type === 'dynamic') {
