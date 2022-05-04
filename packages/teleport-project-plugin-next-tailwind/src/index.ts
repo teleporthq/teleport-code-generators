@@ -43,7 +43,7 @@ export class TailwindNextJSPlugin implements ProjectPlugin {
       }
 
       files.delete('_app')
-      files.set('_appp', {
+      files.set('_app', {
         files: [
           ...(rootFolder?.files || []).filter(
             (file) => file.name !== '_app' && file.fileType === FileType.JS
