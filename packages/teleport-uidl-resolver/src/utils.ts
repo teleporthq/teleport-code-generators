@@ -167,7 +167,9 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
 
     // only do it if there's a child <a> tag and the original element is a navlink
     const shouldPassStylesToAnchor =
-      originalElement.style && originalElementType === 'navlink' && anchorChild
+      (originalElement?.style || originalElement?.referencedStyles) &&
+      originalElementType === 'navlink' &&
+      anchorChild
     if (shouldPassStylesToAnchor) {
       anchorChild.content.style = UIDLUtils.cloneObject(originalElement?.style || {})
       anchorChild.content.referencedStyles = UIDLUtils.cloneObject(
