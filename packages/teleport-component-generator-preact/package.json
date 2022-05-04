@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-preact",
-  "version": "0.21.0",
+  "version": "0.21.3",
   "description": "Component generator customization, capable of creating Preact components with CSS-Modules styling",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.21.0",
+    "@teleporthq/teleport-component-generator": "^0.21.3",
     "@teleporthq/teleport-plugin-css": "^0.21.0",
     "@teleporthq/teleport-plugin-css-modules": "^0.21.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.21.0",
