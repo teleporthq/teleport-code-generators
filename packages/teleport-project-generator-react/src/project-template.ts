@@ -9,16 +9,17 @@ export default {
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^6.4.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test --env=jsdom",
+    "eject": "craco eject"
   },
   "browserslist": {
     "production": [
@@ -34,6 +35,22 @@ export default {
   }
 }`,
       fileType: 'json',
+    },
+    {
+      name: 'craco.config',
+      fileType: 'js',
+      content: `module.exports = {
+  reactScriptsVersion: "react-scripts",
+  style: {
+    css: {
+      loaderOptions: () => {
+        return {
+          url: false,
+        };
+      },
+    },
+  },
+};`,
     },
   ],
   subFolders: [],
