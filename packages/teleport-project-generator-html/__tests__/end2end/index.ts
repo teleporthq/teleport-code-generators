@@ -17,7 +17,7 @@ describe('Html Project Generator', () => {
     )
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(1)
+    expect(files.length).toBe(6)
     expect(subFolders.length).toBe(2)
     expect(aboutPage.content).toContain('head')
     expect(aboutPage.content).toContain('html')
@@ -39,7 +39,7 @@ describe('Html Project Generator', () => {
     )
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(1)
+    expect(files.length).toBe(7)
     expect(subFolders.length).toBe(2)
     expect(aboutPage.content).not.toContain('<head>')
     expect(aboutPage.content).not.toContain('<html>')
