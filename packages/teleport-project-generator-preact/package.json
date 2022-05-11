@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-preact",
-  "version": "0.21.3",
+  "version": "0.21.5",
   "description": "Project generator for a standard Preact project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -31,7 +31,7 @@
     "@teleporthq/teleport-plugin-jsx-head-config": "^0.21.0",
     "@teleporthq/teleport-plugin-react-app-routing": "^0.21.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.21.0",
-    "@teleporthq/teleport-project-generator": "^0.21.3",
+    "@teleporthq/teleport-project-generator": "^0.21.5",
     "@teleporthq/teleport-types": "^0.21.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

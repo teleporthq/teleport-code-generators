@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-next-styled-components",
-  "version": "0.21.0",
+  "version": "0.21.5",
   "description": "A plugin for generating a next project using styled-components",
   "author": "teleportHQ",
   "license": "MIT",
