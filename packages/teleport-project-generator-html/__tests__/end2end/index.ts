@@ -9,16 +9,12 @@ describe('Html Project Generator', () => {
 
   it('runs without crasing', async () => {
     const { name, files, subFolders } = await generator.generateProject(uidlSample, HTMLTemplate)
-    const aboutPage = subFolders[0]?.files.find(
-      (page) => page.name === 'about' && page.fileType === FileType.HTML
-    )
-    const aboutCSS = subFolders[0]?.files.find(
-      (page) => page.name === 'about' && page.fileType === FileType.CSS
-    )
+    const aboutPage = files.find((page) => page.name === 'about' && page.fileType === FileType.HTML)
+    const aboutCSS = files.find((page) => page.name === 'about' && page.fileType === FileType.CSS)
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(1)
-    expect(subFolders.length).toBe(2)
+    expect(files.length).toBe(6)
+    expect(subFolders.length).toBe(1)
     expect(aboutPage.content).toContain('head')
     expect(aboutPage.content).toContain('html')
     expect(aboutPage.content).toContain('public/playground_assets/kitten.png')
@@ -31,16 +27,12 @@ describe('Html Project Generator', () => {
       uidlSample,
       HTMLTemplate
     )
-    const aboutPage = subFolders[0]?.files.find(
-      (page) => page.name === 'about' && page.fileType === FileType.HTML
-    )
-    const aboutCSS = subFolders[0]?.files.find(
-      (page) => page.name === 'about' && page.fileType === FileType.CSS
-    )
+    const aboutPage = files.find((page) => page.name === 'about' && page.fileType === FileType.HTML)
+    const aboutCSS = files.find((page) => page.name === 'about' && page.fileType === FileType.CSS)
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(1)
-    expect(subFolders.length).toBe(2)
+    expect(files.length).toBe(7)
+    expect(subFolders.length).toBe(1)
     expect(aboutPage.content).not.toContain('<head>')
     expect(aboutPage.content).not.toContain('<html>')
     expect(aboutPage.content).toContain('public/playground_assets/kitten.png')

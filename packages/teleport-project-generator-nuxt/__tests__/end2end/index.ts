@@ -22,7 +22,7 @@ describe('Vue Nuxt Project Generator', () => {
     const outputFolder = await generator.generateProject(uidlSampleWithDependencies, template)
     const assetsPath = generator.getAssetsPath()
 
-    const packageJSON = outputFolder.files[1]
+    const packageJSON = outputFolder.files[2]
     const pages = outputFolder.subFolders[1]
     const components = outputFolder.subFolders[0]
 
