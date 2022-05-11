@@ -19,12 +19,11 @@ describe('Passes the rootClass which using the component', () => {
     const generator = createHTMLProjectGenerator()
 
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
-    const srcFolder = result.subFolders.find((folder) => folder.name === '')
 
-    const mainFile = srcFolder.files.find(
+    const mainFile = result.files.find(
       (file) => file.name === 'index' && file.fileType === FileType.HTML
     )
-    const styleFile = srcFolder.files.find(
+    const styleFile = result.files.find(
       (file) => file.name === 'landing-page' && file.fileType === FileType.CSS
     )
 
