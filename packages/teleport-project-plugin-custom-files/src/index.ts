@@ -1,7 +1,7 @@
 import { ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 export interface ProjectCustomFile {
   name: string
-  fileType?: string
+  fileType: string
   content: string
   path: string[]
 }
@@ -56,7 +56,7 @@ export class ProjectPluginCustomFiles implements ProjectPlugin {
         return {
           name: file.name,
           content: file.content,
-          ...(file?.fileType && { fileType: file.fileType }),
+          fileType: file.fileType,
         }
       })
 

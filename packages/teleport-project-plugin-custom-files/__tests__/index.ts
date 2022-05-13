@@ -21,7 +21,8 @@ describe('Plugin to add custom files at the end of project generation', () => {
       path: [''],
     },
     {
-      name: 'package.json',
+      name: 'package',
+      fileType: 'json',
       content: `{ name: 'teleportHQ' }`,
       path: [''],
     },
