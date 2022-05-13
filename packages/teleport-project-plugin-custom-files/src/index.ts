@@ -1,10 +1,9 @@
-import { GeneratedFile, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
-
+import { ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 export interface ProjectCustomFile {
   name: string
-  fileType: string
+  fileType?: string
   content: string
-  path: string
+  path: string[]
 }
 
 export class ProjectPluginCustomFiles implements ProjectPlugin {
@@ -34,28 +33,41 @@ export class ProjectPluginCustomFiles implements ProjectPlugin {
     const { files } = structure
 
     const filesMap = this.files.reduce(
-      (acc: Record<string, GeneratedFile[]>, file: ProjectCustomFile) => {
-        if (!acc[file.path]) {
-          acc[file.path] = []
+      (acc: Record<string, ProjectCustomFile[]>, file: ProjectCustomFile) => {
+        const id = file.path.join('-')
+        if (!acc[id]) {
+          acc[id] = []
         }
 
-        acc[file.path].push(file)
+        acc[id].push(file)
         return acc
       },
       {}
     )
 
     Object.keys(filesMap).forEach((pathId) => {
-      files.set(pathId, {
-        files: filesMap[pathId].map((file) => {
-          return {
-            name: file.name,
-            fileType: file.fileType,
-            content: file.content,
-          }
-        }),
-        path: pathId.split(',').map((str) => str.trim()),
+      const path = filesMap[pathId]?.[0]?.path
+
+      if (!path) {
+        return
+      }
+
+      const mappedFiles = filesMap[pathId].map((file) => {
+        return {
+          name: file.name,
+          content: file.content,
+          ...(file?.fileType && { fileType: file.fileType }),
+        }
       })
+
+      if (files.get(pathId)) {
+        files.get(pathId).files.push(...mappedFiles)
+      } else {
+        files.set(pathId, {
+          files: mappedFiles,
+          path,
+        })
+      }
     })
 
     structure.dependencies = { ...structure.dependencies, ...this.dependencies }
