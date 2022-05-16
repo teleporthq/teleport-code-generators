@@ -1,5 +1,11 @@
 import { GeneratedFile, GeneratedFolder, VercelDeployResponse } from '@teleporthq/teleport-types'
 
+declare module 'crypto' {
+  namespace webcrypto {
+    const subtle: SubtleCrypto
+  }
+}
+
 export interface ProjectFolderInfo {
   folder: GeneratedFolder
   prefix?: string
