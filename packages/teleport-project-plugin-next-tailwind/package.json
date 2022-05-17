@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-next-tailwind",
-  "version": "0.21.5",
+  "version": "0.21.7",
   "description": "A plugin for generating a nextjs project using tailwind",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,6 +24,6 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.21.0"
+    "@teleporthq/teleport-types": "^0.21.7"
   }
 }

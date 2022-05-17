@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-html",
-  "version": "0.21.3",
+  "version": "0.21.7",
   "description": "Component generator customization, capable of creating plain html",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,12 +24,12 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.21.3",
-    "@teleporthq/teleport-plugin-css": "^0.21.0",
-    "@teleporthq/teleport-plugin-html-base-component": "^0.21.2",
-    "@teleporthq/teleport-plugin-import-statements-html": "^0.21.0",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.21.0",
-    "@teleporthq/teleport-shared": "^0.21.0",
-    "@teleporthq/teleport-types": "^0.21.0"
+    "@teleporthq/teleport-component-generator": "^0.21.7",
+    "@teleporthq/teleport-plugin-css": "^0.21.7",
+    "@teleporthq/teleport-plugin-html-base-component": "^0.21.7",
+    "@teleporthq/teleport-plugin-import-statements-html": "^0.21.7",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.21.7",
+    "@teleporthq/teleport-shared": "^0.21.7",
+    "@teleporthq/teleport-types": "^0.21.7"
   }
 }
