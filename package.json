@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
-    "@types/node": "^15.12.4",
+    "@types/node": "^16",
     "@types/prettier": "^2.1.6",
     "@types/rimraf": "^2.0.3",
     "all-contributors-cli": "^6.13.0",
