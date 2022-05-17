@@ -41,7 +41,7 @@ import { join } from 'path'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
-export class ProjectGenerator {
+export class ProjectGenerator implements ProjectGenerator {
   public componentGenerator: ComponentGenerator | HTMLComponentGenerator
   public pageGenerator: ComponentGenerator | HTMLComponentGenerator
   public routerGenerator: ComponentGenerator
