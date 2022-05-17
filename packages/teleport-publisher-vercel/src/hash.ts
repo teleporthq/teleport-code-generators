@@ -1,5 +1,5 @@
 import fetch, { RequestInit } from 'node-fetch'
-import { webcrypto } from 'node:crypto'
+import { webcrypto } from 'crypto'
 
 export const getSHA = async (buf: Buffer | Uint8Array) => {
   const hashBuffer = await webcrypto.subtle.digest('SHA-1', buf) // hash the message
