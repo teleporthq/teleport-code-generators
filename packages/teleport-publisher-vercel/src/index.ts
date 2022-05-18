@@ -44,6 +44,7 @@ export interface VercelPublisher extends Publisher<VercelPublisherParams, Vercel
   getAccessToken: () => string
   setAccessToken: (token: string) => void
   deleteProject: (options?: VercelDeleteProject) => Promise<boolean>
+  checkDeploymentStatus: (deploymentURL: string, teamId?: string) => Promise<void>
 }
 
 export const createVercelPublisher: PublisherFactory<VercelPublisherParams, VercelPublisher> = (
@@ -125,9 +126,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
 
     const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
 
-    // Makes requests to the deployment URL until the deployment is ready
-    await checkDeploymentStatus(deploymentResult.url, teamId)
-
     return { success: true, payload: deploymentResult }
   }
 
@@ -138,5 +136,6 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     setProject,
     getAccessToken,
     setAccessToken,
+    checkDeploymentStatus,
   }
 }
