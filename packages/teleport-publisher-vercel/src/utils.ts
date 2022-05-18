@@ -267,12 +267,12 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
       if ('error' in result) {
         throwErrorFromVercelResponse(result)
       }
-
+      // @ts-ignore
       if ('readyState' in result && result.readyState === 'READY') {
         clearInterval(clearHook)
         return resolve()
       }
-
+      // @ts-ignore
       if ('readyState' in result && result.readyState === 'ERROR') {
         clearInterval(clearHook)
         reject(new VercelDeploymentError())
