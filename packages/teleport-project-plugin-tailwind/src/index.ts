@@ -1,14 +1,8 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
 import { nextJSTailwindModifier } from './nextjs'
 import { defaultTailwindModifier } from './default'
-import { cracoTailwindModifier } from './craco'
-import { vueModifier } from './vue'
 
-type SUPPORTED_FRAMEWORKS =
-  | ProjectType.HTML
-  | ProjectType.NEXT
-  | ProjectType.REACT
-  | ProjectType.VUE
+type SUPPORTED_FRAMEWORKS = ProjectType.HTML | ProjectType.NEXT
 
 const frameworkMap: Record<
   SUPPORTED_FRAMEWORKS,
@@ -21,8 +15,6 @@ const frameworkMap: Record<
 > = {
   [ProjectType.NEXT]: nextJSTailwindModifier,
   [ProjectType.HTML]: defaultTailwindModifier,
-  [ProjectType.REACT]: cracoTailwindModifier,
-  [ProjectType.VUE]: vueModifier,
 }
 
 export class ProjectPluginTailwind implements ProjectPlugin {

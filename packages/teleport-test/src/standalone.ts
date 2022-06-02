@@ -11,10 +11,10 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
-import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
 import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
+import { ProjectPluginReactJSS } from '../../teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '../../teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '../../teleport-project-plugin-styled-components'
 
@@ -135,14 +135,6 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
-        plugins: [
-          new ProjectPluginTailwind({
-            config: {},
-            css: `@tailwind utils`,
-            content: ['./pages/**/*.ts'],
-            framework: ProjectType.REACT,
-          }),
-        ],
       })
       console.info(ProjectType.REACT, '-', result.payload)
       return ProjectType.REACT
@@ -167,12 +159,6 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.VUE,
-        plugins: [
-          new ProjectPluginTailwind({
-            css: `@tailwind utilities;`,
-            framework: ProjectType.VUE,
-          }),
-        ],
       })
       console.info(ProjectType.VUE, '-', result.payload)
       return ProjectType.VUE
@@ -201,7 +187,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginNextReactJSS],
+        plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-react-jss',

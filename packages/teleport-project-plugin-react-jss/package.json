@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-plugin-next-react-jss",
+  "name": "@teleporthq/teleport-project-plugin-react-jss",
   "version": "0.21.7",
-  "description": "A plugin for generating a next project using react-jss",
+  "description": "A plugin for configuring projects to use react-jss",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
