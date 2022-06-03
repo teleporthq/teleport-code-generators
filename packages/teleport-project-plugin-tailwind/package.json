@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-plugin-next-react-jss",
+  "name": "@teleporthq/teleport-project-plugin-tailwind",
   "version": "0.21.7",
-  "description": "A plugin for generating a next project using react-jss",
+  "description": "A plugin for configuring teleportHQ projects to use tailwind",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
@@ -24,10 +24,6 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.21.7",
-    "@teleporthq/teleport-plugin-react-jss": "^0.21.7",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.21.7",
-    "@teleporthq/teleport-types": "^0.21.7",
-    "magic-string": "^0.25.4"
+    "@teleporthq/teleport-types": "^0.21.7"
   }
 }

@@ -6,11 +6,10 @@ import {
   createGatsbyProjectGenerator,
   GatsbyTemplate as template,
 } from '@teleporthq/teleport-project-generator-gatsby'
-import pluginNextCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
-import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
-import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
+import { ProjectPluginCSSModules } from '../../../teleport-project-plugin-css-modules'
+import { ProjectPluginStyledComponents } from '../../../teleport-project-plugin-styled-components'
 import projectUIDL from '../../../../examples/test-samples/project-with-import-global-styles.json'
-import { FileType } from '@teleporthq/teleport-types'
+import { FileType, ProjectType } from '@teleporthq/teleport-types'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -19,7 +18,7 @@ import invalidUidlSample from '../../../../examples/test-samples/project-invalid
 describe('Generates NEXT-JS project with plugins', () => {
   it('NEXT + css-modules plugin', async () => {
     const generator = createNextProjectGenerator()
-    generator.addPlugin(pluginNextCSSModules)
+    generator.addPlugin(new ProjectPluginCSSModules({ framework: ProjectType.NEXT }))
     const result = await generator.generateProject(projectUIDL, NextTemplate)
 
     const nextConfig = result.files.find(
@@ -42,7 +41,7 @@ describe('Generates NEXT-JS project with plugins', () => {
 
   it('NEXT + StyledComponents', async () => {
     const generator = createNextProjectGenerator()
-    generator.addPlugin(pluginNextStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.NEXT }))
     const result = await generator.generateProject(projectUIDL, NextTemplate)
 
     const babelRC = result.files.find((file) => file.name === `.babelrc`)
@@ -77,7 +76,7 @@ describe('Generates NEXT-JS project with plugins', () => {
 describe('Generates Gatsby Projects with plugins', () => {
   it('runs without crashing', async () => {
     const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(pluginGatsbyStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
     const outputFolder = await generator.generateProject(uidlSample, template)
     const assetsPath = generator.getAssetsPath()
 
@@ -101,7 +100,7 @@ describe('Generates Gatsby Projects with plugins', () => {
 
   it('runs without crashing with external dependencies', async () => {
     const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(pluginGatsbyStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
     const outputFolder = await generator.generateProject(
       uidlSampleWithExternalDependencies,
       template
@@ -133,7 +132,7 @@ describe('Generates Gatsby Projects with plugins', () => {
 
   it('runs without crashing and using only tokens', async () => {
     const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(pluginGatsbyStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
     const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
     const styleSheet = srcFolder.files.find(
@@ -146,7 +145,7 @@ describe('Generates Gatsby Projects with plugins', () => {
 
   it('throws error when conifg file is not found with custom framework config', async () => {
     const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(pluginGatsbyStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
     const result = generator.generateProject(invalidUidlSample, template)
 
     await expect(result).rejects.toThrow(Error)
@@ -154,7 +153,7 @@ describe('Generates Gatsby Projects with plugins', () => {
 
   it('Gatsby + Styled Components', async () => {
     const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(pluginGatsbyStyledComponents)
+    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
 
     const result = await generator.generateProject(projectUIDL, template)
     const packageJSON = result.files.find(

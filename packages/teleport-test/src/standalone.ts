@@ -10,11 +10,10 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
-import pluginGatsbyStyledComponents from '@teleporthq/teleport-project-plugin-gatsby-styled-components'
-import pluginNextStyledComponents from '@teleporthq/teleport-project-plugin-next-styled-components'
-import pluginNextReactJSS from '@teleporthq/teleport-project-plugin-next-react-jss'
-import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
-import pluginReactStyledComponents from '@teleporthq/teleport-project-plugin-react-styled-components'
+import { ProjectPluginCSSModules } from '../../teleport-project-plugin-css-modules'
+import { ProjectPluginReactJSS } from '../../teleport-project-plugin-react-jss'
+import { ProjectPluginTailwind } from '../../teleport-project-plugin-tailwind'
+import { ProjectPluginStyledComponents } from '../../teleport-project-plugin-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 
@@ -82,6 +81,14 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
+        plugins: [
+          new ProjectPluginTailwind({
+            config: {},
+            css: `@tailwind utils`,
+            content: ['./pages/**/*.ts'],
+            framework: ProjectType.NEXT,
+          }),
+        ],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
@@ -111,7 +118,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginNextReactCSSModules],
+        plugins: [new ProjectPluginCSSModules({ framework: ProjectType.NEXT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-css-modules',
@@ -148,7 +155,10 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.VUE })
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.VUE,
+      })
       console.info(ProjectType.VUE, '-', result.payload)
       return ProjectType.VUE
     })
@@ -176,7 +186,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginNextReactJSS],
+        plugins: [new ProjectPluginReactJSS({ framework: ProjectType.NEXT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-react-jss',
@@ -191,7 +201,7 @@ const run = async () => {
       result = await packProject(reactProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
-        plugins: [pluginReactStyledComponents],
+        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.REACT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: `teleport-project-react-styled-components`,
@@ -204,7 +214,7 @@ const run = async () => {
       result = await packProject(reactProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.GATSBY,
-        plugins: [pluginGatsbyStyledComponents],
+        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-gatsby-styled-components',
@@ -222,7 +232,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginNextStyledComponents],
+        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.NEXT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-styled-components',

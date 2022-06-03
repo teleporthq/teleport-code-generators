@@ -3,9 +3,10 @@ import {
   InMemoryFileRecord,
   ProjectPluginStructure,
   ProjectStrategy,
+  ProjectType,
   ProjectUIDL,
 } from '@teleporthq/teleport-types'
-import { TailwindNextJSPlugin } from '../src'
+import { ProjectPluginTailwind } from '../src'
 import projectUIDL from '../../../examples/test-samples/project-sample.json'
 import { NextTemplate } from '@teleporthq/teleport-project-generator-next'
 
@@ -31,7 +32,11 @@ describe('Plugins adds tailwind as devDependnecy when used with Next', () => {
       ],
       path: [''],
     })
-    const plugin = new TailwindNextJSPlugin({ config: {}, css: `.tailwind-class{ }` })
+    const plugin = new ProjectPluginTailwind({
+      framework: ProjectType.NEXT,
+      config: {},
+      css: `.tailwind-class{ }`,
+    })
     const { files } = await plugin.runAfter(structure)
     const appFile = files.get('_app').files[0]
 
@@ -55,7 +60,11 @@ describe('Plugins adds tailwind as devDependnecy when used with Next', () => {
       path: [''],
     })
 
-    const plugin = new TailwindNextJSPlugin({ config: {}, css: `.tailwind-class{ }` })
+    const plugin = new ProjectPluginTailwind({
+      framework: ProjectType.NEXT,
+      config: {},
+      css: `.tailwind-class{ }`,
+    })
     const { files } = await plugin.runAfter(structure)
 
     const styleFile = files.get('projectStyleSheet')

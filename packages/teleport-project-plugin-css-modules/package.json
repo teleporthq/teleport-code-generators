@@ -1,7 +1,7 @@
 {
-  "name": "@teleporthq/teleport-project-plugin-next-css-modules",
+  "name": "@teleporthq/teleport-project-plugin-css-modules",
   "version": "0.21.7",
-  "description": "A plugin for generating a next project using css modules",
+  "description": "A plugin for configuring teleportHQ projects using css-modules",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
