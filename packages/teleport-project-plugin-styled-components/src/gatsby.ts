@@ -45,11 +45,13 @@ export const gatsbyAfterModifier = async (structure: ProjectPluginStructure) => 
     files: [{ name: `gatsby-config`, fileType: FileType.JS, content: formattedCode[FileType.JS] }],
   })
 
-  Object.keys({
+  const deps: Record<string, string> = {
     ...STYLED_DEPENDENCIES,
     'gatsby-plugin-styled-components': '^4.6.0',
     'babel-plugin-styled-components': '^1.12.0',
-  }).forEach((dep: string) => {
-    dependencies[dep] = STYLED_DEPENDENCIES[dep]
+  }
+
+  Object.keys(deps).forEach((dep: string) => {
+    dependencies[dep] = deps[dep]
   })
 }

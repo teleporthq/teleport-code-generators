@@ -1,7 +1,7 @@
 {
   "name": "@teleporthq/teleport-project-plugin-tailwind",
   "version": "0.21.7",
-  "description": "A plugin for generating a nextjs project using tailwind",
+  "description": "A plugin for configuring teleportHQ projects to use tailwind",
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",

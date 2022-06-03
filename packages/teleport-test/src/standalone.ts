@@ -1,4 +1,3 @@
-// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -11,12 +10,12 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
-import pluginNextReactCSSModules from '@teleporthq/teleport-project-plugin-next-css-modules'
-import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
-import projectJSON from '../../../examples/uidl-samples/project.json'
+import { ProjectPluginCSSModules } from '../../teleport-project-plugin-css-modules'
 import { ProjectPluginReactJSS } from '../../teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '../../teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '../../teleport-project-plugin-styled-components'
+import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
+import projectJSON from '../../../examples/uidl-samples/project.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -119,7 +118,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginNextReactCSSModules],
+        plugins: [new ProjectPluginCSSModules({ framework: ProjectType.NEXT })],
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-css-modules',
