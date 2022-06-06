@@ -10,10 +10,10 @@ import {
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
 import { performance } from 'perf_hooks'
-import { ProjectPluginCSSModules } from '../../teleport-project-plugin-css-modules'
-import { ProjectPluginReactJSS } from '../../teleport-project-plugin-react-jss'
-import { ProjectPluginTailwind } from '../../teleport-project-plugin-tailwind'
-import { ProjectPluginStyledComponents } from '../../teleport-project-plugin-styled-components'
+import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css-modules'
+import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
+import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
+import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 
