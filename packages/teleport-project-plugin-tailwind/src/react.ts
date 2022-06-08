@@ -12,19 +12,22 @@ export const reactTailwindModifier = async (
   const projectSheet = files
     .get('projectStyleSheet')
     ?.files.find((file) => file.name === 'style' && file.fileType === FileType.CSS)
+  let globalStyleSheet = css
 
   if (projectSheet) {
     files.delete('projectStyleSheet')
-    files.set('projectStyleSheet', {
-      path: ['src'],
-      files: [
-        {
-          ...projectSheet,
-          content: `${css}\n${projectSheet.content}`,
-        },
-      ],
-    })
+    globalStyleSheet = `${globalStyleSheet} \n \n ${projectSheet.content}`
   }
+
+  files.set('projectStyleSheet', {
+    path: ['src'],
+    files: [
+      {
+        ...projectSheet,
+        content: globalStyleSheet,
+      },
+    ],
+  })
 
   files.set('tailwindConfig', {
     files: [

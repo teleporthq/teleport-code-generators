@@ -3,12 +3,14 @@ import { nextJSTailwindModifier } from './nextjs'
 import { defaultTailwindModifier } from './default'
 import { reactTailwindModifier } from './react'
 import { vueTailwindModifier } from './vue'
+import { angularTailwindModifier } from './angular'
 
 type SUPPORTED_FRAMEWORKS =
   | ProjectType.HTML
   | ProjectType.NEXT
   | ProjectType.REACT
   | ProjectType.VUE
+  | ProjectType.ANGULAR
 
 const frameworkMap: Record<
   SUPPORTED_FRAMEWORKS,
@@ -18,6 +20,7 @@ const frameworkMap: Record<
   [ProjectType.HTML]: defaultTailwindModifier,
   [ProjectType.REACT]: reactTailwindModifier,
   [ProjectType.VUE]: vueTailwindModifier,
+  [ProjectType.ANGULAR]: angularTailwindModifier,
 }
 
 export class ProjectPluginTailwind implements ProjectPlugin {

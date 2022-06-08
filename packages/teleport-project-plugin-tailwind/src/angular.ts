@@ -1,17 +1,17 @@
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const vueTailwindModifier = async (
+export const angularTailwindModifier = async (
   structure: ProjectPluginStructure,
   config: Record<string, unknown>,
   css: string
 ): Promise<void> => {
-  const { devDependencies, files, rootFolder } = structure
-  config.content = ['./src/**/*.{vue,js,ts,jsx,tsx}']
+  const { devDependencies, files } = structure
+  config.content = ['./src/**/*.{html,ts}']
 
   const projectSheet = files
     .get('projectStyleSheet')
-    ?.files.find((file) => file.name === 'style' && file.fileType === FileType.CSS)
+    ?.files.find((file) => file.name === 'styles' && file.fileType === FileType.CSS)
   let globalStyleSheet = css
 
   if (projectSheet) {
@@ -36,34 +36,21 @@ export const vueTailwindModifier = async (
         fileType: FileType.JS,
         content: `module.exports = ${JSON.stringify(config, null, 2)}`,
       },
+      {
+        name: 'postcss.config',
+        fileType: FileType.JS,
+        content: `module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};`,
+      },
     ],
     path: [''],
-  })
-
-  rootFolder.files.forEach((file) => {
-    const { name, fileType } = file
-
-    if (name === 'package' && fileType === 'json') {
-      const jsonContent = JSON.parse(file.content)
-      if (jsonContent?.postcss) {
-        jsonContent.postcss.plugins = {
-          ...(jsonContent.postcss?.plugins || {}),
-          tailwindcss: {},
-        }
-      } else {
-        jsonContent.postcss = {
-          plugins: {
-            autoprefixer: {},
-            tailwindcss: {},
-          },
-        }
-      }
-      file.content = JSON.stringify(jsonContent, null, 2)
-    }
   })
 
   devDependencies.autoprefixer = AUTO_PREFIXER
   devDependencies.postcss = POSTCSS
   devDependencies.tailwindcss = TAILWIND
-  devDependencies['postcss-loader'] = '^7.0.0'
 }

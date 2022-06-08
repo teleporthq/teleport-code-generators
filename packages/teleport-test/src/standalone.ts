@@ -304,8 +304,27 @@ const run = async () => {
         },
       })
 
-      console.info(ProjectType.REACT, '+' + 'tailwind', '-', result.payload)
-      return `React - Tailwind`
+      console.info(ProjectType.VUE, '+' + 'tailwind', '-', result.payload)
+      return `VUE - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.ANGULAR,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.ANGULAR,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-angular-tailwind',
+        },
+      })
+
+      console.info(ProjectType.ANGULAR, '+' + 'tailwind', '-', result.payload)
+      return `Angular - Tailwind`
     })
   } catch (e) {
     console.info(e)

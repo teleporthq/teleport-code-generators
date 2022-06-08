@@ -15,7 +15,7 @@ export const nextJSTailwindModifier = async (
 
   if (projectSheet) {
     files.delete('projectStyleSheet')
-    files.set('projectsStyleSheet', {
+    files.set('projectStyleSheet', {
       path: ['pages'],
       files: [
         {
@@ -42,7 +42,7 @@ export const nextJSTailwindModifier = async (
         ),
         {
           ...rootFile,
-          content: `import "./global.css"\n${rootFile.content}`,
+          content: `import "./global.css" \n \n ${rootFile.content}`,
         },
       ],
       path: ['pages'],

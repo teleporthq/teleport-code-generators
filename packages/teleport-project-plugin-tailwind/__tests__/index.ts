@@ -34,8 +34,6 @@ describe('Plugins adds tailwind as devDependnecy when used with Next', () => {
     })
     const plugin = new ProjectPluginTailwind({
       framework: ProjectType.NEXT,
-      config: {},
-      css: `.tailwind-class{ }`,
     })
     const { files } = await plugin.runAfter(structure)
     const appFile = files.get('_app').files[0]
@@ -62,8 +60,6 @@ describe('Plugins adds tailwind as devDependnecy when used with Next', () => {
 
     const plugin = new ProjectPluginTailwind({
       framework: ProjectType.NEXT,
-      config: {},
-      css: `.tailwind-class{ }`,
     })
     const { files } = await plugin.runAfter(structure)
 
