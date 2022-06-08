@@ -1,11 +1,9 @@
-import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { FileType } from '@teleporthq/teleport-types'
+import { TailwindPluginParams } from '.'
 import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const reactTailwindModifier = async (
-  structure: ProjectPluginStructure,
-  config: Record<string, unknown>,
-  css: string
-): Promise<void> => {
+export const reactTailwindModifier = async (params: TailwindPluginParams): Promise<void> => {
+  const { structure, config, css, path } = params
   const { files, devDependencies } = structure
   config.content = ['./src/**/*.{js,ts,jsx,tsx}']
 
@@ -20,7 +18,7 @@ export const reactTailwindModifier = async (
   }
 
   files.set('projectStyleSheet', {
-    path: ['src'],
+    path: path || ['src'],
     files: [
       {
         ...projectSheet,

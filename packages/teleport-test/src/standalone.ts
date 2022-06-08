@@ -1,3 +1,4 @@
+// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -325,6 +326,45 @@ const run = async () => {
 
       console.info(ProjectType.ANGULAR, '+' + 'tailwind', '-', result.payload)
       return `Angular - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NUXT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.NUXT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-nuxt-tailwind',
+        },
+      })
+
+      console.info(ProjectType.NUXT, '+' + 'tailwind', '-', result.payload)
+      return `Nuxt - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.HTML,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.HTML,
+            path: [''],
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-html-tailwind',
+        },
+      })
+
+      console.info(ProjectType.HTML, '+' + 'tailwind', '-', result.payload)
+      return `Html - Tailwind`
     })
   } catch (e) {
     console.info(e)

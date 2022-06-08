@@ -15,8 +15,8 @@ export default {
     "start": "nuxt start",
     "generate": "nuxt generate"
   },
-  "dependencies": {
-    "nuxt": "^2.15.6"
+  "devDependencies": {
+    "nuxt": "^2.15.8"
   }
 }`,
       fileType: 'json',
