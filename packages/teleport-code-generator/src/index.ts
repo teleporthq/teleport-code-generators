@@ -112,17 +112,17 @@ const componentGeneratorProjectMappings = {
 }
 
 const projectGeneratorFactories = {
-  [ProjectType.REACT]: createReactProjectGenerator(),
-  [ProjectType.NEXT]: createNextProjectGenerator(),
-  [ProjectType.VUE]: createVueProjectGenerator(),
-  [ProjectType.NUXT]: createNuxtProjectGenerator(),
-  [ProjectType.PREACT]: createPreactProjectGenerator(),
-  [ProjectType.STENCIL]: createStencilProjectGenerator(),
-  [ProjectType.ANGULAR]: createAngularProjectGenerator(),
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
-  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
-  [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
-  [ProjectType.HTML]: createHTMLProjectGenerator(),
+  [ProjectType.REACT]: createReactProjectGenerator,
+  [ProjectType.NEXT]: createNextProjectGenerator,
+  [ProjectType.VUE]: createVueProjectGenerator,
+  [ProjectType.NUXT]: createNuxtProjectGenerator,
+  [ProjectType.PREACT]: createPreactProjectGenerator,
+  [ProjectType.STENCIL]: createStencilProjectGenerator,
+  [ProjectType.ANGULAR]: createAngularProjectGenerator,
+  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
+  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
+  [ProjectType.HTML]: createHTMLProjectGenerator,
 }
 
 const templates = {
@@ -167,7 +167,7 @@ export const packProject: PackProjectFunction = async (
     publisher = projectPublisherFactories[publisherType]
   }
 
-  const projectGeneratorFactory = projectGeneratorFactories[projectType]
+  const projectGeneratorFactory = projectGeneratorFactories[projectType]()
   projectGeneratorFactory.cleanPlugins()
 
   if (projectType === ProjectType.HTML) {

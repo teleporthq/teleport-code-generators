@@ -1,13 +1,13 @@
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const defaultTailwindModifier = async (
+export const vueTailwindModifier = async (
   structure: ProjectPluginStructure,
   config: Record<string, unknown>,
   css: string
 ): Promise<void> => {
-  const { files, devDependencies } = structure
-  config.content = ['./src/**/*.{js,ts,jsx,tsx}']
+  const { devDependencies, files, rootFolder } = structure
+  config.content = ['./src/**/*.{vue,js,ts,jsx,tsx}']
 
   const projectSheet = files
     .get('projectStyleSheet')
@@ -16,7 +16,7 @@ export const defaultTailwindModifier = async (
   if (projectSheet) {
     files.delete('projectStyleSheet')
     files.set('projectStyleSheet', {
-      path: ['src', 'teleporthq'],
+      path: ['src'],
       files: [
         {
           ...projectSheet,
@@ -33,21 +33,34 @@ export const defaultTailwindModifier = async (
         fileType: FileType.JS,
         content: `module.exports = ${JSON.stringify(config, null, 2)}`,
       },
-      {
-        name: 'postcss.config',
-        fileType: FileType.JS,
-        content: `module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};`,
-      },
     ],
     path: [''],
   })
 
-  devDependencies.tailwindcss = TAILWIND
+  rootFolder.files.forEach((file) => {
+    const { name, fileType } = file
+
+    if (name === 'package' && fileType === 'json') {
+      const jsonContent = JSON.parse(file.content)
+      if (jsonContent?.postcss) {
+        jsonContent.postcss.plugins = {
+          ...(jsonContent.postcss?.plugins || {}),
+          tailwindcss: {},
+        }
+      } else {
+        jsonContent.postcss = {
+          plugins: {
+            autoprefixer: {},
+            tailwindcss: {},
+          },
+        }
+      }
+      file.content = JSON.stringify(jsonContent, null, 2)
+    }
+  })
+
   devDependencies.autoprefixer = AUTO_PREFIXER
   devDependencies.postcss = POSTCSS
+  devDependencies.tailwindcss = TAILWIND
+  devDependencies['postcss-loader'] = '^7.0.0'
 }

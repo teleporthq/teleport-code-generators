@@ -1,7 +1,7 @@
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
 import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const defaultTailwindModifier = async (
+export const reactTailwindModifier = async (
   structure: ProjectPluginStructure,
   config: Record<string, unknown>,
   css: string
@@ -16,7 +16,7 @@ export const defaultTailwindModifier = async (
   if (projectSheet) {
     files.delete('projectStyleSheet')
     files.set('projectStyleSheet', {
-      path: ['src', 'teleporthq'],
+      path: ['src'],
       files: [
         {
           ...projectSheet,

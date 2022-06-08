@@ -1,37 +1,38 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
 import { nextJSTailwindModifier } from './nextjs'
 import { defaultTailwindModifier } from './default'
+import { reactTailwindModifier } from './react'
+import { vueTailwindModifier } from './vue'
 
-type SUPPORTED_FRAMEWORKS = ProjectType.HTML | ProjectType.NEXT
+type SUPPORTED_FRAMEWORKS =
+  | ProjectType.HTML
+  | ProjectType.NEXT
+  | ProjectType.REACT
+  | ProjectType.VUE
 
 const frameworkMap: Record<
   SUPPORTED_FRAMEWORKS,
-  (
-    structure: ProjectPluginStructure,
-    config: Record<string, unknown>,
-    content: string[],
-    css: string
-  ) => Promise<void>
+  (structure: ProjectPluginStructure, config: Record<string, unknown>, css: string) => Promise<void>
 > = {
   [ProjectType.NEXT]: nextJSTailwindModifier,
   [ProjectType.HTML]: defaultTailwindModifier,
+  [ProjectType.REACT]: reactTailwindModifier,
+  [ProjectType.VUE]: vueTailwindModifier,
 }
 
 export class ProjectPluginTailwind implements ProjectPlugin {
   config: Record<string, unknown>
-  content: string[]
   css: string
   framework: SUPPORTED_FRAMEWORKS
 
   constructor(params: {
     config?: Record<string, unknown>
-    css: string
-    content?: string[]
+    css?: string
     framework?: SUPPORTED_FRAMEWORKS
   }) {
     this.css = params.css
+    this.css = params?.css || `@tailwind utilities;`
     this.config = params?.config || {}
-    this.content = params?.content || ['./src/**/*.{vue,js,ts,jsx,tsx}']
     this.framework = params?.framework || ProjectType.HTML
   }
 
@@ -44,7 +45,7 @@ export class ProjectPluginTailwind implements ProjectPlugin {
     if (!projectModifier) {
       throw new Error(`Requested ${this.framework} doesn't have a predefined modifier`)
     }
-    await projectModifier(structure, this.config, this.content, this.css)
+    await projectModifier(structure, this.config, this.css)
     return structure
   }
 }

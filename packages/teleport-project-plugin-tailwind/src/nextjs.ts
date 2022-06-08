@@ -1,13 +1,13 @@
 import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
 export const nextJSTailwindModifier = async (
   structure: ProjectPluginStructure,
   config: Record<string, unknown>,
-  content: string[],
   css: string
 ): Promise<void> => {
   const { files, devDependencies } = structure
-  config.content = content
+  config.content = ['./pages/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}']
 
   const projectSheet = files
     .get('projectStyleSheet')
@@ -15,7 +15,7 @@ export const nextJSTailwindModifier = async (
 
   if (projectSheet) {
     files.delete('projectStyleSheet')
-    files.set('projectStyleSheet', {
+    files.set('projectsStyleSheet', {
       path: ['pages'],
       files: [
         {
@@ -80,7 +80,7 @@ export const nextJSTailwindModifier = async (
     path: [''],
   })
 
-  devDependencies.tailwindcss = '^3.0.24'
-  devDependencies.autoprefixer = '^9.8.6'
-  devDependencies.postcss = '^8.2.15'
+  devDependencies.tailwindcss = TAILWIND
+  devDependencies.autoprefixer = AUTO_PREFIXER
+  devDependencies.postcss = POSTCSS
 }
