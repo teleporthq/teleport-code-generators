@@ -24,6 +24,9 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.21.7"
+    "@teleporthq/teleport-types": "^0.21.7",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.21.7",
+    "@teleporthq/teleport-plugin-css": "^0.21.7",
+    "@teleporthq/teleport-plugin-import-statements": "^0.21.7"
   }
 }

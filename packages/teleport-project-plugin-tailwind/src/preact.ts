@@ -2,14 +2,14 @@ import { FileType } from '@teleporthq/teleport-types'
 import { TailwindPluginParams } from '.'
 import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const defaultTailwindModifier = async (params: TailwindPluginParams): Promise<void> => {
+export const preactTailwindModifier = async (params: TailwindPluginParams) => {
   const { structure, config, css, path } = params
-  const { files, devDependencies, rootFolder } = structure
-  config.content = ['./src/**/*.{html,js,ts,jsx,tsx}', './*.html']
+  const { files, devDependencies } = structure
+  config.content = ['./src/**/*.{js,ts,jsx,tsx}']
 
   const projectSheet = files
     .get('projectStyleSheet')
-    ?.files.find((file) => file.name === 'style' && file.fileType === FileType.CSS)
+    ?.files.find((file) => file.name === 'global-style' && file.fileType === FileType.CSS)
   let globalStyleSheet = css
 
   if (projectSheet) {
@@ -17,21 +17,8 @@ export const defaultTailwindModifier = async (params: TailwindPluginParams): Pro
     globalStyleSheet = `${globalStyleSheet} \n \n ${projectSheet.content}`
   }
 
-  rootFolder.files.forEach((file) => {
-    const { name, fileType } = file
-
-    if (name === 'package' && fileType === 'json') {
-      const jsonContent = JSON.parse(file.content)
-      jsonContent.scripts = {
-        ...jsonContent?.scripts,
-        tailwind: 'tailwindcss -o style.css -c ./tailwind.config.js',
-      }
-      file.content = JSON.stringify(jsonContent, null, 2)
-    }
-  })
-
   files.set('projectStyleSheet', {
-    path: path || ['src', 'teleporthq'],
+    path: path || ['src'],
     files: [
       {
         ...projectSheet,

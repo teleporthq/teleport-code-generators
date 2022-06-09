@@ -1,4 +1,3 @@
-// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -365,6 +364,45 @@ const run = async () => {
 
       console.info(ProjectType.HTML, '+' + 'tailwind', '-', result.payload)
       return `Html - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.PREACT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.PREACT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-preact-tailwind',
+        },
+      })
+
+      console.info(ProjectType.PREACT, '+' + 'tailwind', '-', result.payload)
+      return `Preact - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.STENCIL,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.STENCIL,
+            path: [''],
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-stencil-tailwind',
+        },
+      })
+
+      console.info(ProjectType.STENCIL, '+' + 'tailwind', '-', result.payload)
+      return `Stencil - Tailwind`
     })
   } catch (e) {
     console.info(e)
