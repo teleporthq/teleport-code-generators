@@ -1,13 +1,11 @@
-import { FileType, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { FileType } from '@teleporthq/teleport-types'
+import { TailwindPluginParams } from '.'
+import { AUTO_PREFIXER, POSTCSS, TAILWIND } from './constants'
 
-export const nextJSTailwindModifier = async (
-  structure: ProjectPluginStructure,
-  config: Record<string, unknown>,
-  content: string[],
-  css: string
-): Promise<void> => {
+export const nextJSTailwindModifier = async (params: TailwindPluginParams): Promise<void> => {
+  const { structure, config, css, path } = params
   const { files, devDependencies } = structure
-  config.content = content
+  config.content = ['./pages/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}']
 
   const projectSheet = files
     .get('projectStyleSheet')
@@ -16,7 +14,7 @@ export const nextJSTailwindModifier = async (
   if (projectSheet) {
     files.delete('projectStyleSheet')
     files.set('projectStyleSheet', {
-      path: ['pages'],
+      path: path || ['pages'],
       files: [
         {
           ...projectSheet,
@@ -42,7 +40,7 @@ export const nextJSTailwindModifier = async (
         ),
         {
           ...rootFile,
-          content: `import "./global.css"\n${rootFile.content}`,
+          content: `import "./global.css" \n \n ${rootFile.content}`,
         },
       ],
       path: ['pages'],
@@ -80,7 +78,7 @@ export const nextJSTailwindModifier = async (
     path: [''],
   })
 
-  devDependencies.tailwindcss = '^3.0.24'
-  devDependencies.autoprefixer = '^9.8.6'
-  devDependencies.postcss = '^8.2.15'
+  devDependencies.tailwindcss = TAILWIND
+  devDependencies.autoprefixer = AUTO_PREFIXER
+  devDependencies.postcss = POSTCSS
 }

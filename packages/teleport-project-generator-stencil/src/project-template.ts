@@ -15,7 +15,7 @@ export default {
     "start": "stencil build --dev --watch --serve"
   },
   "dependencies": {
-    "@stencil/core": "^1.2.1",
+    "@stencil/core": "^2.16.1",
     "@stencil/router": "^1.0.1"
   }
 }`,
@@ -47,6 +47,7 @@ export const config: Config = {
     "allowSyntheticDefaultImports": true,
     "allowUnreachableCode": false,
     "declaration": false,
+    "skipLibCheck": true,
     "experimentalDecorators": true,
     "lib": [
       "dom",

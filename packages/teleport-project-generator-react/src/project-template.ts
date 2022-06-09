@@ -12,8 +12,7 @@ export default {
     "@craco/craco": "^6.4.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3"
+    "react-router-dom": "^5.2.0"
   },
   "scripts": {
     "start": "craco start",
@@ -32,6 +31,9 @@ export default {
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1"
   }
 }`,
       fileType: 'json',

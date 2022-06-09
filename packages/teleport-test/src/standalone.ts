@@ -16,9 +16,11 @@ import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailw
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
+import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
+const tailwindProjectUIDL = tailwindProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = Buffer.from(assetFile).toString('base64')
 const packerOptions: PackerOptions = {
@@ -81,14 +83,6 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [
-          new ProjectPluginTailwind({
-            config: {},
-            css: `@tailwind utils`,
-            content: ['./pages/**/*.ts'],
-            framework: ProjectType.NEXT,
-          }),
-        ],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
@@ -253,6 +247,162 @@ const run = async () => {
       })
       console.info(ProjectType.REACTNATIVE, '-', result.payload)
       return ProjectType.REACTNATIVE
+    })
+
+    /* Frameworks using default + tailwind ccss */
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.NEXT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-tailwind',
+        },
+      })
+
+      console.info(ProjectType.NEXT, '+' + 'tailwind', '-', result.payload)
+      return `Next - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.REACT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.REACT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-react-tailwind',
+        },
+      })
+
+      console.info(ProjectType.REACT, '+' + 'tailwind', '-', result.payload)
+      return `React - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.VUE,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.VUE,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-vue-tailwind',
+        },
+      })
+
+      console.info(ProjectType.VUE, '+' + 'tailwind', '-', result.payload)
+      return `VUE - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.ANGULAR,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.ANGULAR,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-angular-tailwind',
+        },
+      })
+
+      console.info(ProjectType.ANGULAR, '+' + 'tailwind', '-', result.payload)
+      return `Angular - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NUXT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.NUXT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-nuxt-tailwind',
+        },
+      })
+
+      console.info(ProjectType.NUXT, '+' + 'tailwind', '-', result.payload)
+      return `Nuxt - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.HTML,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.HTML,
+            path: [''],
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-html-tailwind',
+        },
+      })
+
+      console.info(ProjectType.HTML, '+' + 'tailwind', '-', result.payload)
+      return `Html - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.PREACT,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.PREACT,
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-preact-tailwind',
+        },
+      })
+
+      console.info(ProjectType.PREACT, '+' + 'tailwind', '-', result.payload)
+      return `Preact - Tailwind`
+    })
+
+    await log(async () => {
+      result = await packProject(tailwindProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.STENCIL,
+        plugins: [
+          new ProjectPluginTailwind({
+            framework: ProjectType.STENCIL,
+            path: [''],
+          }),
+        ],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-stencil-tailwind',
+        },
+      })
+
+      console.info(ProjectType.STENCIL, '+' + 'tailwind', '-', result.payload)
+      return `Stencil - Tailwind`
     })
   } catch (e) {
     console.info(e)
