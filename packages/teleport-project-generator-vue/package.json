@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-vue",
-  "version": "0.21.7",
+  "version": "0.21.10",
   "description": "Project generator using Vue and Vue-Router",
   "author": "teleportHQ",
   "license": "MIT",

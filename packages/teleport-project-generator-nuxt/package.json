@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-nuxt",
-  "version": "0.21.7",
+  "version": "0.21.10",
   "description": "Project generator for a standard Nuxt.js project",
   "author": "teleportHQ",
   "license": "MIT",
