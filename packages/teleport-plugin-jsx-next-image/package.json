@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-jsx-next-image",
-  "version": "0.21.7",
+  "version": "0.21.11",
   "description": "A Next-JS plugin for using next/image for images with local assets and dimensions.",
   "author": "teleportHQ",
   "license": "MIT",
