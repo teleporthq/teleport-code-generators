@@ -119,11 +119,13 @@ class ProjectPluginImageResolver implements ProjectPlugin {
         return
       }
 
-      const regex = /(?:\(['"]?)(.*?)(?:['"]?\))/
+      const regex = /url(?:\(['"]?)(.*?)(?:['"]?\))/
       const matches = regex.exec(bgImage)
-
       if (matches && matches?.length > 0 && isAbsolute(matches[1])) {
-        style.backgroundImage.content = `url("${join(this.relativePath, matches[1])}")`
+        style.backgroundImage.content = bgImage.replace(
+          matches[1],
+          `${join(this.relativePath, matches[1])}`
+        )
       }
     }
   }
