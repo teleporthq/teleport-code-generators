@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-html",
-  "version": "0.21.7",
+  "version": "0.21.12",
   "description": "Project generator for generate plain html files",
   "author": "teleportHQ",
   "license": "MIT",
