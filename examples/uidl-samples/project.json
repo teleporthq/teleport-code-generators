@@ -5029,11 +5029,48 @@
                         "style": {
                           "width": {
                             "type": "static",
-                            "content": "100px"
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "400px"
                           },
                           "objectFit": {
                             "type": "static",
-                            "content": "cover"
+                            "content": "contain"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "image",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "src": {
+                            "type": "static",
+                            "content": "/playground_assets/kitten.png"
+                          },
+                          "alt": {
+                            "type": "static",
+                            "content": "image"
+                          }
+                        },
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "400px"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "400px"
+                          },
+                          "objectFit": {
+                            "type": "static",
+                            "content": "contain"
                           }
                         },
                         "children": []
@@ -5052,11 +5089,11 @@
                           },
                           "width": {
                             "type": "static",
-                            "content": "100px"
+                            "content": "400px"
                           },
                           "height": {
                             "type": "static",
-                            "content": "50px"
+                            "content": "400px"
                           },
                           "border": {
                             "type": "static",
@@ -5076,8 +5113,10 @@
                           },
                           "backgroundSize": {
                             "type": "static",
-                            "content": "cover"
-                          }
+                            "content": "contain"
+                          },
+                          "backgroundPosition": "center",
+                          "backgroundRepeat": "no-repeat"
                         },
                         "children": [],
                         "semanticType": "div"
