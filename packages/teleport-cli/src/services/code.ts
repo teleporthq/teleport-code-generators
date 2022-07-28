@@ -14,12 +14,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { generateComponent, packProject } from '@teleporthq/teleport-code-generator'
 import { injectFilesFromSubFolder, injectFilesToPath } from './file'
-import {
-  LOCK_FILE_NAME,
-  LOCK_FILE_TEMPLATE,
-  DefaultConfigTemplate,
-  LOCK_FILE_EXTENSION,
-} from '../constants'
+import { CONFIG_FILE, LOCK_FILE_TEMPLATE, DefaultConfigTemplate } from '../constants'
 import { pluginCustomMode } from './custom-mode-project-plugin'
 import { pack } from './helper'
 
@@ -118,8 +113,7 @@ export const injectGeneratedFolderInto = async (
   }
 
   folder.files.push({
-    name: LOCK_FILE_NAME,
-    fileType: LOCK_FILE_EXTENSION,
+    name: CONFIG_FILE,
     content: JSON.stringify(
       {
         ...LOCK_FILE_TEMPLATE,

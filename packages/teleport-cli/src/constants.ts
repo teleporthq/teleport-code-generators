@@ -1,8 +1,7 @@
-import { PrettierFormatOptions } from '@teleporthq/teleport-types'
+import { PrettierFormatOptions, ComponentType } from '@teleporthq/teleport-types'
 
-export const LOCK_FILE_NAME = `teleport`
-export const LOCK_FILE_EXTENSION = 'lock'
-export const LOCKFILE = `${LOCK_FILE_NAME}.${LOCK_FILE_EXTENSION}`
+export const CONFIG_FILE_NAME = `teleport.config`
+export const CONFIG_FILE = `${CONFIG_FILE_NAME}.json`
 
 export const LOCK_FILE_TEMPLATE: DefaultConfigTemplate = {
   project: {},
@@ -26,7 +25,7 @@ export interface DefaultConfigTemplate {
     projectType?: string
     path?: string
   }
-  components: Record<string, { url: string; path: string }>
+  components: Record<string, { path: string }>
   format?: {
     config?: PrettierFormatOptions
     ignoreFiles?: string[]
@@ -36,4 +35,5 @@ export interface DefaultConfigTemplate {
     ignoreFiles?: string[]
     ignoreFolders?: string[]
   }
+  componentType?: ComponentType.REACT | ComponentType.VUE | ComponentType.ANGULAR
 }

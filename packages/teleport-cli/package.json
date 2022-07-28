@@ -1,6 +1,6 @@
 {
     "name": "@teleporthq/teleport-cli",
-    "version": "0.16.3",
+    "version": "0.21.2",
     "description": "A command line utility to sync work from studio and other sources to local.",
     "author": "teleportHQ",
     "license": "MIT",

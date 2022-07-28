@@ -39,7 +39,7 @@ export default async function (options: { url: string; targetPath: string; force
         const { files } = await generateComponentFromUIDL(uidl, getComponentType())
         injectFilesToPath({ rootFolder: process.cwd(), targetPath, files, force })
         updateConfigFile((content) => {
-          content.components[url] = { url, path: targetPath }
+          content.components[url] = { path: targetPath }
         })
 
         spinner.text = `Component ${files[0].name}.${files[0].fileType} generated`
@@ -117,7 +117,7 @@ export default async function (options: { url: string; targetPath: string; force
           force,
         })
         updateConfigFile((content) => {
-          content.components[url] = { url, path: targetPath }
+          content.components[url] = { path: targetPath }
         })
 
         spinner.text = `Component ${files[0].name}.${files[0].fileType} generated`

@@ -1,17 +1,17 @@
 import chalk from 'chalk'
 import { writeFileSync } from 'fs-extra'
 import path from 'path'
-import { LOCK_FILE_NAME, LOCK_FILE_TEMPLATE } from '../constants'
+import { CONFIG_FILE, LOCK_FILE_TEMPLATE } from '../constants'
 import { findFileByName } from '../services/file'
 
 export default function () {
-  const isFileExists = findFileByName(LOCK_FILE_NAME)
+  const isFileExists = findFileByName(CONFIG_FILE)
   if (!isFileExists) {
     writeFileSync(
-      path.join(process.cwd(), LOCK_FILE_NAME),
+      path.join(process.cwd(), CONFIG_FILE),
       JSON.stringify(LOCK_FILE_TEMPLATE, null, 2)
     )
     return
   }
-  console.warn(chalk.yellow(`${LOCK_FILE_NAME} already exists`))
+  console.warn(chalk.yellow(`${CONFIG_FILE} already exists`))
 }

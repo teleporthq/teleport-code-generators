@@ -9,15 +9,15 @@ import format from './commands/format'
 import sync from './commands/sync'
 import init from './commands/init'
 import packageJSON from '../package.json'
-import { LOCKFILE } from './constants'
+import { CONFIG_FILE } from './constants'
 
 program.version(`v${packageJSON.version}`)
 
-program.command('init').description(`Creates a ${LOCKFILE}`).action(init)
+program.command('init').description(`Creates a ${CONFIG_FILE}`).action(init)
 
 program
   .command('sync')
-  .description(`Sync's all the components defined in ${LOCKFILE}`)
+  .description(`Sync's all the components defined in ${CONFIG_FILE}`)
   .option('-f --force')
   .action(() => {
     const flags = minimist(process.argv.slice(2))
