@@ -18,8 +18,8 @@ export default {
     "vue-meta": "^2.2.1"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.4.1",
-    "@vue/cli-service": "^3.4.1",
+    "@vue/cli-plugin-babel": "^5.0.4",
+    "@vue/cli-service": "^5.0.4",
     "vue-template-compiler": "^2.6.7"
   },
   "postcss": {
@@ -34,6 +34,19 @@ export default {
   ]
 }`,
       fileType: 'json',
+    },
+    {
+      name: 'vue.config',
+      fileType: 'js',
+      content: `module.exports = {
+  css: {
+    loaderOptions: {
+      css: {
+        url: false,
+      },
+    },
+  },
+};`,
     },
     {
       name: 'babel.config',

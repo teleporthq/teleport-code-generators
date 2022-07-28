@@ -182,8 +182,7 @@ const generateSha = async (file: GeneratedFile): Promise<FileSha> => {
     }
   } else {
     const enc = new TextEncoder().encode(file.content)
-    const fileData = Buffer.from(enc)
-    const hash = await getSHA(fileData)
+    const hash = await getSHA(enc)
 
     return {
       ...file,
@@ -268,12 +267,12 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
       if ('error' in result) {
         throwErrorFromVercelResponse(result)
       }
-
+      // @ts-ignore
       if ('readyState' in result && result.readyState === 'READY') {
         clearInterval(clearHook)
         return resolve()
       }
-
+      // @ts-ignore
       if ('readyState' in result && result.readyState === 'ERROR') {
         clearInterval(clearHook)
         reject(new VercelDeploymentError())

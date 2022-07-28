@@ -493,6 +493,11 @@ export const injectFilesToPath = (
   path: string[],
   files: GeneratedFile[]
 ): void => {
+  if (path.length === 1 && path[0] === '') {
+    rootFolder.files.push(...files)
+    return
+  }
+
   let folder = findFolderByPath(rootFolder, path)
 
   if (!folder) {

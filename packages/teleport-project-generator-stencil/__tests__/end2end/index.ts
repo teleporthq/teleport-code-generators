@@ -37,10 +37,10 @@ describe('Preact Project Generator', () => {
     const stencilConfig = outputFolder.files[0]
 
     expect(assetsPath).toBeDefined()
-    expect(outputFolder.files.length).toBe(2)
+    expect(outputFolder.files.length).toBe(3)
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.name).toBe('stencil')
-    expect(outputFolder.files[1].name).toBe('package')
+    expect(outputFolder.files[2].name).toBe('package')
     expect(stencilConfig.name).toBe('stencil.config')
     expect(stencilConfig.fileType).toBe('ts')
 

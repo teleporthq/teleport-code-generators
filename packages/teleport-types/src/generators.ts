@@ -158,6 +158,10 @@ export interface ProjectGenerator {
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string[]
+  cleanPlugins: () => void
+  addPlugin: (plugin: ProjectPlugin) => void
+  getStrategy: () => ProjectStrategy
+  updateStrategy: (strategy: ProjectStrategy) => void
 }
 
 export interface GeneratorFactoryParams {

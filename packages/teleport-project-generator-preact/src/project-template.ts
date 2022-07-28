@@ -32,7 +32,7 @@ export default {
     "eslint-config-preact": "^1.1.0",
     "jest": "^24.9.0",
     "jest-preset-preact": "^1.0.0",
-    "preact-cli": "^3.0.0",
+    "preact-cli": "^3.3.5",
     "sirv-cli": "1.0.3"
   },
   "dependencies": {

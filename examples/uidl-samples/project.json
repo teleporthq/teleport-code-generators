@@ -23,6 +23,10 @@
         "type": "font",
         "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
         "name": "Inter"
+      },
+      {
+        "type": "script",
+        "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
       }
     ],
     "meta": [
@@ -38,7 +42,9 @@
         "content": "summary_large_image"
       }
     ],
-    "customCode": {}
+    "customCode": {
+      "head": "<!--This is the head section-->\n<!-- <script type=\"text/javascript\"> ... </script> -->\n<script src='https://unpkg.com/@teleporthq/teleport-custom-scripts'></script>"
+    }
   },
   "root": {
     "name": "App",

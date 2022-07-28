@@ -18,24 +18,24 @@ export const template: GeneratedFolder = {
   },
   "private": true,
   "dependencies": {
-    "@angular/common": "~12.0.3",
-    "@angular/compiler": "~12.0.3",
-    "@angular/core": "~12.0.3",
-    "@angular/forms": "~12.0.3",
-    "@angular/platform-browser": "~12.0.3",
-    "@angular/platform-browser-dynamic": "~12.0.3",
-    "@angular/router": "~12.0.3",
+    "@angular/common": "^14.0.0",
+    "@angular/compiler": "^14.0.0",
+    "@angular/core": "^14.0.0",
+    "@angular/forms": "^14.0.0",
+    "@angular/platform-browser": "^14.0.0",
+    "@angular/platform-browser-dynamic": "^14.0.0",
+    "@angular/router": "^14.0.0",
+    "core-js": "~3.0.1",
     "rxjs": "~6.6.0",
     "tslib": "^2.1.0",
-    "core-js": "~3.0.1",
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.900.7",
-    "@angular/cli": "~12.0.3",
-    "@angular/compiler-cli": "~12.0.3",
+    "@angular-devkit/build-angular": "^14.0.0",
+    "@angular/cli": "^14.0.0",
+    "@angular/compiler-cli": "^14.0.0",
     "@types/node": "^12.11.1",
-    "typescript": "~4.2.3"
+    "typescript": "^4.7.3"
   }
 }`,
       fileType: 'json',
@@ -63,7 +63,7 @@ export const template: GeneratedFolder = {
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "aot": false,
+            "aot": true,
             "assets": [
               "src/favicon.ico",
               "src/assets"
