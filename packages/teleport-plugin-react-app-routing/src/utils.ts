@@ -16,7 +16,12 @@ export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types
   return routerTag
 }
 
-export const constructRouteJSX = (flavour: string, componentName: string, path: string) => {
+export const constructRouteJSX = (
+  flavour: string,
+  componentName: string,
+  path: string,
+  fallback?: boolean
+) => {
   let JSXRoutePrefix: string
   let route: types.JSXElement
 
@@ -26,12 +31,14 @@ export const constructRouteJSX = (flavour: string, componentName: string, path: 
   } else {
     JSXRoutePrefix = 'Route'
     route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
-    ASTUtils.addAttributeToJSXTag(route, 'exact')
     ASTUtils.addDynamicAttributeToJSXTag(route, 'component', componentName)
+    if (fallback) {
+      return
+    }
+    ASTUtils.addAttributeToJSXTag(route, 'exact')
   }
 
   ASTUtils.addAttributeToJSXTag(route, 'path', path)
-
   return route
 }
 

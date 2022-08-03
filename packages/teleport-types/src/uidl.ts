@@ -151,6 +151,7 @@ export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
   fileName?: string
+  fallback?: boolean
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'

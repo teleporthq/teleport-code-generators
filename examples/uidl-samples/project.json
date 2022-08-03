@@ -471,6 +471,15 @@
                 }
               ]
             }
+          },
+          {
+            "value": "Fallback",
+            "seo": {
+              "title": "Fallback Page"
+            },
+            "pageOptions": {
+              "fallback": true
+            }
           }
         ]
       }
@@ -5088,6 +5097,69 @@
                 }
               },
               "value": "About",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "flex-start"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "children": [
+                          { "type": "static", "content": "This is a fallback page"}
+                        ]
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Fallback",
               "reference": {
                 "type": "dynamic",
                 "content": {
