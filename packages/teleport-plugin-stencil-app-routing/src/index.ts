@@ -5,6 +5,8 @@ import {
   ComponentPlugin,
   ChunkType,
   FileType,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import {
   STENCIL_CORE_DEPENDENCY,
@@ -32,11 +34,15 @@ export const createStencilAppRoutingPlugin: ComponentPluginFactory<StencilRouter
   const stencilAppRoutingtPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl, dependencies } = structure
 
+    if (!uidl?.stateDefinitions?.route) {
+      return structure
+    }
+
     dependencies.Component = STENCIL_CORE_DEPENDENCY
     dependencies.h = STENCIL_CORE_DEPENDENCY
 
-    const routes = UIDLUtils.extractRoutes(uidl)
-    const routeDefinitions = uidl.stateDefinitions.route
+    const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
+    const routeDefinitions = uidl.stateDefinitions.route as UIDLRouteDefinitions
 
     /* The name should be injected only with AppRoot only then it acts as entry point,
     Sending only Root because app is appended while generation of decorators*/

@@ -6,6 +6,7 @@ import {
   ChunkType,
   FileType,
   UIDLDependency,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -21,7 +22,6 @@ import {
   extractExtrenalImportsFromComponents,
   extractExternalDependenciesFromPage,
 } from './utils'
-
 import {
   APP_COMPONENT,
   ANGULAR_ROUTER,
@@ -50,7 +50,6 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
 
   const angularModuleGenerator: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options, dependencies } = structure
-    const { stateDefinitions = {} } = uidl
 
     const { moduleComponents = {} } = options
 
@@ -65,11 +64,12 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
     switch (moduleType) {
       case 'root':
         {
+          const { stateDefinitions } = uidl as UIDLRootComponent
           dependencies.BrowserModule = ANGULAR_PLATFORM_BROWSER
           dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
 
-          const routes = UIDLUtils.extractRoutes(uidl)
+          const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
           routesAST = createRoutesAST(routes, stateDefinitions)
           ngModuleAST = createRootModuleDecorator()
           moduleDecoratorAST = createExportModuleAST('AppModule')

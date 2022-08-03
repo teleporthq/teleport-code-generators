@@ -7,7 +7,6 @@ import {
   ProjectUIDL,
   UIDLConditionalNode,
   ProjectStrategy,
-  UIDLStateDefinition,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLExternalDependency,
@@ -17,6 +16,7 @@ import {
   Mapping,
   StyleVariation,
   GeneratorFactoryParams,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -130,7 +130,7 @@ const createPageUIDL = (
  * Also the root path needs to be represented by the index file
  */
 export const extractPageOptions = (
-  routeDefinitions: UIDLStateDefinition,
+  routeDefinitions: UIDLRouteDefinitions,
   routeName: string,
   useFileNameForNavigation = false
 ): { pageOptions: UIDLPageOptions; isHomePage: boolean } => {
