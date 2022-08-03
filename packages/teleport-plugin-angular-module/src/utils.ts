@@ -4,6 +4,7 @@ import {
   UIDLConditionalNode,
   UIDLStateDefinition,
   ComponentUIDL,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -119,10 +120,9 @@ export const createExportModuleAST = (moduleName: string, t = types) => {
 
 export const createRoutesAST = (
   routes: UIDLConditionalNode[],
-  stateDefinitions: Record<string, UIDLStateDefinition>,
+  stateDefinitions: { route: UIDLRouteDefinitions } & Record<string, UIDLStateDefinition>,
   t = types
 ) => {
-  // TODO: Need to generate type annotation for routes variable, currently babel throwing error
   const routesObject = routes.map((conditionalNode) => {
     const { value: routeKey } = conditionalNode.content
     const pageDefinition = stateDefinitions.route.values.find((route) => route.value === routeKey)

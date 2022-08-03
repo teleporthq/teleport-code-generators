@@ -20,9 +20,10 @@ import {
   UIDLStyleValue,
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
-export const extractRoutes = (rootComponent: ComponentUIDL) => {
+export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
   const rootElement = rootComponent.node.content as UIDLElement
 

@@ -277,7 +277,6 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('children')
   ),
   defaultValue: stateOrPropDefinitionDecoder,
-  values: optional(array(stateValueDetailsDecoder)),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({

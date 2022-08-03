@@ -34,9 +34,9 @@ import {
   UIDLStyleExternalAsset,
   UIDLCanonicalAsset,
   UIDLIconAsset,
+  UIDLRootComponent,
 } from './uidl'
-
-type Modify<T, R> = Omit<T, keyof R> & R
+import { Modify } from './helper'
 
 export interface VUIDLElementNode extends Modify<UIDLElementNode, { content: VUIDLElement }> {}
 
@@ -123,7 +123,7 @@ export type VUIDLStyleSetDefnition = Modify<
 export type VUIDLDesignTokens = Record<string, UIDLStaticValue | string | number>
 
 export type VRootComponentUIDL = Modify<
-  ComponentUIDL,
+  UIDLRootComponent,
   {
     seo?: VUIDLComponentSEO
     styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
@@ -134,7 +134,14 @@ export type VRootComponentUIDL = Modify<
   }
 >
 
-export type VComponentUIDL = Omit<VRootComponentUIDL, 'peerDefinitions' | 'designLanguage'>
+export type VComponentUIDL = Modify<
+  Omit<ComponentUIDL, 'designLanguage'>,
+  {
+    seo?: VUIDLComponentSEO
+    node: VUIDLElementNode
+    styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
+  }
+>
 
 export type VProjectUIDL = Modify<
   ProjectUIDL,

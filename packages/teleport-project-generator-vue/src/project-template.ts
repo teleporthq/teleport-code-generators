@@ -18,8 +18,9 @@ export default {
     "vue-meta": "^2.2.1"
   },
   "devDependencies": {
+    "@vue/babel-preset-app": "^5.0.8",
     "@vue/cli-plugin-babel": "^5.0.4",
-    "@vue/cli-service": "^5.0.4",
+    "@vue/cli-service": "^5.0.8",
     "vue-template-compiler": "^2.6.7"
   },
   "postcss": {

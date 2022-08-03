@@ -1,7 +1,24 @@
+import { Modify } from './helper'
+
+export type UIDLRootComponent = Modify<
+  ComponentUIDL,
+  {
+    stateDefinitions: {
+      route: UIDLRouteDefinitions
+      [x: string]: UIDLStateDefinition
+    }
+  }
+>
+
+export interface UIDLRouteDefinitions {
+  type: string
+  defaultValue: string
+  values: UIDLStateValueDetails[]
+}
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
-  root: ComponentUIDL
+  root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
 }
 
@@ -122,7 +139,6 @@ export interface UIDLPropDefinition {
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | unknown[] | object | (() => void)
-  values?: UIDLStateValueDetails[]
 }
 
 export interface UIDLStateValueDetails {

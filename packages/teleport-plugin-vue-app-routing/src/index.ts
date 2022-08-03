@@ -6,6 +6,8 @@ import {
   ChunkType,
   FileType,
   UIDLPageOptions,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 
 interface VueRouterConfig {
@@ -18,6 +20,10 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
 
   const vueAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl, dependencies, options } = structure
+
+    if (!uidl?.stateDefinitions?.route) {
+      return structure
+    }
 
     dependencies.Vue = {
       type: 'library',
@@ -43,8 +49,8 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
       types.callExpression(types.identifier('Vue.use'), [types.identifier('Meta')])
     )
 
-    const routes = UIDLUtils.extractRoutes(uidl)
-    const routeValues = uidl.stateDefinitions.route.values || []
+    const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
+    const routeValues = (uidl.stateDefinitions.route as UIDLRouteDefinitions).values || []
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     /* If pages are exported in their own folder and in custom file names.

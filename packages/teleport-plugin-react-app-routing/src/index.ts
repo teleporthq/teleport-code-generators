@@ -12,6 +12,8 @@ import {
   ChunkType,
   FileType,
   UIDLPageOptions,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
@@ -34,6 +36,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
   const reactAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
 
+    if (!uidl?.stateDefinitions?.route) {
+      return structure
+    }
+
     if (flavor === 'preact') {
       registerPreactRouterDeps(dependencies)
     } else {
@@ -42,13 +48,13 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
 
     const { stateDefinitions = {} } = uidl
 
-    const routes = UIDLUtils.extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
-      const routeValues = stateDefinitions.route.values || []
+      const routeValues = (stateDefinitions.route as UIDLRouteDefinitions).values || []
 
       const pageDefinition = routeValues.find((route) => route.value === routeKey)
       const defaultOptions: UIDLPageOptions = {}
