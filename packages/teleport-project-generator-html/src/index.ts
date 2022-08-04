@@ -6,6 +6,7 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import HTMLTemplate from './project-template'
 import { pluginCloneGlobals } from './plugin-clone-globals'
 import { pluginImageResolver } from './plugin-image-resolution'
+import { htmlErrorPageMapping } from './error-page-mapping'
 
 const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) => {
   const { individualEntyFile } = config || { individualEntyFile: true }
@@ -46,4 +47,10 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
   return generator
 }
 
-export { createHTMLProjectGenerator, HTMLTemplate, pluginCloneGlobals, pluginImageResolver }
+export {
+  createHTMLProjectGenerator,
+  HTMLTemplate,
+  pluginCloneGlobals,
+  pluginImageResolver,
+  htmlErrorPageMapping,
+}

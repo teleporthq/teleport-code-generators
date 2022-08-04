@@ -15,13 +15,17 @@ export const createClassDeclaration = (
   routes.forEach((routeNode) => {
     const pageKey = routeNode.content.value.toString()
     const pageDefinition = routeDefinitions.values.find((route) => route.value === pageKey)
-    const { componentName, navLink } = pageDefinition.pageOptions
+    const { componentName, navLink, fallback } = pageDefinition.pageOptions
 
     const stencilRouteTag = ASTBuilders.createJSXTag('stencil-route')
-    ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    if (!fallback) {
+      ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    }
+
     if (navLink === '/') {
       ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'exact', true)
     }
+
     ASTUtils.addAttributeToJSXTag(
       stencilRouteTag,
       'component',

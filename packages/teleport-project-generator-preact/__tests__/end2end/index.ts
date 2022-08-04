@@ -1,4 +1,5 @@
 import { FileType } from '@teleporthq/teleport-types'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -78,7 +79,7 @@ describe('Preact Project Generator', () => {
   it('runs without crashing and using only tokens', async () => {
     const result = await generator.generateProject(uidlSampleWithJustTokens, template)
     const styleSheet = result.subFolders[0].files.find(
-      (file) => file.name === 'global-style' && file.fileType === FileType.CSS
+      (file) => file.name === 'global-style.module' && file.fileType === FileType.CSS
     )
     const components = result.subFolders[0].subFolders.find(
       (folder) => folder.name === 'components'
@@ -90,7 +91,18 @@ describe('Preact Project Generator', () => {
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
-    expect(index.content).toContain(`import '../global-style.css'`)
+    expect(index.content).toContain(`import '../global-style.module.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders
+      .find((folder) => folder.name === 'src')
+      ?.subFolders.find((folder) => folder.name === 'components')
+    const routesPage = pages?.files.find((file) => file.name === 'app')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(`<Fallback default />`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

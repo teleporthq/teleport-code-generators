@@ -19,7 +19,7 @@ import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } 
 const createPreactProjectGenerator = () => {
   const styleSheetPlugin = createStyleSheetPlugin({
     fileName: 'global-style',
-    moduleExtension: false,
+    moduleExtension: true,
   })
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
 
@@ -50,7 +50,7 @@ const createPreactProjectGenerator = () => {
     projectStyleSheet: {
       generator: createComponentGenerator,
       plugins: [styleSheetPlugin],
-      fileName: 'global-style',
+      fileName: 'global-style.module',
       path: ['src'],
       importFile: true,
     },

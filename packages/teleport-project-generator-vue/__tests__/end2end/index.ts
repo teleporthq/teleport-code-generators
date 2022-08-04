@@ -1,3 +1,4 @@
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -64,6 +65,15 @@ describe('Vue Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`import AppModal from '../components/modal'`)
     /** Imports that are just inserted like css are added to router file by default  */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders.find((folder) => folder.name === 'src')
+    const routesPage = pages?.files.find((file) => file.name === 'router')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(`path: '**'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

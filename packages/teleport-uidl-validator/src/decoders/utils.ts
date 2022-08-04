@@ -169,6 +169,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   componentName: optional(isValidComponentName() as unknown as Decoder<string>),
   navLink: optional(isValidNavLink() as unknown as Decoder<string>),
   fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  fallback: optional(boolean()),
 })
 
 export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(

@@ -3,6 +3,7 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import template from './mocks'
 import { createGatsbyProjectGenerator } from '../../src'
 
@@ -68,6 +69,16 @@ describe('Gatsby Project Generator', () => {
 
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders
+      .find((folder) => folder.name === 'src')
+      ?.subFolders.find((folder) => folder.name === 'pages')
+    const fallbackPage = pages?.files.find((file) => file.name === '404')
+
+    expect(fallbackPage).toBeDefined()
   })
 
   it('throws error when invalid UIDL sample is used', async () => {
