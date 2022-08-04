@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-css-modules",
-  "version": "0.21.9",
+  "version": "0.22.0",
   "description": "A plugin for configuring teleportHQ projects using css-modules",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-css-modules": "^0.21.7",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.21.7",
-    "@teleporthq/teleport-types": "^0.21.7"
+    "@teleporthq/teleport-plugin-css-modules": "^0.22.0",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.22.0",
+    "@teleporthq/teleport-types": "^0.22.0"
   }
 }
