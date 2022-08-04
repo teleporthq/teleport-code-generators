@@ -36,6 +36,7 @@ import {
 import {
   NuxtTemplate,
   createNuxtProjectGenerator,
+  nuxtErrorPageMapper,
 } from '@teleporthq/teleport-project-generator-nuxt'
 import {
   PreactTemplate,
@@ -173,6 +174,10 @@ export const packProject: PackProjectFunction = async (
   if (projectType === ProjectType.HTML) {
     projectGeneratorFactory.addPlugin(pluginImageResolver)
     projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+  }
+
+  if (projectType === ProjectType.NUXT) {
+    projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
   }
 
   if (plugins?.length > 0) {

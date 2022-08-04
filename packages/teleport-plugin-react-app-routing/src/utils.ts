@@ -28,17 +28,21 @@ export const constructRouteJSX = (
   if (flavour === 'preact') {
     JSXRoutePrefix = componentName
     route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
+    if (fallback) {
+      ASTUtils.addAttributeToJSXTag(route, 'default', true)
+    } else {
+      ASTUtils.addAttributeToJSXTag(route, 'path', path)
+    }
   } else {
     JSXRoutePrefix = 'Route'
     route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
     ASTUtils.addDynamicAttributeToJSXTag(route, 'component', componentName)
-    if (fallback) {
-      return
+    if (!fallback) {
+      ASTUtils.addAttributeToJSXTag(route, 'exact')
     }
-    ASTUtils.addAttributeToJSXTag(route, 'exact')
+    ASTUtils.addAttributeToJSXTag(route, 'path', path)
   }
 
-  ASTUtils.addAttributeToJSXTag(route, 'path', path)
   return route
 }
 
