@@ -1,4 +1,5 @@
 import { FileType, ProjectStrategy, ReactStyleVariation } from '@teleporthq/teleport-types'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -134,6 +135,15 @@ describe('React Project Generator', () => {
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
     expect(index.content).toContain(`import './style.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders.find((folder) => folder.name === 'src')
+    const routesPage = pages?.files.find((file) => file.name === 'index')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(`<Route component={Fallback} path=\"**\" />`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

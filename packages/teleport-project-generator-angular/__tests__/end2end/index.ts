@@ -1,4 +1,5 @@
 import { FileType } from '@teleporthq/teleport-types'
+import fallbackPageSample from '../../../../examples/uidl-samples/project.json'
 import uidlSample from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -74,6 +75,15 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
 
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackPageSample, template)
+    const appFolder = subFolders[0].subFolders.find((folder) => folder.name === 'app')
+    const appModule = appFolder?.files.find(
+      (file) => file.name === 'app.module' && file.fileType === FileType.TS
+    )
+    expect(appModule?.content).toContain(`path: '**'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -2,6 +2,7 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 import { performance } from 'perf_hooks'
 import projectJson from '../../../examples/test-samples/project-sample.json'
+import htmlProjectJson from '../../../examples/uidl-samples/project.json'
 import {
   ProjectUIDL,
   GenerateOptions,
@@ -11,8 +12,8 @@ import {
   ProjectType,
   ReactStyleVariation,
   PreactStyleVariation,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
-
 import { packProject, generateComponent } from '../src/index'
 
 const reactProjectPath = join(__dirname, 'react')
@@ -21,6 +22,10 @@ const vueProjectPath = join(__dirname, 'vue')
 const nuxtProjectPath = join(__dirname, 'nuxt')
 const stencilProjectPath = join(__dirname, 'stencil')
 const preactProjectPath = join(__dirname, 'preact')
+const htmlProjectPath = join(__dirname, 'html')
+const gatsbyProjectPath = join(__dirname, 'gatsby')
+const gridsomeProjectPath = join(__dirname, 'gridsome')
+const angularProjectPath = join(__dirname, 'angular')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -34,7 +39,7 @@ const assets = [
 ]
 
 const projectUIDL = projectJson as unknown as ProjectUIDL
-const componentUIDL = projectUIDL.components.ExpandableArea
+const componentUIDL = (projectUIDL.components as Record<string, ComponentUIDL>).ExpandableArea
 
 afterAll(() => {
   // Comment these lines if you want to see the generated projects
@@ -44,6 +49,10 @@ afterAll(() => {
   removeDirectory(nuxtProjectPath)
   removeDirectory(stencilProjectPath)
   removeDirectory(preactProjectPath)
+  removeDirectory(htmlProjectPath)
+  removeDirectory(gatsbyProjectPath)
+  removeDirectory(gridsomeProjectPath)
+  removeDirectory(angularProjectPath)
 })
 
 describe('Performance tests for the code-generator', () => {
@@ -136,6 +145,54 @@ describe('code generator', () => {
     }
 
     const { success } = await packProject(projectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('creates a html project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.HTML,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: htmlProjectPath },
+    }
+
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('creates a angular project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.ANGULAR,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: angularProjectPath },
+    }
+
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('creates a gatsby project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.GATSBY,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: gatsbyProjectPath },
+    }
+
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
+    expect(success).toBeTruthy()
+  })
+
+  it('creates a gridsome project', async () => {
+    const options: PackerOptions = {
+      projectType: ProjectType.GRIDSOME,
+      assets,
+      publisher: PublisherType.DISK,
+      publishOptions: { outputPath: gridsomeProjectPath },
+    }
+
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
     expect(success).toBeTruthy()
   })
 

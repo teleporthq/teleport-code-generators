@@ -13,7 +13,7 @@ describe('Html Project Generator', () => {
     const aboutCSS = files.find((page) => page.name === 'about' && page.fileType === FileType.CSS)
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(6)
+    expect(files.length).toBe(8)
     expect(subFolders.length).toBe(1)
     expect(aboutPage.content).toContain('head')
     expect(aboutPage.content).toContain('html')
@@ -31,7 +31,7 @@ describe('Html Project Generator', () => {
     const aboutCSS = files.find((page) => page.name === 'about' && page.fileType === FileType.CSS)
 
     expect(name).toBe('teleport-project-html')
-    expect(files.length).toBe(7)
+    expect(files.length).toBe(9)
     expect(subFolders.length).toBe(1)
     expect(aboutPage.content).not.toContain('<head>')
     expect(aboutPage.content).not.toContain('<html>')

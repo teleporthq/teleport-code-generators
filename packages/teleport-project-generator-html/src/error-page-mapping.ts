@@ -1,6 +1,6 @@
-import { ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
+import { FileType, ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
 
-class NuxtErrorMappingPlugin implements ProjectPlugin {
+class HTMLErrorPageMapping implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     return structure
   }
@@ -13,16 +13,20 @@ class NuxtErrorMappingPlugin implements ProjectPlugin {
       return structure
     }
 
-    const file =
+    const folder =
       files.get(fallback.pageOptions?.componentName) || files.get(fallback.pageOptions?.fileName)
-    if (!file) {
+    if (!folder) {
       return structure
     }
 
-    file.files[0].name = 'error'
-    file.path = ['layouts']
+    folder.files.forEach((file) => {
+      if (file.name === fallback.pageOptions.fileName && file.fileType === FileType.HTML) {
+        file.name = '404'
+      }
+    })
+
     return structure
   }
 }
 
-export const nuxtErrorPageMapper = new NuxtErrorMappingPlugin()
+export const htmlErrorPageMapping = new HTMLErrorPageMapping()

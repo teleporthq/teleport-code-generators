@@ -72,6 +72,7 @@ import {
   HTMLTemplate,
   pluginCloneGlobals,
   pluginImageResolver,
+  htmlErrorPageMapping,
 } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
@@ -174,6 +175,7 @@ export const packProject: PackProjectFunction = async (
   if (projectType === ProjectType.HTML) {
     projectGeneratorFactory.addPlugin(pluginImageResolver)
     projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+    projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
   }
 
   if (projectType === ProjectType.NUXT) {

@@ -13,7 +13,7 @@
     "dev": "yarn run link && lerna run build && node scripts/watcher.mjs",
     "test": "jest",
     "test:perf": "jest __tests__/performance",
-    "test:watch": "jest --watch",
+    "test:watch": "jest --watch --silent=false",
     "test:clearcache": "jest --clearCache",
     "test:coverage": "yarn run test -- --coverage --no-cache",
     "upload:coverage": "codecov",

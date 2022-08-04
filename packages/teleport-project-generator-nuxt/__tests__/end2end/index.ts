@@ -1,12 +1,18 @@
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import template from './template-definition.json'
+import { nuxtErrorPageMapper } from '../../src/error-page-mapping'
 import { createNuxtProjectGenerator } from '../../src'
 
-describe('Vue Nuxt Project Generator', () => {
-  const generator = createNuxtProjectGenerator()
+const generator = createNuxtProjectGenerator()
 
+afterAll(() => {
+  generator.cleanPlugins()
+})
+
+describe('Vue Nuxt Project Generator', () => {
   it('runs without crashing', async () => {
     const outputFolder = await generator.generateProject(uidlSample, template)
     const assetsPath = generator.getAssetsPath()
@@ -42,6 +48,16 @@ describe('Vue Nuxt Project Generator', () => {
 
     /* For Nuxt based projects, just imports are injected in index file of the routes */
     expect(pages.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    generator.addPlugin(nuxtErrorPageMapper)
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+
+    const pages = subFolders.find((folder) => folder.name === 'layouts')
+    const fallbackPage = pages?.files.find((file) => file.name === 'error')
+
+    expect(fallbackPage).toBeDefined()
   })
 
   it('throws error when invalid UIDL sample is used', async () => {
