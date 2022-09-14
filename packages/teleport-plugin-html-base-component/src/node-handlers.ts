@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   UIDLNode,
   UIDLElementNode,
@@ -17,10 +16,11 @@ import {
   UIDLDependency,
   UIDLStyleValue,
   GeneratorOptions,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { element, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
@@ -30,6 +30,7 @@ type NodeToHTML<NodeType, ReturnType> = (
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   externals: Record<string, ComponentUIDL>,
+  routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
     dependencies: Record<string, UIDLDependency>
@@ -43,6 +44,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
+  routeDefinitions,
   structure
 ) => {
   switch (node.type) {
@@ -59,6 +61,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -69,6 +72,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -89,6 +93,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
+  routeDefinitions,
   structure
 ) => {
   const {
@@ -154,6 +159,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       propsForInstance,
       statesForInstance,
       externals,
+      routeDefinitions,
       structure
     )
 
@@ -197,7 +203,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     return compTag
   }
 
-  if (dependency && dependency?.type !== 'local') {
+  if (dependency && (dependency as UIDLDependency)?.type !== 'local') {
     dependencies[dependency.path] = dependency
   }
 
@@ -209,6 +215,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -239,7 +246,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (Object.keys(attrs).length > 0) {
-    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions)
+    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions, routeDefinitions)
   }
 
   return elementNode
@@ -284,7 +291,8 @@ const handleAttributes = (
   htmlNode: HastNode,
   attrs: Record<string, UIDLAttributeValue>,
   propDefinitions: Record<string, UIDLPropDefinition>,
-  stateDefinitions: Record<string, UIDLStateDefinition>
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  routeDefinitions: UIDLRouteDefinitions
 ) => {
   Object.keys(attrs).forEach((attrKey) => {
     let attrValue = attrs[attrKey]
@@ -296,7 +304,11 @@ const handleAttributes = (
       attrValue.content.startsWith('/')
     ) {
       attrValue =
-        attrValue.content === '/'
+        attrValue.content === '/' ||
+        attrValue.content ===
+          `/${StringUtils.camelCaseToDashCase(
+            StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
+          )}`
           ? staticNode('index.html')
           : staticNode(`${attrValue.content.split('/').pop()}.html`)
     }
