@@ -1,0 +1,1627 @@
+{
+  "name": "Travel Agency",
+  "globals": {
+    "settings": {
+      "title": "Travel Agency",
+      "language": "en"
+    },
+    "assets": [
+      {
+        "type": "style",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "reset-style-sheet"
+          }
+        },
+        "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6 {  margin: 0;  padding: 0;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}html { scroll-behavior: smooth  }"
+      },
+      {
+        "type": "style",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "default-style-sheet"
+          }
+        },
+        "content": "\n  html {\n    font-family: Poppins;\n    font-size: 16px;\n  }\n\n  body {\n    font-weight: 400;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.55;\n    color: var(--dl-color-gray-black);\n    background-color: var(--dl-color-gray-white);\n    \n  }\n\n  \n\n  "
+      },
+      {
+        "type": "font",
+        "path": "",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "font"
+          }
+        }
+      },
+      {
+        "type": "font",
+        "path": "",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "font"
+          }
+        }
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "font"
+          }
+        }
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "font"
+          }
+        }
+      }
+    ],
+    "meta": [
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1.0"
+      },
+      {
+        "charSet": "utf-8"
+      },
+      {
+        "property": "twitter:card",
+        "content": "summary_large_image"
+      }
+    ]
+  },
+  "root": {
+    "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "--dl-size-size-doubleunit": {
+          "type": "static",
+          "content": "2rem"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#643843ff"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "0.5em"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-size-size-unit": {
+          "type": "static",
+          "content": "1rem"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-size-size-tripleunit": {
+          "type": "static",
+          "content": "3rem"
+        },
+        "--dl-color-primary-700": {
+          "type": "static",
+          "content": "#775860ff"
+        },
+        "--dl-space-space-quadruple": {
+          "type": "static",
+          "content": "4em"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-space-space-doubleunit": {
+          "type": "static",
+          "content": "2em"
+        },
+        "--dl-space-space-unit": {
+          "type": "static",
+          "content": "1em"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-size-size-halfunit": {
+          "type": "static",
+          "content": "0.5rem"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#370511ff"
+        },
+        "--dl-radius-radius-round": {
+          "type": "static",
+          "content": "50%"
+        },
+        "--dl-space-space-tripleunit": {
+          "type": "static",
+          "content": "3em"
+        },
+        "--dl-color-gray-700": {
+          "type": "static",
+          "content": "#999999"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        }
+      }
+    },
+    "styleSetDefinitions": {
+      "teleport-show": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "flex !important"
+          }
+        },
+        "conditions": []
+      },
+      "button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "14px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "600"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "list-item": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "list-item"
+          },
+          "animation": {
+            "type": "static",
+            "content": "inherit"
+          },
+          "animationDirection": {
+            "type": "static",
+            "content": "normal"
+          }
+        },
+        "conditions": []
+      },
+      "list": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "width": {
+            "type": "static",
+            "content": "100%"
+          },
+          "margin": {
+            "type": "static",
+            "content": "1em 0px 1em 0px"
+          },
+          "display": {
+            "type": "static",
+            "content": "block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0px 0px 0px 1.5rem"
+          },
+          "listStyleType": {
+            "type": "static",
+            "content": "none"
+          },
+          "listStylePosition": {
+            "type": "static",
+            "content": "outside"
+          }
+        },
+        "conditions": []
+      },
+      "textarea": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "input": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "subheading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "1.6rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "400"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "heading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "3rem"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.55"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "content": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Poppins"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "400"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.55"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "route": {
+        "type": "string",
+        "defaultValue": "Landing-Page",
+        "values": [
+          {
+            "value": "Landing-Page",
+            "seo": {
+              "title": "Travel Agency",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Travel Agency"
+                }
+              ]
+            },
+            "pageOptions": {}
+          }
+        ]
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "height": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "name": "Main",
+                        "referencedStyles": {
+                          "99aaa8f7-ae43-4fbf-820a-aed28f7cae50": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 991,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "opacity": {
+                                  "type": "static",
+                                  "content": "0.7"
+                                },
+                                "flexWrap": {
+                                  "type": "static",
+                                  "content": "wrap"
+                                },
+                                "borderColor": {
+                                  "type": "static",
+                                  "content": "#ea990a"
+                                },
+                                "borderWidth": {
+                                  "type": "static",
+                                  "content": "1px"
+                                },
+                                "borderRadius": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-radius-radius-radius4"
+                                  }
+                                },
+                                "backgroundSize": {
+                                  "type": "static",
+                                  "content": "cover"
+                                },
+                                "backgroundImage": {
+                                  "type": "static",
+                                  "content": "url(\"https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/e91f5243-dad1-445b-b4db-c78467debb6e/7194ed46-3a45-4e76-8d3d-be166edee4bb?org_if_sml=1\")"
+                                }
+                              }
+                            }
+                          },
+                          "c75ca992-659b-40c7-8485-89faa03e33d1": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "backgroundSize": {
+                                  "type": "static",
+                                  "content": "cover"
+                                },
+                                "backgroundImage": {
+                                  "type": "static",
+                                  "content": "url(\"https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/e91f5243-dad1-445b-b4db-c78467debb6e/7194ed46-3a45-4e76-8d3d-be166edee4bb?org_if_sml=1\")"
+                                }
+                              }
+                            }
+                          },
+                          "f06cf5b0-669d-4d21-a61f-73f997996696": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "paddingLeft": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                },
+                                "paddingRight": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-unit"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "attrs": {
+                          "id": {
+                            "type": "static",
+                            "content": "main-section"
+                          }
+                        },
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "paddingTop": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-quadruple"
+                            }
+                          },
+                          "paddingLeft": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-doubleunit"
+                            }
+                          },
+                          "paddingRight": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-doubleunit"
+                            }
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          },
+                          "paddingBottom": {
+                            "type": "dynamic",
+                            "content": {
+                              "referenceType": "token",
+                              "id": "--dl-space-space-quadruple"
+                            }
+                          },
+                          "backgroundSize": {
+                            "type": "static",
+                            "content": "cover"
+                          },
+                          "justifyContent": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "backgroundImage": {
+                            "type": "static",
+                            "content": "url(\"https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/e91f5243-dad1-445b-b4db-c78467debb6e/7194ed46-3a45-4e76-8d3d-be166edee4bb?org_if_sml=1\")"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "name": "Cards-container",
+                              "referencedStyles": {
+                                "14796d42-2776-406c-aa87-4b32c0fe1b02": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "justifyContent": {
+                                        "type": "static",
+                                        "content": "center"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "gridGap": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-doubleunit"
+                                  }
+                                },
+                                "flexWrap": {
+                                  "type": "static",
+                                  "content": "wrap"
+                                },
+                                "maxWidth": {
+                                  "type": "static",
+                                  "content": "1000px"
+                                },
+                                "marginTop": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-doubleunit"
+                                  }
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "marginBottom": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-space-space-doubleunit"
+                                  }
+                                },
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "row"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "space-between"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "referencedStyles": {},
+                                    "abilities": {
+                                      "link": {
+                                        "type": "url",
+                                        "content": {
+                                          "url": {
+                                            "type": "static",
+                                            "content": "https://www.google.com/maps/place/Shri+Sai+Baba+Temple/@19.2545437,76.4344244,15z/data=!4m5!3m4!1s0x0:0x2dcf8c575d33dba1!8m2!3d19.2545437!4d76.434417 "
+                                          },
+                                          "newTab": true
+                                        }
+                                      }
+                                    },
+                                    "attrs": {
+                                      "city": {
+                                        "type": "static",
+                                        "content": "Parbhani (Maharashtra)"
+                                      },
+                                      "image": {
+                                        "type": "static",
+                                        "content": "https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/e91f5243-dad1-445b-b4db-c78467debb6e/427ef51c-fd3f-4add-b323-7edbe2ee3621?org_if_sml=1"
+                                      },
+                                      "TEST_1": {
+                                        "type": "static",
+                                        "content": "This is one of the Biggest Sai Baba Temples In India located in Parbhani district of Maharashtra. It is said that Sai Baba was born in the village named Pathri and this temple was constructed in the year 1994 as a memorial.During 1999 this Famous Sai Baba Temples In India was inaugurated for the public. The temple also has a Trust, the primary aim of Trust is to spread knowledge and teach the right things to mankind.Shri V.B Kher was a Sai devotee and he majorly contributed to the establishment of Shri Sai Janmashthan Mandir. He is also a researcher and did detailed research in the year 1975, this is how he discovered the Birthplace of Shri Sai Baba i.e. the Pathri village. It is said that during the digging work of temple building, 2 basements with two arches and tunnel was discovered. It also includes 1 Hanuman idol, workshop articles like pali and panchpatra. The Shri Sai Janmasthan Mandir has daily 5 worship schedule that mean from KakadArati to Shejarati. The temple also conducts 3 prominent festivals every year. The Shri Ram Navami festival is conducted during March and April. The devotees celebrate Guru Poornima in July and during October, Vijayadashami is celebrated as Sai Baba Mahasamadhi."
+                                      },
+                                      "rootClassName": {
+                                        "type": "comp-style",
+                                        "content": "rootClassName1"
+                                      }
+                                    },
+                                    "style": {
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "PlaceCard"
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "referencedStyles": {},
+                                    "abilities": {
+                                      "link": {
+                                        "type": "url",
+                                        "content": {
+                                          "url": {
+                                            "type": "static",
+                                            "content": "https://www.google.com/maps/place/All+India+Sai+Samaj+Sai+Baba+Temple,+Mylapore/@13.037558,80.2614271,16z/data=!4m5!3m4!1s0x3a5267cdf30d2cbd:0x95db6f56851b124f!8m2!3d13.0324137!4d80.2650717"
+                                          },
+                                          "newTab": true
+                                        }
+                                      }
+                                    },
+                                    "attrs": {
+                                      "city": {
+                                        "type": "static",
+                                        "content": "Chennai (Tamil Nadu)"
+                                      },
+                                      "image": {
+                                        "type": "static",
+                                        "content": "https://aheioqhobo.cloudimg.io/v7/_playground-bucket-v2.teleporthq.io_/e91f5243-dad1-445b-b4db-c78467debb6e/db91007d-fd2e-4d8f-acdd-f7ab4beeb7c1?org_if_sml=1"
+                                      },
+                                      "TEST_1": {
+                                        "type": "static",
+                                        "content": "The Shirdi Sai Baba temple is one of the oldest and Biggest Sai Baba Temples In India. This Sai Baba temple is located in Mylapore and was built in the year 1952 by Mr. Narasimhaswami who hails from Salem.Shirdi Sai Baba Temple is managed by All India Sai Samaj and it was found 7 decades back by Mr. Narasimhaswami. The main objective is to propagate the life, teaching, and principles of Sai Baba. The holy fire is lightened continuously by the devotees and they are allowed to touch Sai Baba’s feet and statue. The big size Sai Baba statue is made using the finest white marble.   When you visit the Shirdi Sai Baba Temple in Mylapore you are free to offer garlands, clothes and even prasad. The temple is pleasant and devotees surely feel positive vibes here.If you want to have a peaceful praying experience, the Shirdi Sai Baba temple is an ideal choice. The religious ambiance will instantly bring inner peace. The biggest attraction of  Shirdi Sai Baba temple is the Jyothi in Shirdi, it is said that this aflame was lit by the deceased saint.  The temple opens at 5:00 am and shuts as 9:00 pm. It remains closed from 1:00 pm to 4:00 pm. The Shirdi Sai Baba temple is an ideal place for exploring spirituality. The temple also offers routine anna dhananam and prasadham. This temple is spacious and has a peaceful aura."
+                                      }
+                                    },
+                                    "style": {
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      }
+                                    },
+                                    "children": [],
+                                    "semanticType": "PlaceCard"
+                                  }
+                                } 
+                              ],
+                              "semanticType": "div"
+                            }
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Landing-Page",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "SolidButton": {
+      "propDefinitions": {
+        "button": {
+          "id": "705b51b0-98ca-441b-af6b-cf0902dbec83",
+          "defaultValue": "Button",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "button",
+                "referencedStyles": {
+                  "13e16e88-6165-485a-97fd-5e4ee1210ca6": {
+                    "id": "13e16e88-6165-485a-97fd-5e4ee1210ca6",
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "button"
+                    }
+                  },
+                  "2318f5ab-fcd5-41ff-9a00-2f541be12bbd": {
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "button"
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "color": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-color-gray-white"
+                    }
+                  },
+                  "border": {
+                    "type": "static",
+                    "content": "none"
+                  },
+                  "paddingTop": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-halfunit"
+                    }
+                  },
+                  "paddingLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-doubleunit"
+                    }
+                  },
+                  "borderRadius": {
+                    "type": "static",
+                    "content": "50px"
+                  },
+                  "paddingRight": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-doubleunit"
+                    }
+                  },
+                  "paddingBottom": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-halfunit"
+                    }
+                  },
+                  "backgroundColor": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-color-primary-100"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "button",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "SolidButton",
+      "styleSetDefinitions": {}
+    },
+    "OutlineButton": {
+      "propDefinitions": {
+        "button1": {
+          "id": "705b51b0-98ca-441b-af6b-cf0902dbec83",
+          "defaultValue": "Button",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "button",
+                "referencedStyles": {
+                  "13e16e88-6165-485a-97fd-5e4ee1210ca6": {
+                    "id": "13e16e88-6165-485a-97fd-5e4ee1210ca6",
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "button"
+                    }
+                  },
+                  "b3f2796d-b268-4736-a04f-de8b6dd42d60": {
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "button"
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "color": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-color-gray-black"
+                    }
+                  },
+                  "paddingTop": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  },
+                  "borderColor": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-color-primary-100"
+                    }
+                  },
+                  "borderWidth": {
+                    "type": "static",
+                    "content": "1px"
+                  },
+                  "paddingLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-doubleunit"
+                    }
+                  },
+                  "borderRadius": {
+                    "type": "static",
+                    "content": "50px"
+                  },
+                  "paddingRight": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-doubleunit"
+                    }
+                  },
+                  "paddingBottom": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  },
+                  "backgroundColor": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-color-gray-white"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "button1",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "OutlineButton",
+      "styleSetDefinitions": {}
+    },
+    "PlaceCard": {
+      "propDefinitions": {
+        "image": {
+          "id": "0a4c236c-950a-4e02-aa3e-3a3de90a88d2",
+          "defaultValue": "https://images.unsplash.com/photo-1659536019078-361c92fbfdf6?ixid=Mnw5MTMyMXwxfDF8YWxsfDE2fHx8fHx8Mnx8MTY2MjQ1MzA1Mg&ixlib=rb-1.2.1&w=300",
+          "type": "string"
+        },
+        "image_alt": {
+          "id": "3bbfc089-c103-48c9-8111-837ad65a8b23",
+          "defaultValue": "image",
+          "type": "string"
+        },
+        "city": {
+          "id": "3e6d20fc-a2e2-4ad4-be1d-728f70fdbc81",
+          "defaultValue": "City Name",
+          "type": "string"
+        },
+        "fous": {
+          "id": "5c53f770-7a56-4be8-ab76-9d740d2568ad",
+          "defaultValue": "() => {}",
+          "type": "func"
+        },
+        "rootClassName": {
+          "id": "605c2397-6126-4057-b2af-9ab8225d3610",
+          "defaultValue": "",
+          "type": "string"
+        },
+        "TEST_1": {
+          "id": "7f96ada3-8798-458a-ab59-3b4f229278f3",
+          "defaultValue": "Parbhani (Maharashtra) This is one of the Biggest Sai Baba Temples In India located in Parbhani district of Maharashtra. It is said that Sai Baba was born in the village named Pathri and this temple was constructed in the year 1994 as a memorial.During 1999 this Famous Sai Baba Temples In India was inaugurated for the public. The temple also has a Trust, the primary aim of Trust is to spread knowledge and teach the right things to mankind.Shri V.B Kher was a Sai devotee and he majorly contributed to the establishment of Shri Sai Janmashthan Mandir. He is also a researcher and did detailed research in the year 1975, this is how he discovered the Birthplace of Shri Sai Baba i.e. the Pathri village.It is said that during the digging work of temple building, 2 basements with two arches and tunnel was discovered. It also includes 1 Hanuman idol, workshop articles like pali and panchpatra. The Shri Sai Janmasthan Mandir has daily 5 worship schedule that mean from KakadArati to Shejarati. The temple also conducts 3 prominent festivals every year. The Shri Ram Navami festival is conducted during March and April. The devotees celebrate Guru Poornima in July and during October, Vijayadashami is celebrated as Sai Baba Mahasamadhi.",
+          "type": "string"
+        },
+        "BOOKS": {
+          "id": "8232bddd-43b5-440d-b7cc-2eb71077946e",
+          "defaultValue": "E-BOOKS",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "referencedStyles": {
+            "26ebef73-02a3-4134-a7c5-7c7851869c07": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 1200,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  }
+                }
+              }
+            },
+            "a8908330-41f6-43f2-b76b-8357b49e6657": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 479,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "width": {
+                    "type": "static",
+                    "content": "300px"
+                  }
+                }
+              }
+            },
+            "a8c63670-d114-4574-9ef3-cafa20a9d99e": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 767,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "width": {
+                    "type": "static",
+                    "content": "200px"
+                  }
+                }
+              }
+            },
+            "f3e2881e-bbdb-4729-be5c-7339b382a6fc": {
+              "type": "style-map",
+              "content": {
+                "mapType": "component-referenced",
+                "content": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "prop",
+                    "id": "rootClassName"
+                  }
+                }
+              }
+            }
+          },
+          "abilities": {},
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "300px"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "alt": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image_alt"
+                    }
+                  },
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image"
+                    }
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "height": {
+                    "type": "static",
+                    "content": "250px"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  },
+                  "borderRadius": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-radius-radius-radius4"
+                    }
+                  },
+                  "borderTopLeftRadius": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-radius-radius-radius8"
+                    }
+                  },
+                  "borderTopRightRadius": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-radius-radius-radius8"
+                    }
+                  }
+                },
+                "children": []
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "padding": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  },
+                  "backgroundImage": {
+                    "type": "static",
+                    "content": "linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.65) 100.00%)"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "style": {
+                        "fontSize": {
+                          "type": "static",
+                          "content": "20px"
+                        },
+                        "fontStyle": {
+                          "type": "static",
+                          "content": "normal"
+                        },
+                        "fontWeight": {
+                          "type": "static",
+                          "content": "700"
+                        },
+                        "paddingBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-halfunit"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "city",
+                            "referenceType": "prop"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "referencedStyles": {
+                        "371bca37-13b8-45c6-8c92-7fb7d5a6cff3": {
+                          "type": "style-map",
+                          "content": {
+                            "conditions": [
+                              {
+                                "maxWidth": 1200,
+                                "conditionType": "screen-size"
+                              }
+                            ],
+                            "mapType": "inlined",
+                            "styles": {
+                              "fontStyle": {
+                                "type": "static",
+                                "content": "normal"
+                              },
+                              "textAlign": {
+                                "type": "static",
+                                "content": "left"
+                              },
+                              "fontWeight": {
+                                "type": "static",
+                                "content": "600"
+                              },
+                              "borderColor": {
+                                "type": "static",
+                                "content": "#08ebc9"
+                              },
+                              "borderStyle": {
+                                "type": "static",
+                                "content": "hidden"
+                              },
+                              "borderWidth": {
+                                "type": "static",
+                                "content": "1px"
+                              },
+                              "textTransform": {
+                                "type": "static",
+                                "content": "uppercase"
+                              },
+                              "backgroundImage": {
+                                "type": "static",
+                                "content": "linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.33) 100.00%)"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "abilities": {},
+                      "style": {
+                        "color": {
+                          "type": "static",
+                          "content": "#000000"
+                        },
+                        "fontSize": {
+                          "type": "static",
+                          "content": "12px"
+                        },
+                        "maxWidth": {
+                          "type": "static",
+                          "content": "250px"
+                        },
+                        "fontStyle": {
+                          "type": "static",
+                          "content": "normal"
+                        },
+                        "textAlign": {
+                          "type": "static",
+                          "content": "left"
+                        },
+                        "fontWeight": {
+                          "type": "static",
+                          "content": "700"
+                        },
+                        "borderColor": {
+                          "type": "static",
+                          "content": "rgba(13, 235, 190, 0.98)"
+                        },
+                        "borderStyle": {
+                          "type": "static",
+                          "content": "hidden"
+                        },
+                        "borderWidth": {
+                          "type": "static",
+                          "content": "1px"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-doubleunit"
+                          }
+                        },
+                        "textTransform": {
+                          "type": "static",
+                          "content": "uppercase"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "TEST_1",
+                            "referenceType": "prop"
+                          }
+                        }
+                      ],
+                      "semanticType": "span"
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "component",
+                      "dependency": {
+                        "type": "local"
+                      },
+                      "referencedStyles": {},
+                      "abilities": {
+                        "link": {
+                          "type": "url",
+                          "content": {
+                            "url": {
+                              "type": "static",
+                              "content": "https://clnk.in/r99u"
+                            },
+                            "newTab": true
+                          }
+                        }
+                      },
+                      "attrs": {
+                        "button1": {
+                          "type": "static",
+                          "content": "Discover place"
+                        }
+                      },
+                      "style": {
+                        "textDecoration": {
+                          "type": "static",
+                          "content": "none"
+                        }
+                      },
+                      "children": [],
+                      "semanticType": "OutlineButton"
+                    }
+                  }
+                ],
+                "semanticType": "div"
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "button",
+                "referencedStyles": {
+                  "824e30dc-7ce5-4532-ba43-5d0136af9d57": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "content": "hover",
+                          "conditionType": "element-state"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "backgroundColor": {
+                          "type": "static",
+                          "content": "#13c0db"
+                        }
+                      }
+                    }
+                  },
+                  "13e16e88-6165-485a-97fd-5e4ee1210ca6": {
+                    "id": "13e16e88-6165-485a-97fd-5e4ee1210ca6",
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "project-referenced",
+                      "referenceId": "button"
+                    }
+                  }
+                },
+                "abilities": {
+                  "link": {
+                    "type": "url",
+                    "content": {
+                      "url": {
+                        "type": "static",
+                        "content": "https://clnk.in/saic"
+                      },
+                      "newTab": true
+                    }
+                  }
+                },
+                "attrs": {
+                  "type": {
+                    "type": "static",
+                    "content": "button"
+                  }
+                },
+                "style": {
+                  "transition": {
+                    "type": "static",
+                    "content": "0.3s"
+                  },
+                  "textDecoration": {
+                    "type": "static",
+                    "content": "none"
+                  },
+                  "backgroundColor": {
+                    "type": "static",
+                    "content": "#13b4cb"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "BOOKS",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "PlaceCard",
+      "styleSetDefinitions": {
+        "rootClassName": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName1": {
+          "content": {
+            "backgroundImage": {
+              "type": "static",
+              "content": "linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.62) 100.00%)"
+            }
+          },
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        }
+      }
+    }
+  }
+}
