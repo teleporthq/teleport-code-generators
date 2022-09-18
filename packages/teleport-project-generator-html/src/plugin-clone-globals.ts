@@ -4,8 +4,8 @@ import {
   ProjectPlugin,
   ProjectPluginStructure,
 } from '@teleporthq/teleport-types'
-import { parse, HTMLElement } from 'node-html-parser'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
+import { load } from 'cheerio'
 
 class ProjectPluginCloneGlobals implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
@@ -14,23 +14,16 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
 
   async runAfter(structure: ProjectPluginStructure) {
     const { files, uidl } = structure
-    const entryFile = files.get('entry')
+    const entryFile = files.get('entry')?.files[0]
     if (!entryFile) {
       return structure
     }
 
-    const parsedEntryFile = parse(entryFile.files[0].content)
-    const body = parsedEntryFile.querySelector('body')
-    const head = parsedEntryFile.querySelector('head')
-    /* script tags are injected using customCode field of UIDL */
-    const scriptTags = body.querySelectorAll('script')
-
-    body.childNodes = []
+    const parsedEntry = (await import('cheerio').then((mod) => mod.load))(entryFile.content)
+    const scriptTags = parsedEntry('script')
 
     if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
-      head.appendChild(
-        new HTMLElement('link', {}, 'rel="stylesheet" href="./style.css"', parsedEntryFile)
-      )
+      parsedEntry('head').append(`<link rel="stylesheet" href="./style.css"></link>`)
     }
 
     files.forEach((fileId, key) => {
@@ -39,31 +32,31 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
       if (path[0] === '') {
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
           if (file.fileType === FileType.HTML) {
-            const parsedIndividualFile = parse(file.content)
-            const metaTags = parsedIndividualFile.getElementsByTagName('meta')
-            const titleTags = parsedIndividualFile.getElementsByTagName('title')
+            parsedEntry('body').empty()
+            parsedEntry('meta').remove()
+            parsedEntry('title').remove()
+            const parsedIndividualFile = load(file.content)
 
-            metaTags.forEach((metaTag) => {
-              head.childNodes.unshift(metaTag)
-              metaTag.remove()
-            })
-            titleTags.forEach((titleTag) => {
-              const inheritedHeadTags = head.getElementsByTagName('title')
-              if (inheritedHeadTags.length > 0) {
-                head.removeChild(head.getElementsByTagName('title')[0])
-              }
-              head.childNodes.unshift(titleTag)
-              titleTag.remove()
-            })
+            const metaTags = parsedIndividualFile.root().find('meta')
+            parsedEntry('head').append(metaTags.toString())
+            parsedIndividualFile('meta').remove()
 
-            body.innerHTML = parsedIndividualFile.toString()
-            body.childNodes.push(...scriptTags)
+            const titleTags = parsedIndividualFile.root().find('title')
+            parsedEntry('head').append(titleTags.toString())
+            parsedIndividualFile('title').remove()
+
+            parsedEntry('body').append(scriptTags.toString())
+            parsedEntry('body').append(parsedIndividualFile.html())
 
             const prettyFile = prettierHTML({
-              [FileType.HTML]: parsedEntryFile.toString(),
+              [FileType.HTML]: parsedEntry.html(),
             })
-
-            return { name: file.name, content: prettyFile[FileType.HTML], fileType: FileType.HTML }
+            const resultFile = {
+              name: file.name,
+              content: prettyFile[FileType.HTML],
+              fileType: FileType.HTML,
+            }
+            return resultFile
           }
           return file
         })

@@ -29,7 +29,7 @@
     "@teleporthq/teleport-plugin-css": "^0.22.0",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.22.0",
     "@teleporthq/teleport-project-generator": "^0.22.0",
-    "node-html-parser": "5.2.0",
-    "path-browserify": "^1.0.1"
+    "path-browserify": "^1.0.1",
+    "cheerio": "^1.0.0-rc.12"
   }
 }
