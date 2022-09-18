@@ -25,7 +25,6 @@ import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
 type NodeToHTML<NodeType, ReturnType> = (
-  uidl: ComponentUIDL,
   node: NodeType,
   templatesLookUp: Record<string, unknown>,
   propDefinitions: Record<string, UIDLPropDefinition>,
@@ -40,7 +39,6 @@ type NodeToHTML<NodeType, ReturnType> = (
 ) => ReturnType
 
 export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
-  uidl,
   node,
   templatesLookUp,
   propDefinitions,
@@ -58,7 +56,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
     case 'element':
       return generatElementNode(
-        uidl,
         node,
         templatesLookUp,
         propDefinitions,
@@ -70,7 +67,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
     case 'dynamic':
       return generateDynamicNode(
-        uidl,
         node,
         templatesLookUp,
         propDefinitions,
@@ -92,7 +88,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 }
 
 const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
-  uidl,
   node,
   templatesLookUp,
   propDefinitions,
@@ -133,7 +128,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   if (children) {
     for (const child of children) {
       const childTag = await generateHtmlSynatx(
-        uidl,
         child,
         templatesLookUp,
         propDefinitions,
@@ -188,7 +182,7 @@ const generateComponentContent = async (
     options: GeneratorOptions
   }
 ) => {
-  const { elementType, attrs, key } = node.content
+  const { elementType, attrs = {}, key } = node.content
   const { dependencies, chunks, options } = structure
   const comp = externals[elementType]
   const lookUpTemplates: Record<string, unknown> = {}
@@ -204,7 +198,7 @@ const generateComponentContent = async (
       if (attrs[propKey]) {
         acc[propKey] = {
           ...combinedProps[propKey],
-          defaultValue: attrs[propKey].content,
+          defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
         }
       } else {
         acc[propKey] = combinedProps[propKey]
@@ -221,7 +215,7 @@ const generateComponentContent = async (
       if (attrs[propKey]) {
         acc[propKey] = {
           ...combinedStates[propKey],
-          defaultValue: attrs[propKey].content,
+          defaultValue: attrs[propKey]?.content || combinedStates[propKey]?.defaultValue,
         }
       } else {
         acc[propKey] = combinedStates[propKey]
@@ -235,7 +229,6 @@ const generateComponentContent = async (
   lookUpTemplates[key] = elementNode
 
   const compTag = (await generateHtmlSynatx(
-    comp,
     comp.node,
     lookUpTemplates,
     propsForInstance,
@@ -287,7 +280,6 @@ const generateComponentContent = async (
 }
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
-  _UIDL,
   node,
   _,
   propDefinitions,

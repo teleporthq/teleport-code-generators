@@ -44,7 +44,6 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       : HASTBuilders.createHTMLNode('div')
 
     const bodyContent = await generateHtmlSynatx(
-      uidl,
       uidl.node,
       templatesLookUp,
       propDefinitions,

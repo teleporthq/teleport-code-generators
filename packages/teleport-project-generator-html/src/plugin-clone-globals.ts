@@ -20,49 +20,62 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
     }
 
     const parsedEntry = (await import('cheerio').then((mod) => mod.load))(entryFile.content)
-    const scriptTags = parsedEntry('script')
+    /* Script tags that are attached to the body, example teleport-custom-scripts from studio */
+    const scriptTagsFromRootBody = parsedEntry('body').find('script').toString()
+    const metaTagsFromRoot = parsedEntry('head').find('meta').toString()
+    const titleTagsFromRoot = parsedEntry('head').find('title').toString()
+
+    parsedEntry('head').find('script').remove()
+    parsedEntry('body').find('script').remove()
+    parsedEntry('head').find('meta').remove()
+    parsedEntry('head').find('title').remove()
 
     if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
       parsedEntry('head').append(`<link rel="stylesheet" href="./style.css"></link>`)
     }
 
-    files.forEach((fileId, key) => {
-      const { path } = fileId
+    const memoryFiles = Object.fromEntries(files)
+    for (const id in memoryFiles) {
+      if (memoryFiles.hasOwnProperty(id)) {
+        const fileId = memoryFiles[id]
+        if (fileId.path.length === 1 && fileId.path[0] === '') {
+          const newFiles: GeneratedFile[] = fileId.files.map((file) => {
+            if (file.fileType === FileType.HTML) {
+              parsedEntry('body').empty()
+              parsedEntry('head').find('title').remove()
+              parsedEntry('head').find('meta').remove()
 
-      if (path[0] === '') {
-        const newFiles: GeneratedFile[] = fileId.files.map((file) => {
-          if (file.fileType === FileType.HTML) {
-            parsedEntry('body').empty()
-            parsedEntry('meta').remove()
-            parsedEntry('title').remove()
-            const parsedIndividualFile = load(file.content)
+              const parsedIndividualFile = load(file.content)
 
-            const metaTags = parsedIndividualFile.root().find('meta')
-            parsedEntry('head').append(metaTags.toString())
-            parsedIndividualFile('meta').remove()
+              const metaTags = parsedIndividualFile.root().find('meta')
+              parsedEntry('head').prepend(metaTags.length ? metaTags.toString() : metaTagsFromRoot)
+              metaTags.remove()
 
-            const titleTags = parsedIndividualFile.root().find('title')
-            parsedEntry('head').append(titleTags.toString())
-            parsedIndividualFile('title').remove()
+              const titleTags = parsedIndividualFile.root().find('title')
+              parsedEntry('head').prepend(
+                titleTags.length ? titleTags.toString() : titleTagsFromRoot
+              )
+              titleTags.remove()
 
-            parsedEntry('body').append(scriptTags.toString())
-            parsedEntry('body').append(parsedIndividualFile.html())
+              parsedEntry('body').append(parsedIndividualFile.html())
+              parsedEntry('body').append(scriptTagsFromRootBody.toString())
 
-            const prettyFile = prettierHTML({
-              [FileType.HTML]: parsedEntry.html(),
-            })
-            const resultFile = {
-              name: file.name,
-              content: prettyFile[FileType.HTML],
-              fileType: FileType.HTML,
+              const prettyFile = prettierHTML({
+                [FileType.HTML]: parsedEntry.html(),
+              })
+
+              return {
+                name: file.name,
+                content: prettyFile[FileType.HTML],
+                fileType: FileType.HTML,
+              }
             }
-            return resultFile
-          }
-          return file
-        })
-        files.set(key, { path, files: newFiles })
+            return file
+          })
+          files.set(id, { path: fileId.path, files: newFiles })
+        }
       }
-    })
+    }
 
     files.delete('entry')
     return structure
