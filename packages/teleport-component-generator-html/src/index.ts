@@ -23,6 +23,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
+  mappings.forEach((mapping) => resolver.addMapping(mapping))
 
   Object.defineProperty(generator, 'addExternalComponents', {
     value: (params: { externals: Record<string, ComponentUIDL>; skipValidation?: boolean }) => {
