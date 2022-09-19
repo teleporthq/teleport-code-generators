@@ -337,7 +337,6 @@ Firefox ESR
 not dead
 not IE 9-11 # For IE 9-11 support, remove 'not'.
 `,
-      fileType: '',
     },
     {
       name: '.gitignore',
