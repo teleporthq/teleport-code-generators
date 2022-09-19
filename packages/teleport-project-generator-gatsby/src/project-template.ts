@@ -45,7 +45,7 @@ export default {
     },
     {
       name: 'gatsby-node',
-      content: ``,
+      content: `/* gatsby-node.js */`,
       fileType: 'js',
     },
     {
