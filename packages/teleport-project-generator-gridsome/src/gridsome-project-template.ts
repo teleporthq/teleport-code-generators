@@ -39,7 +39,6 @@ module.exports = {
     },
     {
       name: '.gitignore',
-      fileType: '',
       content: `
 *.log
 .cache
