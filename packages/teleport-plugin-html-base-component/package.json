@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-html-base-component",
-  "version": "0.22.1",
+  "version": "0.22.2",
   "description": "A plugin for handling the skeleton/baseline of a base html component",
   "author": "teleportHQ",
   "license": "MIT",

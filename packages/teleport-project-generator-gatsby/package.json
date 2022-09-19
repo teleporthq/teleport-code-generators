@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-gatsby",
-  "version": "0.22.0",
+  "version": "0.22.2",
   "description": "Project generator using Gatsby",
   "author": "teleportHQ",
   "license": "MIT",

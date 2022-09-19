@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-gridsome",
-  "version": "0.22.0",
+  "version": "0.22.2",
   "description": "Project generator using Gridsome",
   "author": "teleportHQ",
   "license": "MIT",

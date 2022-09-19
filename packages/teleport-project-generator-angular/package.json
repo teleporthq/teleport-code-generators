@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-angular",
-  "version": "0.22.0",
+  "version": "0.22.2",
   "description": "Project generator for a standard Angular project",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
