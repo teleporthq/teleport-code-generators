@@ -19,7 +19,7 @@ import {
   UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
@@ -53,6 +53,9 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
     case 'static':
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
+
+    case 'slot':
+      return HASTBuilders.createHTMLNode(node.type)
 
     case 'element':
       return generatElementNode(
@@ -182,14 +185,33 @@ const generateComponentContent = async (
     options: GeneratorOptions
   }
 ) => {
-  const { elementType, attrs = {}, key } = node.content
+  const { elementType, attrs = {}, key, children = [] } = node.content
   const { dependencies, chunks, options } = structure
-  const comp = externals[elementType]
+  const comp = UIDLUtils.cloneObject(externals[elementType] || {}) as ComponentUIDL
   const lookUpTemplates: Record<string, unknown> = {}
 
-  if (!comp) {
+  if (!comp || !comp?.node) {
     throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
         Received ${JSON.stringify(Object.keys(externals), null, 2)}`)
+  }
+
+  if (children.length) {
+    UIDLUtils.traverseNodes(comp.node, (childNode, parentNode) => {
+      if (childNode.type === 'slot' && parentNode.type === 'element') {
+        const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
+        parentNode.content.children = [
+          ...nonSlotNodes,
+          {
+            type: 'element',
+            content: {
+              key: 'custom-slot',
+              elementType: 'slot',
+              children,
+            },
+          },
+        ]
+      }
+    })
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
