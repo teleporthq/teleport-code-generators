@@ -9,8 +9,6 @@ import { createReactComponentGenerator } from '../../src'
 import {
   ComponentUIDL,
   GeneratedFile,
-  UIDLPropDefinition,
-  UIDLStyleDefinitions,
   FileType,
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'
