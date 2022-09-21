@@ -19,7 +19,7 @@ import {
   UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
@@ -53,6 +53,9 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
     case 'static':
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
+
+    case 'slot':
+      return HASTBuilders.createHTMLNode(node.type)
 
     case 'element':
       return generatElementNode(
@@ -182,14 +185,46 @@ const generateComponentContent = async (
     options: GeneratorOptions
   }
 ) => {
-  const { elementType, attrs = {}, key } = node.content
+  const { elementType, attrs = {}, key, children = [] } = node.content
   const { dependencies, chunks, options } = structure
-  const comp = externals[elementType]
+  const comp = UIDLUtils.cloneObject(externals[elementType] || {}) as ComponentUIDL
   const lookUpTemplates: Record<string, unknown> = {}
+  let compHasSlots: boolean = false
 
-  if (!comp) {
+  if (!comp || !comp?.node) {
     throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
         Received ${JSON.stringify(Object.keys(externals), null, 2)}`)
+  }
+
+  if (children.length) {
+    compHasSlots = true
+    UIDLUtils.traverseNodes(comp.node, (childNode, parentNode) => {
+      if (childNode.type === 'slot' && parentNode.type === 'element') {
+        const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
+        parentNode.content.children = [
+          ...nonSlotNodes,
+          {
+            type: 'element',
+            content: {
+              key: 'custom-slot',
+              elementType: 'slot',
+              style: {
+                display: {
+                  type: 'static',
+                  content: 'contents',
+                },
+              },
+              children,
+            },
+          },
+        ]
+      }
+    })
+    /* 
+      Since we don't generate direct component children in HTML. We need to reset this,
+      or else the plugins like css and others try to parse and process them.
+    */
+    node.content.children = []
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
@@ -225,11 +260,23 @@ const generateComponentContent = async (
     },
     {}
   )
-  const elementNode = HASTBuilders.createHTMLNode(elementType)
+  const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
   lookUpTemplates[key] = elementNode
 
   const compTag = (await generateHtmlSynatx(
-    comp.node,
+    {
+      ...comp.node,
+      content: {
+        ...comp.node.content,
+        style: {
+          ...(comp.node.content?.style || {}),
+          display: {
+            type: 'static',
+            content: 'contents',
+          },
+        },
+      },
+    },
     lookUpTemplates,
     propsForInstance,
     statesForInstance,
@@ -269,14 +316,21 @@ const generateComponentContent = async (
     options,
   })
 
-  const chunk = chunks.find((item) => item.name === comp.name)
-  if (!chunk) {
-    const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
-    chunks.push(styleChunk)
+  if (compHasSlots) {
+    result.chunks.forEach((chunk) => {
+      if (chunk.fileType === FileType.CSS) {
+        chunks.push(chunk)
+      }
+    })
+  } else {
+    const chunk = chunks.find((item) => item.name === comp.name)
+    if (!chunk) {
+      const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
+      chunks.push(styleChunk)
+    }
   }
 
-  HASTUtils.addChildNode(elementNode, compTag)
-  return elementNode
+  return compTag
 }
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
