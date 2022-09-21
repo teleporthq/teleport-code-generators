@@ -220,6 +220,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const returnStatement = bodyStatement.body.find(
       (statement) => statement.type === 'ReturnStatement'
     )
+
     if (!returnStatement) {
       throw new PluginStyledJSX(`Return Statement is missing from the component AST`)
     }
