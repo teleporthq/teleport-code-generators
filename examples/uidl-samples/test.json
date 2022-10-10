@@ -27,6 +27,14 @@
       {
         "type": "script",
         "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
+      },
+      {
+        "type": "icon",
+        "path": "/playground_assets/kitten.png",
+        "options": {
+          "iconType": "icon/png",
+          "iconSizes": "32x32"
+        }
       }
     ],
     "meta": [
@@ -654,6 +662,70 @@
                     }
                   },
                   "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "semanticType": "div",
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "image",
+                              "style": {
+                                "width": "100%",
+                                "height": "200px;"
+                              },
+                              "attrs": {
+                                "src": {
+                                  "type": "static",
+                                  "content": "/playground_assets/kitten.png"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "key": "div",
+                              "elementType": "div",
+                              "name": "div",
+                              "children": [],
+                              "attrs": {},
+                              "style": {
+                                "width": "100%",
+                                "height": "200px",
+                                "backgroundImage": {
+                                  "type": "static",
+                                  "content": "url(\"/playground_assets/kitten.png\")"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "semanticType": "CompWithImageProp",
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "style": {
+                                "width": "100%",
+                                "height": "200px"
+                              },
+                              "attrs": {
+                                "image": {
+                                  "type": "static",
+                                  "content": "/playground_assets/kitten.png"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "attrs": {}
+                      }
+                    },
                     {
                       "type": "element",
                       "content": {
@@ -10333,6 +10405,107 @@
           "content": {},
           "conditions": [],
           "type": "reusable-component-style-override"
+        }
+      }
+    },
+    "CompWithImageProp": {
+      "name": "CompWithImageProp",
+      "styleSetDefinitions": {
+        "bgImageC": {
+          "type": "reusable-project-style-map",
+          "content": {
+            "backgroundImage": {
+              "type": "static",
+              "content": "url(\"/playground_assets/kitten.png\")"
+            }
+          }
+        }
+      },
+      "propDefinitions": {
+        "image": {
+          "type": "string",
+          "defaultValue": "/playground_assets/kitten.png"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "style": {
+                  "width": "100%",
+                  "height": "200px"
+                },
+                "attrs": {
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "key": "div",
+                "elementType": "component",
+                "name": "div",
+                "children": [],
+                "attrs": {},
+                "semanticType": "div",
+                "style": {
+                  "width": "100%",
+                  "height": "200px",
+                  "backgroundImage": {
+                    "type": "static",
+                    "content": "url(\"/playground_assets/kitten.png\")"
+                  }
+                }
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "key": "div",
+                "elementType": "component",
+                "name": "div",
+                "children": [],
+                "attrs": {},
+                "semanticType": "div",
+                "style": {},
+                "referencedStyles": {
+                  "primaryButton": {
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "inlined",
+                      "conditions": [
+                        {
+                          "maxWidth": 991,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "styles": {
+                        "width": "100%",
+                        "height": "200px",
+                        "backgroundImage": {
+                          "type": "static",
+                          "content": "url(\"/playground_assets/kitten.png\")"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     }

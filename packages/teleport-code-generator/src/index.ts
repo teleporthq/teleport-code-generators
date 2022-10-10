@@ -71,7 +71,7 @@ import {
   createHTMLProjectGenerator,
   HTMLTemplate,
   pluginCloneGlobals,
-  pluginImageResolver,
+  pluginHomeReplace,
   htmlErrorPageMapping,
 } from '@teleporthq/teleport-project-generator-html'
 
@@ -173,7 +173,7 @@ export const packProject: PackProjectFunction = async (
   projectGeneratorFactory.cleanPlugins()
 
   if (projectType === ProjectType.HTML) {
-    projectGeneratorFactory.addPlugin(pluginImageResolver)
+    projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(pluginCloneGlobals)
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
   }

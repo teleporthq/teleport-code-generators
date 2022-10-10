@@ -5,7 +5,7 @@ import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import HTMLTemplate from './project-template'
 import { pluginCloneGlobals } from './plugin-clone-globals'
-import { pluginImageResolver } from './plugin-image-resolution'
+import { pluginHomeReplace } from './plugin-home-replace'
 import { htmlErrorPageMapping } from './error-page-mapping'
 
 const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) => {
@@ -22,7 +22,7 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
       path: [''],
     },
     static: {
-      prefix: '',
+      prefix: 'public',
       path: ['public'],
     },
     projectStyleSheet: {
@@ -39,7 +39,7 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
     },
   })
 
-  generator.addPlugin(pluginImageResolver)
+  generator.addPlugin(pluginHomeReplace)
   if (individualEntyFile) {
     generator.addPlugin(pluginCloneGlobals)
   }
@@ -51,6 +51,6 @@ export {
   createHTMLProjectGenerator,
   HTMLTemplate,
   pluginCloneGlobals,
-  pluginImageResolver,
+  pluginHomeReplace,
   htmlErrorPageMapping,
 }

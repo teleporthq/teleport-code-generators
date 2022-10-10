@@ -11,6 +11,7 @@ import {
   GeneratorOptions,
   ComponentUIDL,
   UIDLElementNode,
+  UIDLReferencedStyles,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -121,6 +122,29 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Resolve assets prefix inside style (ex: background-image)
   if (originalElement.style && assetsPrefix) {
     originalElement.style = prefixAssetURLs(originalElement.style, assetsPrefix)
+  }
+
+  // Resolve assets prefix inside styles for (inline-style-map)
+  if (originalElement.referencedStyles && assetsPrefix) {
+    originalElement.referencedStyles = Object.keys(originalElement.referencedStyles).reduce(
+      (acc: UIDLReferencedStyles, styleRef) => {
+        const style = originalElement.referencedStyles[styleRef]
+        if (style.content.mapType === 'inlined') {
+          acc[styleRef] = {
+            type: 'style-map',
+            content: {
+              mapType: 'inlined',
+              conditions: style.content.conditions,
+              styles: prefixAssetURLs(style.content.styles, assetsPrefix),
+            },
+          }
+        } else {
+          acc[styleRef] = style
+        }
+        return acc
+      },
+      {}
+    )
   }
 
   // Map events separately

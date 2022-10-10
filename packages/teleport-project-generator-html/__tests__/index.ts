@@ -121,6 +121,7 @@ describe('Image Resolution project-plugin', () => {
           path: ['src', 'components'],
         },
         static: {
+          prefix: 'public',
           path: ['public'],
         },
       } as ProjectStrategy,
@@ -133,28 +134,29 @@ describe('Image Resolution project-plugin', () => {
     const rootNode = uidl.root.node.content
 
     /* Using assets on dom nodes like image tags */
+    /* Code generators take care of adding  */
     expect((rootNode.children[0] as UIDLElementNode).content.attrs?.src?.content).toBe(
-      '../../public/playground_assets/kitten.png'
+      '/playground_assets/kitten.png'
     )
     /* Using assets in style sheets */
     expect((rootNode.children[1] as UIDLElementNode).content.style?.backgroundImage?.content).toBe(
-      'url("../../public/playground_assets/kitten.png")'
+      'url("/playground_assets/kitten.png")'
     )
     /* Using attrs while passing as a prop for a component call */
     expect((rootNode.children[2] as UIDLElementNode).content.attrs.image?.content).toBe(
-      '../../public/playground_assets/kitten.png'
+      'public/playground_assets/kitten.png'
     )
     /* Using assets as defaultProp for component definition */
     expect(uidl.components.Home.propDefinitions.image.defaultValue).toBe(
-      '../../public/playground_assets/kitten.png'
+      'public/playground_assets/kitten.png'
     )
     /* Using assets in global styleSetDefinitions */
     expect(uidl.root.styleSetDefinitions.bgImage.content.backgroundImage.content).toBe(
-      'url("../../public/playground_assets/kitten.png")'
+      'url("public/playground_assets/kitten.png")'
     )
     /* Using assets for component scoped styles */
     expect(uidl.components.Home.styleSetDefinitions.bgImageC.content.backgroundImage.content).toBe(
-      'url("../../public/playground_assets/kitten.png")'
+      'url("public/playground_assets/kitten.png")'
     )
     /* Using assets for media queries */
     expect(
