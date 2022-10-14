@@ -33,7 +33,10 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
           const componentUIDL = skipValidation
             ? externals[ext]
             : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
-          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolver.resolveUIDL(componentUIDL)
+          const resolvedUIDL = resolver.resolveUIDL(componentUIDL, {
+            assetsPrefix: 'public',
+          })
+          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc
         }, {})
       )

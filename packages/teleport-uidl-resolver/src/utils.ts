@@ -4,14 +4,15 @@ import {
   UIDLElement,
   UIDLNode,
   UIDLDependency,
-  UIDLStyleDefinitions,
   UIDLRepeatContent,
   UIDLAttributeValue,
   Mapping,
   GeneratorOptions,
   ComponentUIDL,
   UIDLElementNode,
-  UIDLReferencedStyles,
+  UIDLStyleSetTokenReference,
+  UIDLStaticValue,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -122,29 +123,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   // Resolve assets prefix inside style (ex: background-image)
   if (originalElement.style && assetsPrefix) {
     originalElement.style = prefixAssetURLs(originalElement.style, assetsPrefix)
-  }
-
-  // Resolve assets prefix inside styles for (inline-style-map)
-  if (originalElement.referencedStyles && assetsPrefix) {
-    originalElement.referencedStyles = Object.keys(originalElement.referencedStyles).reduce(
-      (acc: UIDLReferencedStyles, styleRef) => {
-        const style = originalElement.referencedStyles[styleRef]
-        if (style.content.mapType === 'inlined') {
-          acc[styleRef] = {
-            type: 'style-map',
-            content: {
-              mapType: 'inlined',
-              conditions: style.content.conditions,
-              styles: prefixAssetURLs(style.content.styles, assetsPrefix),
-            },
-          }
-        } else {
-          acc[styleRef] = style
-        }
-        return acc
-      },
-      {}
-    )
   }
 
   // Map events separately
@@ -364,12 +342,15 @@ const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
  * @param style the style object on the current node
  * @param assetsPrefix a string representing the asset prefix
  */
-const prefixAssetURLs = (
-  style: UIDLStyleDefinitions,
+
+export const prefixAssetURLs = <
+  T extends UIDLStaticValue | UIDLDynamicReference | UIDLStyleSetTokenReference
+>(
+  style: Record<string, T>,
   assetsPrefix: string
-): UIDLStyleDefinitions => {
+): Record<string, T> => {
   // iterate through all the style keys
-  return Object.keys(style).reduce((acc: UIDLStyleDefinitions, styleKey) => {
+  return Object.keys(style).reduce((acc: Record<string, T>, styleKey: string) => {
     const styleValue = style[styleKey]
 
     switch (styleValue.type) {
@@ -399,7 +380,7 @@ const prefixAssetURLs = (
           acc[styleKey] = {
             type: 'static',
             content: newStyleValue,
-          }
+          } as T
         } else {
           acc[styleKey] = styleValue
         }
