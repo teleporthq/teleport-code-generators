@@ -5088,7 +5088,12 @@
                             "content": "cover"
                           }
                         },
-                        "children": [],
+                        "children": [
+                          {
+                            "type": "static",
+                            "content": "Bg Image"
+                          }
+                        ],
                         "semanticType": "div"
                       }
                     }

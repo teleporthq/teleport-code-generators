@@ -30,11 +30,13 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
       const { externals = {}, skipValidation = false } = params
       addExternals(
         Object.keys(externals).reduce((acc: Record<string, ComponentUIDL>, ext) => {
-          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolver.resolveUIDL(
-            skipValidation
-              ? externals[ext]
-              : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
-          )
+          const componentUIDL = skipValidation
+            ? externals[ext]
+            : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
+          const resolvedUIDL = resolver.resolveUIDL(componentUIDL, {
+            assetsPrefix: 'public',
+          })
+          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc
         }, {})
       )

@@ -4,13 +4,15 @@ import {
   UIDLElement,
   UIDLNode,
   UIDLDependency,
-  UIDLStyleDefinitions,
   UIDLRepeatContent,
   UIDLAttributeValue,
   Mapping,
   GeneratorOptions,
   ComponentUIDL,
   UIDLElementNode,
+  UIDLStyleSetTokenReference,
+  UIDLStaticValue,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -340,12 +342,15 @@ const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
  * @param style the style object on the current node
  * @param assetsPrefix a string representing the asset prefix
  */
-const prefixAssetURLs = (
-  style: UIDLStyleDefinitions,
+
+export const prefixAssetURLs = <
+  T extends UIDLStaticValue | UIDLDynamicReference | UIDLStyleSetTokenReference
+>(
+  style: Record<string, T>,
   assetsPrefix: string
-): UIDLStyleDefinitions => {
+): Record<string, T> => {
   // iterate through all the style keys
-  return Object.keys(style).reduce((acc: UIDLStyleDefinitions, styleKey) => {
+  return Object.keys(style).reduce((acc: Record<string, T>, styleKey: string) => {
     const styleValue = style[styleKey]
 
     switch (styleValue.type) {
@@ -375,7 +380,7 @@ const prefixAssetURLs = (
           acc[styleKey] = {
             type: 'static',
             content: newStyleValue,
-          }
+          } as T
         } else {
           acc[styleKey] = styleValue
         }

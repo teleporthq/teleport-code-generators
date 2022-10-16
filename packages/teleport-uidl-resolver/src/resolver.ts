@@ -38,7 +38,7 @@ export default class Resolver {
     }
 
     const uidl = UIDLUtils.cloneObject(input)
-    uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions || {})
+    uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions, newOptions)
 
     UIDLUtils.setFriendlyOutputOptions(uidl)
 
@@ -46,7 +46,7 @@ export default class Resolver {
 
     resolveAbilities(uidl, newOptions)
 
-    resolveReferencedStyle(uidl)
+    resolveReferencedStyle(uidl, newOptions)
 
     // TODO: Rename into apply mappings
     utils.resolveNode(uidl.node, newOptions)
