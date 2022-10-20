@@ -20,6 +20,9 @@ export default {
     "test": "craco test --env=jsdom",
     "eject": "craco eject"
   },
+  "engines": {
+    "node": "16.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
