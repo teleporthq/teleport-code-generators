@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-next",
-  "version": "0.22.3",
+  "version": "0.22.4",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,15 +25,15 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-component-generator": "^0.22.0",
-    "@teleporthq/teleport-component-generator-react": "^0.22.3",
+    "@teleporthq/teleport-component-generator": "^0.22.4",
+    "@teleporthq/teleport-component-generator-react": "^0.22.4",
     "@teleporthq/teleport-plugin-common": "^0.22.0",
     "@teleporthq/teleport-plugin-css": "^0.22.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.22.0",
     "@teleporthq/teleport-plugin-jsx-head-config": "^0.22.0",
     "@teleporthq/teleport-plugin-jsx-next-image": "^0.22.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.22.0",
-    "@teleporthq/teleport-project-generator": "^0.22.0",
+    "@teleporthq/teleport-project-generator": "^0.22.4",
     "@teleporthq/teleport-shared": "^0.22.0",
     "@teleporthq/teleport-types": "^0.22.0"
   },
