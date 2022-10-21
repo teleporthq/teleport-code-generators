@@ -310,6 +310,11 @@ const handleAttributes = (
       return
     }
 
+    if (attrValue.type === 'raw') {
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      return
+    }
+
     if (typeof attrValue.content === 'boolean') {
       HASTUtils.addBooleanAttributeToNode(htmlNode, attrKey)
     } else if (typeof attrValue.content === 'string' || typeof attrValue.content === 'number') {

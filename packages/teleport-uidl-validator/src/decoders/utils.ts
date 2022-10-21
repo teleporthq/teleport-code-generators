@@ -497,7 +497,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),
-  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, rawValueDecoder, string(), number()))),
   events: optional(dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
