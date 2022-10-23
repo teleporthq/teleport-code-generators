@@ -9,7 +9,7 @@ export default {
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@craco/craco": "^6.4.3",
+    "@craco/craco": "^7.0.0-alpha.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-router-dom": "^5.2.0"
@@ -19,6 +19,9 @@ export default {
     "build": "craco build",
     "test": "craco test --env=jsdom",
     "eject": "craco eject"
+  },
+  "engines": {
+    "node": "16.x"
   },
   "browserslist": {
     "production": [
