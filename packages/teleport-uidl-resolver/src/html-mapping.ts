@@ -168,6 +168,18 @@ export const HTMLMapping: Mapping = {
     separator: {
       elementType: 'hr',
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      selfClosing: true,
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.1',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
   },
   events: {},
   attributes: {},
