@@ -182,7 +182,9 @@ export const addRawAttributeToJSXTag = (
 ) => {
   const attributeDefinition = t.jsxAttribute(
     t.jsxIdentifier(attrName),
-    t.jsxExpressionContainer(convertValueToLiteral(attrValue.content))
+    t.jsxExpressionContainer(
+      types.templateLiteral([types.templateElement({ raw: attrValue.content })], [])
+    )
   )
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
