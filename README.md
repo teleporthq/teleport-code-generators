@@ -314,6 +314,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     </tr>
     <tr>
       <td align="center"><a href="https://github.com/elizamaria"><img src="https://avatars.githubusercontent.com/u/15130574?v=4?s=100" width="100px;" alt="Eliza Nitoi"/><br /><sub><b>Eliza Nitoi</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=elizamaria" title="Code">💻</a></td>
+      <td align="center"><a href="https://github.com/TudorCe"><img src="https://avatars.githubusercontent.com/u/101194278?v=4?s=100" width="100px;" alt="TudorCe"/><br /><sub><b>TudorCe</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3ATudorCe" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
 </table>
