@@ -100,6 +100,11 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   content: union(string(), number(), boolean(), array()),
 })
 
+export const rawValueDecoder: Decoder<UIDLRawValue> = object({
+  type: constant('raw'),
+  content: string(),
+})
+
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
   type: constant('screen-size'),
   meta: object({
@@ -337,6 +342,7 @@ export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
   importReferenceDecoder,
+  rawValueDecoder,
   lazy(() => uidlComponentStyleReference)
 )
 
@@ -412,11 +418,6 @@ export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   uidlMailLinkNodeDecoder,
   phoneLinkNodeDecoder
 )
-
-export const rawValueDecoder: Decoder<UIDLRawValue> = object({
-  type: constant('raw'),
-  content: string(),
-})
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
   constant('hover'),
@@ -497,7 +498,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   key: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),
-  attrs: optional(dict(union(attributeValueDecoder, rawValueDecoder, string(), number()))),
+  attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
   events: optional(dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
