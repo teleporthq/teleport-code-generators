@@ -8,5 +8,20 @@ export const NuxtProjectMapping: Mapping = {
         to: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
       },
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      selfClosing: true,
+      attrs: {
+        shadow: { type: 'static', content: true },
+      },
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: 'latest',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
   },
 }
