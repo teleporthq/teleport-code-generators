@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-react",
-  "version": "0.22.4",
+  "version": "0.22.5",
   "description": "Project generator using React and React-Router, on top of a standard create-react-app structure",
   "author": "teleportHQ",
   "license": "MIT",
