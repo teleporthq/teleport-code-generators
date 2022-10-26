@@ -55,6 +55,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
         acc[comp.name] = comp
         return acc
       }, {}),
+      options.projectRouteDefinition,
       { chunks, dependencies, options }
     )
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)

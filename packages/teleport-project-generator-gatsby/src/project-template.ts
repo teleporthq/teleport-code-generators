@@ -45,7 +45,7 @@ export default {
     },
     {
       name: 'gatsby-node',
-      content: ``,
+      content: `/* gatsby-node.js */`,
       fileType: 'js',
     },
     {
@@ -85,7 +85,6 @@ export default {
     },
     {
       name: '.prettierrc',
-      fileType: '',
       content: `
 {
   "endOfLine": "lf",
@@ -97,7 +96,6 @@ export default {
     },
     {
       name: 'prettierignore',
-      fileType: '',
       content: `
 .cache
 package.json
@@ -106,7 +104,6 @@ public`,
     },
     {
       name: 'gitignore',
-      fileType: '',
       content: `
 # Logs
 logs

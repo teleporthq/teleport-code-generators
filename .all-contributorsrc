@@ -142,8 +142,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "TudorCe",
+      "name": "TudorCe",
+      "avatar_url": "https://avatars.githubusercontent.com/u/101194278?v=4",
+      "profile": "https://github.com/TudorCe",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitConvention": "angular"
 }

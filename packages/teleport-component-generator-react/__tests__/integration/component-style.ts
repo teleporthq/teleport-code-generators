@@ -1,6 +1,4 @@
 // @ts-ignore-next-line
-import ComponentWithNestedStyles from './component-with-nested-styles.json'
-// @ts-ignore-next-line
 import ComponentWithInvalidStateStyles from './component-with-invalid-state-styles.json'
 // @ts-ignore-next-line
 import ComponentWithValidSingleStlye from './component-with-valid-single-prop-style.json'
@@ -11,8 +9,6 @@ import { createReactComponentGenerator } from '../../src'
 import {
   ComponentUIDL,
   GeneratedFile,
-  UIDLPropDefinition,
-  UIDLStyleDefinitions,
   FileType,
   ReactStyleVariation,
 } from '@teleporthq/teleport-types'

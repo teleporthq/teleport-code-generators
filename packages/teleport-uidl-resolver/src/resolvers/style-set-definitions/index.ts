@@ -3,31 +3,55 @@
     and pseudo styles on them. These need to be sorted as we do for referenced-Styles
 */
 
-import { UIDLStyleSetDefinition, UIDLStyleSetMediaCondition } from '@teleporthq/teleport-types'
+import {
+  GeneratorOptions,
+  UIDLStyleSetDefinition,
+  UIDLStyleSetMediaCondition,
+  UIDLStyleSetStateCondition,
+} from '@teleporthq/teleport-types'
+import { prefixAssetURLs } from '../../utils'
 
 export const resolveStyleSetDefinitions = (
-  styleSets: Record<string, UIDLStyleSetDefinition>
+  styleSets: Record<string, UIDLStyleSetDefinition> = {},
+  options: GeneratorOptions
 ): Record<string, UIDLStyleSetDefinition> => {
   return Object.keys(styleSets).reduce((acc: Record<string, UIDLStyleSetDefinition>, styleId) => {
     const styleRef = styleSets[styleId]
     const { conditions = [] } = styleRef
 
     if (conditions.length === 0) {
-      acc[styleId] = styleRef
+      acc[styleId] = {
+        ...styleRef,
+        content: prefixAssetURLs(styleRef.content, options?.assetsPrefix || ''),
+      }
       return acc
     }
 
-    const mediaConditions = conditions
-      .filter((item): item is UIDLStyleSetMediaCondition => item.type === 'screen-size')
-      .sort(
-        (a: UIDLStyleSetMediaCondition, b: UIDLStyleSetMediaCondition) =>
-          b.meta.maxWidth - a.meta.maxWidth
-      )
-    const elementStateConditions = conditions.filter((item) => item.type === 'element-state')
+    const [mediaStyles, elementStates] = conditions.reduce(
+      ([media, state]: [UIDLStyleSetMediaCondition[], UIDLStyleSetStateCondition[]], item) => {
+        if (item.type === 'screen-size') {
+          media.push({
+            ...item,
+            content: prefixAssetURLs(item.content, options?.assetsPrefix || ''),
+          })
+        }
+        if (item.type === 'element-state') {
+          state.push({
+            ...item,
+            content: prefixAssetURLs(item.content, options?.assetsPrefix || ''),
+          })
+        }
+        return [media, state]
+      },
+      [[], []]
+    )
 
     acc[styleId] = {
       ...styleRef,
-      conditions: [...elementStateConditions, ...mediaConditions],
+      conditions: [
+        ...elementStates,
+        ...mediaStyles.sort((a, b) => b.meta.maxWidth - a.meta.maxWidth),
+      ],
     }
 
     return acc
