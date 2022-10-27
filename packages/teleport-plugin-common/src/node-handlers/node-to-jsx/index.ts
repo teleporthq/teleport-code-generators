@@ -23,6 +23,7 @@ import {
   addChildJSXTag,
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
+  addRawAttributeToJSXTag,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -69,6 +70,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   if (attrs) {
     Object.keys(attrs).forEach((attrKey) => {
       const attributeValue = attrs[attrKey]
+
       switch (attributeValue.type) {
         case 'dynamic':
           const {
@@ -80,6 +82,9 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           break
         case 'import':
           addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
+          break
+        case 'raw':
+          addRawAttributeToJSXTag(elementTag, attrKey, attributeValue)
           break
         case 'comp-style':
         case 'static':

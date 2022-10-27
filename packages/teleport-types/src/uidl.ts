@@ -267,6 +267,7 @@ export type UIDLAttributeValue =
   | UIDLStaticValue
   | UIDLImportReference
   | UIDLComponentStyleReference
+  | UIDLRawValue
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
