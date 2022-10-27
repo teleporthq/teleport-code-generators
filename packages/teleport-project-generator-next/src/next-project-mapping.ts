@@ -23,5 +23,14 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
+    'html-node': {
+      elementType: 'InnerHtml',
+      selfClosing: true,
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html-content',
+        version: 'latest',
+      },
+    },
   },
 }

@@ -8,5 +8,16 @@ export const VueProjectMapping: Mapping = {
         to: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
       },
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: 'latest',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
   },
 }

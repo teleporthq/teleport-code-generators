@@ -56,6 +56,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
         customElementTagName: (value) => UIDLUtils.createWebComponentFriendlyName(value),
         dependencyHandling: 'import',
         domHTMLInjection: `v-html`,
+        rawValueBinding: (value) => `:${value}.prop`,
       }
     )
 
@@ -74,7 +75,7 @@ export const createVueComponentPlugin: ComponentPluginFactory<VueComponentConfig
 
     const jsContent = generateVueComponentJS(
       uidl,
-      Object.keys(dependencies),
+      Object.keys(dependencies).filter((dep) => !dependencies[dep]?.meta?.importJustPath),
       {
         ...stateObject,
         ...dataObject,

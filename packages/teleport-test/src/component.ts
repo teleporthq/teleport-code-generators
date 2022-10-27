@@ -1,5 +1,6 @@
 import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-generator-html'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+// import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import componentJSON from '../../../examples/test-samples/component-html.json'
 import { component, dynamicNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { GeneratedFile } from '@teleporthq/teleport-types'
@@ -25,7 +26,34 @@ const run = async () => {
 
   const reactGenerator = createReactComponentGenerator()
   const { files: reactFiles } = await reactGenerator.generateComponent(
-    component('Test Component', elementNode('input', { autoFocus: staticNode(true) }))
+    component(
+      'Test Component',
+      elementNode('embed', {
+        html: {
+          type: 'raw',
+          content: `<table id="producttable">
+        <thead>
+          <tr>
+            <td>UPC_Code</td>
+            <td>Product_Name</td>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- existing data could optionally be included here -->
+        </tbody>
+      </table>
+      
+      <template id="productrow">
+        <tr>
+          <td class="record"></td>
+          <td></td>
+        </tr>
+      </template>
+      `,
+        },
+        // attr2: { type: 'static', content: '<div>Container<div>' },
+      })
+    )
   )
   addfilesToDisk(reactFiles)
 }

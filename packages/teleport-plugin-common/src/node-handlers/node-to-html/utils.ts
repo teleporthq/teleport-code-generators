@@ -35,7 +35,11 @@ export const handleAttribute = (
       )
       break
     case 'raw':
-      hastUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
+      hastUtils.addAttributeToNode(
+        htmlNode,
+        templateSyntax?.rawValueBinding(attrKey),
+        attrValue.content.toString()
+      )
       break
     case 'static':
       if (Array.isArray(attrValue.content)) {
