@@ -96,6 +96,11 @@ export const createRootModuleDecorator = (externalComponents: string[] = [], t =
     ])
   )
 
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
+
   const providers = t.objectProperty(t.identifier('providers'), t.arrayExpression([]))
 
   const bootstrap = t.objectProperty(
@@ -105,7 +110,7 @@ export const createRootModuleDecorator = (externalComponents: string[] = [], t =
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([declerations, imports, providers, bootstrap]),
+      t.objectExpression([declerations, imports, providers, bootstrap, schemasProperty]),
     ])
   )
 }
@@ -233,6 +238,7 @@ const traverseUIDLElements = (
   UIDLUtils.traverseElements(component.node, (element) => {
     const { dependency, semanticType, elementType } = element
     const elementTag = semanticType || elementType
+
     if (dependency?.type === 'package') {
       const existingDependency = dependenciesMap[elementTag]
 

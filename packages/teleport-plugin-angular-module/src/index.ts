@@ -68,6 +68,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
           dependencies.BrowserModule = ANGULAR_PLATFORM_BROWSER
           dependencies.ComponentsModule = constructRouteForComponentsModule('.')
           dependencies.AppComponent = APP_COMPONENT
+          dependencies.CUSTOM_ELEMENTS_SCHEMA = ANGULAR_CORE_DEPENDENCY
 
           const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
           routesAST = createRoutesAST(routes, stateDefinitions)
@@ -89,11 +90,10 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
 
           ngModuleAST = createPageModuleModuleDecorator(
             componentName,
-            Object.keys(externalDependencies)
+            Object.keys(getExternalDeps(externalDependencies))
           )
           moduleDecoratorAST = createExportModuleAST(uidl.outputOptions.moduleName)
 
-          // Acording to widely followed convention module should have .module in its name
           uidl.outputOptions.fileName = fileName.replace('.component', '.module')
         }
         break
@@ -121,7 +121,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
 
           ngModuleAST = createComponentModuleDecorator(
             componentClassNames,
-            Object.keys(externalDependencies)
+            Object.keys(getExternalDeps(externalDependencies))
           )
           moduleDecoratorAST = createExportModuleAST('ComponentsModule')
         }
@@ -159,6 +159,18 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
   }
 
   return angularModuleGenerator
+}
+
+const getExternalDeps = (externalDependencies: Record<string, UIDLDependency>) => {
+  return Object.keys(externalDependencies).reduce(
+    (acc: Record<string, UIDLDependency>, depName: string) => {
+      if (!externalDependencies[depName]?.meta?.importJustPath) {
+        acc[depName] = externalDependencies[depName]
+      }
+      return acc
+    },
+    {}
+  )
 }
 
 export default createAngularModulePlugin()
