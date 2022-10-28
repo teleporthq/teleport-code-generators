@@ -27,31 +27,12 @@ const run = async () => {
   const reactGenerator = createReactComponentGenerator()
   const { files: reactFiles } = await reactGenerator.generateComponent(
     component(
-      'Test Component',
-      elementNode('embed', {
+      'Test Code Embed Component',
+      elementNode('html-node', {
         html: {
           type: 'raw',
-          content: `<table id="producttable">
-        <thead>
-          <tr>
-            <td>UPC_Code</td>
-            <td>Product_Name</td>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- existing data could optionally be included here -->
-        </tbody>
-      </table>
-      
-      <template id="productrow">
-        <tr>
-          <td class="record"></td>
-          <td></td>
-        </tr>
-      </template>
-      `,
+          content: `<script src'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>`,
         },
-        // attr2: { type: 'static', content: '<div>Container<div>' },
       })
     )
   )

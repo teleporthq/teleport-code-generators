@@ -15,9 +15,9 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
-import reactProjectJSON from '../../../examples/uidl-samples/project.json'
+import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-import tailwindProjectJSON from '../../../examples/uidl-samples/project.json'
+import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -62,8 +62,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
