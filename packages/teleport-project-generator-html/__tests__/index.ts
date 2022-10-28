@@ -67,3 +67,17 @@ describe('Image Resolution', () => {
     expect(fallbackPage).toBeDefined()
   })
 })
+
+describe('Meta tags from globals', () => {
+  it('are added to each page`s head', async () => {
+    const generator = createHTMLProjectGenerator()
+    const { files } = await generator.generateProject(fallbackUidlSample)
+    const pages = files.filter((file) => file.fileType === 'html')
+
+    pages.forEach((page) => {
+      expect(page.content).toContain('<meta charset="utf-8"')
+      expect(page.content).toContain('<meta name="viewport"')
+      expect(page.content).toContain('<meta property="twitter:card"')
+    })
+  })
+})
