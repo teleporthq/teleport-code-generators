@@ -48,7 +48,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
               const parsedIndividualFile = load(file.content)
 
               const metaTags = parsedIndividualFile.root().find('meta')
-              parsedEntry('head').prepend(metaTags.length ? metaTags.toString() : metaTagsFromRoot)
+              parsedEntry('head').prepend(metaTags.toString().concat(metaTagsFromRoot))
               metaTags.remove()
 
               const titleTags = parsedIndividualFile.root().find('title')
