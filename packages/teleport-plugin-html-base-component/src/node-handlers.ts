@@ -220,7 +220,7 @@ const generateComponentContent = async (
         ]
       }
     })
-    /* 
+    /*
       Since we don't generate direct component children in HTML. We need to reset this,
       or else the plugins like css and others try to parse and process them.
     */
