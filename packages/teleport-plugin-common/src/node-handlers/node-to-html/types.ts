@@ -25,7 +25,6 @@ export interface HTMLTemplateSyntax {
   customElementTagName?: (value: string) => string
   dependencyHandling?: 'import' | 'ignore'
   domHTMLInjection?: string
-  rawValueBinding?: (value: string) => string
 }
 
 export type NodeToHTML<NodeType, ReturnType> = (

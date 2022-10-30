@@ -9,17 +9,13 @@ export const NuxtProjectMapping: Mapping = {
       },
     },
     'html-node': {
-      elementType: 'dangerous-html',
-      selfClosing: true,
-      attrs: {
-        shadow: { type: 'static', content: true },
-      },
+      elementType: 'DangerousHTML',
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: 'latest',
+        version: '0.1.9',
         meta: {
-          importJustPath: true,
+          importAlias: 'dangerous-html/dist/vue/lib.mjs',
         },
       },
     },

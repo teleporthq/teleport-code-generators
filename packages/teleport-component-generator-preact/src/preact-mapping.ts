@@ -1,7 +1,19 @@
 import { Mapping } from '@teleporthq/teleport-types'
 
 export const PreactMapping: Mapping = {
-  elements: {},
+  elements: {
+    'html-node': {
+      elementType: 'dangerous-html',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.9',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
+  },
   events: {
     click: 'onClick',
     focus: 'onFocus',

@@ -27,7 +27,7 @@ export const HTMLMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: 'latest',
+        version: '0.1.9',
         meta: {
           importJustPath: true,
         },

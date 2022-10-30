@@ -348,6 +348,7 @@ export interface UIDLLocalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
+    importAlias?: string
   }
 }
 
@@ -360,6 +361,7 @@ export interface UIDLExternalDependency {
     originalName?: string
     importJustPath?: boolean
     useAsReference?: boolean
+    importAlias?: string
   }
 }
 

@@ -36,16 +36,21 @@ export const createHTMLImportStatementsPlugin = () => {
 
     Object.keys(dependencies).forEach((item) => {
       const dependency = dependencies[item]
-      if (dependency.meta?.importJustPath) {
-        if (dependency.path.endsWith('css')) {
+      const {
+        meta: { importJustPath, importAlias },
+        path,
+      } = dependency
+      if (importJustPath) {
+        if (importAlias?.endsWith('css') || path.endsWith('css')) {
           const linkTag = HASTBuilders.createHTMLNode('link')
-          HASTUtils.addAttributeToNode(linkTag, 'href', dependency.path)
+          HASTUtils.addAttributeToNode(linkTag, 'href', importAlias ?? path)
           HASTUtils.addAttributeToNode(linkTag, 'rel', 'stylesheet')
           tags.push(linkTag)
         } else {
           const scriptTag = HASTBuilders.createHTMLNode('script')
           HASTUtils.addAttributeToNode(scriptTag, 'type', 'text/javascript')
-          HASTUtils.addAttributeToNode(scriptTag, 'src', dependency.path)
+          HASTUtils.addAttributeToNode(scriptTag, 'src', importAlias ?? path)
+          tags.push(scriptTag)
         }
       }
     })

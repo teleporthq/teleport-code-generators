@@ -80,6 +80,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
         {
           dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
+          dependencies.CUSTOM_ELEMENTS_SCHEMA = ANGULAR_CORE_DEPENDENCY
           const componentName = UIDLUtils.getComponentClassName(uidl)
           const fileName = UIDLUtils.getComponentFileName(uidl)
           dependencies[componentName] = constructLocalDependency(fileName)
@@ -100,6 +101,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
       case 'component':
         {
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
+          dependencies.CUSTOM_ELEMENTS_SCHEMA = ANGULAR_CORE_DEPENDENCY
 
           // Looping through all components and importing them into component module
           Object.keys(moduleComponents).forEach((componentKey) => {

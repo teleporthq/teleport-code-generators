@@ -13,6 +13,17 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    'html-node': {
+      elementType: 'DangerousHTML',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.9',
+        meta: {
+          importAlias: 'dangerous-html/react',
+        },
+      },
+    },
   },
   events: {
     click: 'onClick',

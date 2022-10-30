@@ -25,6 +25,11 @@ export const createPageModuleModuleDecorator = (
     ])
   )
 
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
+
   const decleration: types.ObjectProperty = t.objectProperty(
     t.identifier('declarations'),
     t.arrayExpression([t.identifier(componentName)])
@@ -37,7 +42,7 @@ export const createPageModuleModuleDecorator = (
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([decleration, imports, exportsProperty]),
+      t.objectExpression([decleration, imports, exportsProperty, schemasProperty]),
     ])
   )
 }
@@ -65,6 +70,10 @@ export const createComponentModuleDecorator = (
       t.identifier('RouterModule'),
     ])
   )
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
 
   const exportsProperty: types.ObjectProperty = t.objectProperty(
     t.identifier('exports'),
@@ -73,7 +82,7 @@ export const createComponentModuleDecorator = (
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([declerations, imports, exportsProperty]),
+      t.objectExpression([declerations, imports, exportsProperty, schemasProperty]),
     ])
   )
 }
