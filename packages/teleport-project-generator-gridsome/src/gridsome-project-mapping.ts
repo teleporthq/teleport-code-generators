@@ -8,5 +8,16 @@ export const GridsomeProjectMapping: Mapping = {
         to: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
       },
     },
+    'html-node': {
+      elementType: 'DangerousHTML',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.9',
+        meta: {
+          importAlias: 'dangerous-html/dist/vue/lib.mjs',
+        },
+      },
+    },
   },
 }

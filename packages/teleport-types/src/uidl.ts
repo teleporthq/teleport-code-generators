@@ -267,6 +267,7 @@ export type UIDLAttributeValue =
   | UIDLStaticValue
   | UIDLImportReference
   | UIDLComponentStyleReference
+  | UIDLRawValue
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
@@ -347,6 +348,7 @@ export interface UIDLLocalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
+    importAlias?: string
   }
 }
 
@@ -359,6 +361,7 @@ export interface UIDLExternalDependency {
     originalName?: string
     importJustPath?: boolean
     useAsReference?: boolean
+    importAlias?: string
   }
 }
 

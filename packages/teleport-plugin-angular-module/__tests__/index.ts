@@ -16,7 +16,7 @@ describe('Testing the functionality for Angular Modules', () => {
     const { dependencies, chunks } = await rootModule(structure)
 
     expect(chunks.length).toBe(2)
-    expect(Object.keys(dependencies).length).toBe(5)
+    expect(Object.keys(dependencies).length).toBe(6)
     expect(chunks[0].type).toBe(ChunkType.AST)
     expect(chunks[0].fileType).toBe(FileType.TS)
     expect(chunks[0].content).toBeDefined()
@@ -37,7 +37,7 @@ describe('Testing the functionality for Angular Modules', () => {
 
     const { dependencies, chunks } = await componentPlugin(structure)
 
-    expect(Object.keys(dependencies).length).toBe(4)
+    expect(Object.keys(dependencies).length).toBe(5)
     expect(chunks.length).toBe(1)
     expect(chunks[0].type).toBe(ChunkType.AST)
     expect(chunks[0].fileType).toBe(FileType.TS)
@@ -62,7 +62,7 @@ describe('Testing the functionality for Angular Modules', () => {
     const { dependencies, chunks } = await componentPlugin(structure)
     const pageComponent = dependencies.OneComponent
 
-    expect(Object.keys(dependencies).length).toBe(5)
+    expect(Object.keys(dependencies).length).toBe(6)
     expect(chunks.length).toBe(2)
     expect(chunks[0].type).toBe(ChunkType.AST)
     expect(chunks[0].fileType).toBe(FileType.TS)

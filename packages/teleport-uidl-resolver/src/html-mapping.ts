@@ -22,6 +22,17 @@ export const HTMLMapping: Mapping = {
       },
       selfClosing: true,
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.9',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
     textinput: {
       elementType: 'input',
       attrs: {

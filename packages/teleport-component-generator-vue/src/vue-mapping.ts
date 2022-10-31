@@ -1,7 +1,19 @@
 import { Mapping } from '@teleporthq/teleport-types'
 
 export const VueMapping: Mapping = {
-  elements: {},
+  elements: {
+    'html-node': {
+      elementType: 'DangerousHTML',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.9',
+        meta: {
+          importAlias: 'dangerous-html/vue',
+        },
+      },
+    },
+  },
   events: {},
   attributes: {},
 }

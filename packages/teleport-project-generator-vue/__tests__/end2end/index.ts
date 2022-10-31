@@ -55,6 +55,7 @@ describe('Vue Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
+    "dangerous-html": "0.1.9",
     "antd": "4.5.4"
   }
 }`)
@@ -63,6 +64,7 @@ describe('Vue Project Generator', () => {
     expect(modalComponent.content).toContain(`import { Button } from 'antd'`)
     expect(viewsFolder.files[0].content).toContain(`<app-modal></app-modal>`)
     expect(viewsFolder.files[0].content).toContain(`import AppModal from '../components/modal'`)
+    expect(viewsFolder.files[0].content).toContain(`import DangerousHTML from 'dangerous-html/vue'`)
     /** Imports that are just inserted like css are added to router file by default  */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
   })

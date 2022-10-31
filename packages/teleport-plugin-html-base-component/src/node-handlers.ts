@@ -220,7 +220,7 @@ const generateComponentContent = async (
         ]
       }
     })
-    /* 
+    /*
       Since we don't generate direct component children in HTML. We need to reset this,
       or else the plugins like css and others try to parse and process them.
     */
@@ -402,6 +402,11 @@ const handleAttributes = (
           ? getValueFromReference(attrValue.content.id, propDefinitions)
           : getValueFromReference(attrValue.content.id, stateDefinitions)
       HASTUtils.addAttributeToNode(htmlNode, attrKey, String(value))
+      return
+    }
+
+    if (attrValue.type === 'raw') {
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
       return
     }
 

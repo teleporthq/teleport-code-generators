@@ -39,6 +39,7 @@ describe('Preact Project Generator', () => {
     const componentFiles = srcFolder.subFolders[0].files
     const packageJSON = outputFolder.files[0]
     const modalComponent = componentFiles[3]
+    const routes = srcFolder.subFolders[1]
 
     expect(assetsPath).toBeDefined()
     expect(outputFolder.name).toBe(template.name)
@@ -49,6 +50,7 @@ describe('Preact Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
+    "dangerous-html": "0.1.9",
     "react-helmet": "^6.1.0",
     "prop-types": "15.7.2",
     "antd": "4.5.4"
@@ -57,7 +59,7 @@ describe('Preact Project Generator', () => {
     expect(srcFolder.files[0].name).toBe('index')
     expect(srcFolder.files[0].fileType).toBe('html')
     expect(srcFolder.subFolders[0].name).toBe('components')
-    expect(srcFolder.subFolders[1].name).toBe('routes')
+
     expect(componentFiles.length).toBe(6)
     expect(componentFiles[componentFiles.length - 1].fileType).toBe('js')
     expect(componentFiles[componentFiles.length - 1].name).toBe('app')
@@ -70,6 +72,18 @@ describe('Preact Project Generator', () => {
       </Button>`
     )
     expect(modalComponent.content).toContain(`import { Button } from 'antd'`)
+
+    expect(routes).toBeDefined()
+    expect(routes.subFolders[0]).toBeDefined()
+    expect(routes.subFolders[0].name).toBe('index')
+    expect(routes.subFolders[0].files[0].content).toContain(`import 'dangerous-html'`)
+    expect(routes.subFolders[0].files[0].content).toContain(`Page 1<Modal></Modal>`)
+    expect(routes.subFolders[0].files[0].content).toContain(
+      `<dangerous-html
+        html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
+      ></dangerous-html>`
+    )
+
     /** Imports which are just inserted and left like css one's are added directly in app.js file */
     expect(componentFiles[componentFiles.length - 1].content).toContain(
       `import 'antd/dist/antd.css'`

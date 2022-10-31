@@ -1,5 +1,6 @@
 import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-generator-html'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
+// import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import componentJSON from '../../../examples/test-samples/component-html.json'
 import { component, dynamicNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { GeneratedFile } from '@teleporthq/teleport-types'
@@ -25,7 +26,15 @@ const run = async () => {
 
   const reactGenerator = createReactComponentGenerator()
   const { files: reactFiles } = await reactGenerator.generateComponent(
-    component('Test Component', elementNode('input', { autoFocus: staticNode(true) }))
+    component(
+      'Test Code Embed Component',
+      elementNode('html-node', {
+        html: {
+          type: 'raw',
+          content: `<script src'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>`,
+        },
+      })
+    )
   )
   addfilesToDisk(reactFiles)
 }

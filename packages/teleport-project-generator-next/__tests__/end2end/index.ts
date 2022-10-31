@@ -2,6 +2,7 @@ import { FileType } from '@teleporthq/teleport-types'
 import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSampleWithoutProjectStyleesButImports from './project-with-import-without-global-styles.json'
 import uidlSampleWithProjectStyleSheet from '../../../../examples/test-samples/project-with-import-global-styles.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -26,6 +27,7 @@ describe('React Next Project Generator', () => {
     expect(outputFolder.files[0].name).toBe('package')
     expect(appFile).toBeDefined()
     expect(appFile.content).toContain(`import "antd/dist/antd.css`)
+
     expect(appFile.content).not.toContain(`import './style.css'`)
   })
 
@@ -42,6 +44,15 @@ describe('React Next Project Generator', () => {
     expect(appFile).toBeDefined()
     expect(appFile.content).not.toContain(`import "antd/dist/antd.css`)
     expect(appFile.content).toContain(`import "./style.css"`)
+  })
+
+  it('runs without crashing and adding external dependencies', async () => {
+    const outputFolder = await generator.generateProject(uidlSampleWithDependencies, template)
+
+    const pages = outputFolder.subFolders[1]
+
+    expect(pages.files[0].content).toContain(`import DangerousHTML from 'dangerous-html/react'`)
+    expect(pages.files[0].content).toContain(`Page 1<Modal></Modal>`)
   })
 
   it('runs without crashing', async () => {

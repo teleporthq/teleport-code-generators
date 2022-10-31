@@ -44,7 +44,13 @@ describe('Vue Nuxt Project Generator', () => {
      */
 
     expect(components.files[2].content).toContain(`import { Button } from 'antd'`)
+    expect(pages.files[0].name).toBe('index')
+    expect(pages.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/dist/vue/lib.mjs'`
+    )
+
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
+    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.9"`)
 
     /* For Nuxt based projects, just imports are injected in index file of the routes */
     expect(pages.files[0].content).toContain(`import 'antd/dist/antd.css'`)

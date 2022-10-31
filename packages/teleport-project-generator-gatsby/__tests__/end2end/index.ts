@@ -45,6 +45,7 @@ describe('Gatsby Project Generator', () => {
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.files[0].name).toBe('package')
     expect(outputFolder.files[0].content).toContain(`"antd": "4.5.4"`)
+    expect(outputFolder.files[0].content).toContain(`"dangerous-html": "0.1.9"`)
     expect(srcFolder.files[0].name).toBe('html')
     expect(srcFolder.files[0].fileType).toBe(FileType.JS)
     expect(srcFolder.files[0].content).toBeDefined()
@@ -58,6 +59,9 @@ describe('Gatsby Project Generator', () => {
      * are added in index file in pages
      */
     expect(pagesFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+    expect(pagesFolder.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/react'`
+    )
   })
 
   it('runs without crashing and using only tokens', async () => {
