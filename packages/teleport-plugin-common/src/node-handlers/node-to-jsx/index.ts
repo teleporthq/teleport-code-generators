@@ -41,7 +41,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   let tagName = originalElementName
 
   if (dependency) {
-    if (options.dependencyHandling === 'import') {
+    if (
+      options.dependencyHandling === 'import' ||
+      (options.dependencyHandling === 'ignore' && dependency?.type === 'package')
+    ) {
       const existingDependency = dependencies[tagName]
       if (existingDependency && existingDependency?.path !== dependency?.path) {
         tagName = `${StringUtils.dashCaseToUpperCamelCase(

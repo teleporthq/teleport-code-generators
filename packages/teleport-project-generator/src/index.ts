@@ -279,7 +279,6 @@ export class ProjectGenerator implements ProjectGenerator {
       })
 
       collectedDependencies = { ...collectedDependencies, ...dependencies }
-
       if (this.strategy.pages?.module) {
         const pageModuleGenerator = bootstrapGenerator(
           this.strategy.pages.module,
