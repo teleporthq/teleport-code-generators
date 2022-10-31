@@ -66,7 +66,9 @@ describe('Gridsome Project Generator', () => {
 
     /** For Nuxt based projects, just imports are injected in index file of the routes */
     expect(pages.files[0].content).toContain(`import 'antd/dist/antd.css'`)
-    expect(pages.files[0].content).toContain(`import DangerousHTML from 'dangerous-html'`)
+    expect(pages.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/dist/vue/lib.mjs'`
+    )
   })
 
   it('creates a default route if a page is marked as fallback', async () => {

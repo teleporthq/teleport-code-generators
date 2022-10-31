@@ -51,13 +51,8 @@ describe('React Next Project Generator', () => {
 
     const pages = outputFolder.subFolders[1]
 
-    expect(pages.files[0].content).toContain(`import 'dangerous-html'`)
+    expect(pages.files[0].content).toContain(`import DangerousHTML from 'dangerous-html/react'`)
     expect(pages.files[0].content).toContain(`Page 1<Modal></Modal>`)
-    expect(pages.files[0].content).toContain(
-      `<dangerous-html
-        html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
-      ></dangerous-html>`
-    )
   })
 
   it('runs without crashing', async () => {

@@ -59,7 +59,9 @@ describe('Gatsby Project Generator', () => {
      * are added in index file in pages
      */
     expect(pagesFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
-    expect(pagesFolder.files[0].content).toContain(`import DangerousHTML from 'dangerous-html'`)
+    expect(pagesFolder.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/react'`
+    )
   })
 
   it('runs without crashing and using only tokens', async () => {
