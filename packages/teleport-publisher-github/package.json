@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-github",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Project github publisher",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-github-gateway": "^0.22.0",
-    "@teleporthq/teleport-types": "^0.22.0"
+    "@teleporthq/teleport-github-gateway": "^0.23.0",
+    "@teleporthq/teleport-types": "^0.23.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
