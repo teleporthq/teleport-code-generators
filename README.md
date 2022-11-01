@@ -313,6 +313,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
       <td align="center"><a href="https://github.com/chavda-bhavik"><img src="https://avatars.githubusercontent.com/u/50201755?v=4?s=100" width="100px;" alt="Chavda Bhavik"/><br /><sub><b>Chavda Bhavik</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=chavda-bhavik" title="Code">💻</a></td>
     </tr>
     <tr>
+      <td align="center"><a href="https://github.com/elizamaria"><img src="https://avatars.githubusercontent.com/u/15130574?v=4?s=100" width="100px;" alt="Eliza Nitoi"/><br /><sub><b>Eliza Nitoi</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=elizamaria" title="Code">💻</a></td>
       <td align="center"><a href="https://github.com/TudorCe"><img src="https://avatars.githubusercontent.com/u/101194278?v=4?s=100" width="100px;" alt="TudorCe"/><br /><sub><b>TudorCe</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3ATudorCe" title="Bug reports">🐛</a></td>
       <td align="center"><a href="https://github.com/retyidoro"><img src="https://avatars.githubusercontent.com/u/22962260?v=4?s=100" width="100px;" alt="Dorottya Ferencz"/><br /><sub><b>Dorottya Ferencz</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Aretyidoro" title="Bug reports">🐛</a></td>
     </tr>
