@@ -7,7 +7,7 @@ export const PreactMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: '0.1.9',
+        version: '0.1.10',
         meta: {
           importJustPath: true,
         },
