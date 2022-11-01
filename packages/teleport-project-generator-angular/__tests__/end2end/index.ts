@@ -70,7 +70,7 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[1].content).not.toContain(`import Modal`)
     expect(modalComponent.files[1].content).not.toContain(`import Modal`)
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
-    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.9"`)
+    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.10"`)
   })
 
   it('creates style sheet and adds to the webpack file', async () => {
