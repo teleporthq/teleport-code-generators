@@ -122,9 +122,11 @@ describe('React Project Generator', () => {
     )
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
     expect(viewsFolder.files[0].content).toContain(
-      `<DangerousHTML
-        html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
-      ></DangerousHTML>`
+      `<div className="home-div">
+        <DangerousHTML
+          html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
+        ></DangerousHTML>
+      </div>`
     )
     /* Imports that are just need to be inserted are added to router file by default */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)

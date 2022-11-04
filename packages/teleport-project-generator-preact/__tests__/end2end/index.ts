@@ -79,9 +79,11 @@ describe('Preact Project Generator', () => {
     expect(routes.subFolders[0].files[0].content).toContain(`import 'dangerous-html'`)
     expect(routes.subFolders[0].files[0].content).toContain(`Page 1<Modal></Modal>`)
     expect(routes.subFolders[0].files[0].content).toContain(
-      `<dangerous-html
-        html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
-      ></dangerous-html>`
+      `<div class={styles['div']}>
+        <dangerous-html
+          html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
+        ></dangerous-html>
+      </div>`
     )
 
     /** Imports which are just inserted and left like css one's are added directly in app.js file */
