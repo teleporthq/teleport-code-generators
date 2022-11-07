@@ -23,5 +23,16 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
+    'html-node': {
+      elementType: 'DangerousHTML',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.11',
+        meta: {
+          importAlias: 'dangerous-html/react',
+        },
+      },
+    },
   },
 }

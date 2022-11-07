@@ -21,7 +21,7 @@ export const GatsbyProjectMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: '0.1.10',
+        version: '0.1.11',
         meta: {
           importAlias: 'dangerous-html/react',
         },

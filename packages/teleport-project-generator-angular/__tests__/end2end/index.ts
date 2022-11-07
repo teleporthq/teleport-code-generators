@@ -60,8 +60,8 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal>`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(
       `<dangerous-html
-    html=\"<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\"
-  ></dangerous-html>`
+      html=\"<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\"
+    ></dangerous-html>`
     )
     /*
      * Modal is used in home page but don't need to import since all components are packed
@@ -70,7 +70,7 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[1].content).not.toContain(`import Modal`)
     expect(modalComponent.files[1].content).not.toContain(`import Modal`)
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
-    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.10"`)
+    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.11"`)
   })
 
   it('creates style sheet and adds to the webpack file', async () => {

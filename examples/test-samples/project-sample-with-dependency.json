@@ -148,6 +148,9 @@
                         "type": "element",
                         "content": {
                           "elementType": "html-node",
+                          "style": {
+                            "width": "10px"
+                          },
                           "attrs": {
                             "html": {
                               "type": "raw",
