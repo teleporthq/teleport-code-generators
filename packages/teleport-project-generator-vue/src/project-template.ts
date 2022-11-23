@@ -15,7 +15,8 @@ export default {
   "dependencies": {
     "vue": "^2.6.7",
     "vue-router": "^3.0.2",
-    "vue-meta": "^2.2.1"
+    "vue-meta": "^2.2.1",
+    "@lottiefiles/vue-lottie-player": "3.4.7"
   },
   "devDependencies": {
     "@vue/babel-preset-app": "^5.0.8",
@@ -89,7 +90,9 @@ module.exports = {
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
+import LottieVuePlayer from '@lottiefiles/vue-lottie-player'
 
+Vue.use(LottieVuePlayer)
 Vue.config.productionTip = false
 
 new Vue({

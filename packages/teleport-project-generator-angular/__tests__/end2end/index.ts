@@ -60,7 +60,7 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal>`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(
       `<dangerous-html
-      html=\"<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\"
+      html=\"<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\"
     ></dangerous-html>`
     )
     /*
