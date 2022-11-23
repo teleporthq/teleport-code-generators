@@ -13,6 +13,9 @@ export const VueMapping: Mapping = {
         },
       },
     },
+    'lottie-node': {
+      elementType: 'lottie-vue-player',
+    },
   },
   events: {},
   attributes: {},

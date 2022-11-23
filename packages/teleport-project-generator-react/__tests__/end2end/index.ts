@@ -104,6 +104,7 @@ describe('React Project Generator', () => {
   "description": "Project generated based on a UIDL document",
   "dependencies": {
     "dangerous-html": "0.1.11",
+    "@lottiefiles/react-lottie-player": "3.4.7",
     "react-helmet": "^6.1.0",
     "prop-types": "15.7.2",
     "antd": "4.5.4"
@@ -124,7 +125,7 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(
       `<div className="home-div">
         <DangerousHTML
-          html={\`<script src='https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>\`}
+          html={\`<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\`}
         ></DangerousHTML>
       </div>`
     )

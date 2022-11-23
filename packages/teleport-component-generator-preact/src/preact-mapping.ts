@@ -13,6 +13,17 @@ export const PreactMapping: Mapping = {
         },
       },
     },
+    'lottie-node': {
+      elementType: 'Player',
+      dependency: {
+        type: 'package',
+        path: '@lottiefiles/react-lottie-player',
+        version: '3.4.7',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
   },
   events: {
     click: 'onClick',

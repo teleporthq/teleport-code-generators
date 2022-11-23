@@ -1,6 +1,6 @@
 import { ComponentUIDL, GeneratorOptions } from '@teleporthq/teleport-types'
-import { wrapHtmlNode } from './utils'
+import { wrapHtmlLottieNode } from './utils'
 
 export const resolveHtmlNode = (uidl: ComponentUIDL, options: GeneratorOptions) => {
-  uidl.node = wrapHtmlNode(uidl.node, options)
+  uidl.node = wrapHtmlLottieNode(uidl.node, options)
 }
