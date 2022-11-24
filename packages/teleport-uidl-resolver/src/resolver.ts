@@ -4,7 +4,7 @@ import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleport
 import { resolveAbilities } from './resolvers/abilities'
 import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
-import { resolveHtmlNode } from './resolvers/embed-lottie-node'
+import { resolveHtmlNode } from './resolvers/embed-node'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into

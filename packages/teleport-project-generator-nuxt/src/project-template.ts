@@ -17,18 +17,14 @@ export default {
   },
   "devDependencies": {
     "nuxt": "^2.15.8"
+  },
+  "dependencies": {
+    "vue": "2.7.14",
+    "@lottiefiles/vue-lottie-player": "1.0.4"
   }
 }`,
       fileType: 'json',
       name: 'package',
-    },
-    {
-      content: `
-plugins: [
-  "~/plugins/lottie-vue-player.client.js"
-]`,
-      fileType: 'js',
-      name: 'nuxt.config',
     },
   ],
   subFolders: [

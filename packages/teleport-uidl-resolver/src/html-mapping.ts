@@ -38,7 +38,7 @@ export const HTMLMapping: Mapping = {
       dependency: {
         type: 'package',
         path: '@lottiefiles/lottie-player',
-        version: '0.1.11',
+        version: '1.6.0',
         meta: {
           importJustPath: true,
         },
