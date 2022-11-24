@@ -29,6 +29,20 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
             ),
           ])
         ),
+        t.objectProperty(
+          t.identifier('plugins'),
+          t.arrayExpression([
+            t.templateLiteral(
+              [
+                t.templateElement({
+                  raw: `~/plugins/lottie-vue-player.client.js`,
+                  cooked: `~/plugins/lottie-vue-player.client.js`,
+                }),
+              ],
+              []
+            ),
+          ])
+        ),
       ])
     )
 

@@ -16,7 +16,7 @@ export default {
     "vue": "^2.6.7",
     "vue-router": "^3.0.2",
     "vue-meta": "^2.2.1",
-    "@lottiefiles/vue-lottie-player": "3.4.7"
+    "@lottiefiles/vue-lottie-player": "1.0.4"
   },
   "devDependencies": {
     "@vue/babel-preset-app": "^5.0.8",
