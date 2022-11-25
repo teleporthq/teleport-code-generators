@@ -34,5 +34,8 @@ export const NextProjectMapping: Mapping = {
         },
       },
     },
+    'lottie-node': {
+      elementType: 'lottie-player',
+    },
   },
 }
