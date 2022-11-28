@@ -11,6 +11,18 @@ export const PlainHTMLMapping: Mapping = {
         href: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
       },
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.11',
+        meta: {
+          importJustPath: true,
+          importAlias: 'https://unpkg.com/dangerous-html@0.1.11/dist/default/lib.umd.js',
+        },
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
     },
