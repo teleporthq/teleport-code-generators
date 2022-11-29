@@ -384,14 +384,19 @@ const handleAttributes = (
       typeof attrValue.content === 'string' &&
       attrValue.content.startsWith('/')
     ) {
+      let prefixPath = ''
+      for (let i = 0; i < attrValue.content.split('/').length - 1; i++) {
+        prefixPath += '../'
+      }
       attrValue =
         attrValue.content === '/' ||
         attrValue.content ===
           `/${StringUtils.camelCaseToDashCase(
             StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
           )}`
-          ? staticNode('index.html')
-          : staticNode(`${attrValue.content.split('/').pop()}.html`)
+          ? staticNode(prefixPath + 'index.html')
+          : // : staticNode(`${attrValue.content.split('/').pop()}.html`)
+            staticNode(`.${attrValue.content}.html`)
       HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
       return
     }
