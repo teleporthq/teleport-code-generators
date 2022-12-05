@@ -25,7 +25,7 @@ const run = async () => {
   addfilesToDisk(files)
 
   const reactGenerator = createReactComponentGenerator()
-  const { files: reactFiles } = await reactGenerator.generateComponent(
+  const { files: embedFiles } = await reactGenerator.generateComponent(
     component(
       'Test Code Embed Component',
       elementNode(
@@ -35,16 +35,51 @@ const run = async () => {
             type: 'raw',
             content: `<script src'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>`,
           },
+          autoplay: {
+            type: 'static',
+            content: 'true',
+          },
         },
         [],
         null,
         {
           width: staticNode('100px'),
+          height: staticNode('100px'),
         }
       )
     )
   )
-  addfilesToDisk(reactFiles)
+  addfilesToDisk(embedFiles)
+
+  const { files: lottieFiles } = await reactGenerator.generateComponent(
+    component(
+      'Test Lottie React Component',
+      elementNode(
+        'lottie-node',
+        {
+          src: {
+            type: 'static',
+            content: 'https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json',
+          },
+          autoplay: {
+            type: 'static',
+            content: 'true',
+          },
+          id: {
+            type: 'static',
+            content: 'node_id',
+          },
+        },
+        [],
+        null,
+        {
+          width: staticNode('100px'),
+          height: staticNode('100px'),
+        }
+      )
+    )
+  )
+  addfilesToDisk(lottieFiles)
 }
 
 const addfilesToDisk = (files: GeneratedFile[]) => {

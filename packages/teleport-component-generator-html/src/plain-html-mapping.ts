@@ -23,6 +23,9 @@ export const PlainHTMLMapping: Mapping = {
         },
       },
     },
+    'lottie-node': {
+      elementType: 'lottie-player',
+    },
   },
   illegalClassNames: [],
 }

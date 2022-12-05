@@ -23,8 +23,12 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
     return child
   })
 
+  let newNode
   if (attrs?.html) {
-    const newNode = createDivNode(node)
+    newNode = createEmbedDivWrapperNode(node)
+  }
+
+  if (newNode) {
     newNode.content.children.push(node)
 
     node.content.style = {}
@@ -37,7 +41,7 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
   return node
 }
 
-export const createDivNode = (node: UIDLElementNode): UIDLElementNode => {
+export const createEmbedDivWrapperNode = (node: UIDLElementNode): UIDLElementNode => {
   const attrs = Object.keys(node.content.attrs).reduce(
     (acc: Record<string, UIDLAttributeValue>, attrKey: string) => {
       if (attrKey !== 'html') {
