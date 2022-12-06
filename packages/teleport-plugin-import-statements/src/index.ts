@@ -31,19 +31,6 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
     const { uidl, dependencies } = structure
     let collectedDependencies = dependencies
 
-    let prefixPath = ''
-    if (uidl && uidl?.outputOptions) {
-      for (let i = 0; i < uidl.outputOptions?.fileName.split('/').length - 1; i++) {
-        prefixPath += '../'
-      }
-    }
-
-    Object.keys(dependencies).forEach((key) => {
-      if (dependencies[key].type === 'local') {
-        dependencies[key].path = prefixPath + dependencies[key].path
-      }
-    })
-
     if (uidl?.importDefinitions) {
       const { importDefinitions = {} } = uidl
       collectedDependencies = {

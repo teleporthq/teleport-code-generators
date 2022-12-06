@@ -322,14 +322,9 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     So, project styles should always be loaded before component styles */
     if (isProjectStyleReferred && importFile) {
       const fileName = moduleExtension ? `${projectStyleSheetName}.module` : projectStyleSheetName
-      let newProjectStyleSheetPath = ''
-      for (let i = 0; i < cssFileName.split('/').length - 1; i++) {
-        newProjectStyleSheetPath += '../'
-      }
-      newProjectStyleSheetPath += projectStyleSheetPath
       dependencies[globalStyleSheetPrefix] = {
         type: 'local',
-        path: `${newProjectStyleSheetPath}${fileName}.${FileType.CSS}`,
+        path: `${projectStyleSheetPath}${fileName}.${FileType.CSS}`,
       }
     }
 

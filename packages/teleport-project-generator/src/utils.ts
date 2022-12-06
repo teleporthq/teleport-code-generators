@@ -197,7 +197,10 @@ export const prepareComponentOutputOptions = (
     const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
     const friendlyComponentName =
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
-    const folderPath = UIDLUtils.getComponentFolderPath(component)
+    const folderPath = UIDLUtils.getComponentFolderPath(
+      component,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
 
     const { customComponentFileName, customStyleFileName, customTemplateFileName } =
       componentStrategyOptions
@@ -337,7 +340,10 @@ export const resolveLocalDependencies = (
   strategy: ProjectStrategy
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
-    const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+    const pagePath = UIDLUtils.getComponentFolderPath(
+      pageUIDL,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
@@ -348,7 +354,10 @@ export const resolveLocalDependencies = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const componentPath = UIDLUtils.getComponentFolderPath(component)
+    const componentPath = UIDLUtils.getComponentFolderPath(
+      component,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
     const fromPath = strategy.components.path.concat(componentPath)
 
     UIDLUtils.traverseElements(component.node, (element) => {

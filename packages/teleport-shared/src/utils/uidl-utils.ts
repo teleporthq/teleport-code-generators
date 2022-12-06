@@ -90,10 +90,23 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
     : componentFileName
 }
 
-export const getComponentFolderPath = (component: ComponentUIDL) =>
-  component.outputOptions && component.outputOptions.folderPath
+export const getComponentFolderPath = (
+  component: ComponentUIDL,
+  useFileNameForNavigation: boolean = false
+) => {
+  if (useFileNameForNavigation) {
+    let prefixPath = ''
+    if (component.outputOptions && component.outputOptions.fileName) {
+      for (let i = 0; i < component.outputOptions.fileName.split('/').length - 1; i++) {
+        prefixPath += '../'
+      }
+    }
+    return prefixPath !== '' ? [prefixPath] : []
+  }
+  return component.outputOptions && component.outputOptions.folderPath
     ? component.outputOptions.folderPath
     : []
+}
 
 export const getComponentClassName = (component: ComponentUIDL) => {
   const componentName =
