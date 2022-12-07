@@ -40,7 +40,6 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
               parsedEntry('body').empty()
               parsedEntry('head').find('title').remove()
               parsedEntry('head').find('meta').remove()
-              parsedEntry('head').find('link').remove()
 
               const parsedIndividualFile = load(file.content)
 
@@ -62,6 +61,14 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
                 if (prefixPath === '') {
                   prefixPath = './'
                 }
+
+                parsedEntry('head')
+                  .find('link')
+                  .filter((_, value) => {
+                    return value.attribs.rel === 'stylesheet'
+                  })
+                  .remove()
+
                 parsedEntry('head').append(
                   `<link rel="stylesheet" href="${prefixPath}style.css"></link>`
                 )
