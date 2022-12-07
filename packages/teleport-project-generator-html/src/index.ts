@@ -25,7 +25,7 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
       },
     },
     static: {
-      prefix: 'public',
+      prefix: '/public',
       path: ['public'],
     },
     projectStyleSheet: {
