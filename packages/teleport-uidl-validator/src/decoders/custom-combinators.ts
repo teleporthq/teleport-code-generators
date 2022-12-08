@@ -45,13 +45,7 @@ export class CustomCombinators<A> {
   static isValidFileName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
       const fileNameRegex = new RegExp('^[a-zA-Z0-9-_./]*$')
-      const successiveSlashesInFileNameRegex = new RegExp('/{2}')
-      if (
-        json &&
-        typeof json === 'string' &&
-        fileNameRegex.test(json) &&
-        !successiveSlashesInFileNameRegex.test(json)
-      ) {
+      if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
       } else if (json.length === 0) {
         throw new Error(`File Name cannot be empty`)
