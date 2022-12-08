@@ -45,7 +45,7 @@ export class CustomCombinators<A> {
   static isValidFileName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
       const fileNameRegex = new RegExp('^[a-zA-Z0-9-_./]*$')
-      const successiveSlashesInFileNameRegex = new RegExp('/(?=/)')
+      const successiveSlashesInFileNameRegex = new RegExp('/{2}')
       if (
         json &&
         typeof json === 'string' &&
