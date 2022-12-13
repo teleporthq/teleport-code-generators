@@ -409,7 +409,8 @@ describe('getComponentFolderPathWithSubstringURL', () => {
   const useFileNameForNavigation = true
 
   it('returns a relative folder path to the filename if useFileNameForNavigation is set to true', () => {
-    expect(getComponentFolderPath(testComponent, useFileNameForNavigation)).toContain('../../')
+    expect(getComponentFolderPath(testComponent, useFileNameForNavigation)).toContain('sub')
+    expect(getComponentFolderPath(testComponent, useFileNameForNavigation)).toContain('string')
   })
 })
 
