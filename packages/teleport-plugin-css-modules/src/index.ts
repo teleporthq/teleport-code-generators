@@ -331,7 +331,7 @@ export const createCSSModulesPlugin: ComponentPluginFactory<CSSModulesConfig> = 
     if (cssClasses.length > 0) {
       dependencies[styleObjectImportName] = {
         type: 'local',
-        path: `./${cssFileName}.${FileType.CSS}`,
+        path: `./${cssFileName.split('/').pop()}.${FileType.CSS}`,
       }
     }
 

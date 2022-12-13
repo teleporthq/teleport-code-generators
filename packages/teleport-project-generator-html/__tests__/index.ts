@@ -3,6 +3,7 @@ import ProjectTemplate from '../src/project-template'
 import { htmlErrorPageMapping } from '../src/error-page-mapping'
 import { createHTMLProjectGenerator } from '../src'
 import fallbackUidlSample from '../../../examples/uidl-samples/project.json'
+import subfolderUIDL from '../../../examples/uidl-samples/subfolder.json'
 import uidlWithCompStyleOverrides from '../../../examples/test-samples/comp-style-overrides.json'
 import uidlWithImages from '../../../examples/test-samples/html-image-use-cases.json'
 
@@ -15,7 +16,7 @@ describe('Passes the rootClass which using the component', () => {
       (file) => file.name === 'index' && file.fileType === FileType.HTML
     )
     const styleFile = result.files.find(
-      (file) => file.name === 'landing-page' && file.fileType === FileType.CSS
+      (file) => file.name === 'index' && file.fileType === FileType.CSS
     )
 
     expect(mainFile).toBeDefined()
@@ -29,13 +30,13 @@ describe('Image Resolution', () => {
     const generator = createHTMLProjectGenerator()
     const { files } = await generator.generateProject(uidlWithImages)
 
-    const mainCSS = files.find((file) => file.name === 'home' && file.fileType === FileType.CSS)
+    const mainCSS = files.find((file) => file.name === 'index' && file.fileType === FileType.CSS)
     const indexFile = files.find((file) => file.name === 'index' && file.fileType === FileType.HTML)
 
     expect(indexFile).toBeDefined()
     expect(mainCSS).toBeDefined()
-    expect(indexFile?.content).toContain(`href="public/playground_assets/kitten.png"`)
-    expect(indexFile?.content).toContain(`src="public/playground_assets/kitten.png"`)
+    expect(indexFile?.content).toContain(`href="/public/playground_assets/kitten.png"`)
+    expect(indexFile?.content).toContain(`src="/public/playground_assets/kitten.png"`)
     expect(mainCSS?.content).toContain(`.comp-with-image-prop-comp-with-image-bg-in-css {
   width: 100%;
   height: 200px;
@@ -54,7 +55,7 @@ describe('Image Resolution', () => {
     expect(mainCSS?.content).toContain(`.home-div {
   width: 100%;
   height: 200px;
-  background-image: url("public/playground_assets/kitten.png");
+  background-image: url("/public/playground_assets/kitten.png");
 }`)
   })
 
@@ -78,6 +79,18 @@ describe('Meta tags from globals', () => {
       expect(page.content).toContain('<meta charset="utf-8"')
       expect(page.content).toContain('<meta name="viewport"')
       expect(page.content).toContain('<meta property="twitter:card"')
+    })
+  })
+})
+
+describe('Stylesheet with substructure url from headers ', () => {
+  it('are added to each page`s head', async () => {
+    const generator = createHTMLProjectGenerator()
+    const { files } = await generator.generateProject(subfolderUIDL)
+    const pages = files.filter((file) => file.fileType === 'html' && file.name !== 'index')
+
+    pages.forEach((page) => {
+      expect(page.content).toContain('<link rel="stylesheet" href="../../style.css"')
     })
   })
 })

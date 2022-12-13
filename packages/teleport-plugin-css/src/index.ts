@@ -321,7 +321,8 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
        * The name of the file is either in the meta of the component generator
        * or we fallback to the name of the component
        */
-      const cssFileName = UIDLUtils.getStyleFileName(uidl)
+      let cssFileName = UIDLUtils.getStyleFileName(uidl)
+      cssFileName = cssFileName.split('/').pop()
 
       if (declareDependency === 'decorator' && componentDecoratorChunk) {
         const decoratorAST = componentDecoratorChunk.content
