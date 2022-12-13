@@ -30,10 +30,6 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
     parsedEntry('head').find('meta').remove()
     parsedEntry('head').find('title').remove()
 
-    if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
-      parsedEntry('head').append(`<link rel="stylesheet" href="./style.css"></link>`)
-    }
-
     const memoryFiles = Object.fromEntries(files)
     for (const id in memoryFiles) {
       if (memoryFiles.hasOwnProperty(id)) {
@@ -56,6 +52,27 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
                 titleTags.length ? titleTags.toString() : titleTagsFromRoot
               )
               titleTags.remove()
+
+              if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
+                let prefixPath = ''
+                for (let i = 0; i < file.name.split('/').length - 1; i++) {
+                  prefixPath += '../'
+                }
+                if (prefixPath === '') {
+                  prefixPath = './'
+                }
+
+                parsedEntry('head')
+                  .find('link')
+                  .filter((_, value) => {
+                    return value.attribs.rel === 'stylesheet'
+                  })
+                  .remove()
+
+                parsedEntry('head').append(
+                  `<link rel="stylesheet" href="${prefixPath}style.css"></link>`
+                )
+              }
 
               parsedEntry('body').append(parsedIndividualFile.html())
               parsedEntry('body').append(scriptTagsFromRootBody.toString())

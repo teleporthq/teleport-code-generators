@@ -391,7 +391,7 @@ const handleAttributes = (
             StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
           )}`
           ? staticNode('index.html')
-          : staticNode(`${attrValue.content.split('/').pop()}.html`)
+          : staticNode(`${attrValue.content}.html`)
       HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
       return
     }

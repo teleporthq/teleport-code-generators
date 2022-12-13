@@ -403,6 +403,16 @@ describe('getComponentFolderPath', () => {
   })
 })
 
+describe('getComponentFolderPathWithSubstringURL', () => {
+  const testComponent = component('MyComponent', elementNode('random'))
+  testComponent.outputOptions = { fileName: 'sub/string/url' }
+  const useFileNameForNavigation = true
+
+  it('returns a relative folder path to the filename if useFileNameForNavigation is set to true', () => {
+    expect(getComponentFolderPath(testComponent, useFileNameForNavigation)).toContain('../../')
+  })
+})
+
 describe('getRepeatIteratorNameAndKey', () => {
   it('returns the fallback as name and key', () => {
     const { iteratorName, iteratorKey } = getRepeatIteratorNameAndKey()
