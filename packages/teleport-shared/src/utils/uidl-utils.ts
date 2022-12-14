@@ -95,13 +95,11 @@ export const getComponentFolderPath = (
   useFileNameForNavigation: boolean = false
 ) => {
   if (useFileNameForNavigation) {
-    let prefixPath = ''
+    let prefixPath: string[] = []
     if (component.outputOptions && component.outputOptions.fileName) {
-      for (let i = 0; i < component.outputOptions.fileName.split('/').length - 1; i++) {
-        prefixPath += '../'
-      }
+      prefixPath = component.outputOptions.fileName.split('/').slice(0, -1)
     }
-    return prefixPath !== '' ? [prefixPath] : []
+    return prefixPath
   }
   return component.outputOptions && component.outputOptions.folderPath
     ? component.outputOptions.folderPath
