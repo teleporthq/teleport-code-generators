@@ -21,6 +21,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
 
     const parsedEntry = (await import('cheerio').then((mod) => mod.load))(entryFile.content)
     /* Script tags that are attached to the body, example teleport-custom-scripts from studio */
+    const scriptTagsFromRootHead = parsedEntry('head').find('script').toString()
     const scriptTagsFromRootBody = parsedEntry('body').find('script').toString()
     const metaTagsFromRoot = parsedEntry('head').find('meta').toString()
     const titleTagsFromRoot = parsedEntry('head').find('title').toString()
@@ -74,6 +75,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
                 )
               }
 
+              parsedEntry('head').append(scriptTagsFromRootHead.toString())
               parsedEntry('body').append(parsedIndividualFile.html())
               parsedEntry('body').append(scriptTagsFromRootBody.toString())
 
