@@ -20,7 +20,7 @@ import {
   UIDLDynamicReference,
   UIDLPropDefinition,
   UIDLStateDefinition,
-  UIDLStateValueDetails,
+  VUIDLStateValueDetails,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLDependency,
@@ -252,7 +252,7 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   assets: optional(array(globalAssetsDecoder)),
 })
 
-export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
+export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
   pageOptions: optional(pageOptionsDecoder),
   seo: optional(componentSeoDecoder),

@@ -35,6 +35,7 @@ import {
   UIDLCanonicalAsset,
   UIDLIconAsset,
   UIDLRootComponent,
+  UIDLStateValueDetails,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -192,6 +193,13 @@ export type VUIDLStyleSetStateCondition = Modify<
   UIDLStyleSetStateCondition,
   {
     content: Record<string, UIDLStaticValue | string | number | UIDLStyleSetTokenReference>
+  }
+>
+
+export type VUIDLStateValueDetails = Modify<
+  UIDLStateValueDetails,
+  {
+    seo: VUIDLComponentSEO
   }
 >
 
