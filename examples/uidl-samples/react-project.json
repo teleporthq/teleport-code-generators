@@ -148,6 +148,15 @@
                 { "type": "canonical", "path": "https://teleporthq.io" }
               ]
             }
+          },
+          {
+            "value": "Fallback",
+            "seo": {
+              "title": "Fallback Page"
+            },
+            "pageOptions": {
+              "fallback": true
+            }
           }
         ]
       }
@@ -438,7 +447,43 @@
                                 "Here are some of them, shown below as examples"
                               ]
                           }
-                        }, 
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "button",
+                            "abilities": {
+                              "link": {
+                                "type": "url",
+                                "content": {
+                                  "url": {
+                                    "type": "static",
+                                    "content": "https://www.google.com"
+                                  },
+                                  "newTab": true
+                                }
+                              }
+                            },
+                            "attrs": {
+                              "type": {
+                                "type": "static",
+                                "content": "button"
+                              }
+                            },
+                            "style": {
+                              "textDecoration": {
+                                "type": "static",
+                                "content": "none"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "static",
+                                "content": "Button with links and type attr"
+                              }
+                            ]
+                          }
+                        },
                         {
                           "type": "element",
                           "content": {
@@ -526,6 +571,9 @@
                       "content": {
                         "elementType": "component",
                         "semanticType": "Navbar",
+                        "attrs": {
+
+                        },
                         "dependency": {
                           "type": "local"
                         }
@@ -586,6 +634,69 @@
                 }
               },
               "value": "contact-us",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "flex-start"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "children": [
+                          { "type": "static", "content": "This is a fallback page"}
+                        ]
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Fallback",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -811,7 +922,7 @@
       },
       "styleSetDefinitions": {
         "primaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "conditions": [
             { "type": "screen-size",
               "meta": {
@@ -842,13 +953,29 @@
           }
         },
         "secondaryButton": {
-          "type": "reusable-component-style-map",
+          "type": "reusable-component-style-override",
           "content": {
             "background": "red",
             "width": "auto",
             "color": "#fff",
             "border": "1px solid #fff"
-          }
+          },
+          "conditions": [
+            { "type": "screen-size",
+              "meta": {
+                "maxWidth": 991
+              },
+              "content": {
+                "background": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "token",
+                    "id": "blue-600"
+                  }
+                }
+              } 
+            }
+          ]
         }
       },
       "node": {
@@ -891,6 +1018,20 @@
                                 "referenceType":"prop",
                                 "id":"variant"
                               }
+                            }
+                          }
+                        },
+                        "5ecfa07284d8848f05ef9c2d": {
+                          "type": "style-map",
+                          "content": {
+                            "mapType": "inlined",
+                            "conditions": [
+                              { "conditionType": "screen-size", "maxWidth": 991}
+                            ],
+                            "styles": {
+                              "color": { "type": "static", "content": "red"},
+                              "border-bottom": "3px solid red",
+                              "padding-bottom": "7px"
                             }
                           }
                         }

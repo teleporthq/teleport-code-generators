@@ -47,10 +47,10 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
         }
 
         const { height, width } = style
-        const heightUnit = String(height.content).match(CSS_REGEX)[2]
-        const widthUnit = String(width.content).match(CSS_REGEX)[2]
+        const heightUnit = String(height.content).match(CSS_REGEX)?.[2]
+        const widthUnit = String(width.content).match(CSS_REGEX)?.[2]
 
-        if (heightUnit.length === 0 || heightUnit !== widthUnit) {
+        if (heightUnit?.length === 0 || heightUnit !== widthUnit) {
           return
         }
 

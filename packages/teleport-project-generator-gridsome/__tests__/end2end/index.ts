@@ -1,4 +1,5 @@
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithExternalDependency from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlWithProjectStyleSheet from '../../../../examples/test-samples/project-with-import-global-styles.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -61,9 +62,23 @@ describe('Gridsome Project Generator', () => {
 
     expect(components.files[2].content).toContain(`import { Button } from 'antd'`)
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
+    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.11"`)
 
     /** For Nuxt based projects, just imports are injected in index file of the routes */
     expect(pages.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+    expect(pages.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/dist/vue/lib.mjs'`
+    )
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders
+      .find((folder) => folder.name === 'src')
+      ?.subFolders.find((folder) => folder.name === 'pages')
+    const fallbackPage = pages?.files.find((file) => file.name === '404')
+
+    expect(fallbackPage).toBeDefined()
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

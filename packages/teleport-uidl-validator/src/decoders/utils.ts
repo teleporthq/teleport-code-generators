@@ -100,6 +100,11 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   content: union(string(), number(), boolean(), array()),
 })
 
+export const rawValueDecoder: Decoder<UIDLRawValue> = object({
+  type: constant('raw'),
+  content: string(),
+})
+
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
   type: constant('screen-size'),
   meta: object({
@@ -147,7 +152,11 @@ export const tokenReferenceDecoder: Decoder<UIDLStyleSetTokenReference> = object
 })
 
 export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object({
-  type: union(constant('reusable-project-style-map'), constant('reusable-component-style-map')),
+  type: union(
+    constant('reusable-project-style-map'),
+    constant('reusable-component-style-map'),
+    constant('reusable-component-style-override')
+  ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
 })
@@ -165,6 +174,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   componentName: optional(isValidComponentName() as unknown as Decoder<string>),
   navLink: optional(isValidNavLink() as unknown as Decoder<string>),
   fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  fallback: optional(boolean()),
 })
 
 export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
@@ -273,7 +283,6 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('children')
   ),
   defaultValue: stateOrPropDefinitionDecoder,
-  values: optional(array(stateValueDetailsDecoder)),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
@@ -333,6 +342,7 @@ export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
   importReferenceDecoder,
+  rawValueDecoder,
   lazy(() => uidlComponentStyleReference)
 )
 
@@ -408,11 +418,6 @@ export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   uidlMailLinkNodeDecoder,
   phoneLinkNodeDecoder
 )
-
-export const rawValueDecoder: Decoder<UIDLRawValue> = object({
-  type: constant('raw'),
-  content: string(),
-})
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
   constant('hover'),

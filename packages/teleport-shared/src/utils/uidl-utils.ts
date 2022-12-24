@@ -20,9 +20,10 @@ import {
   UIDLStyleValue,
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
-export const extractRoutes = (rootComponent: ComponentUIDL) => {
+export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
   const rootElement = rootComponent.node.content as UIDLElement
 
@@ -89,10 +90,21 @@ export const getTemplateFileName = (component: ComponentUIDL) => {
     : componentFileName
 }
 
-export const getComponentFolderPath = (component: ComponentUIDL) =>
-  component.outputOptions && component.outputOptions.folderPath
+export const getComponentFolderPath = (
+  component: ComponentUIDL,
+  useFileNameForNavigation: boolean = false
+) => {
+  if (useFileNameForNavigation) {
+    let prefixPath: string[] = []
+    if (component.outputOptions && component.outputOptions.fileName) {
+      prefixPath = component.outputOptions.fileName.split('/').slice(0, -1)
+    }
+    return prefixPath
+  }
+  return component.outputOptions && component.outputOptions.folderPath
     ? component.outputOptions.folderPath
     : []
+}
 
 export const getComponentClassName = (component: ComponentUIDL) => {
   const componentName =
@@ -485,7 +497,7 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import', 'comp-style'].indexOf(type as string) !== -1) {
+      if (['dynamic', 'static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }

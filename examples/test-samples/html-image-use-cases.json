@@ -1,0 +1,895 @@
+{
+  "name": "New Project3",
+  "globals": {
+    "settings": {
+      "title": "New Project3",
+      "language": "en"
+    },
+    "assets": [
+      {
+        "type": "style",
+        "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6 {  margin: 0;  padding: 0;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}"
+      },
+      {
+        "type": "style",
+        "content": "\n  html {\n    font-family: Inter;\n    font-size: 16px;\n  }\n\n  body {\n    font-weight: 400;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.15;\n    color: var(--dl-color-gray-black);\n    background-color: var(--dl-color-gray-white);\n    \n  }\n\n  \n"
+      },
+      {
+        "type": "font",
+        "path": "",
+        "name": "Arial"
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
+        "name": "Inter"
+      },
+      {
+        "type": "script",
+        "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
+      },
+      {
+        "type": "icon",
+        "path": "/playground_assets/kitten.png",
+        "options": {
+          "iconType": "icon/png",
+          "iconSizes": "32x32"
+        }
+      }
+    ],
+    "meta": [
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1.0"
+      },
+      {
+        "charSet": "utf-8"
+      },
+      {
+        "property": "twitter:card",
+        "content": "summary_large_image"
+      }
+    ],
+    "customCode": {
+      "head": "<!--This is the head section-->\n<!-- <script type=\"text/javascript\"> ... </script> -->\n<script src='https://unpkg.com/@teleporthq/teleport-custom-scripts'></script>"
+    }
+  },
+  "root": {
+    "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "--dl-space-space-fourunits": {
+          "type": "static",
+          "content": "64px"
+        },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-space-space-twounits": {
+          "type": "static",
+          "content": "32px"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-color-danger-500": {
+          "type": "static",
+          "content": "#BF2626"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
+        "--dl-radius-radius-round": {
+          "type": "static",
+          "content": "50%"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-color-danger-300": {
+          "type": "static",
+          "content": "#A22020"
+        },
+        "--dl-size-size-medium": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-color-gray-700": {
+          "type": "static",
+          "content": "#999999"
+        },
+        "--dl-size-size-maxwidth": {
+          "type": "static",
+          "content": "1400px"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-size-size-xlarge": {
+          "type": "static",
+          "content": "192px"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-space-space-unit": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-color-primary-700": {
+          "type": "static",
+          "content": "#85DCFF"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-space-space-sixunits": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-size-size-xxlarge": {
+          "type": "static",
+          "content": "288px"
+        }
+      }
+    },
+    "styleSetDefinitions": {
+      "button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "14px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Arial"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "500"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "input": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "textarea": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "list": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "width": {
+            "type": "static",
+            "content": "100%"
+          },
+          "margin": {
+            "type": "static",
+            "content": "1em 0px 1em 0px"
+          },
+          "display": {
+            "type": "static",
+            "content": "block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0px 0px 0px 1.5rem"
+          },
+          "listStyleType": {
+            "type": "static",
+            "content": "none"
+          },
+          "listStylePosition": {
+            "type": "static",
+            "content": "outside"
+          }
+        },
+        "conditions": []
+      },
+      "list-item": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "list-item"
+          }
+        },
+        "conditions": []
+      },
+      "teleport-show": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "flex !important"
+          }
+        },
+        "conditions": []
+      },
+      "primary-button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "color": {
+            "type": "static",
+            "content": "white"
+          }
+        },
+        "conditions": []
+      },
+      "secondary-button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "border": {
+            "type": "static",
+            "content": "1px solid"
+          }
+        },
+        "conditions": []
+      },
+      "content": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "400"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "heading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "32px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "route": {
+        "type": "string",
+        "defaultValue": "Home",
+        "values": [
+          {
+            "value": "Home",
+            "seo": {
+              "title": "New Project3",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "New Project3"
+                }
+              ]
+            }
+          },
+          {
+            "value": "Fallback",
+            "seo": {
+              "title": "Fallback Page"
+            },
+            "pageOptions": {
+              "fallback": true
+            }
+          }
+        ]
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "flex-start"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "semanticType": "div",
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "image",
+                              "style": {
+                                "width": "100%",
+                                "height": "200px;"
+                              },
+                              "attrs": {
+                                "src": {
+                                  "type": "static",
+                                  "content": "/playground_assets/kitten.png"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "key": "div",
+                              "elementType": "div",
+                              "name": "div",
+                              "children": [],
+                              "attrs": {},
+                              "style": {
+                                "width": "100%",
+                                "height": "200px",
+                                "backgroundImage": {
+                                  "type": "static",
+                                  "content": "url(\"/playground_assets/kitten.png\")"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "semanticType": "CompWithImageProp",
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "style": {
+                                "width": "100%",
+                                "height": "200px"
+                              },
+                              "attrs": {
+                                "image": {
+                                  "type": "static",
+                                  "content": "/playground_assets/kitten.png"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "attrs": {}
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "image",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "src": {
+                            "type": "static",
+                            "content": "/playground_assets/kitten.png"
+                          },
+                          "alt": {
+                            "type": "static",
+                            "content": "image"
+                          }
+                        },
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100px"
+                          },
+                          "objectFit": {
+                            "type": "static",
+                            "content": "cover"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "style": {
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "width": {
+                            "type": "static",
+                            "content": "100px"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "50px"
+                          },
+                          "border": {
+                            "type": "static",
+                            "content": "2px dashed rgba(120, 120, 120, 0.4)"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "flex": {
+                            "type": "static",
+                            "content": "0 0 auto"
+                          },
+                          "backgroundImage": {
+                            "type": "static",
+                            "content": "url(\"/playground_assets/kitten.png\")"
+                          },
+                          "backgroundSize": {
+                            "type": "static",
+                            "content": "cover"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "static",
+                            "content": "Bg Image"
+                          }
+                        ],
+                        "semanticType": "div"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Home",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "flex-start"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "flex-start"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "children": [
+                          { "type": "static", "content": "This is a fallback page"}
+                        ]
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Fallback",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "Component": {
+      "propDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "height": {
+              "type": "static",
+              "content": "400px"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "flex-start"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            }
+          },
+          "children": [],
+          "semanticType": "div"
+        }
+      },
+      "name": "Component",
+      "styleSetDefinitions": {}
+    },
+    "CompWithImageProp": {
+      "name": "CompWithImageProp",
+      "styleSetDefinitions": {
+        "bgImageC": {
+          "type": "reusable-project-style-map",
+          "content": {
+            "backgroundImage": {
+              "type": "static",
+              "content": "url(\"/playground_assets/kitten.png\")"
+            }
+          }
+        }
+      },
+      "propDefinitions": {
+        "image": {
+          "type": "string",
+          "defaultValue": "/playground_assets/kitten.png"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "style": {
+                  "width": "100%",
+                  "height": "200px"
+                },
+                "attrs": {
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "image"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "key": "div",
+                "elementType": "component",
+                "name": "comp-with-image-bg-in-css",
+                "children": [],
+                "attrs": {},
+                "semanticType": "div",
+                "style": {
+                  "width": "100%",
+                  "height": "200px",
+                  "backgroundImage": {
+                    "type": "static",
+                    "content": "url(\"/playground_assets/kitten.png\")"
+                  }
+                }
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "key": "div",
+                "elementType": "component",
+                "name": "div",
+                "children": [],
+                "attrs": {},
+                "semanticType": "div",
+                "style": {},
+                "referencedStyles": {
+                  "primaryButton": {
+                    "type": "style-map",
+                    "content": {
+                      "mapType": "inlined",
+                      "conditions": [
+                        {
+                          "maxWidth": 991,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "styles": {
+                        "width": "100%",
+                        "height": "200px",
+                        "backgroundImage": {
+                          "type": "static",
+                          "content": "url(\"/playground_assets/kitten.png\")"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

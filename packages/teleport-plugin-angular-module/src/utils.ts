@@ -4,6 +4,7 @@ import {
   UIDLConditionalNode,
   UIDLStateDefinition,
   ComponentUIDL,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -24,6 +25,11 @@ export const createPageModuleModuleDecorator = (
     ])
   )
 
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
+
   const decleration: types.ObjectProperty = t.objectProperty(
     t.identifier('declarations'),
     t.arrayExpression([t.identifier(componentName)])
@@ -36,7 +42,7 @@ export const createPageModuleModuleDecorator = (
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([decleration, imports, exportsProperty]),
+      t.objectExpression([decleration, imports, exportsProperty, schemasProperty]),
     ])
   )
 }
@@ -64,6 +70,10 @@ export const createComponentModuleDecorator = (
       t.identifier('RouterModule'),
     ])
   )
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
 
   const exportsProperty: types.ObjectProperty = t.objectProperty(
     t.identifier('exports'),
@@ -72,7 +82,7 @@ export const createComponentModuleDecorator = (
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([declerations, imports, exportsProperty]),
+      t.objectExpression([declerations, imports, exportsProperty, schemasProperty]),
     ])
   )
 }
@@ -95,6 +105,11 @@ export const createRootModuleDecorator = (externalComponents: string[] = [], t =
     ])
   )
 
+  const schemasProperty: types.ObjectProperty = t.objectProperty(
+    t.identifier('schemas'),
+    t.arrayExpression([t.identifier('CUSTOM_ELEMENTS_SCHEMA')])
+  )
+
   const providers = t.objectProperty(t.identifier('providers'), t.arrayExpression([]))
 
   const bootstrap = t.objectProperty(
@@ -104,7 +119,7 @@ export const createRootModuleDecorator = (externalComponents: string[] = [], t =
 
   return t.decorator(
     t.callExpression(t.identifier('NgModule'), [
-      t.objectExpression([declerations, imports, providers, bootstrap]),
+      t.objectExpression([declerations, imports, providers, bootstrap, schemasProperty]),
     ])
   )
 }
@@ -119,10 +134,9 @@ export const createExportModuleAST = (moduleName: string, t = types) => {
 
 export const createRoutesAST = (
   routes: UIDLConditionalNode[],
-  stateDefinitions: Record<string, UIDLStateDefinition>,
+  stateDefinitions: { route: UIDLRouteDefinitions } & Record<string, UIDLStateDefinition>,
   t = types
 ) => {
-  // TODO: Need to generate type annotation for routes variable, currently babel throwing error
   const routesObject = routes.map((conditionalNode) => {
     const { value: routeKey } = conditionalNode.content
     const pageDefinition = stateDefinitions.route.values.find((route) => route.value === routeKey)
@@ -233,6 +247,7 @@ const traverseUIDLElements = (
   UIDLUtils.traverseElements(component.node, (element) => {
     const { dependency, semanticType, elementType } = element
     const elementTag = semanticType || elementType
+
     if (dependency?.type === 'package') {
       const existingDependency = dependenciesMap[elementTag]
 

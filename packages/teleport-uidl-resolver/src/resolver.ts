@@ -4,6 +4,7 @@ import { ComponentUIDL, UIDLElement, Mapping, GeneratorOptions } from '@teleport
 import { resolveAbilities } from './resolvers/abilities'
 import { resolveStyleSetDefinitions } from './resolvers/style-set-definitions'
 import { resolveReferencedStyle } from './resolvers/referenced-styles'
+import { resolveHtmlNode } from './resolvers/embed-node'
 
 /**
  * The resolver takes the input UIDL and converts all the abstract node types into
@@ -38,7 +39,7 @@ export default class Resolver {
     }
 
     const uidl = UIDLUtils.cloneObject(input)
-    uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions || {})
+    uidl.styleSetDefinitions = resolveStyleSetDefinitions(input.styleSetDefinitions, newOptions)
 
     UIDLUtils.setFriendlyOutputOptions(uidl)
 
@@ -46,8 +47,9 @@ export default class Resolver {
 
     resolveAbilities(uidl, newOptions)
 
-    resolveReferencedStyle(uidl)
+    resolveReferencedStyle(uidl, newOptions)
 
+    resolveHtmlNode(uidl, newOptions)
     // TODO: Rename into apply mappings
     utils.resolveNode(uidl.node, newOptions)
 

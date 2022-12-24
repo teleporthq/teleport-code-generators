@@ -142,8 +142,36 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "elizamaria",
+      "name": "Eliza Nitoi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15130574?v=4",
+      "profile": "https://github.com/elizamaria",
+      "contributions": [
+        "code"
+       ]
+      },
+      {
+      "login": "TudorCe",
+      "name": "TudorCe",
+      "avatar_url": "https://avatars.githubusercontent.com/u/101194278?v=4",
+      "profile": "https://github.com/TudorCe",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "retyidoro",
+      "name": "Dorottya Ferencz",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22962260?v=4",
+      "profile": "https://github.com/retyidoro",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitConvention": "angular"
 }

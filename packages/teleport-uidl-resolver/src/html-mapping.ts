@@ -22,6 +22,28 @@ export const HTMLMapping: Mapping = {
       },
       selfClosing: true,
     },
+    'html-node': {
+      elementType: 'dangerous-html',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.11',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
+    'lottie-node': {
+      elementType: 'lottie-player',
+      dependency: {
+        type: 'package',
+        path: '@lottiefiles/lottie-player',
+        version: '1.6.0',
+        meta: {
+          importJustPath: true,
+        },
+      },
+    },
     textinput: {
       elementType: 'input',
       attrs: {

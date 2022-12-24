@@ -7,7 +7,6 @@ import {
   ProjectUIDL,
   UIDLConditionalNode,
   ProjectStrategy,
-  UIDLStateDefinition,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLExternalDependency,
@@ -17,6 +16,7 @@ import {
   Mapping,
   StyleVariation,
   GeneratorFactoryParams,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -130,7 +130,7 @@ const createPageUIDL = (
  * Also the root path needs to be represented by the index file
  */
 export const extractPageOptions = (
-  routeDefinitions: UIDLStateDefinition,
+  routeDefinitions: UIDLRouteDefinitions,
   routeName: string,
   useFileNameForNavigation = false
 ): { pageOptions: UIDLPageOptions; isHomePage: boolean } => {
@@ -148,7 +148,9 @@ export const extractPageOptions = (
     // default values extracted from state name
     fileName: friendlyFileName,
     componentName: friendlyComponentName,
-    navLink: '/' + (isHomePage ? '' : friendlyFileName),
+    navLink: pageDefinition?.pageOptions?.fallback
+      ? '**'
+      : '/' + (isHomePage ? '' : friendlyFileName),
   }
 
   if (pageDefinition && pageDefinition.pageOptions) {
@@ -163,7 +165,7 @@ export const extractPageOptions = (
   // Also, the defaultPage has to be index, overriding any other value set
   if (useFileNameForNavigation) {
     const fileName = pageOptions.navLink.replace('/', '')
-    pageOptions.fileName = isHomePage ? 'index' : fileName
+    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : fileName
   }
 
   const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
@@ -195,7 +197,10 @@ export const prepareComponentOutputOptions = (
     const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
     const friendlyComponentName =
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
-    const folderPath = UIDLUtils.getComponentFolderPath(component)
+    const folderPath = UIDLUtils.getComponentFolderPath(
+      component,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
 
     const { customComponentFileName, customStyleFileName, customTemplateFileName } =
       componentStrategyOptions
@@ -335,7 +340,10 @@ export const resolveLocalDependencies = (
   strategy: ProjectStrategy
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
-    const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+    const pagePath = UIDLUtils.getComponentFolderPath(
+      pageUIDL,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
@@ -346,7 +354,10 @@ export const resolveLocalDependencies = (
 
   Object.keys(components).forEach((componentKey) => {
     const component = components[componentKey]
-    const componentPath = UIDLUtils.getComponentFolderPath(component)
+    const componentPath = UIDLUtils.getComponentFolderPath(
+      component,
+      strategy.pages.options?.useFileNameForNavigation ?? false
+    )
     const fromPath = strategy.components.path.concat(componentPath)
 
     UIDLUtils.traverseElements(component.node, (element) => {
@@ -493,6 +504,11 @@ export const injectFilesToPath = (
   path: string[],
   files: GeneratedFile[]
 ): void => {
+  if (path.length === 1 && path[0] === '') {
+    rootFolder.files.push(...files)
+    return
+  }
+
   let folder = findFolderByPath(rootFolder, path)
 
   if (!folder) {

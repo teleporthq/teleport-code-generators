@@ -3,6 +3,7 @@ import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import template from './mocks'
 import { createGatsbyProjectGenerator } from '../../src'
 
@@ -44,6 +45,7 @@ describe('Gatsby Project Generator', () => {
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.files[0].name).toBe('package')
     expect(outputFolder.files[0].content).toContain(`"antd": "4.5.4"`)
+    expect(outputFolder.files[0].content).toContain(`"dangerous-html": "0.1.11"`)
     expect(srcFolder.files[0].name).toBe('html')
     expect(srcFolder.files[0].fileType).toBe(FileType.JS)
     expect(srcFolder.files[0].content).toBeDefined()
@@ -57,6 +59,9 @@ describe('Gatsby Project Generator', () => {
      * are added in index file in pages
      */
     expect(pagesFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+    expect(pagesFolder.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/react'`
+    )
   })
 
   it('runs without crashing and using only tokens', async () => {
@@ -68,6 +73,16 @@ describe('Gatsby Project Generator', () => {
 
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders
+      .find((folder) => folder.name === 'src')
+      ?.subFolders.find((folder) => folder.name === 'pages')
+    const fallbackPage = pages?.files.find((file) => file.name === '404')
+
+    expect(fallbackPage).toBeDefined()
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

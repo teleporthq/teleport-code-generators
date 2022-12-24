@@ -1,0 +1,790 @@
+{
+  "name": "Lucky Accomplished Deer",
+  "globals": {
+    "settings": {
+      "title": "Lucky Accomplished Deer",
+      "language": "en"
+    },
+    "assets": [
+      {
+        "type": "style",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "reset-style-sheet"
+          }
+        },
+        "content": "html {  line-height: 1.15;}body {  margin: 0;}* {  box-sizing: border-box;  border-width: 0;  border-style: solid;}p,li,ul,pre,div,h1,h2,h3,h4,h5,h6 {  margin: 0;  padding: 0;}button,input,optgroup,select,textarea {  font-family: inherit;  font-size: 100%;  line-height: 1.15;  margin: 0;}button,select {  text-transform: none;}button,[type=\"button\"],[type=\"reset\"],[type=\"submit\"] {  -webkit-appearance: button;}button::-moz-focus-inner,[type=\"button\"]::-moz-focus-inner,[type=\"reset\"]::-moz-focus-inner,[type=\"submit\"]::-moz-focus-inner {  border-style: none;  padding: 0;}button:-moz-focus,[type=\"button\"]:-moz-focus,[type=\"reset\"]:-moz-focus,[type=\"submit\"]:-moz-focus {  outline: 1px dotted ButtonText;}a {  color: inherit;  text-decoration: inherit;}input {  padding: 2px 4px;}img {  display: block;}html { scroll-behavior: smooth  }"
+      },
+      {
+        "type": "style",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "default-style-sheet"
+          }
+        },
+        "content": "\n  html {\n    font-family: Inter;\n    font-size: 16px;\n  }\n\n  body {\n    font-weight: 400;\n    font-style:normal;\n    text-decoration: none;\n    text-transform: none;\n    letter-spacing: normal;\n    line-height: 1.15;\n    color: var(--dl-color-gray-black);\n    background-color: var(--dl-color-gray-white);\n    \n  }\n\n  \n\n  "
+      },
+      {
+        "type": "font",
+        "path": "https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap",
+        "attrs": {
+          "data-tag": {
+            "type": "static",
+            "content": "font"
+          }
+        }
+      }
+    ],
+    "meta": [
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1.0"
+      },
+      {
+        "charSet": "utf-8"
+      },
+      {
+        "property": "twitter:card",
+        "content": "summary_large_image"
+      }
+    ],
+    "customCode": {
+      "head": "<!--This is the head section-->\n<!-- <style> ... </style> --> \n    <style data-section-id='dropdown'>[data-thq=\"thq-dropdown\"]:hover > [data-thq=\"thq-dropdown-list\"] {\n    display: flex; \n  }\n\n  [data-thq=\"thq-dropdown\"]:hover > div [data-thq=\"thq-dropdown-arrow\"] {\n    transform: rotate(90deg); \n  }</style>",
+      "body": "<!-- Your body code here -->\n<!-- <script type=\"text/javascript\"> ... </script> -->"
+    }
+  },
+  "root": {
+    "name": "App",
+    "designLanguage": {
+      "tokens": {
+        "--dl-color-danger-500": {
+          "type": "static",
+          "content": "#BF2626"
+        },
+        "--dl-size-size-xxlarge": {
+          "type": "static",
+          "content": "288px"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-radius-radius-round": {
+          "type": "static",
+          "content": "50%"
+        },
+        "--dl-size-size-maxwidth": {
+          "type": "static",
+          "content": "1400px"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-space-space-sixunits": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-size-size-medium": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-size-size-xlarge": {
+          "type": "static",
+          "content": "192px"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-color-primary-700": {
+          "type": "static",
+          "content": "#85DCFF"
+        },
+        "--dl-color-danger-300": {
+          "type": "static",
+          "content": "#A22020"
+        },
+        "--dl-space-space-unit": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-space-space-twounits": {
+          "type": "static",
+          "content": "32px"
+        },
+        "--dl-space-space-fourunits": {
+          "type": "static",
+          "content": "64px"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-color-gray-700": {
+          "type": "static",
+          "content": "#999999"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        }
+      }
+    },
+    "styleSetDefinitions": {
+      "button": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "display": {
+            "type": "static",
+            "content": "inline-block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "input": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem 1rem"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "textarea": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "color": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "cursor": {
+            "type": "static",
+            "content": "auto"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0.5rem"
+          },
+          "borderColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-black"
+            }
+          },
+          "borderWidth": {
+            "type": "static",
+            "content": "1px"
+          },
+          "borderRadius": {
+            "type": "static",
+            "content": "4px"
+          },
+          "backgroundColor": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "token",
+              "id": "--dl-color-gray-white"
+            }
+          }
+        },
+        "conditions": []
+      },
+      "list": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "width": {
+            "type": "static",
+            "content": "100%"
+          },
+          "margin": {
+            "type": "static",
+            "content": "1em 0px 1em 0px"
+          },
+          "display": {
+            "type": "static",
+            "content": "block"
+          },
+          "padding": {
+            "type": "static",
+            "content": "0px 0px 0px 1.5rem"
+          },
+          "listStyleType": {
+            "type": "static",
+            "content": "none"
+          },
+          "listStylePosition": {
+            "type": "static",
+            "content": "outside"
+          }
+        },
+        "conditions": []
+      },
+      "list-item": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "list-item"
+          }
+        },
+        "conditions": []
+      },
+      "teleport-show": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "display": {
+            "type": "static",
+            "content": "flex !important"
+          }
+        },
+        "conditions": []
+      },
+      "content": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "400"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      },
+      "heading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "32px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
+      }
+    },
+    "stateDefinitions": {
+      "route": {
+        "type": "string",
+        "defaultValue": "Home",
+        "values": [
+          {
+            "value": "Home",
+            "seo": {
+              "title": "Lucky Accomplished Deer",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Lucky Accomplished Deer"
+                }
+              ]
+            },
+            "pageOptions": {}
+          }
+        ]
+      }
+    },
+    "node": {
+      "type": "element",
+      "content": {
+        "elementType": "Router",
+        "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "text",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "children": [
+                          {
+                            "type": "static",
+                            "content": "Heading"
+                          }
+                        ],
+                        "semanticType": "h1"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "image",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "src": {
+                            "type": "static",
+                            "content": "https://play.teleporthq.io/static/svg/default-img.svg"
+                          },
+                          "alt": {
+                            "type": "static",
+                            "content": "image"
+                          }
+                        },
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100px"
+                          },
+                          "objectFit": {
+                            "type": "static",
+                            "content": "cover"
+                          }
+                        },
+                        "children": []
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "component",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "rootClassName": {
+                            "type": "comp-style",
+                            "content": "rootClassName"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "static",
+                                  "content": "blue"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Heading"
+                                }
+                              ],
+                              "semanticType": "h1"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "image",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "attrs": {
+                                "src": {
+                                  "type": "static",
+                                  "content": "https://play.teleporthq.io/static/svg/default-img.svg"
+                                },
+                                "alt": {
+                                  "type": "static",
+                                  "content": "image"
+                                }
+                              },
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100px"
+                                },
+                                "objectFit": {
+                                  "type": "static",
+                                  "content": "cover"
+                                }
+                              },
+                              "children": []
+                            }
+                          }
+                        ],
+                        "semanticType": "Component"
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "component",
+                        "dependency": {
+                          "type": "local"
+                        },
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "attrs": {
+                          "rootClassName": {
+                            "type": "comp-style",
+                            "content": "rootClassName1"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "static",
+                                  "content": "blue"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Heading"
+                                }
+                              ],
+                              "semanticType": "h1"
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "image",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "attrs": {
+                                "src": {
+                                  "type": "static",
+                                  "content": "https://play.teleporthq.io/static/svg/default-img.svg"
+                                },
+                                "alt": {
+                                  "type": "static",
+                                  "content": "image"
+                                }
+                              },
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100px"
+                                },
+                                "objectFit": {
+                                  "type": "static",
+                                  "content": "cover"
+                                }
+                              },
+                              "children": []
+                            }
+                          }
+                        ],
+                        "semanticType": "Component"
+                      }
+                    }
+                  ],
+                  "semanticType": "div"
+                }
+              },
+              "value": "Home",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "Component": {
+      "propDefinitions": {
+        "rootClassName": {
+          "id": "503bc1f0-00a1-4eb8-ad48-3d9bc115726e",
+          "defaultValue": "",
+          "type": "string"
+        }
+      },
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "referencedStyles": {
+            "3d535c6c-5729-417d-963a-865fd29a33f5": {
+              "type": "style-map",
+              "content": {
+                "mapType": "component-referenced",
+                "content": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "prop",
+                    "id": "rootClassName"
+                  }
+                }
+              }
+            }
+          },
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            },
+            "height": {
+              "type": "static",
+              "content": "400px"
+            },
+            "width": {
+              "type": "static",
+              "content": "100%"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "column"
+            },
+            "justifyContent": {
+              "type": "static",
+              "content": "center"
+            }
+          },
+          "children": [
+            {
+              "type": "slot",
+              "content": {}
+            }
+          ],
+          "semanticType": "div"
+        }
+      },
+      "name": "Component",
+      "styleSetDefinitions": {
+        "rootClassName": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName1": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        }
+      }
+    }
+  }
+}

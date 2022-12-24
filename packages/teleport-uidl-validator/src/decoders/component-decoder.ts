@@ -5,6 +5,8 @@ import {
   withDefault,
   Decoder,
   optional,
+  array,
+  intersection,
 } from '@mojotech/json-type-validation'
 import { VComponentUIDL, VRootComponentUIDL } from '@teleporthq/teleport-types'
 import {
@@ -17,6 +19,7 @@ import {
   externaldependencyDecoder,
   peerDependencyDecoder,
   designTokensDecoder,
+  stateValueDetailsDecoder,
 } from './utils'
 
 export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
@@ -33,7 +36,16 @@ export const componentUIDLDecoder: Decoder<VComponentUIDL> = object({
 export const rootComponentUIDLDecoder: Decoder<VRootComponentUIDL> = object({
   name: withDefault('App', string()),
   node: elementNodeDecoder,
-  stateDefinitions: dict(stateDefinitionsDecoder),
+  stateDefinitions: intersection(
+    dict(stateDefinitionsDecoder),
+    object({
+      route: object({
+        type: string(),
+        defaultValue: string(),
+        values: array(stateValueDetailsDecoder),
+      }),
+    })
+  ),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   importDefinitions: optional(dict(externaldependencyDecoder)),
   peerDefinitions: optional(dict(peerDependencyDecoder)),

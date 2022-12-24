@@ -1,0 +1,33 @@
+{
+  "name": "@teleporthq/teleport-project-plugin-react-jss",
+  "version": "0.23.6",
+  "description": "A plugin for configuring projects to use react-jss",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@teleporthq/teleport-plugin-import-statements": "^0.23.6",
+    "@teleporthq/teleport-plugin-react-jss": "^0.23.6",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.23.6",
+    "@teleporthq/teleport-types": "^0.23.0",
+    "magic-string": "^0.25.4"
+  }
+}

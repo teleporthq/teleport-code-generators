@@ -38,6 +38,7 @@ export const createComponentChunk = (): ChunkDefinition => {
             body: {
               body: [
                 {
+                  type: 'ReturnStatement',
                   argument: {
                     children: [],
                   },

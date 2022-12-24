@@ -1,8 +1,5 @@
 import { createProjectGenerator } from '@teleporthq/teleport-project-generator'
-import {
-  createPreactComponentGenerator,
-  PreactMapping,
-} from '@teleporthq/teleport-component-generator-preact'
+import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { createReactAppRoutingPlugin } from '@teleporthq/teleport-plugin-react-app-routing'
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
@@ -21,8 +18,8 @@ import { CUSTOM_HEAD_CONTENT, CUSTOM_BODY_CONTENT, POLYFILLS_TAG, ENTRY_CHUNK } 
 
 const createPreactProjectGenerator = () => {
   const styleSheetPlugin = createStyleSheetPlugin({
-    fileName: 'style',
-    moduleExtension: false,
+    fileName: 'global-style',
+    moduleExtension: true,
   })
   const routerPlugin = createReactAppRoutingPlugin({ flavor: 'preact' })
 
@@ -31,7 +28,7 @@ const createPreactProjectGenerator = () => {
     style: PreactStyleVariation.CSSModules,
     components: {
       generator: createPreactComponentGenerator,
-      mappings: [PreactMapping],
+      mappings: [PreactProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
@@ -53,8 +50,8 @@ const createPreactProjectGenerator = () => {
     projectStyleSheet: {
       generator: createComponentGenerator,
       plugins: [styleSheetPlugin],
-      fileName: 'style',
-      path: ['src', 'routes'],
+      fileName: 'global-style.module',
+      path: ['src'],
       importFile: true,
     },
     entry: {

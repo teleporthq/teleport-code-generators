@@ -310,7 +310,7 @@ describe('Referes from project style and adds it to the node, without any styles
 
     const { files } = await generator.generateComponent(uidl, cssOptions)
     const jsFile = findFileByType(files, FileType.JS)
-    expect(jsFile.content).toContain(`className={projectStyles['primaryButton']}`)
+    expect(jsFile.content).toContain(`className={projectStyles['primary-button']}`)
     expect(jsFile.content).toContain(`import projectStyles from '../style.module.css'`)
     expect(jsFile.content).not.toContain(`import styles from './my-component.module.css'`)
   })

@@ -14,6 +14,7 @@ import {
   CreateBranchMeta,
   RepositoryMergeMeta,
   RemoveBranchMeta,
+  CompareBranchesMeta,
 } from './types'
 
 export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}) => {
@@ -76,6 +77,11 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     return githubInstance.getCommitData(meta)
   }
 
+  const compare = async (meta: CompareBranchesMeta, authData: ServiceAuth) => {
+    authorizeGithubInstance(authData)
+    return githubInstance.compareBranches(meta)
+  }
+
   const authorizeGithubInstance = (authData?: ServiceAuth): void => {
     if (!authData) {
       return
@@ -94,6 +100,7 @@ export const createGithubGateway: GithubGatewayFactory = (auth: ServiceAuth = {}
     deleteRepositoryBranch,
     commitFilesToRepo,
     getCommitData,
+    compare,
     authorizeGithubInstance,
   }
 }

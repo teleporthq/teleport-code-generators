@@ -81,6 +81,7 @@ const createGithubPublisher: PublisherFactory<GithubFactoryParams, GithubPublish
       commitMessage: commitMsg,
       repository: repo,
       repositoryOwner: repoOwner,
+      extraBranchParents: options.extraBranchParents || [],
     }
 
     const projectFiles = generateProjectFiles({ folder: projectToPublish, ignoreFolder: true })

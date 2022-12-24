@@ -121,31 +121,47 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
     dependencies: options.dependencies,
   }
 
-  const contentChunkContent = t.exportDefaultDeclaration(
-    t.functionDeclaration(
-      t.identifier('MyApp'),
-      [
-        t.objectPattern([
-          t.objectProperty(t.identifier('Component'), t.identifier('Component')),
-          t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
-        ]),
-      ],
-      t.blockStatement([
-        t.returnStatement(
-          t.jsxElement(
-            t.jsxOpeningElement(
-              t.jsxIdentifier('Component'),
-              [t.jsxSpreadAttribute(t.identifier('pageProps'))],
+  const contentChunkContent = [
+    t.importDeclaration(
+      [t.importDefaultSpecifier(t.identifier('React'))],
+      t.stringLiteral('react')
+    ),
+    t.exportDefaultDeclaration(
+      t.functionDeclaration(
+        t.identifier('MyApp'),
+        [
+          t.objectPattern([
+            t.objectProperty(t.identifier('Component'), t.identifier('Component')),
+            t.objectProperty(t.identifier('pageProps'), t.identifier('pageProps')),
+          ]),
+        ],
+        t.blockStatement([
+          t.expressionStatement(
+            t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useEffect')), [
+              t.arrowFunctionExpression(
+                [],
+                t.callExpression(t.identifier('import'), [
+                  t.stringLiteral('@lottiefiles/lottie-player'),
+                ])
+              ),
+            ])
+          ),
+          t.returnStatement(
+            t.jsxElement(
+              t.jsxOpeningElement(
+                t.jsxIdentifier('Component'),
+                [t.jsxSpreadAttribute(t.identifier('pageProps'))],
+                true
+              ),
+              null,
+              [],
               true
-            ),
-            null,
-            [],
-            true
-          )
-        ),
-      ])
-    )
-  )
+            )
+          ),
+        ])
+      )
+    ),
+  ]
 
   chunks.push({
     type: ChunkType.AST,

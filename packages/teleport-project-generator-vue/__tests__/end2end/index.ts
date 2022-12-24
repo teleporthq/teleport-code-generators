@@ -1,3 +1,4 @@
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -54,6 +55,7 @@ describe('Vue Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
+    "dangerous-html": "0.1.11",
     "antd": "4.5.4"
   }
 }`)
@@ -62,8 +64,18 @@ describe('Vue Project Generator', () => {
     expect(modalComponent.content).toContain(`import { Button } from 'antd'`)
     expect(viewsFolder.files[0].content).toContain(`<app-modal></app-modal>`)
     expect(viewsFolder.files[0].content).toContain(`import AppModal from '../components/modal'`)
+    expect(viewsFolder.files[0].content).toContain(`import DangerousHTML from 'dangerous-html/vue'`)
     /** Imports that are just inserted like css are added to router file by default  */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders.find((folder) => folder.name === 'src')
+    const routesPage = pages?.files.find((file) => file.name === 'router')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(`path: '**'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -16,6 +16,7 @@ import {
   UIDLComponentSEO,
   VUIDLGlobalAsset,
   UIDLGlobalAsset,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -76,7 +77,7 @@ export const parseProjectJSON = (
   const result = {
     ...(safeInput as unknown as ProjectUIDL),
   }
-  result.root = parseComponentJSON(root, { noClone: true })
+  result.root = parseComponentJSON(root, { noClone: true }) as UIDLRootComponent
 
   result.globals?.assets?.forEach(parseAssets)
 

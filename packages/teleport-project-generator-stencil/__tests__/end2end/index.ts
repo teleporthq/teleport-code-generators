@@ -1,3 +1,4 @@
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithGlobalStyleSheet from '../../../../examples/test-samples/project-with-import-global-styles.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -37,10 +38,10 @@ describe('Preact Project Generator', () => {
     const stencilConfig = outputFolder.files[0]
 
     expect(assetsPath).toBeDefined()
-    expect(outputFolder.files.length).toBe(2)
+    expect(outputFolder.files.length).toBe(3)
     expect(outputFolder.name).toBe(template.name)
     expect(outputFolder.name).toBe('stencil')
-    expect(outputFolder.files[1].name).toBe('package')
+    expect(outputFolder.files[2].name).toBe('package')
     expect(stencilConfig.name).toBe('stencil.config')
     expect(stencilConfig.fileType).toBe('ts')
 
@@ -52,6 +53,19 @@ describe('Preact Project Generator', () => {
     expect(rootFiles[0].name).toBe('app-root')
     expect(rootFiles[0].fileType).toBe('tsx')
     expect(srcFolder.subFolders[0].name).toBe('components')
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders
+      .find((folder) => folder.name === 'src')
+      ?.subFolders.find((folder) => folder.name === 'components')
+    const routesPage = pages?.files.find((file) => file.name === 'app-root')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(
+      `<stencil-route component="app-fallback"></stencil-route>`
+    )
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

@@ -1,11 +1,11 @@
 import * as types from '@babel/types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLStateDefinition, UIDLConditionalNode } from '@teleporthq/teleport-types'
+import { UIDLConditionalNode, UIDLRouteDefinitions } from '@teleporthq/teleport-types'
 
 export const createClassDeclaration = (
   routes: UIDLConditionalNode[],
-  routeDefinitions: UIDLStateDefinition,
+  routeDefinitions: UIDLRouteDefinitions,
   t = types
 ) => {
   const stencilRouterTag = ASTBuilders.createJSXTag('stencil-router')
@@ -15,13 +15,17 @@ export const createClassDeclaration = (
   routes.forEach((routeNode) => {
     const pageKey = routeNode.content.value.toString()
     const pageDefinition = routeDefinitions.values.find((route) => route.value === pageKey)
-    const { componentName, navLink } = pageDefinition.pageOptions
+    const { componentName, navLink, fallback } = pageDefinition.pageOptions
 
     const stencilRouteTag = ASTBuilders.createJSXTag('stencil-route')
-    ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    if (!fallback) {
+      ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'url', navLink)
+    }
+
     if (navLink === '/') {
       ASTUtils.addAttributeToJSXTag(stencilRouteTag, 'exact', true)
     }
+
     ASTUtils.addAttributeToJSXTag(
       stencilRouteTag,
       'component',

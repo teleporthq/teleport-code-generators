@@ -1,7 +1,24 @@
+import { Modify } from './helper'
+
+export type UIDLRootComponent = Modify<
+  ComponentUIDL,
+  {
+    stateDefinitions: {
+      route: UIDLRouteDefinitions
+      [x: string]: UIDLStateDefinition
+    }
+  }
+>
+
+export interface UIDLRouteDefinitions {
+  type: string
+  defaultValue: string
+  values: UIDLStateValueDetails[]
+}
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
-  root: ComponentUIDL
+  root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
 }
 
@@ -122,7 +139,6 @@ export interface UIDLPropDefinition {
 export interface UIDLStateDefinition {
   type: string
   defaultValue: string | number | boolean | unknown[] | object | (() => void)
-  values?: UIDLStateValueDetails[]
 }
 
 export interface UIDLStateValueDetails {
@@ -135,6 +151,7 @@ export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
   fileName?: string
+  fallback?: boolean
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
@@ -250,6 +267,7 @@ export type UIDLAttributeValue =
   | UIDLStaticValue
   | UIDLImportReference
   | UIDLComponentStyleReference
+  | UIDLRawValue
 
 export type UIDLStyleValue = UIDLDynamicReference | UIDLStaticValue
 
@@ -330,6 +348,7 @@ export interface UIDLLocalDependency {
     namedImport?: boolean
     originalName?: string
     importJustPath?: boolean
+    importAlias?: string
   }
 }
 
@@ -342,6 +361,7 @@ export interface UIDLExternalDependency {
     originalName?: string
     importJustPath?: boolean
     useAsReference?: boolean
+    importAlias?: string
   }
 }
 
@@ -432,7 +452,10 @@ export type UIDLElementStyleStates =
   | 'link'
 
 export interface UIDLStyleSetDefinition {
-  type: 'reusable-project-style-map' | 'reusable-component-style-map'
+  type:
+    | 'reusable-project-style-map'
+    | 'reusable-component-style-map'
+    | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
 }

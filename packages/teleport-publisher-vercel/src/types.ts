@@ -1,4 +1,10 @@
-import { GeneratedFile, GeneratedFolder } from '@teleporthq/teleport-types'
+import { GeneratedFile, GeneratedFolder, VercelDeployResponse } from '@teleporthq/teleport-types'
+
+declare module 'crypto' {
+  namespace webcrypto {
+    const subtle: SubtleCrypto
+  }
+}
 
 export interface ProjectFolderInfo {
   folder: GeneratedFolder
@@ -25,4 +31,14 @@ export interface VercelPayload {
   public?: boolean
   target?: string
   alias?: string[]
+}
+
+export type VercelResponse = VercelDeployResponse | VercelError
+
+export interface VercelError {
+  error: {
+    code: string
+    message: string
+    errors?: string[]
+  }
 }

@@ -24,18 +24,27 @@ export class CustomCombinators<A> {
   }
 
   static isValidNavLink(): CustomCombinators<string> {
-    return new CustomCombinators<string>((json: string) => {
-      const navLinkRegex = new RegExp('/[a-zA-Z0-9-_]*$')
-      if (json && typeof json === 'string' && navLinkRegex.test(json)) {
-        return Result.ok(json)
+    return new CustomCombinators<string>((link: string) => {
+      if (!link || typeof link !== 'string') {
+        throw new Error(`Invalid navLink attribute, received ${link}`)
       }
-      throw new Error(`Invalid link attribute, received ${json}`)
+
+      if (link === '**') {
+        return Result.ok(link)
+      }
+
+      const navLinkRegex = new RegExp('/[a-zA-Z0-9-_]*$')
+      if (navLinkRegex.test(link)) {
+        return Result.ok(link)
+      }
+
+      throw new Error(`Invalid navLink attribute, received ${link}`)
     })
   }
 
   static isValidFileName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^[a-zA-Z0-9-_.]*$')
+      const fileNameRegex = new RegExp('^[a-zA-Z0-9-_./]*$')
       if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
       } else if (json.length === 0) {

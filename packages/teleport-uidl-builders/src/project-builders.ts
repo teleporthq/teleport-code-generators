@@ -4,11 +4,12 @@ import {
   UIDLGlobalAsset,
   WebManifest,
   UIDLGlobalProjectValues,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
 export const project = (
   name: string,
-  root: ComponentUIDL,
+  root: UIDLRootComponent,
   components: ComponentUIDL[],
   globals?: {
     settings: {

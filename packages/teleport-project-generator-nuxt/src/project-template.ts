@@ -15,8 +15,12 @@ export default {
     "start": "nuxt start",
     "generate": "nuxt generate"
   },
+  "devDependencies": {
+    "nuxt": "^2.15.8"
+  },
   "dependencies": {
-    "nuxt": "^2.15.6"
+    "vue": "2.7.14",
+    "@lottiefiles/vue-lottie-player": "1.0.4"
   }
 }`,
       fileType: 'json',
@@ -34,6 +38,22 @@ export default {
   <div><nuxt /></div>
 </template>`,
           fileType: 'vue',
+        },
+      ],
+      subFolders: [],
+    },
+    {
+      name: 'plugins',
+      files: [
+        {
+          name: 'lottie-vue-player.client.js',
+          content: `
+import Vue from 'vue';
+
+import LottieVuePlayer from "@lottiefiles/vue-lottie-player";
+
+Vue.use(LottieVuePlayer);
+          `,
         },
       ],
       subFolders: [],

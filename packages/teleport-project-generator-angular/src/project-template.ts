@@ -18,24 +18,24 @@ export const template: GeneratedFolder = {
   },
   "private": true,
   "dependencies": {
-    "@angular/common": "~12.0.3",
-    "@angular/compiler": "~12.0.3",
-    "@angular/core": "~12.0.3",
-    "@angular/forms": "~12.0.3",
-    "@angular/platform-browser": "~12.0.3",
-    "@angular/platform-browser-dynamic": "~12.0.3",
-    "@angular/router": "~12.0.3",
+    "@angular/common": "^14.0.0",
+    "@angular/compiler": "^14.0.0",
+    "@angular/core": "^14.0.0",
+    "@angular/forms": "^14.0.0",
+    "@angular/platform-browser": "^14.0.0",
+    "@angular/platform-browser-dynamic": "^14.0.0",
+    "@angular/router": "^14.0.0",
+    "core-js": "~3.0.1",
     "rxjs": "~6.6.0",
     "tslib": "^2.1.0",
-    "core-js": "~3.0.1",
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.900.7",
-    "@angular/cli": "~12.0.3",
-    "@angular/compiler-cli": "~12.0.3",
+    "@angular-devkit/build-angular": "^14.0.0",
+    "@angular/cli": "^14.0.0",
+    "@angular/compiler-cli": "^14.0.0",
     "@types/node": "^12.11.1",
-    "typescript": "~4.2.3"
+    "typescript": "^4.7.3"
   }
 }`,
       fileType: 'json',
@@ -63,7 +63,7 @@ export const template: GeneratedFolder = {
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "aot": false,
+            "aot": true,
             "assets": [
               "src/favicon.ico",
               "src/assets"
@@ -337,7 +337,6 @@ Firefox ESR
 not dead
 not IE 9-11 # For IE 9-11 support, remove 'not'.
 `,
-      fileType: '',
     },
     {
       name: '.gitignore',
@@ -529,30 +528,30 @@ export class AppComponent {
               name: 'environment.prod',
               fileType: 'ts',
               content: `
-      export const environment = {
-        production: true
-      };`,
+export const environment = {
+  production: true
+};`,
             },
             {
               name: 'environment',
               fileType: 'ts',
               content: `
-      // This file can be replaced during build by using the fileReplacements array.
-      // ng build --prod replaces environment.ts with environment.prod.ts.
-      // The list of file replacements can be found in angular.json.
+// This file can be replaced during build by using the fileReplacements array.
+// ng build --prod replaces environment.ts with environment.prod.ts.
+// The list of file replacements can be found in angular.json.
 
-      export const environment = {
-        production: false
-      };
+export const environment = {
+  production: false
+};
 
-      /*
-       * For easier debugging in development mode, you can import the following file
-       * to ignore zone related error stack frames such as zone.run, zoneDelegate.invokeTask.
-       *
-       * This import should be commented out in production mode because it will have a negative impact
-       * on performance if an error is thrown.
-       */
-      // import 'zone.js/dist/zone-error';  // Included with Angular CLI.`,
+/*
+  * For easier debugging in development mode, you can import the following file
+  * to ignore zone related error stack frames such as zone.run, zoneDelegate.invokeTask.
+  *
+  * This import should be commented out in production mode because it will have a negative impact
+  * on performance if an error is thrown.
+  */
+// import 'zone.js/dist/zone-error';  // Included with Angular CLI.`,
             },
           ],
         },

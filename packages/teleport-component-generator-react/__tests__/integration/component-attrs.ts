@@ -23,7 +23,6 @@ const uidl = component(
           {
             test: dynamicNode('local', 'index'),
             for: staticNode('mappedTest'),
-            autoplay: staticNode('true'),
             'data-test': dynamicNode('prop', 'test'),
             'data-inner-value': dynamicNode('prop', 'content.heading'),
           },
@@ -56,10 +55,8 @@ describe('React Attribute Mapping', () => {
 
     expect(jsFile).toBeDefined()
     expect(jsFile.content).toContain('htmlFor')
-    expect(jsFile.content).toContain('autoPlay')
 
     expect(jsFile.content).not.toContain('for')
-    expect(jsFile.content).not.toContain('autoplay')
   })
 })
 

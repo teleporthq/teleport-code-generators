@@ -36,6 +36,7 @@ import {
 import {
   NuxtTemplate,
   createNuxtProjectGenerator,
+  nuxtErrorPageMapper,
 } from '@teleporthq/teleport-project-generator-nuxt'
 import {
   PreactTemplate,
@@ -69,6 +70,9 @@ import {
 import {
   createHTMLProjectGenerator,
   HTMLTemplate,
+  pluginCloneGlobals,
+  pluginHomeReplace,
+  htmlErrorPageMapping,
 } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
@@ -110,17 +114,17 @@ const componentGeneratorProjectMappings = {
 }
 
 const projectGeneratorFactories = {
-  [ProjectType.REACT]: createReactProjectGenerator(),
-  [ProjectType.NEXT]: createNextProjectGenerator(),
-  [ProjectType.VUE]: createVueProjectGenerator(),
-  [ProjectType.NUXT]: createNuxtProjectGenerator(),
-  [ProjectType.PREACT]: createPreactProjectGenerator(),
-  [ProjectType.STENCIL]: createStencilProjectGenerator(),
-  [ProjectType.ANGULAR]: createAngularProjectGenerator(),
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator(),
-  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator(),
-  [ProjectType.GATSBY]: createGatsbyProjectGenerator(),
-  [ProjectType.HTML]: createHTMLProjectGenerator(),
+  [ProjectType.REACT]: createReactProjectGenerator,
+  [ProjectType.NEXT]: createNextProjectGenerator,
+  [ProjectType.VUE]: createVueProjectGenerator,
+  [ProjectType.NUXT]: createNuxtProjectGenerator,
+  [ProjectType.PREACT]: createPreactProjectGenerator,
+  [ProjectType.STENCIL]: createStencilProjectGenerator,
+  [ProjectType.ANGULAR]: createAngularProjectGenerator,
+  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
+  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
+  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
+  [ProjectType.HTML]: createHTMLProjectGenerator,
 }
 
 const templates = {
@@ -165,9 +169,20 @@ export const packProject: PackProjectFunction = async (
     publisher = projectPublisherFactories[publisherType]
   }
 
-  const projectGeneratorFactory = projectGeneratorFactories[projectType]
+  const projectGeneratorFactory = projectGeneratorFactories[projectType]()
+  projectGeneratorFactory.cleanPlugins()
+
+  if (projectType === ProjectType.HTML) {
+    projectGeneratorFactory.addPlugin(pluginHomeReplace)
+    projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+    projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
+  }
+
+  if (projectType === ProjectType.NUXT) {
+    projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
+  }
+
   if (plugins?.length > 0) {
-    projectGeneratorFactory.cleanPlugins()
     plugins.forEach((plugin: ProjectPlugin) => {
       projectGeneratorFactory.addPlugin(plugin)
     })

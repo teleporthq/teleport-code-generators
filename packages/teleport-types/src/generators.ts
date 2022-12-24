@@ -4,9 +4,10 @@ import {
   UIDLDependency,
   Mapping,
   UIDLElement,
-  UIDLStateDefinition,
   UIDLStyleSetDefinition,
   UIDLDesignTokens,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from './uidl'
 
 export enum FileType {
@@ -52,7 +53,7 @@ export interface ChunkDefinition {
  */
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
-  uidl: ComponentUIDL
+  uidl: ComponentUIDL | UIDLRootComponent
   options: GeneratorOptions
   dependencies: Record<string, UIDLDependency>
 }
@@ -113,7 +114,7 @@ export interface GeneratorOptions {
   skipValidation?: boolean
   isRootComponent?: boolean
   skipNavlinkResolver?: boolean
-  projectRouteDefinition?: UIDLStateDefinition
+  projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
   projectStyleSet?: {
@@ -158,6 +159,10 @@ export interface ProjectGenerator {
   ) => Promise<GeneratedFolder>
   addMapping: (mapping: Mapping) => void
   getAssetsPath: () => string[]
+  cleanPlugins: () => void
+  addPlugin: (plugin: ProjectPlugin) => void
+  getStrategy: () => ProjectStrategy
+  updateStrategy: (strategy: ProjectStrategy) => void
 }
 
 export interface GeneratorFactoryParams {
@@ -364,6 +369,7 @@ export interface VercelDeployResponse {
   id: string
   url: string
   alias: string[]
+  readyState?: string
 }
 
 export interface VercelDeleteProject {
