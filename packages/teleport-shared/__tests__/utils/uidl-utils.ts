@@ -35,8 +35,8 @@ import {
   UIDLDynamicReference,
   UIDLSlotNode,
   UIDLAttributeValue,
-  ComponentUIDL,
   UIDLDependency,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 
 import uidlStyleJSON from './uidl-utils-style.json'
@@ -331,7 +331,7 @@ describe('traverses the UIDL and returns the first element node that is found', 
 })
 
 describe('extractRoutes', () => {
-  const root = projectUIDL.root as ComponentUIDL
+  const root = projectUIDL.root as UIDLRootComponent
   const result = extractRoutes(root)
   expect(result.length).toBe(3)
   expect(result[0].content.value).toBe('index')
@@ -497,7 +497,7 @@ const nodeToTraverse = elementNode(
       ]
     ),
   ],
-  null,
+  undefined,
   {
     margin: staticNode('10px'),
     height: dynamicNode('prop', 'height'),

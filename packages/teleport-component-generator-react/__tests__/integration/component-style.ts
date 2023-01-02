@@ -114,6 +114,7 @@ describe('React Styles in Component', () => {
       const styledJSXGenerator = createReactComponentGenerator({
         variation: ReactStyleVariation.StyledJSX,
       })
+
       const result = await styledJSXGenerator.generateComponent(ComponentWithValidStyle)
       const jsFile = findFileByType(result.files, FileType.JS)
 

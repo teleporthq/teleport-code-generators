@@ -1,8 +1,8 @@
 import { generateStyledJSXTag } from '../src/utils'
 
 describe('generateStyledJSXTag', () => {
-  it('returns JSXTag', () => {
-    const result = generateStyledJSXTag('randomString')
+  it('returns JSXTag', async () => {
+    const result = await generateStyledJSXTag('randomString')
 
     expect(result.type).toBe('JSXElement')
     expect(result.openingElement.type).toBe('JSXOpeningElement')

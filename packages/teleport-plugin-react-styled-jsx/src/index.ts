@@ -201,7 +201,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       return structure
     }
 
-    const styleJSXAST = generateStyledJSXTag(classMap.join('\n'))
+    const styleJSXAST = await generateStyledJSXTag(classMap.join('\n'))
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component

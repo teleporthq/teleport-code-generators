@@ -182,6 +182,20 @@ export const createStateChangeStatement = (statement: UIDLStateModifierEvent, t 
   )
 }
 
+export const createDynamicStyleStringsToTemplates = async (
+  str: string
+): Promise<types.JSXExpressionContainer> => {
+  const parse = await import('@babel/parser').then((mod) => mod.parse)
+  const result = parse('<style>{`' + str.trim() + '`}</style>', {
+    sourceType: 'module',
+    plugins: ['jsx'],
+  })
+  const expressionConntainer = (
+    (result.program.body[0] as types.ExpressionStatement).expression as types.JSXElement
+  ).children[0] as types.JSXExpressionContainer
+  return expressionConntainer
+}
+
 export const appendAssetsAST = (
   assets: UIDLGlobalAsset[],
   options: EntryFileOptions,
