@@ -23,9 +23,11 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
+import { generateRelativePathPrefix } from './utils'
 
 type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
+  fileName: string,
   templatesLookUp: Record<string, unknown>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -40,6 +42,7 @@ type NodeToHTML<NodeType, ReturnType> = (
 
 export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastText>> = async (
   node,
+  fileName,
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
@@ -60,6 +63,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
     case 'element':
       return generatElementNode(
         node,
+        fileName,
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
@@ -71,6 +75,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
     case 'dynamic':
       return generateDynamicNode(
         node,
+        fileName,
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
@@ -92,6 +97,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
 
 const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastText>> = async (
   node,
+  fileName,
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
@@ -119,6 +125,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   if (dependency && (dependency as UIDLDependency)?.type === 'local') {
     const compTag = await generateComponentContent(
       node,
+      fileName,
       propDefinitions,
       stateDefinitions,
       externals,
@@ -132,6 +139,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     for (const child of children) {
       const childTag = await generateHtmlSynatx(
         child,
+        fileName,
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
@@ -167,7 +175,14 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (Object.keys(attrs).length > 0) {
-    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions, routeDefinitions)
+    handleAttributes(
+      elementNode,
+      fileName,
+      attrs,
+      propDefinitions,
+      stateDefinitions,
+      routeDefinitions
+    )
   }
 
   return elementNode
@@ -175,6 +190,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
 
 const generateComponentContent = async (
   node: UIDLElementNode,
+  fileName: string,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   externals: Record<string, ComponentUIDL>,
@@ -277,6 +293,7 @@ const generateComponentContent = async (
         },
       },
     },
+    fileName,
     lookUpTemplates,
     propsForInstance,
     statesForInstance,
@@ -336,6 +353,7 @@ const generateComponentContent = async (
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
   node,
   _,
+  __,
   propDefinitions,
   stateDefinitions
 ) => {
@@ -370,6 +388,7 @@ const handleStyles = (
 
 const handleAttributes = (
   htmlNode: HastNode,
+  fileName: string,
   attrs: Record<string, UIDLAttributeValue>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
@@ -384,14 +403,31 @@ const handleAttributes = (
       typeof attrValue.content === 'string' &&
       attrValue.content.startsWith('/')
     ) {
+      let attrPrefix = ''
+      if (
+        !(
+          attrValue.content === '/' ||
+          attrValue.content ===
+            `/${StringUtils.camelCaseToDashCase(
+              StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
+            )}`
+        )
+      ) {
+        const fromPath = fileName.split('/').slice(0, -1)
+        if (fromPath.length === 0) {
+          fromPath.push('')
+        }
+        const toPath = attrValue.content.split('/').slice(0, -1)
+        attrPrefix = generateRelativePathPrefix(fromPath, toPath)
+      }
       attrValue =
         attrValue.content === '/' ||
         attrValue.content ===
           `/${StringUtils.camelCaseToDashCase(
             StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
           )}`
-          ? staticNode('index.html')
-          : staticNode(`${attrValue.content}.html`)
+          ? staticNode(attrPrefix + 'index.html')
+          : staticNode(`${attrPrefix + attrValue.content.split('/').pop()}.html`)
       HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
       return
     }

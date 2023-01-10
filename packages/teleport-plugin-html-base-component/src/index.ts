@@ -37,6 +37,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
   const htmlComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {} } = uidl
+    const { fileName } = uidl.outputOptions
 
     const templatesLookUp: Record<string, unknown> = {}
     const compBase = wrapComponent
@@ -45,6 +46,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
 
     const bodyContent = await generateHtmlSynatx(
       uidl.node,
+      fileName,
       templatesLookUp,
       propDefinitions,
       stateDefinitions,
