@@ -58,6 +58,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
               )
               titleTags.remove()
 
+              parsedEntry('head').append(scriptTagsFromRootHead.toString())
               parsedEntry('body').append(parsedIndividualFile.html())
               parsedEntry('body').append(scriptTagsFromRootBody.toString())
 
