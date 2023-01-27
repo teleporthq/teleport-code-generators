@@ -27,6 +27,7 @@ module.exports = {
   "collectCoverageFrom": [
     "packages/**/src/**/*",
     "!packages/teleport-test/**/*",
-    "!packages/teleport-types/**/*"
+    "!packages/teleport-types/**/*",
+    "!packages/teleport-cli/**/*"
   ]
 }

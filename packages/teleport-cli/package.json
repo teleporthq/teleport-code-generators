@@ -1,0 +1,44 @@
+{
+    "name": "@teleporthq/teleport-cli",
+    "version": "0.21.2",
+    "description": "A command line utility to sync work from studio and other sources to local.",
+    "author": "teleportHQ",
+    "license": "MIT",
+    "homepage": "https://teleporthq.io/",
+    "types": "dist/src/index.d.ts",
+    "sideEffects": false,
+    "main": "dist/cjs/src/index.js",
+    "bin": {
+        "teleport": "dist/cjs/src/index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+    },
+    "bugs": {
+        "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "clean": "rimraf dist",
+        "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+    },
+    "dependencies": {
+        "@teleporthq/teleport-code-generator": "^0.21.2",
+        "@teleporthq/teleport-mapper": "https://gitlab.com/teleporthq/playground/teleport-mapper.git#2d2e2424dbd70a1d226fc3fcd6de76505589ffc7",
+        "@teleporthq/teleport-postprocessor-prettier-html": "^0.21.0",
+        "@teleporthq/teleport-postprocessor-prettier-jsx": "^0.21.0",
+        "@teleporthq/teleport-postprocessor-prettier-ts": "^0.21.0",
+        "@teleporthq/teleport-postprocessor-vue-file": "^0.21.0",
+        "@teleporthq/teleport-types": "^0.21.0",
+        "chalk": "^4.1.1",
+        "commander": "^7.2.0",
+        "diff": "^5.0.0",
+        "fs-extra": "^9.1.0",
+        "minimist": "^1.2.5",
+        "node-fetch": "^2.6.1",
+        "ora": "^5.4.0"
+    }
+}
