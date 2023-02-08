@@ -25,6 +25,15 @@ export const PlainHTMLMapping: Mapping = {
     },
     'lottie-node': {
       elementType: 'lottie-player',
+      dependency: {
+        type: 'package',
+        path: 'lottie-player',
+        version: '1.5.7',
+        meta: {
+          importJustPath: true,
+          importAlias: 'https://unpkg.com/@lottiefiles/lottie-player@1.6.0/dist/lottie-player.js',
+        },
+      },
     },
   },
   illegalClassNames: [],
