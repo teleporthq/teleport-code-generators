@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-shared",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "description": "A utility belt for the entire teleportHQ ecosystem",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-types": "^0.25.1",
+    "@teleporthq/teleport-types": "^0.25.2",
     "jss": "^10.0.0",
     "jss-preset-default": "^10.0.0"
   },
