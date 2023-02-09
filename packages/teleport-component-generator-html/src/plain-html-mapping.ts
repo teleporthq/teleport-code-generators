@@ -27,7 +27,7 @@ export const PlainHTMLMapping: Mapping = {
       elementType: 'lottie-player',
       dependency: {
         type: 'package',
-        path: 'lottie-player',
+        path: '@lottiefiles/lottie-player',
         version: '1.5.7',
         meta: {
           importJustPath: true,
