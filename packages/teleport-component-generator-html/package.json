@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-html",
-  "version": "0.25.2",
+  "version": "0.25.3",
   "description": "Component generator customization, capable of creating plain html",
   "author": "teleportHQ",
   "license": "MIT",
