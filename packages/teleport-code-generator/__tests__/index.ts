@@ -20,11 +20,7 @@ const reactProjectPath = join(__dirname, 'react')
 const nextProjectPath = join(__dirname, 'next')
 const vueProjectPath = join(__dirname, 'vue')
 const nuxtProjectPath = join(__dirname, 'nuxt')
-const stencilProjectPath = join(__dirname, 'stencil')
-const preactProjectPath = join(__dirname, 'preact')
 const htmlProjectPath = join(__dirname, 'html')
-const gatsbyProjectPath = join(__dirname, 'gatsby')
-const gridsomeProjectPath = join(__dirname, 'gridsome')
 const angularProjectPath = join(__dirname, 'angular')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -47,11 +43,7 @@ afterAll(() => {
   removeDirectory(nextProjectPath)
   removeDirectory(vueProjectPath)
   removeDirectory(nuxtProjectPath)
-  removeDirectory(stencilProjectPath)
-  removeDirectory(preactProjectPath)
   removeDirectory(htmlProjectPath)
-  removeDirectory(gatsbyProjectPath)
-  removeDirectory(gridsomeProjectPath)
   removeDirectory(angularProjectPath)
 })
 
@@ -124,30 +116,6 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('creates a stencil project', async () => {
-    const options: PackerOptions = {
-      projectType: ProjectType.STENCIL,
-      assets,
-      publisher: PublisherType.DISK,
-      publishOptions: { outputPath: stencilProjectPath },
-    }
-
-    const { success } = await packProject(projectUIDL, options)
-    expect(success).toBeTruthy()
-  })
-
-  it('creates a preact project', async () => {
-    const options: PackerOptions = {
-      projectType: ProjectType.PREACT,
-      assets,
-      publisher: PublisherType.DISK,
-      publishOptions: { outputPath: preactProjectPath },
-    }
-
-    const { success } = await packProject(projectUIDL, options)
-    expect(success).toBeTruthy()
-  })
-
   it('creates a html project', async () => {
     const options: PackerOptions = {
       projectType: ProjectType.HTML,
@@ -172,44 +140,10 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('creates a gatsby project', async () => {
-    const options: PackerOptions = {
-      projectType: ProjectType.GATSBY,
-      assets,
-      publisher: PublisherType.DISK,
-      publishOptions: { outputPath: gatsbyProjectPath },
-    }
-
-    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
-    expect(success).toBeTruthy()
-  })
-
-  it('creates a gridsome project', async () => {
-    const options: PackerOptions = {
-      projectType: ProjectType.GRIDSOME,
-      assets,
-      publisher: PublisherType.DISK,
-      publishOptions: { outputPath: gridsomeProjectPath },
-    }
-
-    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
-    expect(success).toBeTruthy()
-  })
-
   it('creates a react component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.REACT,
       styleVariation: ReactStyleVariation.CSSModules,
-    }
-
-    const { files } = await generateComponent(componentUIDL, options)
-    expect(files.length).toBe(2)
-  })
-
-  it('creates a preact component', async () => {
-    const options: GenerateOptions = {
-      componentType: ComponentType.PREACT,
-      styleVariation: PreactStyleVariation.CSS,
     }
 
     const { files } = await generateComponent(componentUIDL, options)
@@ -223,15 +157,6 @@ describe('code generator', () => {
 
     const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(1)
-  })
-
-  it('creates a stencil component', async () => {
-    const options: GenerateOptions = {
-      componentType: ComponentType.STENCIL,
-    }
-
-    const { files } = await generateComponent(componentUIDL, options)
-    expect(files.length).toBe(2)
   })
 
   it('creates an angular component', async () => {

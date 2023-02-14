@@ -2,10 +2,6 @@ import {
   createNextProjectGenerator,
   NextTemplate,
 } from '@teleporthq/teleport-project-generator-next'
-import {
-  createGatsbyProjectGenerator,
-  GatsbyTemplate as template,
-} from '@teleporthq/teleport-project-generator-gatsby'
 import { ProjectPluginCSSModules } from '../../../teleport-project-plugin-css-modules'
 import { ProjectPluginStyledComponents } from '../../../teleport-project-plugin-styled-components'
 import projectUIDL from '../../../../examples/test-samples/project-with-import-global-styles.json'
@@ -70,113 +66,5 @@ describe('Generates NEXT-JS project with plugins', () => {
     expect(document.content).toContain(`const sheet = new ServerStyleSheet()`)
     expect(document.content).toContain(`{this.props.styleTags}`)
     expect(appFile.content).not.toContain(`import "./style.css"`)
-  })
-})
-
-describe('Generates Gatsby Projects with plugins', () => {
-  it('runs without crashing', async () => {
-    const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
-    const outputFolder = await generator.generateProject(uidlSample, template)
-    const assetsPath = generator.getAssetsPath()
-
-    const srcFolder = outputFolder.subFolders[0]
-    const pagesFolder = srcFolder.subFolders[1]
-    const componentsFolder = srcFolder.subFolders[2]
-    const gatsbyConfigFile = outputFolder.files.find((file) => file.name === 'gatsby-config')
-
-    expect(gatsbyConfigFile).toBeDefined()
-    expect(assetsPath).toBeDefined()
-    expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
-    expect(srcFolder.files[0].name).toBe('html')
-    expect(srcFolder.files[0].fileType).toBe(FileType.JS)
-    expect(srcFolder.files[0].content).toBeDefined()
-    expect(pagesFolder.name).toBe('pages')
-    expect(pagesFolder.files.length).toBeGreaterThan(0)
-    expect(componentsFolder.files.length).toBeGreaterThan(0)
-    expect(componentsFolder.name).toBe('components')
-  })
-
-  it('runs without crashing with external dependencies', async () => {
-    const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
-    const outputFolder = await generator.generateProject(
-      uidlSampleWithExternalDependencies,
-      template
-    )
-    const assetsPath = generator.getAssetsPath()
-
-    const srcFolder = outputFolder.subFolders[0]
-    const pagesFolder = srcFolder.subFolders[1]
-    const componentsFolder = srcFolder.subFolders[2]
-
-    expect(assetsPath).toBeDefined()
-    expect(outputFolder.name).toBe(template.name)
-    expect(outputFolder.files[0].name).toBe('package')
-    expect(outputFolder.files[0].content).toContain(`"antd": "4.5.4"`)
-    expect(srcFolder.files[0].name).toBe('html')
-    expect(srcFolder.files[0].fileType).toBe(FileType.JS)
-    expect(srcFolder.files[0].content).toBeDefined()
-    expect(pagesFolder.name).toBe('pages')
-    expect(pagesFolder.files.length).toBeGreaterThan(0)
-    expect(componentsFolder.files.length).toBeGreaterThan(0)
-    expect(componentsFolder.name).toBe('components')
-
-    /*
-     * Imports like css imports / or imports which are just inserted,
-     * are added in index file in pages
-     */
-    expect(pagesFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
-  })
-
-  it('runs without crashing and using only tokens', async () => {
-    const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
-    const result = await generator.generateProject(uidlSampleWithJustTokens, template)
-    const srcFolder = result.subFolders.find((folder) => folder.name === 'src')
-    const styleSheet = srcFolder.files.find(
-      (file) => file.name === 'style' && file.fileType === FileType.JS
-    )
-
-    expect(styleSheet).toBeDefined()
-    expect(styleSheet.content).toContain(`Greys700: "#999999"`)
-  })
-
-  it('throws error when conifg file is not found with custom framework config', async () => {
-    const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
-    const result = generator.generateProject(invalidUidlSample, template)
-
-    await expect(result).rejects.toThrow(Error)
-  })
-
-  it('Gatsby + Styled Components', async () => {
-    const generator = createGatsbyProjectGenerator()
-    generator.addPlugin(new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY }))
-
-    const result = await generator.generateProject(projectUIDL, template)
-    const packageJSON = result.files.find(
-      (file) => file.name === 'package' && file.fileType === FileType.JSON
-    )
-    const gatsbyConfig = result.files.find(
-      (file) => file.name === 'gatsby-config' && file.fileType === FileType.JS
-    )
-    const [styleModule] = result.subFolders.map((file) => {
-      if (file.name === 'src') {
-        return file.files.find(
-          (subFile) => subFile.name === 'style' && subFile.fileType === FileType.JS
-        )
-      }
-    })
-
-    expect(gatsbyConfig).toBeDefined()
-    expect(gatsbyConfig.content).toContain(`gatsby-plugin-styled-components`)
-    expect(styleModule).toBeDefined()
-    expect(styleModule.content).toContain(`import { variant } from "styled-system"`)
-    expect(packageJSON).toBeDefined()
-    expect(packageJSON.content).toContain(`"babel-plugin-styled-components": "^1.12.0"`)
-    expect(packageJSON.content).toContain(`"gatsby-plugin-styled-components": "^4.6.0"`)
-    expect(packageJSON.content).toContain(`"styled-system": "^5.1.5"`)
   })
 })
