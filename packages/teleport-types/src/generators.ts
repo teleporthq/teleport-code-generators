@@ -496,11 +496,7 @@ export enum ProjectType {
   NEXT = 'Next',
   VUE = 'Vue',
   NUXT = 'Nuxt',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  GATSBY = 'Gatsby',
-  GRIDSOME = 'Gridsome',
   REACTNATIVE = 'React-Native',
   HTML = 'HTML',
 }
@@ -508,8 +504,6 @@ export enum ProjectType {
 export enum ComponentType {
   REACT = 'React',
   VUE = 'Vue',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
   REACTNATIVE = 'React-Native',
   HTML = 'HTML',
@@ -517,10 +511,8 @@ export enum ComponentType {
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
   [ComponentType.REACT]: ReactStyleVariation.CSSModules,
-  [ComponentType.PREACT]: PreactStyleVariation.CSSModules,
   [ComponentType.REACTNATIVE]: ReactNativeStyleVariation.StyledComponents,
   [ComponentType.VUE]: null,
-  [ComponentType.STENCIL]: null,
   [ComponentType.ANGULAR]: null,
   [ComponentType.HTML]: null,
 }
