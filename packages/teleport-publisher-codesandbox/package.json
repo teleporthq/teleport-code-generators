@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-publisher-codesandbox",
-  "version": "0.25.2",
+  "version": "0.25.4",
   "description": "Send your generated project to codesandbox",
   "author": "teleportHQ",
   "license": "MIT",
