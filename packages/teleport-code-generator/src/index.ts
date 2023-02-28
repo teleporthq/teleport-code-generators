@@ -40,11 +40,6 @@ import {
 } from '@teleporthq/teleport-project-generator-nuxt'
 
 import {
-  createReactNativeProjectGenerator,
-  ReactNativeTemplate,
-  ReactNativeProjectMapping,
-} from '@teleporthq/teleport-project-generator-reactnative'
-import {
   createAngularProjectGenerator,
   AngularTemplate,
   AngularProjectMapping,
@@ -67,7 +62,6 @@ import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codes
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
-import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 import {
   createHTMLComponentGenerator,
   PlainHTMLMapping,
@@ -78,7 +72,6 @@ const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInsta
   [ComponentType.REACT]: createReactComponentGenerator,
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
   [ComponentType.VUE]: createVueComponentGenerator,
-  [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
   [ComponentType.HTML]: createHTMLComponentGenerator,
 }
 
@@ -86,7 +79,6 @@ const componentGeneratorProjectMappings = {
   [ComponentType.REACT]: ReactProjectMapping,
   [ComponentType.ANGULAR]: AngularProjectMapping,
   [ComponentType.VUE]: VueProjectMapping,
-  [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
   [ComponentType.HTML]: PlainHTMLMapping,
 }
 
@@ -96,7 +88,6 @@ const projectGeneratorFactories = {
   [ProjectType.VUE]: createVueProjectGenerator,
   [ProjectType.NUXT]: createNuxtProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
   [ProjectType.HTML]: createHTMLProjectGenerator,
 }
 
@@ -105,7 +96,6 @@ const templates = {
   [ProjectType.NEXT]: NextTemplate,
   [ProjectType.VUE]: VueTemplate,
   [ProjectType.NUXT]: NuxtTemplate,
-  [ProjectType.REACTNATIVE]: ReactNativeTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
   [ProjectType.HTML]: HTMLTemplate,
 }
@@ -220,7 +210,7 @@ const createComponentGenerator = (
     throw new Error(`Invalid ComponentType: ${componentType}`)
   }
 
-  if (componentType === ComponentType.REACT || componentType === ComponentType.REACTNATIVE) {
+  if (componentType === ComponentType.REACT) {
     return generatorFactory({ variation: styleVariation })
   }
 
