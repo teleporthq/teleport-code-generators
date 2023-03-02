@@ -184,12 +184,7 @@ Check the official guides on [how to use an existing project generator](https://
 * `teleport-project-generator-next` - based on [Next.js](https://nextjs.org/)
 * `teleport-project-generator-vue` - with a structure starting from the `vue-cli`
 * `teleport-project-generator-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
-* `teleport-project-generator-preact` - based on the [preact-cli](https://github.com/preactjs/preact-cli)
 * `teleport-project-generator-angular` - based on the `angular-cli`
-* `teleport-project-generator-gatsby`
-* `teleport-project-generator-gridsome`
-* `teleport-project-generator-stencil` (experimental)
-* `teleport-project-generator-react-native` (experimental)
 * `teleport-project-generator-html` (experimental)
 
 #### Capabilities

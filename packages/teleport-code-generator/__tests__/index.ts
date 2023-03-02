@@ -11,7 +11,6 @@ import {
   PublisherType,
   ProjectType,
   ReactStyleVariation,
-  PreactStyleVariation,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
 import { packProject, generateComponent } from '../src/index'

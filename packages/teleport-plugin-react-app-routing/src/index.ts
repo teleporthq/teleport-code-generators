@@ -1,11 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import {
-  registerReactRouterDeps,
-  registerPreactRouterDeps,
-  constructRouteJSX,
-  createRouteRouterTag,
-} from './utils'
+import { registerReactRouterDeps, constructRouteJSX, createRouteRouterTag } from './utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
@@ -20,7 +15,7 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
-  flavor: 'preact' | 'react'
+  flavor: 'react'
 }
 
 export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
@@ -40,11 +35,7 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
       return structure
     }
 
-    if (flavor === 'preact') {
-      registerPreactRouterDeps(dependencies)
-    } else {
-      registerReactRouterDeps(dependencies)
-    }
+    registerReactRouterDeps(dependencies)
 
     const { stateDefinitions = {} } = uidl
 
@@ -90,32 +81,20 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
       linkAfter: [importChunkName],
     })
 
-    if (flavor === 'preact') {
-      const exportJSXApp = ASTBuilders.createDefaultExport('App')
-
-      structure.chunks.push({
-        type: ChunkType.AST,
-        fileType: FileType.JS,
-        name: domRenderChunkName,
-        content: exportJSXApp,
-        linkAfter: [componentChunkName],
-      })
-    } else {
+    // @ts-ignore
+    const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
+      ASTBuilders.createSelfClosingJSXTag(uidl.name),
       // @ts-ignore
-      const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
-        ASTBuilders.createSelfClosingJSXTag(uidl.name),
-        // @ts-ignore
-        ASTBuilders.createFunctionCall('document.getElementById', ['app']),
-      ])
+      ASTBuilders.createFunctionCall('document.getElementById', ['app']),
+    ])
 
-      structure.chunks.push({
-        type: ChunkType.AST,
-        fileType: FileType.JS,
-        name: domRenderChunkName,
-        content: reactDomBind,
-        linkAfter: [componentChunkName],
-      })
-    }
+    structure.chunks.push({
+      type: ChunkType.AST,
+      fileType: FileType.JS,
+      name: domRenderChunkName,
+      content: reactDomBind,
+      linkAfter: [componentChunkName],
+    })
 
     return structure
   }
