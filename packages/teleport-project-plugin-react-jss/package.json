@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-react-jss",
-  "version": "0.25.2",
+  "version": "0.25.4",
   "description": "A plugin for configuring projects to use react-jss",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,9 +24,9 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-plugin-import-statements": "^0.25.2",
-    "@teleporthq/teleport-plugin-react-jss": "^0.25.2",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.25.2",
+    "@teleporthq/teleport-plugin-import-statements": "^0.25.4",
+    "@teleporthq/teleport-plugin-react-jss": "^0.25.4",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.25.4",
     "@teleporthq/teleport-types": "^0.25.2",
     "magic-string": "^0.25.4"
   }
