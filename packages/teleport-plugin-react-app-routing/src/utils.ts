@@ -2,7 +2,7 @@ import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 
-export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types.JSXElement[]) => {
+export const createRouteRouterTag = (routeJSXDefinitions: types.JSXElement[]) => {
   const routerTag = ASTBuilders.createJSXTag('Router')
 
   const divContainer = ASTBuilders.createJSXTag('div')
@@ -12,12 +12,7 @@ export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types
   return routerTag
 }
 
-export const constructRouteJSX = (
-  flavour: string,
-  componentName: string,
-  path: string,
-  fallback?: boolean
-) => {
+export const constructRouteJSX = (componentName: string, path: string, fallback?: boolean) => {
   let JSXRoutePrefix: string
   let route: types.JSXElement
 

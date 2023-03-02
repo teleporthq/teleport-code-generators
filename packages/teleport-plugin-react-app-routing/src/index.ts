@@ -15,7 +15,6 @@ interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
-  flavor: 'react'
 }
 
 export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
@@ -25,7 +24,6 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
     domRenderChunkName = 'app-router-export',
-    flavor = 'react',
   } = config || {}
 
   const reactAppRoutingPlugin: ComponentPlugin = async (structure) => {
@@ -66,10 +64,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
         path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
       }
 
-      return constructRouteJSX(flavor, componentName, navLink, fallback)
+      return constructRouteJSX(componentName, navLink, fallback)
     })
 
-    const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
+    const rootRouterTag = createRouteRouterTag(routeJSXDefinitions)
 
     const pureComponent = ASTBuilders.createFunctionalComponent(uidl.name, rootRouterTag)
 
