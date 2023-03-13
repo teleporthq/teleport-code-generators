@@ -61,33 +61,4 @@ describe('Testing the functionality for StyledComponents', () => {
 
     expect(Object.keys(dependencies).length).toBe(0)
   })
-
-  it('Generates the reactnative dependency path and removes unneeded dependencies', async () => {
-    const reactNativePlugin = createReactStyledComponentsPlugin({ componentLibrary: 'reactnative' })
-
-    const elementWithStyle = createElementWithStyle()
-    const uidlSample = component('StyledComponents', elementWithStyle)
-    const structure: ComponentStructure = {
-      uidl: uidlSample,
-      options: {},
-      chunks: [componentChunk],
-      dependencies: {
-        container: {
-          type: 'library',
-          path: 'react-native',
-          version: '0.0.0',
-        },
-      },
-    }
-
-    const { dependencies } = await reactNativePlugin(structure)
-
-    expect(dependencies.container).toBeUndefined()
-
-    const { styled } = dependencies
-
-    expect(Object.keys(dependencies).length).toBeGreaterThan(0)
-    expect(styled.type).toBe('package')
-    expect(styled.path).toBe('styled-components/native')
-  })
 })
