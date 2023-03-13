@@ -42,7 +42,7 @@ https://user-images.githubusercontent.com/3997538/123211638-63efaa00-d4cc-11eb-9
 
 The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/?ref=github). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
 
-These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
+These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
 
 The philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence the focus on component generation
@@ -60,18 +60,12 @@ The easiest way to jump into the **teleport ecosystem** is to try out one of the
 npm install @teleporthq/teleport-component-generator-react
 npm install @teleporthq/teleport-component-generator-vue
 npm install @teleporthq/teleport-component-generator-angular
-npm install @teleporthq/teleport-component-generator-stencil
-npm install @teleporthq/teleport-component-generator-preact
-npm install @teleporthq/teleport-component-generator-reactnative
 ```
 or using yarn:
 ```bash
 yarn add @teleporthq/teleport-component-generator-react
 yarn add @teleporthq/teleport-component-generator-vue
 yarn add @teleporthq/teleport-component-generator-angular
-yarn add @teleporthq/teleport-component-generator-stencil
-yarn add @teleporthq/teleport-component-generator-preact
-yarn add @teleporthq/teleport-component-generator-reactnative
 ```
 
 For generating a simple component, you have to start from a **component UIDL**:
@@ -146,7 +140,7 @@ You can play with the UIDL structure and also observe the generated code in [the
 The teleport ecosystem consists of **three** main categories of packages: *component generators*, *project generators* and *project packers*.
 
 ### Component Generators
-We have **official** component generators for [a couple of popular web frontend frameworks](https://docs.teleporthq.io/component-generators/flavors.html), but we are actively working on supporting mobile application with `react-native`. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
+We have **official** component generators for [a couple of popular web frontend frameworks](https://docs.teleporthq.io/component-generators/flavors.html). Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
 
 All the component generators are exposing an instance of the `teleport-component-generator` package. You can also install this package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
 
@@ -156,9 +150,6 @@ In the docs, you'll find a complete guide on how to [build your custom component
 * `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
 * `teleport-component-generator-vue` - generating standard `.vue` files
 * `teleport-component-generator-angular` - generates `.ts`, `.html` and `.css` files
-* `teleport-component-generator-preact` - similar to `react`, with a bunch of styling options
-* `teleport-component-generator-stencil` - (experimental) - generates `.tsx` files and standard `.css` files
-* `teleport-component-generator-react-native` - (experimental)
 * `teleport-component-generator-html` - (experimental)
 * `teleport-component-generator-svelte` - (coming soon)
 
