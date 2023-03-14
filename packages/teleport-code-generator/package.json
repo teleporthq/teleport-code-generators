@@ -41,6 +41,7 @@
     "@teleporthq/teleport-project-generator-reactnative": "^0.25.4",
     "@teleporthq/teleport-project-generator-stencil": "^0.25.4",
     "@teleporthq/teleport-project-generator-vue": "^0.25.4",
+    "@teleporthq/teleport-project-plugin-external-embed": "^0.25.4",
     "@teleporthq/teleport-project-packer": "^0.25.2",
     "@teleporthq/teleport-publisher-codesandbox": "^0.25.4",
     "@teleporthq/teleport-publisher-disk": "^0.25.2",

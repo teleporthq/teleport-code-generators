@@ -1,0 +1,31 @@
+{
+    "name": "@teleporthq/teleport-project-plugin-parse-embed",
+    "version": "0.25.4",
+    "description": "A plugin for extracting the html embeds into seperate files",
+    "author": "teleportHQ",
+    "license": "MIT",
+    "homepage": "https://teleporthq.io/",
+    "main": "dist/cjs/index.js",
+    "module": "dist/esm/index.js",
+    "types": "dist/cjs/index.d.ts",
+    "sideEffects": false,
+    "repository": {
+      "type": "git",
+      "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+    },
+    "bugs": {
+      "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+    },
+    "publishConfig": {
+      "access": "public"
+    },
+    "scripts": {
+      "clean": "rimraf dist",
+      "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+    },
+    "dependencies": {
+      "@teleporthq/teleport-shared": "^0.25.4",
+      "@teleporthq/teleport-types": "^0.25.2"
+    }
+  }
+  

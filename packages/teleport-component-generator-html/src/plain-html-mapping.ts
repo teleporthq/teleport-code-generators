@@ -19,7 +19,7 @@ export const PlainHTMLMapping: Mapping = {
         version: '0.1.11',
         meta: {
           importJustPath: true,
-          importAlias: 'https://unpkg.com/dangerous-html@0.1.11/dist/default/lib.umd.js',
+          importAlias: 'https://o806nm-8080.csb.app/lib.umd.js',
         },
       },
     },
