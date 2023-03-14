@@ -16,10 +16,10 @@ export const PlainHTMLMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: '0.1.11',
+        version: '0.1.12',
         meta: {
           importJustPath: true,
-          importAlias: 'https://o806nm-8080.csb.app/lib.umd.js',
+          importAlias: 'https://unpkg.com/dangerous-html@0.1.12/dist/default/lib.umd.js',
         },
       },
     },

@@ -457,12 +457,6 @@ export interface GenerateOptions {
   styleVariation?: StyleVariation
 }
 
-export enum PreactStyleVariation {
-  InlineStyles = 'Inline Styles',
-  CSSModules = 'CSS Modules',
-  CSS = 'CSS',
-}
-
 export enum ReactStyleVariation {
   InlineStyles = 'Inline Styles',
   CSSModules = 'CSS Modules',
@@ -486,50 +480,30 @@ export enum PublisherType {
   CODESANDBOX = 'CodeSandbox',
 }
 
-export enum GatsbyStyleVariation {
-  CSSModules = 'CSS Modules',
-  StyledComponents = 'Styled Components',
-}
-
 export enum ProjectType {
   REACT = 'React',
   NEXT = 'Next',
   VUE = 'Vue',
   NUXT = 'Nuxt',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  GATSBY = 'Gatsby',
-  GRIDSOME = 'Gridsome',
-  REACTNATIVE = 'React-Native',
   HTML = 'HTML',
 }
 
 export enum ComponentType {
   REACT = 'React',
   VUE = 'Vue',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  REACTNATIVE = 'React-Native',
   HTML = 'HTML',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
   [ComponentType.REACT]: ReactStyleVariation.CSSModules,
-  [ComponentType.PREACT]: PreactStyleVariation.CSSModules,
-  [ComponentType.REACTNATIVE]: ReactNativeStyleVariation.StyledComponents,
   [ComponentType.VUE]: null,
-  [ComponentType.STENCIL]: null,
   [ComponentType.ANGULAR]: null,
   [ComponentType.HTML]: null,
 }
 
-export type StyleVariation =
-  | ReactStyleVariation
-  | PreactStyleVariation
-  | ReactNativeStyleVariation
-  | GatsbyStyleVariation
+export type StyleVariation = ReactStyleVariation | ReactNativeStyleVariation
 
 // The last two types are used by the teleport-code-generator package
 

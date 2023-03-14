@@ -10,7 +10,6 @@ import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils, StyleBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   generateStyledComponent,
-  removeUnusedDependencies,
   generateVariantsfromStyleSet,
   generateStyledComponentStyles,
 } from './utils'
@@ -26,7 +25,6 @@ import {
 interface StyledComponentsConfig {
   componentChunkName: string
   importChunkName?: string
-  componentLibrary?: 'react' | 'reactnative'
   illegalComponentNames?: string[]
   classAttributeName?: string
 }
@@ -37,7 +35,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
   const {
     componentChunkName = 'jsx-component',
     importChunkName = 'import-local',
-    componentLibrary = 'react',
     illegalComponentNames = [],
   } = config || {}
 
@@ -106,24 +103,6 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
           Object.keys(dependencies).includes(className)
         ) {
           className = `Styled${className}`
-        }
-
-        if (componentLibrary === 'reactnative') {
-          if (referencedStyles && Object.keys(referencedStyles).length > 0) {
-            Object.keys(referencedStyles).forEach((styleId) => {
-              const styleRef = referencedStyles[styleId]
-              if (styleRef.content.mapType === 'inlined') {
-                referencedStyles[styleId] = {
-                  ...referencedStyles[styleId],
-                  content: {
-                    ...referencedStyles[styleId].content,
-                    // @ts-ignore
-                    styles: styleRef.content.styles,
-                  },
-                }
-              }
-            })
-          }
         }
 
         cssMap[className] = generateStyledComponentStyles({
@@ -327,15 +306,8 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
 
     dependencies.styled = {
       type: 'package',
-      path: componentLibrary === 'react' ? 'styled-components' : 'styled-components/native',
+      path: 'styled-components',
       version: '^5.3.0',
-    }
-
-    /* React Native elements are imported from styled-components/native,
-    so direct dependency to `react-native` is removed */
-
-    if (componentLibrary === 'reactnative') {
-      removeUnusedDependencies(dependencies, jsxNodesLookup)
     }
 
     return structure

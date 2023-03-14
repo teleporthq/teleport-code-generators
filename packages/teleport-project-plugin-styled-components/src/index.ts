@@ -1,9 +1,8 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
-import { gatsbyAfterModifier, gatsbyBeforeModifier } from './gatsby'
 import { nextAfterModifier, nextBeforeModifier } from './next'
 import { reactAfterModifier, reactBeforeModifier } from './react'
 
-type SUPPORTED_FRAMEWORKS = ProjectType.NEXT | ProjectType.REACT | ProjectType.GATSBY
+type SUPPORTED_FRAMEWORKS = ProjectType.NEXT | ProjectType.REACT
 
 const frameworkBeforeMap: Record<
   SUPPORTED_FRAMEWORKS,
@@ -11,7 +10,6 @@ const frameworkBeforeMap: Record<
 > = {
   [ProjectType.NEXT]: nextBeforeModifier,
   [ProjectType.REACT]: reactBeforeModifier,
-  [ProjectType.GATSBY]: gatsbyBeforeModifier,
 }
 
 const frameworkAfterModifier: Record<
@@ -20,7 +18,6 @@ const frameworkAfterModifier: Record<
 > = {
   [ProjectType.NEXT]: nextAfterModifier,
   [ProjectType.REACT]: reactAfterModifier,
-  [ProjectType.GATSBY]: gatsbyAfterModifier,
 }
 
 export class ProjectPluginStyledComponents implements ProjectPlugin {
