@@ -16,7 +16,7 @@ import {
   ChunkType,
   ComponentGenerator,
 } from '@teleporthq/teleport-types'
-import { DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
+import { DEFAULT_GITIGNORE, DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
 import { bootstrapGenerator, generateLocalDependenciesPrefix } from './utils'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -344,6 +344,37 @@ const createHTMLEntryFileChunks = (
   }
 
   return chunks
+}
+
+export const createEnvFiles = (env: Record<string, string>) => {
+  const envFileContent = Object.keys(env)
+    .map((key) => `${key}=${env[key]}`)
+    .join('\n')
+
+  const envFileExampleContent = Object.keys(env)
+    .map((key) => `${key}=`)
+    .join('\n')
+
+  return [
+    {
+      name: '.env',
+      fileType: '',
+      content: envFileContent,
+    },
+    {
+      name: '.env.example',
+      fileType: '',
+      content: envFileExampleContent,
+    },
+  ]
+}
+
+export const createGitIgnoreFile = () => {
+  return {
+    name: '.gitignore',
+    fileType: '',
+    content: DEFAULT_GITIGNORE,
+  }
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values

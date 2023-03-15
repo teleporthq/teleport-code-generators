@@ -1,7 +1,14 @@
 import * as types from '@babel/types'
+import qs from 'qs'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { UIDLStateDefinition, UIDLPropDefinition, UIDLRawValue } from '@teleporthq/teleport-types'
+import {
+  UIDLStateDefinition,
+  UIDLPropDefinition,
+  UIDLRawValue,
+  Resource,
+  ResourceValue,
+} from '@teleporthq/teleport-types'
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -460,3 +467,224 @@ export const createStateHookAST = (
 
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
+
+export const generateStaticResourceAST = (resource: Resource) => {
+  if (resource.type !== 'static') {
+    return null
+  }
+
+  if (Array.isArray(resource.value)) {
+    const values = resource.value.map((resVal) => {
+      const properties = Object.keys(resVal).map((key) => {
+        return types.objectProperty(types.identifier(key), types.stringLiteral(resVal[key]))
+      })
+      return types.objectExpression(properties)
+    })
+
+    return types.arrayExpression(values)
+  }
+
+  let value = null
+  switch (typeof resource.value) {
+    case 'string':
+      value = types.stringLiteral(resource.value)
+      break
+    case 'number':
+      value = types.decimalLiteral(`${resource.value}`)
+      break
+    case 'boolean':
+      value = types.booleanLiteral(resource.value)
+      break
+    case 'object':
+      const properties = Object.keys(resource.value).map((key) => {
+        const propValue = resource.value as Record<string, string>
+        return types.objectProperty(types.identifier(key), types.stringLiteral(propValue[key]))
+      })
+      value = types.objectExpression(properties)
+      break
+    default:
+      throw new Error('Unsupported resource value')
+  }
+
+  return value
+}
+
+export const generateRemoteResourceASTs = (resource: Resource) => {
+  if (resource.type !== 'remote') {
+    return null
+  }
+
+  const strigifiedUrlParams = qs.stringify(resource.urlParams || {})
+  const fetchUrl = computeFetchUrl(resource, strigifiedUrlParams)
+
+  const authHeaderAST = computeAuthorizationHeaderAST(resource)
+
+  const fetchAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('data'),
+      types.awaitExpression(
+        types.callExpression(types.identifier('fetch'), [
+          fetchUrl,
+          types.objectExpression([
+            types.objectProperty(
+              types.identifier('headers'),
+              types.objectExpression([
+                types.objectProperty(
+                  types.identifier('"Content-Type"'),
+                  types.stringLiteral('application/json'),
+                  false,
+                  false
+                ),
+                authHeaderAST,
+              ])
+            ),
+          ]),
+        ])
+      )
+    ),
+  ])
+
+  const responseJSONAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(
+        types.callExpression(
+          types.memberExpression(types.identifier('data'), types.identifier('json'), false),
+          []
+        )
+      )
+    ),
+  ])
+
+  return [fetchAST, responseJSONAST]
+}
+
+const computeAuthorizationHeaderAST = (resource: Resource) => {
+  if (resource.type !== 'remote') {
+    return null
+  }
+
+  const authToken = resolveResourceValue(resource.authToken)
+  if (!authToken) {
+    return null
+  }
+
+  const authTokenType = resource.authToken?.type
+
+  return types.objectProperty(
+    types.identifier('Authorization'),
+    types.templateLiteral(
+      [
+        types.templateElement(
+          {
+            cooked: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+            raw: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+          },
+          false
+        ),
+        ...(authTokenType === 'static'
+          ? []
+          : [
+              types.templateElement(
+                {
+                  cooked: '',
+                  raw: '',
+                },
+                true
+              ),
+            ]),
+      ],
+      [...(authTokenType === 'static' ? [] : [types.identifier(authToken)])]
+    ),
+    false,
+    false
+  )
+}
+
+const computeFetchUrl = (resource: Resource, urlParams: string = '') => {
+  if (resource.type !== 'remote') {
+    return null
+  }
+
+  const fetchBaseUrl = resolveResourceValue(resource.baseUrl)
+  const resourceRoute = resolveResourceValue(resource.route)
+
+  const baseUrlType = resource.baseUrl?.type
+  const routeType = resource.route?.type
+  const urlParamsValue = urlParams ? `?${urlParams}` : ''
+
+  if (baseUrlType === 'static' && routeType === 'static') {
+    const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
+    return types.stringLiteral(`${stringsToJoin}${urlParamsValue}`)
+  }
+
+  if (!routeType) {
+    return baseUrlType === 'static'
+      ? types.stringLiteral(fetchBaseUrl)
+      : types.templateLiteral(
+          [
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              false
+            ),
+            types.templateElement(
+              {
+                cooked: urlParamsValue,
+                raw: urlParamsValue,
+              },
+              false
+            ),
+          ],
+          [types.identifier(fetchBaseUrl)]
+        )
+  }
+
+  return types.templateLiteral(
+    [
+      types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        false
+      ),
+      types.templateElement(
+        {
+          cooked: routeType === 'static' ? `/${resourceRoute}${urlParamsValue}` : '/',
+          raw: routeType === 'static' ? `/${resourceRoute}${urlParamsValue}` : '/',
+        },
+        false
+      ),
+      ...(routeType === 'static'
+        ? []
+        : [
+            types.templateElement(
+              {
+                cooked: urlParamsValue,
+                raw: urlParamsValue,
+              },
+              false
+            ),
+          ]),
+    ],
+    [
+      types.identifier(fetchBaseUrl),
+      ...(routeType === 'static' ? [] : [types.identifier(resourceRoute)]),
+    ]
+  )
+}
+
+const resolveResourceValue = (value: ResourceValue) => {
+  if (!value) {
+    return ''
+  }
+
+  if (value.type === 'static') {
+    return value.value
+  }
+
+  return `process.env.${value.value}` || value.fallback
+}

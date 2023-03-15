@@ -26,6 +26,7 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
       body: optional(string()),
     })
   ),
+  env: optional(dict(string())),
   meta: array(dict(string())),
   assets: array(globalAssetsDecoder),
   manifest: optional(webManifestDecoder),

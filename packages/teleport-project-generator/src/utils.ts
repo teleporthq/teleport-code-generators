@@ -48,7 +48,7 @@ const createPageUIDL = (
   const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
   pageDefinition.pageOptions = pageOptions
 
-  const { fileName, componentName } = pageOptions
+  const { fileName, componentName, initialPropsResource, initialPathsResource } = pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -93,7 +93,7 @@ const createPageUIDL = (
   const componentUIDL: ComponentUIDL = {
     name: componentName,
     node: pageContent,
-    outputOptions,
+    outputOptions: { ...outputOptions, initialPropsResource, initialPathsResource },
     seo,
   }
 
@@ -148,6 +148,8 @@ export const extractPageOptions = (
     // default values extracted from state name
     fileName: friendlyFileName,
     componentName: friendlyComponentName,
+    initialPropsResource: pageDefinition?.pageOptions?.initialPropsResource,
+    initialPathsResource: pageDefinition?.pageOptions?.initialPathsResource,
     navLink: pageDefinition?.pageOptions?.fallback
       ? '**'
       : '/' + (isHomePage ? '' : friendlyFileName),

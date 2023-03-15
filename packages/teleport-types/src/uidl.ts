@@ -31,6 +31,7 @@ export interface UIDLGlobalProjectValues {
     head?: string
     body?: string
   }
+  env?: Record<string, string>
   meta: Array<Record<string, string>>
   assets: UIDLGlobalAsset[]
   manifest?: WebManifest
@@ -94,6 +95,41 @@ export type UIDLGlobalAsset =
   | UIDLCanonicalAsset
   | UIDLIconAsset
 
+interface ResourceStaticValue {
+  type: 'static'
+  value: string
+}
+
+interface ResourceEnvValue {
+  type: 'env'
+  value: string
+  fallback?: string
+}
+
+export type ResourceValue = ResourceStaticValue | ResourceEnvValue
+
+interface ResourceBase {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+  }
+}
+
+export interface RemoteResource extends ResourceBase {
+  type: 'remote'
+  baseUrl: ResourceValue
+  route?: ResourceValue
+  authToken?: ResourceValue
+  urlParams?: Record<string, unknown>
+}
+
+export interface StaticResource extends ResourceBase {
+  type: 'static'
+  value: string | number | boolean | Record<string, string> | Array<Record<string, string>>
+}
+
+export type Resource = RemoteResource | StaticResource
+
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -117,6 +153,8 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  initialPropsResource?: Resource
+  initialPathsResource?: Resource
 }
 
 export interface UIDLComponentSEO {
@@ -152,6 +190,8 @@ export interface UIDLPageOptions {
   navLink?: string
   fileName?: string
   fallback?: boolean
+  initialPropsResource?: Resource
+  initialPathsResource?: Resource
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'

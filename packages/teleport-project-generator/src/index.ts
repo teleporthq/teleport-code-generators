@@ -34,6 +34,8 @@ import {
   createEntryFile,
   createComponentModule,
   createPageModule,
+  createEnvFiles,
+  createGitIgnoreFile,
 } from './file-handlers'
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
@@ -456,6 +458,22 @@ export class ProjectGenerator implements ProjectGenerator {
       inMemoryFilesMap.set(manifestFile.name, {
         path: this.strategy.static.path,
         files: [manifestFile],
+      })
+    }
+
+    if (uidl.globals.env) {
+      const envFiles = createEnvFiles(uidl.globals.env)
+      envFiles.forEach((file) => {
+        inMemoryFilesMap.set(file.name, {
+          path: [],
+          files: [file],
+        })
+      })
+
+      const gitIgnoreFile = createGitIgnoreFile()
+      inMemoryFilesMap.set(gitIgnoreFile.name, {
+        path: [],
+        files: [gitIgnoreFile],
       })
     }
 

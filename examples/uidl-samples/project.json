@@ -5,6 +5,10 @@
       "title": "New Project3",
       "language": "en"
     },
+    "env": {
+      "CMS_URL": "https://test-url", 
+      "CMS_TOKEN": "CMS_TOKEN"
+    },
     "assets": [
       {
         "type": "style",
@@ -470,6 +474,53 @@
                   "content": "About - New Project3"
                 }
               ]
+            },
+            "pageOptions": {
+              "initialPathsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "titleHehe",
+                  "valuePath": ["attributes", "title"]
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "route": {
+                  "type": "static",
+                  "value": "wonderWsssshatIsThis"
+                },
+                "urlParams": {
+                  "fields": [ "title" ]
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_TOKEN"
+                }
+              },
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "books"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "urlParams": {
+                  "fields": [ "title" ],
+                  "page": 1,
+                  "limit": 10
+                },
+                "route": {
+                  "type": "env",
+                  "value": "wondersssWhatIsThis"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_TOKEN"
+                }
+              }
             }
           },
           {

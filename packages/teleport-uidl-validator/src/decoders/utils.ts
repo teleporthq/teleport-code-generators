@@ -72,11 +72,42 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
+  RemoteResource,
+  StaticResource,
+  ResourceValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
 const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
   CustomCombinators
+
+const resourceValueDecoder: Decoder<ResourceValue> = union(
+  object({ type: constant('static'), value: string() }),
+  object({ type: constant('env'), value: string(), fallback: optional(string()) })
+)
+
+const remoteResource: Decoder<RemoteResource> = object({
+  type: constant('remote'),
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+  }),
+  baseUrl: resourceValueDecoder,
+  urlParams: optional(dict(union(object(), string(), array(), number(), boolean()))),
+  authToken: optional(resourceValueDecoder),
+  route: optional(resourceValueDecoder),
+})
+
+const staticResource: Decoder<StaticResource> = object({
+  type: constant('static'),
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+  }),
+  value: union(string(), number(), boolean(), dict(string()), array(dict(string()))),
+})
+
+export const resourceDecoder = union(remoteResource, staticResource)
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -175,6 +206,8 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   navLink: optional(isValidNavLink() as unknown as Decoder<string>),
   fileName: optional(isValidFileName() as unknown as Decoder<string>),
   fallback: optional(boolean()),
+  initialPropsResource: optional(resourceDecoder),
+  initialPathsResource: optional(resourceDecoder),
 })
 
 export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
