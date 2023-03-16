@@ -35,6 +35,8 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
       parsedEntry('head').append(`<link rel="stylesheet" href="./style.css"></link>`)
     }
 
+    parsedEntry('head').append(scriptTagsFromRootHead.toString())
+
     const memoryFiles = Object.fromEntries(files)
     for (const id in memoryFiles) {
       if (memoryFiles.hasOwnProperty(id)) {
@@ -58,7 +60,6 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
               )
               titleTags.remove()
 
-              parsedEntry('head').append(scriptTagsFromRootHead.toString())
               parsedEntry('body').append(parsedIndividualFile.html())
               parsedEntry('body').append(scriptTagsFromRootBody.toString())
 
