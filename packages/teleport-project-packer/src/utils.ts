@@ -22,10 +22,17 @@ export const injectAssetsToProject = async (
     return project
   }
 
-  const { assets, path = [] } = assetsData
+  // const { assets, path = [] } = assetsData
+  const { assets } = assetsData
 
   assets.forEach((asset: GeneratedFile) => {
-    const filePath = [...assetsRootPath, ...path]
+    // TODO reinclude ...path (playground_assets) and find how to configure it to not be present
+    let filePath = [...assetsRootPath]
+
+    if (asset.name.split('/')[0] === 'private') {
+      filePath = ['']
+      asset.name = asset.name.split('/')[1]
+    }
     project = injectFileInGeneratedFolder(project, asset, filePath)
   })
 
