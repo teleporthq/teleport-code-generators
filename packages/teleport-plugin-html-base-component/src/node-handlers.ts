@@ -48,6 +48,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   structure
 ) => {
   switch (node.type) {
+    case 'inject':
     case 'raw':
       return HASTBuilders.createTextNode(node.content.toString())
 

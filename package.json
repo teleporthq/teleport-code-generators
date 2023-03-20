@@ -1,72 +1,72 @@
 {
-  "name": "root",
-  "workspaces": [
-    "packages/*"
-  ],
-  "private": true,
-  "description": "Code generators and UIDL definition library",
-  "scripts": {
-    "lint": "tslint -p . -c tslint.json",
-    "clean": "lerna run clean --parallel",
-    "link": "lerna link",
-    "build": "yarn run clean && yarn run link && lerna run build ",
-    "dev": "yarn run link && lerna run build && node scripts/watcher.mjs",
-    "test": "jest",
-    "test:perf": "jest __tests__/performance",
-    "test:watch": "jest --watch --silent=false",
-    "test:clearcache": "jest --clearCache",
-    "test:coverage": "yarn run test -- --coverage --no-cache",
-    "upload:coverage": "codecov",
-    "commitizen": "git-cz",
-    "add-contributor": "all-contributors add",
-    "changelog": "lerna-changelog",
-    "version": "lerna version",
-    "publish": "lerna publish from-package --no-verify-access",
-    "local:adduser": "npm adduser --registry http://localhost:4873",
-    "local:publish": "lerna exec --bail=false  -- npm publish -f --registry http://localhost:4873",
-    "local:unpublish": "lerna exec --bail=false -- npm unpublish -f --registry http://localhost:4873"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "pretty-quick --staged && npm run lint"
+    "name": "root",
+    "workspaces": [
+        "packages/*"
+    ],
+    "private": true,
+    "description": "Code generators and UIDL definition library",
+    "scripts": {
+        "lint": "tslint -p . -c tslint.json",
+        "clean": "lerna run clean --parallel",
+        "link": "lerna link",
+        "build": "yarn run clean && yarn run link && lerna run build ",
+        "dev": "yarn run link && lerna run build && node scripts/watcher.mjs",
+        "test": "jest",
+        "test:perf": "jest __tests__/performance",
+        "test:watch": "jest --watch --silent=false",
+        "test:clearcache": "jest --clearCache",
+        "test:coverage": "yarn run test -- --coverage --no-cache",
+        "upload:coverage": "codecov",
+        "commitizen": "git-cz",
+        "add-contributor": "all-contributors add",
+        "changelog": "lerna-changelog",
+        "version": "lerna version",
+        "publish": "lerna publish from-package --no-verify-access",
+        "local:adduser": "npm adduser --registry http://localhost:4873",
+        "local:publish": "lerna exec --bail=false  -- npm publish -f --registry http://localhost:4873",
+        "local:unpublish": "lerna exec --bail=false -- npm unpublish -f --registry http://localhost:4873"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "pretty-quick --staged && npm run lint"
+        }
+    },
+    "engines": {
+        "node": "16.x"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+    },
+    "author": "teleportHQ",
+    "license": "MIT",
+    "homepage": "https://teleporthq.io/",
+    "devDependencies": {
+        "@types/babel-types": "^7.0.7",
+        "@types/jest": "^25.1.1",
+        "@types/node": "^16.11.7",
+        "@types/prettier": "^2.1.6",
+        "@types/rimraf": "^2.0.3",
+        "all-contributors-cli": "^6.13.0",
+        "chalk": "^2.4.2",
+        "chokidar": "^3.0.2",
+        "codecov": "^3.8.3",
+        "commitizen": "^4.2.5",
+        "cz-conventional-changelog": "^3.3.0",
+        "husky": "^3.0.4",
+        "jest": "^26.6.3",
+        "lerna": "^5.3.0",
+        "lerna-changelog": "^2.2.0",
+        "pretty-quick": "^3.1.0",
+        "rimraf": "^3.0.0",
+        "ts-jest": "^26.5.6",
+        "tslint": "^6.0.0",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^5.0.2"
+    },
+    "config": {
+        "commitizen": {
+            "path": "./node_modules/cz-conventional-changelog"
+        }
     }
-  },
-  "engines": {
-    "node": "16.x"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
-  },
-  "author": "teleportHQ",
-  "license": "MIT",
-  "homepage": "https://teleporthq.io/",
-  "devDependencies": {
-    "@types/babel-types": "^7.0.7",
-    "@types/jest": "^25.1.1",
-    "@types/node": "^16",
-    "@types/prettier": "^2.1.6",
-    "@types/rimraf": "^2.0.3",
-    "all-contributors-cli": "^6.13.0",
-    "chalk": "^2.4.2",
-    "chokidar": "^3.0.2",
-    "codecov": "^3.8.3",
-    "commitizen": "^4.2.5",
-    "cz-conventional-changelog": "^3.3.0",
-    "husky": "^3.0.4",
-    "jest": "^26.6.3",
-    "lerna": "^5.3.0",
-    "lerna-changelog": "^2.2.0",
-    "pretty-quick": "^3.1.0",
-    "rimraf": "^3.0.0",
-    "ts-jest": "^26.5.6",
-    "tslint": "^6.0.0",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^4.3.5"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  }
 }

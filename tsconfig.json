@@ -1,31 +1,37 @@
 {
-  "compilerOptions": {
-    "incremental": true,
-    "module": "esnext",
-    "target": "ES5",
-    "declaration": true,
-    "lib": ["es2015", "dom"],
-    "sourceMap": true,
-    "types": ["node", "jest"],
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "baseUrl": "src",
-    "typeRoots" : [
-      "node_modules/@types"
+    "compilerOptions": {
+        "incremental": true,
+        "module": "esnext",
+        "target": "ES5",
+        "declaration": true,
+        "lib": [
+            "es2015",
+            "dom"
+        ],
+        "sourceMap": true,
+        "types": [
+            "node",
+            "jest"
+        ],
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "moduleResolution": "node",
+        "noImplicitAny": true,
+        "baseUrl": "src",
+        "typeRoots": [
+            "node_modules/@types"
+        ]
+    },
+    "exclude": [
+        "examples",
+        "node_modules",
+        "**/dist/**",
+        "./__tests__/**/*"
     ]
-  },
-  "exclude": [
-    "examples",
-    "node_modules",
-    "**/dist/**",
-    "./__tests__/**/*"
-  ]
 }

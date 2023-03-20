@@ -174,6 +174,11 @@ export interface UIDLRawValue {
   content: string
 }
 
+export interface UIDLInjectValue {
+  type: 'inject'
+  content: string
+}
+
 export interface UIDLSlotNode {
   type: 'slot'
   content: {
@@ -251,6 +256,7 @@ export type UIDLNode =
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
+  | UIDLInjectValue
   | UIDLRepeatNode
   | UIDLElementNode
   | UIDLConditionalNode

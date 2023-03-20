@@ -232,6 +232,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
     case 'dynamic':
     case 'static':
     case 'raw':
+    case 'inject':
       return node as unknown as UIDLNode
 
     default:

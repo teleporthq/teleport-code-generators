@@ -88,8 +88,12 @@ export default generateElementNode
 
 const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
   switch (node.type) {
+    case 'inject':
+      return node.content.toString()
+
     case 'raw':
       return generateRawHTMLNode(node, params, templateSyntax)
+
     case 'static':
       return StringUtils.encode(node.content.toString())
 
