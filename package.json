@@ -64,6 +64,9 @@
         "tslint-config-prettier": "^1.18.0",
         "typescript": "^5.0.2"
     },
+    "resolutions": {
+        "parse5": "^7.1.2"
+    },
     "config": {
         "commitizen": {
             "path": "./node_modules/cz-conventional-changelog"

@@ -5,14 +5,11 @@ import {
   UIDLExternalDependency,
   UIDLElementNode,
 } from '@teleporthq/teleport-types'
-import { toHtml, fromHtml } from './utils.js'
-// @ts-ignore
-import toJSX from 'hast-util-to-jsx-inline-script'
 
-const NODE_MAPPER: Record<string, typeof toHtml> = {
-  'teleport-project-html': toHtml,
-  'teleport-project-react': toJSX,
-  'teleport-project-next': toJSX,
+const NODE_MAPPER: Record<string, Promise<(content: unknown) => string>> = {
+  'teleport-project-html': import('hast-util-to-html').then((mod) => mod.toHtml),
+  'teleport-project-react': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
+  'teleport-project-next': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
 }
 
 const JS_EXECUTION_DEPENDENCIES: Record<string, Record<string, UIDLExternalDependency>> = {
@@ -53,12 +50,13 @@ class ProjectPluginParseEmbed implements ProjectPlugin {
   traverseComponentUIDL(node: UIDLElementNode, id: string): boolean {
     let shouldAddJSDependency = false
 
-    UIDLUtils.traverseElements(node, (element) => {
+    UIDLUtils.traverseElements(node, async (element) => {
       if (element.elementType === 'html-node' && element.attrs?.html && NODE_MAPPER[id]) {
+        const fromHtml = (await import('hast-util-from-html')).fromHtml
         const hastNodes = fromHtml(element.attrs.html.content as string, {
           fragment: true,
         })
-        const content = NODE_MAPPER[id](hastNodes)
+        const content = (await NODE_MAPPER[id])(hastNodes)
 
         element.elementType = 'container'
         element.attrs = {}
