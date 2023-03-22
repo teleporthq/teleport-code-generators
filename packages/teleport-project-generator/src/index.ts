@@ -14,6 +14,7 @@ import {
   TeleportError,
   GeneratorFactoryParams,
   HTMLComponentGenerator,
+  ProjectGenerator as ProjectGeneratorType,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -41,7 +42,7 @@ import { join } from 'path'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
-export class ProjectGenerator implements ProjectGenerator {
+export class ProjectGenerator implements ProjectGeneratorType {
   public componentGenerator: ComponentGenerator | HTMLComponentGenerator
   public pageGenerator: ComponentGenerator | HTMLComponentGenerator
   public routerGenerator: ComponentGenerator
@@ -49,6 +50,8 @@ export class ProjectGenerator implements ProjectGenerator {
   private strategy: ProjectStrategy
   private validator: Validator
   private assemblyLine: ProjectAssemblyLine
+  private assetsAndPathMapping: Record<string, string> = {}
+  private assetIdentifier: string | null = null
 
   constructor(strategy: ProjectStrategy) {
     this.validator = new Validator()
@@ -122,6 +125,16 @@ export class ProjectGenerator implements ProjectGenerator {
 
     if (options && Object.keys(options).length > 0) {
       this.strategy.pages.options = { ...this.strategy.pages.options, ...options }
+    }
+  }
+
+  public setAssetsAndPathMappingIdentifier(
+    assetMap: Record<string, string>,
+    identifier?: string[]
+  ) {
+    this.assetsAndPathMapping = assetMap
+    if (identifier) {
+      this.assetIdentifier = identifier.join('/')
     }
   }
 
@@ -210,8 +223,13 @@ export class ProjectGenerator implements ProjectGenerator {
       typeof this.strategy.static.prefix === 'string'
         ? this.strategy.static.prefix
         : '/' + this.getAssetsPath().join('/')
+
     const options: GeneratorOptions = {
-      assetsPrefix,
+      assets: {
+        prefix: assetsPrefix,
+        mappings: this.assetsAndPathMapping,
+        identifier: this.assetIdentifier,
+      },
       projectRouteDefinition: uidl.root.stateDefinitions.route,
       mapping,
       skipValidation: true,
@@ -225,6 +243,7 @@ export class ProjectGenerator implements ProjectGenerator {
     ) {
       const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
+        assets: options.assets,
       })
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,
@@ -451,7 +470,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
     // Global settings are transformed into the root html file and the manifest file for PWA support
     if (uidl.globals.manifest) {
-      const manifestFile = createManifestJSONFile(uidl, assetsPrefix)
+      const manifestFile = createManifestJSONFile(uidl, options.assets)
 
       inMemoryFilesMap.set(manifestFile.name, {
         path: this.strategy.static.path,
@@ -480,9 +499,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
     // Create the entry file of the project (ex: index.html, _document.js)
     if (this.strategy.entry) {
-      const entryFile = await createEntryFile(uidl, this.strategy, {
-        assetsPrefix,
-      })
+      const entryFile = await createEntryFile(uidl, this.strategy, options)
       inMemoryFilesMap.set('entry', {
         path: this.strategy.entry.path,
         files: entryFile,

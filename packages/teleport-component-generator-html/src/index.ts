@@ -34,7 +34,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
             ? externals[ext]
             : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
           const resolvedUIDL = resolver.resolveUIDL(componentUIDL, {
-            assetsPrefix: 'public',
+            assets: { prefix: 'public' },
           })
           acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc

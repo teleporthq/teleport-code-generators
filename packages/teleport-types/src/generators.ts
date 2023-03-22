@@ -109,7 +109,11 @@ export interface ComponentGenerator {
 
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
-  assetsPrefix?: string
+  assets?: {
+    prefix?: string
+    identifier?: string | null
+    mappings?: Record<string, string>
+  }
   mapping?: Mapping
   skipValidation?: boolean
   isRootComponent?: boolean
@@ -152,6 +156,10 @@ export interface ImportIdentifier {
 /* Project Types */
 
 export interface ProjectGenerator {
+  setAssetsAndPathMappingIdentifier: (
+    assetMap: Record<string, string>,
+    identifier?: string[]
+  ) => void
   generateProject: (
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
@@ -322,7 +330,7 @@ export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
 }
 
 export interface EntryFileOptions {
-  assetsPrefix?: string
+  assets?: GeneratorOptions['assets']
   appRootOverride?: string
   customTags?: CustomTag[]
   customHeadContent: string
@@ -344,6 +352,7 @@ export interface GeneratedFile {
   fileType?: string
   location?: FileLocation
   status?: string
+  path?: string[]
 }
 
 /**

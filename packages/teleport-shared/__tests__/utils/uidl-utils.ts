@@ -456,15 +456,19 @@ describe('getRepeatIteratorNameAndKey', () => {
 
 describe('prefixAssetsPath', () => {
   it('returns the original string if the assets identifier is not found', () => {
-    expect(prefixAssetsPath('/static', '/no/identifier')).toBe('/no/identifier')
+    expect(prefixAssetsPath('/static', { prefix: '/no/identifier' })).toBe('/no/identifier')
   })
 
   it('returns the concatenated path', () => {
-    expect(prefixAssetsPath('/static', '/playground_assets')).toBe('/static/playground_assets')
+    expect(prefixAssetsPath('/static', { prefix: '/playground_assets' })).toBe(
+      '/static/playground_assets'
+    )
   })
 
   it('returns the concatenated path and adds a slash', () => {
-    expect(prefixAssetsPath('/static', 'playground_assets')).toBe('/static/playground_assets')
+    expect(prefixAssetsPath('/static', { prefix: 'playground_assets' })).toBe(
+      '/static/playground_assets'
+    )
   })
 })
 

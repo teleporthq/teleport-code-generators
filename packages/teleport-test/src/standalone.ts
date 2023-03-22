@@ -34,6 +34,7 @@ const packerOptions: PackerOptions = {
       fileType: 'png',
       name: 'icons-192',
       content: base64File,
+      path: ['custom'],
     },
     {
       fileType: 'png',
