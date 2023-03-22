@@ -45,11 +45,11 @@ const createNextProjectGenerator = () => {
       options: {
         useFileNameForNavigation: true,
         customComponentFileName(name, options) {
-          if (options.isIndex) {
+          if (options?.isIndex) {
             return 'index'
           }
 
-          if (options.dynamicRouteAttribute) {
+          if (options?.dynamicRouteAttribute) {
             return `[${options.dynamicRouteAttribute}]`
           }
 
