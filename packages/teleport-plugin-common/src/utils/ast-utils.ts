@@ -521,12 +521,22 @@ export const generateRemoteResourceASTs = (resource: Resource, propsPrefix: stri
   const queryParams = generateURLParamsAST(resource.urlParams as ResourceUrlParams, propsPrefix)
 
   const fetchUrlQuasis = fetchUrl.quasis
-  fetchUrlQuasis.pop()
+  const queryParamsQuasis = queryParams.quasis
+
+  if (queryParams.expressions.length > 0) {
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw + '?'
+
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked + '?'
+
+    queryParamsQuasis.pop()
+  }
 
   const url = queryParams
     ? types.templateLiteral(
-        fetchUrlQuasis.concat(queryParams.quasis),
-        fetchUrl.expressions.concat(queryParams.expressions)
+        [...fetchUrlQuasis, ...queryParamsQuasis],
+        [...fetchUrl.expressions.concat(queryParams.expressions)]
       )
     : fetchUrl
 
@@ -601,7 +611,7 @@ const generateURLParamsAST = (urlParams: ResourceUrlParams, propsPrefix?: string
 
   return types.templateLiteral(
     [
-      types.templateElement({ raw: '?', cooked: '?' }, false),
+      types.templateElement({ raw: '', cooked: '' }, false),
       types.templateElement({ raw: '', cooked: '' }, true),
     ],
     [types.newExpression(types.identifier('URLSearchParams'), [urlObject])]
@@ -774,6 +784,20 @@ const computeFetchUrl = (resource: Resource) => {
 
   return types.templateLiteral(
     [
+      types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        false
+      ),
+      types.templateElement(
+        {
+          cooked: routeType === 'static' ? `/${resourceRoute}` : '/',
+          raw: routeType === 'static' ? `/${resourceRoute}` : '/',
+        },
+        false
+      ),
       ...(routeType === 'static'
         ? []
         : [
@@ -785,21 +809,6 @@ const computeFetchUrl = (resource: Resource) => {
               false
             ),
           ]),
-      types.templateElement(
-        {
-          cooked: routeType === 'static' ? `/${resourceRoute}` : '/',
-          raw: routeType === 'static' ? `/${resourceRoute}` : '/',
-        },
-        false
-      ),
-
-      types.templateElement(
-        {
-          cooked: '',
-          raw: '',
-        },
-        true
-      ),
     ],
     [
       types.identifier(fetchBaseUrl),
