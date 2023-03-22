@@ -2,11 +2,15 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { Resource } from '@teleporthq/teleport-types'
 
-export const generateInitialPropsAST = (resource: Resource, propsPrefix = '') => {
+export const generateInitialPropsAST = (
+  resource: Resource,
+  propsPrefix = '',
+  isDetailsPage = false
+) => {
   const computedResourceAST =
     resource.type === 'static'
       ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource, propsPrefix)
+      : computeRemoteValuePropsAST(resource, propsPrefix, isDetailsPage)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -46,12 +50,22 @@ const computeStaticValuePropsAST = (resource: Resource) => {
   )
 }
 
-const computeRemoteValuePropsAST = (resource: Resource, propsPrefix = '') => {
+const computeRemoteValuePropsAST = (
+  resource: Resource,
+  propsPrefix = '',
+  isDetailsPage = false
+) => {
   if (resource.type !== 'remote') {
     return null
   }
 
   const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix)
+
+  const responseMemberAST = types.memberExpression(
+    types.identifier('response'),
+    types.identifier('data'),
+    false
+  )
 
   const returnAST = types.returnStatement(
     types.objectExpression([
@@ -60,7 +74,9 @@ const computeRemoteValuePropsAST = (resource: Resource, propsPrefix = '') => {
         types.objectExpression([
           types.objectProperty(
             types.identifier(resource.exposeAs.name),
-            types.memberExpression(types.identifier('response'), types.identifier('data'), false),
+            isDetailsPage
+              ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
+              : responseMemberAST,
             false,
             false
           ),

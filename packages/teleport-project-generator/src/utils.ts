@@ -158,6 +158,7 @@ export const extractPageOptions = (
     // default values extracted from state name
     fileName: friendlyFileName,
     componentName: friendlyComponentName,
+    dynamicRouteAttribute: pageDefinition?.pageOptions?.dynamicRouteAttribute,
     initialPropsResource: pageDefinition?.pageOptions?.initialPropsResource,
     initialPathsResource: pageDefinition?.pageOptions?.initialPathsResource,
     navLink: pageDefinition?.pageOptions?.fallback

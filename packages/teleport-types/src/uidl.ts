@@ -162,6 +162,7 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  dynamicRouteAttribute?: string
   initialPropsResource?: Resource
   initialPathsResource?: Resource
 }

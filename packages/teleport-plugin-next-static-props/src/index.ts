@@ -28,7 +28,8 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsResource,
-      'context'
+      'context',
+      !!uidl.outputOptions.dynamicRouteAttribute
     )
 
     chunks.push({
