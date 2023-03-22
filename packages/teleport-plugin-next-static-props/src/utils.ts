@@ -12,7 +12,7 @@ export const generateInitialPropsAST = (resource: Resource, propsPrefix = '') =>
     (() => {
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
-        [types.identifier('props')],
+        [types.identifier('context')],
         types.blockStatement([...computedResourceAST]),
         false,
         true
