@@ -108,7 +108,8 @@ const constructorAST = (seo: UIDLComponentSEO, t = types) => {
               t.memberExpression(t.thisExpression(), t.identifier('title')),
               t.identifier('setTitle')
             ),
-            [t.stringLiteral(title)]
+            // TODO: Add support for dynamic title here
+            [t.stringLiteral(title as string)]
           )
         )
       )

@@ -115,12 +115,21 @@ interface ResourceBase {
   }
 }
 
+export type ResourceUrlValues =
+  | Array<UIDLStaticValue | UIDLDynamicReference>
+  | UIDLStaticValue
+  | UIDLDynamicReference
+
+export interface ResourceUrlParams {
+  [key: string]: ResourceUrlValues
+}
+
 export interface RemoteResource extends ResourceBase {
   type: 'remote'
   baseUrl: ResourceValue
   route?: ResourceValue
   authToken?: ResourceValue
-  urlParams?: Record<string, unknown>
+  urlParams?: ResourceUrlParams | unknown
 }
 
 export interface StaticResource extends ResourceBase {
@@ -158,12 +167,12 @@ export interface UIDLComponentOutputOptions {
 }
 
 export interface UIDLComponentSEO {
-  title?: string
+  title?: string | UIDLDynamicReference
   metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
 }
 
-export type UIDLMetaTag = Record<string, string>
+export type UIDLMetaTag = Record<string, string | UIDLDynamicReference>
 
 export interface UIDLPropDefinition {
   type: string
@@ -190,8 +199,11 @@ export interface UIDLPageOptions {
   navLink?: string
   fileName?: string
   fallback?: boolean
+  dynamicRouteAttribute?: string
+  isIndex?: boolean
   initialPropsResource?: Resource
   initialPathsResource?: Resource
+  propDefinitions?: Record<string, UIDLPropDefinition>
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
@@ -200,6 +212,7 @@ export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
+    path?: string[]
     id: string
   }
 }

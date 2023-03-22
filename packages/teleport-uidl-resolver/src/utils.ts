@@ -55,7 +55,7 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key])
+      tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key] as string)
     })
   })
 }

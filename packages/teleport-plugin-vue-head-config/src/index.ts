@@ -25,7 +25,8 @@ export const createVueHeadConfigPlugin: ComponentPluginFactory<VueMetaPluginConf
     } = {}
 
     if (uidl.seo && uidl.seo.title) {
-      headObject.title = uidl.seo.title
+      // TODO: add support for dynamic titles
+      headObject.title = uidl.seo.title as string
     }
 
     if (uidl.seo && uidl.seo.metaTags) {

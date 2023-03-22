@@ -2,11 +2,11 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { Resource } from '@teleporthq/teleport-types'
 
-export const generateInitialPathsAST = (resource: Resource) => {
+export const generateInitialPathsAST = (resource: Resource, propsPrefix: string = '') => {
   const computedResourceAST =
     resource.type === 'static'
       ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource)
+      : computeRemoteValuePropsAST(resource, propsPrefix)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -46,11 +46,11 @@ const computeStaticValuePropsAST = (resource: Resource) => {
   )
 }
 
-const computeRemoteValuePropsAST = (resource: Resource) => {
+const computeRemoteValuePropsAST = (resource: Resource, propsPrefix: string = '') => {
   if (resource.type !== 'remote') {
     return null
   }
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource)
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix)
 
   const returnAST = types.returnStatement(
     types.objectExpression([
@@ -73,7 +73,16 @@ const computeRemoteValuePropsAST = (resource: Resource) => {
                       types.objectExpression([
                         types.objectProperty(
                           types.identifier(resource.exposeAs.name),
-                          generateExposeValueASTFromPath(resource.exposeAs.valuePath),
+                          types.callExpression(
+                            types.memberExpression(
+                              ASTUtils.generateMemberExpressionASTFromPath([
+                                'item',
+                                ...resource.exposeAs.valuePath,
+                              ]),
+                              types.identifier('toString')
+                            ),
+                            []
+                          ),
                           false,
                           false
                         ),
@@ -95,19 +104,4 @@ const computeRemoteValuePropsAST = (resource: Resource) => {
   )
 
   return [...resourceASTs, returnAST]
-}
-
-const generateExposeValueASTFromPath = (path: string[]): types.MemberExpression => {
-  const pathClone = [...path]
-  if (path.length === 1) {
-    return types.memberExpression(types.identifier('item'), types.identifier(path[0]), false)
-  }
-
-  pathClone.pop()
-
-  return types.memberExpression(
-    generateExposeValueASTFromPath(pathClone),
-    types.identifier(path[path.length - 1]),
-    false
-  )
 }

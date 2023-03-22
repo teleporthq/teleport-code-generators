@@ -34,7 +34,6 @@ const createPageUIDL = (
 ): ComponentUIDL => {
   const { value, node } = routeNode.content
   const pageName = value.toString()
-
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
 
@@ -59,11 +58,15 @@ const createPageUIDL = (
   const { customComponentFileName, customStyleFileName, customTemplateFileName } =
     pagesStrategyOptions
 
+  const splittedPageName = pageName.split('/')
+  splittedPageName.pop()
+
   // a page can be: 'about-us.js' or `about-us/index.js`
   const outputOptions = createFolderForEachComponent
     ? {
         componentName,
-        fileName: (customComponentFileName && customComponentFileName(fileName)) || 'index',
+        fileName:
+          (customComponentFileName && customComponentFileName(fileName, pageOptions)) || 'index',
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
           (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
@@ -71,10 +74,11 @@ const createPageUIDL = (
       }
     : {
         componentName,
-        fileName: (customComponentFileName && customComponentFileName(fileName)) || fileName,
+        fileName:
+          (customComponentFileName && customComponentFileName(fileName, pageOptions)) || fileName,
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || fileName,
         templateFileName: (customTemplateFileName && customTemplateFileName(fileName)) || fileName,
-        folderPath: [],
+        folderPath: pagesStrategyOptions.useFileNameForNavigation ? splittedPageName : [],
       }
 
   // Looking into the state definition, we take the seo information for the corresponding page
@@ -91,10 +95,11 @@ const createPageUIDL = (
   const pageContent = node.type === 'element' ? node : elementNode('group', {}, [node])
 
   const componentUIDL: ComponentUIDL = {
+    seo,
     name: componentName,
     node: pageContent,
     outputOptions: { ...outputOptions, initialPropsResource, initialPathsResource },
-    seo,
+    propDefinitions: pageOptions.propDefinitions,
   }
 
   /* Adding all kinds of peer dependencies and importing css only files
@@ -140,7 +145,12 @@ export const extractPageOptions = (
 
   // If no meta object is defined, the stateName is used
   const defaultPageName = 'AppPage'
-  const friendlyStateName = StringUtils.removeIllegalCharacters(routeName) || defaultPageName // remove space, leading numbers, etc.
+
+  const splittedRouteName = routeName.split('/')
+  const fileName =
+    useFileNameForNavigation && splittedRouteName.length > 1 ? splittedRouteName.pop() : routeName
+
+  const friendlyStateName = StringUtils.removeIllegalCharacters(fileName) || defaultPageName // remove space, leading numbers, etc.
   const friendlyComponentName = StringUtils.dashCaseToUpperCamelCase(friendlyStateName) // component name in UpperCamelCase
   const friendlyFileName = StringUtils.camelCaseToDashCase(friendlyStateName) // file name in dash-case
 
@@ -166,8 +176,8 @@ export const extractPageOptions = (
   // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
   // Also, the defaultPage has to be index, overriding any other value set
   if (useFileNameForNavigation) {
-    const fileName = pageOptions.navLink.replace('/', '')
-    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : fileName
+    const navFileName = pageOptions.navLink.replace('/', '')
+    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : navFileName
   }
 
   const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
@@ -199,6 +209,7 @@ export const prepareComponentOutputOptions = (
     const friendlyFileName = fileName || StringUtils.camelCaseToDashCase(friendlyName) // ex: primary-button
     const friendlyComponentName =
       componentClassName || StringUtils.dashCaseToUpperCamelCase(friendlyName) // ex: PrimaryButton
+
     const folderPath = UIDLUtils.getComponentFolderPath(component)
 
     const { customComponentFileName, customStyleFileName, customTemplateFileName } =
@@ -340,6 +351,7 @@ export const resolveLocalDependencies = (
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
     const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {

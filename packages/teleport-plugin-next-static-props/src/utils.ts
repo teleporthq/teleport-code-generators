@@ -2,17 +2,17 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { Resource } from '@teleporthq/teleport-types'
 
-export const generateInitialPropsAST = (resource: Resource) => {
+export const generateInitialPropsAST = (resource: Resource, propsPrefix = '') => {
   const computedResourceAST =
     resource.type === 'static'
       ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource)
+      : computeRemoteValuePropsAST(resource, propsPrefix)
 
   return types.exportNamedDeclaration(
     (() => {
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
-        [],
+        [types.identifier('props')],
         types.blockStatement([...computedResourceAST]),
         false,
         true
@@ -46,12 +46,12 @@ const computeStaticValuePropsAST = (resource: Resource) => {
   )
 }
 
-const computeRemoteValuePropsAST = (resource: Resource) => {
+const computeRemoteValuePropsAST = (resource: Resource, propsPrefix = '') => {
   if (resource.type !== 'remote') {
     return null
   }
 
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource)
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix)
 
   const returnAST = types.returnStatement(
     types.objectExpression([

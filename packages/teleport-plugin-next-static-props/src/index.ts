@@ -25,7 +25,12 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     if (!componentChunk) {
       return structure
     }
-    const getStaticPropsAST = generateInitialPropsAST(uidl.outputOptions.initialPropsResource)
+
+    const propsPrefix = componentChunk.meta.dynamicRefPrefix.prop as string
+    const getStaticPropsAST = generateInitialPropsAST(
+      uidl.outputOptions.initialPropsResource,
+      propsPrefix
+    )
 
     chunks.push({
       name: 'getStaticProps',

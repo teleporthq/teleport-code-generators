@@ -59,6 +59,10 @@ export const createHTMLImportStatementsPlugin = () => {
       const { metaTags = [], assets, title } = uidl.seo
       if (title) {
         const titleTag = HASTBuilders.createHTMLNode('title')
+        if (typeof title !== 'string') {
+          throw new Error('Unsupporder HTML title type. Only string is supported.')
+        }
+
         HASTUtils.addTextNode(titleTag, StringUtils.encode(title))
         tags.push(titleTag)
       }
@@ -67,7 +71,12 @@ export const createHTMLImportStatementsPlugin = () => {
         metaTags.forEach((meta) => {
           const metaTag = HASTBuilders.createHTMLNode('meta')
           Object.keys(meta).forEach((key) => {
-            HASTUtils.addAttributeToNode(metaTag, key, meta[key])
+            const value = meta[key]
+            if (typeof value !== 'string') {
+              throw new Error('Unsupporder HTML meta type. Only string is supported.')
+            }
+
+            HASTUtils.addAttributeToNode(metaTag, key, value)
           })
           tags.push(metaTag)
         })

@@ -8,6 +8,7 @@ import {
   UIDLDesignTokens,
   UIDLRootComponent,
   UIDLRouteDefinitions,
+  UIDLPageOptions,
 } from './uidl'
 
 export enum FileType {
@@ -312,7 +313,7 @@ export interface Attribute {
 
 export interface ProjectStrategyComponentOptions {
   createFolderForEachComponent?: boolean
-  customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+  customComponentFileName?: (name?: string, options?: UIDLPageOptions) => string // only used when createFolderForEachComponent is true
   customStyleFileName?: (name?: string) => string
   customTemplateFileName?: (name?: string) => string
 }

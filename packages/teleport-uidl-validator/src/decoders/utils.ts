@@ -12,6 +12,7 @@ import {
   lazy,
   oneOf,
   intersection,
+  unknownJson,
   withDefault,
 } from '@mojotech/json-type-validation'
 import {
@@ -75,6 +76,7 @@ import {
   RemoteResource,
   StaticResource,
   ResourceValue,
+  ResourceUrlParams,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -85,29 +87,6 @@ const resourceValueDecoder: Decoder<ResourceValue> = union(
   object({ type: constant('static'), value: string() }),
   object({ type: constant('env'), value: string(), fallback: optional(string()) })
 )
-
-const remoteResource: Decoder<RemoteResource> = object({
-  type: constant('remote'),
-  exposeAs: object({
-    name: string(),
-    valuePath: optional(array(string())),
-  }),
-  baseUrl: resourceValueDecoder,
-  urlParams: optional(dict(union(object(), string(), array(), number(), boolean()))),
-  authToken: optional(resourceValueDecoder),
-  route: optional(resourceValueDecoder),
-})
-
-const staticResource: Decoder<StaticResource> = object({
-  type: constant('static'),
-  exposeAs: object({
-    name: string(),
-    valuePath: optional(array(string())),
-  }),
-  value: union(string(), number(), boolean(), dict(string()), array(dict(string()))),
-})
-
-export const resourceDecoder = union(remoteResource, staticResource)
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -122,6 +101,7 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: referenceTypeDecoder,
+    path: optional(array(string())),
     id: string(),
   }),
 })
@@ -135,6 +115,39 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   type: constant('raw'),
   content: string(),
 })
+
+const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
+  union(
+    staticValueDecoder,
+    dynamicValueDecoder,
+    array(union(staticValueDecoder, dynamicValueDecoder))
+  )
+)
+
+const remoteResource: Decoder<RemoteResource> = object({
+  type: constant('remote'),
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+  }),
+  baseUrl: resourceValueDecoder,
+  urlParams: optional(
+    union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())
+  ),
+  authToken: optional(resourceValueDecoder),
+  route: optional(resourceValueDecoder),
+})
+
+const staticResource: Decoder<StaticResource> = object({
+  type: constant('static'),
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+  }),
+  value: union(string(), number(), boolean(), dict(string()), array(dict(string()))),
+})
+
+export const resourceDecoder = union(remoteResource, staticResource)
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
   type: constant('screen-size'),
@@ -200,15 +213,6 @@ export const stateOrPropDefinitionDecoder = union(
   array(union(string(), number(), object())),
   object()
 )
-
-export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
-  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
-  fallback: optional(boolean()),
-  initialPropsResource: optional(resourceDecoder),
-  initialPathsResource: optional(resourceDecoder),
-})
 
 export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
   lazy(() => inlineScriptAssetDecoder),
@@ -280,15 +284,9 @@ export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
 })
 
 export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
-  title: optional(string()),
-  metaTags: optional(array(dict(string()))),
+  title: optional(union(string(), dynamicValueDecoder)),
+  metaTags: optional(array(dict(union(string(), dynamicValueDecoder)))),
   assets: optional(array(globalAssetsDecoder)),
-})
-
-export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
-  value: union(string(), number(), boolean()),
-  pageOptions: optional(pageOptionsDecoder),
-  seo: optional(componentSeoDecoder),
 })
 
 export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
@@ -303,6 +301,24 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
+})
+
+export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
+  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
+  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
+  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  fallback: optional(boolean()),
+  dynamicRouteAttribute: optional(string()),
+  isIndex: optional(boolean()),
+  initialPropsResource: optional(resourceDecoder),
+  initialPathsResource: optional(resourceDecoder),
+  propDefinitions: optional(dict(propDefinitionsDecoder)),
+})
+
+export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
+  value: union(string(), number(), boolean()),
+  pageOptions: optional(pageOptionsDecoder),
+  seo: optional(componentSeoDecoder),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
