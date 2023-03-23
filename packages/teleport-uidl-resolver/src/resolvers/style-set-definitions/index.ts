@@ -15,8 +15,6 @@ export const resolveStyleSetDefinitions = (
   styleSets: Record<string, UIDLStyleSetDefinition> = {},
   options: GeneratorOptions
 ): Record<string, UIDLStyleSetDefinition> => {
-  const { assets } = options
-
   return Object.keys(styleSets).reduce((acc: Record<string, UIDLStyleSetDefinition>, styleId) => {
     const styleRef = styleSets[styleId]
     const { conditions = [] } = styleRef
@@ -24,7 +22,7 @@ export const resolveStyleSetDefinitions = (
     if (conditions.length === 0) {
       acc[styleId] = {
         ...styleRef,
-        content: prefixAssetURLs(styleRef.content, assets),
+        content: prefixAssetURLs(styleRef.content, options?.assets),
       }
       return acc
     }
@@ -34,13 +32,13 @@ export const resolveStyleSetDefinitions = (
         if (item.type === 'screen-size') {
           media.push({
             ...item,
-            content: prefixAssetURLs(item.content, options.assets),
+            content: prefixAssetURLs(item.content, options?.assets),
           })
         }
         if (item.type === 'element-state') {
           state.push({
             ...item,
-            content: prefixAssetURLs(item.content, options.assets),
+            content: prefixAssetURLs(item.content, options?.assets),
           })
         }
         return [media, state]

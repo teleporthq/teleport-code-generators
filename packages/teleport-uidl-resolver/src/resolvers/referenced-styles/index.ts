@@ -70,7 +70,7 @@ const sortByStateAndCondition = (
               ...styleRef,
               content: {
                 ...styleRef.content,
-                styles: prefixAssetURLs(styleRef.content.styles, options.assets),
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
               },
             }
           }
@@ -80,7 +80,7 @@ const sortByStateAndCondition = (
               ...styleRef,
               content: {
                 ...styleRef.content,
-                styles: prefixAssetURLs(styleRef.content.styles, options.assets),
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
               },
             }
           }

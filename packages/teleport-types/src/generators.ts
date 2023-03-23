@@ -156,10 +156,11 @@ export interface ImportIdentifier {
 /* Project Types */
 
 export interface ProjectGenerator {
-  setAssetsAndPathMappingIdentifier: (
-    assetMap: Record<string, string>,
-    identifier?: string[]
-  ) => void
+  setAssets: (params: {
+    mappings: Record<string, string>
+    identifier?: string
+    prefix?: string
+  }) => void
   generateProject: (
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
@@ -186,6 +187,7 @@ export interface HTMLComponentGenerator extends ComponentGenerator {
   addExternalComponents: (params: {
     externals: Record<string, ComponentUIDL>
     skipValidation?: boolean
+    assets?: GeneratorOptions['assets']
   }) => void
 }
 export type HTMLComponentGeneratorInstance = (

@@ -137,7 +137,7 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
         originalElement.attrs[attrKey].content = UIDLUtils.prefixAssetsPath(
           attrValue.content,
-          options?.assets
+          options.assets
         )
       }
     })
@@ -340,7 +340,7 @@ const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
  * @param style the style object on the current node
- * @param assetsPrefix a string representing the asset prefix
+ * @param assets comes from project generator options which contains the prefix, mappings and identifier
  */
 
 export const prefixAssetURLs = <
@@ -364,19 +364,13 @@ export const prefixAssetURLs = <
           return acc
         }
 
-        if (
-          typeof staticContent === 'string' &&
-          STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
-          staticContent.includes(assets?.prefix)
-        ) {
-          // split the string at the beginning of the ASSETS_IDENTIFIER string
-          const startIndex = staticContent.indexOf(assets?.prefix) - 1 // account for the leading '/'
-          const newStyleValue =
-            staticContent.slice(0, startIndex) +
-            UIDLUtils.prefixAssetsPath(
-              staticContent.slice(startIndex, staticContent.length),
-              assets
-            )
+        if (typeof staticContent === 'string' && STYLE_PROPERTIES_WITH_URL.includes(styleKey)) {
+          const asset =
+            staticContent.indexOf('url(') === -1
+              ? staticContent
+              : staticContent.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+          const url = UIDLUtils.prefixAssetsPath(asset, assets)
+          const newStyleValue = `url("${url}")`
           acc[styleKey] = {
             type: 'static',
             content: newStyleValue,
@@ -388,8 +382,6 @@ export const prefixAssetURLs = <
       default:
         throw new Error(`Invalid styleValue type '${styleValue}'`)
     }
-
-    return acc
   }, {})
 }
 

@@ -50,6 +50,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
   private strategy: ProjectStrategy
   private validator: Validator
   private assemblyLine: ProjectAssemblyLine
+
+  private assetPrefix: string | null = null
   private assetsAndPathMapping: Record<string, string> = {}
   private assetIdentifier: string | null = null
 
@@ -128,13 +130,18 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
   }
 
-  public setAssetsAndPathMappingIdentifier(
-    assetMap: Record<string, string>,
-    identifier?: string[]
-  ) {
-    this.assetsAndPathMapping = assetMap
+  public setAssets(params: GeneratorOptions['assets']) {
+    const { mappings, prefix, identifier } = params
+    if (mappings) {
+      this.assetsAndPathMapping = mappings
+    }
+
+    if (prefix) {
+      this.assetPrefix = prefix
+    }
+
     if (identifier) {
-      this.assetIdentifier = identifier.join('/')
+      this.assetIdentifier = identifier
     }
   }
 
@@ -219,10 +226,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     // If static prefix is not specified, compute it from the path, but if the string is empty it should work
-    const assetsPrefix =
-      typeof this.strategy.static.prefix === 'string'
-        ? this.strategy.static.prefix
-        : '/' + this.getAssetsPath().join('/')
+    const assetsPrefix = (
+      this.assetPrefix ? this.assetPrefix : typeof this.strategy.static.prefix === 'string'
+    )
+      ? this.strategy.static.prefix
+      : '/' + this.getAssetsPath().join('/')
 
     const options: GeneratorOptions = {
       assets: {
@@ -284,6 +292,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,
+          assets: options.assets,
         })
       }
 
@@ -368,6 +377,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
           skipValidation: true,
+          assets: options.assets,
         })
       }
 

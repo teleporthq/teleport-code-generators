@@ -122,7 +122,7 @@ export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
 
 export const prefixAssetsPath = (
   originalString: string | undefined,
-  assets: GeneratorOptions['assets']
+  assets: GeneratorOptions['assets'] = {}
 ) => {
   if (!originalString) {
     return originalString
@@ -132,18 +132,37 @@ export const prefixAssetsPath = (
     return originalString
   }
 
-  const { prefix, mappings, identifier } = assets
+  const { prefix, mappings = {}, identifier } = assets
+  const assetName = basename(originalString)
 
-  const assetCustomPath = mappings[basename(originalString)]
-  if (assetCustomPath && identifier) {
-    return `${prefix}/${assetCustomPath}/${identifier}/${originalString}`
+  /*
+    If the value is missing from the mapping, it means
+     - asset is missing in the project packer
+     - It's not a asset and so we don't need to provide any mapping for it
+  */
+
+  if (!(assetName in mappings)) {
+    return originalString
   }
 
-  if (assetCustomPath && !identifier) {
-    return `${prefix}/${assetCustomPath}/${originalString}`
+  const assetCustomPath = mappings[assetName]
+  let url = ''
+
+  if (prefix) {
+    url = prefix
   }
 
-  return `${prefix}/${originalString}`
+  if (identifier && originalString.indexOf(identifier) === -1) {
+    url = `${url}/${identifier}`
+  }
+
+  if (assetCustomPath) {
+    url = `${url}/${assetCustomPath}`
+  }
+
+  url = `${url}${originalString}`
+
+  return url
 }
 
 // Clones existing objects while keeping the type cast

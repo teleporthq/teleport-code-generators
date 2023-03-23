@@ -9,6 +9,12 @@ import uidlWithImages from '../../../examples/test-samples/html-image-use-cases.
 describe('Passes the rootClass which using the component', () => {
   it('run without crashing while using with HTML', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.setAssets({
+      mappings: {
+        'kitten.png': '',
+      },
+      identifier: 'playground_assets',
+    })
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
 
     const mainFile = result.files.find(
@@ -27,6 +33,12 @@ describe('Passes the rootClass which using the component', () => {
 describe('Image Resolution', () => {
   it('resolves all local assets to be refered from public folder', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.setAssets({
+      mappings: {
+        'kitten.png': '',
+      },
+      identifier: 'playground_assets',
+    })
     const { files } = await generator.generateProject(uidlWithImages)
 
     const mainCSS = files.find((file) => file.name === 'home' && file.fileType === FileType.CSS)
@@ -60,7 +72,15 @@ describe('Image Resolution', () => {
 
   it('creates a default route if a page is marked as fallback', async () => {
     const generator = createHTMLProjectGenerator()
+
+    generator.setAssets({
+      mappings: {
+        'kitten.png': '',
+      },
+      identifier: 'playground_assets',
+    })
     generator.addPlugin(htmlErrorPageMapping)
+
     const { files } = await generator.generateProject(fallbackUidlSample, ProjectTemplate)
     const fallbackPage = files.find((file) => file.name === '404')
 

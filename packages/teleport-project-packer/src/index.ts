@@ -75,15 +75,18 @@ export const createProjectPacker: PackerFactory = (params: PackerFactoryParams =
       templateFolder = await fetchTemplate(packParams.remoteTemplateDefinition)
     }
 
-    const assetsAndPathsMap = packAssets.assets.reduce((acc: Record<string, string>, asset) => {
+    const assetsAndPathsMap = packAssets?.assets.reduce((acc: Record<string, string>, asset) => {
       acc[asset.name] = (asset?.path || []).join('/')
       return acc
     }, {})
 
-    packGenerator.setAssetsAndPathMappingIdentifier(assetsAndPathsMap, packAssets.path)
+    packGenerator.setAssets({
+      mappings: assetsAndPathsMap,
+      identifier: packAssets?.path ? packAssets.path.join('/') : null,
+    })
+    const assetsPath = packGenerator.getAssetsPath()
 
     const outputFolder = await packGenerator.generateProject(definedProjectUIDL, templateFolder)
-    const assetsPath = packGenerator.getAssetsPath()
 
     const project = await injectAssetsToProject(outputFolder, packAssets, assetsPath)
 
