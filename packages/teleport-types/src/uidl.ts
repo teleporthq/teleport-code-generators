@@ -162,6 +162,7 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
   initialPropsResource?: Resource
   initialPathsResource?: Resource
@@ -195,6 +196,20 @@ export interface UIDLStateValueDetails {
   seo?: UIDLComponentSEO
 }
 
+export interface PagePaginationOptions {
+  attribute: string
+  pageSize: number
+  // We're using this properti in order to get the total count of items for
+  // a given entity. In order to get the total count, we might need to fetch at least
+  // one item and get the actual count from the meta that is sent together with
+  // the response
+  totalCountPath?: string[]
+  // If we need to handle pagination, we are going to fetch the data using this property
+  // as a query param. This query might be different depending on the source of
+  // the data.
+  pageUrlSearchParamKey?: string
+}
+
 export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
@@ -202,6 +217,7 @@ export interface UIDLPageOptions {
   fallback?: boolean
   dynamicRouteAttribute?: string
   isIndex?: boolean
+  pagination?: PagePaginationOptions
   initialPropsResource?: Resource
   initialPathsResource?: Resource
   propDefinitions?: Record<string, UIDLPropDefinition>

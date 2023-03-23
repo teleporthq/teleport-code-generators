@@ -1,12 +1,16 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { Resource } from '@teleporthq/teleport-types'
+import { PagePaginationOptions, Resource } from '@teleporthq/teleport-types'
 
-export const generateInitialPathsAST = (resource: Resource, propsPrefix: string = '') => {
+export const generateInitialPathsAST = (
+  resource: Resource,
+  propsPrefix: string = '',
+  pagination?: PagePaginationOptions
+) => {
   const computedResourceAST =
     resource.type === 'static'
       ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource, propsPrefix)
+      : computeRemoteValuePropsAST(resource, propsPrefix, pagination)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -46,56 +50,120 @@ const computeStaticValuePropsAST = (resource: Resource) => {
   )
 }
 
-const computeRemoteValuePropsAST = (resource: Resource, propsPrefix: string = '') => {
+const computeRemoteValuePropsAST = (
+  resource: Resource,
+  propsPrefix: string = '',
+  pagination?: PagePaginationOptions
+) => {
   if (resource.type !== 'remote') {
     return null
   }
   const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix)
 
+  const paginationASTs = []
+  if (pagination) {
+    const itemsCountAST = types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier('totalCount'),
+        ASTUtils.generateMemberExpressionASTFromPath(['response', ...pagination.totalCountPath])
+      ),
+    ])
+
+    const pagesCountAST = types.variableDeclaration('const', [
+      types.variableDeclarator(
+        types.identifier('pagesCount'),
+        types.callExpression(
+          types.memberExpression(types.identifier('Math'), types.identifier('ceil'), false),
+          [
+            types.binaryExpression(
+              '/',
+              types.identifier('totalCount'),
+              types.numericLiteral(pagination.pageSize)
+            ),
+          ]
+        )
+      ),
+    ])
+
+    paginationASTs.push(itemsCountAST)
+    paginationASTs.push(pagesCountAST)
+  }
+
   const returnAST = types.returnStatement(
     types.objectExpression([
       types.objectProperty(
         types.identifier('paths'),
-        types.callExpression(
-          types.memberExpression(
-            types.memberExpression(types.identifier('response'), types.identifier('data'), false),
-            types.identifier('map'),
-            false
-          ),
-          [
-            types.arrowFunctionExpression(
-              [types.identifier('item')],
-              types.blockStatement([
-                types.returnStatement(
+        pagination
+          ? types.callExpression(
+              types.memberExpression(types.identifier('Array'), types.identifier('from')),
+              [
+                types.objectExpression([
+                  types.objectProperty(types.identifier('length'), types.identifier('pagesCount')),
+                ]),
+                types.arrowFunctionExpression(
+                  [types.identifier('_'), types.identifier('i')],
                   types.objectExpression([
                     types.objectProperty(
                       types.identifier('params'),
                       types.objectExpression([
                         types.objectProperty(
-                          types.identifier(resource.exposeAs.name),
-                          types.callExpression(
-                            types.memberExpression(
-                              ASTUtils.generateMemberExpressionASTFromPath([
-                                'item',
-                                ...resource.exposeAs.valuePath,
-                              ]),
-                              types.identifier('toString')
-                            ),
+                          types.identifier('page'),
+                          types.templateLiteral(
+                            /* tslint:disable-next-line */
+                            [types.templateElement({ raw: '${i + 1}', cooked: '${i + 1}' }, true)],
                             []
-                          ),
-                          false,
-                          false
+                          )
                         ),
-                      ]),
-                      false,
-                      false
+                      ])
                     ),
                   ])
                 ),
-              ])
+              ]
+            )
+          : types.callExpression(
+              types.memberExpression(
+                types.memberExpression(
+                  types.identifier('response'),
+                  types.identifier('data'),
+                  false
+                ),
+                types.identifier('map'),
+                false
+              ),
+              [
+                types.arrowFunctionExpression(
+                  [types.identifier('item')],
+                  types.blockStatement([
+                    types.returnStatement(
+                      types.objectExpression([
+                        types.objectProperty(
+                          types.identifier('params'),
+                          types.objectExpression([
+                            types.objectProperty(
+                              types.identifier(resource.exposeAs.name),
+                              types.callExpression(
+                                types.memberExpression(
+                                  ASTUtils.generateMemberExpressionASTFromPath([
+                                    'item',
+                                    ...resource.exposeAs.valuePath,
+                                  ]),
+                                  types.identifier('toString')
+                                ),
+                                []
+                              ),
+                              false,
+                              false
+                            ),
+                          ]),
+                          false,
+                          false
+                        ),
+                      ])
+                    ),
+                  ])
+                ),
+              ]
             ),
-          ]
-        ),
         false,
         false
       ),
@@ -103,5 +171,5 @@ const computeRemoteValuePropsAST = (resource: Resource, propsPrefix: string = ''
     ])
   )
 
-  return [...resourceASTs, returnAST]
+  return [...resourceASTs, ...paginationASTs, returnAST]
 }

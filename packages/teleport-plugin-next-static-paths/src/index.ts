@@ -26,7 +26,11 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       return structure
     }
 
-    const getStaticPathsAST = generateInitialPathsAST(uidl.outputOptions.initialPathsResource)
+    const getStaticPathsAST = generateInitialPathsAST(
+      uidl.outputOptions.initialPathsResource,
+      undefined,
+      uidl.outputOptions.pagination
+    )
 
     chunks.push({
       name: 'getStaticPaths',

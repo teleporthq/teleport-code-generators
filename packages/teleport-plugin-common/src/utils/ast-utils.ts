@@ -512,13 +512,22 @@ export const generateStaticResourceAST = (resource: Resource) => {
   return value
 }
 
-export const generateRemoteResourceASTs = (resource: Resource, propsPrefix: string = '') => {
+export const generateRemoteResourceASTs = (
+  resource: Resource,
+  propsPrefix: string = '',
+  extraUrlParamsGenerator?: () => types.ObjectProperty[]
+) => {
   if (resource.type !== 'remote') {
     return null
   }
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource)
-  const queryParams = generateURLParamsAST(resource.urlParams as ResourceUrlParams, propsPrefix)
+
+  const queryParams = generateURLParamsAST(
+    resource.urlParams as ResourceUrlParams,
+    propsPrefix,
+    extraUrlParamsGenerator
+  )
 
   const fetchUrlQuasis = fetchUrl.quasis
   const queryParamsQuasis = queryParams.quasis
@@ -597,17 +606,22 @@ export const generateMemberExpressionASTFromPath = (
   )
 }
 
-const generateURLParamsAST = (urlParams: ResourceUrlParams, propsPrefix?: string) => {
+const generateURLParamsAST = (
+  urlParams: ResourceUrlParams,
+  propsPrefix?: string,
+  extraUrlParamsGenerator?: () => types.ObjectProperty[]
+) => {
   const queryString: Record<string, types.Expression> = {}
   Object.keys(urlParams).forEach((key) => {
     resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key, propsPrefix)
   })
 
-  const urlObject = types.objectExpression(
-    Object.keys(queryString).map((key) => {
+  const urlObject = types.objectExpression([
+    ...Object.keys(queryString).map((key) => {
       return types.objectProperty(types.stringLiteral(`${key}`), queryString[key])
-    })
-  )
+    }),
+    ...(extraUrlParamsGenerator ? extraUrlParamsGenerator() : []),
+  ])
 
   return types.templateLiteral(
     [

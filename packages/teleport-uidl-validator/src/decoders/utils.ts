@@ -77,6 +77,7 @@ import {
   StaticResource,
   ResourceValue,
   ResourceUrlParams,
+  PagePaginationOptions,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -303,6 +304,13 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   isRequired: optional(boolean()),
 })
 
+export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
+  attribute: string(),
+  pageSize: number(),
+  totalCountPath: optional(array(string())),
+  pageUrlSearchParamKey: optional(string()),
+})
+
 export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   componentName: optional(isValidComponentName() as unknown as Decoder<string>),
   navLink: optional(isValidNavLink() as unknown as Decoder<string>),
@@ -310,6 +318,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   fallback: optional(boolean()),
   dynamicRouteAttribute: optional(string()),
   isIndex: optional(boolean()),
+  pagination: optional(pageOptionsPaginationDecoder),
   initialPropsResource: optional(resourceDecoder),
   initialPathsResource: optional(resourceDecoder),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
