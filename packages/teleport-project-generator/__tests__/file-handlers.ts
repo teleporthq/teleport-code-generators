@@ -1,6 +1,11 @@
 import { handlePackageJSON, createEntryFile, createManifestJSONFile } from '../src/file-handlers'
 import { PackageJSON } from '../src/types'
-import { GeneratedFolder, ProjectUIDL, FileType } from '@teleporthq/teleport-types'
+import {
+  GeneratedFolder,
+  ProjectUIDL,
+  FileType,
+  UIDLRootComponent,
+} from '@teleporthq/teleport-types'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
 import { createStrategyWithCommonGenerator } from './mocks'
 
@@ -9,7 +14,11 @@ import uidlSample from '../../../examples/test-samples/project-sample.json'
 describe('createHtmlIndexFile', () => {
   it('returns index file with prefixed assets and app file', async () => {
     const options = {
-      assetsPrefix: '/static',
+      assets: {
+        prefix: '',
+        mappings: {},
+        identifier: 'playground_assets',
+      },
       appRootOverride: '{{root-placeholder}}',
     }
     const [entryFile] = await createEntryFile(
@@ -25,8 +34,11 @@ describe('createHtmlIndexFile', () => {
 
 describe('createManifestJSONFile', () => {
   it('returns manifest file with prefixed assets', () => {
-    const assetsPrefix = 'playground'
-    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL, assetsPrefix)
+    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL, {
+      prefix: 'playground',
+      identifier: 'playground_assets',
+      mappings: { 'icons-192.png': '' },
+    })
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
@@ -34,7 +46,9 @@ describe('createManifestJSONFile', () => {
   })
 
   it('returns manifest file with no prefixed assets', () => {
-    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL)
+    const result = createManifestJSONFile(uidlSample as unknown as ProjectUIDL, {
+      identifier: 'playground_assets',
+    })
 
     expect(result.name).toBe('manifest')
     expect(result.fileType).toBe('json')
@@ -46,7 +60,7 @@ describe('handlePackageJSON', () => {
   const uidl: ProjectUIDL = {
     name: 'test-project',
     globals: { settings: { title: 'Random', language: 'en' }, meta: [], assets: [] },
-    root: component('random', elementNode('container')),
+    root: component('random', elementNode('container')) as UIDLRootComponent,
   }
 
   const dependencies = {

@@ -6,9 +6,12 @@ import HTMLTemplate from '../../src/project-template'
 import { FileType } from '@teleporthq/teleport-types'
 
 describe('Html Project Generator', () => {
-  const generator = createHTMLProjectGenerator()
-
   it('runs without crasing', async () => {
+    const generator = createHTMLProjectGenerator()
+    generator.setAssets({
+      mappings: {},
+      identifier: 'playground_assets',
+    })
     const { name, files, subFolders } = await generator.generateProject(uidlSample, HTMLTemplate)
     const aboutPage = files.find((page) => page.name === 'about' && page.fileType === FileType.HTML)
     const aboutCSS = files.find((page) => page.name === 'about' && page.fileType === FileType.CSS)
@@ -25,6 +28,10 @@ describe('Html Project Generator', () => {
 
   it('run withut crashing and appends entry things into single index.html', async () => {
     const singularGenerator = createHTMLProjectGenerator({ individualEntyFile: false })
+    singularGenerator.setAssets({
+      mappings: {},
+      identifier: 'playground_assets',
+    })
     const { name, files, subFolders } = await singularGenerator.generateProject(
       uidlSample,
       HTMLTemplate
@@ -42,15 +49,19 @@ describe('Html Project Generator', () => {
   })
 
   it('throws error when invalid UIDL sample is used', async () => {
+    const generator = createHTMLProjectGenerator()
     const result = generator.generateProject(invalidUidlSample, HTMLTemplate)
     await expect(result).rejects.toThrow(Error)
   })
 })
 
 describe('Unwinds the slot inside the component when used in page', () => {
-  const generator = createHTMLProjectGenerator()
-
   it('runs without crashing', async () => {
+    const generator = createHTMLProjectGenerator()
+    generator.setAssets({
+      mappings: {},
+      identifier: 'playground_assets',
+    })
     const result = await generator.generateProject(projectWithSlot, HTMLTemplate)
     const indexFile = result.files.find(
       (file) => file.name === 'index' && file.fileType === FileType.HTML
