@@ -461,6 +461,7 @@ export interface PackerOptions {
   publishOptions?: GithubOptions | VercelOptions | PublisherOptions
   assets?: GeneratedFile[]
   plugins?: ProjectPlugin[]
+  assetsFolder?: string[]
 }
 
 export interface GenerateOptions {
