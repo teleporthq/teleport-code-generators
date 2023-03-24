@@ -10,10 +10,9 @@ describe('Passes the rootClass which using the component', () => {
   it('run without crashing while using with HTML', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: {
-        'kitten.png': '',
-      },
+      mappings: {},
       identifier: 'playground_assets',
+      prefix: '/public',
     })
     const result = await generator.generateProject(uidlWithCompStyleOverrides)
 
@@ -34,10 +33,9 @@ describe('Image Resolution', () => {
   it('resolves all local assets to be refered from public folder', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: {
-        'kitten.png': '',
-      },
+      mappings: {},
       identifier: 'playground_assets',
+      prefix: '/public',
     })
     const { files } = await generator.generateProject(uidlWithImages)
 
@@ -74,10 +72,9 @@ describe('Image Resolution', () => {
     const generator = createHTMLProjectGenerator()
 
     generator.setAssets({
-      mappings: {
-        'kitten.png': '',
-      },
+      mappings: {},
       identifier: 'playground_assets',
+      prefix: '/public',
     })
     generator.addPlugin(htmlErrorPageMapping)
 

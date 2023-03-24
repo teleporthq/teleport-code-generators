@@ -141,28 +141,11 @@ export const prefixAssetsPath = (
      - It's not a asset and so we don't need to provide any mapping for it
   */
 
-  if (!(assetName in mappings)) {
-    return originalString
+  if (!mappings[assetName]) {
+    return [prefix, identifier, assetName].join('/')
   }
 
-  const assetCustomPath = mappings[assetName]
-  let url = ''
-
-  if (prefix) {
-    url = prefix
-  }
-
-  if (identifier && originalString.indexOf(identifier) === -1) {
-    url = `${url}/${identifier}`
-  }
-
-  if (assetCustomPath) {
-    url = `${url}/${assetCustomPath}`
-  }
-
-  url = `${url}${originalString}`
-
-  return url
+  return [prefix, identifier, mappings[assetName], assetName].join('/')
 }
 
 // Clones existing objects while keeping the type cast

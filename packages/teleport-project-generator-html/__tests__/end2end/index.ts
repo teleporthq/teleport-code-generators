@@ -9,7 +9,7 @@ describe('Html Project Generator', () => {
   it('runs without crasing', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: { 'kitten.png': '' },
+      mappings: {},
       identifier: 'playground_assets',
     })
     const { name, files, subFolders } = await generator.generateProject(uidlSample, HTMLTemplate)
@@ -29,7 +29,7 @@ describe('Html Project Generator', () => {
   it('run withut crashing and appends entry things into single index.html', async () => {
     const singularGenerator = createHTMLProjectGenerator({ individualEntyFile: false })
     singularGenerator.setAssets({
-      mappings: { 'kitten.png': '' },
+      mappings: {},
       identifier: 'playground_assets',
     })
     const { name, files, subFolders } = await singularGenerator.generateProject(
@@ -59,7 +59,7 @@ describe('Unwinds the slot inside the component when used in page', () => {
   it('runs without crashing', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: { 'kitten.png': '' },
+      mappings: {},
       identifier: 'playground_assets',
     })
     const result = await generator.generateProject(projectWithSlot, HTMLTemplate)
