@@ -5162,7 +5162,6 @@
                                                     },
                                                     "backgroundImage": {
                                                         "type": "static",
->>>>>>> development
                                                         "content": "url(\"/playground_assets/kitten.png\")"
                                                     },
                                                     "backgroundSize": {
