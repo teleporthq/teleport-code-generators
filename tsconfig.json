@@ -4,6 +4,7 @@
         "module": "esnext",
         "target": "ES5",
         "declaration": true,
+        "declarationMap": true,
         "lib": [
             "es2015",
             "dom"

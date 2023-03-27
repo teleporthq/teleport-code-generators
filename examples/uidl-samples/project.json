@@ -5060,7 +5060,7 @@
                                                 "attrs": {
                                                     "src": {
                                                         "type": "static",
-                                                        "content": "/playground_assets/kitten.png"
+                                                        "content": "/kitten.png"
                                                     },
                                                     "alt": {
                                                         "type": "static",
@@ -5113,6 +5113,56 @@
                                                     },
                                                     "backgroundImage": {
                                                         "type": "static",
+                                                        "content": "url(\"/kitten.png\")"
+                                                    },
+                                                    "backgroundSize": {
+                                                        "type": "static",
+                                                        "content": "cover"
+                                                    }
+                                                },
+                                                "children": [
+                                                    {
+                                                        "type": "static",
+                                                        "content": "Bg Image"
+                                                    }
+                                                ],
+                                                "semanticType": "div"
+                                            }
+                                        },
+                                        {
+                                            "type": "element",
+                                            "content": {
+                                                "elementType": "container",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                    "display": {
+                                                        "type": "static",
+                                                        "content": "flex"
+                                                    },
+                                                    "width": {
+                                                        "type": "static",
+                                                        "content": "100px"
+                                                    },
+                                                    "height": {
+                                                        "type": "static",
+                                                        "content": "50px"
+                                                    },
+                                                    "border": {
+                                                        "type": "static",
+                                                        "content": "2px dashed rgba(120, 120, 120, 0.4)"
+                                                    },
+                                                    "alignItems": {
+                                                        "type": "static",
+                                                        "content": "flex-start"
+                                                    },
+                                                    "flex": {
+                                                        "type": "static",
+                                                        "content": "0 0 auto"
+                                                    },
+                                                    "backgroundImage": {
+                                                        "type": "static",
+>>>>>>> development
                                                         "content": "url(\"/playground_assets/kitten.png\")"
                                                     },
                                                     "backgroundSize": {

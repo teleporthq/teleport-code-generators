@@ -455,16 +455,24 @@ describe('getRepeatIteratorNameAndKey', () => {
 })
 
 describe('prefixAssetsPath', () => {
-  it('returns the original string if the assets identifier is not found', () => {
-    expect(prefixAssetsPath('/static', '/no/identifier')).toBe('/no/identifier')
-  })
-
-  it('returns the concatenated path', () => {
-    expect(prefixAssetsPath('/static', '/playground_assets')).toBe('/static/playground_assets')
-  })
-
   it('returns the concatenated path and adds a slash', () => {
-    expect(prefixAssetsPath('/static', 'playground_assets')).toBe('/static/playground_assets')
+    expect(
+      prefixAssetsPath('/kitten.png', {
+        prefix: '/static',
+        identifier: 'playground_assets',
+        mappings: { 'kitten.png': '' },
+      })
+    ).toBe('/static/playground_assets/kitten.png')
+  })
+
+  it('returns the original string appended with custom path for the asset', () => {
+    expect(
+      prefixAssetsPath('/kitten.png', {
+        prefix: '/no',
+        identifier: 'identifier',
+        mappings: { 'kitten.png': 'custom' },
+      })
+    ).toBe('/no/identifier/custom/kitten.png')
   })
 })
 

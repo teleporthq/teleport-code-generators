@@ -1,4 +1,3 @@
-import { ASSETS_IDENTIFIER } from '../constants'
 import {
   camelCaseToDashCase,
   removeIllegalCharacters,
@@ -21,7 +20,9 @@ import {
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
   UIDLRootComponent,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
+import { basename } from 'path'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
@@ -119,16 +120,32 @@ export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   }
 }
 
-export const prefixAssetsPath = (prefix: string, originalString: string | undefined) => {
-  if (!originalString || !originalString.includes(ASSETS_IDENTIFIER)) {
+export const prefixAssetsPath = (
+  originalString: string | undefined,
+  assets: GeneratorOptions['assets'] = {}
+) => {
+  if (!originalString) {
     return originalString
   }
 
-  if (originalString.startsWith('/')) {
-    return prefix + originalString
+  if (!originalString.startsWith('/')) {
+    return originalString
   }
 
-  return `${prefix}/${originalString}`
+  const { prefix, mappings = {}, identifier } = assets
+  const assetName = basename(originalString)
+
+  /*
+    If the value is missing from the mapping, it means
+     - asset is missing in the project packer
+     - It's not a asset and so we don't need to provide any mapping for it
+  */
+
+  if (!mappings[assetName]) {
+    return [prefix, identifier, assetName].join('/')
+  }
+
+  return [prefix, identifier, mappings[assetName], assetName].join('/')
 }
 
 // Clones existing objects while keeping the type cast
