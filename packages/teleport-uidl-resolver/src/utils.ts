@@ -1,4 +1,5 @@
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   UIDLEventDefinitions,
   UIDLElement,
@@ -488,6 +489,20 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
     Object.keys(uidl.stateDefinitions).forEach((state) => {
       if (illegalPropNames.includes(state)) {
         throw new Error(`Illegal state key '${state}'`)
+      }
+    })
+  }
+}
+
+export const checkForDefaultPropsContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.propDefinitions) {
+    Object.keys(uidl.propDefinitions).forEach((prop) => {
+      const propDefaultValue = uidl.propDefinitions[prop].defaultValue
+      if (typeof propDefaultValue === 'string' && assets) {
+        uidl.propDefinitions[prop].defaultValue = prefixAssetsPath(propDefaultValue, assets)
       }
     })
   }
