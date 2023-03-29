@@ -507,3 +507,17 @@ export const checkForDefaultPropsContainingAssets = (
     })
   }
 }
+
+export const checkForDefaultStateValueContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.stateDefinitions) {
+    Object.keys(uidl.stateDefinitions).forEach((state) => {
+      const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
+      if (typeof stateDefaultValue === 'string' && assets) {
+        uidl.stateDefinitions[state].defaultValue = prefixAssetsPath(stateDefaultValue, assets)
+      }
+    })
+  }
+}

@@ -47,6 +47,8 @@ export default class Resolver {
 
     utils.checkForDefaultPropsContainingAssets(uidl, options.assets)
 
+    utils.checkForDefaultStateValueContainingAssets(uidl, options.assets)
+
     resolveAbilities(uidl, newOptions)
 
     resolveReferencedStyle(uidl, newOptions)

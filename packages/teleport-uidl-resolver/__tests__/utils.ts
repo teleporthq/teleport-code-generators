@@ -14,6 +14,7 @@ import {
   mergeMappings,
   checkForIllegalNames,
   checkForDefaultPropsContainingAssets,
+  checkForDefaultStateValueContainingAssets,
 } from '../src/utils'
 import { UIDLElement, UIDLNode, UIDLRepeatNode, Mapping } from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
@@ -379,6 +380,45 @@ describe('checkForDefaultPropsContainingAssets', () => {
       expect(comp.propDefinitions.myImage).toBeDefined()
       expect(comp.propDefinitions.myImage.defaultValue).toContain(
         'public/assets/sub1/sub2/kittens.png'
+      )
+    }
+  })
+})
+
+describe('checkForDefaultStateValueContainingAssets', () => {
+  const comp = component(
+    'Component',
+    elementNode('image'),
+    {
+      myImage: {
+        type: 'string',
+        defaultValue: '/kittens.png',
+      },
+    },
+    {
+      imageState: {
+        type: 'string',
+        defaultValue: '/dogs.png',
+      },
+    }
+  )
+
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: {
+      'kittens.png': 'sub1/sub2',
+      'dogs.png': 'dog/pictures',
+    },
+  }
+
+  it('find and fix defaultProp containing an asset', () => {
+    checkForDefaultStateValueContainingAssets(comp, assets)
+    expect(comp.stateDefinitions).toBeDefined()
+    if (comp.stateDefinitions) {
+      expect(comp.stateDefinitions.imageState).toBeDefined()
+      expect(comp.stateDefinitions.imageState.defaultValue).toContain(
+        'public/assets/dog/pictures/dogs.png'
       )
     }
   })
