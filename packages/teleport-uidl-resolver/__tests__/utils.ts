@@ -450,12 +450,28 @@ describe('resolveLinkElement', () => {
     illegalClassNames: [],
     illegalPropNames: ['title'],
   }
-  const uidlElement = element('Link', {
+  const linkElement = element('Link', {
     url: staticNode('/test'),
   })
 
-  it('returns a mapped content node', () => {
-    resolveElement(uidlElement, { assets, mapping: genereicMapping })
-    expect(uidlElement.attrs?.url.content).toBe('/test')
+  const linkHTMLElement = element('a', {
+    url: staticNode('/test'),
+  })
+
+  const assetElement = element('image', {
+    src: staticNode('/kittens.png'),
+  })
+
+  it('resolve link element', () => {
+    resolveElement(linkElement, { assets, mapping: genereicMapping })
+    expect(linkElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve link html element', () => {
+    resolveElement(linkHTMLElement, { assets, mapping: genereicMapping })
+    expect(linkHTMLElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve image element', () => {
+    resolveElement(assetElement, { assets, mapping: genereicMapping })
+    expect(assetElement.attrs?.src.content).toBe('public/assets/sub1/sub2/kittens.png')
   })
 })
