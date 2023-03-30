@@ -150,9 +150,9 @@
       "profile": "https://github.com/elizamaria",
       "contributions": [
         "code"
-       ]
-      },
-      {
+      ]
+    },
+    {
       "login": "TudorCe",
       "name": "TudorCe",
       "avatar_url": "https://avatars.githubusercontent.com/u/101194278?v=4",
@@ -168,6 +168,15 @@
       "profile": "https://github.com/retyidoro",
       "contributions": [
         "bug"
+      ]
+    },
+    {
+      "login": "vylly",
+      "name": "William Gounot",
+      "avatar_url": "https://avatars.githubusercontent.com/u/26410594?v=4",
+      "profile": "https://github.com/vylly",
+      "contributions": [
+        "code"
       ]
     }
   ],
