@@ -138,7 +138,9 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
         originalElement.attrs[attrKey].content = UIDLUtils.prefixAssetsPath(
           attrValue.content,
-          options.assets
+          originalElement.elementType === 'Link' || originalElement.elementType === 'a'
+            ? {}
+            : options.assets
         )
       }
     })
