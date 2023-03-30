@@ -45,10 +45,6 @@ export default class Resolver {
 
     utils.checkForIllegalNames(uidl, mapping)
 
-    utils.checkForDefaultPropsContainingAssets(uidl, options.assets)
-
-    utils.checkForDefaultStateValueContainingAssets(uidl, options.assets)
-
     resolveAbilities(uidl, newOptions)
 
     resolveReferencedStyle(uidl, newOptions)
