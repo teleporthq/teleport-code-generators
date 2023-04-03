@@ -460,7 +460,7 @@
             "pageOptions": {}
           },
           {
-            "value": "/books/Books",
+            "value": "/books/BookDetails",
             "seo": {
               "title": "Books - Soggy Insubstantial Octopus",
               "metaTags": [
@@ -551,7 +551,7 @@
             }
           },
           {
-            "value": "books/Books1",
+            "value": "books/Books",
             "seo": {
               "title": "Books1 - Soggy Insubstantial Octopus",
               "metaTags": [
@@ -839,7 +839,7 @@
             }
           },
           {
-            "value": "/authors/Authors1",
+            "value": "/authors/AuthorDetails",
             "seo": {
               "title": "Authors1 - Soggy Insubstantial Octopus",
               "metaTags": [
@@ -1003,7 +1003,7 @@
                   }
                 }
               },
-              "value": "/books/Books",
+              "value": "/books/BookDetails",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1072,7 +1072,7 @@
                   ]
                 }
               },
-              "value": "books/Books1",
+              "value": "books/Books",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1306,7 +1306,7 @@
                   }
                 }
               },
-              "value": "/authors/Authors1",
+              "value": "/authors/AuthorDetails",
               "reference": {
                 "type": "dynamic",
                 "content": {
