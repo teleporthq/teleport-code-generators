@@ -142,10 +142,7 @@ export const prefixAssetsPath = (
   */
 
   if (!mappings[assetName]) {
-    if (!identifier) {
-      return [prefix, assetName].join('/')
-    }
-    return [prefix, identifier, assetName].join('/')
+    return originalString
   }
 
   if (!identifier) {
