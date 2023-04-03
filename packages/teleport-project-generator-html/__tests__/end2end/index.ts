@@ -9,8 +9,11 @@ describe('Html Project Generator', () => {
   it('runs without crasing', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: {},
+      mappings: {
+        'kitten.png': '',
+      },
       identifier: 'playground_assets',
+      prefix: 'public',
     })
     const { name, files, subFolders } = await generator.generateProject(uidlSample, HTMLTemplate)
     const aboutPage = files.find((page) => page.name === 'about' && page.fileType === FileType.HTML)
@@ -29,8 +32,11 @@ describe('Html Project Generator', () => {
   it('run withut crashing and appends entry things into single index.html', async () => {
     const singularGenerator = createHTMLProjectGenerator({ individualEntyFile: false })
     singularGenerator.setAssets({
-      mappings: {},
+      mappings: {
+        'kitten.png': '',
+      },
       identifier: 'playground_assets',
+      prefix: 'public',
     })
     const { name, files, subFolders } = await singularGenerator.generateProject(
       uidlSample,

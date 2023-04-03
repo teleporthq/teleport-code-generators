@@ -488,6 +488,7 @@ describe('prefixAssetsPath', () => {
     expect(
       prefixAssetsPath('/kitten.png', {
         prefix: '/noidentifier',
+        mappings: { 'kitten.png': '' },
       })
     ).toBe('/noidentifier/kitten.png')
   })
