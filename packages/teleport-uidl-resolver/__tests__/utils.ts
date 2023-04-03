@@ -5,6 +5,7 @@ import {
   dynamicNode,
   component,
   definition,
+  element,
 } from '@teleporthq/teleport-uidl-builders'
 import {
   generateUniqueKeys,
@@ -15,6 +16,7 @@ import {
   checkForIllegalNames,
   checkForDefaultPropsContainingAssets,
   checkForDefaultStateValueContainingAssets,
+  resolveElement,
 } from '../src/utils'
 import { UIDLElement, UIDLNode, UIDLRepeatNode, Mapping } from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
@@ -113,11 +115,11 @@ describe('ensureDataSourceUniqueness', () => {
     )
 
     const repeatNodeSample1 = JSON.parse(JSON.stringify(repeatNodeSample))
-    const element = elementNode('container', {}, [repeatNodeSample, repeatNodeSample1])
+    const elementSample = elementNode('container', {}, [repeatNodeSample, repeatNodeSample1])
 
-    ensureDataSourceUniqueness(element)
-    const firstRepeat = element.content.children[0] as UIDLRepeatNode
-    const secondRepeat = element.content.children[1] as UIDLRepeatNode
+    ensureDataSourceUniqueness(elementSample)
+    const firstRepeat = elementSample.content.children[0] as UIDLRepeatNode
+    const secondRepeat = elementSample.content.children[1] as UIDLRepeatNode
 
     expect(firstRepeat.content.meta.dataSourceIdentifier).toBe('items')
     expect(secondRepeat.content.meta.dataSourceIdentifier).toBe('items1')
@@ -421,5 +423,55 @@ describe('checkForDefaultStateValueContainingAssets', () => {
         'public/assets/dog/pictures/dogs.png'
       )
     }
+  })
+})
+
+describe('resolveLinkElement', () => {
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: {
+      'kittens.png': 'sub1/sub2',
+      'dogs.png': 'dog/pictures',
+    },
+  }
+  const genereicMapping: Mapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [{ type: 'dynamic', content: { referenceType: 'children', id: 'children' } }],
+      },
+    },
+    events: {},
+    attributes: {},
+    illegalClassNames: [],
+    illegalPropNames: ['title'],
+  }
+  const linkElement = element('Link', {
+    url: staticNode('/test'),
+  })
+
+  const linkHTMLElement = element('a', {
+    url: staticNode('/test'),
+  })
+
+  const assetElement = element('image', {
+    src: staticNode('/kittens.png'),
+  })
+
+  it('resolve link element', () => {
+    resolveElement(linkElement, { assets, mapping: genereicMapping })
+    expect(linkElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve link html element', () => {
+    resolveElement(linkHTMLElement, { assets, mapping: genereicMapping })
+    expect(linkHTMLElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve image element', () => {
+    resolveElement(assetElement, { assets, mapping: genereicMapping })
+    expect(assetElement.attrs?.src.content).toBe('public/assets/sub1/sub2/kittens.png')
   })
 })

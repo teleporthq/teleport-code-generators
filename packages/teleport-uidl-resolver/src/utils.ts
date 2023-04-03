@@ -1,5 +1,4 @@
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { prefixAssetsPath } from '@teleporthq/teleport-shared/dist/cjs/utils/uidl-utils'
 import {
   UIDLEventDefinitions,
   UIDLElement,
@@ -502,7 +501,10 @@ export const checkForDefaultPropsContainingAssets = (
     Object.keys(uidl.propDefinitions).forEach((prop) => {
       const propDefaultValue = uidl.propDefinitions[prop].defaultValue
       if (typeof propDefaultValue === 'string' && assets) {
-        uidl.propDefinitions[prop].defaultValue = prefixAssetsPath(propDefaultValue, assets)
+        uidl.propDefinitions[prop].defaultValue = UIDLUtils.prefixAssetsPath(
+          propDefaultValue,
+          assets
+        )
       }
     })
   }
@@ -516,7 +518,10 @@ export const checkForDefaultStateValueContainingAssets = (
     Object.keys(uidl.stateDefinitions).forEach((state) => {
       const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
       if (typeof stateDefaultValue === 'string' && assets) {
-        uidl.stateDefinitions[state].defaultValue = prefixAssetsPath(stateDefaultValue, assets)
+        uidl.stateDefinitions[state].defaultValue = UIDLUtils.prefixAssetsPath(
+          stateDefaultValue,
+          assets
+        )
       }
     })
   }

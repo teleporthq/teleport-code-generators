@@ -141,6 +141,16 @@ export const prefixAssetsPath = (
      - It's not a asset and so we don't need to provide any mapping for it
   */
 
+  if (!(typeof mappings[assetName] === 'string')) {
+    return originalString
+  }
+
+  /*
+    If the value from the mapping is an empty string
+    we need to not join it in the return path as it would append
+    a wrong /
+  */
+
   if (!mappings[assetName]) {
     if (!identifier) {
       return [prefix, assetName].join('/')
