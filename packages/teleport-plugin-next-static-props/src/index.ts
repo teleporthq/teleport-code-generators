@@ -29,7 +29,8 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsResource,
       'context',
-      !!uidl.outputOptions.dynamicRouteAttribute
+      !!uidl.outputOptions.dynamicRouteAttribute,
+      uidl.outputOptions.pagination
     )
 
     chunks.push({
