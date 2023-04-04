@@ -5,6 +5,7 @@ export const dashCaseToCamelCase = (str: string): string =>
   str.replace(/[-_]+(.)?/g, (_, chr) => (chr ? chr.toUpperCase() : ''))
 
 export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1)
+export const camelize = (str: string): string => str[0].toLowerCase() + str.slice(1)
 
 export const dashCaseToUpperCamelCase = (str: string) => capitalize(dashCaseToCamelCase(str))
 

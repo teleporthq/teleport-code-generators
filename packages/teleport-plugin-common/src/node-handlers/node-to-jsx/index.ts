@@ -33,8 +33,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   params,
   jsxOptions
 ) => {
-  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions }
-  const { dependencies, nodesLookup } = params
+  const { dependencies, nodesLookup, projectContexts = {} } = params
+  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions, projectContexts }
   const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
   const originalElementName = elementType || 'component'
@@ -140,7 +140,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
       return StringUtils.encode(node.content.toString())
 
     case 'dynamic':
-      return createDynamicValueExpression(node, options)
+      return createDynamicValueExpression(node, options, undefined, params)
 
     case 'element':
       return generateElementNode(node, params, options)
@@ -175,8 +175,7 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
   options
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
-
-  const contentAST = generateElementNode(repeatContent, params, options)
+  const contentAST = generateNode(repeatContent, params, options) as types.JSXElement
 
   const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey(meta)
 

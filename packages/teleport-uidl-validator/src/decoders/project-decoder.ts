@@ -1,5 +1,11 @@
 import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
-import { VUIDLGlobalProjectValues, WebManifest, VProjectUIDL } from '@teleporthq/teleport-types'
+import {
+  VUIDLGlobalProjectValues,
+  WebManifest,
+  VProjectUIDL,
+  ContextsUIDL,
+  ContextUIDLItem,
+} from '@teleporthq/teleport-types'
 import { globalAssetsDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
@@ -33,9 +39,20 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
   variables: optional(dict(string())),
 })
 
+export const contextItemDecoder: Decoder<ContextUIDLItem> = object({
+  name: string(),
+  fileName: optional(string()),
+})
+
+export const contextsDecored: Decoder<ContextsUIDL> = object({
+  rootFolder: optional(string()),
+  items: dict(optional(contextItemDecoder)),
+})
+
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   name: string(),
   globals: globalProjectValuesDecoder,
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
+  contexts: optional(contextsDecored),
 })

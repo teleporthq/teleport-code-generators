@@ -155,6 +155,8 @@ export class ProjectGenerator implements ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    const projectContexts = {}
+
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
         uidl,
@@ -163,6 +165,7 @@ export class ProjectGenerator implements ProjectGenerator {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
+        projectContexts,
         rootFolder,
       })
 
@@ -263,6 +266,8 @@ export class ProjectGenerator implements ProjectGenerator {
         }
       }
 
+      Object.assign(pageOptions, { projectContexts })
+
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
@@ -346,6 +351,8 @@ export class ProjectGenerator implements ProjectGenerator {
           designLanguage: uidl.root?.designLanguage,
         }
       }
+
+      Object.assign(componentOptions, { projectContexts })
 
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({

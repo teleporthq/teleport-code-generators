@@ -7,12 +7,14 @@ import { createReactComponentGenerator } from '@teleporthq/teleport-component-ge
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import { createStaticPropsPlugin } from '@teleporthq/teleport-plugin-next-static-props'
 import { createStaticPathsPlugin } from '@teleporthq/teleport-plugin-next-static-paths'
-import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
+import { ReactStyleVariation, FileType, ProjectType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
+import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
 
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
+import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -27,20 +29,27 @@ const createNextProjectGenerator = () => {
 
   const getStaticPropsPlugin = createStaticPropsPlugin()
   const getStaticPathsPlugin = createStaticPathsPlugin()
+  const contextPlugin = createNextContextPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin],
+      plugins: [nextImagePlugin, contextPlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [nextImagePlugin, headConfigPlugin, getStaticPathsPlugin, getStaticPropsPlugin],
+      plugins: [
+        nextImagePlugin,
+        headConfigPlugin,
+        getStaticPathsPlugin,
+        getStaticPropsPlugin,
+        contextPlugin,
+      ],
       mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,
@@ -91,6 +100,7 @@ const createNextProjectGenerator = () => {
     },
   })
 
+  generator.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
   return generator
 }
 

@@ -15,11 +15,23 @@ export interface UIDLRouteDefinitions {
   defaultValue: string
   values: UIDLStateValueDetails[]
 }
+
+export interface ContextUIDLItem {
+  name: string
+  fileName?: string
+}
+
+export interface ContextsUIDL {
+  rootFolder?: string
+  items?: Record<string, ContextUIDLItem>
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  contexts?: ContextsUIDL
 }
 
 export interface UIDLGlobalProjectValues {
@@ -223,7 +235,7 @@ export interface UIDLPageOptions {
   propDefinitions?: Record<string, UIDLPropDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'ctx'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -250,6 +262,13 @@ export interface UIDLSlotNode {
     name?: string
     fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
   }
+}
+
+export interface UIDLContextNode {
+  type: 'context'
+  ctxId: string
+  dataSource: UIDLAttributeValue
+  content: UIDLElementNode
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -302,6 +321,7 @@ export interface UIDLElement {
   elementType: string
   semanticType?: string
   name?: string
+  ctxId?: string
   key?: string // internal usage
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
@@ -326,6 +346,7 @@ export type UIDLNode =
   | UIDLConditionalNode
   | UIDLSlotNode
   | UIDLImportReference
+  | UIDLContextNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
@@ -490,7 +511,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
 export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'comp'
+    referenceType: 'prop' | 'comp' | 'ctx'
     id: string
   }
 }

@@ -21,6 +21,7 @@ import {
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
   UIDLRootComponent,
+  ProjectContext,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
@@ -584,4 +585,55 @@ export const extractExternalDependencies = (dependencies: Record<string, UIDLDep
 
       return acc
     }, {})
+}
+
+export const extractContextDependenciesFromNode = (
+  node: UIDLNode,
+  projectContexts: Record<string, ProjectContext>,
+  foundDependencies: Record<string, ProjectContext> = {}
+) => {
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          extractContextDependenciesFromNode(child, projectContexts, foundDependencies)
+        })
+      }
+      break
+
+    case 'repeat':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
+    case 'conditional':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        extractContextDependenciesFromNode(
+          node.content.fallback,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      break
+
+    case 'static':
+    case 'raw':
+      break
+
+    case 'dynamic':
+      if (node.content.referenceType === 'ctx') {
+        foundDependencies[node.content.id] = projectContexts[node.content.id]
+      }
+      break
+
+    default:
+      throw new Error(
+        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+      )
+  }
+
+  return foundDependencies
 }

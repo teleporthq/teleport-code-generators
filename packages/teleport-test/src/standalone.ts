@@ -15,7 +15,7 @@ import { performance } from 'perf_hooks'
 // import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
 // import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 // import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
-import projectJSON from '../../../examples/uidl-samples/cms-project.json'
+import projectJSON from '../../../examples/uidl-samples/cms-project1.json'
 // import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL

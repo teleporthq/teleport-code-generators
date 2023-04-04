@@ -1,8 +1,8 @@
 {
-  "name": "Soggy Insubstantial Octopus",
+  "name": "Thunderous Capital Lion",
   "globals": {
     "settings": {
-      "title": "Soggy Insubstantial Octopus",
+      "title": "Thunderous Capital Lion",
       "language": "en"
     },
     "assets": [
@@ -60,101 +60,17 @@
     "name": "App",
     "designLanguage": {
       "tokens": {
-        "--dl-radius-radius-radius4": {
-          "type": "static",
-          "content": "4px"
-        },
-        "--dl-space-space-sixunits": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-radius-radius-radius8": {
-          "type": "static",
-          "content": "8px"
-        },
-        "--dl-color-gray-500": {
-          "type": "static",
-          "content": "#595959"
-        },
-        "--dl-color-gray-white": {
-          "type": "static",
-          "content": "#FFFFFF"
-        },
-        "--dl-space-space-threeunits": {
-          "type": "static",
-          "content": "48px"
-        },
-        "--dl-size-size-xxlarge": {
-          "type": "static",
-          "content": "288px"
-        },
-        "--dl-space-space-halfunit": {
-          "type": "static",
-          "content": "8px"
-        },
-        "--dl-size-size-medium": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-color-success-500": {
-          "type": "static",
-          "content": "#32A94C"
-        },
-        "--dl-size-size-xsmall": {
-          "type": "static",
-          "content": "16px"
-        },
-        "--dl-size-size-xlarge": {
-          "type": "static",
-          "content": "192px"
-        },
-        "--dl-space-space-oneandhalfunits": {
-          "type": "static",
-          "content": "24px"
-        },
-        "--dl-color-primary-700": {
-          "type": "static",
-          "content": "#85DCFF"
-        },
-        "--dl-color-danger-500": {
-          "type": "static",
-          "content": "#BF2626"
-        },
-        "--dl-space-space-unit": {
-          "type": "static",
-          "content": "16px"
-        },
         "--dl-color-danger-300": {
           "type": "static",
           "content": "#A22020"
-        },
-        "--dl-color-success-300": {
-          "type": "static",
-          "content": "#199033"
-        },
-        "--dl-color-primary-300": {
-          "type": "static",
-          "content": "#0074F0"
         },
         "--dl-size-size-maxwidth": {
           "type": "static",
           "content": "1400px"
         },
-        "--dl-color-danger-700": {
+        "--dl-size-size-medium": {
           "type": "static",
-          "content": "#E14747"
-        },
-        "--dl-size-size-large": {
-          "type": "static",
-          "content": "144px"
-        },
-        "--dl-radius-radius-round": {
-          "type": "static",
-          "content": "50%"
-        },
-        "--dl-color-primary-100": {
-          "type": "static",
-          "content": "#003EB3"
+          "content": "96px"
         },
         "--dl-color-gray-700": {
           "type": "static",
@@ -164,37 +80,121 @@
           "type": "static",
           "content": "64px"
         },
-        "--dl-color-primary-500": {
+        "--dl-size-size-small": {
           "type": "static",
-          "content": "#14A9FF"
-        },
-        "--dl-color-gray-black": {
-          "type": "static",
-          "content": "#000000"
-        },
-        "--dl-radius-radius-radius2": {
-          "type": "static",
-          "content": "2px"
-        },
-        "--dl-space-space-fiveunits": {
-          "type": "static",
-          "content": "80px"
+          "content": "48px"
         },
         "--dl-color-success-700": {
           "type": "static",
           "content": "#4CC366"
         },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
+        "--dl-color-primary-700": {
+          "type": "static",
+          "content": "#85DCFF"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-size-size-xlarge": {
+          "type": "static",
+          "content": "192px"
+        },
+        "--dl-color-gray-black": {
+          "type": "static",
+          "content": "#000000"
+        },
         "--dl-color-gray-900": {
           "type": "static",
           "content": "#D9D9D9"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
+        },
+        "--dl-size-size-xxlarge": {
+          "type": "static",
+          "content": "288px"
+        },
+        "--dl-radius-radius-round": {
+          "type": "static",
+          "content": "50%"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-space-space-sixunits": {
+          "type": "static",
+          "content": "96px"
         },
         "--dl-space-space-twounits": {
           "type": "static",
           "content": "32px"
         },
-        "--dl-size-size-small": {
+        "--dl-radius-radius-radius2": {
           "type": "static",
-          "content": "48px"
+          "content": "2px"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-color-danger-500": {
+          "type": "static",
+          "content": "#BF2626"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-space-space-unit": {
+          "type": "static",
+          "content": "16px"
         }
       }
     },
@@ -449,31 +449,31 @@
           {
             "value": "Home",
             "seo": {
-              "title": "Soggy Insubstantial Octopus",
+              "title": "Thunderous Capital Lion",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Soggy Insubstantial Octopus"
+                  "content": "Thunderous Capital Lion"
                 }
               ]
             },
             "pageOptions": {}
           },
           {
-            "value": "/books/BookDetails",
+            "value": "/books/Books",
             "seo": {
-              "title": "Books - Soggy Insubstantial Octopus",
+              "title": "Books - Thunderous Capital Lion",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Books - Soggy Insubstantial Octopus"
+                  "content": "Books - Thunderous Capital Lion"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BooksEntity": {
-                  "id": "17902dff-4d6c-41c5-9031-47f4eb79d37e",
+                  "id": "909d073a-4e52-42a5-ae16-8c310a3a6521",
                   "defaultValue": {},
                   "type": "object"
                 }
@@ -532,7 +532,7 @@
                     "id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "17902dff-4d6c-41c5-9031-47f4eb79d37e",
+                        "id": "909d073a-4e52-42a5-ae16-8c310a3a6521",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -551,20 +551,20 @@
             }
           },
           {
-            "value": "books/Books",
+            "value": "books/Books1",
             "seo": {
-              "title": "Books1 - Soggy Insubstantial Octopus",
+              "title": "Books1 - Thunderous Capital Lion",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Books1 - Soggy Insubstantial Octopus"
+                  "content": "Books1 - Thunderous Capital Lion"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "Books": {
-                  "id": "012070f6-0894-4378-bafb-17a25757afa7",
+                  "id": "7ca5fab7-8182-461e-bdcd-530f8a36a907",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -605,18 +605,18 @@
           {
             "value": "books/page/Books1",
             "seo": {
-              "title": "Books1 - Soggy Insubstantial Octopus",
+              "title": "Books1 - Thunderous Capital Lion",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Books1 - Soggy Insubstantial Octopus"
+                  "content": "Books1 - Thunderous Capital Lion"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "Books": {
-                  "id": "012070f6-0894-4378-bafb-17a25757afa7",
+                  "id": "7ca5fab7-8182-461e-bdcd-530f8a36a907",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -695,164 +695,20 @@
             }
           },
           {
-            "value": "authors/Authors",
+            "value": "/authors/Authors",
             "seo": {
-              "title": "Authors - Soggy Insubstantial Octopus",
+              "title": "Authors - Thunderous Capital Lion",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Authors - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Authors": {
-                  "id": "1caa23f9-d53f-4ab8-af0a-01dd6d0c2ea7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": true,
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Authors"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              }
-            }
-          },
-          {
-            "value": "authors/page/Authors",
-            "seo": {
-              "title": "Authors - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Authors - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Authors": {
-                  "id": "1caa23f9-d53f-4ab8-af0a-01dd6d0c2ea7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": [
-                  "meta",
-                  "pagination",
-                  "total"
-                ],
-                "pageUrlSearchParamKey": "pagination[page]"
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "id"
-                  ]
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 1
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              },
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Authors"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              }
-            }
-          },
-          {
-            "value": "/authors/AuthorDetails",
-            "seo": {
-              "title": "Authors1 - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Authors1 - Soggy Insubstantial Octopus"
+                  "content": "Authors - Thunderous Capital Lion"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorsEntity": {
-                  "id": "9f32b855-a2d1-4588-8271-07b94bd5c578",
+                  "id": "a37aa7c9-d243-4a15-b01c-55345f376830",
                   "defaultValue": {},
                   "type": "object"
                 }
@@ -911,7 +767,7 @@
                     "id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "9f32b855-a2d1-4588-8271-07b94bd5c578",
+                        "id": "a37aa7c9-d243-4a15-b01c-55345f376830",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -928,8 +784,174 @@
                 }
               }
             }
+          },
+          {
+            "value": "authors/Authors1",
+            "seo": {
+              "title": "Authors1 - Thunderous Capital Lion",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Authors1 - Thunderous Capital Lion"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Authors": {
+                  "id": "b54eb44b-244a-44a8-bf11-aa832a586aab",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": true,
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Authors"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              }
+            }
+          },
+          {
+            "value": "authors/page/Authors1",
+            "seo": {
+              "title": "Authors1 - Thunderous Capital Lion",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Authors1 - Thunderous Capital Lion"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Authors": {
+                  "id": "b54eb44b-244a-44a8-bf11-aa832a586aab",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": [
+                  "meta",
+                  "pagination",
+                  "total"
+                ],
+                "pageUrlSearchParamKey": "pagination[page]"
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "id"
+                  ]
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 1
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              },
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Authors"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              }
+            }
           }
         ]
+      }
+    },
+    "propDefinitions": {
+      "BooksEntity": {
+        "id": "909d073a-4e52-42a5-ae16-8c310a3a6521",
+        "defaultValue": {},
+        "type": "object"
+      },
+      "Books": {
+        "id": "7ca5fab7-8182-461e-bdcd-530f8a36a907",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorsEntity": {
+        "id": "a37aa7c9-d243-4a15-b01c-55345f376830",
+        "defaultValue": {},
+        "type": "object"
+      },
+      "Authors": {
+        "id": "b54eb44b-244a-44a8-bf11-aa832a586aab",
+        "defaultValue": [],
+        "type": "array"
       }
     },
     "node": {
@@ -1003,7 +1025,7 @@
                   }
                 }
               },
-              "value": "/books/BookDetails",
+              "value": "/books/Books",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1051,28 +1073,76 @@
                   },
                   "children": [
                     {
-                      "type": "element",
+                      "type": "repeat",
                       "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "context",
+                            "semanticType": "context",
+                            "ctxId": "b757164c-f2b2-4375-8767-e281e36baafe",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "prop",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::book.book"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "BooksListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         },
-                        "children": []
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Books"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
                       }
                     }
                   ]
                 }
               },
-              "value": "books/Books",
+              "value": "books/Books1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1120,166 +1190,76 @@
                   },
                   "children": [
                     {
-                      "type": "element",
+                      "type": "repeat",
                       "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "context",
+                            "semanticType": "context",
+                            "ctxId": "b757164c-f2b2-4375-8767-e281e36baafe",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "prop",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::book.book"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "BooksListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         },
-                        "children": []
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Books"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
                       }
                     }
                   ]
                 }
               },
               "value": "books/page/Books1",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
-                          }
-                        },
-                        "children": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "authors/Authors",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
-                          }
-                        },
-                        "children": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "authors/page/Authors",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1306,7 +1286,241 @@
                   }
                 }
               },
-              "value": "/authors/AuthorDetails",
+              "value": "/authors/Authors",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "context",
+                            "semanticType": "context",
+                            "ctxId": "5d76a70a-cb21-4be4-bdd5-cc0e5e4eaaa9",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "prop",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::author.author"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "AuthorsListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Authors"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "authors/Authors1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "context",
+                            "semanticType": "context",
+                            "ctxId": "5d76a70a-cb21-4be4-bdd5-cc0e5e4eaaa9",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "prop",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::author.author"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "AuthorsListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Authors"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "authors/page/Authors1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1320,17 +1534,222 @@
       }
     }
   },
-  "components": {},
+  "components": {
+    "BooksListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "b757164c-f2b2-4375-8767-e281e36baafe",
+                            "referenceType": "ctx",
+                            "path": [
+                              "title"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "b757164c-f2b2-4375-8767-e281e36baafe",
+                            "referenceType": "ctx",
+                            "path": [
+                              "price"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "b757164c-f2b2-4375-8767-e281e36baafe",
+                            "referenceType": "ctx",
+                            "path": [
+                              "Description"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "BooksListContent",
+      "styleSetDefinitions": {}
+    },
+    "AuthorsListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "5d76a70a-cb21-4be4-bdd5-cc0e5e4eaaa9",
+                            "referenceType": "ctx",
+                            "path": [
+                              "name"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "AuthorsListContent",
+      "styleSetDefinitions": {}
+    }
+  },
   "contexts": {
     "rootFolder": "contexts",
     "items": {
-      "contextNameId": {
-        "name": "contextName",
-        "fileName": "contextName"
+      "b757164c-f2b2-4375-8767-e281e36baafe": {
+        "name": "Books",
+        "fileName": "Books"
       },
-      "secondContextId": {
-        "name": "secondContextName",
-        "fileName": "secondContextFileName"
+      "5d76a70a-cb21-4be4-bdd5-cc0e5e4eaaa9": {
+        "name": "Authors",
+        "fileName": "Authors"
       }
     }
   }
