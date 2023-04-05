@@ -108,9 +108,15 @@ const computeRemoteValuePropsAST = (
                       types.objectExpression([
                         types.objectProperty(
                           types.identifier('page'),
-                          types.templateLiteral(
-                            /* tslint:disable-next-line */
-                            [types.templateElement({ raw: '${i + 1}', cooked: '${i + 1}' }, true)],
+                          types.callExpression(
+                            types.memberExpression(
+                              types.binaryExpression(
+                                '+',
+                                types.identifier('i'),
+                                types.numericLiteral(1)
+                              ),
+                              types.identifier('toString')
+                            ),
                             []
                           )
                         ),
