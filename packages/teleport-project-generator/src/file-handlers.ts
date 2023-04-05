@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import { HASTUtils, HASTBuilders } from '@teleporthq/teleport-plugin-common'
 import {
   GeneratedFile,
@@ -18,7 +18,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { DEFAULT_GITIGNORE, DEFAULT_PACKAGE_JSON, DEFAULT_ROUTER_FILE_NAME } from './constants'
 import { PackageJSON } from './types'
-import { bootstrapGenerator, generateLocalDependenciesPrefix } from './utils'
+import { bootstrapGenerator } from './utils'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 export const createPage = async (
@@ -44,7 +44,7 @@ export const createComponentModule = async (
 ) => {
   const { root } = uidl
   const { path } = strategy.components
-  const componentLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+  const componentLocalDependenciesPrefix = GenericUtils.generateLocalDependenciesPrefix(
     path,
     strategy.components.path
   )
@@ -80,7 +80,7 @@ export const createRouterFile = async (
 ) => {
   const { projectStyleSheet, router } = strategy
   const { path: routerFilePath, fileName } = router
-  const routerLocalDependenciesPrefix = generateLocalDependenciesPrefix(
+  const routerLocalDependenciesPrefix = GenericUtils.generateLocalDependenciesPrefix(
     routerFilePath,
     strategy.pages.path
   )
@@ -98,7 +98,10 @@ export const createRouterFile = async (
       projectStyleSet: {
         styleSetDefinitions: root?.styleSetDefinitions,
         fileName: projectStyleSheet.fileName,
-        path: generateLocalDependenciesPrefix(routerFilePath, strategy.projectStyleSheet.path),
+        path: GenericUtils.generateLocalDependenciesPrefix(
+          routerFilePath,
+          strategy.projectStyleSheet.path
+        ),
         importFile: projectStyleSheet?.importFile || false,
       },
     }

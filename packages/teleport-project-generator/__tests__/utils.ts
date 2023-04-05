@@ -1,47 +1,43 @@
-import {
-  generateLocalDependenciesPrefix,
-  injectFilesToPath,
-  extractPageOptions,
-  prepareComponentOutputOptions,
-} from '../src/utils'
+import { injectFilesToPath, extractPageOptions, prepareComponentOutputOptions } from '../src/utils'
 import { UIDLStateDefinition } from '@teleporthq/teleport-types'
 import { emptyFolder, folderWithFiles, createStrategyWithCommonGenerator } from './mocks'
 import { component, elementNode } from '@teleporthq/teleport-uidl-builders'
+import { GenericUtils } from '@teleporthq/teleport-shared'
 
 describe('generateLocalDependenciesPrefix', () => {
   it('works when there is a common parent', () => {
     const from = ['src', 'from']
     const to = ['src', 'to']
 
-    expect(generateLocalDependenciesPrefix(from, to)).toBe('../to/')
+    expect(GenericUtils.generateLocalDependenciesPrefix(from, to)).toBe('../to/')
   })
 
   it('works when there is no common parent', () => {
     const from = ['dist', 'from']
     const to = ['src', 'to']
 
-    expect(generateLocalDependenciesPrefix(from, to)).toBe('../../src/to/')
+    expect(GenericUtils.generateLocalDependenciesPrefix(from, to)).toBe('../../src/to/')
   })
 
   it('works when to is a parent of from', () => {
     const from = ['src', 'from']
     const to = ['src']
 
-    expect(generateLocalDependenciesPrefix(from, to)).toBe('../')
+    expect(GenericUtils.generateLocalDependenciesPrefix(from, to)).toBe('../')
   })
 
   it('works when to is a child of from', () => {
     const from = ['src']
     const to = ['src', 'to']
 
-    expect(generateLocalDependenciesPrefix(from, to)).toBe('./to/')
+    expect(GenericUtils.generateLocalDependenciesPrefix(from, to)).toBe('./to/')
   })
 
   it('works when they are identical', () => {
     const from = ['src', 'from']
     const to = ['src', 'from']
 
-    expect(generateLocalDependenciesPrefix(from, to)).toBe('./')
+    expect(GenericUtils.generateLocalDependenciesPrefix(from, to)).toBe('./')
   })
 })
 
