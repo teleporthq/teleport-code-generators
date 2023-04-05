@@ -7,6 +7,7 @@ import {
   UIDLDynamicReference,
   UIDLSlotNode,
   UIDLNode,
+  UIDLCMSListNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
@@ -145,6 +146,9 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
     case 'cms-item':
       return generateElementNode(node.content.node, params, options)
 
+    case 'cms-list':
+      return generateCMSListNode(node, params, options)
+
     case 'element':
       return generateElementNode(node, params, options)
 
@@ -170,6 +174,40 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
         )}`
       )
   }
+}
+
+const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXExpressionContainer> = (
+  node,
+  params,
+  options
+) => {
+  const { node: listContent } = node.content
+  const contentAST = generateNode(listContent, params, options) as types.JSXElement
+
+  const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey({
+    useIndex: true,
+    iteratorName: 'item',
+  })
+
+  const localIteratorPrefix = options.dynamicReferencePrefixMap.local
+  addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
+  addDynamicAttributeToJSXTag(
+    contentAST,
+    'value',
+    ['item', ...(node.content.itemValuePath || [])].join('.'),
+    localIteratorPrefix
+  )
+
+  const source = getRepeatSourceIdentifier(node.content.loopItemsReference, options)
+
+  const arrowFunctionArguments = [types.identifier(iteratorName)]
+  arrowFunctionArguments.push(types.identifier('index'))
+
+  return types.jsxExpressionContainer(
+    types.callExpression(types.memberExpression(source, types.identifier('map')), [
+      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
+    ])
+  )
 }
 
 const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer> = (

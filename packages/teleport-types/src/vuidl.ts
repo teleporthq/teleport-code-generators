@@ -36,6 +36,8 @@ import {
   UIDLIconAsset,
   UIDLRootComponent,
   UIDLCMSItemNode,
+  UIDLCMSListNode,
+  UIDLCMSListDataSource,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -48,6 +50,19 @@ export interface VCMSItemUIDLElementNode
       content: {
         node: VUIDLElementNode
         dataSource?: UIDLAttributeValue
+      }
+    }
+  > {}
+
+export interface VCMSListUIDLElementNode
+  extends Modify<
+    UIDLCMSListNode,
+    {
+      content: {
+        node: VUIDLElementNode
+        dataSource?: UIDLCMSListDataSource
+        loopItemsReference?: UIDLAttributeValue
+        itemValuePath?: string[]
       }
     }
   > {}
@@ -84,6 +99,7 @@ export type VUIDLNode =
   | VUIDLConditionalNode
   | VUIDLSlotNode
   | VCMSItemUIDLElementNode
+  | VCMSListUIDLElementNode
   | string
 
 export type VUIDLElement = Modify<

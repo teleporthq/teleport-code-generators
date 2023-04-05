@@ -266,15 +266,24 @@ export interface UIDLSlotNode {
 
 export interface UIDLCMSListNode {
   type: 'cms-list'
-  ctxId: string
-  dataSource: UIDLAttributeValue
-  content: UIDLElementNode
+  content: UIDLCMSListNodeContent
 }
 
 export interface UIDLCMSItemNode {
   type: 'cms-item'
   content: UIDLCMSItemNodeContent
 }
+
+export interface UIDLCMSListNodeContent {
+  node: UIDLElementNode
+  dataSource: UIDLCMSListDataSource
+  loopItemsReference?: UIDLAttributeValue
+  itemValuePath?: string[]
+}
+
+export type UIDLCMSListDataSource =
+  | UIDLDynamicReference
+  | { type: 'remote'; contentType: string; cmsType: string }
 
 export interface UIDLCMSItemNodeContent {
   node: UIDLElementNode

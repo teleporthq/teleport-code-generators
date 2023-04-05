@@ -1197,7 +1197,7 @@
                   },
                   "children": [
                     {
-                      "type": "repeat",
+                      "type": "cms-list",
                       "content": {
                         "node": {
                           "type": "element",
@@ -1205,23 +1205,6 @@
                             "elementType": "cms-list",
                             "semanticType": "cms-list",
                             "ctxId": "c14d7001-d66d-44f1-99c2-9c36791eb727",
-                            "attrs": {
-                              "value": {
-                                "type": "dynamic",
-                                "content": {
-                                  "referenceType": "local",
-                                  "id": "item.attributes"
-                                }
-                              }
-                            },
-                            "dataSource": {
-                              "referenceType": "remote",
-                              "data": {
-                                "type": "external-cms-list",
-                                "cmsType": "strapi",
-                                "contentType": "api::author.author"
-                              }
-                            },
                             "children": [
                               {
                                 "type": "element",
@@ -1250,16 +1233,20 @@
                             ]
                           }
                         },
-                        "dataSource": {
+                        "loopItemsReference": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "Authors"
                           }
                         },
-                        "meta": {
-                          "useIndex": true,
-                          "iteratorName": "item"
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "dataSource": {
+                          "type": "remote",
+                          "cmsType": "strapi",
+                          "contentType": "api::author.author"
                         }
                       }
                     }
@@ -1314,7 +1301,7 @@
                   },
                   "children": [
                     {
-                      "type": "repeat",
+                      "type": "cms-list",
                       "content": {
                         "node": {
                           "type": "element",
@@ -1322,23 +1309,6 @@
                             "elementType": "cms-list",
                             "semanticType": "cms-list",
                             "ctxId": "c14d7001-d66d-44f1-99c2-9c36791eb727",
-                            "attrs": {
-                              "value": {
-                                "type": "dynamic",
-                                "content": {
-                                  "referenceType": "local",
-                                  "id": "item.attributes"
-                                }
-                              }
-                            },
-                            "dataSource": {
-                              "referenceType": "remote",
-                              "data": {
-                                "type": "external-cms-list",
-                                "cmsType": "strapi",
-                                "contentType": "api::author.author"
-                              }
-                            },
                             "children": [
                               {
                                 "type": "element",
@@ -1367,16 +1337,20 @@
                             ]
                           }
                         },
-                        "dataSource": {
+                        "loopItemsReference": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "Authors"
                           }
                         },
-                        "meta": {
-                          "useIndex": true,
-                          "iteratorName": "item"
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "dataSource": {
+                          "type": "remote",
+                          "cmsType": "strapi",
+                          "contentType": "api::author.author"
                         }
                       }
                     }
@@ -1431,7 +1405,7 @@
                   },
                   "children": [
                     {
-                      "type": "repeat",
+                      "type": "cms-list",
                       "content": {
                         "node": {
                           "type": "element",
@@ -1439,23 +1413,6 @@
                             "elementType": "cms-list",
                             "semanticType": "cms-list",
                             "ctxId": "52c8129e-9e5b-4af1-b0da-675a63069d34",
-                            "attrs": {
-                              "value": {
-                                "type": "dynamic",
-                                "content": {
-                                  "referenceType": "local",
-                                  "id": "item.attributes"
-                                }
-                              }
-                            },
-                            "dataSource": {
-                              "referenceType": "remote",
-                              "data": {
-                                "type": "external-cms-list",
-                                "cmsType": "strapi",
-                                "contentType": "api::book.book"
-                              }
-                            },
                             "children": [
                               {
                                 "type": "element",
@@ -1484,16 +1441,20 @@
                             ]
                           }
                         },
-                        "dataSource": {
+                        "loopItemsReference": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "Books"
                           }
                         },
-                        "meta": {
-                          "useIndex": true,
-                          "iteratorName": "item"
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "dataSource": {
+                          "type": "remote",
+                          "cmsType": "strapi",
+                          "contentType": "api::book.book"
                         }
                       }
                     }
@@ -1548,7 +1509,7 @@
                   },
                   "children": [
                     {
-                      "type": "repeat",
+                      "type": "cms-list",
                       "content": {
                         "node": {
                           "type": "element",
@@ -1556,23 +1517,6 @@
                             "elementType": "cms-list",
                             "semanticType": "cms-list",
                             "ctxId": "52c8129e-9e5b-4af1-b0da-675a63069d34",
-                            "attrs": {
-                              "value": {
-                                "type": "dynamic",
-                                "content": {
-                                  "referenceType": "local",
-                                  "id": "item.attributes"
-                                }
-                              }
-                            },
-                            "dataSource": {
-                              "referenceType": "remote",
-                              "data": {
-                                "type": "external-cms-list",
-                                "cmsType": "strapi",
-                                "contentType": "api::book.book"
-                              }
-                            },
                             "children": [
                               {
                                 "type": "element",
@@ -1601,16 +1545,20 @@
                             ]
                           }
                         },
-                        "dataSource": {
+                        "loopItemsReference": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "Books"
                           }
                         },
-                        "meta": {
-                          "useIndex": true,
-                          "iteratorName": "item"
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "dataSource": {
+                          "type": "remote",
+                          "cmsType": "strapi",
+                          "contentType": "api::book.book"
                         }
                       }
                     }

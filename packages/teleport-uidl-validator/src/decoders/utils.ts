@@ -79,6 +79,8 @@ import {
   ResourceUrlParams,
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
+  VCMSListUIDLElementNode,
+  UIDLCMSListDataSource,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -406,6 +408,15 @@ export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   lazy(() => uidlComponentStyleReference)
 )
 
+export const cmsListDataSourceValueDecoder: Decoder<UIDLCMSListDataSource> = union(
+  dynamicValueDecoder,
+  object({
+    type: constant('remote'),
+    contentType: string(),
+    cmsType: string(),
+  })
+)
+
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
   type: constant('comp-style'),
   content: string(),
@@ -643,13 +654,23 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   }),
 })
 
+export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
+  type: constant('cms-list'),
+  content: object({
+    node: lazy(() => elementNodeDecoder),
+    dataSource: optional(cmsListDataSourceValueDecoder),
+    itemValuePath: optional(array(string())),
+    loopItemsReference: optional(attributeValueDecoder),
+  }),
+})
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
   cmsItemNodeDecoder,
+  cmsListNodeDecoder,
   dynamicValueDecoder,
   staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  repeatNodeDecoder,
-  slotNodeDecoder
+  union(repeatNodeDecoder, slotNodeDecoder, string())
 )
