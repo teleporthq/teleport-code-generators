@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -23,7 +23,6 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
-  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -248,7 +247,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
       let pageOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.pages.path,
           this.strategy.projectStyleSheet.path
         )
@@ -334,7 +333,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.components.path,
           this.strategy.projectStyleSheet.path
         )
@@ -423,7 +422,7 @@ export class ProjectGenerator implements ProjectGenerator {
           fileName,
           fileType,
           globalStyles: {
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               framework.config.path,
               this.strategy.projectStyleSheet.path
             ),

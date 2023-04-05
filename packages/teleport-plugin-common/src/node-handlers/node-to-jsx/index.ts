@@ -142,6 +142,9 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
     case 'dynamic':
       return createDynamicValueExpression(node, options, undefined, params)
 
+    case 'cms-item':
+      return generateElementNode(node.content.node, params, options)
+
     case 'element':
       return generateElementNode(node, params, options)
 

@@ -118,6 +118,7 @@ export const parseProjectJSON = (
 
 const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
+    case 'cms-item':
     case 'element':
       const elementContent = node.content as Record<string, unknown>
 

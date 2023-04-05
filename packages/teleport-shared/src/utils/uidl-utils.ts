@@ -176,6 +176,11 @@ export const traverseNodes = (
       }
       break
 
+    case 'cms-item':
+      traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.dataSource, fn, node)
+      break
+
     case 'repeat':
       traverseNodes(node.content.node, fn, node)
       traverseNodes(node.content.dataSource, fn, node)
@@ -229,6 +234,10 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       }
       break
 
+    case 'cms-item':
+      traverseElements(node.content.node, fn)
+      break
+
     case 'repeat':
       traverseElements(node.content.node, fn)
       break
@@ -250,7 +259,11 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseElements was given an unsupported node type : ${node.type}, ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -264,6 +277,12 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
         })
       }
 
+      break
+
+    case 'cms-item':
+      fn(node.content)
+
+      traverseRepeats(node.content.node, fn)
       break
 
     case 'repeat':
@@ -289,7 +308,11 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     default:
       throw new Error(
-        `traverseRepeats was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseRepeats was given an unsupported node type: ${node.type} - ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -550,6 +573,10 @@ export const removeChildNodes = (
       removeChildNodes(node.content.node, criteria)
       break
 
+    case 'cms-item':
+      removeChildNodes(node.content.node, criteria)
+      break
+
     case 'conditional':
       removeChildNodes(node.content.node, criteria)
       break
@@ -601,6 +628,10 @@ export const extractContextDependenciesFromNode = (
       }
       break
 
+    case 'cms-item':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
     case 'repeat':
       extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
       break
@@ -631,7 +662,11 @@ export const extractContextDependenciesFromNode = (
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `extractContextDependenciesFromNode was given an unsupported node type ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 

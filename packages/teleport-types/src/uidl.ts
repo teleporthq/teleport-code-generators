@@ -264,11 +264,21 @@ export interface UIDLSlotNode {
   }
 }
 
-export interface UIDLContextNode {
-  type: 'context'
+export interface UIDLCMSListNode {
+  type: 'cms-list'
   ctxId: string
   dataSource: UIDLAttributeValue
   content: UIDLElementNode
+}
+
+export interface UIDLCMSItemNode {
+  type: 'cms-item'
+  content: UIDLCMSItemNodeContent
+}
+
+export interface UIDLCMSItemNodeContent {
+  node: UIDLElementNode
+  dataSource: UIDLAttributeValue
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -346,7 +356,8 @@ export type UIDLNode =
   | UIDLConditionalNode
   | UIDLSlotNode
   | UIDLImportReference
-  | UIDLContextNode
+  | UIDLCMSListNode
+  | UIDLCMSItemNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

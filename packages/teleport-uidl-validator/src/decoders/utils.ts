@@ -78,6 +78,7 @@ import {
   ResourceValue,
   ResourceUrlParams,
   PagePaginationOptions,
+  VCMSItemUIDLElementNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -634,13 +635,21 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   content: elementDecoder,
 })
 
+export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
+  type: constant('cms-item'),
+  content: object({
+    node: lazy(() => elementNodeDecoder),
+    dataSource: optional(attributeValueDecoder),
+  }),
+})
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
+  cmsItemNodeDecoder,
   dynamicValueDecoder,
   staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
   repeatNodeDecoder,
-  slotNodeDecoder,
-  string()
+  slotNodeDecoder
 )

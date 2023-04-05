@@ -35,10 +35,22 @@ import {
   UIDLCanonicalAsset,
   UIDLIconAsset,
   UIDLRootComponent,
+  UIDLCMSItemNode,
 } from './uidl'
 import { Modify } from './helper'
 
 export interface VUIDLElementNode extends Modify<UIDLElementNode, { content: VUIDLElement }> {}
+
+export interface VCMSItemUIDLElementNode
+  extends Modify<
+    UIDLCMSItemNode,
+    {
+      content: {
+        node: VUIDLElementNode
+        dataSource?: UIDLAttributeValue
+      }
+    }
+  > {}
 
 export type VUIDLConditionalNode = Modify<
   UIDLConditionalNode,
@@ -71,6 +83,7 @@ export type VUIDLNode =
   | VUIDLRepeatNode
   | VUIDLConditionalNode
   | VUIDLSlotNode
+  | VCMSItemUIDLElementNode
   | string
 
 export type VUIDLElement = Modify<

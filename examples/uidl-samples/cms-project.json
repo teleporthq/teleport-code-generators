@@ -1,8 +1,8 @@
 {
-  "name": "Soggy Insubstantial Octopus",
+  "name": "Superb Mammoth Gnat",
   "globals": {
     "settings": {
-      "title": "Soggy Insubstantial Octopus",
+      "title": "Superb Mammoth Gnat",
       "language": "en"
     },
     "assets": [
@@ -38,8 +38,8 @@
       }
     ],
     "env": {
-      "CMS_URL": "https://strapi-postgres-basic-production.up.railway.app",
-      "CMS_ACCESS_TOKEN": "46d879d773f545915dd5ea43bf1e5c5ec1145182c5152a8a2c8caf831cd581674bf6ea7f0afad3b9e59d077c9dd599cc713beda7f28bab249c28d6d7101c45a5c109f24b501039ca6b931d105c8aa3227e002af8159a3249ada7004b15e19e330325079ed636661e348c5db1475aba706eae6a5e251af64049328b32e8f4c3da"
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN": ""
     },
     "meta": [
       {
@@ -54,35 +54,86 @@
         "content": "summary_large_image"
       }
     ],
-    "customCode": {}
+    "customCode": {
+      "head": "<!--This is the head section-->\n<!-- <style> ... </style> -->",
+      "body": "<!-- Your body code here -->\n<!-- <script type=\"text/javascript\"> ... </script> --> \n    <script data-section-id='header' src='https://unpkg.com/@teleporthq/teleport-custom-scripts'></script>"
+    }
   },
   "root": {
     "name": "App",
     "designLanguage": {
       "tokens": {
-        "--dl-radius-radius-radius4": {
+        "--dl-color-danger-300": {
           "type": "static",
-          "content": "4px"
-        },
-        "--dl-space-space-sixunits": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-radius-radius-radius8": {
-          "type": "static",
-          "content": "8px"
-        },
-        "--dl-color-gray-500": {
-          "type": "static",
-          "content": "#595959"
+          "content": "#A22020"
         },
         "--dl-color-gray-white": {
           "type": "static",
           "content": "#FFFFFF"
         },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-space-space-oneandhalfunits": {
+          "type": "static",
+          "content": "24px"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-space-space-fourunits": {
+          "type": "static",
+          "content": "64px"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-color-danger-500": {
+          "type": "static",
+          "content": "#BF2626"
+        },
         "--dl-space-space-threeunits": {
           "type": "static",
           "content": "48px"
+        },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
         },
         "--dl-size-size-xxlarge": {
           "type": "static",
@@ -92,109 +143,61 @@
           "type": "static",
           "content": "8px"
         },
-        "--dl-size-size-medium": {
+        "--dl-size-size-maxwidth": {
           "type": "static",
-          "content": "96px"
-        },
-        "--dl-color-success-500": {
-          "type": "static",
-          "content": "#32A94C"
-        },
-        "--dl-size-size-xsmall": {
-          "type": "static",
-          "content": "16px"
-        },
-        "--dl-size-size-xlarge": {
-          "type": "static",
-          "content": "192px"
-        },
-        "--dl-space-space-oneandhalfunits": {
-          "type": "static",
-          "content": "24px"
-        },
-        "--dl-color-primary-700": {
-          "type": "static",
-          "content": "#85DCFF"
-        },
-        "--dl-color-danger-500": {
-          "type": "static",
-          "content": "#BF2626"
+          "content": "1400px"
         },
         "--dl-space-space-unit": {
           "type": "static",
           "content": "16px"
         },
-        "--dl-color-danger-300": {
+        "--dl-color-primary-700": {
           "type": "static",
-          "content": "#A22020"
-        },
-        "--dl-color-success-300": {
-          "type": "static",
-          "content": "#199033"
-        },
-        "--dl-color-primary-300": {
-          "type": "static",
-          "content": "#0074F0"
-        },
-        "--dl-size-size-maxwidth": {
-          "type": "static",
-          "content": "1400px"
-        },
-        "--dl-color-danger-700": {
-          "type": "static",
-          "content": "#E14747"
-        },
-        "--dl-size-size-large": {
-          "type": "static",
-          "content": "144px"
+          "content": "#85DCFF"
         },
         "--dl-radius-radius-round": {
           "type": "static",
           "content": "50%"
         },
-        "--dl-color-primary-100": {
+        "--dl-size-size-large": {
           "type": "static",
-          "content": "#003EB3"
+          "content": "144px"
         },
-        "--dl-color-gray-700": {
+        "--dl-space-space-sixunits": {
           "type": "static",
-          "content": "#999999"
+          "content": "96px"
         },
-        "--dl-space-space-fourunits": {
+        "--dl-size-size-medium": {
           "type": "static",
-          "content": "64px"
+          "content": "96px"
         },
-        "--dl-color-primary-500": {
+        "--dl-size-size-xlarge": {
           "type": "static",
-          "content": "#14A9FF"
-        },
-        "--dl-color-gray-black": {
-          "type": "static",
-          "content": "#000000"
+          "content": "192px"
         },
         "--dl-radius-radius-radius2": {
           "type": "static",
           "content": "2px"
         },
-        "--dl-space-space-fiveunits": {
+        "--dl-color-gray-700": {
           "type": "static",
-          "content": "80px"
+          "content": "#999999"
         },
-        "--dl-color-success-700": {
+        "--dl-radius-radius-radius4": {
           "type": "static",
-          "content": "#4CC366"
+          "content": "4px"
         },
-        "--dl-color-gray-900": {
+        "--dl-color-gray-black": {
           "type": "static",
-          "content": "#D9D9D9"
+          "content": "#000000"
         },
         "--dl-space-space-twounits": {
           "type": "static",
           "content": "32px"
         },
-        "--dl-size-size-small": {
+        "--dl-color-primary-100": {
           "type": "static",
-          "content": "48px"
+          "content": "#003EB3"
         }
       }
     },
@@ -382,35 +385,6 @@
         },
         "conditions": []
       },
-      "Content": {
-        "type": "reusable-project-style-map",
-        "content": {
-          "fontSize": {
-            "type": "static",
-            "content": "16px"
-          },
-          "fontFamily": {
-            "type": "static",
-            "content": "Inter"
-          },
-          "fontWeight": {
-            "type": "static",
-            "content": "400"
-          },
-          "lineHeight": {
-            "type": "static",
-            "content": "1.15"
-          },
-          "textTransform": {
-            "type": "static",
-            "content": "none"
-          },
-          "textDecoration": {
-            "type": "static",
-            "content": "none"
-          }
-        }
-      },
       "Heading": {
         "type": "reusable-project-style-map",
         "content": {
@@ -439,6 +413,35 @@
             "content": "none"
           }
         }
+      },
+      "Content": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "16px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "400"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
       }
     },
     "stateDefinitions": {
@@ -449,31 +452,31 @@
           {
             "value": "Home",
             "seo": {
-              "title": "Soggy Insubstantial Octopus",
+              "title": "Superb Mammoth Gnat",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Soggy Insubstantial Octopus"
+                  "content": "Superb Mammoth Gnat"
                 }
               ]
             },
             "pageOptions": {}
           },
           {
-            "value": "/books/BookDetails",
+            "value": "/books/Books",
             "seo": {
-              "title": "Books - Soggy Insubstantial Octopus",
+              "title": "Books - Superb Mammoth Gnat",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Books - Soggy Insubstantial Octopus"
+                  "content": "Books - Superb Mammoth Gnat"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BooksEntity": {
-                  "id": "17902dff-4d6c-41c5-9031-47f4eb79d37e",
+                  "id": "7f0e17c9-e469-42bc-8991-06018a2fbabf",
                   "defaultValue": {},
                   "type": "object"
                 }
@@ -532,7 +535,7 @@
                     "id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "17902dff-4d6c-41c5-9031-47f4eb79d37e",
+                        "id": "7f0e17c9-e469-42bc-8991-06018a2fbabf",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -551,308 +554,20 @@
             }
           },
           {
-            "value": "books/Books",
+            "value": "/authors/Authors",
             "seo": {
-              "title": "Books1 - Soggy Insubstantial Octopus",
+              "title": "Authors - Superb Mammoth Gnat",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Books1 - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Books": {
-                  "id": "012070f6-0894-4378-bafb-17a25757afa7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": true,
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Books"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/books"
-                }
-              }
-            }
-          },
-          {
-            "value": "books/page/Books1",
-            "seo": {
-              "title": "Books1 - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Books1 - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Books": {
-                  "id": "012070f6-0894-4378-bafb-17a25757afa7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": [
-                  "meta",
-                  "pagination",
-                  "total"
-                ],
-                "pageUrlSearchParamKey": "pagination[page]"
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "id"
-                  ]
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 1
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/books"
-                }
-              },
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Books"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/books"
-                }
-              }
-            }
-          },
-          {
-            "value": "authors/Authors",
-            "seo": {
-              "title": "Authors - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Authors - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Authors": {
-                  "id": "1caa23f9-d53f-4ab8-af0a-01dd6d0c2ea7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": true,
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Authors"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              }
-            }
-          },
-          {
-            "value": "authors/page/Authors",
-            "seo": {
-              "title": "Authors - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Authors - Soggy Insubstantial Octopus"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "Authors": {
-                  "id": "1caa23f9-d53f-4ab8-af0a-01dd6d0c2ea7",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": [
-                  "meta",
-                  "pagination",
-                  "total"
-                ],
-                "pageUrlSearchParamKey": "pagination[page]"
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "id"
-                  ]
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 1
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              },
-              "initialPropsResource": {
-                "type": "remote",
-                "exposeAs": {
-                  "name": "Authors"
-                },
-                "baseUrl": {
-                  "type": "env",
-                  "value": "CMS_URL"
-                },
-                "authToken": {
-                  "type": "env",
-                  "value": "CMS_ACCESS_TOKEN"
-                },
-                "urlParams": {
-                  "populate": {
-                    "type": "static",
-                    "content": "*"
-                  },
-                  "pagination": {
-                    "pageSize": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
-                },
-                "route": {
-                  "type": "static",
-                  "value": "api/authors"
-                }
-              }
-            }
-          },
-          {
-            "value": "/authors/AuthorDetails",
-            "seo": {
-              "title": "Authors1 - Soggy Insubstantial Octopus",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Authors1 - Soggy Insubstantial Octopus"
+                  "content": "Authors - Superb Mammoth Gnat"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorsEntity": {
-                  "id": "9f32b855-a2d1-4588-8271-07b94bd5c578",
+                  "id": "3ca3d198-463d-499f-af3b-18c6b583865f",
                   "defaultValue": {},
                   "type": "object"
                 }
@@ -911,7 +626,7 @@
                     "id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "9f32b855-a2d1-4588-8271-07b94bd5c578",
+                        "id": "3ca3d198-463d-499f-af3b-18c6b583865f",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -928,8 +643,318 @@
                 }
               }
             }
+          },
+          {
+            "value": "authors/Authors1",
+            "seo": {
+              "title": "Authors1 - Superb Mammoth Gnat",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Authors1 - Superb Mammoth Gnat"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Authors": {
+                  "id": "6a2fb514-ddac-496d-8b4e-494e463a16dc",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": true,
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Authors"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              }
+            }
+          },
+          {
+            "value": "authors/page/Authors1",
+            "seo": {
+              "title": "Authors1 - Superb Mammoth Gnat",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Authors1 - Superb Mammoth Gnat"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Authors": {
+                  "id": "6a2fb514-ddac-496d-8b4e-494e463a16dc",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": [
+                  "meta",
+                  "pagination",
+                  "total"
+                ],
+                "pageUrlSearchParamKey": "pagination[page]"
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "id"
+                  ]
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 1
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              },
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Authors"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/authors"
+                }
+              }
+            }
+          },
+          {
+            "value": "books/Books1",
+            "seo": {
+              "title": "Books1 - Superb Mammoth Gnat",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Books1 - Superb Mammoth Gnat"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Books": {
+                  "id": "cb1e5535-c0f9-4f2d-9097-0a624fac14f5",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": true,
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Books"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/books"
+                }
+              }
+            }
+          },
+          {
+            "value": "books/page/Books1",
+            "seo": {
+              "title": "Books1 - Superb Mammoth Gnat",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Books1 - Superb Mammoth Gnat"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "Books": {
+                  "id": "cb1e5535-c0f9-4f2d-9097-0a624fac14f5",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": [
+                  "meta",
+                  "pagination",
+                  "total"
+                ],
+                "pageUrlSearchParamKey": "pagination[page]"
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "id"
+                  ]
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 1
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/books"
+                }
+              },
+              "initialPropsResource": {
+                "type": "remote",
+                "exposeAs": {
+                  "name": "Books"
+                },
+                "baseUrl": {
+                  "type": "env",
+                  "value": "CMS_URL"
+                },
+                "authToken": {
+                  "type": "env",
+                  "value": "CMS_ACCESS_TOKEN"
+                },
+                "urlParams": {
+                  "populate": {
+                    "type": "static",
+                    "content": "*"
+                  },
+                  "pagination": {
+                    "pageSize": {
+                      "type": "static",
+                      "content": 10
+                    }
+                  }
+                },
+                "route": {
+                  "type": "static",
+                  "value": "api/books"
+                }
+              }
+            }
           }
         ]
+      }
+    },
+    "propDefinitions": {
+      "BooksEntity": {
+        "id": "7f0e17c9-e469-42bc-8991-06018a2fbabf",
+        "defaultValue": {},
+        "type": "object"
+      },
+      "AuthorsEntity": {
+        "id": "3ca3d198-463d-499f-af3b-18c6b583865f",
+        "defaultValue": {},
+        "type": "object"
+      },
+      "Authors": {
+        "id": "6a2fb514-ddac-496d-8b4e-494e463a16dc",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "Books": {
+        "id": "cb1e5535-c0f9-4f2d-9097-0a624fac14f5",
+        "defaultValue": [],
+        "type": "array"
       }
     },
     "node": {
@@ -990,11 +1015,58 @@
             "type": "conditional",
             "content": {
               "node": {
-                "type": "element",
+                "type": "cms-item",
                 "content": {
-                  "elementType": "cms-collection-item",
-                  "referencedStyles": {},
-                  "children": [],
+                  "node": {
+                    "type": "element",
+                    "content": {
+                      "elementType": "cms-item",
+                      "semanticType": "cms-item",
+                      "ctxId": "396bec26-fced-4004-9dfd-a7e82417d9c4",
+                      "attrs": {
+                        "value": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BooksEntity.attributes"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "fragment",
+                            "name": "Success",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "BooksDetailsContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "dataSource": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "BooksEntity"
+                    }
+                  },
                   "style": {
                     "minHeight": {
                       "type": "static",
@@ -1003,7 +1075,81 @@
                   }
                 }
               },
-              "value": "/books/BookDetails",
+              "value": "/books/Books",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "cms-item",
+                "content": {
+                  "node": {
+                    "type": "element",
+                    "content": {
+                      "elementType": "cms-item",
+                      "semanticType": "cms-item",
+                      "ctxId": "4d7cb18b-c5f3-4e31-8ac2-d68e1853fe7b",
+                      "attrs": {
+                        "value": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorsEntity.attributes"
+                          }
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "fragment",
+                            "name": "Success",
+                            "referencedStyles": {},
+                            "abilities": {},
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "AuthorsDetailsContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "dataSource": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "AuthorsEntity"
+                    }
+                  },
+                  "style": {
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    }
+                  }
+                }
+              },
+              "value": "/authors/Authors",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1051,28 +1197,76 @@
                   },
                   "children": [
                     {
-                      "type": "element",
+                      "type": "repeat",
                       "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "c14d7001-d66d-44f1-99c2-9c36791eb727",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "remote",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::author.author"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "AuthorsListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         },
-                        "children": []
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Authors"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
                       }
                     }
                   ]
                 }
               },
-              "value": "books/Books",
+              "value": "authors/Authors1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1120,22 +1314,304 @@
                   },
                   "children": [
                     {
-                      "type": "element",
+                      "type": "repeat",
                       "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "c14d7001-d66d-44f1-99c2-9c36791eb727",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "remote",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::author.author"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "AuthorsListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         },
-                        "children": []
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Authors"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "authors/page/Authors1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "52c8129e-9e5b-4af1-b0da-675a63069d34",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "remote",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::book.book"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "BooksListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Books"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "books/Books1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "52c8129e-9e5b-4af1-b0da-675a63069d34",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "local",
+                                  "id": "item.attributes"
+                                }
+                              }
+                            },
+                            "dataSource": {
+                              "referenceType": "remote",
+                              "data": {
+                                "type": "external-cms-list",
+                                "cmsType": "strapi",
+                                "contentType": "api::book.book"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "fragment",
+                                  "name": "List",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": [
+                                    {
+                                      "type": "element",
+                                      "content": {
+                                        "elementType": "component",
+                                        "dependency": {
+                                          "type": "local"
+                                        },
+                                        "semanticType": "BooksListContent",
+                                        "referencedStyles": {},
+                                        "abilities": {},
+                                        "children": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "dataSource": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "Books"
+                          }
+                        },
+                        "meta": {
+                          "useIndex": true,
+                          "iteratorName": "item"
+                        }
                       }
                     }
                   ]
@@ -1150,187 +1626,827 @@
                 }
               }
             }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
-                          }
-                        },
-                        "children": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "authors/Authors",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "cms-collection-list",
-                        "name": "Collection-List",
-                        "referencedStyles": {},
-                        "attrs": {
-                          "page": {
-                            "type": "static",
-                            "content": "1"
-                          },
-                          "perPage": {
-                            "type": "static",
-                            "content": "10"
-                          }
-                        },
-                        "children": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "authors/page/Authors",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "cms-collection-item",
-                  "referencedStyles": {},
-                  "children": [],
-                  "style": {
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    }
-                  }
-                }
-              },
-              "value": "/authors/AuthorDetails",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
           }
         ]
       }
     }
   },
-  "components": {},
+  "components": {
+    "NavigationLinks": {
+      "propDefinitions": {
+        "rootClassName": {
+          "id": "28ca9338-5753-437d-a6df-a70d651ae0a5",
+          "defaultValue": "",
+          "type": "string"
+        },
+        "text1": {
+          "id": "4a901ad7-e22b-43bf-870a-ee5d1745457a",
+          "defaultValue": "Features",
+          "type": "string"
+        },
+        "text4": {
+          "id": "50f7319f-3643-4402-adf6-0028aad5deee",
+          "defaultValue": "Blog",
+          "type": "string"
+        },
+        "text2": {
+          "id": "9161f7f1-d245-49a4-b2fd-dc4d662ce668",
+          "defaultValue": "Pricing",
+          "type": "string"
+        },
+        "text3": {
+          "id": "a4a1513e-2703-4b11-bd1c-930f8e75eb22",
+          "defaultValue": "Team",
+          "type": "string"
+        },
+        "text": {
+          "id": "d544be3f-9b43-4654-a63b-fc0cbe314a0d",
+          "defaultValue": "About",
+          "type": "string"
+        }
+      },
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "nav",
+          "name": "Nav",
+          "referencedStyles": {
+            "2f4a08a2-f790-49da-8dd3-658cf6d92000": {
+              "type": "style-map",
+              "content": {
+                "mapType": "component-referenced",
+                "content": {
+                  "type": "dynamic",
+                  "content": {
+                    "referenceType": "prop",
+                    "id": "rootClassName"
+                  }
+                }
+              }
+            },
+            "59cbd953-0937-4376-9181-484df7f6e471": {
+              "type": "style-map",
+              "content": {
+                "conditions": [
+                  {
+                    "maxWidth": 767,
+                    "conditionType": "screen-size"
+                  }
+                ],
+                "mapType": "inlined",
+                "styles": {
+                  "alignItems": {
+                    "type": "static",
+                    "content": "flex-start"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                }
+              }
+            }
+          },
+          "abilities": {},
+          "style": {
+            "flex": {
+              "type": "static",
+              "content": "0 0 auto"
+            },
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "alignItems": {
+              "type": "static",
+              "content": "center"
+            },
+            "flexDirection": {
+              "type": "static",
+              "content": "row"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {
+                  "f31c838e-47a4-4a74-afba-5f4360d7eda6": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-unit"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "text",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {
+                  "9fdc747b-8436-40f8-b9f6-e551f5747aba": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "marginLeft": {
+                          "type": "static",
+                          "content": "0"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-unit"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "marginLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "text1",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {
+                  "bd3c8a88-0b94-4f4f-ab66-658158e5ce3e": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "marginLeft": {
+                          "type": "static",
+                          "content": "0"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-unit"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "marginLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "text2",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {
+                  "ff23f3a6-7858-49bf-b595-722267fb9597": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "marginLeft": {
+                          "type": "static",
+                          "content": "0"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-unit"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "marginLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "text3",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {
+                  "7826f669-af78-4488-a756-13971cd6cc23": {
+                    "type": "style-map",
+                    "content": {
+                      "conditions": [
+                        {
+                          "maxWidth": 767,
+                          "conditionType": "screen-size"
+                        }
+                      ],
+                      "mapType": "inlined",
+                      "styles": {
+                        "marginLeft": {
+                          "type": "static",
+                          "content": "0"
+                        },
+                        "marginBottom": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "token",
+                            "id": "--dl-space-space-unit"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "abilities": {},
+                "style": {
+                  "marginLeft": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "text4",
+                      "referenceType": "prop"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "NavigationLinks",
+      "styleSetDefinitions": {
+        "rootClassName": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName1": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName2": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName3": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName4": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName5": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName6": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        },
+        "rootClassName7": {
+          "content": {},
+          "conditions": [],
+          "type": "reusable-component-style-override"
+        }
+      }
+    },
+    "BooksDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "396bec26-fced-4004-9dfd-a7e82417d9c4",
+                            "referenceType": "ctx",
+                            "path": [
+                              "title"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "396bec26-fced-4004-9dfd-a7e82417d9c4",
+                            "referenceType": "ctx",
+                            "path": [
+                              "price"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "396bec26-fced-4004-9dfd-a7e82417d9c4",
+                            "referenceType": "ctx",
+                            "path": [
+                              "Description"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "BooksDetailsContent",
+      "styleSetDefinitions": {}
+    },
+    "AuthorsDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "4d7cb18b-c5f3-4e31-8ac2-d68e1853fe7b",
+                            "referenceType": "ctx",
+                            "path": [
+                              "name"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "AuthorsDetailsContent",
+      "styleSetDefinitions": {}
+    },
+    "AuthorsListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "c14d7001-d66d-44f1-99c2-9c36791eb727",
+                            "referenceType": "ctx",
+                            "path": [
+                              "name"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "AuthorsListContent",
+      "styleSetDefinitions": {}
+    },
+    "BooksListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "flex"
+            },
+            "position": {
+              "type": "static",
+              "content": "relative"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "52c8129e-9e5b-4af1-b0da-675a63069d34",
+                            "referenceType": "ctx",
+                            "path": [
+                              "title"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "52c8129e-9e5b-4af1-b0da-675a63069d34",
+                            "referenceType": "ctx",
+                            "path": [
+                              "price"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "52c8129e-9e5b-4af1-b0da-675a63069d34",
+                            "referenceType": "ctx",
+                            "path": [
+                              "Description"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "BooksListContent",
+      "styleSetDefinitions": {}
+    }
+  },
   "contexts": {
     "rootFolder": "contexts",
     "items": {
-      "contextNameId": {
-        "name": "contextName",
-        "fileName": "contextName"
+      "396bec26-fced-4004-9dfd-a7e82417d9c4": {
+        "name": "Books",
+        "fileName": "Books"
       },
-      "secondContextId": {
-        "name": "secondContextName",
-        "fileName": "secondContextFileName"
+      "4d7cb18b-c5f3-4e31-8ac2-d68e1853fe7b": {
+        "name": "Authors",
+        "fileName": "Authors"
+      },
+      "c14d7001-d66d-44f1-99c2-9c36791eb727": {
+        "name": "Authors",
+        "fileName": "Authors"
+      },
+      "52c8129e-9e5b-4af1-b0da-675a63069d34": {
+        "name": "Books",
+        "fileName": "Books"
       }
     }
   }
