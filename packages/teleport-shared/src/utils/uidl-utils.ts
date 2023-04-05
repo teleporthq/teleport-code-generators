@@ -134,14 +134,21 @@ export const prefixAssetsPath = (
 
   const { prefix, mappings = {}, identifier } = assets
   const assetName = basename(originalString)
+  const decodedAssetName = decodeURIComponent(assetName)
 
   /*
     If the value is missing from the mapping, it means
      - asset is missing in the project packer
      - It's not a asset and so we don't need to provide any mapping for it
+
+    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas 
+    the src / url leading to the asset can be encoded and we need to check the decoded version against the asset mapping
   */
 
-  if (!(typeof mappings[assetName] === 'string')) {
+  if (
+    !(typeof mappings[assetName] === 'string') &&
+    !(typeof mappings[decodedAssetName] === 'string')
+  ) {
     return originalString
   }
 
