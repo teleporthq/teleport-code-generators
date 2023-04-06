@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-postprocessor-prettier-jsx",
-  "version": "0.27.1",
+  "version": "0.27.2",
   "description": "A post-processing function that formats jsx code chunks using prettier and the babylon and postcss parsers",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.27.1",
+    "@teleporthq/teleport-shared": "^0.27.2",
     "@teleporthq/teleport-types": "^0.27.0",
     "prettier": "^2.3.1"
   },

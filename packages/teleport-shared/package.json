@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-shared",
-  "version": "0.27.1",
+  "version": "0.27.2",
   "description": "A utility belt for the entire teleportHQ ecosystem",
   "author": "teleportHQ",
   "license": "MIT",
