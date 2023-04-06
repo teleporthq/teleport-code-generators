@@ -369,6 +369,17 @@ export const prefixAssetURLs = <
             staticContent.indexOf('url(') === -1
               ? staticContent
               : staticContent.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+
+          /*
+            background image such as gradient shouldn't be urls
+            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+            but we don't compute and generate a url)
+          */
+          if (!asset.startsWith('/')) {
+            acc[styleKey] = styleValue
+            return acc
+          }
+
           const url = UIDLUtils.prefixAssetsPath(asset, assets)
           const newStyleValue = `url("${url}")`
           acc[styleKey] = {

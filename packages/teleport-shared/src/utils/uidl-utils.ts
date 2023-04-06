@@ -153,29 +153,29 @@ export const prefixAssetsPath = (
   }
 
   /*
-      need to use either the original or decoded assetName to retrieve its mapping if there is one
-    */
+    need to use either the original or decoded assetName to retrieve its mapping if there is one
+  */
 
   const assetNameUsedForMapping =
     typeof mappings[assetName] === 'string' ? assetName : decodedAssetName
 
   /*
-      If the value from the mapping is an empty string
-      we need to not join it in the return path as it would append
-      a wrong /
-    */
+    If the value from the mapping is an empty string
+    we need to not join it in the return path as it would append
+    a wrong /
+  */
 
   if (!mappings[assetNameUsedForMapping]) {
     if (!identifier) {
-      return [prefix, assetNameUsedForMapping].join('/')
+      return [prefix, assetName].join('/')
     }
-    return [prefix, identifier, assetNameUsedForMapping].join('/')
+    return [prefix, identifier, assetName].join('/')
   }
 
   if (!identifier) {
-    return [prefix, mappings[assetNameUsedForMapping], assetNameUsedForMapping].join('/')
+    return [prefix, mappings[assetNameUsedForMapping], assetName].join('/')
   }
-  return [prefix, identifier, mappings[assetNameUsedForMapping], assetNameUsedForMapping].join('/')
+  return [prefix, identifier, mappings[assetNameUsedForMapping], assetName].join('/')
 }
 
 // Clones existing objects while keeping the type cast
