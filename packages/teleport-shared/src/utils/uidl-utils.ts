@@ -21,6 +21,7 @@ import {
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
   UIDLRootComponent,
+  ProjectContext,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
@@ -175,6 +176,15 @@ export const traverseNodes = (
       }
       break
 
+    case 'cms-list':
+      traverseNodes(node.content.node, fn, node)
+      break
+
+    case 'cms-item':
+      traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.dataSource, fn, node)
+      break
+
     case 'repeat':
       traverseNodes(node.content.node, fn, node)
       traverseNodes(node.content.dataSource, fn, node)
@@ -200,7 +210,7 @@ export const traverseNodes = (
 
     default:
       throw new Error(
-        `traverseNodes was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseNodes was given an unsupported node type: ${JSON.stringify(node, null, 2)}`
       )
   }
 }
@@ -228,6 +238,11 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       }
       break
 
+    case 'cms-list':
+    case 'cms-item':
+      traverseElements(node.content.node, fn)
+      break
+
     case 'repeat':
       traverseElements(node.content.node, fn)
       break
@@ -249,7 +264,11 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
     default:
       throw new Error(
-        `traverseElements was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseElements was given an unsupported node type : ${node.type}, ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -263,6 +282,16 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
         })
       }
 
+      break
+
+    case 'cms-list':
+      fn(node.content as UIDLRepeatContent)
+      traverseRepeats(node.content.node, fn)
+      break
+
+    case 'cms-item':
+      fn(node.content)
+      traverseRepeats(node.content.node, fn)
       break
 
     case 'repeat':
@@ -288,7 +317,11 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
 
     default:
       throw new Error(
-        `traverseRepeats was given an unsupported node type ${JSON.stringify(node, null, 2)}`
+        `traverseRepeats was given an unsupported node type: ${node.type} - ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
       )
   }
 }
@@ -549,6 +582,11 @@ export const removeChildNodes = (
       removeChildNodes(node.content.node, criteria)
       break
 
+    case 'cms-list':
+    case 'cms-item':
+      removeChildNodes(node.content.node, criteria)
+      break
+
     case 'conditional':
       removeChildNodes(node.content.node, criteria)
       break
@@ -584,4 +622,64 @@ export const extractExternalDependencies = (dependencies: Record<string, UIDLDep
 
       return acc
     }, {})
+}
+
+export const extractContextDependenciesFromNode = (
+  node: UIDLNode,
+  projectContexts: Record<string, ProjectContext>,
+  foundDependencies: Record<string, ProjectContext> = {}
+) => {
+  switch (node.type) {
+    case 'element':
+      if (node.content.children) {
+        node.content.children.forEach((child) => {
+          extractContextDependenciesFromNode(child, projectContexts, foundDependencies)
+        })
+      }
+      break
+
+    case 'cms-list':
+    case 'cms-item':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
+    case 'repeat':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
+    case 'conditional':
+      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        extractContextDependenciesFromNode(
+          node.content.fallback,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      break
+
+    case 'static':
+    case 'raw':
+      break
+
+    case 'dynamic':
+      if (node.content.referenceType === 'ctx') {
+        foundDependencies[node.content.id] = projectContexts[node.content.id]
+      }
+      break
+
+    default:
+      throw new Error(
+        `extractContextDependenciesFromNode was given an unsupported node type ${JSON.stringify(
+          node,
+          null,
+          2
+        )}`
+      )
+  }
+
+  return foundDependencies
 }

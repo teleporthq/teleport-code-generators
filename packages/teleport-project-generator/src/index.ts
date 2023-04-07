@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -23,7 +23,6 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
-  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -155,6 +154,8 @@ export class ProjectGenerator implements ProjectGenerator {
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    const projectContexts = {}
+
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
         uidl,
@@ -163,6 +164,7 @@ export class ProjectGenerator implements ProjectGenerator {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
+        projectContexts,
         rootFolder,
       })
 
@@ -245,7 +247,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
       let pageOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.pages.path,
           this.strategy.projectStyleSheet.path
         )
@@ -262,6 +264,8 @@ export class ProjectGenerator implements ProjectGenerator {
           designLanguage: uidl.root?.designLanguage,
         }
       }
+
+      Object.assign(pageOptions, { projectContexts })
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -329,7 +333,7 @@ export class ProjectGenerator implements ProjectGenerator {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.components.path,
           this.strategy.projectStyleSheet.path
         )
@@ -346,6 +350,8 @@ export class ProjectGenerator implements ProjectGenerator {
           designLanguage: uidl.root?.designLanguage,
         }
       }
+
+      Object.assign(componentOptions, { projectContexts })
 
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -416,7 +422,7 @@ export class ProjectGenerator implements ProjectGenerator {
           fileName,
           fileType,
           globalStyles: {
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               framework.config.path,
               this.strategy.projectStyleSheet.path
             ),

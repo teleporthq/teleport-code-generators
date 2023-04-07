@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils, GenericUtils } from '@teleporthq/teleport-shared'
 import {
   GeneratedFile,
   GeneratedFolder,
@@ -65,7 +65,7 @@ const createPageUIDL = (
   const { customComponentFileName, customStyleFileName, customTemplateFileName } =
     pagesStrategyOptions
 
-  const splittedPageName = pageName.split('/')
+  const splittedPageName = pageName.split('/').filter((el) => el)
   splittedPageName.pop()
 
   // a page can be: 'about-us.js' or `about-us/index.js`
@@ -366,7 +366,6 @@ export const resolveLocalDependencies = (
 ) => {
   pageUIDLs.forEach((pageUIDL) => {
     const pagePath = UIDLUtils.getComponentFolderPath(pageUIDL)
-
     const fromPath = strategy.pages.path.concat(pagePath)
     UIDLUtils.traverseElements(pageUIDL.node, (element) => {
       if (isLocalDependency(element)) {
@@ -405,42 +404,11 @@ const setLocalDependencyPath = (
   const toPath = toBasePath.concat(componentPath)
 
   const importFileName = UIDLUtils.getComponentFileName(component)
-  const importPath = generateLocalDependenciesPrefix(fromPath, toPath)
+  const importPath = GenericUtils.generateLocalDependenciesPrefix(fromPath, toPath)
+
   element.dependency.path = `${importPath}${importFileName}`
   element.elementType = 'component'
   element.semanticType = componentClassName
-}
-
-export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: string[]): string => {
-  /*
-    Remove common path elements from the beginning of the
-    components and pages full path (if any)
-  
-    For example, having:
-    - fromPath = ['src', 'components']
-    - toPath = ['src', 'pages']
-  
-    If we want to have an import statement that goes from the pages folder to the
-    components folder, we only need to go back one step, so we are removing
-    the first element from both the paths ('src') and build the dependencyPrefix accordingly
-  */
-  const [firstPath, secondPath] = removeCommonStartingPointsFromPaths([fromPath, toPath])
-
-  // We have to go back as many folders as there are defined in the pages path
-  let dependencyPrefix = '../'.repeat(firstPath.length)
-
-  // if 'fromPath' is parent for 'toPath', the path starts from './'
-  if (firstPath.length === 0) {
-    secondPath.unshift('.')
-  }
-
-  dependencyPrefix += secondPath
-    .map((folder) => {
-      return `${folder}/`
-    })
-    .join('')
-
-  return dependencyPrefix
 }
 
 export const fileFileAndReplaceContent = (
@@ -480,43 +448,6 @@ export const generateExternalCSSImports = async (uidl: ComponentUIDL) => {
   })
 
   return generator.linkCodeChunks({ imports: chunks }, 'imports')
-}
-
-const removeCommonStartingPointsFromPaths = (paths: string[][]): string[][] => {
-  const pathsClone: string[][] = JSON.parse(JSON.stringify(paths))
-
-  const shortestPathLength = Math.min(
-    ...pathsClone.map((path) => {
-      return path.length
-    })
-  )
-
-  let elementIndex = 0
-  let elementsFromIndexAreEqual = true
-
-  while (elementIndex < shortestPathLength && elementsFromIndexAreEqual) {
-    const firstPathElementsFromIndex = pathsClone.map((path: string[]) => {
-      return path[0]
-    })
-
-    if (elementsFromArrayAreEqual(firstPathElementsFromIndex)) {
-      // If the first elements from every path are equal, remove it
-      pathsClone.forEach((path) => {
-        path.shift()
-      })
-    } else {
-      elementsFromIndexAreEqual = false
-    }
-    elementIndex += 1
-  }
-
-  return pathsClone
-}
-
-const elementsFromArrayAreEqual = (arrayOfElements: string[]): boolean => {
-  return arrayOfElements.every((element: string) => {
-    return element === arrayOfElements[0]
-  })
 }
 
 export const injectFilesToPath = (

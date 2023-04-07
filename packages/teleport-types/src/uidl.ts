@@ -15,11 +15,23 @@ export interface UIDLRouteDefinitions {
   defaultValue: string
   values: UIDLStateValueDetails[]
 }
+
+export interface ContextUIDLItem {
+  name: string
+  fileName?: string
+}
+
+export interface ContextsUIDL {
+  rootFolder?: string
+  items?: Record<string, ContextUIDLItem>
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  contexts?: ContextsUIDL
 }
 
 export interface UIDLGlobalProjectValues {
@@ -223,7 +235,7 @@ export interface UIDLPageOptions {
   propDefinitions?: Record<string, UIDLPropDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'ctx'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -250,6 +262,32 @@ export interface UIDLSlotNode {
     name?: string
     fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
   }
+}
+
+export interface UIDLCMSListNode {
+  type: 'cms-list'
+  content: UIDLCMSListNodeContent
+}
+
+export interface UIDLCMSItemNode {
+  type: 'cms-item'
+  content: UIDLCMSItemNodeContent
+}
+
+export interface UIDLCMSListNodeContent {
+  node: UIDLElementNode
+  dataSource: UIDLCMSListDataSource
+  loopItemsReference?: UIDLAttributeValue
+  itemValuePath?: string[]
+}
+
+export type UIDLCMSListDataSource =
+  | UIDLDynamicReference
+  | { type: 'remote'; contentType: string; cmsType: string }
+
+export interface UIDLCMSItemNodeContent {
+  node: UIDLElementNode
+  dataSource: UIDLAttributeValue
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -302,6 +340,7 @@ export interface UIDLElement {
   elementType: string
   semanticType?: string
   name?: string
+  ctxId?: string
   key?: string // internal usage
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
@@ -326,6 +365,8 @@ export type UIDLNode =
   | UIDLConditionalNode
   | UIDLSlotNode
   | UIDLImportReference
+  | UIDLCMSListNode
+  | UIDLCMSItemNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
@@ -490,7 +531,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
 export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'comp'
+    referenceType: 'prop' | 'comp' | 'ctx'
     id: string
   }
 }

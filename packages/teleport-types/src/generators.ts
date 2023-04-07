@@ -72,6 +72,7 @@ export interface ProjectPluginStructure {
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
+  projectContexts?: Record<string, ProjectContext>
   strategy: ProjectStrategy
   rootFolder: GeneratedFolder
 }
@@ -108,6 +109,13 @@ export interface ComponentGenerator {
   addPostProcessor: (fn: PostProcessor) => void
 }
 
+export interface ProjectContext {
+  providerName: string
+  consumerName: string
+  fileName: string
+  path: string
+}
+
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
@@ -124,6 +132,7 @@ export interface GeneratorOptions {
     path: string
     importFile?: boolean
   }
+  projectContexts?: Record<string, ProjectContext>
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }

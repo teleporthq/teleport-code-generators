@@ -36,7 +36,8 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
   } = config || {}
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, dependencies } = structure
+    const { uidl, dependencies, options } = structure
+    const { projectContexts } = options
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
@@ -54,6 +55,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       stateDefinitions,
       nodesLookup,
       dependencies,
+      projectContexts,
     }
 
     const jsxOptions: JSXGenerationOptions = {
@@ -61,6 +63,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
         prop: 'props',
         state: '',
         local: '',
+        ctx: '',
       },
       dependencyHandling: 'import',
       stateHandling: 'hooks',

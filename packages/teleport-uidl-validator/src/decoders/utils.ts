@@ -78,6 +78,9 @@ import {
   ResourceValue,
   ResourceUrlParams,
   PagePaginationOptions,
+  VCMSItemUIDLElementNode,
+  VCMSListUIDLElementNode,
+  UIDLCMSListDataSource,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -95,7 +98,8 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token')
+  constant('token'),
+  constant('ctx')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -404,6 +408,15 @@ export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   lazy(() => uidlComponentStyleReference)
 )
 
+export const cmsListDataSourceValueDecoder: Decoder<UIDLCMSListDataSource> = union(
+  dynamicValueDecoder,
+  object({
+    type: constant('remote'),
+    contentType: string(),
+    cmsType: string(),
+  })
+)
+
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
   type: constant('comp-style'),
   content: string(),
@@ -531,7 +544,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
 export const classDynamicReferenceDecoder: Decoder<UIDLCompDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
-    referenceType: union(constant('prop'), constant('comp')),
+    referenceType: union(constant('prop'), constant('comp'), constant('ctx')),
     id: string(),
   }),
 })
@@ -554,6 +567,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   semanticType: optional(string()),
   name: optional(isValidElementName() as unknown as Decoder<string>),
   key: optional(string()),
+  ctxId: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),
   attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
@@ -632,13 +646,31 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   content: elementDecoder,
 })
 
+export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
+  type: constant('cms-item'),
+  content: object({
+    node: lazy(() => elementNodeDecoder),
+    dataSource: optional(attributeValueDecoder),
+  }),
+})
+
+export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
+  type: constant('cms-list'),
+  content: object({
+    node: lazy(() => elementNodeDecoder),
+    dataSource: optional(cmsListDataSourceValueDecoder),
+    itemValuePath: optional(array(string())),
+    loopItemsReference: optional(attributeValueDecoder),
+  }),
+})
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
+  cmsItemNodeDecoder,
+  cmsListNodeDecoder,
   dynamicValueDecoder,
   staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  repeatNodeDecoder,
-  slotNodeDecoder,
-  string()
+  union(repeatNodeDecoder, slotNodeDecoder, string())
 )

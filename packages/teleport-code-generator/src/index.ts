@@ -67,6 +67,7 @@ import {
   PlainHTMLMapping,
 } from '@teleporthq/teleport-component-generator-html'
 import { isNodeProcess } from './utils'
+import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -135,6 +136,10 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(pluginCloneGlobals)
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
+  }
+
+  if (projectType === ProjectType.NEXT) {
+    projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
   }
 
   if (projectType === ProjectType.NUXT) {
