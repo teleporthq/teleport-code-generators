@@ -17,7 +17,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
   const staticPropsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    if (!uidl.outputOptions?.initialPropsResource) {
+    if (!uidl.outputOptions?.initialPropsData) {
       return structure
     }
 
@@ -27,7 +27,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     }
 
     const getStaticPropsAST = generateInitialPropsAST(
-      uidl.outputOptions.initialPropsResource,
+      uidl.outputOptions.initialPropsData,
       'context',
       !!uidl.outputOptions.dynamicRouteAttribute,
       uidl.outputOptions.pagination

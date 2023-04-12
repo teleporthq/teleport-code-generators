@@ -1,5 +1,5 @@
 import { createDOMInjectionNode } from './utils'
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   createJSXSyntax,
   JSXGenerationOptions,
@@ -19,7 +19,6 @@ import {
   DEFAULT_EXPORT_CHUNK_NAME,
   DEFAULT_IMPORT_CHUNK_NAME,
   REACT_LIBRARY_DEPENDENCY,
-  USE_STATE_DEPENDENCY,
 } from './constants'
 
 interface ReactPluginConfig {
@@ -37,13 +36,13 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
-    const { projectContexts } = options
+    const { projectContexts, projectResources } = options
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
 
     if (Object.keys(stateDefinitions).length > 0) {
-      dependencies.useState = USE_STATE_DEPENDENCY
+      dependencies.useState = Constants.USE_STATE_DEPENDENCY
     }
 
     // We will keep a flat mapping object from each component identifier (from the UIDL) to its correspoding JSX AST Tag
@@ -56,6 +55,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       nodesLookup,
       dependencies,
       projectContexts,
+      projectResources,
     }
 
     const jsxOptions: JSXGenerationOptions = {

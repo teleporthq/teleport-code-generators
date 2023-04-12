@@ -34,8 +34,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   params,
   jsxOptions
 ) => {
-  const { dependencies, nodesLookup, projectContexts = {} } = params
-  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions, projectContexts }
+  const { dependencies, nodesLookup, projectContexts = {}, projectResources = {} } = params
+  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions, projectContexts, projectResources }
   const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
   const originalElementName = elementType || 'component'

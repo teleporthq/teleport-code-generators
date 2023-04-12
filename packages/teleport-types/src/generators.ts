@@ -73,6 +73,7 @@ export interface ProjectPluginStructure {
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
   projectContexts?: Record<string, ProjectContext>
+  projectResources?: Record<string, ProjectResource>
   strategy: ProjectStrategy
   rootFolder: GeneratedFolder
 }
@@ -116,6 +117,11 @@ export interface ProjectContext {
   path: string
 }
 
+export interface ProjectResource {
+  fileName: string
+  path: string
+}
+
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assetsPrefix?: string
@@ -133,6 +139,7 @@ export interface GeneratorOptions {
     importFile?: boolean
   }
   projectContexts?: Record<string, ProjectContext>
+  projectResources?: Record<string, ProjectResource>
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }

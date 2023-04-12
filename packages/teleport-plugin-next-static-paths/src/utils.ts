@@ -1,16 +1,13 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { PagePaginationOptions, Resource } from '@teleporthq/teleport-types'
+import { InitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPathsAST = (
-  resource: Resource,
+  initialData: InitialPathsData,
   propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST =
-    resource.type === 'static'
-      ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource, propsPrefix, pagination)
+  const computedResourceAST = computePropsAST(initialData, propsPrefix, pagination)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -28,37 +25,12 @@ export const generateInitialPathsAST = (
   )
 }
 
-const computeStaticValuePropsAST = (resource: Resource) => {
-  if (resource.type !== 'static') {
-    return null
-  }
-
-  const resultAST = ASTUtils.generateStaticResourceAST(resource)
-
-  return types.returnStatement(
-    types.objectExpression([
-      types.objectProperty(
-        types.identifier('props'),
-        types.objectExpression([
-          types.objectProperty(types.identifier(resource.exposeAs.name), resultAST, false, false),
-        ]),
-        false,
-        false
-      ),
-      types.objectProperty(types.identifier('revalidate'), types.numericLiteral(1), false, false),
-    ])
-  )
-}
-
-const computeRemoteValuePropsAST = (
-  resource: Resource,
+const computePropsAST = (
+  initialData: InitialPathsData,
   propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {
-  if (resource.type !== 'remote') {
-    return null
-  }
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix)
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(initialData.resource, propsPrefix)
 
   const paginationASTs = []
   if (pagination) {
@@ -146,12 +118,12 @@ const computeRemoteValuePropsAST = (
                           types.identifier('params'),
                           types.objectExpression([
                             types.objectProperty(
-                              types.identifier(resource.exposeAs.name),
+                              types.identifier(initialData.exposeAs.name),
                               types.callExpression(
                                 types.memberExpression(
                                   ASTUtils.generateMemberExpressionASTFromPath([
                                     'item',
-                                    ...resource.exposeAs.valuePath,
+                                    ...initialData.exposeAs.valuePath,
                                   ]),
                                   types.identifier('toString')
                                 ),

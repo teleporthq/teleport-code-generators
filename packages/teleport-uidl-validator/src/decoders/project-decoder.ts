@@ -1,12 +1,22 @@
-import { Decoder, object, optional, string, dict, array } from '@mojotech/json-type-validation'
+import {
+  Decoder,
+  object,
+  optional,
+  string,
+  dict,
+  array,
+  intersection,
+} from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
   WebManifest,
   VProjectUIDL,
   ContextsUIDL,
   ContextUIDLItem,
+  ResourcesUIDL,
+  ResourceItemUIDL,
 } from '@teleporthq/teleport-types'
-import { globalAssetsDecoder } from './utils'
+import { globalAssetsDecoder, resourceDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -44,9 +54,22 @@ export const contextItemDecoder: Decoder<ContextUIDLItem> = object({
   fileName: optional(string()),
 })
 
-export const contextsDecored: Decoder<ContextsUIDL> = object({
+export const contextsDecoder: Decoder<ContextsUIDL> = object({
   rootFolder: optional(string()),
   items: dict(optional(contextItemDecoder)),
+})
+
+export const projectResourceItemDecoder: Decoder<ResourceItemUIDL> = intersection(
+  resourceDecoder,
+  object({
+    id: string(),
+    name: string(),
+  })
+)
+
+export const resourcesDecoder: Decoder<ResourcesUIDL> = object({
+  rootFolder: optional(string()),
+  items: dict(optional(projectResourceItemDecoder)),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
@@ -54,5 +77,6 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   globals: globalProjectValuesDecoder,
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
-  contexts: optional(contextsDecored),
+  contexts: optional(contextsDecoder),
+  resources: optional(resourcesDecoder),
 })

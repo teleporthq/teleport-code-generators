@@ -324,7 +324,11 @@ const isPowerOfTen = (value: number) => {
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
-  UIDLUtils.traverseRepeats(node, (repeat) => {
+  UIDLUtils.traverseRepeats(node, (repeat: UIDLRepeatContent) => {
+    if (!repeat.dataSource?.type) {
+      return
+    }
+
     if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
       repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`

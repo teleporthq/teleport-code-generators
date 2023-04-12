@@ -17,7 +17,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
   const staticPathsPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks } = structure
-    if (!uidl.outputOptions?.initialPathsResource) {
+    if (!uidl.outputOptions?.initialPathsData) {
       return structure
     }
 
@@ -27,7 +27,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     }
 
     const getStaticPathsAST = generateInitialPathsAST(
-      uidl.outputOptions.initialPathsResource,
+      uidl.outputOptions.initialPathsData,
       undefined,
       uidl.outputOptions.pagination
     )

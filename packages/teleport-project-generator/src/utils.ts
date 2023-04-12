@@ -51,8 +51,8 @@ const createPageUIDL = (
     fileName,
     componentName,
     pagination,
-    initialPropsResource,
-    initialPathsResource,
+    initialPropsData,
+    initialPathsData,
     dynamicRouteAttribute,
   } = pageOptions
 
@@ -107,12 +107,13 @@ const createPageUIDL = (
     node: pageContent,
     outputOptions: {
       ...outputOptions,
-      initialPropsResource,
-      initialPathsResource,
+      initialPropsData,
+      initialPathsData,
       dynamicRouteAttribute,
       pagination,
     },
     propDefinitions: pageOptions.propDefinitions,
+    stateDefinitions: pageOptions.stateDefinitions,
   }
 
   /* Adding all kinds of peer dependencies and importing css only files
@@ -173,8 +174,8 @@ export const extractPageOptions = (
     componentName: friendlyComponentName,
     pagination: pageDefinition?.pageOptions?.pagination,
     dynamicRouteAttribute: pageDefinition?.pageOptions?.dynamicRouteAttribute,
-    initialPropsResource: pageDefinition?.pageOptions?.initialPropsResource,
-    initialPathsResource: pageDefinition?.pageOptions?.initialPathsResource,
+    initialPropsData: pageDefinition?.pageOptions?.initialPropsData,
+    initialPathsData: pageDefinition?.pageOptions?.initialPathsData,
     navLink: pageDefinition?.pageOptions?.fallback
       ? '**'
       : '/' + (isHomePage ? '' : friendlyFileName),

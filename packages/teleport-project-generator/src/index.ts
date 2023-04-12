@@ -155,6 +155,7 @@ export class ProjectGenerator implements ProjectGenerator {
     }
 
     const projectContexts = {}
+    const projectResources = {}
 
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
@@ -165,6 +166,7 @@ export class ProjectGenerator implements ProjectGenerator {
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
         projectContexts,
+        projectResources,
         rootFolder,
       })
 
@@ -265,7 +267,7 @@ export class ProjectGenerator implements ProjectGenerator {
         }
       }
 
-      Object.assign(pageOptions, { projectContexts })
+      Object.assign(pageOptions, { projectContexts, projectResources })
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -351,7 +353,7 @@ export class ProjectGenerator implements ProjectGenerator {
         }
       }
 
-      Object.assign(componentOptions, { projectContexts })
+      Object.assign(componentOptions, { projectContexts, projectResources })
 
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({

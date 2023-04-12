@@ -73,14 +73,14 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
-  RemoteResource,
-  StaticResource,
   ResourceValue,
   ResourceUrlParams,
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
   VCMSListUIDLElementNode,
-  UIDLCMSListDataSource,
+  Resource,
+  InitialPropsData,
+  InitialPathsData,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -129,12 +129,7 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   )
 )
 
-const remoteResource: Decoder<RemoteResource> = object({
-  type: constant('remote'),
-  exposeAs: object({
-    name: string(),
-    valuePath: optional(array(string())),
-  }),
+export const resourceDecoder: Decoder<Resource> = object({
   baseUrl: resourceValueDecoder,
   urlParams: optional(
     union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())
@@ -143,16 +138,21 @@ const remoteResource: Decoder<RemoteResource> = object({
   route: optional(resourceValueDecoder),
 })
 
-const staticResource: Decoder<StaticResource> = object({
-  type: constant('static'),
+export const initialPropsDecoder: Decoder<InitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
   }),
-  value: union(string(), number(), boolean(), dict(string()), array(dict(string()))),
+  resource: resourceDecoder,
 })
 
-export const resourceDecoder = union(remoteResource, staticResource)
+export const initialPathsDecoder: Decoder<InitialPathsData> = object({
+  exposeAs: object({
+    name: string(),
+    valuePath: optional(array(string())),
+  }),
+  resource: resourceDecoder,
+})
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
   type: constant('screen-size'),
@@ -315,25 +315,6 @@ export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = obje
   pageUrlSearchParamKey: optional(string()),
 })
 
-export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
-  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
-  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
-  fileName: optional(isValidFileName() as unknown as Decoder<string>),
-  fallback: optional(boolean()),
-  dynamicRouteAttribute: optional(string()),
-  isIndex: optional(boolean()),
-  pagination: optional(pageOptionsPaginationDecoder),
-  initialPropsResource: optional(resourceDecoder),
-  initialPathsResource: optional(resourceDecoder),
-  propDefinitions: optional(dict(propDefinitionsDecoder)),
-})
-
-export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
-  value: union(string(), number(), boolean()),
-  pageOptions: optional(pageOptionsDecoder),
-  seo: optional(componentSeoDecoder),
-})
-
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
   type: union(
     constant('string'),
@@ -345,6 +326,26 @@ export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
     constant('children')
   ),
   defaultValue: stateOrPropDefinitionDecoder,
+})
+
+export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
+  componentName: optional(isValidComponentName() as unknown as Decoder<string>),
+  navLink: optional(isValidNavLink() as unknown as Decoder<string>),
+  fileName: optional(isValidFileName() as unknown as Decoder<string>),
+  fallback: optional(boolean()),
+  dynamicRouteAttribute: optional(string()),
+  isIndex: optional(boolean()),
+  pagination: optional(pageOptionsPaginationDecoder),
+  initialPropsData: optional(initialPropsDecoder),
+  initialPathsData: optional(initialPathsDecoder),
+  propDefinitions: optional(dict(propDefinitionsDecoder)),
+  stateDefinitions: optional(dict(stateDefinitionsDecoder)),
+})
+
+export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
+  value: union(string(), number(), boolean()),
+  pageOptions: optional(pageOptionsDecoder),
+  seo: optional(componentSeoDecoder),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({
@@ -406,15 +407,6 @@ export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   importReferenceDecoder,
   rawValueDecoder,
   lazy(() => uidlComponentStyleReference)
-)
-
-export const cmsListDataSourceValueDecoder: Decoder<UIDLCMSListDataSource> = union(
-  dynamicValueDecoder,
-  object({
-    type: constant('remote'),
-    contentType: string(),
-    cmsType: string(),
-  })
 )
 
 export const uidlComponentStyleReference: Decoder<UIDLComponentStyleReference> = object({
@@ -650,7 +642,11 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
     node: lazy(() => elementNodeDecoder),
-    dataSource: optional(attributeValueDecoder),
+    resourceId: optional(string()),
+    statePersistanceName: optional(string()),
+    valuePath: optional(array(string())),
+    loadingStatePersistanceName: optional(string()),
+    errorStatePersistanceName: optional(string()),
   }),
 })
 
@@ -658,7 +654,10 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
     node: lazy(() => elementNodeDecoder),
-    dataSource: optional(cmsListDataSourceValueDecoder),
+    resourceId: optional(string()),
+    statePersistanceName: optional(string()),
+    loadingStatePersistanceName: optional(string()),
+    errorStatePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),
   }),

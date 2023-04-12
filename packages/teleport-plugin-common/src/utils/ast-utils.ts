@@ -471,55 +471,11 @@ export const createStateHookAST = (
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
 
-export const generateStaticResourceAST = (resource: Resource) => {
-  if (resource.type !== 'static') {
-    return null
-  }
-
-  if (Array.isArray(resource.value)) {
-    const values = resource.value.map((resVal) => {
-      const properties = Object.keys(resVal).map((key) => {
-        return types.objectProperty(types.identifier(key), types.stringLiteral(resVal[key]))
-      })
-      return types.objectExpression(properties)
-    })
-
-    return types.arrayExpression(values)
-  }
-
-  let value = null
-  switch (typeof resource.value) {
-    case 'string':
-      value = types.stringLiteral(resource.value)
-      break
-    case 'number':
-      value = types.decimalLiteral(`${resource.value}`)
-      break
-    case 'boolean':
-      value = types.booleanLiteral(resource.value)
-      break
-    case 'object':
-      const properties = Object.keys(resource.value).map((key) => {
-        const propValue = resource.value as Record<string, string>
-        return types.objectProperty(types.identifier(key), types.stringLiteral(propValue[key]))
-      })
-      value = types.objectExpression(properties)
-      break
-    default:
-      throw new Error('Unsupported resource value')
-  }
-
-  return value
-}
-
 export const generateRemoteResourceASTs = (
   resource: Resource,
   propsPrefix: string = '',
   extraUrlParamsGenerator?: () => types.ObjectProperty[]
 ) => {
-  if (resource.type !== 'remote') {
-    return null
-  }
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource)
 
@@ -700,10 +656,6 @@ const resolveUrlParamsValue = (
 }
 
 const computeAuthorizationHeaderAST = (resource: Resource) => {
-  if (resource.type !== 'remote') {
-    return null
-  }
-
   const authToken = resolveResourceValue(resource.authToken)
   if (!authToken) {
     return null
@@ -742,10 +694,6 @@ const computeAuthorizationHeaderAST = (resource: Resource) => {
 }
 
 const computeFetchUrl = (resource: Resource) => {
-  if (resource.type !== 'remote') {
-    return null
-  }
-
   const fetchBaseUrl = resolveResourceValue(resource.baseUrl)
   const resourceRoute = resolveResourceValue(resource.route)
 
@@ -755,16 +703,7 @@ const computeFetchUrl = (resource: Resource) => {
   if (baseUrlType === 'static' && routeType === 'static') {
     const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
     return types.templateLiteral(
-      [
-        types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, false),
-        types.templateElement(
-          {
-            cooked: '',
-            raw: '',
-          },
-          true
-        ),
-      ],
+      [types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true)],
       []
     )
   }
