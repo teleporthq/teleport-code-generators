@@ -1,6 +1,6 @@
 {
     "name": "@teleporthq/teleport-project-plugin-parse-embed",
-    "version": "0.25.4",
+    "version": "0.26.0",
     "description": "A plugin for extracting the html embeds into seperate files",
     "author": "teleportHQ",
     "license": "MIT",

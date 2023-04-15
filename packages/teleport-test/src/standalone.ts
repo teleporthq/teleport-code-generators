@@ -1,4 +1,3 @@
-// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -18,7 +17,7 @@ import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plug
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
-import { pluginParseEmbed } from '../../teleport-project-plugin-parse-embed'
+import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -65,36 +64,35 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
-
-    /* Plain Html Generator */
-
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.HTML,
-        plugins: [pluginParseEmbed],
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return ProjectType.HTML
-    })
 
     /* Styled JSX */
     await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
-        plugins: [pluginParseEmbed],
+        plugins: [new ProjectPluginParseEmbed()],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
     })
 
-    // /* Frameworks using Css-Modules */
+    /* Plain Html Generator */
+    await log(async () => {
+      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.HTML,
+        plugins: [new ProjectPluginParseEmbed()],
+      })
+      console.info(ProjectType.HTML, '-', result.payload)
+      return ProjectType.HTML
+    })
+
+    /* Frameworks using Css-Modules */
 
     await log(async () => {
       result = await packProject(projectUIDL, {
@@ -110,13 +108,13 @@ const run = async () => {
       return `Next - CSSModules`
     })
 
-    // /* Frameworks use CSS */
+    /* Frameworks use CSS */
 
     await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.REACT,
-        plugins: [pluginParseEmbed],
+        plugins: [new ProjectPluginParseEmbed()],
       })
       console.info(ProjectType.REACT, '-', result.payload)
       return ProjectType.REACT
@@ -161,7 +159,7 @@ const run = async () => {
       return `NEXT - React-JSS`
     })
 
-    // /* Styled Components */
+    /* Styled Components */
     await log(async () => {
       result = await packProject(reactProjectUIDL, {
         ...packerOptions,
@@ -295,7 +293,6 @@ const run = async () => {
         ...packerOptions,
         projectType: ProjectType.HTML,
         plugins: [
-          pluginParseEmbed,
           new ProjectPluginTailwind({
             framework: ProjectType.HTML,
             path: [''],
@@ -307,8 +304,8 @@ const run = async () => {
         },
       })
 
-      console.info(ProjectType.NUXT, '+' + 'tailwind', '-', result.payload)
-      return `HTML - Tailwind`
+      console.info(ProjectType.HTML, '+' + 'tailwind', '-', result.payload)
+      return `Html - Tailwind`
     })
   } catch (e) {
     console.info(e)

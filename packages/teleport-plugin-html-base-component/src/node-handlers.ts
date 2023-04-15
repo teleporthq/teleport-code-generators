@@ -407,7 +407,7 @@ const handleAttributes = (
     }
 
     if (attrValue.type === 'raw') {
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content)
       return
     }
 
