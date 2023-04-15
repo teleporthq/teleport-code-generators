@@ -33,9 +33,11 @@ describe('Image Resolution', () => {
   it('resolves all local assets to be refered from public folder', async () => {
     const generator = createHTMLProjectGenerator()
     generator.setAssets({
-      mappings: {},
+      mappings: {
+        'kitten.png': '',
+      },
       identifier: 'playground_assets',
-      prefix: '/public',
+      prefix: 'public',
     })
     const { files } = await generator.generateProject(uidlWithImages)
 

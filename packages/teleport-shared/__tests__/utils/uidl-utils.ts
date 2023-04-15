@@ -474,6 +474,24 @@ describe('prefixAssetsPath', () => {
       })
     ).toBe('/no/identifier/custom/kitten.png')
   })
+
+  it('returns the original string appended with custom path for the asset without identifier', () => {
+    expect(
+      prefixAssetsPath('/kitten.png', {
+        prefix: '/noidentifier',
+        mappings: { 'kitten.png': 'custom' },
+      })
+    ).toBe('/noidentifier/custom/kitten.png')
+  })
+
+  it('returns the original string appended with prefix without identifier', () => {
+    expect(
+      prefixAssetsPath('/kitten.png', {
+        prefix: '/noidentifier',
+        mappings: { 'kitten.png': '' },
+      })
+    ).toBe('/noidentifier/kitten.png')
+  })
 })
 
 const nodeToTraverse = elementNode(

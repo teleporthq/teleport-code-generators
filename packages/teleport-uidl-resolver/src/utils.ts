@@ -369,6 +369,17 @@ export const prefixAssetURLs = <
             staticContent.indexOf('url(') === -1
               ? staticContent
               : staticContent.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+
+          /*
+            background image such as gradient shouldn't be urls
+            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+            but we don't compute and generate a url)
+          */
+          if (!asset.startsWith('/')) {
+            acc[styleKey] = styleValue
+            return acc
+          }
+
           const url = UIDLUtils.prefixAssetsPath(asset, assets)
           const newStyleValue = `url("${url}")`
           acc[styleKey] = {
@@ -488,6 +499,40 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
     Object.keys(uidl.stateDefinitions).forEach((state) => {
       if (illegalPropNames.includes(state)) {
         throw new Error(`Illegal state key '${state}'`)
+      }
+    })
+  }
+}
+
+export const checkForDefaultPropsContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.propDefinitions) {
+    Object.keys(uidl.propDefinitions).forEach((prop) => {
+      const propDefaultValue = uidl.propDefinitions[prop].defaultValue
+      if (typeof propDefaultValue === 'string' && assets) {
+        uidl.propDefinitions[prop].defaultValue = UIDLUtils.prefixAssetsPath(
+          propDefaultValue,
+          assets
+        )
+      }
+    })
+  }
+}
+
+export const checkForDefaultStateValueContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.stateDefinitions) {
+    Object.keys(uidl.stateDefinitions).forEach((state) => {
+      const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
+      if (typeof stateDefaultValue === 'string' && assets) {
+        uidl.stateDefinitions[state].defaultValue = UIDLUtils.prefixAssetsPath(
+          stateDefaultValue,
+          assets
+        )
       }
     })
   }
