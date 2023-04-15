@@ -18,6 +18,7 @@ import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
+import { ProjectPluginExternalEmbed } from '@teleporthq/teleport-project-plugin-external-embed'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
@@ -70,17 +71,6 @@ const run = async () => {
 
     let result
 
-    /* Styled JSX */
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.NEXT,
-        plugins: [new ProjectPluginParseEmbed()],
-      })
-      console.info(ProjectType.NEXT, '-', result.payload)
-      return ProjectType.NEXT
-    })
-
     /* Plain Html Generator */
     await log(async () => {
       result = await packProject(projectUIDL as unknown as ProjectUIDL, {
@@ -90,6 +80,17 @@ const run = async () => {
       })
       console.info(ProjectType.HTML, '-', result.payload)
       return ProjectType.HTML
+    })
+
+    /* Styled JSX */
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [new ProjectPluginParseEmbed()],
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
     })
 
     /* Frameworks using Css-Modules */
@@ -121,7 +122,11 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NUXT,
+        plugins: [new ProjectPluginExternalEmbed()],
+      })
       console.info(ProjectType.NUXT, '-', result.payload)
       return ProjectType.NUXT
     })
@@ -130,6 +135,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.VUE,
+        plugins: [new ProjectPluginExternalEmbed()],
       })
       console.info(ProjectType.VUE, '-', result.payload)
       return ProjectType.VUE
@@ -139,6 +145,7 @@ const run = async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.ANGULAR,
+        plugins: [new ProjectPluginExternalEmbed()],
       })
       console.info(ProjectType.ANGULAR, '-', result.payload)
       return ProjectType.ANGULAR
@@ -236,6 +243,7 @@ const run = async () => {
         ...packerOptions,
         projectType: ProjectType.VUE,
         plugins: [
+          new ProjectPluginExternalEmbed(),
           new ProjectPluginTailwind({
             framework: ProjectType.VUE,
           }),
@@ -255,6 +263,7 @@ const run = async () => {
         ...packerOptions,
         projectType: ProjectType.ANGULAR,
         plugins: [
+          new ProjectPluginExternalEmbed(),
           new ProjectPluginTailwind({
             framework: ProjectType.ANGULAR,
           }),
@@ -274,6 +283,7 @@ const run = async () => {
         ...packerOptions,
         projectType: ProjectType.NUXT,
         plugins: [
+          new ProjectPluginExternalEmbed(),
           new ProjectPluginTailwind({
             framework: ProjectType.NUXT,
           }),
@@ -293,6 +303,7 @@ const run = async () => {
         ...packerOptions,
         projectType: ProjectType.HTML,
         plugins: [
+          new ProjectPluginParseEmbed(),
           new ProjectPluginTailwind({
             framework: ProjectType.HTML,
             path: [''],

@@ -7,7 +7,7 @@ import {
 } from '@teleporthq/teleport-types'
 import path from 'path'
 
-class ProjectPluginExternalEmbed implements ProjectPlugin {
+export class ProjectPluginExternalEmbed implements ProjectPlugin {
   remapEmbed(element: UIDLElement, structure: ProjectPluginStructure) {
     if (element.elementType === 'html-node' && 'html' in element?.attrs) {
       const content = element?.attrs?.html?.content as string

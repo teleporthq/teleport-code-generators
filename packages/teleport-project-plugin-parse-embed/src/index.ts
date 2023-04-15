@@ -59,16 +59,18 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     node: UIDLElementNode,
     id: SUPPORTED_PROJECT_TYPES
   ): Promise<boolean> {
+    const fromHtml = (await import('hast-util-from-html')).fromHtml
+    const hastToJsxOrHtml = await NODE_MAPPER[id]
+
     return new Promise((resolve, reject) => {
-      let shouldAddJSDependency = false
       try {
+        let shouldAddJSDependency = false
         UIDLUtils.traverseElements(node, async (element) => {
           if (element.elementType === 'html-node' && element.attrs?.html && NODE_MAPPER[id]) {
-            const fromHtml = (await import('hast-util-from-html')).fromHtml
             const hastNodes = fromHtml(element.attrs.html.content as string, {
               fragment: true,
             })
-            const content = (await NODE_MAPPER[id])(hastNodes)
+            const content = hastToJsxOrHtml(hastNodes)
 
             element.elementType = 'container'
             element.attrs = {}
@@ -85,7 +87,6 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
             }
           }
         })
-
         resolve(shouldAddJSDependency)
       } catch (error) {
         reject(error)
