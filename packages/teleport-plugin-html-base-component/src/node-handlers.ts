@@ -425,7 +425,7 @@ const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
 ): string => {
-  const usedReferenceValue = definitions[key]
+  const usedReferenceValue = definitions[key.includes('.') ? key.split('.')[0] : key]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(
@@ -443,7 +443,7 @@ const getValueFromReference = (
     )
   }
 
-  if (!['string', 'number'].includes(usedReferenceValue?.type)) {
+  if (!['string', 'number', 'object'].includes(usedReferenceValue?.type)) {
     throw new HTMLComponentGeneratorError(
       `Attribute is using dynamic value, but received of type ${JSON.stringify(
         usedReferenceValue,
