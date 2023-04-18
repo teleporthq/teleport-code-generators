@@ -81,6 +81,7 @@ import {
   Resource,
   InitialPropsData,
   InitialPathsData,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -111,6 +112,11 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
   }),
 })
 
+export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
+  type: constant('expression'),
+  content: string(),
+})
+
 export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   type: constant('static'),
   content: union(string(), number(), boolean(), array()),
@@ -125,6 +131,7 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   union(
     staticValueDecoder,
     dynamicValueDecoder,
+    expressionValueDecoder,
     array(union(staticValueDecoder, dynamicValueDecoder))
   )
 )
@@ -142,6 +149,7 @@ export const initialPropsDecoder: Decoder<InitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
   }),
   resource: resourceDecoder,
 })
@@ -150,6 +158,7 @@ export const initialPathsDecoder: Decoder<InitialPathsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
   }),
   resource: resourceDecoder,
 })
@@ -312,7 +321,6 @@ export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = obje
   attribute: string(),
   pageSize: number(),
   totalCountPath: optional(array(string())),
-  pageUrlSearchParamKey: optional(string()),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
