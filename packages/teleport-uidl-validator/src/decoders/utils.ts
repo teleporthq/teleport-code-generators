@@ -14,6 +14,7 @@ import {
   intersection,
   unknownJson,
   withDefault,
+  anyJson,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -81,6 +82,7 @@ import {
   Resource,
   InitialPropsData,
   InitialPathsData,
+  UIDLDynamicLinkNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -446,6 +448,15 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   }),
 })
 
+export const dynamicLinkDecoder: Decoder<UIDLDynamicLinkNode> = object({
+  type: constant('dynamic'),
+  content: object({
+    refType: constant('expr'),
+    expression: string(),
+    scope: dict(union(staticValueDecoder, dynamicValueDecoder)),
+  }),
+})
+
 export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
   content: dict(string()),
@@ -479,7 +490,8 @@ export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   sectionLinkNodeDecoder,
   navLinkNodeDecoder,
   uidlMailLinkNodeDecoder,
-  phoneLinkNodeDecoder
+  phoneLinkNodeDecoder,
+  dynamicLinkDecoder
 )
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
@@ -566,7 +578,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   events: optional(dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
-      link: optional(uidlLinkNodeDecoder),
+      link: optional(anyJson()),
     })
   ),
   children: optional(array(lazy(() => uidlNodeDecoder))),

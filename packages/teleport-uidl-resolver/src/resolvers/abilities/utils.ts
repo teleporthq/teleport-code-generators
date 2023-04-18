@@ -136,6 +136,11 @@ const createLinkAttributes = (
       }
     }
 
+    case 'dynamic':
+      return {
+        transitionTo: link,
+      }
+
     case 'navlink': {
       return {
         transitionTo: {

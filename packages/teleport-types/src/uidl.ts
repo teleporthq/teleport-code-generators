@@ -249,15 +249,35 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'ctx'
+export type ReferenceType =
+  | 'prop'
+  | 'state'
+  | 'local'
+  | 'attr'
+  | 'children'
+  | 'token'
+  | 'ctx'
+  | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
-  content: {
-    referenceType: ReferenceType
-    path?: string[]
-    id: string
-  }
+  content:
+    | {
+        referenceType: Exclude<ReferenceType, 'expr' | 'ctx'>
+        path?: string[]
+        id: string
+      }
+    | {
+        referenceType: 'expr'
+        expression: string
+        scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
+      }
+    | {
+        referenceType: 'ctx'
+        ctxId: string
+        path?: string[]
+        id: string
+      }
 }
 
 export interface UIDLStaticValue {
@@ -418,6 +438,11 @@ export interface UIDLURLLinkNode {
   }
 }
 
+// for now only links will have this express
+// type for dynamic content, but in the future
+// all dynamic content will be handled this way
+export type UIDLDynamicLinkNode = UIDLDynamicReference
+
 export interface UIDLSectionLinkNode {
   type: 'section'
   content: { section: string }
@@ -446,6 +471,7 @@ export type UIDLLinkNode =
   | UIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
+  | UIDLDynamicLinkNode
 
 export interface UIDLPropCallEvent {
   type: 'propCall'
