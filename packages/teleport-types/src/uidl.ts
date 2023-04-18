@@ -26,12 +26,23 @@ export interface ContextsUIDL {
   items?: Record<string, ContextUIDLItem>
 }
 
+export interface ResourceItemUIDL extends Resource {
+  id: string
+  name: string
+}
+
+export interface ResourcesUIDL {
+  rootFolder?: string
+  items?: Record<string, ResourceItemUIDL>
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
   contexts?: ContextsUIDL
+  resources?: ResourcesUIDL
 }
 
 export interface UIDLGlobalProjectValues {
@@ -120,13 +131,6 @@ interface ResourceEnvValue {
 
 export type ResourceValue = ResourceStaticValue | ResourceEnvValue
 
-interface ResourceBase {
-  exposeAs: {
-    name: string
-    valuePath?: string[]
-  }
-}
-
 export type ResourceUrlValues =
   | Array<UIDLStaticValue | UIDLDynamicReference>
   | UIDLStaticValue
@@ -136,20 +140,12 @@ export interface ResourceUrlParams {
   [key: string]: ResourceUrlValues
 }
 
-export interface RemoteResource extends ResourceBase {
-  type: 'remote'
+export interface Resource {
   baseUrl: ResourceValue
   route?: ResourceValue
   authToken?: ResourceValue
   urlParams?: ResourceUrlParams | unknown
 }
-
-export interface StaticResource extends ResourceBase {
-  type: 'static'
-  value: string | number | boolean | Record<string, string> | Array<Record<string, string>>
-}
-
-export type Resource = RemoteResource | StaticResource
 
 export interface ComponentUIDL {
   name: string
@@ -167,6 +163,23 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
+
+export interface InitialPropsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+  }
+  resource: Resource
+}
+
+export interface InitialPathsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+  }
+  resource: Resource
+}
+
 export interface UIDLComponentOutputOptions {
   componentClassName?: string // needs to be a valid class name
   fileName?: string // needs to be a valid file name
@@ -176,8 +189,8 @@ export interface UIDLComponentOutputOptions {
   folderPath?: string[]
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
-  initialPropsResource?: Resource
-  initialPathsResource?: Resource
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
 }
 
 export interface UIDLComponentSEO {
@@ -230,9 +243,10 @@ export interface UIDLPageOptions {
   dynamicRouteAttribute?: string
   isIndex?: boolean
   pagination?: PagePaginationOptions
-  initialPropsResource?: Resource
-  initialPathsResource?: Resource
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
 export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'ctx'
@@ -276,18 +290,21 @@ export interface UIDLCMSItemNode {
 
 export interface UIDLCMSListNodeContent {
   node: UIDLElementNode
-  dataSource: UIDLCMSListDataSource
+  resourceId?: string
+  statePersistanceName?: string
+  loadingStatePersistanceName?: string
+  errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   itemValuePath?: string[]
 }
 
-export type UIDLCMSListDataSource =
-  | UIDLDynamicReference
-  | { type: 'remote'; contentType: string; cmsType: string }
-
 export interface UIDLCMSItemNodeContent {
   node: UIDLElementNode
-  dataSource: UIDLAttributeValue
+  resourceId?: string
+  statePersistanceName?: string
+  loadingStatePersistanceName?: string
+  errorStatePersistanceName?: string
+  valuePath?: string[]
 }
 
 export interface UIDLNestedStyleDeclaration {

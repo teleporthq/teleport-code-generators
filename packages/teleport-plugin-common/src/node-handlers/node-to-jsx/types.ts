@@ -5,6 +5,7 @@ import {
   UIDLDependency,
   UIDLStateDefinition,
   ProjectContext,
+  ProjectResource,
 } from '@teleporthq/teleport-types'
 
 export interface JSXGenerationParams {
@@ -13,6 +14,7 @@ export interface JSXGenerationParams {
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, UIDLDependency>
   projectContexts?: Record<string, ProjectContext>
+  projectResources?: Record<string, ProjectResource>
 }
 
 export interface JSXGenerationOptions {

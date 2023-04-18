@@ -1,17 +1,19 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { PagePaginationOptions, Resource } from '@teleporthq/teleport-types'
+import { InitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPropsAST = (
-  resource: Resource,
+  initialPropsData: InitialPropsData,
   propsPrefix = '',
   isDetailsPage = false,
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST =
-    resource.type === 'static'
-      ? [computeStaticValuePropsAST(resource)]
-      : computeRemoteValuePropsAST(resource, propsPrefix, isDetailsPage, pagination)
+  const computedResourceAST = computePropsAST(
+    initialPropsData,
+    propsPrefix,
+    isDetailsPage,
+    pagination
+  )
 
   return types.exportNamedDeclaration(
     (() => {
@@ -29,38 +31,12 @@ export const generateInitialPropsAST = (
   )
 }
 
-const computeStaticValuePropsAST = (resource: Resource) => {
-  if (resource.type !== 'static') {
-    return null
-  }
-
-  const resultAST = ASTUtils.generateStaticResourceAST(resource)
-
-  return types.returnStatement(
-    types.objectExpression([
-      types.objectProperty(
-        types.identifier('props'),
-        types.objectExpression([
-          types.objectProperty(types.identifier(resource.exposeAs.name), resultAST, false, false),
-        ]),
-        false,
-        false
-      ),
-      types.objectProperty(types.identifier('revalidate'), types.numericLiteral(1), false, false),
-    ])
-  )
-}
-
-const computeRemoteValuePropsAST = (
-  resource: Resource,
+const computePropsAST = (
+  propsData: InitialPropsData,
   propsPrefix = '',
   isDetailsPage = false,
   pagination?: PagePaginationOptions
 ) => {
-  if (resource.type !== 'remote') {
-    return null
-  }
-
   const currentPageAST = pagination
     ? types.variableDeclaration('const', [
         types.variableDeclarator(
@@ -74,7 +50,7 @@ const computeRemoteValuePropsAST = (
       ])
     : null
 
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, propsPrefix, () => {
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(propsData.resource, propsPrefix, () => {
     if (!pagination) {
       return [] as types.ObjectProperty[]
     }
@@ -101,7 +77,7 @@ const computeRemoteValuePropsAST = (
         types.identifier('props'),
         types.objectExpression([
           types.objectProperty(
-            types.identifier(resource.exposeAs.name),
+            types.identifier(propsData.exposeAs.name),
             isDetailsPage && !pagination
               ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
               : responseMemberAST,

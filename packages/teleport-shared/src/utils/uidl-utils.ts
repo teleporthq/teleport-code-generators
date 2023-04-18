@@ -22,6 +22,7 @@ import {
   UIDLComponentStyleReference,
   UIDLRootComponent,
   ProjectContext,
+  Resource,
 } from '@teleporthq/teleport-types'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
@@ -182,7 +183,6 @@ export const traverseNodes = (
 
     case 'cms-item':
       traverseNodes(node.content.node, fn, node)
-      traverseNodes(node.content.dataSource, fn, node)
       break
 
     case 'repeat':
@@ -211,6 +211,56 @@ export const traverseNodes = (
     default:
       throw new Error(
         `traverseNodes was given an unsupported node type: ${JSON.stringify(node, null, 2)}`
+      )
+  }
+}
+
+export const traverseResources = (
+  node: UIDLNode,
+  fn: (node: Resource, parentNode: UIDLNode) => void
+) => {
+  switch (node.type) {
+    case 'element':
+      const { children } = node.content
+
+      if (children) {
+        children.forEach((child) => {
+          traverseResources(child, fn)
+        })
+      }
+      break
+
+    case 'cms-list':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'cms-item':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'repeat':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'conditional':
+      traverseResources(node.content.node, fn)
+      break
+
+    case 'slot':
+      if (node.content.fallback) {
+        traverseResources(node.content.fallback, fn)
+      }
+      break
+
+    case 'static':
+    case 'dynamic':
+    case 'import':
+    case 'raw':
+      break
+
+    default:
+      throw new Error(
+        `traverseResources was given an unsupported node type: ${JSON.stringify(node, null, 2)}`
       )
   }
 }
@@ -285,12 +335,10 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       break
 
     case 'cms-list':
-      fn(node.content as UIDLRepeatContent)
       traverseRepeats(node.content.node, fn)
       break
 
     case 'cms-item':
-      fn(node.content)
       traverseRepeats(node.content.node, fn)
       break
 

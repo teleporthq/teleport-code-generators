@@ -68,6 +68,7 @@ import {
 } from '@teleporthq/teleport-component-generator-html'
 import { isNodeProcess } from './utils'
 import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
+import { ProjectPluginApiRoutes } from '@teleporthq/teleport-project-plugin-api-routes'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -140,6 +141,7 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.NEXT) {
     projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
+    projectGeneratorFactory.addPlugin(new ProjectPluginApiRoutes({ framework: ProjectType.NEXT }))
   }
 
   if (projectType === ProjectType.NUXT) {

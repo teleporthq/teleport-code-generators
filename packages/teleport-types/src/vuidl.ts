@@ -37,7 +37,6 @@ import {
   UIDLRootComponent,
   UIDLCMSItemNode,
   UIDLCMSListNode,
-  UIDLCMSListDataSource,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -49,7 +48,11 @@ export interface VCMSItemUIDLElementNode
     {
       content: {
         node: VUIDLElementNode
-        dataSource?: UIDLAttributeValue
+        resourceId?: string
+        statePersistanceName?: string
+        valuePath?: string[]
+        loadingStatePersistanceName?: string
+        errorStatePersistanceName?: string
       }
     }
   > {}
@@ -60,9 +63,12 @@ export interface VCMSListUIDLElementNode
     {
       content: {
         node: VUIDLElementNode
-        dataSource?: UIDLCMSListDataSource
+        resourceId?: string
         loopItemsReference?: UIDLAttributeValue
         itemValuePath?: string[]
+        statePersistanceName?: string
+        loadingStatePersistanceName?: string
+        errorStatePersistanceName?: string
       }
     }
   > {}
