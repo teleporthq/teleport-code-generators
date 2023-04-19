@@ -26,6 +26,7 @@ import {
   addDynamicAttributeToJSXTag,
   addRawAttributeToJSXTag,
   addDynamicExpressionAttributeToJSXTag,
+  addDynamicCtxAttributeToJSXTag,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -82,10 +83,21 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
             content: { id, referenceType },
           } = attributeValue
           const prefix =
-            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
+            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local' | 'ctx']
 
           if (referenceType === 'expr') {
             addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, params)
+            break
+          }
+
+          if (referenceType === 'ctx') {
+            addDynamicCtxAttributeToJSXTag({
+              jsxASTNode: elementTag,
+              name: attrKey,
+              attrValue: attributeValue,
+              options: jsxOptions,
+              generationParams: params,
+            })
             break
           }
 
@@ -139,6 +151,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 export default generateElementNode
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
+  // console.log('generateNode', node)
+
   switch (node.type) {
     case 'raw':
       return options.domHTMLInjection

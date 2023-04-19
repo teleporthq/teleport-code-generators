@@ -2374,22 +2374,22 @@
                   {
                     "type": "element",
                     "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
+                      "elementType": "image",
                       "referencedStyles": {},
                       "abilities": {},
-                      "children": [
-                        {
+                      "attrs": {
+                        "src": {
                           "type": "dynamic",
                           "content": {
                             "id": "ba0219ad-57c7-491a-90ca-6f7d0423a7a5",
                             "referenceType": "ctx",
                             "path": [
-                              "Description"
+                              "Image"
                             ]
                           }
                         }
-                      ]
+                      },
+                      "children": []
                     }
                   },
                   {
