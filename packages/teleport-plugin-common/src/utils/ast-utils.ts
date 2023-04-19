@@ -621,7 +621,7 @@ const resolveDynamicValuesFromUrlParams = (
     return
   }
 
-  if (field.type === 'dynamic' || field.type === 'static' || field.type === 'expression') {
+  if (field.type === 'dynamic' || field.type === 'static' || field.type === 'expr') {
     query[prefix] = resolveUrlParamsValue(field, propsPrefix)
     return
   }
@@ -647,7 +647,7 @@ const resolveUrlParamsValue = (
     return types.stringLiteral(`${urlParams.content}`)
   }
 
-  if (urlParams.type === 'expression') {
+  if (urlParams.type === 'expr') {
     return types.identifier(urlParams.content)
   }
 

@@ -113,7 +113,7 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
 })
 
 export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
-  type: constant('expression'),
+  type: constant('expr'),
   content: string(),
 })
 
@@ -653,6 +653,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
   }),
@@ -667,6 +668,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
+    valuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),
   }),
 })

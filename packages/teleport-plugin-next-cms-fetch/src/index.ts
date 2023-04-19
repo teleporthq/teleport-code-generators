@@ -10,6 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { Constants, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -94,6 +95,9 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
 
 const computeUseEffectAST = (params: ComputeUseEffectParams) => {
   const { resource, node, setStateName, setErrorStateName, setLoadingStateName } = params
+  if (node.type !== 'cms-item' && node.type !== 'cms-list') {
+    throw new Error('Invalid node type passed to computeUseEffectAST')
+  }
 
   const apiFetchAST = types.variableDeclaration('const', [
     types.variableDeclarator(
@@ -151,13 +155,19 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
                           node.type === 'cms-item'
                             ? types.memberExpression(
                                 types.memberExpression(
-                                  types.identifier('response.data'),
+                                  ASTUtils.generateMemberExpressionASTFromPath([
+                                    'response',
+                                    ...(node.content.valuePath || []),
+                                  ]),
                                   types.numericLiteral(0),
                                   true
                                 ),
-                                types.identifier((node.content.valuePath || []).join('.'))
+                                types.identifier((node.content.itemValuePath || []).join('.'))
                               )
-                            : types.identifier('response.data'),
+                            : ASTUtils.generateMemberExpressionASTFromPath([
+                                'response',
+                                ...(node.content.valuePath || []),
+                              ]),
                         ])
                       ),
                     ])

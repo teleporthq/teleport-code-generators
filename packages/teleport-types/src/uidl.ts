@@ -260,7 +260,7 @@ export interface UIDLDynamicReference {
 }
 
 export interface UIDLExpressionValue {
-  type: 'expression'
+  type: 'expr'
   content: string
 }
 
@@ -299,6 +299,7 @@ export interface UIDLCMSListNodeContent {
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
+  valuePath?: string[]
   itemValuePath?: string[]
 }
 
@@ -309,6 +310,7 @@ export interface UIDLCMSItemNodeContent {
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
   valuePath?: string[]
+  itemValuePath?: string[]
 }
 
 export interface UIDLNestedStyleDeclaration {

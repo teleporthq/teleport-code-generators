@@ -457,7 +457,41 @@
                 }
               ]
             },
-            "pageOptions": {}
+            "pageOptions": {
+              "stateDefinitions": {
+                "BookEntity": {
+                  "id": "5fe08795-d9d6-4238-b5e2-30ab744ff153",
+                  "defaultValue": {},
+                  "type": "object"
+                },
+                "BookEntityLoading": {
+                  "id": "b12382a9-d257-4184-82e3-a6bf363ed7d9",
+                  "defaultValue": false,
+                  "type": "boolean"
+                },
+                "BookEntityError": {
+                  "id": "dda15181-abda-4b28-b267-3e992f4a4813",
+                  "defaultValue": false,
+                  "type": "boolean"
+                },
+                "BookList": {
+                  "id": "431c6a9d-d06e-414c-bd36-616984999d1f",
+                  "defaultValue": [],
+                  "type": "array"
+                },
+                "BookListLoading": {
+                  "id": "d433e7bd-fd45-4b37-b369-08346f5ad811",
+                  "defaultValue": false,
+                  "type": "boolean"
+                },
+                "BookListError": {
+                  "id": "465e13ce-e142-4fc7-a75f-975eae808fc8",
+                  "defaultValue": false,
+                  "type": "boolean"
+                }
+              },
+              "propDefinitions": {}
+            }
           },
           {
             "value": "Author/Author",
@@ -473,7 +507,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ae96b567-4cb3-45b1-a472-72542505d3b3",
+                  "id": "4e5d0ea9-c52a-4d51-ab53-ae3154450814",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -501,6 +535,10 @@
                     "content_type": {
                       "type": "static",
                       "content": "author"
+                    },
+                    "limit": {
+                      "type": "expr",
+                      "content": "10"
                     }
                   },
                   "route": {
@@ -525,7 +563,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ae96b567-4cb3-45b1-a472-72542505d3b3",
+                  "id": "4e5d0ea9-c52a-4d51-ab53-ae3154450814",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -581,9 +619,7 @@
                   "valuePath": [
                     "items"
                   ],
-                  "itemValuePath": [
-                    "fields"
-                  ]
+                  "itemValuePath": []
                 },
                 "resource": {
                   "baseUrl": {
@@ -599,24 +635,12 @@
                       "type": "static",
                       "content": "author"
                     },
-                    "sys.id": {
-                      "type": "dynamic",
-                      "content": {
-                        "id": "ae96b567-4cb3-45b1-a472-72542505d3b3",
-                        "referenceType": "prop",
-                        "value": "page",
-                        "path": [
-                          "params",
-                          "page"
-                        ]
-                      }
-                    },
                     "skip": {
-                      "type": "expression",
+                      "type": "expr",
                       "content": "(context.params.page - 1) * 10"
                     },
-                    "take": {
-                      "type": "expression",
+                    "limit": {
+                      "type": "expr",
                       "content": "10"
                     }
                   },
@@ -642,12 +666,28 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "12e1e8c5-8e86-49be-bec5-9b89e5e871c4",
+                  "id": "f411b773-eff5-440c-b892-a8357de35c6e",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
-              "stateDefinitions": {},
+              "stateDefinitions": {
+                "AuthorList": {
+                  "id": "fdb17bec-1668-4b2d-bef2-59b35b963530",
+                  "defaultValue": [],
+                  "type": "array"
+                },
+                "AuthorListLoading": {
+                  "id": "cb98f2f6-e212-4151-bc88-6368e65b0bc8",
+                  "defaultValue": false,
+                  "type": "boolean"
+                },
+                "AuthorListError": {
+                  "id": "44796866-6f74-49e9-a091-87f04eacac2e",
+                  "defaultValue": false,
+                  "type": "boolean"
+                }
+              },
               "isIndex": true,
               "initialPropsData": {
                 "exposeAs": {
@@ -670,6 +710,10 @@
                     "content_type": {
                       "type": "static",
                       "content": "book"
+                    },
+                    "limit": {
+                      "type": "expr",
+                      "content": "10"
                     }
                   },
                   "route": {
@@ -694,12 +738,28 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "12e1e8c5-8e86-49be-bec5-9b89e5e871c4",
+                  "id": "f411b773-eff5-440c-b892-a8357de35c6e",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
-              "stateDefinitions": {},
+              "stateDefinitions": {
+                "AuthorList": {
+                  "id": "fdb17bec-1668-4b2d-bef2-59b35b963530",
+                  "defaultValue": [],
+                  "type": "array"
+                },
+                "AuthorListLoading": {
+                  "id": "cb98f2f6-e212-4151-bc88-6368e65b0bc8",
+                  "defaultValue": false,
+                  "type": "boolean"
+                },
+                "AuthorListError": {
+                  "id": "44796866-6f74-49e9-a091-87f04eacac2e",
+                  "defaultValue": false,
+                  "type": "boolean"
+                }
+              },
               "isIndex": false,
               "pagination": {
                 "attribute": "page",
@@ -750,9 +810,7 @@
                   "valuePath": [
                     "items"
                   ],
-                  "itemValuePath": [
-                    "fields"
-                  ]
+                  "itemValuePath": []
                 },
                 "resource": {
                   "baseUrl": {
@@ -768,24 +826,12 @@
                       "type": "static",
                       "content": "book"
                     },
-                    "sys.id": {
-                      "type": "dynamic",
-                      "content": {
-                        "id": "12e1e8c5-8e86-49be-bec5-9b89e5e871c4",
-                        "referenceType": "prop",
-                        "value": "page",
-                        "path": [
-                          "params",
-                          "page"
-                        ]
-                      }
-                    },
                     "skip": {
-                      "type": "expression",
+                      "type": "expr",
                       "content": "(context.params.page - 1) * 10"
                     },
-                    "take": {
-                      "type": "expression",
+                    "limit": {
+                      "type": "expr",
                       "content": "10"
                     }
                   },
@@ -811,7 +857,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "fdfff942-2ff1-4d44-9479-1a9563c157bc",
+                  "id": "2c331298-319f-4469-9fe8-67e01041cc1c",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -883,7 +929,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "fdfff942-2ff1-4d44-9479-1a9563c157bc",
+                        "id": "2c331298-319f-4469-9fe8-67e01041cc1c",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -915,7 +961,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "840b6398-438b-4891-899e-e7cd6e45473c",
+                  "id": "d1060559-1506-482e-b101-6c532ac9535c",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -987,7 +1033,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "840b6398-438b-4891-899e-e7cd6e45473c",
+                        "id": "d1060559-1506-482e-b101-6c532ac9535c",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -1010,22 +1056,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "ae96b567-4cb3-45b1-a472-72542505d3b3",
+        "id": "4e5d0ea9-c52a-4d51-ab53-ae3154450814",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntities": {
-        "id": "12e1e8c5-8e86-49be-bec5-9b89e5e871c4",
+        "id": "f411b773-eff5-440c-b892-a8357de35c6e",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "fdfff942-2ff1-4d44-9479-1a9563c157bc",
+        "id": "2c331298-319f-4469-9fe8-67e01041cc1c",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntity": {
-        "id": "840b6398-438b-4891-899e-e7cd6e45473c",
+        "id": "d1060559-1506-482e-b101-6c532ac9535c",
         "defaultValue": [],
         "type": "array"
       }
@@ -1069,9 +1115,106 @@
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
                     }
                   },
-                  "children": []
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-item",
+                            "semanticType": "cms-item",
+                            "ctxId": "4f6e6cc9-db24-4873-a245-a6517a273e24",
+                            "attrs": {
+                              "value": {
+                                "type": "dynamic",
+                                "content": {
+                                  "referenceType": "state",
+                                  "id": "BookEntity"
+                                }
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "HomeDetailsContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
+                          "fields"
+                        ],
+                        "statePersistanceName": "BookEntity",
+                        "loadingStatePersistanceName": "BookEntityLoading",
+                        "errorStatePersistanceName": "BookEntityError",
+                        "resourceId": "0a17e8c4-a286-4271-bc7e-381981c23be3"
+                      }
+                    },
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "ea73461d-a0e1-4ea6-8255-cc424f1f5848",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "HomeListContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "state",
+                            "id": "BookList"
+                          }
+                        },
+                        "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
+                          "fields"
+                        ],
+                        "statePersistanceName": "BookList",
+                        "loadingStatePersistanceName": "BookListLoading",
+                        "errorStatePersistanceName": "BookListError",
+                        "resourceId": "ac1e5801-27cf-4ddf-a8ec-4fec2555bd49"
+                      }
+                    }
+                  ]
                 }
               },
               "value": "Home",
@@ -1154,6 +1297,9 @@
                             "id": "AuthorEntities"
                           }
                         },
+                        "valuePath": [
+                          "items"
+                        ],
                         "itemValuePath": [
                           "fields"
                         ],
@@ -1245,6 +1391,9 @@
                             "id": "AuthorEntities"
                           }
                         },
+                        "valuePath": [
+                          "items"
+                        ],
                         "itemValuePath": [
                           "fields"
                         ],
@@ -1336,12 +1485,60 @@
                             "id": "BookEntities"
                           }
                         },
+                        "valuePath": [
+                          "items"
+                        ],
                         "itemValuePath": [
                           "fields"
                         ],
                         "statePersistanceName": "unkwnownState",
                         "loadingStatePersistanceName": "unkwnownLoadingState",
                         "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    },
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "4e173011-ea3e-4c92-8240-49f7dbde1efd",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "BookListContent1",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "state",
+                            "id": "AuthorList"
+                          }
+                        },
+                        "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
+                          "fields"
+                        ],
+                        "statePersistanceName": "AuthorList",
+                        "loadingStatePersistanceName": "AuthorListLoading",
+                        "errorStatePersistanceName": "AuthorListError",
+                        "resourceId": "ac16d754-cc6e-4859-bcec-f8aa5b04bdd0"
                       }
                     }
                   ]
@@ -1427,12 +1624,60 @@
                             "id": "BookEntities"
                           }
                         },
+                        "valuePath": [
+                          "items"
+                        ],
                         "itemValuePath": [
                           "fields"
                         ],
                         "statePersistanceName": "unkwnownState",
                         "loadingStatePersistanceName": "unkwnownLoadingState",
                         "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    },
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "4e173011-ea3e-4c92-8240-49f7dbde1efd",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "BookListContent1",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "state",
+                            "id": "AuthorList"
+                          }
+                        },
+                        "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
+                          "fields"
+                        ],
+                        "statePersistanceName": "AuthorList",
+                        "loadingStatePersistanceName": "AuthorListLoading",
+                        "errorStatePersistanceName": "AuthorListError",
+                        "resourceId": "ac16d754-cc6e-4859-bcec-f8aa5b04bdd0"
                       }
                     }
                   ]
@@ -1521,6 +1766,9 @@
                           }
                         },
                         "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
                           "fields"
                         ],
                         "statePersistanceName": "unkwnownState",
@@ -1614,6 +1862,9 @@
                           }
                         },
                         "valuePath": [
+                          "items"
+                        ],
+                        "itemValuePath": [
                           "fields"
                         ],
                         "statePersistanceName": "unkwnownState",
@@ -1639,6 +1890,82 @@
     }
   },
   "components": {
+    "HomeDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "4f6e6cc9-db24-4873-a245-a6517a273e24",
+                      "referenceType": "ctx",
+                      "path": [
+                        "title"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "HomeDetailsContent",
+      "styleSetDefinitions": {}
+    },
+    "HomeListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "ea73461d-a0e1-4ea6-8255-cc424f1f5848",
+                      "referenceType": "ctx",
+                      "path": [
+                        "title"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "HomeListContent",
+      "styleSetDefinitions": {}
+    },
     "AuthorListContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -1865,16 +2192,8 @@
                       "abilities": {},
                       "children": [
                         {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "631a68e1-a8ef-4c12-b807-9590f9b6ac86",
-                            "referenceType": "ctx",
-                            "path": [
-                              "contentImages",
-                              "1",
-                              "name"
-                            ]
-                          }
+                          "type": "static",
+                          "content": "Heading"
                         }
                       ]
                     }
@@ -1886,6 +2205,44 @@
         }
       },
       "name": "BookListContent",
+      "styleSetDefinitions": {}
+    },
+    "BookListContent1": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "4e173011-ea3e-4c92-8240-49f7dbde1efd",
+                      "referenceType": "ctx",
+                      "path": [
+                        "name"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "BookListContent1",
       "styleSetDefinitions": {}
     },
     "AuthorDetailsContent": {
@@ -2106,16 +2463,107 @@
   },
   "resources": {
     "rootFolder": "pages/api",
-    "items": {}
+    "items": {
+      "0a17e8c4-a286-4271-bc7e-381981c23be3": {
+        "id": "0a17e8c4-a286-4271-bc7e-381981c23be3",
+        "name": "Home",
+        "baseUrl": {
+          "type": "env",
+          "value": "CMS_URL"
+        },
+        "authToken": {
+          "type": "env",
+          "value": "CMS_ACCESS_TOKEN"
+        },
+        "urlParams": {
+          "content_type": {
+            "type": "static",
+            "content": "book"
+          },
+          "sys.id": {
+            "type": "static",
+            "content": "1nuIm7L8jAzM1wWoCuFS6y"
+          }
+        },
+        "route": {
+          "type": "static",
+          "value": "entries"
+        }
+      },
+      "ac1e5801-27cf-4ddf-a8ec-4fec2555bd49": {
+        "id": "ac1e5801-27cf-4ddf-a8ec-4fec2555bd49",
+        "name": "Home1",
+        "baseUrl": {
+          "type": "env",
+          "value": "CMS_URL"
+        },
+        "authToken": {
+          "type": "env",
+          "value": "CMS_ACCESS_TOKEN"
+        },
+        "urlParams": {
+          "content_type": {
+            "type": "static",
+            "content": "book"
+          },
+          "limit": {
+            "type": "static",
+            "content": 10
+          }
+        },
+        "route": {
+          "type": "static",
+          "value": "entries"
+        }
+      },
+      "ac16d754-cc6e-4859-bcec-f8aa5b04bdd0": {
+        "id": "ac16d754-cc6e-4859-bcec-f8aa5b04bdd0",
+        "name": "Book",
+        "baseUrl": {
+          "type": "env",
+          "value": "CMS_URL"
+        },
+        "authToken": {
+          "type": "env",
+          "value": "CMS_ACCESS_TOKEN"
+        },
+        "urlParams": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "limit": {
+            "type": "static",
+            "content": 2
+          }
+        },
+        "route": {
+          "type": "static",
+          "value": "entries"
+        }
+      }
+    }
   },
   "contexts": {
     "rootFolder": "contexts",
     "items": {
+      "4f6e6cc9-db24-4873-a245-a6517a273e24": {
+        "name": "Home",
+        "fileName": "Home"
+      },
+      "ea73461d-a0e1-4ea6-8255-cc424f1f5848": {
+        "name": "Home",
+        "fileName": "Home"
+      },
       "efa95d0e-14f0-410e-974e-5506c852586e": {
         "name": "Author",
         "fileName": "Author"
       },
       "631a68e1-a8ef-4c12-b807-9590f9b6ac86": {
+        "name": "Book",
+        "fileName": "Book"
+      },
+      "4e173011-ea3e-4c92-8240-49f7dbde1efd": {
         "name": "Book",
         "fileName": "Book"
       },

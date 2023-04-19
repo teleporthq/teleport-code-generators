@@ -51,6 +51,7 @@ export interface VCMSItemUIDLElementNode
         resourceId?: string
         statePersistanceName?: string
         valuePath?: string[]
+        itemValuePath?: string[]
         loadingStatePersistanceName?: string
         errorStatePersistanceName?: string
       }
@@ -65,6 +66,7 @@ export interface VCMSListUIDLElementNode
         node: VUIDLElementNode
         resourceId?: string
         loopItemsReference?: UIDLAttributeValue
+        valuePath?: string[]
         itemValuePath?: string[]
         statePersistanceName?: string
         loadingStatePersistanceName?: string
