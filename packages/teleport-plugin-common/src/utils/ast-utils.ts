@@ -152,7 +152,7 @@ export const addDynamicExpressionAttributeToJSXTag = (
     )
   }
 
-  const theStatementOnlyWihtoutTheProgram = ast.program.body[0] as types.ExpressionStatement
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
 
   if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
     throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
