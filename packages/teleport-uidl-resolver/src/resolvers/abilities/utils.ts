@@ -101,7 +101,12 @@ export const createLinkNode = (link: UIDLLinkNode, options: GeneratorOptions): U
 }
 
 const getLinkElementType = (link: UIDLLinkNode): string => {
-  return link.type === 'navlink' ? 'navlink' : 'link'
+  // for now I'm making all dynamic links local.
+  // Maybe navlinks could have a dynamic reference,
+  // not just a staic on in the future, but for now
+  // (for the CMS demo) the navlink was too robust
+  // to change
+  return link.type === 'navlink' || link.type === 'dynamic' ? 'navlink' : 'link'
 }
 
 const createLinkAttributes = (

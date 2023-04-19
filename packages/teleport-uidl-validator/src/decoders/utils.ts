@@ -344,6 +344,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
 })
 
+// @ts-ignore
 export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
   pageOptions: optional(pageOptionsDecoder),
@@ -451,9 +452,9 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
 export const dynamicLinkDecoder: Decoder<UIDLDynamicLinkNode> = object({
   type: constant('dynamic'),
   content: object({
-    refType: constant('expr'),
-    expression: string(),
-    scope: dict(union(staticValueDecoder, dynamicValueDecoder)),
+    referenceType: referenceTypeDecoder,
+    path: optional(array(string())),
+    id: string(),
   }),
 })
 

@@ -457,334 +457,20 @@
             "pageOptions": {}
           },
           {
-            "value": "Author/Author",
+            "value": "/author/Author",
             "seo": {
               "title": "Author - Dutiful Sandy Cassowary",
               "metaTags": [
                 {
                   "property": "og:title",
                   "content": "Author - Dutiful Sandy Cassowary"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "AuthorEntities": {
-                  "id": "2b7e725c-97ea-431f-a8ec-a5c0c56c0fbb",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": true,
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "AuthorEntities"
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "populate": {
-                      "type": "static",
-                      "content": "*"
-                    },
-                    "pagination": {
-                      "pageSize": {
-                        "type": "static",
-                        "content": 10
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Author"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "value": "Author/page/Author",
-            "seo": {
-              "title": "Author - Dutiful Sandy Cassowary",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Author - Dutiful Sandy Cassowary"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "AuthorEntities": {
-                  "id": "2b7e725c-97ea-431f-a8ec-a5c0c56c0fbb",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": [
-                  "meta",
-                  "pagination",
-                  "total"
-                ],
-                "pageUrlSearchParamKey": "pagination[page]"
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsData": {
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "attributes"
-                  ]
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "pagination": {
-                      "pageSize": {
-                        "type": "static",
-                        "content": 1
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Author"
-                  }
-                }
-              },
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "AuthorEntities"
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "populate": {
-                      "type": "static",
-                      "content": "*"
-                    },
-                    "filter": {
-                      "page": {
-                        "type": "dynamic",
-                        "content": {
-                          "id": "2b7e725c-97ea-431f-a8ec-a5c0c56c0fbb",
-                          "referenceType": "prop",
-                          "value": "page",
-                          "path": [
-                            "params",
-                            "page"
-                          ]
-                        }
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Author"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "value": "Book/Book",
-            "seo": {
-              "title": "Book - Dutiful Sandy Cassowary",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Book - Dutiful Sandy Cassowary"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "BookEntities": {
-                  "id": "d20038f2-702b-4ffd-8116-093310077882",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": true,
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "BookEntities"
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "populate": {
-                      "type": "static",
-                      "content": "*"
-                    },
-                    "pagination": {
-                      "pageSize": {
-                        "type": "static",
-                        "content": 10
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Book"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "value": "Book/page/Book",
-            "seo": {
-              "title": "Book - Dutiful Sandy Cassowary",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Book - Dutiful Sandy Cassowary"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "BookEntities": {
-                  "id": "d20038f2-702b-4ffd-8116-093310077882",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": [
-                  "meta",
-                  "pagination",
-                  "total"
-                ],
-                "pageUrlSearchParamKey": "pagination[page]"
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsData": {
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [
-                    "attributes"
-                  ]
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "pagination": {
-                      "pageSize": {
-                        "type": "static",
-                        "content": 1
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Book"
-                  }
-                }
-              },
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "BookEntities"
-                },
-                "resource": {
-                  "baseUrl": {
-                    "type": "env",
-                    "value": "CMS_URL"
-                  },
-                  "authToken": {
-                    "type": "env",
-                    "value": "CMS_ACCESS_TOKEN"
-                  },
-                  "urlParams": {
-                    "populate": {
-                      "type": "static",
-                      "content": "*"
-                    },
-                    "filter": {
-                      "page": {
-                        "type": "dynamic",
-                        "content": {
-                          "id": "d20038f2-702b-4ffd-8116-093310077882",
-                          "referenceType": "prop",
-                          "value": "page",
-                          "path": [
-                            "params",
-                            "page"
-                          ]
-                        }
-                      }
-                    }
-                  },
-                  "route": {
-                    "type": "static",
-                    "value": "api/Book"
-                  }
-                }
-              }
-            }
-          },
-          {
-            "value": "/author/Author1",
-            "seo": {
-              "title": "Author1 - Dutiful Sandy Cassowary",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Author1 - Dutiful Sandy Cassowary"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "82a0e979-c2a6-4c39-ab9f-b8c3496ae7f4",
+                  "id": "f187e355-e771-47e8-b9c2-d301e005a08a",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -845,7 +531,7 @@
                       "id": {
                         "type": "dynamic",
                         "content": {
-                          "id": "82a0e979-c2a6-4c39-ab9f-b8c3496ae7f4",
+                          "id": "f187e355-e771-47e8-b9c2-d301e005a08a",
                           "referenceType": "prop",
                           "value": "id",
                           "path": [
@@ -865,20 +551,20 @@
             }
           },
           {
-            "value": "/book/Book1",
+            "value": "/book/Book",
             "seo": {
-              "title": "Book1 - Dutiful Sandy Cassowary",
+              "title": "Book - Dutiful Sandy Cassowary",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Book1 - Dutiful Sandy Cassowary"
+                  "content": "Book - Dutiful Sandy Cassowary"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "d66af839-ba49-49bd-b8b7-6ccfa6effa31",
+                  "id": "97e27790-dffe-47d3-a921-7c6a427fd644",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -939,7 +625,7 @@
                       "id": {
                         "type": "dynamic",
                         "content": {
-                          "id": "d66af839-ba49-49bd-b8b7-6ccfa6effa31",
+                          "id": "97e27790-dffe-47d3-a921-7c6a427fd644",
                           "referenceType": "prop",
                           "value": "id",
                           "path": [
@@ -957,28 +643,342 @@
                 }
               }
             }
+          },
+          {
+            "value": "Author/Author1",
+            "seo": {
+              "title": "Author1 - Dutiful Sandy Cassowary",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Author1 - Dutiful Sandy Cassowary"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "AuthorEntities": {
+                  "id": "1dc8d72a-b6f1-4aaa-8ecd-8f9cdbfd60c9",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": true,
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "AuthorEntities"
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "populate": {
+                      "type": "static",
+                      "content": "*"
+                    },
+                    "pagination": {
+                      "pageSize": {
+                        "type": "static",
+                        "content": 10
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Author"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "Author/page/Author1",
+            "seo": {
+              "title": "Author1 - Dutiful Sandy Cassowary",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Author1 - Dutiful Sandy Cassowary"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "AuthorEntities": {
+                  "id": "1dc8d72a-b6f1-4aaa-8ecd-8f9cdbfd60c9",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": [
+                  "meta",
+                  "pagination",
+                  "total"
+                ],
+                "pageUrlSearchParamKey": "pagination[page]"
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "attributes"
+                  ]
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "pagination": {
+                      "pageSize": {
+                        "type": "static",
+                        "content": 1
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Author"
+                  }
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "AuthorEntities"
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "populate": {
+                      "type": "static",
+                      "content": "*"
+                    },
+                    "filter": {
+                      "page": {
+                        "type": "dynamic",
+                        "content": {
+                          "id": "1dc8d72a-b6f1-4aaa-8ecd-8f9cdbfd60c9",
+                          "referenceType": "prop",
+                          "value": "page",
+                          "path": [
+                            "params",
+                            "page"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Author"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "Book/Book1",
+            "seo": {
+              "title": "Book1 - Dutiful Sandy Cassowary",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Book1 - Dutiful Sandy Cassowary"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BookEntities": {
+                  "id": "6e6adb48-a3e1-4faa-9a82-88c8fb80eebb",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": true,
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BookEntities"
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "populate": {
+                      "type": "static",
+                      "content": "*"
+                    },
+                    "pagination": {
+                      "pageSize": {
+                        "type": "static",
+                        "content": 10
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Book"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "Book/page/Book1",
+            "seo": {
+              "title": "Book1 - Dutiful Sandy Cassowary",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Book1 - Dutiful Sandy Cassowary"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BookEntities": {
+                  "id": "6e6adb48-a3e1-4faa-9a82-88c8fb80eebb",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": [
+                  "meta",
+                  "pagination",
+                  "total"
+                ],
+                "pageUrlSearchParamKey": "pagination[page]"
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [
+                    "attributes"
+                  ]
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "pagination": {
+                      "pageSize": {
+                        "type": "static",
+                        "content": 1
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Book"
+                  }
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BookEntities"
+                },
+                "resource": {
+                  "baseUrl": {
+                    "type": "env",
+                    "value": "CMS_URL"
+                  },
+                  "authToken": {
+                    "type": "env",
+                    "value": "CMS_ACCESS_TOKEN"
+                  },
+                  "urlParams": {
+                    "populate": {
+                      "type": "static",
+                      "content": "*"
+                    },
+                    "filter": {
+                      "page": {
+                        "type": "dynamic",
+                        "content": {
+                          "id": "6e6adb48-a3e1-4faa-9a82-88c8fb80eebb",
+                          "referenceType": "prop",
+                          "value": "page",
+                          "path": [
+                            "params",
+                            "page"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "route": {
+                    "type": "static",
+                    "value": "api/Book"
+                  }
+                }
+              }
+            }
           }
         ]
       }
     },
     "propDefinitions": {
-      "AuthorEntities": {
-        "id": "2b7e725c-97ea-431f-a8ec-a5c0c56c0fbb",
-        "defaultValue": [],
-        "type": "array"
-      },
-      "BookEntities": {
-        "id": "d20038f2-702b-4ffd-8116-093310077882",
-        "defaultValue": [],
-        "type": "array"
-      },
       "AuthorEntity": {
-        "id": "82a0e979-c2a6-4c39-ab9f-b8c3496ae7f4",
+        "id": "f187e355-e771-47e8-b9c2-d301e005a08a",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntity": {
-        "id": "d66af839-ba49-49bd-b8b7-6ccfa6effa31",
+        "id": "97e27790-dffe-47d3-a921-7c6a427fd644",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorEntities": {
+        "id": "1dc8d72a-b6f1-4aaa-8ecd-8f9cdbfd60c9",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "BookEntities": {
+        "id": "6e6adb48-a3e1-4faa-9a82-88c8fb80eebb",
         "defaultValue": [],
         "type": "array"
       }
@@ -1026,21 +1026,6 @@
                   },
                   "children": [
                     {
-                      "type": "element",
-                      "content": {
-                        "elementType": "text",
-                        "semanticType": "h1",
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [
-                          {
-                            "type": "static",
-                            "content": "Hello World"
-                          }
-                        ]
-                      }
-                    },
-                    {
                       "type": "cms-list",
                       "content": {
                         "node": {
@@ -1079,20 +1064,20 @@
                         "statePersistanceName": "BookList",
                         "loadingStatePersistanceName": "BookListLoading",
                         "errorStatePersistanceName": "BookListError",
-                        "resourceId": "e23e502c-08f4-407b-9a4f-766c4c443318"
+                        "resourceId": "189aeca3-a778-4a3f-996e-c1118e84b009"
                       }
                     },
                     {
                       "type": "element",
                       "content": {
                         "elementType": "text",
-                        "semanticType": "span",
+                        "semanticType": "h1",
                         "referencedStyles": {},
                         "abilities": {
                           "link": {
                             "type": "navlink",
                             "content": {
-                              "routeName": "Book"
+                              "routeName": "Author1"
                             }
                           }
                         },
@@ -1105,7 +1090,7 @@
                         "children": [
                           {
                             "type": "static",
-                            "content": "All Books"
+                            "content": "All books"
                           }
                         ]
                       }
@@ -1138,389 +1123,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "node": {
-                          "type": "element",
-                          "content": {
-                            "elementType": "cms-list",
-                            "semanticType": "cms-list",
-                            "ctxId": "3fc877b3-770e-4c63-852b-e0457942faa5",
-                            "children": [
-                              {
-                                "type": "element",
-                                "content": {
-                                  "elementType": "component",
-                                  "dependency": {
-                                    "type": "local"
-                                  },
-                                  "semanticType": "AuthorListContent",
-                                  "referencedStyles": {},
-                                  "abilities": {},
-                                  "children": []
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "AuthorEntities"
-                          }
-                        },
-                        "itemValuePath": [
-                          "attributes"
-                        ],
-                        "statePersistanceName": "unkwnownState",
-                        "loadingStatePersistanceName": "unkwnownLoadingState",
-                        "errorStatePersistanceName": "unkwnownErrorState"
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "Author/Author",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
                     "minHeight": {
                       "type": "static",
                       "content": "100vh"
                     },
-                    "overflow": {
+                    "alignItems": {
                       "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
+                      "content": "center"
                     },
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "node": {
-                          "type": "element",
-                          "content": {
-                            "elementType": "cms-list",
-                            "semanticType": "cms-list",
-                            "ctxId": "3fc877b3-770e-4c63-852b-e0457942faa5",
-                            "children": [
-                              {
-                                "type": "element",
-                                "content": {
-                                  "elementType": "component",
-                                  "dependency": {
-                                    "type": "local"
-                                  },
-                                  "semanticType": "AuthorListContent",
-                                  "referencedStyles": {},
-                                  "abilities": {},
-                                  "children": []
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "AuthorEntities"
-                          }
-                        },
-                        "itemValuePath": [
-                          "attributes"
-                        ],
-                        "statePersistanceName": "unkwnownState",
-                        "loadingStatePersistanceName": "unkwnownLoadingState",
-                        "errorStatePersistanceName": "unkwnownErrorState"
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "Author/page/Author",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "node": {
-                          "type": "element",
-                          "content": {
-                            "elementType": "cms-list",
-                            "semanticType": "cms-list",
-                            "ctxId": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
-                            "children": [
-                              {
-                                "type": "element",
-                                "content": {
-                                  "elementType": "component",
-                                  "dependency": {
-                                    "type": "local"
-                                  },
-                                  "semanticType": "BookListContent",
-                                  "referencedStyles": {},
-                                  "abilities": {},
-                                  "children": []
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "BookEntities"
-                          }
-                        },
-                        "itemValuePath": [
-                          "attributes"
-                        ],
-                        "statePersistanceName": "unkwnownState",
-                        "loadingStatePersistanceName": "unkwnownLoadingState",
-                        "errorStatePersistanceName": "unkwnownErrorState"
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "Book/Book",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "node": {
-                          "type": "element",
-                          "content": {
-                            "elementType": "cms-list",
-                            "semanticType": "cms-list",
-                            "ctxId": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
-                            "children": [
-                              {
-                                "type": "element",
-                                "content": {
-                                  "elementType": "component",
-                                  "dependency": {
-                                    "type": "local"
-                                  },
-                                  "semanticType": "BookListContent",
-                                  "referencedStyles": {},
-                                  "abilities": {},
-                                  "children": []
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "BookEntities"
-                          }
-                        },
-                        "itemValuePath": [
-                          "attributes"
-                        ],
-                        "statePersistanceName": "unkwnownState",
-                        "loadingStatePersistanceName": "unkwnownLoadingState",
-                        "errorStatePersistanceName": "unkwnownErrorState"
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "Book/page/Book",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
                     }
                   },
                   "children": [
@@ -1570,7 +1191,7 @@
                   ]
                 }
               },
-              "value": "/author/Author1",
+              "value": "/author/Author",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1595,25 +1216,25 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     }
                   },
                   "children": [
@@ -1663,7 +1284,371 @@
                   ]
                 }
               },
-              "value": "/book/Book1",
+              "value": "/book/Book",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "3fc877b3-770e-4c63-852b-e0457942faa5",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "AuthorListContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "statePersistanceName": "unkwnownState",
+                        "loadingStatePersistanceName": "unkwnownLoadingState",
+                        "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "Author/Author1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "3fc877b3-770e-4c63-852b-e0457942faa5",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "AuthorListContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "statePersistanceName": "unkwnownState",
+                        "loadingStatePersistanceName": "unkwnownLoadingState",
+                        "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "Author/page/Author1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "BookListContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BookEntities"
+                          }
+                        },
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "statePersistanceName": "unkwnownState",
+                        "loadingStatePersistanceName": "unkwnownLoadingState",
+                        "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "Book/Book1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "node": {
+                          "type": "element",
+                          "content": {
+                            "elementType": "cms-list",
+                            "semanticType": "cms-list",
+                            "ctxId": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
+                            "children": [
+                              {
+                                "type": "element",
+                                "content": {
+                                  "elementType": "component",
+                                  "dependency": {
+                                    "type": "local"
+                                  },
+                                  "semanticType": "BookListContent",
+                                  "referencedStyles": {},
+                                  "abilities": {},
+                                  "children": []
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BookEntities"
+                          }
+                        },
+                        "itemValuePath": [
+                          "attributes"
+                        ],
+                        "statePersistanceName": "unkwnownState",
+                        "loadingStatePersistanceName": "unkwnownLoadingState",
+                        "errorStatePersistanceName": "unkwnownErrorState"
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "Book/page/Book1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1699,7 +1684,7 @@
                   "link": {
                     "type": "dynamic",
                     "content": {
-                      "refType": "expr",
+                      "referenceType": "expr",
                       "expression": "`/blog/${blogCtx.slug}`",
                       "scope": {
                         "blogCtx": {
@@ -1739,232 +1724,6 @@
       "name": "HomeListContent",
       "styleSetDefinitions": {}
     },
-    "AuthorListContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  },
-                  "alignItems": {
-                    "type": "static",
-                    "content": "center"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h6",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
-                            "referenceType": "ctx",
-                            "path": [
-                              "name"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
-                            "referenceType": "ctx",
-                            "path": [
-                              "name"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
-                            "referenceType": "ctx",
-                            "path": [
-                              "description"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "AuthorListContent",
-      "styleSetDefinitions": {}
-    },
-    "BookListContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  },
-                  "alignItems": {
-                    "type": "static",
-                    "content": "center"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
-                            "referenceType": "ctx",
-                            "path": [
-                              "title"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
-                            "referenceType": "ctx",
-                            "path": [
-                              "title"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
-                            "referenceType": "ctx",
-                            "path": [
-                              "price"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "BookListContent",
-      "styleSetDefinitions": {}
-    },
     "AuthorDetailsContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -1984,6 +1743,10 @@
                 "referencedStyles": {},
                 "abilities": {},
                 "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
                   "width": {
                     "type": "static",
                     "content": "100%"
@@ -1995,10 +1758,6 @@
                   "flexDirection": {
                     "type": "static",
                     "content": "column"
-                  },
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
                   }
                 },
                 "children": [
@@ -2072,6 +1831,10 @@
                 "referencedStyles": {},
                 "abilities": {},
                 "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
                   "width": {
                     "type": "static",
                     "content": "100%"
@@ -2083,10 +1846,6 @@
                   "flexDirection": {
                     "type": "static",
                     "content": "column"
-                  },
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
                   }
                 },
                 "children": [
@@ -2179,13 +1938,239 @@
       },
       "name": "BookDetailsContent",
       "styleSetDefinitions": {}
+    },
+    "AuthorListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "h1",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
+                            "referenceType": "ctx",
+                            "path": [
+                              "name"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
+                            "referenceType": "ctx",
+                            "path": [
+                              "name"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "3fc877b3-770e-4c63-852b-e0457942faa5",
+                            "referenceType": "ctx",
+                            "path": [
+                              "description"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "AuthorListContent",
+      "styleSetDefinitions": {}
+    },
+    "BookListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "alignItems": {
+                    "type": "static",
+                    "content": "center"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "h1",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
+                            "referenceType": "ctx",
+                            "path": [
+                              "title"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
+                            "referenceType": "ctx",
+                            "path": [
+                              "title"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                        {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54",
+                            "referenceType": "ctx",
+                            "path": [
+                              "price"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "BookListContent",
+      "styleSetDefinitions": {}
     }
   },
   "resources": {
     "rootFolder": "pages/api",
     "items": {
-      "e23e502c-08f4-407b-9a4f-766c4c443318": {
-        "id": "e23e502c-08f4-407b-9a4f-766c4c443318",
+      "189aeca3-a778-4a3f-996e-c1118e84b009": {
+        "id": "189aeca3-a778-4a3f-996e-c1118e84b009",
         "name": "Home",
         "baseUrl": {
           "type": "env",
@@ -2215,19 +2200,19 @@
         "name": "Home",
         "fileName": "Home"
       },
-      "3fc877b3-770e-4c63-852b-e0457942faa5": {
-        "name": "Author",
-        "fileName": "Author"
-      },
-      "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54": {
-        "name": "Book",
-        "fileName": "Book"
-      },
       "30efab6e-fb1e-40dd-af85-fb66f469d32e": {
         "name": "Author",
         "fileName": "Author"
       },
       "3a31f0d8-108e-4447-92e9-3f591a635e8e": {
+        "name": "Book",
+        "fileName": "Book"
+      },
+      "3fc877b3-770e-4c63-852b-e0457942faa5": {
+        "name": "Author",
+        "fileName": "Author"
+      },
+      "055a7dc5-5b92-4c68-ad8d-4b5bd02eac54": {
         "name": "Book",
         "fileName": "Book"
       }

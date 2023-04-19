@@ -261,23 +261,14 @@ export type ReferenceType =
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
-  content:
-    | {
-        referenceType: Exclude<ReferenceType, 'expr' | 'ctx'>
-        path?: string[]
-        id: string
-      }
-    | {
-        referenceType: 'expr'
-        expression: string
-        scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
-      }
-    | {
-        referenceType: 'ctx'
-        ctxId: string
-        path?: string[]
-        id: string
-      }
+  content: {
+    referenceType: ReferenceType
+    path?: string[]
+    id: string
+    expression?: string
+    ctxId?: string
+    scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
+  }
 }
 
 export interface UIDLStaticValue {

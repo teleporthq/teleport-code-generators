@@ -25,6 +25,7 @@ import {
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
   addRawAttributeToJSXTag,
+  addDynamicExpressionAttributeToJSXTag,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -82,6 +83,12 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           } = attributeValue
           const prefix =
             options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
+
+          if (referenceType === 'expr') {
+            addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, params)
+            break
+          }
+
           addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix)
           break
         case 'import':
