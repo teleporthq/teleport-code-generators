@@ -2395,12 +2395,33 @@
                   {
                     "type": "element",
                     "content": {
+                      "elementType": "contentful-richtext-node",
+                      "referencedStyles": {},
+                      "attrs": {
+                        "richText": {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "ba0219ad-57c7-491a-90ca-6f7d0423a7a5",
+                            "referenceType": "ctx",
+                            "path": [
+                              "Content"
+                            ]
+                          }
+                        }
+                      },
+                      "style": {},
+                      "children": []
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
                       "elementType": "html-node",
                       "referencedStyles": {},
                       "attrs": {
                         "html": {
                           "type": "raw",
-                          "content": "[object Object]"
+                          "content": "<h1>Heading</h1>"
                         }
                       },
                       "style": {

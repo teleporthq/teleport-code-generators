@@ -19,9 +19,6 @@ export const ReactMapping: Mapping = {
         type: 'package',
         path: '@madebyconnor/rich-text-to-jsx',
         version: '2.2.1',
-        meta: {
-          namedImport: true,
-        },
       },
     },
     'html-node': {
