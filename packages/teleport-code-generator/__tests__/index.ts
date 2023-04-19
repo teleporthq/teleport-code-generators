@@ -2,6 +2,7 @@ import { readFileSync, existsSync, readdirSync, unlinkSync, statSync, rmdirSync 
 import { join } from 'path'
 import { performance } from 'perf_hooks'
 import projectJson from '../../../examples/test-samples/project-sample.json'
+import htmlProjectJson from '../../../examples/uidl-samples/project.json'
 import {
   ProjectUIDL,
   GenerateOptions,
@@ -10,17 +11,16 @@ import {
   PublisherType,
   ProjectType,
   ReactStyleVariation,
-  PreactStyleVariation,
+  ComponentUIDL,
 } from '@teleporthq/teleport-types'
-
 import { packProject, generateComponent } from '../src/index'
 
 const reactProjectPath = join(__dirname, 'react')
 const nextProjectPath = join(__dirname, 'next')
 const vueProjectPath = join(__dirname, 'vue')
 const nuxtProjectPath = join(__dirname, 'nuxt')
-const stencilProjectPath = join(__dirname, 'stencil')
-const preactProjectPath = join(__dirname, 'preact')
+const htmlProjectPath = join(__dirname, 'html')
+const angularProjectPath = join(__dirname, 'angular')
 
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
 const base64File = new Buffer(assetFile).toString('base64')
@@ -34,7 +34,7 @@ const assets = [
 ]
 
 const projectUIDL = projectJson as unknown as ProjectUIDL
-const componentUIDL = projectUIDL.components.ExpandableArea
+const componentUIDL = (projectUIDL.components as Record<string, ComponentUIDL>).ExpandableArea
 
 afterAll(() => {
   // Comment these lines if you want to see the generated projects
@@ -42,8 +42,8 @@ afterAll(() => {
   removeDirectory(nextProjectPath)
   removeDirectory(vueProjectPath)
   removeDirectory(nuxtProjectPath)
-  removeDirectory(stencilProjectPath)
-  removeDirectory(preactProjectPath)
+  removeDirectory(htmlProjectPath)
+  removeDirectory(angularProjectPath)
 })
 
 describe('Performance tests for the code-generator', () => {
@@ -115,27 +115,27 @@ describe('code generator', () => {
     expect(success).toBeTruthy()
   })
 
-  it('creates a stencil project', async () => {
+  it('creates a html project', async () => {
     const options: PackerOptions = {
-      projectType: ProjectType.STENCIL,
+      projectType: ProjectType.HTML,
       assets,
       publisher: PublisherType.DISK,
-      publishOptions: { outputPath: stencilProjectPath },
+      publishOptions: { outputPath: htmlProjectPath },
     }
 
-    const { success } = await packProject(projectUIDL, options)
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
     expect(success).toBeTruthy()
   })
 
-  it('creates a preact project', async () => {
+  it('creates a angular project', async () => {
     const options: PackerOptions = {
-      projectType: ProjectType.PREACT,
+      projectType: ProjectType.ANGULAR,
       assets,
       publisher: PublisherType.DISK,
-      publishOptions: { outputPath: preactProjectPath },
+      publishOptions: { outputPath: angularProjectPath },
     }
 
-    const { success } = await packProject(projectUIDL, options)
+    const { success } = await packProject(htmlProjectJson as unknown as ProjectUIDL, options)
     expect(success).toBeTruthy()
   })
 
@@ -149,16 +149,6 @@ describe('code generator', () => {
     expect(files.length).toBe(2)
   })
 
-  it('creates a preact component', async () => {
-    const options: GenerateOptions = {
-      componentType: ComponentType.PREACT,
-      styleVariation: PreactStyleVariation.CSS,
-    }
-
-    const { files } = await generateComponent(componentUIDL, options)
-    expect(files.length).toBe(2)
-  })
-
   it('creates a vue component', async () => {
     const options: GenerateOptions = {
       componentType: ComponentType.VUE,
@@ -166,15 +156,6 @@ describe('code generator', () => {
 
     const { files } = await generateComponent(componentUIDL, options)
     expect(files.length).toBe(1)
-  })
-
-  it('creates a stencil component', async () => {
-    const options: GenerateOptions = {
-      componentType: ComponentType.STENCIL,
-    }
-
-    const { files } = await generateComponent(componentUIDL, options)
-    expect(files.length).toBe(2)
   })
 
   it('creates an angular component', async () => {

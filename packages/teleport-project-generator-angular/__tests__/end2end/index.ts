@@ -1,4 +1,5 @@
 import { FileType } from '@teleporthq/teleport-types'
+import fallbackPageSample from '../../../../examples/uidl-samples/project.json'
 import uidlSample from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -57,6 +58,11 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
       `<modal-window (onClose)="isOpen = false" *ngIf="isOpen"></modal-window>`
     )
     expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal>`)
+    expect(pagesFolder.subFolders[0].files[0].content).toContain(
+      `<dangerous-html
+      html=\"<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\"
+    ></dangerous-html>`
+    )
     /*
      * Modal is used in home page but don't need to import since all components are packed
      * together as components module and imported at once in root module
@@ -64,6 +70,7 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
     expect(pagesFolder.subFolders[0].files[1].content).not.toContain(`import Modal`)
     expect(modalComponent.files[1].content).not.toContain(`import Modal`)
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
+    expect(packageJSON.content).toContain(`"dangerous-html": "0.1.12"`)
   })
 
   it('creates style sheet and adds to the webpack file', async () => {
@@ -74,6 +81,15 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
 
     expect(styleSheet).toBeDefined()
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackPageSample, template)
+    const appFolder = subFolders[0].subFolders.find((folder) => folder.name === 'app')
+    const appModule = appFolder?.files.find(
+      (file) => file.name === 'app.module' && file.fileType === FileType.TS
+    )
+    expect(appModule?.content).toContain(`path: '**'`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

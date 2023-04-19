@@ -13,6 +13,28 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    'html-node': {
+      elementType: 'DangerousHTML',
+      dependency: {
+        type: 'package',
+        path: 'dangerous-html',
+        version: '0.1.12',
+        meta: {
+          importAlias: 'dangerous-html/react',
+        },
+      },
+    },
+    'lottie-node': {
+      elementType: 'Player',
+      dependency: {
+        type: 'package',
+        path: '@lottiefiles/react-lottie-player',
+        version: '3.4.7',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
   },
   events: {
     click: 'onClick',
@@ -34,7 +56,6 @@ export const ReactMapping: Mapping = {
   },
   attributes: {
     for: 'htmlFor',
-    autoplay: 'autoPlay',
     readonly: 'readOnly',
     class: 'className',
     contenteditable: 'contentEditable',

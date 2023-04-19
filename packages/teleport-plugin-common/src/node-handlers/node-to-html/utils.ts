@@ -21,6 +21,7 @@ export const handleAttribute = (
 ) => {
   const { dataObject } = params
   const dynamicAttrKey = templateSyntax.valueBinding(attrKey, node)
+
   switch (attrValue.type) {
     case 'dynamic':
     case 'import':
@@ -32,6 +33,9 @@ export const handleAttribute = (
         attrKey,
         StringUtils.encode(attrValue.content.toString())
       )
+      break
+    case 'raw':
+      hastUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content.toString())
       break
     case 'static':
       if (Array.isArray(attrValue.content)) {

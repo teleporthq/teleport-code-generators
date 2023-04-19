@@ -85,7 +85,11 @@ const groupDependenciesByPackage = (
         return
       }
 
-      if (!result[dep.path]) {
+      if (dep?.meta?.importAlias) {
+        result[dep.meta.importAlias] = []
+      }
+
+      if (!dep?.meta?.importAlias && !result[dep.path]) {
         result[dep.path] = [] // Initialize the dependencies from this path
       }
 
@@ -93,7 +97,7 @@ const groupDependenciesByPackage = (
       const namedImport = !!(dep.meta && dep.meta.namedImport)
       const originalName = dep.meta && dep.meta.originalName ? dep.meta.originalName : key
 
-      result[dep.path].push({
+      result[dep?.meta?.importAlias ?? dep.path].push({
         identifierName: key,
         namedImport,
         originalName,

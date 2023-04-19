@@ -10,6 +10,7 @@ import { configContentGenerator } from './utils'
 
 import { NuxtProjectMapping } from './nuxt-project-mapping'
 import NuxtTemplate from './project-template'
+import { nuxtErrorPageMapper } from './error-page-mapping'
 
 const createNuxtProjectGenerator = () => {
   const styleSheetPlugin = createStyleSheetPlugin({
@@ -66,4 +67,4 @@ const createNuxtProjectGenerator = () => {
   return generator
 }
 
-export { createNuxtProjectGenerator, NuxtProjectMapping, NuxtTemplate }
+export { createNuxtProjectGenerator, NuxtProjectMapping, NuxtTemplate, nuxtErrorPageMapper }

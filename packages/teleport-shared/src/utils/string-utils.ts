@@ -1,5 +1,5 @@
 export const camelCaseToDashCase = (str: string): string =>
-  str.replace(/([a-zA-Z])(?=[A-Z])/g, '$1-').toLowerCase()
+  str.replace(/([a-z])(?=[A-Z])|([A-Z0-9])(?=[A-Z][a-z])/g, '$1-').toLowerCase()
 
 export const dashCaseToCamelCase = (str: string): string =>
   str.replace(/[-_]+(.)?/g, (_, chr) => (chr ? chr.toUpperCase() : ''))

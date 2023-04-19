@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   UIDLNode,
   UIDLElementNode,
@@ -17,10 +16,11 @@ import {
   UIDLDependency,
   UIDLStyleValue,
   GeneratorOptions,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
-import { StringUtils } from '@teleporthq/teleport-shared'
-import { element, staticNode } from '@teleporthq/teleport-uidl-builders'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
@@ -30,6 +30,7 @@ type NodeToHTML<NodeType, ReturnType> = (
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   externals: Record<string, ComponentUIDL>,
+  routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
     dependencies: Record<string, UIDLDependency>
@@ -43,6 +44,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
+  routeDefinitions,
   structure
 ) => {
   switch (node.type) {
@@ -52,6 +54,9 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
     case 'static':
       return HASTBuilders.createTextNode(StringUtils.encode(node.content.toString()))
 
+    case 'slot':
+      return HASTBuilders.createHTMLNode(node.type)
+
     case 'element':
       return generatElementNode(
         node,
@@ -59,6 +64,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -69,6 +75,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -89,6 +96,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   externals,
+  routeDefinitions,
   structure
 ) => {
   const {
@@ -103,102 +111,21 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   const elementNode = HASTBuilders.createHTMLNode(elementType)
   templatesLookUp[key] = elementNode
 
-  const { dependencies, chunks, options } = structure
-
-  if (dependency?.type === 'local') {
-    const comp = externals[elementType]
-
-    if (!comp) {
-      throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
-        Received ${JSON.stringify(Object.keys(externals), null, 2)}`)
-    }
-
-    const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
-    const propsForInstance = Object.keys(combinedProps).reduce(
-      (acc: Record<string, UIDLPropDefinition>, propKey) => {
-        if (attrs[propKey]) {
-          acc[propKey] = {
-            ...combinedProps[propKey],
-            defaultValue: attrs[propKey].content,
-          }
-        } else {
-          acc[propKey] = combinedProps[propKey]
-        }
-
-        return acc
-      },
-      {}
-    )
-
-    const combinedStates = { ...stateDefinitions, ...(comp?.stateDefinitions || {}) }
-    const statesForInstance = Object.keys(combinedStates).reduce(
-      (acc: Record<string, UIDLStateDefinition>, propKey) => {
-        if (attrs[propKey]) {
-          acc[propKey] = {
-            ...combinedStates[propKey],
-            defaultValue: attrs[propKey].content,
-          }
-        } else {
-          acc[propKey] = combinedStates[propKey]
-        }
-
-        return acc
-      },
-      {}
-    )
-
-    const lookupTemplate: Record<string, unknown> = {}
-    const compTag = await generateHtmlSynatx(
-      comp.node,
-      lookupTemplate,
-      propsForInstance,
-      statesForInstance,
-      externals,
-      structure
-    )
-
-    const cssPlugin = createCSSPlugin({
-      templateStyle: 'html',
-      templateChunkName: 'html-template',
-      declareDependency: 'import',
-      forceScoping: true,
-      chunkName: comp.name,
-      staticPropReferences: true,
-    })
-
-    const result = await cssPlugin({
-      uidl: {
-        ...comp,
-        propDefinitions: propsForInstance,
-        stateDefinitions: statesForInstance,
-      },
-      chunks: [
-        {
-          type: ChunkType.HAST,
-          fileType: FileType.HTML,
-          name: DEFAULT_COMPONENT_CHUNK_NAME,
-          linkAfter: [],
-          content: compTag,
-          meta: {
-            nodesLookup: lookupTemplate,
-          },
-        },
-      ],
-      dependencies,
-      options,
-    })
-
-    const chunk = chunks.find((item) => item.name === comp.name)
-    if (!chunk) {
-      const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
-      chunks.push(styleChunk)
-    }
-
-    return compTag
+  const { dependencies } = structure
+  if (dependency && (dependency as UIDLDependency)?.type !== 'local') {
+    dependencies[dependency.path] = dependency
   }
 
-  if (dependency && dependency?.type !== 'local') {
-    dependencies[dependency.path] = dependency
+  if (dependency && (dependency as UIDLDependency)?.type === 'local') {
+    const compTag = await generateComponentContent(
+      node,
+      propDefinitions,
+      stateDefinitions,
+      externals,
+      routeDefinitions,
+      structure
+    )
+    return compTag
   }
 
   if (children) {
@@ -209,6 +136,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         externals,
+        routeDefinitions,
         structure
       )
 
@@ -239,10 +167,170 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (Object.keys(attrs).length > 0) {
-    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions)
+    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions, routeDefinitions)
   }
 
   return elementNode
+}
+
+const generateComponentContent = async (
+  node: UIDLElementNode,
+  propDefinitions: Record<string, UIDLPropDefinition>,
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  externals: Record<string, ComponentUIDL>,
+  routeDefinitions: UIDLRouteDefinitions,
+  structure: {
+    chunks: ChunkDefinition[]
+    dependencies: Record<string, UIDLDependency>
+    options: GeneratorOptions
+  }
+) => {
+  const { elementType, attrs = {}, key, children = [] } = node.content
+  const { dependencies, chunks, options } = structure
+  const comp = UIDLUtils.cloneObject(externals[elementType] || {}) as ComponentUIDL
+  const lookUpTemplates: Record<string, unknown> = {}
+  let compHasSlots: boolean = false
+
+  if (!comp || !comp?.node) {
+    throw new HTMLComponentGeneratorError(`${elementType} is not found from the externals. \n
+        Received ${JSON.stringify(Object.keys(externals), null, 2)}`)
+  }
+
+  if (children.length) {
+    compHasSlots = true
+    UIDLUtils.traverseNodes(comp.node, (childNode, parentNode) => {
+      if (childNode.type === 'slot' && parentNode.type === 'element') {
+        const nonSlotNodes = parentNode.content?.children?.filter((n) => n.type !== 'slot')
+        parentNode.content.children = [
+          ...nonSlotNodes,
+          {
+            type: 'element',
+            content: {
+              key: 'custom-slot',
+              elementType: 'slot',
+              style: {
+                display: {
+                  type: 'static',
+                  content: 'contents',
+                },
+              },
+              children,
+            },
+          },
+        ]
+      }
+    })
+    /*
+      Since we don't generate direct component children in HTML. We need to reset this,
+      or else the plugins like css and others try to parse and process them.
+    */
+    node.content.children = []
+  }
+
+  const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
+  const propsForInstance = Object.keys(combinedProps).reduce(
+    (acc: Record<string, UIDLPropDefinition>, propKey) => {
+      if (attrs[propKey]) {
+        acc[propKey] = {
+          ...combinedProps[propKey],
+          defaultValue: attrs[propKey]?.content || combinedProps[propKey]?.defaultValue,
+        }
+      } else {
+        acc[propKey] = combinedProps[propKey]
+      }
+
+      return acc
+    },
+    {}
+  )
+
+  const combinedStates = { ...stateDefinitions, ...(comp?.stateDefinitions || {}) }
+  const statesForInstance = Object.keys(combinedStates).reduce(
+    (acc: Record<string, UIDLStateDefinition>, propKey) => {
+      if (attrs[propKey]) {
+        acc[propKey] = {
+          ...combinedStates[propKey],
+          defaultValue: attrs[propKey]?.content || combinedStates[propKey]?.defaultValue,
+        }
+      } else {
+        acc[propKey] = combinedStates[propKey]
+      }
+
+      return acc
+    },
+    {}
+  )
+  const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
+  lookUpTemplates[key] = elementNode
+
+  const compTag = (await generateHtmlSynatx(
+    {
+      ...comp.node,
+      content: {
+        ...comp.node.content,
+        style: {
+          ...(comp.node.content?.style || {}),
+          display: {
+            type: 'static',
+            content: 'contents',
+          },
+        },
+      },
+    },
+    lookUpTemplates,
+    propsForInstance,
+    statesForInstance,
+    externals,
+    routeDefinitions,
+    structure
+  )) as unknown as HastNode
+
+  const cssPlugin = createCSSPlugin({
+    templateStyle: 'html',
+    templateChunkName: 'html-template',
+    declareDependency: 'import',
+    forceScoping: true,
+    chunkName: comp.name,
+    staticPropReferences: true,
+  })
+
+  const result = await cssPlugin({
+    uidl: {
+      ...comp,
+      propDefinitions: propsForInstance,
+      stateDefinitions: statesForInstance,
+    },
+    chunks: [
+      {
+        type: ChunkType.HAST,
+        fileType: FileType.HTML,
+        name: DEFAULT_COMPONENT_CHUNK_NAME,
+        linkAfter: [],
+        content: compTag,
+        meta: {
+          nodesLookup: lookUpTemplates,
+        },
+      },
+    ],
+    dependencies,
+    options,
+  })
+
+  if (compHasSlots) {
+    result.chunks.forEach((chunk) => {
+      if (chunk.fileType === FileType.CSS) {
+        chunks.push(chunk)
+      }
+    })
+  } else {
+    const chunk = chunks.find((item) => item.name === comp.name)
+    if (!chunk) {
+      const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
+      chunks.push(styleChunk)
+    }
+  }
+
+  return compTag
 }
 
 const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
@@ -284,7 +372,8 @@ const handleAttributes = (
   htmlNode: HastNode,
   attrs: Record<string, UIDLAttributeValue>,
   propDefinitions: Record<string, UIDLPropDefinition>,
-  stateDefinitions: Record<string, UIDLStateDefinition>
+  stateDefinitions: Record<string, UIDLStateDefinition>,
+  routeDefinitions: UIDLRouteDefinitions
 ) => {
   Object.keys(attrs).forEach((attrKey) => {
     let attrValue = attrs[attrKey]
@@ -296,9 +385,15 @@ const handleAttributes = (
       attrValue.content.startsWith('/')
     ) {
       attrValue =
-        attrValue.content === '/'
+        attrValue.content === '/' ||
+        attrValue.content ===
+          `/${StringUtils.camelCaseToDashCase(
+            StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
+          )}`
           ? staticNode('index.html')
           : staticNode(`${attrValue.content.split('/').pop()}.html`)
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      return
     }
 
     if (attrValue.type === 'dynamic') {
@@ -310,10 +405,17 @@ const handleAttributes = (
       return
     }
 
+    if (attrValue.type === 'raw') {
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      return
+    }
+
     if (typeof attrValue.content === 'boolean') {
       HASTUtils.addBooleanAttributeToNode(htmlNode, attrKey)
+      return
     } else if (typeof attrValue.content === 'string' || typeof attrValue.content === 'number') {
       HASTUtils.addAttributeToNode(htmlNode, attrKey, StringUtils.encode(String(attrValue.content)))
+      return
     }
   })
 }

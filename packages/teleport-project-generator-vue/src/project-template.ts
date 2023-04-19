@@ -15,11 +15,13 @@ export default {
   "dependencies": {
     "vue": "^2.6.7",
     "vue-router": "^3.0.2",
-    "vue-meta": "^2.2.1"
+    "vue-meta": "^2.2.1",
+    "@lottiefiles/vue-lottie-player": "1.0.4"
   },
   "devDependencies": {
+    "@vue/babel-preset-app": "^5.0.8",
     "@vue/cli-plugin-babel": "^5.0.4",
-    "@vue/cli-service": "^5.0.4",
+    "@vue/cli-service": "^5.0.8",
     "vue-template-compiler": "^2.6.7"
   },
   "postcss": {
@@ -38,7 +40,9 @@ export default {
     {
       name: 'vue.config',
       fileType: 'js',
-      content: `module.exports = {
+      content: String.raw`const path = require('path')
+
+module.exports = {
   css: {
     loaderOptions: {
       css: {
@@ -46,6 +50,15 @@ export default {
       },
     },
   },
+  chainWebpack: config => {
+    config.plugin('copy').tap(args => {
+      const UNESCAPED_GLOB_SYMBOLS_RE = /(\\?)([()*?[\]{|}]|^!|[!+@](?=\())/g;
+      const publicDir = path.resolve(process.VUE_CLI_SERVICE.context, 'public').replace(/\\/g, '/');
+      const escapePublicDir= publicDir.replace(UNESCAPED_GLOB_SYMBOLS_RE, '\\$2');
+      args[0].patterns[0].globOptions.ignore = args[0].patterns[0].globOptions.ignore.map(i => i.replace(publicDir, escapePublicDir));
+      return args;
+  });
+  }
 };`,
     },
     {
@@ -77,7 +90,9 @@ module.exports = {
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
+import LottieVuePlayer from '@lottiefiles/vue-lottie-player'
 
+Vue.use(LottieVuePlayer)
 Vue.config.productionTip = false
 
 new Vue({

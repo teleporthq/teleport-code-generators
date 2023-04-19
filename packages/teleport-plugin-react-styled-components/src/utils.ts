@@ -2,7 +2,6 @@ import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLStyleValue,
-  UIDLDependency,
   UIDLStyleSetDefinition,
   PluginStyledComponent,
 } from '@teleporthq/teleport-types'
@@ -63,25 +62,6 @@ export const generateStyledComponent = (params: {
       )
     ),
   ])
-}
-
-export const removeUnusedDependencies = (
-  dependencies: Record<string, UIDLDependency>,
-  jsxNodesLookup: Record<string, types.JSXElement>
-) => {
-  Object.keys(dependencies).forEach((depKey) => {
-    const dependency = dependencies[depKey]
-    if (dependency.type === 'library' && dependency.path === 'react-native') {
-      const dependencyIsStillNeeded = Object.keys(jsxNodesLookup).some((elementKey) => {
-        const jsxNode = jsxNodesLookup[elementKey]
-        return (jsxNode.openingElement.name as types.JSXIdentifier).name === depKey
-      })
-
-      if (!dependencyIsStillNeeded) {
-        delete dependencies[depKey]
-      }
-    }
-  })
 }
 
 export const generateStyledComponentStyles = (params: {

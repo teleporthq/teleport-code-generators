@@ -1,4 +1,3 @@
-import { ASSETS_IDENTIFIER } from '../constants'
 import {
   camelCaseToDashCase,
   removeIllegalCharacters,
@@ -20,9 +19,12 @@ import {
   UIDLStyleValue,
   UIDLStyleSheetContent,
   UIDLComponentStyleReference,
+  UIDLRootComponent,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
+import { basename } from 'path'
 
-export const extractRoutes = (rootComponent: ComponentUIDL) => {
+export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
   const rootElement = rootComponent.node.content as UIDLElement
 
@@ -118,16 +120,62 @@ export const getRepeatIteratorNameAndKey = (meta: UIDLRepeatMeta = {}) => {
   }
 }
 
-export const prefixAssetsPath = (prefix: string, originalString: string | undefined) => {
-  if (!originalString || !originalString.includes(ASSETS_IDENTIFIER)) {
+export const prefixAssetsPath = (
+  originalString: string | undefined,
+  assets: GeneratorOptions['assets'] = {}
+) => {
+  if (!originalString) {
     return originalString
   }
 
-  if (originalString.startsWith('/')) {
-    return prefix + originalString
+  if (!originalString.startsWith('/')) {
+    return originalString
   }
 
-  return `${prefix}/${originalString}`
+  const { prefix, mappings = {}, identifier } = assets
+  const assetName = basename(originalString)
+  const decodedAssetName = decodeURIComponent(assetName)
+
+  /*
+    If the value is missing from the mapping, it means
+     - asset is missing in the project packer
+     - It's not a asset and so we don't need to provide any mapping for it
+
+    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas 
+    the src / url leading to the asset can be encoded and we need to check the decoded version against the asset mapping
+  */
+
+  if (
+    !(typeof mappings[assetName] === 'string') &&
+    !(typeof mappings[decodedAssetName] === 'string')
+  ) {
+    return originalString
+  }
+
+  /*
+    need to use either the original or decoded assetName to retrieve its mapping if there is one
+  */
+
+  const assetNameUsedForMapping =
+    typeof mappings[assetName] === 'string' ? assetName : decodedAssetName
+
+  /*
+    If the value from the mapping is an empty string
+    we need to not join it in the return path as it would append
+    a wrong /
+  */
+
+  if (!mappings[assetNameUsedForMapping]) {
+    if (!identifier) {
+      return [prefix, assetName].join('/')
+    }
+    return [prefix, identifier, assetName].join('/')
+  }
+
+  if (!identifier) {
+    return [prefix, mappings[assetNameUsedForMapping], assetName].join('/')
+  }
+  return [prefix, identifier, mappings[assetNameUsedForMapping], assetName].join('/')
 }
 
 // Clones existing objects while keeping the type cast
@@ -485,7 +533,7 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import', 'comp-style'].indexOf(type as string) !== -1) {
+      if (['dynamic', 'static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }

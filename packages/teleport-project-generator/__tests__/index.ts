@@ -47,7 +47,12 @@ describe('Generic Project Generator', () => {
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         expect.objectContaining({
-          assetsPrefix: '/test/static',
+          assets: {
+            identifier: null,
+            mappings: {},
+            prefix: '/test/static',
+          },
+          designLanguage: undefined,
           mapping: {},
           skipValidation: true,
         })
@@ -105,7 +110,12 @@ describe('Generic Project Generator', () => {
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         {
-          assetsPrefix: '/static',
+          assets: {
+            identifier: null,
+            mappings: {},
+            prefix: '/static',
+          },
+          designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
@@ -117,7 +127,12 @@ describe('Generic Project Generator', () => {
           name: 'Home',
         }),
         {
-          assetsPrefix: '/static',
+          assets: {
+            identifier: null,
+            mappings: {},
+            prefix: '/static',
+          },
+          designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
@@ -164,7 +179,12 @@ describe('Generic Project Generator', () => {
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
         {
-          assetsPrefix: '/test/static',
+          assets: {
+            identifier: null,
+            mappings: {},
+            prefix: '/test/static',
+          },
+          designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,

@@ -1,7 +1,7 @@
 import * as types from '@babel/types'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { UIDLStateDefinition, UIDLPropDefinition } from '@teleporthq/teleport-types'
+import { UIDLStateDefinition, UIDLPropDefinition, UIDLRawValue } from '@teleporthq/teleport-types'
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -171,6 +171,21 @@ export const addAttributeToJSXTag = (
     )
   }
 
+  jsxNode.openingElement.attributes.push(attributeDefinition)
+}
+
+export const addRawAttributeToJSXTag = (
+  jsxNode: types.JSXElement,
+  attrName: string,
+  attrValue: UIDLRawValue,
+  t = types
+) => {
+  const attributeDefinition = t.jsxAttribute(
+    t.jsxIdentifier(attrName),
+    t.jsxExpressionContainer(
+      types.templateLiteral([types.templateElement({ raw: attrValue.content })], [])
+    )
+  )
   jsxNode.openingElement.attributes.push(attributeDefinition)
 }
 

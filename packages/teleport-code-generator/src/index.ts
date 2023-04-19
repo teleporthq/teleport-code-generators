@@ -36,41 +36,21 @@ import {
 import {
   NuxtTemplate,
   createNuxtProjectGenerator,
+  nuxtErrorPageMapper,
 } from '@teleporthq/teleport-project-generator-nuxt'
-import {
-  PreactTemplate,
-  PreactCodesandBoxTemplate,
-  createPreactProjectGenerator,
-  PreactProjectMapping,
-} from '@teleporthq/teleport-project-generator-preact'
-import {
-  createStencilProjectGenerator,
-  StencilTemplate,
-  StencilProjectMapping,
-} from '@teleporthq/teleport-project-generator-stencil'
-import {
-  createReactNativeProjectGenerator,
-  ReactNativeTemplate,
-  ReactNativeProjectMapping,
-} from '@teleporthq/teleport-project-generator-reactnative'
+
 import {
   createAngularProjectGenerator,
   AngularTemplate,
   AngularProjectMapping,
 } from '@teleporthq/teleport-project-generator-angular'
-import {
-  createGridsomeProjectGenerator,
-  GridsomeTemplate,
-} from '@teleporthq/teleport-project-generator-gridsome'
-import {
-  createGatsbyProjectGenerator,
-  GatsbyTemplate,
-} from '@teleporthq/teleport-project-generator-gatsby'
+
 import {
   createHTMLProjectGenerator,
   HTMLTemplate,
   pluginCloneGlobals,
-  pluginImageResolver,
+  pluginHomeReplace,
+  htmlErrorPageMapping,
 } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
@@ -80,11 +60,8 @@ import { createGithubPublisher } from '@teleporthq/teleport-publisher-github'
 import { createCodesandboxPublisher } from '@teleporthq/teleport-publisher-codesandbox'
 
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
-import { createPreactComponentGenerator } from '@teleporthq/teleport-component-generator-preact'
 import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
-import { createStencilComponentGenerator } from '@teleporthq/teleport-component-generator-stencil'
 import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
-import { createReactNativeComponentGenerator } from '@teleporthq/teleport-component-generator-reactnative'
 import {
   createHTMLComponentGenerator,
   PlainHTMLMapping,
@@ -93,21 +70,15 @@ import { isNodeProcess } from './utils'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
-  [ComponentType.PREACT]: createPreactComponentGenerator,
   [ComponentType.ANGULAR]: createAngularComponentGenerator,
   [ComponentType.VUE]: createVueComponentGenerator,
-  [ComponentType.STENCIL]: createStencilComponentGenerator,
-  [ComponentType.REACTNATIVE]: createReactNativeComponentGenerator,
   [ComponentType.HTML]: createHTMLComponentGenerator,
 }
 
 const componentGeneratorProjectMappings = {
   [ComponentType.REACT]: ReactProjectMapping,
-  [ComponentType.PREACT]: PreactProjectMapping,
   [ComponentType.ANGULAR]: AngularProjectMapping,
   [ComponentType.VUE]: VueProjectMapping,
-  [ComponentType.STENCIL]: StencilProjectMapping,
-  [ComponentType.REACTNATIVE]: ReactNativeProjectMapping,
   [ComponentType.HTML]: PlainHTMLMapping,
 }
 
@@ -116,12 +87,7 @@ const projectGeneratorFactories = {
   [ProjectType.NEXT]: createNextProjectGenerator,
   [ProjectType.VUE]: createVueProjectGenerator,
   [ProjectType.NUXT]: createNuxtProjectGenerator,
-  [ProjectType.PREACT]: createPreactProjectGenerator,
-  [ProjectType.STENCIL]: createStencilProjectGenerator,
   [ProjectType.ANGULAR]: createAngularProjectGenerator,
-  [ProjectType.REACTNATIVE]: createReactNativeProjectGenerator,
-  [ProjectType.GRIDSOME]: createGridsomeProjectGenerator,
-  [ProjectType.GATSBY]: createGatsbyProjectGenerator,
   [ProjectType.HTML]: createHTMLProjectGenerator,
 }
 
@@ -130,12 +96,7 @@ const templates = {
   [ProjectType.NEXT]: NextTemplate,
   [ProjectType.VUE]: VueTemplate,
   [ProjectType.NUXT]: NuxtTemplate,
-  [ProjectType.PREACT]: PreactTemplate,
-  [ProjectType.STENCIL]: StencilTemplate,
-  [ProjectType.REACTNATIVE]: ReactNativeTemplate,
   [ProjectType.ANGULAR]: AngularTemplate,
-  [ProjectType.GRIDSOME]: GridsomeTemplate,
-  [ProjectType.GATSBY]: GatsbyTemplate,
   [ProjectType.HTML]: HTMLTemplate,
 }
 
@@ -150,7 +111,14 @@ const projectPublisherFactories: Omit<Record<PublisherType, Function>, Publisher
 
 export const packProject: PackProjectFunction = async (
   projectUIDL,
-  { projectType, publisher: publisherType, publishOptions = {}, assets = [], plugins = [] }
+  {
+    projectType,
+    publisher: publisherType,
+    publishOptions = {},
+    assets = [],
+    plugins = [],
+    assetsFolder = [Constants.ASSETS_IDENTIFIER],
+  }
 ) => {
   const packer = createProjectPacker()
   let publisher
@@ -171,8 +139,13 @@ export const packProject: PackProjectFunction = async (
   projectGeneratorFactory.cleanPlugins()
 
   if (projectType === ProjectType.HTML) {
-    projectGeneratorFactory.addPlugin(pluginImageResolver)
+    projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+    projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
+  }
+
+  if (projectType === ProjectType.NUXT) {
+    projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
   }
 
   if (plugins?.length > 0) {
@@ -181,10 +154,7 @@ export const packProject: PackProjectFunction = async (
     })
   }
 
-  const projectTemplate =
-    projectType === ProjectType.PREACT && publisherType === PublisherType.CODESANDBOX
-      ? PreactCodesandBoxTemplate
-      : templates[projectType]
+  const projectTemplate = templates[projectType]
 
   if (!projectGeneratorFactory) {
     throw new InvalidProjectTypeError(projectType)
@@ -196,7 +166,7 @@ export const packProject: PackProjectFunction = async (
 
   packer.setAssets({
     assets,
-    path: [Constants.ASSETS_IDENTIFIER],
+    path: assetsFolder,
   })
 
   packer.setGenerator(projectGeneratorFactory)
@@ -247,11 +217,7 @@ const createComponentGenerator = (
     throw new Error(`Invalid ComponentType: ${componentType}`)
   }
 
-  if (
-    componentType === ComponentType.REACT ||
-    componentType === ComponentType.PREACT ||
-    componentType === ComponentType.REACTNATIVE
-  ) {
+  if (componentType === ComponentType.REACT) {
     return generatorFactory({ variation: styleVariation })
   }
 

@@ -7,6 +7,7 @@ import {
   addDynamicAttributeToJSXTag,
   convertValueToLiteral,
   objectToObjectExpression,
+  addRawAttributeToJSXTag,
 } from '../../src/utils/ast-utils'
 import ParsedASTNode from '../../src/utils/parsed-ast'
 import { createJSXTag } from '../../src/builders/ast-builders'
@@ -119,6 +120,24 @@ describe('addAttributeToJSXTag', () => {
           .expression as unknown as types.NumericLiteral
       ).value
     ).toBe(1)
+  })
+})
+
+describe('addRawAttributeToJSXTag', () => {
+  it('adds an attribute with string without encoding', () => {
+    const tag = createJSXTag('iframe')
+
+    addRawAttributeToJSXTag(tag, 'srcdoc', { type: 'raw', content: '<h1>Hello</h1>' })
+    expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
+
+    const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
+
+    expect(classAttr.name.name).toBe('srcdoc')
+    const expression = (classAttr.value as types.JSXExpressionContainer).expression
+    expect(expression.type).toBe('TemplateLiteral')
+    expect((expression as types.TemplateLiteral).quasis[0].type).toBe('TemplateElement')
+
+    expect((expression as types.TemplateLiteral).quasis[0].value.raw).toBe('<h1>Hello</h1>')
   })
 })
 

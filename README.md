@@ -2,7 +2,7 @@
   <img src="https://github.com/teleporthq/teleport-code-generators/blob/development/Default.png" width="250"/>
 </p>
 
-<h2 align="center">Code Generators v0.17 - Beta!</h2>
+<h2 align="center">Code Generators v0.21.12 - Beta!</h2>
 
 <h3 align="center">
   <a href="#what">What</a>
@@ -42,7 +42,7 @@ https://user-images.githubusercontent.com/3997538/123211638-63efaa00-d4cc-11eb-9
 
 The glue between the platform and the code generators is the [**UIDL Standard**](https://docs.teleporthq.io/uidl/?ref=github). The **UIDL** defines the **user interfaces** in an **abstract** way, independent of any framework or even the web platform itself. Starting from the UIDL, you can convert that abstraction into different flavors of coding (e.g. React, Vue, WebComponents etc.).
 
-These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web and mobile applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
+These code generators are part of a larger ecosystem, which we're actively building in an effort to streamline the creation of web applications. You can read more about our inception in [this article](https://teleporthq.io/blog-we-believe-in-ai-powered-code-generation).
 
 The philosophy behind the code generators is:
 * User interfaces are decomposed into **components**, hence the focus on component generation
@@ -60,18 +60,12 @@ The easiest way to jump into the **teleport ecosystem** is to try out one of the
 npm install @teleporthq/teleport-component-generator-react
 npm install @teleporthq/teleport-component-generator-vue
 npm install @teleporthq/teleport-component-generator-angular
-npm install @teleporthq/teleport-component-generator-stencil
-npm install @teleporthq/teleport-component-generator-preact
-npm install @teleporthq/teleport-component-generator-reactnative
 ```
 or using yarn:
 ```bash
 yarn add @teleporthq/teleport-component-generator-react
 yarn add @teleporthq/teleport-component-generator-vue
 yarn add @teleporthq/teleport-component-generator-angular
-yarn add @teleporthq/teleport-component-generator-stencil
-yarn add @teleporthq/teleport-component-generator-preact
-yarn add @teleporthq/teleport-component-generator-reactnative
 ```
 
 For generating a simple component, you have to start from a **component UIDL**:
@@ -146,7 +140,7 @@ You can play with the UIDL structure and also observe the generated code in [the
 The teleport ecosystem consists of **three** main categories of packages: *component generators*, *project generators* and *project packers*.
 
 ### Component Generators
-We have **official** component generators for [a couple of popular web frontend frameworks](https://docs.teleporthq.io/component-generators/flavors.html), but we are actively working on supporting mobile application with `react-native`. Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
+We have **official** component generators for [a couple of popular web frontend frameworks](https://docs.teleporthq.io/component-generators/flavors.html). Check out the [official docs](https://docs.teleporthq.io/component-generators/) for an in depth understanding of the architecture behind the component generators.
 
 All the component generators are exposing an instance of the `teleport-component-generator` package. You can also install this package and build your own generator with [plugins](https://docs.teleporthq.io/component-generators/plugins.html), [mappings](https://docs.teleporthq.io/component-generators/mappings.html) and [postprocessors](https://docs.teleporthq.io/component-generators/post-processors.html).
 
@@ -156,9 +150,6 @@ In the docs, you'll find a complete guide on how to [build your custom component
 * `teleport-component-generator-react` - with styling: `css-modules`, `styled-components`, `styled-jsx`, etc.
 * `teleport-component-generator-vue` - generating standard `.vue` files
 * `teleport-component-generator-angular` - generates `.ts`, `.html` and `.css` files
-* `teleport-component-generator-preact` - similar to `react`, with a bunch of styling options
-* `teleport-component-generator-stencil` - (experimental) - generates `.tsx` files and standard `.css` files
-* `teleport-component-generator-react-native` - (experimental)
 * `teleport-component-generator-html` - (experimental)
 * `teleport-component-generator-svelte` - (coming soon)
 
@@ -184,12 +175,7 @@ Check the official guides on [how to use an existing project generator](https://
 * `teleport-project-generator-next` - based on [Next.js](https://nextjs.org/)
 * `teleport-project-generator-vue` - with a structure starting from the `vue-cli`
 * `teleport-project-generator-nuxt` - based on [Nuxt.js](https://nuxtjs.org/)
-* `teleport-project-generator-preact` - based on the [preact-cli](https://github.com/preactjs/preact-cli)
 * `teleport-project-generator-angular` - based on the `angular-cli`
-* `teleport-project-generator-gatsby`
-* `teleport-project-generator-gridsome`
-* `teleport-project-generator-stencil` (experimental)
-* `teleport-project-generator-react-native` (experimental)
 * `teleport-project-generator-html` (experimental)
 
 #### Capabilities
@@ -293,24 +279,32 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <table>
-  <tr>
-    <td align="center"><a href="https://medium.com/@alexnm"><img src="https://avatars0.githubusercontent.com/u/9945366?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alex Moldovan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Documentation">📖</a> <a href="#ideas-alexnm" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/vladnicula"><img src="https://avatars3.githubusercontent.com/u/126038?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Vlad Nicula</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=vladnicula" title="Code">💻</a> <a href="#ideas-vladnicula" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/paulbrie"><img src="https://avatars2.githubusercontent.com/u/3997538?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Paul BRIE</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Apaulbrie" title="Bug reports">🐛</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=paulbrie" title="Documentation">📖</a> <a href="#ideas-paulbrie" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/mihaitaba"><img src="https://avatars3.githubusercontent.com/u/45386599?v=4?s=100" width="100px;" alt=""/><br /><sub><b>mihaitaba</b></sub></a><br /><a href="#design-mihaitaba" title="Design">🎨</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaitaba" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/mihaiserban"><img src="https://avatars2.githubusercontent.com/u/3420526?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mihai Serban</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaiserban" title="Code">💻</a></td>
-    <td align="center"><a href="https://twitter.com/askjkrishna"><img src="https://avatars0.githubusercontent.com/u/11075561?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jaya Krishna Namburu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=JayaKrishnaNamburu" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3AJayaKrishnaNamburu" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="https://github.com/anamariaoros"><img src="https://avatars0.githubusercontent.com/u/17590608?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Anamaria Oros</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=anamariaoros" title="Code">💻</a></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="https://github.com/ovidiuionut94"><img src="https://avatars3.githubusercontent.com/u/11486739?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ovidiuionut94</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=ovidiuionut94" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/alexpausan"><img src="https://avatars0.githubusercontent.com/u/3284064?v=4?s=100" width="100px;" alt=""/><br /><sub><b>alexpausan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexpausan" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/mihaisampaleanu"><img src="https://avatars1.githubusercontent.com/u/6763756?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mihai Sampaleanu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaisampaleanu" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Amihaisampaleanu" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="http://utwo.ro"><img src="https://avatars1.githubusercontent.com/u/282668?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Utwo</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=Utwo" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/andreiTnu"><img src="https://avatars1.githubusercontent.com/u/51601382?v=4?s=100" width="100px;" alt=""/><br /><sub><b>andreiTnu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=andreiTnu" title="Code">💻</a></td>
-    <td align="center"><a href="https://codepen.io/xavxyz"><img src="https://avatars0.githubusercontent.com/u/13962779?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Xavier Cazalot</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=xavxyz" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/chavda-bhavik"><img src="https://avatars.githubusercontent.com/u/50201755?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Chavda Bhavik</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=chavda-bhavik" title="Code">💻</a></td>
-  </tr>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://medium.com/@alexnm"><img src="https://avatars0.githubusercontent.com/u/9945366?v=4?s=100" width="100px;" alt="Alex Moldovan"/><br /><sub><b>Alex Moldovan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexnm" title="Documentation">📖</a> <a href="#ideas-alexnm" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/vladnicula"><img src="https://avatars3.githubusercontent.com/u/126038?v=4?s=100" width="100px;" alt="Vlad Nicula"/><br /><sub><b>Vlad Nicula</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=vladnicula" title="Code">💻</a> <a href="#ideas-vladnicula" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/paulbrie"><img src="https://avatars2.githubusercontent.com/u/3997538?v=4?s=100" width="100px;" alt="Paul BRIE"/><br /><sub><b>Paul BRIE</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Apaulbrie" title="Bug reports">🐛</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=paulbrie" title="Documentation">📖</a> <a href="#ideas-paulbrie" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mihaitaba"><img src="https://avatars3.githubusercontent.com/u/45386599?v=4?s=100" width="100px;" alt="mihaitaba"/><br /><sub><b>mihaitaba</b></sub></a><br /><a href="#design-mihaitaba" title="Design">🎨</a> <a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaitaba" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mihaiserban"><img src="https://avatars2.githubusercontent.com/u/3420526?v=4?s=100" width="100px;" alt="Mihai Serban"/><br /><sub><b>Mihai Serban</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaiserban" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://twitter.com/askjkrishna"><img src="https://avatars0.githubusercontent.com/u/11075561?v=4?s=100" width="100px;" alt="Jaya Krishna Namburu"/><br /><sub><b>Jaya Krishna Namburu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=JayaKrishnaNamburu" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3AJayaKrishnaNamburu" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/anamariaoros"><img src="https://avatars0.githubusercontent.com/u/17590608?v=4?s=100" width="100px;" alt="Anamaria Oros"/><br /><sub><b>Anamaria Oros</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=anamariaoros" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ovidiuionut94"><img src="https://avatars3.githubusercontent.com/u/11486739?v=4?s=100" width="100px;" alt="ovidiuionut94"/><br /><sub><b>ovidiuionut94</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=ovidiuionut94" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/alexpausan"><img src="https://avatars0.githubusercontent.com/u/3284064?v=4?s=100" width="100px;" alt="alexpausan"/><br /><sub><b>alexpausan</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=alexpausan" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mihaisampaleanu"><img src="https://avatars1.githubusercontent.com/u/6763756?v=4?s=100" width="100px;" alt="Mihai Sampaleanu"/><br /><sub><b>Mihai Sampaleanu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=mihaisampaleanu" title="Code">💻</a> <a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Amihaisampaleanu" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://utwo.ro"><img src="https://avatars1.githubusercontent.com/u/282668?v=4?s=100" width="100px;" alt="Utwo"/><br /><sub><b>Utwo</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=Utwo" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/andreiTnu"><img src="https://avatars1.githubusercontent.com/u/51601382?v=4?s=100" width="100px;" alt="andreiTnu"/><br /><sub><b>andreiTnu</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=andreiTnu" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://codepen.io/xavxyz"><img src="https://avatars0.githubusercontent.com/u/13962779?v=4?s=100" width="100px;" alt="Xavier Cazalot"/><br /><sub><b>Xavier Cazalot</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=xavxyz" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/chavda-bhavik"><img src="https://avatars.githubusercontent.com/u/50201755?v=4?s=100" width="100px;" alt="Chavda Bhavik"/><br /><sub><b>Chavda Bhavik</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=chavda-bhavik" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/elizamaria"><img src="https://avatars.githubusercontent.com/u/15130574?v=4?s=100" width="100px;" alt="Eliza Nitoi"/><br /><sub><b>Eliza Nitoi</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=elizamaria" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/TudorCe"><img src="https://avatars.githubusercontent.com/u/101194278?v=4?s=100" width="100px;" alt="TudorCe"/><br /><sub><b>TudorCe</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3ATudorCe" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/retyidoro"><img src="https://avatars.githubusercontent.com/u/22962260?v=4?s=100" width="100px;" alt="Dorottya Ferencz"/><br /><sub><b>Dorottya Ferencz</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/issues?q=author%3Aretyidoro" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/vylly"><img src="https://avatars.githubusercontent.com/u/26410594?v=4?s=100" width="100px;" alt="William Gounot"/><br /><sub><b>William Gounot</b></sub></a><br /><a href="https://github.com/teleporthq/teleport-code-generators/commits?author=vylly" title="Code">💻</a></td>
+    </tr>
+  </tbody>
 </table>
 
 <!-- markdownlint-restore -->

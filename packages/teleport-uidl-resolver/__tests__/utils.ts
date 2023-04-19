@@ -5,6 +5,7 @@ import {
   dynamicNode,
   component,
   definition,
+  element,
 } from '@teleporthq/teleport-uidl-builders'
 import {
   generateUniqueKeys,
@@ -13,6 +14,9 @@ import {
   ensureDataSourceUniqueness,
   mergeMappings,
   checkForIllegalNames,
+  checkForDefaultPropsContainingAssets,
+  checkForDefaultStateValueContainingAssets,
+  resolveElement,
 } from '../src/utils'
 import { UIDLElement, UIDLNode, UIDLRepeatNode, Mapping } from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
@@ -111,11 +115,11 @@ describe('ensureDataSourceUniqueness', () => {
     )
 
     const repeatNodeSample1 = JSON.parse(JSON.stringify(repeatNodeSample))
-    const element = elementNode('container', {}, [repeatNodeSample, repeatNodeSample1])
+    const elementSample = elementNode('container', {}, [repeatNodeSample, repeatNodeSample1])
 
-    ensureDataSourceUniqueness(element)
-    const firstRepeat = element.content.children[0] as UIDLRepeatNode
-    const secondRepeat = element.content.children[1] as UIDLRepeatNode
+    ensureDataSourceUniqueness(elementSample)
+    const firstRepeat = elementSample.content.children[0] as UIDLRepeatNode
+    const secondRepeat = elementSample.content.children[1] as UIDLRepeatNode
 
     expect(firstRepeat.content.meta.dataSourceIdentifier).toBe('items')
     expect(secondRepeat.content.meta.dataSourceIdentifier).toBe('items1')
@@ -175,7 +179,7 @@ describe('resolveChildren', () => {
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(1)
-    const innerChildren = ((result[0].content as unknown) as UIDLElement).children
+    const innerChildren = (result[0].content as unknown as UIDLElement).children
     expect(innerChildren.length).toBe(1)
     expect(innerChildren[0].content).toBe('original-text')
   })
@@ -195,7 +199,7 @@ describe('resolveChildren', () => {
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(1)
-    const innerChildren = ((result[0].content as unknown) as UIDLElement).children
+    const innerChildren = (result[0].content as unknown as UIDLElement).children
     expect(innerChildren.length).toBe(3)
     expect(innerChildren[0].content).toBe('original-text')
     expect(innerChildren[1].content).toBe('other-original-text')
@@ -218,7 +222,7 @@ describe('resolveChildren', () => {
 
     const result = resolveChildren(mappedChildren, originalChildren)
     expect(result.length).toBe(1)
-    const innerChildren = ((result[0].content as unknown) as UIDLElement).children
+    const innerChildren = (result[0].content as unknown as UIDLElement).children
     expect(innerChildren.length).toBe(5)
     expect(innerChildren[0].content).toBe('original-text')
     expect(innerChildren[1].content).toBe('other-original-text')
@@ -354,5 +358,120 @@ describe('checkForIllegalNames', () => {
     comp.propDefinitions.this = definition('string', '')
 
     expect(() => checkForIllegalNames(comp, mapping)).toThrowError()
+  })
+})
+
+describe('checkForDefaultPropsContainingAssets', () => {
+  const comp = component('Component', elementNode('image'), {
+    myImage: {
+      type: 'string',
+      defaultValue: '/kittens.png',
+    },
+  })
+
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: { 'kittens.png': 'sub1/sub2' },
+  }
+
+  it('find and fix defaultProp containing an asset', () => {
+    checkForDefaultPropsContainingAssets(comp, assets)
+    expect(comp.propDefinitions).toBeDefined()
+    if (comp.propDefinitions) {
+      expect(comp.propDefinitions.myImage).toBeDefined()
+      expect(comp.propDefinitions.myImage.defaultValue).toContain(
+        'public/assets/sub1/sub2/kittens.png'
+      )
+    }
+  })
+})
+
+describe('checkForDefaultStateValueContainingAssets', () => {
+  const comp = component(
+    'Component',
+    elementNode('image'),
+    {
+      myImage: {
+        type: 'string',
+        defaultValue: '/kittens.png',
+      },
+    },
+    {
+      imageState: {
+        type: 'string',
+        defaultValue: '/dogs.png',
+      },
+    }
+  )
+
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: {
+      'kittens.png': 'sub1/sub2',
+      'dogs.png': 'dog/pictures',
+    },
+  }
+
+  it('find and fix defaultProp containing an asset', () => {
+    checkForDefaultStateValueContainingAssets(comp, assets)
+    expect(comp.stateDefinitions).toBeDefined()
+    if (comp.stateDefinitions) {
+      expect(comp.stateDefinitions.imageState).toBeDefined()
+      expect(comp.stateDefinitions.imageState.defaultValue).toContain(
+        'public/assets/dog/pictures/dogs.png'
+      )
+    }
+  })
+})
+
+describe('resolveLinkElement', () => {
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: {
+      'kittens.png': 'sub1/sub2',
+      'dogs.png': 'dog/pictures',
+    },
+  }
+  const genereicMapping: Mapping = {
+    elements: {
+      text: {
+        elementType: 'span',
+      },
+      picture: {
+        elementType: 'picture',
+        children: [{ type: 'dynamic', content: { referenceType: 'children', id: 'children' } }],
+      },
+    },
+    events: {},
+    attributes: {},
+    illegalClassNames: [],
+    illegalPropNames: ['title'],
+  }
+  const linkElement = element('Link', {
+    url: staticNode('/test'),
+  })
+
+  const linkHTMLElement = element('a', {
+    url: staticNode('/test'),
+  })
+
+  const assetElement = element('image', {
+    src: staticNode('/kittens.png'),
+  })
+
+  it('resolve link element', () => {
+    resolveElement(linkElement, { assets, mapping: genereicMapping })
+    expect(linkElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve link html element', () => {
+    resolveElement(linkHTMLElement, { assets, mapping: genereicMapping })
+    expect(linkHTMLElement.attrs?.url.content).toBe('/test')
+  })
+  it('resolve image element', () => {
+    resolveElement(assetElement, { assets, mapping: genereicMapping })
+    expect(assetElement.attrs?.src.content).toBe('public/assets/sub1/sub2/kittens.png')
   })
 })

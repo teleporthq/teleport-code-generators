@@ -20,7 +20,8 @@ export default {
   "dependencies": {
     "next": "^12.2.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@lottiefiles/lottie-player": "1.6.0"
   }
 }`,
       fileType: 'json',

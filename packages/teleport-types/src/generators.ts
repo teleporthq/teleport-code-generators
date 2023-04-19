@@ -4,9 +4,10 @@ import {
   UIDLDependency,
   Mapping,
   UIDLElement,
-  UIDLStateDefinition,
   UIDLStyleSetDefinition,
   UIDLDesignTokens,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from './uidl'
 
 export enum FileType {
@@ -52,7 +53,7 @@ export interface ChunkDefinition {
  */
 export interface ComponentStructure {
   chunks: ChunkDefinition[]
-  uidl: ComponentUIDL
+  uidl: ComponentUIDL | UIDLRootComponent
   options: GeneratorOptions
   dependencies: Record<string, UIDLDependency>
 }
@@ -108,12 +109,16 @@ export interface ComponentGenerator {
 
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
-  assetsPrefix?: string
+  assets?: {
+    prefix?: string
+    identifier?: string | null
+    mappings?: Record<string, string>
+  }
   mapping?: Mapping
   skipValidation?: boolean
   isRootComponent?: boolean
   skipNavlinkResolver?: boolean
-  projectRouteDefinition?: UIDLStateDefinition
+  projectRouteDefinition?: UIDLRouteDefinitions
   strategy?: ProjectStrategy
   moduleComponents?: Record<string, ComponentUIDL>
   projectStyleSet?: {
@@ -151,6 +156,11 @@ export interface ImportIdentifier {
 /* Project Types */
 
 export interface ProjectGenerator {
+  setAssets: (params: {
+    mappings: Record<string, string>
+    identifier?: string
+    prefix?: string
+  }) => void
   generateProject: (
     input: ProjectUIDL | Record<string, unknown>,
     template?: GeneratedFolder,
@@ -177,6 +187,7 @@ export interface HTMLComponentGenerator extends ComponentGenerator {
   addExternalComponents: (params: {
     externals: Record<string, ComponentUIDL>
     skipValidation?: boolean
+    assets?: GeneratorOptions['assets']
   }) => void
 }
 export type HTMLComponentGeneratorInstance = (
@@ -321,7 +332,7 @@ export type ProjectStrategyPageOptions = ProjectStrategyComponentOptions & {
 }
 
 export interface EntryFileOptions {
-  assetsPrefix?: string
+  assets?: GeneratorOptions['assets']
   appRootOverride?: string
   customTags?: CustomTag[]
   customHeadContent: string
@@ -343,6 +354,7 @@ export interface GeneratedFile {
   fileType?: string
   location?: FileLocation
   status?: string
+  path?: string[]
 }
 
 /**
@@ -449,17 +461,12 @@ export interface PackerOptions {
   publishOptions?: GithubOptions | VercelOptions | PublisherOptions
   assets?: GeneratedFile[]
   plugins?: ProjectPlugin[]
+  assetsFolder?: string[]
 }
 
 export interface GenerateOptions {
   componentType?: ComponentType
   styleVariation?: StyleVariation
-}
-
-export enum PreactStyleVariation {
-  InlineStyles = 'Inline Styles',
-  CSSModules = 'CSS Modules',
-  CSS = 'CSS',
 }
 
 export enum ReactStyleVariation {
@@ -485,50 +492,30 @@ export enum PublisherType {
   CODESANDBOX = 'CodeSandbox',
 }
 
-export enum GatsbyStyleVariation {
-  CSSModules = 'CSS Modules',
-  StyledComponents = 'Styled Components',
-}
-
 export enum ProjectType {
   REACT = 'React',
   NEXT = 'Next',
   VUE = 'Vue',
   NUXT = 'Nuxt',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  GATSBY = 'Gatsby',
-  GRIDSOME = 'Gridsome',
-  REACTNATIVE = 'React-Native',
   HTML = 'HTML',
 }
 
 export enum ComponentType {
   REACT = 'React',
   VUE = 'Vue',
-  PREACT = 'Preact',
-  STENCIL = 'Stencil',
   ANGULAR = 'Angular',
-  REACTNATIVE = 'React-Native',
   HTML = 'HTML',
 }
 
 export const DefaultStyleVariation: Record<ComponentType, StyleVariation | null> = {
   [ComponentType.REACT]: ReactStyleVariation.CSSModules,
-  [ComponentType.PREACT]: PreactStyleVariation.CSSModules,
-  [ComponentType.REACTNATIVE]: ReactNativeStyleVariation.StyledComponents,
   [ComponentType.VUE]: null,
-  [ComponentType.STENCIL]: null,
   [ComponentType.ANGULAR]: null,
   [ComponentType.HTML]: null,
 }
 
-export type StyleVariation =
-  | ReactStyleVariation
-  | PreactStyleVariation
-  | ReactNativeStyleVariation
-  | GatsbyStyleVariation
+export type StyleVariation = ReactStyleVariation | ReactNativeStyleVariation
 
 // The last two types are used by the teleport-code-generator package
 

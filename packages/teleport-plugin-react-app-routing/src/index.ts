@@ -1,24 +1,20 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 import { ASTBuilders } from '@teleporthq/teleport-plugin-common'
-import {
-  registerReactRouterDeps,
-  registerPreactRouterDeps,
-  constructRouteJSX,
-  createRouteRouterTag,
-} from './utils'
+import { registerReactRouterDeps, constructRouteJSX, createRouteRouterTag } from './utils'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkType,
   FileType,
   UIDLPageOptions,
+  UIDLRootComponent,
+  UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string
   domRenderChunkName: string
   importChunkName: string
-  flavor: 'preact' | 'react'
 }
 
 export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingComponentConfig> = (
@@ -28,31 +24,30 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
     importChunkName = 'import-local',
     componentChunkName = 'app-router-component',
     domRenderChunkName = 'app-router-export',
-    flavor = 'react',
   } = config || {}
 
   const reactAppRoutingPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
 
-    if (flavor === 'preact') {
-      registerPreactRouterDeps(dependencies)
-    } else {
-      registerReactRouterDeps(dependencies)
+    if (!uidl?.stateDefinitions?.route) {
+      return structure
     }
+
+    registerReactRouterDeps(dependencies)
 
     const { stateDefinitions = {} } = uidl
 
-    const routes = UIDLUtils.extractRoutes(uidl)
+    const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
-      const routeValues = stateDefinitions.route.values || []
-
+      const routeValues = (stateDefinitions.route as UIDLRouteDefinitions).values || []
       const pageDefinition = routeValues.find((route) => route.value === routeKey)
       const defaultOptions: UIDLPageOptions = {}
-      const { fileName, componentName, navLink } = pageDefinition.pageOptions || defaultOptions
+      const { fileName, componentName, navLink, fallback } =
+        pageDefinition.pageOptions || defaultOptions
 
       /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
@@ -69,10 +64,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
         path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
       }
 
-      return constructRouteJSX(flavor, componentName, navLink)
+      return constructRouteJSX(componentName, navLink, fallback)
     })
 
-    const rootRouterTag = createRouteRouterTag(flavor, routeJSXDefinitions)
+    const rootRouterTag = createRouteRouterTag(routeJSXDefinitions)
 
     const pureComponent = ASTBuilders.createFunctionalComponent(uidl.name, rootRouterTag)
 
@@ -84,32 +79,20 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
       linkAfter: [importChunkName],
     })
 
-    if (flavor === 'preact') {
-      const exportJSXApp = ASTBuilders.createDefaultExport('App')
-
-      structure.chunks.push({
-        type: ChunkType.AST,
-        fileType: FileType.JS,
-        name: domRenderChunkName,
-        content: exportJSXApp,
-        linkAfter: [componentChunkName],
-      })
-    } else {
+    // @ts-ignore
+    const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
+      ASTBuilders.createSelfClosingJSXTag(uidl.name),
       // @ts-ignore
-      const reactDomBind = ASTBuilders.createFunctionCall('ReactDOM.render', [
-        ASTBuilders.createSelfClosingJSXTag(uidl.name),
-        // @ts-ignore
-        ASTBuilders.createFunctionCall('document.getElementById', ['app']),
-      ])
+      ASTBuilders.createFunctionCall('document.getElementById', ['app']),
+    ])
 
-      structure.chunks.push({
-        type: ChunkType.AST,
-        fileType: FileType.JS,
-        name: domRenderChunkName,
-        content: reactDomBind,
-        linkAfter: [componentChunkName],
-      })
-    }
+    structure.chunks.push({
+      type: ChunkType.AST,
+      fileType: FileType.JS,
+      name: domRenderChunkName,
+      content: reactDomBind,
+      linkAfter: [componentChunkName],
+    })
 
     return structure
   }

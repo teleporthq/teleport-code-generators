@@ -201,7 +201,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
       return structure
     }
 
-    const jsxASTNodeReference = generateStyledJSXTag(classMap.join('\n'))
+    const styleJSXAST = generateStyledJSXTag(classMap.join('\n'))
     // We have the ability to insert the tag into the existig JSX structure, or do something else with it.
     // Here we take the JSX <style> tag and we insert it as the last child of the JSX structure
     // inside the React Component
@@ -217,10 +217,16 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const componentAST = componentChunk.content as types.VariableDeclaration
     const arrowFnExpr = componentAST.declarations[0].init as types.ArrowFunctionExpression
     const bodyStatement = arrowFnExpr.body as types.BlockStatement
-    const returnStatement = bodyStatement.body[0] as types.ReturnStatement
-    returnStatement.argument = rootJSXNode
+    const returnStatement = bodyStatement.body.find(
+      (statement) => statement.type === 'ReturnStatement'
+    )
 
-    rootJSXNode.children.push(jsxASTNodeReference)
+    if (!returnStatement) {
+      throw new PluginStyledJSX(`Return Statement is missing from the component AST`)
+    }
+    ;(returnStatement as types.ReturnStatement).argument = rootJSXNode
+
+    rootJSXNode.children.push(styleJSXAST)
     return structure
   }
 

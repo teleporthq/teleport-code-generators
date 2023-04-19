@@ -13,30 +13,32 @@ import {
   UIDLReferencedStyles,
   UIDLStyleMediaQueryScreenSizeCondition,
   UIDLElementNodeCompReferencedStyle,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
+import { prefixAssetURLs } from '../../utils'
 
-export const resolveReferencedStyle = (input: ComponentUIDL) => {
-  input.node = sortReferencedStylesOnElement(input.node)
+export const resolveReferencedStyle = (input: ComponentUIDL, options: GeneratorOptions) => {
+  input.node = sortReferencedStylesOnElement(input.node, options)
 }
 
-const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
+const sortReferencedStylesOnElement = (node: UIDLElementNode, options: GeneratorOptions) => {
   const { referencedStyles = {} } = node.content
 
   if (Object.keys(referencedStyles).length > 0) {
-    node.content.referencedStyles = sortByStateAndCondition(referencedStyles)
+    node.content.referencedStyles = sortByStateAndCondition(referencedStyles, options)
   }
 
   node.content?.children?.map((child) => {
     if (child.type === 'element') {
-      sortReferencedStylesOnElement(child)
+      sortReferencedStylesOnElement(child, options)
     }
 
     if (child.type === 'repeat') {
-      sortReferencedStylesOnElement(child.content.node)
+      sortReferencedStylesOnElement(child.content.node, options)
     }
 
     if (child.type === 'conditional' && child.content.node.type === 'element') {
-      sortReferencedStylesOnElement(child.content.node)
+      sortReferencedStylesOnElement(child.content.node, options)
     }
 
     return child
@@ -44,10 +46,14 @@ const sortReferencedStylesOnElement = (node: UIDLElementNode) => {
   return node
 }
 
-const sortByStateAndCondition = (styles: UIDLReferencedStyles): UIDLReferencedStyles => {
+const sortByStateAndCondition = (
+  styles: UIDLReferencedStyles,
+  options: GeneratorOptions
+): UIDLReferencedStyles => {
   if (Object.keys(styles).length === 0) {
     return {}
   }
+
   const allMediaRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const allElementStateRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const globalReferencedStyles: Record<string, UIDLElementNodeProjectReferencedStyle> = {}
@@ -60,11 +66,23 @@ const sortByStateAndCondition = (styles: UIDLReferencedStyles): UIDLReferencedSt
       case 'inlined':
         {
           if (styleRef.content.conditions[0].conditionType === 'screen-size') {
-            allMediaRelatedStyles[styleId] = styleRef as UIDLElementNodeInlineReferencedStyle
+            allMediaRelatedStyles[styleId] = {
+              ...styleRef,
+              content: {
+                ...styleRef.content,
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
+              },
+            }
           }
 
           if (styleRef.content.conditions[0].conditionType === 'element-state') {
-            allElementStateRelatedStyles[styleId] = styleRef as UIDLElementNodeInlineReferencedStyle
+            allElementStateRelatedStyles[styleId] = {
+              ...styleRef,
+              content: {
+                ...styleRef.content,
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
+              },
+            }
           }
         }
         break

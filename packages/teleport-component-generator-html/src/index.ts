@@ -7,6 +7,7 @@ import {
   HTMLComponentGenerator,
   ComponentUIDL,
   GeneratorFactoryParams,
+  GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -23,17 +24,24 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   const { htmlComponentPlugin, addExternals } = createHTMLBasePlugin()
   const resolver = new Resolver()
   resolver.addMapping(PlainHTMLMapping)
+  mappings.forEach((mapping) => resolver.addMapping(mapping))
 
   Object.defineProperty(generator, 'addExternalComponents', {
-    value: (params: { externals: Record<string, ComponentUIDL>; skipValidation?: boolean }) => {
-      const { externals = {}, skipValidation = false } = params
+    value: (params: {
+      externals: Record<string, ComponentUIDL>
+      skipValidation?: boolean
+      assets?: GeneratorOptions['assets']
+    }) => {
+      const { externals = {}, skipValidation = false, assets = {} } = params
       addExternals(
         Object.keys(externals).reduce((acc: Record<string, ComponentUIDL>, ext) => {
-          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolver.resolveUIDL(
-            skipValidation
-              ? externals[ext]
-              : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
-          )
+          const componentUIDL = skipValidation
+            ? externals[ext]
+            : Parser.parseComponentJSON(externals[ext] as unknown as Record<string, unknown>)
+          const resolvedUIDL = resolver.resolveUIDL(componentUIDL, {
+            assets,
+          })
+          acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc
         }, {})
       )

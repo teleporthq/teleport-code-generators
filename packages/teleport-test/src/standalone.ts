@@ -1,3 +1,4 @@
+// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -34,6 +35,7 @@ const packerOptions: PackerOptions = {
       fileType: 'png',
       name: 'icons-192',
       content: base64File,
+      path: ['custom'],
     },
     {
       fileType: 'png',
@@ -45,6 +47,7 @@ const packerOptions: PackerOptions = {
       content: 'https://placekitten.com/800/400',
       name: 'kitten.png',
       location: 'remote',
+      path: ['one', 'two'],
     },
   ],
 }
@@ -61,8 +64,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmdirSync('dist', { recursive: true })
-      mkdirSync('dist')
+      // rmdirSync('dist', { recursive: true })
+      // mkdirSync('dist')
     }
 
     let result
@@ -91,24 +94,6 @@ const run = async () => {
     /* Frameworks using Css-Modules */
 
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.GATSBY,
-      })
-      console.info(ProjectType.GATSBY, '-', result.payload)
-      return `Gatsy - CSSModules`
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.PREACT,
-      })
-      console.info(ProjectType.PREACT, '-', result.payload)
-      return ProjectType.PREACT
-    })
-
-    await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
@@ -134,15 +119,6 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.STENCIL,
-      })
-      console.info(ProjectType.STENCIL, '-', result.payload)
-      return ProjectType.STENCIL
-    })
-
-    await log(async () => {
       result = await packProject(projectUIDL, { ...packerOptions, projectType: ProjectType.NUXT })
       console.info(ProjectType.NUXT, '-', result.payload)
       return ProjectType.NUXT
@@ -164,15 +140,6 @@ const run = async () => {
       })
       console.info(ProjectType.ANGULAR, '-', result.payload)
       return ProjectType.ANGULAR
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.GRIDSOME,
-      })
-      console.info(ProjectType.GRIDSOME, '-', result.payload)
-      return ProjectType.GRIDSOME
     })
 
     /* React JSS */
@@ -205,24 +172,6 @@ const run = async () => {
     })
 
     await log(async () => {
-      result = await packProject(reactProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.GATSBY,
-        plugins: [new ProjectPluginStyledComponents({ framework: ProjectType.GATSBY })],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-gatsby-styled-components',
-        },
-      })
-      console.info(
-        ProjectType.GATSBY + '-' + ReactStyleVariation.StyledComponents,
-        '-',
-        result.payload
-      )
-      return `Gatsby - StyledComponents`
-    })
-
-    await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
@@ -238,15 +187,6 @@ const run = async () => {
         result.payload
       )
       return `Next - StyledComponents`
-    })
-
-    await log(async () => {
-      result = await packProject(projectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.REACTNATIVE,
-      })
-      console.info(ProjectType.REACTNATIVE, '-', result.payload)
-      return ProjectType.REACTNATIVE
     })
 
     /* Frameworks using default + tailwind ccss */
@@ -364,45 +304,6 @@ const run = async () => {
 
       console.info(ProjectType.HTML, '+' + 'tailwind', '-', result.payload)
       return `Html - Tailwind`
-    })
-
-    await log(async () => {
-      result = await packProject(tailwindProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.PREACT,
-        plugins: [
-          new ProjectPluginTailwind({
-            framework: ProjectType.PREACT,
-          }),
-        ],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-preact-tailwind',
-        },
-      })
-
-      console.info(ProjectType.PREACT, '+' + 'tailwind', '-', result.payload)
-      return `Preact - Tailwind`
-    })
-
-    await log(async () => {
-      result = await packProject(tailwindProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.STENCIL,
-        plugins: [
-          new ProjectPluginTailwind({
-            framework: ProjectType.STENCIL,
-            path: [''],
-          }),
-        ],
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-stencil-tailwind',
-        },
-      })
-
-      console.info(ProjectType.STENCIL, '+' + 'tailwind', '-', result.payload)
-      return `Stencil - Tailwind`
     })
   } catch (e) {
     console.info(e)

@@ -1,4 +1,5 @@
 import { FileType, ProjectStrategy, ReactStyleVariation } from '@teleporthq/teleport-types'
+import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSampleWithExternalDependencies from '../../../../examples/test-samples/project-sample-with-dependency.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
@@ -102,6 +103,8 @@ describe('React Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
+    "dangerous-html": "0.1.12",
+    "@lottiefiles/react-lottie-player": "3.4.7",
     "react-helmet": "^6.1.0",
     "prop-types": "15.7.2",
     "antd": "4.5.4"
@@ -115,7 +118,17 @@ describe('React Project Generator', () => {
       </Button>`
     )
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
+    expect(viewsFolder.files[0].content).toContain(
+      `import DangerousHTML from 'dangerous-html/react'`
+    )
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
+    expect(viewsFolder.files[0].content).toContain(
+      `<div className="home-div">
+        <DangerousHTML
+          html={\`<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\`}
+        ></DangerousHTML>
+      </div>`
+    )
     /* Imports that are just need to be inserted are added to router file by default */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
   })
@@ -134,6 +147,15 @@ describe('React Project Generator', () => {
     expect(styleSheet.content).toContain(`--greys-500: #595959`)
     expect(index).toBeDefined()
     expect(index.content).toContain(`import './style.css'`)
+  })
+
+  it('creates a default route if a page is marked as fallback', async () => {
+    const { subFolders } = await generator.generateProject(fallbackUidlSample, template)
+    const pages = subFolders.find((folder) => folder.name === 'src')
+    const routesPage = pages?.files.find((file) => file.name === 'index')
+
+    expect(routesPage).toBeDefined()
+    expect(routesPage?.content).toContain(`<Route component={Fallback} path=\"**\" />`)
   })
 
   it('throws error when invalid UIDL sample is used', async () => {

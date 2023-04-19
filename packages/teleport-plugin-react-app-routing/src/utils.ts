@@ -2,13 +2,9 @@ import * as types from '@babel/types'
 import { UIDLDependency } from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 
-export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types.JSXElement[]) => {
+export const createRouteRouterTag = (routeJSXDefinitions: types.JSXElement[]) => {
   const routerTag = ASTBuilders.createJSXTag('Router')
 
-  if (flavour === 'preact') {
-    routeJSXDefinitions.forEach((route) => ASTUtils.addChildJSXTag(routerTag, route))
-    return routerTag
-  }
   const divContainer = ASTBuilders.createJSXTag('div')
   ASTUtils.addChildJSXTag(routerTag, divContainer)
   routeJSXDefinitions.forEach((route) => ASTUtils.addChildJSXTag(divContainer, route))
@@ -16,20 +12,16 @@ export const createRouteRouterTag = (flavour: string, routeJSXDefinitions: types
   return routerTag
 }
 
-export const constructRouteJSX = (flavour: string, componentName: string, path: string) => {
+export const constructRouteJSX = (componentName: string, path: string, fallback?: boolean) => {
   let JSXRoutePrefix: string
   let route: types.JSXElement
 
-  if (flavour === 'preact') {
-    JSXRoutePrefix = componentName
-    route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
-  } else {
-    JSXRoutePrefix = 'Route'
-    route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
+  JSXRoutePrefix = 'Route'
+  route = ASTBuilders.createSelfClosingJSXTag(JSXRoutePrefix)
+  ASTUtils.addDynamicAttributeToJSXTag(route, 'component', componentName)
+  if (!fallback) {
     ASTUtils.addAttributeToJSXTag(route, 'exact')
-    ASTUtils.addDynamicAttributeToJSXTag(route, 'component', componentName)
   }
-
   ASTUtils.addAttributeToJSXTag(route, 'path', path)
 
   return route
@@ -62,17 +54,6 @@ export const registerReactRouterDeps = (dependencies: Record<string, UIDLDepende
     type: 'library',
     path: 'react-router-dom',
     version: '^5.2.0',
-    meta: {
-      namedImport: true,
-    },
-  }
-}
-
-export const registerPreactRouterDeps = (dependencies: Record<string, UIDLDependency>): void => {
-  dependencies.Router = {
-    type: 'library',
-    path: 'preact-router',
-    version: '2.5.7',
     meta: {
       namedImport: true,
     },
