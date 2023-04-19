@@ -458,6 +458,7 @@ export interface UIDLStyleSetDefinition {
     | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
+  meta: UIDLStyleSetMeta
 }
 
 export type UIDLStyleSheetContent = UIDLStaticValue | UIDLStyleSetTokenReference
@@ -468,6 +469,11 @@ export interface UIDLStyleSetTokenReference {
     referenceType: 'token'
     id: string
   }
+}
+
+export interface UIDLStyleSetMeta {
+  className: string
+  subselectors?: string
 }
 
 export type UIDLStyleSetConditions = UIDLStyleSetMediaCondition | UIDLStyleSetStateCondition

@@ -40,6 +40,9 @@ describe('Style Sheet from react-jss', () => {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
+        meta: {
+          className: 'primaryButton',
+        },
       },
       secondaryButton: {
         type: 'reusable-project-style-map',
@@ -47,9 +50,15 @@ describe('Style Sheet from react-jss', () => {
           background: staticNode('red'),
           color: staticNode('blue'),
         },
+        meta: {
+          className: 'secondaryButton',
+        },
       },
       conditionalButton: {
         type: 'reusable-project-style-map',
+        meta: {
+          className: 'conditionalButton',
+        },
         conditions: [
           {
             type: 'screen-size',
@@ -104,12 +113,18 @@ describe('Style Sheet from react-jss', () => {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
+        meta: {
+          className: 'primaryButton',
+        },
       },
       secondaryButton: {
         type: 'reusable-project-style-map',
         content: {
           background: staticNode('red'),
           color: staticNode('blue'),
+        },
+        meta: {
+          className: 'secondaryButton',
         },
       },
     }

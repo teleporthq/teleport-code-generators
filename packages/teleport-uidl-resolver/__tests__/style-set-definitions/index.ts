@@ -29,6 +29,9 @@ describe('Resolves style-sheet', () => {
       content: {
         display: staticNode('block'),
       },
+      meta: {
+        className: 'primaryButton',
+      },
     },
     secondaryButton: {
       type: 'reusable-project-style-map' as const,
@@ -54,6 +57,9 @@ describe('Resolves style-sheet', () => {
       ],
       content: {
         display: staticNode('block'),
+      },
+      meta: {
+        className: 'primaryButton',
       },
     },
   }

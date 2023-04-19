@@ -28,8 +28,18 @@ export const generateStylesFromStyleSetDefinitions = (params: {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [] } = style
-    const className = styleId
-    cssMap.push(StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content)))
+    const className = style.meta.className
+    const subselectors = style.meta.subselectors
+
+    const cls = subselectors
+      ? StyleBuilders.createCSSClassWithSelector(
+          className,
+          `&${subselectors}`,
+          generateStyledFromStyleContent(content)
+        )
+      : StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content))
+
+    cssMap.push(cls)
 
     if (conditions.length === 0) {
       return

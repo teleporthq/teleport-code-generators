@@ -190,6 +190,9 @@
         },
         "styleSetDefinitions": {
             "button": {
+                "meta": {
+                    "className": "button"
+                  },
                 "type": "reusable-project-style-map",
                 "content": {
                     "fontSize": {
@@ -216,6 +219,9 @@
             },
             "input": {
                 "type": "reusable-project-style-map",
+                "meta": {
+                    "className": "input"
+                },
                 "content": {
                     "color": {
                         "type": "dynamic",
@@ -259,6 +265,9 @@
             },
             "textarea": {
                 "type": "reusable-project-style-map",
+                "meta": {
+                    "className": "textarea"
+                },
                 "content": {
                     "color": {
                         "type": "dynamic",
@@ -302,6 +311,9 @@
             },
             "list": {
                 "type": "reusable-project-style-map",
+                "meta": {
+                    "className": "list"
+                },
                 "content": {
                     "width": {
                         "type": "static",
@@ -331,6 +343,9 @@
                 "conditions": []
             },
             "list-item": {
+                "meta": {
+                    "className": "list-item"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "display": {
@@ -341,6 +356,9 @@
                 "conditions": []
             },
             "teleport-show": {
+                "meta": {
+                    "className": "teleport-show"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "display": {
@@ -351,6 +369,9 @@
                 "conditions": []
             },
             "primary-button": {
+                "meta": {
+                    "className": "primary-button"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "backgroundColor": {
@@ -368,6 +389,9 @@
                 "conditions": []
             },
             "secondary-button": {
+                "meta": {
+                    "className": "secondary-button"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "color": {
@@ -385,6 +409,9 @@
                 "conditions": []
             },
             "content": {
+                "meta": {
+                    "className": "content"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "fontSize": {
@@ -414,6 +441,9 @@
                 }
             },
             "heading": {
+                "meta": {
+                    "className": "heading"
+                },
                 "type": "reusable-project-style-map",
                 "content": {
                     "fontSize": {
@@ -5673,42 +5703,66 @@
                 "rootClassName": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName"
+                    }
                 },
                 "rootClassName1": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName1"
+                    }
                 },
                 "rootClassName2": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName2"
+                    }
                 },
                 "rootClassName3": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName3"
+                    }
                 },
                 "rootClassName4": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName4"
+                    }
                 },
                 "rootClassName5": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName5"
+                    }
                 },
                 "rootClassName6": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName6"
+                    }
                 },
                 "rootClassName7": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName7"
+                    }
                 }
             }
         },
@@ -6648,7 +6702,10 @@
                 "rootClassName": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName"
+                    }
                 }
             }
         },
@@ -7715,7 +7772,10 @@
                         }
                     },
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName"
+                    }
                 },
                 "rootClassName1": {
                     "content": {
@@ -7725,12 +7785,18 @@
                         }
                     },
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName1"
+                    }
                 },
                 "rootClassName2": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName2"
+                    }
                 },
                 "rootClassName3": {
                     "content": {
@@ -7743,7 +7809,10 @@
                         }
                     },
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName3"
+                    }
                 },
                 "root-class-name-4": {
                     "content": {
@@ -7753,7 +7822,10 @@
                         }
                     },
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName4"
+                    }
                 }
             }
         },
@@ -10361,62 +10433,98 @@
                 "rootClassName": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName"
+                    }
                 },
                 "rootClassName1": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName1"
+                    }
                 },
                 "rootClassName2": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName2"
+                    }
                 },
                 "rootClassName3": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName3"
+                    }
                 },
                 "rootClassName4": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName4"
+                    }
                 },
                 "rootClassName5": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName5"
+                    }
                 },
                 "rootClassName6": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName6"
+                    }
                 },
                 "rootClassName7": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName7"
+                    }
                 },
                 "rootClassName8": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName8"
+                    }
                 },
                 "rootClassName9": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName9"
+                    }
                 },
                 "rootClassName10": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName10"
+                    }
                 },
                 "rootClassName11": {
                     "content": {},
                     "conditions": [],
-                    "type": "reusable-component-style-override"
+                    "type": "reusable-component-style-override",
+                    "meta": {
+                        "className": "rootClassName11"
+                    }
                 }
             }
         }

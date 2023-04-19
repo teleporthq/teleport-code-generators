@@ -199,6 +199,9 @@
     "styleSetDefinitions": {
       "button": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "button"
+        },
         "content": {
           "fontSize": {
             "type": "static",
@@ -224,6 +227,9 @@
       },
       "input": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "input"
+        },
         "content": {
           "color": {
             "type": "dynamic",
@@ -267,6 +273,9 @@
       },
       "textarea": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "textarea"
+        },
         "content": {
           "color": {
             "type": "dynamic",
@@ -310,6 +319,9 @@
       },
       "list": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "list"
+        },
         "content": {
           "width": {
             "type": "static",
@@ -346,6 +358,9 @@
             "content": "list-item"
           }
         },
+        "meta": {
+          "className": "list-item"
+        },
         "conditions": []
       },
       "teleport-show": {
@@ -355,6 +370,9 @@
             "type": "static",
             "content": "flex !important"
           }
+        },
+        "meta": {
+          "className": "teleport-show"
         },
         "conditions": []
       },
@@ -368,6 +386,9 @@
               "id": "--dl-color-gray-black"
             }
           },
+          "meta": {
+            "className": "primary-button"
+          },
           "color": {
             "type": "static",
             "content": "white"
@@ -377,6 +398,9 @@
       },
       "secondary-button": {
         "type": "reusable-project-style-map",
+        "meta":{
+          "className": "secondary-button"
+        },
         "content": {
           "color": {
             "type": "dynamic",
@@ -394,6 +418,9 @@
       },
       "content": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "content"
+        },
         "content": {
           "fontSize": {
             "type": "static",
@@ -423,6 +450,9 @@
       },
       "heading": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "heading"
+        },
         "content": {
           "fontSize": {
             "type": "static",

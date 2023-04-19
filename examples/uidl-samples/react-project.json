@@ -67,6 +67,9 @@
     "styleSetDefinitions": {
       "primary-button": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "primary-button"
+        },
         "conditions": [
           { "type": "screen-size",
             "meta": {
@@ -98,6 +101,9 @@
       },
       "secondary-button": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "secondary-button"
+        },
         "content": {
           "background": "red",
           "width": "auto",
@@ -923,6 +929,9 @@
       "styleSetDefinitions": {
         "primaryButton": {
           "type": "reusable-component-style-override",
+          "meta": {
+            "className": "primaryButton"
+          },
           "conditions": [
             { "type": "screen-size",
               "meta": {
@@ -954,6 +963,9 @@
         },
         "secondaryButton": {
           "type": "reusable-component-style-override",
+          "meta": {
+            "className": "secondaryButton"
+          },
           "content": {
             "background": "red",
             "width": "auto",

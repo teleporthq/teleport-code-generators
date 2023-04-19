@@ -13,6 +13,9 @@ describe('plugin-css-modules-style-sheet', () => {
         background: staticNode('blue'),
         color: staticNode('red'),
       },
+      meta: {
+        className: 'primary-button',
+      },
     },
     secondaryButton: {
       type: 'reusable-project-style-map',
@@ -20,9 +23,15 @@ describe('plugin-css-modules-style-sheet', () => {
         background: staticNode('red'),
         color: staticNode('blue'),
       },
+      meta: {
+        className: 'secondaryButton',
+      },
     },
     conditionalButton: {
       type: 'reusable-project-style-map',
+      meta: {
+        className: 'conditionalButton',
+      },
       conditions: [
         {
           type: 'screen-size',

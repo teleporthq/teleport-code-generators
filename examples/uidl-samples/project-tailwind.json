@@ -197,6 +197,9 @@
     "styleSetDefinitions": {
       "button": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "button"
+        },
         "content": {
           "color": {
             "type": "dynamic",
@@ -239,6 +242,9 @@
         "conditions": []
       },
       "input": {
+        "meta": {
+          "className": "input"
+        },
         "type": "reusable-project-style-map",
         "content": {
           "color": {
@@ -283,6 +289,9 @@
       },
       "textarea": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "textarea"
+        },
         "content": {
           "color": {
             "type": "dynamic",
@@ -325,6 +334,9 @@
         "conditions": []
       },
       "list": {
+        "meta": {
+          "className": "list"
+        },
         "type": "reusable-project-style-map",
         "content": {
           "width": {
@@ -356,6 +368,9 @@
       },
       "list-item": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "list-item"
+        },
         "content": {
           "display": {
             "type": "static",
@@ -366,6 +381,9 @@
       },
       "teleport-show": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "teleport-show"
+        },
         "content": {
           "display": {
             "type": "static",
@@ -376,6 +394,9 @@
       },
       "content": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "content"
+        },
         "content": {
           "fontSize": {
             "type": "static",
@@ -404,6 +425,9 @@
         }
       },
       "heading": {
+        "meta": {
+          "className": "heading"
+        },
         "type": "reusable-project-style-map",
         "content": {
           "fontSize": {

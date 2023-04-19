@@ -103,6 +103,9 @@ describe('Referenced Styles on Node', () => {
           background: staticNode('blue'),
           color: staticNode('red'),
         },
+        meta: {
+          className: 'primaryButton',
+        },
       },
     }
 
