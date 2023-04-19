@@ -171,6 +171,7 @@ export interface InitialPropsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
+  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
   resource: Resource
 }
 
@@ -299,6 +300,7 @@ export interface UIDLCMSListNodeContent {
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
+  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
 }
@@ -309,6 +311,7 @@ export interface UIDLCMSItemNodeContent {
   statePersistanceName?: string
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
+  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
 }

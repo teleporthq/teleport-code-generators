@@ -82,6 +82,10 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
 
         dependencies.useEffect = Constants.USE_EFFECT_DEPENDENCY
         dependencies.useState = Constants.USE_STATE_DEPENDENCY
+
+        content.resourceMappers?.forEach((mapper) => {
+          dependencies[mapper.name] = mapper.resource
+        })
       } catch (error) {
         return
       }
@@ -122,6 +126,33 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     ),
   ])
 
+  let mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
+  node.content.resourceMappers?.forEach((mapper) => {
+    mappedResponse = types.callExpression(types.identifier(mapper.name), [mappedResponse])
+  })
+
+  const mappedDataAST = types.variableDeclaration('const', [
+    types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
+  ])
+
+  const stateNameAST: types.MemberExpression | types.CallExpression | types.Identifier =
+    node.type === 'cms-item'
+      ? types.memberExpression(
+          types.memberExpression(
+            ASTUtils.generateMemberExpressionASTFromPath([
+              node.content.resourceMappers?.length ? 'mappedData' : 'response',
+              ...(node.content.valuePath || []),
+            ]),
+            types.numericLiteral(0),
+            true
+          ),
+          types.identifier((node.content.itemValuePath || []).join('.'))
+        )
+      : ASTUtils.generateMemberExpressionASTFromPath([
+          node.content.resourceMappers?.length ? 'mappedData' : 'response',
+          ...(node.content.valuePath || []),
+        ])
+
   const resourceFetchAST = types.arrowFunctionExpression(
     [],
     types.blockStatement([
@@ -150,25 +181,9 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
                       ),
                     ]),
                     types.blockStatement([
+                      ...(node.content.resourceMappers?.length ? [mappedDataAST] : []),
                       types.expressionStatement(
-                        types.callExpression(types.identifier(setStateName), [
-                          node.type === 'cms-item'
-                            ? types.memberExpression(
-                                types.memberExpression(
-                                  ASTUtils.generateMemberExpressionASTFromPath([
-                                    'response',
-                                    ...(node.content.valuePath || []),
-                                  ]),
-                                  types.numericLiteral(0),
-                                  true
-                                ),
-                                types.identifier((node.content.itemValuePath || []).join('.'))
-                              )
-                            : ASTUtils.generateMemberExpressionASTFromPath([
-                                'response',
-                                ...(node.content.valuePath || []),
-                              ]),
-                        ])
+                        types.callExpression(types.identifier(setStateName), [stateNameAST])
                       ),
                     ])
                   ),

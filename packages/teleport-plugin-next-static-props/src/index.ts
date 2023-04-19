@@ -16,7 +16,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const staticPropsPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
+    const { uidl, chunks, dependencies } = structure
     if (!uidl.outputOptions?.initialPropsData) {
       return structure
     }
@@ -32,6 +32,10 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       !!uidl.outputOptions.dynamicRouteAttribute,
       uidl.outputOptions.pagination
     )
+
+    uidl.outputOptions.initialPropsData.resourceMappers?.forEach((mapper) => {
+      dependencies[mapper.name] = mapper.resource
+    })
 
     chunks.push({
       name: 'getStaticProps',
