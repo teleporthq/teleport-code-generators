@@ -26,6 +26,16 @@ export default {
 }`,
       fileType: 'json',
     },
+<<<<<<< Updated upstream
+=======
+    {
+      name: 'next.config',
+      fileType: 'js',
+      content: `module.exports = {
+  reactStrictMode: true,
+};`,
+    },
+>>>>>>> Stashed changes
   ],
   subFolders: [],
 }

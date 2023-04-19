@@ -7,7 +7,7 @@ import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import nextImagePlugin from '@teleporthq/teleport-plugin-jsx-next-image'
-
+import nextFontsPlugin from '@teleporthq/teleport-plugin-next-fonts'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
@@ -28,14 +28,14 @@ const createNextProjectGenerator = () => {
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin],
+      plugins: [nextFontsPlugin, nextImagePlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [nextImagePlugin, headConfigPlugin],
+      plugins: [nextFontsPlugin, nextImagePlugin, headConfigPlugin],
       mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,
