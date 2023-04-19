@@ -113,6 +113,9 @@ export const addDynamicAttributeToJSXTag = (
   )
 }
 
+/**
+ * Makes `${name}={${ContextName}.${path}}` happen in AST
+ */
 export const addDynamicCtxAttributeToJSXTag = (params: {
   jsxASTNode: types.JSXElement
   name: string
@@ -121,7 +124,6 @@ export const addDynamicCtxAttributeToJSXTag = (params: {
   generationParams: JSXGenerationParams
   t?: typeof types
 }) => {
-  // console.log('addDynamicCtxAttributeToJSXTag', jsxASTNode, attrValue)
   const { jsxASTNode, name, t = types, attrValue, options, generationParams } = params
 
   const content = createDynamicValueExpression(attrValue, options, t, generationParams)

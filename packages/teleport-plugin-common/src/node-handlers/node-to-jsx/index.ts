@@ -151,8 +151,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 export default generateElementNode
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
-  // console.log('generateNode', node)
-
   switch (node.type) {
     case 'raw':
       return options.domHTMLInjection
