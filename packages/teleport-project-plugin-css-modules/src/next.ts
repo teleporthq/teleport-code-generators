@@ -53,11 +53,6 @@ export const nextAfterModifier = async (structure: ProjectPluginStructure) => {
 };
 
 module.exports = {
-  experimental: {
-    images: {
-      allowFutureImage: true 
-    }
-  },
   webpack: (config) => {
     const oneOf = config.module.rules.find(
       (rule) => typeof rule.oneOf === 'object'

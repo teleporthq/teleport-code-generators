@@ -80,7 +80,7 @@ export default Welcome`,
     const pagesFolder = subFolders.find((file) => file.name === 'pages')
     const customFolder = pagesFolder.subFolders.find((file) => file.name === 'custom-folder')
 
-    expect(files.length).toBe(3)
+    expect(files.length).toBe(4)
     expect(pagesFolder).toBeDefined()
     expect(customFolder).toBeDefined()
     expect(customFolder.files.length).toBe(1)

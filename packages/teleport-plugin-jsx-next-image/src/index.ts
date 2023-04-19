@@ -10,8 +10,8 @@ interface NextImagePluginConfig {
 const CSS_REGEX = /^([+-]?(?:\d+|\d*\.\d+))([a-z]*|%)$/
 const NEXT_HEAD_DEPENDENCY: UIDLDependency = {
   type: 'library',
-  path: 'next/future/image',
-  version: '12.2.2',
+  path: 'next/image',
+  version: '13.3.0',
 }
 
 export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig> = (config) => {
