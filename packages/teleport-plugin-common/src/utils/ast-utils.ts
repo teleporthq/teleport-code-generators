@@ -14,7 +14,8 @@ import {
   UIDLDynamicReference,
   ResourceUrlValues,
 } from '@teleporthq/teleport-types'
-import { JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
+import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
+import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -93,6 +94,7 @@ const getClassAttribute = (
 
 /**
  * Makes `${name}={${prefix}.${value}}` happen in AST
+ * doesn't handle ctx or expr referenceType
  */
 export const addDynamicAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
@@ -105,6 +107,26 @@ export const addDynamicAttributeToJSXTag = (
     prefix === ''
       ? t.identifier(value)
       : t.memberExpression(t.identifier(prefix), t.identifier(value))
+
+  jsxASTNode.openingElement.attributes.push(
+    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
+  )
+}
+
+/**
+ * Makes `${name}={${ContextName}.${path}}` happen in AST
+ */
+export const addDynamicCtxAttributeToJSXTag = (params: {
+  jsxASTNode: types.JSXElement
+  name: string
+  attrValue: UIDLDynamicReference
+  options: JSXGenerationOptions
+  generationParams: JSXGenerationParams
+  t?: typeof types
+}) => {
+  const { jsxASTNode, name, t = types, attrValue, options, generationParams } = params
+
+  const content = createDynamicValueExpression(attrValue, options, t, generationParams)
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
