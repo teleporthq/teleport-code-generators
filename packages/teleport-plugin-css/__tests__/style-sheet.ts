@@ -40,6 +40,15 @@ describe('plugin-css-style-sheet', () => {
           color: staticNode('blue'),
         },
       },
+      someClassId: {
+        type: 'reusable-project-style-map',
+        content: {
+          background: staticNode('red'),
+          color: staticNode('blue'),
+        },
+        className: 'secondaryButton',
+        subselectors: ' h1',
+      },
       conditionalButton: {
         type: 'reusable-project-style-map',
         conditions: [
@@ -92,6 +101,7 @@ describe('plugin-css-style-sheet', () => {
     expect(content).toContain('.primaryButton')
     expect(content).toContain('secondaryButton')
     expect(content).toContain('.conditionalButton:hover')
+    expect(content).toContain('.secondaryButton h1')
     expect(content).toContain('@media(max-width: 991px)')
     expect(content).not.toContain('5ecfa1233b8e50f60ea2b64b')
   })

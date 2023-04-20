@@ -117,7 +117,8 @@ export const generateStylesFromStyleSetDefinitions = (
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [], type } = style
-    const name = className(styleId)
+    const name = className(style.className || styleId)
+    const subselectors = style.subselectors
 
     const { staticStyles, tokenStyles } = UIDLUtils.splitDynamicAndStaticStyles(content)
     const collectedStyles = {
@@ -125,10 +126,13 @@ export const generateStylesFromStyleSetDefinitions = (
       ...getCSSVariablesContentFromTokenStyles(tokenStyles),
     } as Record<string, string | number>
 
+    const cls = subselectors
+      ? createCSSClassWithSelector(name, `&${subselectors}`, collectedStyles)
+      : createCSSClass(name, collectedStyles)
     if (type === 'reusable-component-style-map') {
-      cssMap.unshift(createCSSClass(name, collectedStyles))
+      cssMap.unshift(cls)
     } else {
-      cssMap.push(createCSSClass(name, collectedStyles))
+      cssMap.push(cls)
     }
 
     if (conditions.length === 0) {

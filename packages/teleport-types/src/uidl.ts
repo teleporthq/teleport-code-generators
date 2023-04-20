@@ -595,6 +595,21 @@ export interface UIDLStyleSetDefinition {
     | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
+  /**
+   * A string representing the style set's root name
+   * e.g. for .container button > span, container would be the className
+   *
+   * For the sake of backwards compatibility, this is an optional parameter. It can be made
+   * mandatory in the future, but all existing UIDL will need updating.
+   */
+  className?: string
+  /**
+   * Optional string containing all the subselectors of this style set.
+   * e.g. for .container button > span, ' button > span' will be the subselector.
+   *
+   * Attention! Subselectors do not have a starting space by default.
+   */
+  subselectors?: string
 }
 
 export type UIDLStyleSheetContent = UIDLStaticValue | UIDLStyleSetTokenReference
