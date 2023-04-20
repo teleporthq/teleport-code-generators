@@ -322,8 +322,8 @@ export const iconAssetDecoder: Decoder<UIDLIconAsset> = object({
 })
 
 export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
-  title: optional(union(string(), dynamicValueDecoder)),
-  metaTags: optional(array(dict(union(string(), dynamicValueDecoder)))),
+  title: optional(union(string(), staticValueDecoder, dynamicValueDecoder)),
+  metaTags: optional(array(dict(union(string(), staticValueDecoder, dynamicValueDecoder)))),
   assets: optional(array(globalAssetsDecoder)),
 })
 
