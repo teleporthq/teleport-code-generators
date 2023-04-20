@@ -100,11 +100,10 @@ const computePropsAST = (
             )
           : types.callExpression(
               types.memberExpression(
-                types.memberExpression(
-                  types.identifier('response'),
-                  types.identifier('data'),
-                  false
-                ),
+                ASTUtils.generateMemberExpressionASTFromPath([
+                  'response',
+                  ...initialData.exposeAs.valuePath,
+                ]),
                 types.identifier('map'),
                 false
               ),
@@ -123,7 +122,7 @@ const computePropsAST = (
                                 types.memberExpression(
                                   ASTUtils.generateMemberExpressionASTFromPath([
                                     'item',
-                                    ...initialData.exposeAs.valuePath,
+                                    ...initialData.exposeAs.itemValuePath,
                                   ]),
                                   types.identifier('toString')
                                 ),

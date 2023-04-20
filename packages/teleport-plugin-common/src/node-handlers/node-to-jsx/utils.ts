@@ -163,7 +163,8 @@ export const createDynamicValueExpression = (
 
   if (identifierContent.referenceType === 'ctx') {
     // TODO handle situation when context is not using path
-    const contextMeta = projectContexts[identifierContent.id]
+    // TODO only allow ctxID not id for context references
+    const contextMeta = projectContexts[identifierContent.ctxId ?? identifierContent.id]
     return t.memberExpression(
       t.identifier(StringUtils.camelize(contextMeta.providerName)),
       t.identifier(identifierContent.path[0])

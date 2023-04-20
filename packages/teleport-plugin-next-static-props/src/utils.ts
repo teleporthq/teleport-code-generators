@@ -37,39 +37,26 @@ const computePropsAST = (
   isDetailsPage = false,
   pagination?: PagePaginationOptions
 ) => {
-  const currentPageAST = pagination
-    ? types.variableDeclaration('const', [
-        types.variableDeclarator(
-          types.identifier('currentPage'),
-          types.memberExpression(
-            types.memberExpression(types.identifier('context'), types.identifier('params'), false),
-            types.identifier('page'),
-            false
-          )
-        ),
-      ])
-    : null
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(propsData.resource, propsPrefix)
 
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(propsData.resource, propsPrefix, () => {
-    if (!pagination) {
-      return [] as types.ObjectProperty[]
-    }
-
-    return [
-      types.objectProperty(
-        types.stringLiteral(pagination.pageUrlSearchParamKey),
-        types.identifier('currentPage'),
-        false,
-        false
-      ),
-    ]
+  let mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
+  propsData.resourceMappers?.forEach((mapper) => {
+    mappedResponse = types.callExpression(types.identifier(mapper.name), [mappedResponse])
   })
 
-  const responseMemberAST = types.memberExpression(
-    types.identifier('response'),
-    types.identifier('data'),
-    false
-  )
+  const mappedDataAST = types.variableDeclaration('const', [
+    types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
+  ])
+
+  const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+    propsData.resourceMappers?.length ? 'mappedData' : 'response',
+    ...propsData.exposeAs.valuePath,
+  ])
+
+  const dataWeNeedAccessorAST =
+    isDetailsPage && !pagination
+      ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
+      : responseMemberAST
 
   const returnAST = types.returnStatement(
     types.objectExpression([
@@ -78,9 +65,12 @@ const computePropsAST = (
         types.objectExpression([
           types.objectProperty(
             types.identifier(propsData.exposeAs.name),
-            isDetailsPage && !pagination
-              ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
-              : responseMemberAST,
+            propsData.exposeAs.itemValuePath?.length
+              ? ASTUtils.generateMemberExpressionASTFromBase(
+                  dataWeNeedAccessorAST,
+                  propsData.exposeAs.itemValuePath
+                )
+              : dataWeNeedAccessorAST,
             false,
             false
           ),
@@ -92,5 +82,5 @@ const computePropsAST = (
     ])
   )
 
-  return [...(currentPageAST ? [currentPageAST] : []), ...resourceASTs, returnAST]
+  return [...resourceASTs, ...(propsData.resourceMappers?.length ? [mappedDataAST] : []), returnAST]
 }

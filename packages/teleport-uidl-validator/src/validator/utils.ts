@@ -190,8 +190,9 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
     if (node.type === 'dynamic' && node.content.referenceType === 'state') {
       if (!dynamicPathExistsInDefinitions(node.content.id, stateKeys)) {
-        const errorMsg = `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
-        errors.push(errorMsg)
+        console.warn(
+          `\n"${node.content.id}" is used but not defined. Please add it in stateDefinitions`
+        )
       }
 
       // for member expression we check the root

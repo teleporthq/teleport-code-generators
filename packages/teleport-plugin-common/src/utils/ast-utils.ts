@@ -13,6 +13,7 @@ import {
   UIDLStaticValue,
   UIDLDynamicReference,
   ResourceUrlValues,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
@@ -646,6 +647,24 @@ export const generateRemoteResourceASTs = (
   return [fetchAST, responseJSONAST]
 }
 
+export const generateMemberExpressionASTFromBase = (
+  base: types.MemberExpression | types.Identifier,
+  path: string[]
+): types.MemberExpression => {
+  if (path.length === 1) {
+    return types.memberExpression(base, types.identifier(path[0]), false)
+  }
+
+  const pathClone = [...path]
+  pathClone.pop()
+
+  return types.memberExpression(
+    generateMemberExpressionASTFromBase(base, pathClone),
+    types.identifier(path[path.length - 1]),
+    false
+  )
+}
+
 export const generateMemberExpressionASTFromPath = (
   path: string[]
 ): types.MemberExpression | types.Identifier => {
@@ -703,7 +722,7 @@ const resolveDynamicValuesFromUrlParams = (
     return
   }
 
-  if (field.type === 'dynamic' || field.type === 'static') {
+  if (field.type === 'dynamic' || field.type === 'static' || field.type === 'expr') {
     query[prefix] = resolveUrlParamsValue(field, propsPrefix)
     return
   }
@@ -722,11 +741,15 @@ const resolveDynamicValuesFromUrlParams = (
 }
 
 const resolveUrlParamsValue = (
-  urlParams: UIDLStaticValue | UIDLDynamicReference,
+  urlParams: UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue,
   propsPrefix: string = ''
 ) => {
   if (urlParams.type === 'static') {
     return types.stringLiteral(`${urlParams.content}`)
+  }
+
+  if (urlParams.type === 'expr') {
+    return types.identifier(urlParams.content)
   }
 
   if (urlParams.content.referenceType !== 'prop') {
