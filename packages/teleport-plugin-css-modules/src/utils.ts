@@ -52,16 +52,20 @@ export const generateStylesFromStyleSetDefinitions = (params: {
         cssMap.push(
           StyleBuilders.createCSSClassWithSelector(
             className,
-            `&:${styleRef.meta.state}`,
+            `&${subselectors || ''}:${styleRef.meta.state}`,
             collectedMediaStyles
           )
         )
       }
 
       if (styleRef.type === 'screen-size') {
+        const mediaStyleMap = subselectors
+          ? { [`&${subselectors}`]: collectedMediaStyles }
+          : collectedMediaStyles
+
         mediaStylesMap[styleRef.meta.maxWidth] = {
           ...mediaStylesMap[styleRef.meta.maxWidth],
-          [className]: collectedMediaStyles,
+          [className]: mediaStyleMap,
         }
       }
     })
