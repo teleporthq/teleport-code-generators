@@ -460,32 +460,32 @@
             "pageOptions": {
               "stateDefinitions": {
                 "BookEntity": {
-                  "id": "678b9386-52a5-4512-8934-ad0c8a74f242",
+                  "id": "7efdcd66-a53c-41c2-ba92-f280bcbd2657",
                   "defaultValue": {},
                   "type": "object"
                 },
                 "BookEntityLoading": {
-                  "id": "6a60b1ae-a51c-4137-87a2-fb61bb3a0a97",
+                  "id": "6af5e719-76e0-4946-84db-34351b570e59",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookEntityError": {
-                  "id": "b378d158-3c7f-4589-ab39-9a669bb3cc3a",
+                  "id": "f16a9d17-eaad-44f5-b8f9-7bdb4e77326c",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookList": {
-                  "id": "40ad86a5-51f1-4637-92eb-124937a07155",
+                  "id": "64df293a-fbde-45f1-8aff-f085b9e5c3b8",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "BookListLoading": {
-                  "id": "6d209e1c-62ab-495a-b718-bfc3dc2b2fac",
+                  "id": "818d3930-3d87-4e6d-93c8-a94cfd2a6b74",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookListError": {
-                  "id": "1bde1856-d44f-4d37-933d-9a5eb50e7367",
+                  "id": "dade6128-1a12-4be9-b13b-d2f32bc4ace5",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -507,7 +507,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "cb059427-7459-41ed-951b-95419982a2e8",
+                  "id": "ba4cc152-3079-496f-949f-c81a74405094",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -574,7 +574,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "cb059427-7459-41ed-951b-95419982a2e8",
+                  "id": "ba4cc152-3079-496f-949f-c81a74405094",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -688,24 +688,24 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "4e07e4b9-4b7f-4e2b-a635-e94ed50fd55c",
+                  "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "3b8db1f9-c9a7-4adb-954f-64774ce5d1a8",
+                  "id": "b844959d-d8c0-41e4-b582-1d6267de7614",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "AuthorListLoading": {
-                  "id": "8fbeb455-6a33-4c11-9062-5f0b736a61f2",
+                  "id": "ba3a7498-613a-4363-888a-8cf64447b472",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "AuthorListError": {
-                  "id": "0014b232-d381-4d7c-883d-d5282b81b6a0",
+                  "id": "f983ba0e-a9ae-42c8-bed4-9daa026b896d",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -771,24 +771,24 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "4e07e4b9-4b7f-4e2b-a635-e94ed50fd55c",
+                  "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "3b8db1f9-c9a7-4adb-954f-64774ce5d1a8",
+                  "id": "b844959d-d8c0-41e4-b582-1d6267de7614",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "AuthorListLoading": {
-                  "id": "8fbeb455-6a33-4c11-9062-5f0b736a61f2",
+                  "id": "ba3a7498-613a-4363-888a-8cf64447b472",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "AuthorListError": {
-                  "id": "0014b232-d381-4d7c-883d-d5282b81b6a0",
+                  "id": "f983ba0e-a9ae-42c8-bed4-9daa026b896d",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -901,7 +901,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "162b110c-1a72-4eb2-8907-d8da1fa1a171",
+                  "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -984,7 +984,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "162b110c-1a72-4eb2-8907-d8da1fa1a171",
+                        "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -1016,7 +1016,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "9ee184a7-2682-4d7a-b935-f97810271dd5",
+                  "id": "dea86bde-766f-49c1-b356-afef1326e680",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -1099,7 +1099,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "9ee184a7-2682-4d7a-b935-f97810271dd5",
+                        "id": "dea86bde-766f-49c1-b356-afef1326e680",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -1122,22 +1122,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "cb059427-7459-41ed-951b-95419982a2e8",
+        "id": "ba4cc152-3079-496f-949f-c81a74405094",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntities": {
-        "id": "4e07e4b9-4b7f-4e2b-a635-e94ed50fd55c",
+        "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "162b110c-1a72-4eb2-8907-d8da1fa1a171",
+        "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntity": {
-        "id": "9ee184a7-2682-4d7a-b935-f97810271dd5",
+        "id": "dea86bde-766f-49c1-b356-afef1326e680",
         "defaultValue": [],
         "type": "array"
       }
@@ -1243,7 +1243,7 @@
                         "statePersistanceName": "BookEntity",
                         "loadingStatePersistanceName": "BookEntityLoading",
                         "errorStatePersistanceName": "BookEntityError",
-                        "resourceId": "ad13af4d-a733-478b-bba0-8d4f438e1cad"
+                        "resourceId": "57643864-aef2-4180-a24e-3723f6998f70"
                       }
                     },
                     {
@@ -1299,7 +1299,7 @@
                         "statePersistanceName": "BookList",
                         "loadingStatePersistanceName": "BookListLoading",
                         "errorStatePersistanceName": "BookListError",
-                        "resourceId": "a952f0fd-4de0-4c38-b2b0-7ac1ef7d038b"
+                        "resourceId": "373518a1-04d4-4c95-9486-fd96d40dabf6"
                       }
                     }
                   ]
@@ -1670,7 +1670,7 @@
                         "statePersistanceName": "AuthorList",
                         "loadingStatePersistanceName": "AuthorListLoading",
                         "errorStatePersistanceName": "AuthorListError",
-                        "resourceId": "b557707b-efb3-47fb-8f86-f802480579d2"
+                        "resourceId": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616"
                       }
                     }
                   ]
@@ -1831,7 +1831,7 @@
                         "statePersistanceName": "AuthorList",
                         "loadingStatePersistanceName": "AuthorListLoading",
                         "errorStatePersistanceName": "AuthorListError",
-                        "resourceId": "b557707b-efb3-47fb-8f86-f802480579d2"
+                        "resourceId": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616"
                       }
                     }
                   ]
@@ -2398,6 +2398,34 @@
               "type": "element",
               "content": {
                 "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {},
+                "abilities": {
+                  "link": {
+                    "type": "navlink",
+                    "content": {
+                      "routeName": "Author"
+                    }
+                  }
+                },
+                "style": {
+                  "textDecoration": {
+                    "type": "static",
+                    "content": "none"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Text"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
                 "semanticType": "h1",
                 "referencedStyles": {},
                 "abilities": {},
@@ -2411,6 +2439,44 @@
                         "name"
                       ]
                     }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {
+                  "link": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "expr",
+                      "expression": "`/author/${authorContext.id}`",
+                      "scope": {
+                        "authorContext": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "ctx",
+                            "ctxId": "4e173011-ea3e-4c92-8240-49f7dbde1efd"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "style": {
+                  "textDecoration": {
+                    "type": "static",
+                    "content": "none"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Heading"
                   }
                 ]
               }
@@ -2591,11 +2657,12 @@
                   {
                     "type": "element",
                     "content": {
-                      "elementType": "image",
+                      "elementType": "text",
+                      "semanticType": "span",
                       "referencedStyles": {},
                       "abilities": {},
-                      "attrs": {
-                        "src": {
+                      "children": [
+                        {
                           "type": "dynamic",
                           "content": {
                             "id": "69ab3d76-7870-4d51-bcce-dc944d9f021f",
@@ -2605,29 +2672,7 @@
                             ]
                           }
                         }
-                      },
-                      "children": []
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "contentful-richtext-node",
-                      "referencedStyles": {},
-                      "attrs": {
-                        "richText": {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "ba0219ad-57c7-491a-90ca-6f7d0423a7a5",
-                            "referenceType": "ctx",
-                            "path": [
-                              "Content"
-                            ]
-                          }
-                        }
-                      },
-                      "style": {},
-                      "children": []
+                      ]
                     }
                   },
                   {
@@ -2661,8 +2706,8 @@
   "resources": {
     "rootFolder": "pages/api",
     "items": {
-      "ad13af4d-a733-478b-bba0-8d4f438e1cad": {
-        "id": "ad13af4d-a733-478b-bba0-8d4f438e1cad",
+      "57643864-aef2-4180-a24e-3723f6998f70": {
+        "id": "57643864-aef2-4180-a24e-3723f6998f70",
         "name": "Home",
         "baseUrl": {
           "type": "env",
@@ -2687,8 +2732,8 @@
           "value": "entries"
         }
       },
-      "a952f0fd-4de0-4c38-b2b0-7ac1ef7d038b": {
-        "id": "a952f0fd-4de0-4c38-b2b0-7ac1ef7d038b",
+      "373518a1-04d4-4c95-9486-fd96d40dabf6": {
+        "id": "373518a1-04d4-4c95-9486-fd96d40dabf6",
         "name": "Home1",
         "baseUrl": {
           "type": "env",
@@ -2713,8 +2758,8 @@
           "value": "entries"
         }
       },
-      "b557707b-efb3-47fb-8f86-f802480579d2": {
-        "id": "b557707b-efb3-47fb-8f86-f802480579d2",
+      "6def1c20-24b8-4fed-a9d4-1cd2d68f1616": {
+        "id": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616",
         "name": "Book",
         "baseUrl": {
           "type": "env",

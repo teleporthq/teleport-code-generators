@@ -38,8 +38,8 @@
       }
     ],
     "env": {
-      "CMS_URL": "https://cdn.contentful.com/spaces/kjkqmxzkl27j/environments/master",
-      "CMS_ACCESS_TOKEN": "fH3uAzcrUWfXGwJ_lgDY-_smsxhOmvuYkOJqnL5pZAw"
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN": ""
     },
     "meta": [
       {
