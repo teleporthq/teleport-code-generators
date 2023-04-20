@@ -145,12 +145,34 @@ export const resourceDecoder: Decoder<Resource> = object({
   route: optional(resourceValueDecoder),
 })
 
+export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
+  type: union(constant('library'), constant('package')),
+  path: string(),
+  version: string(),
+  meta: optional(
+    object({
+      namedImport: optional(boolean()),
+      originalName: optional(string()),
+      importJustPath: optional(boolean()),
+      useAsReference: optional(boolean()),
+    })
+  ),
+})
+
 export const initialPropsDecoder: Decoder<InitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
+  resourceMappers: optional(
+    array(
+      object({
+        name: string(),
+        resource: externaldependencyDecoder,
+      })
+    )
+  ),
   resource: resourceDecoder,
 })
 
@@ -369,20 +391,6 @@ export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
   type: constant('package'),
   version: string(),
   path: string(),
-})
-
-export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
-  type: union(constant('library'), constant('package')),
-  path: string(),
-  version: string(),
-  meta: optional(
-    object({
-      namedImport: optional(boolean()),
-      originalName: optional(string()),
-      importJustPath: optional(boolean()),
-      useAsReference: optional(boolean()),
-    })
-  ),
 })
 
 export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({
@@ -656,6 +664,14 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     itemValuePath: optional(array(string())),
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
+    resourceMappers: optional(
+      array(
+        object({
+          name: string(),
+          resource: externaldependencyDecoder,
+        })
+      )
+    ),
   }),
 })
 
@@ -670,6 +686,14 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),
+    resourceMappers: optional(
+      array(
+        object({
+          name: string(),
+          resource: externaldependencyDecoder,
+        })
+      )
+    ),
   }),
 })
 
