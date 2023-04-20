@@ -8,6 +8,7 @@ import {
   UIDLDesignTokens,
   UIDLRootComponent,
   UIDLRouteDefinitions,
+  UIDLPageOptions,
 } from './uidl'
 
 export enum FileType {
@@ -71,6 +72,8 @@ export interface ProjectPluginStructure {
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
+  projectContexts?: Record<string, ProjectContext>
+  projectResources?: Record<string, ProjectResource>
   strategy: ProjectStrategy
   rootFolder: GeneratedFolder
 }
@@ -107,6 +110,18 @@ export interface ComponentGenerator {
   addPostProcessor: (fn: PostProcessor) => void
 }
 
+export interface ProjectContext {
+  providerName: string
+  consumerName: string
+  fileName: string
+  path: string
+}
+
+export interface ProjectResource {
+  fileName: string
+  path: string
+}
+
 export interface GeneratorOptions {
   localDependenciesPrefix?: string
   assets?: {
@@ -127,6 +142,8 @@ export interface GeneratorOptions {
     path: string
     importFile?: boolean
   }
+  projectContexts?: Record<string, ProjectContext>
+  projectResources?: Record<string, ProjectResource>
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }
@@ -322,7 +339,7 @@ export interface Attribute {
 
 export interface ProjectStrategyComponentOptions {
   createFolderForEachComponent?: boolean
-  customComponentFileName?: (name?: string) => string // only used when createFolderForEachComponent is true
+  customComponentFileName?: (name?: string, options?: UIDLPageOptions) => string // only used when createFolderForEachComponent is true
   customStyleFileName?: (name?: string) => string
   customTemplateFileName?: (name?: string) => string
 }

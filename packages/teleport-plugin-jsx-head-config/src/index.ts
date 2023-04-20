@@ -39,7 +39,8 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
 
     if (uidl.seo.title) {
       const titleAST = ASTBuilders.createJSXTag('title')
-      ASTUtils.addChildJSXText(titleAST, uidl.seo.title)
+      // TODO: Handle dynamic title here
+      ASTUtils.addChildJSXText(titleAST, typeof uidl.seo.title === 'string' ? uidl.seo.title : '')
       headASTTags.push(titleAST)
     }
 

@@ -1,4 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -24,7 +24,6 @@ import {
   generateExternalCSSImports,
   fileFileAndReplaceContent,
   bootstrapGenerator,
-  generateLocalDependenciesPrefix,
 } from './utils'
 import {
   createManifestJSONFile,
@@ -35,6 +34,8 @@ import {
   createEntryFile,
   createComponentModule,
   createPageModule,
+  createEnvFiles,
+  createGitIgnoreFile,
 } from './file-handlers'
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
@@ -173,6 +174,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       throw new Error(contentValidationResult.errorMsg)
     }
 
+    const projectContexts = {}
+    const projectResources = {}
+
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
         uidl,
@@ -181,6 +185,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
+        projectContexts,
+        projectResources,
         rootFolder,
       })
 
@@ -270,7 +276,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       let pageOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.pages.path,
           this.strategy.projectStyleSheet.path
         )
@@ -287,6 +293,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
           designLanguage: uidl.root?.designLanguage,
         }
       }
+
+      Object.assign(pageOptions, { projectContexts, projectResources })
 
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -355,7 +363,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
           this.strategy.components.path,
           this.strategy.projectStyleSheet.path
         )
@@ -372,6 +380,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
           designLanguage: uidl.root?.designLanguage,
         }
       }
+
+      Object.assign(componentOptions, { projectContexts, projectResources })
 
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
@@ -443,7 +453,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
           fileName,
           fileType,
           globalStyles: {
-            path: generateLocalDependenciesPrefix(
+            path: GenericUtils.generateLocalDependenciesPrefix(
               framework.config.path,
               this.strategy.projectStyleSheet.path
             ),
@@ -485,6 +495,22 @@ export class ProjectGenerator implements ProjectGeneratorType {
       inMemoryFilesMap.set(manifestFile.name, {
         path: this.strategy.static.path,
         files: [manifestFile],
+      })
+    }
+
+    if (uidl.globals.env) {
+      const envFiles = createEnvFiles(uidl.globals.env)
+      envFiles.forEach((file) => {
+        inMemoryFilesMap.set(file.name, {
+          path: [],
+          files: [file],
+        })
+      })
+
+      const gitIgnoreFile = createGitIgnoreFile()
+      inMemoryFilesMap.set(gitIgnoreFile.name, {
+        path: [],
+        files: [gitIgnoreFile],
       })
     }
 

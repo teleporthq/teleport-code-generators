@@ -17,9 +17,11 @@ import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailw
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
+import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
+const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const tailwindProjectUIDL = tailwindProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -71,7 +73,6 @@ const run = async () => {
     let result
 
     /* Plain Html Generator */
-
     await log(async () => {
       result = await packProject(projectUIDL as unknown as ProjectUIDL, {
         ...packerOptions,
@@ -79,6 +80,16 @@ const run = async () => {
       })
       console.info(ProjectType.HTML, '-', result.payload)
       return ProjectType.HTML
+    })
+
+    /* CMS uidl */
+    await log(async () => {
+      result = await packProject(cmsProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
     })
 
     /* Styled JSX */
@@ -142,7 +153,7 @@ const run = async () => {
       return ProjectType.ANGULAR
     })
 
-    /* React JSS */
+    // /* React JSS */
     await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
@@ -157,7 +168,7 @@ const run = async () => {
       return `NEXT - React-JSS`
     })
 
-    /* Styled Components */
+    // /* Styled Components */
     await log(async () => {
       result = await packProject(reactProjectUIDL, {
         ...packerOptions,

@@ -1,7 +1,17 @@
 import * as types from '@babel/types'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { UIDLStateDefinition, UIDLPropDefinition, UIDLRawValue } from '@teleporthq/teleport-types'
+import {
+  UIDLStateDefinition,
+  UIDLPropDefinition,
+  UIDLRawValue,
+  Resource,
+  ResourceValue,
+  ResourceUrlParams,
+  UIDLStaticValue,
+  UIDLDynamicReference,
+  ResourceUrlValues,
+} from '@teleporthq/teleport-types'
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -460,3 +470,314 @@ export const createStateHookAST = (
 
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
+
+export const generateRemoteResourceASTs = (
+  resource: Resource,
+  propsPrefix: string = '',
+  extraUrlParamsGenerator?: () => types.ObjectProperty[]
+) => {
+  const fetchUrl = computeFetchUrl(resource)
+  const authHeaderAST = computeAuthorizationHeaderAST(resource)
+
+  const queryParams = generateURLParamsAST(
+    resource.urlParams as ResourceUrlParams,
+    propsPrefix,
+    extraUrlParamsGenerator
+  )
+
+  const fetchUrlQuasis = fetchUrl.quasis
+  const queryParamsQuasis = queryParams.quasis
+
+  if (queryParams.expressions.length > 0) {
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw + '?'
+
+    fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked =
+      fetchUrlQuasis[fetchUrlQuasis.length - 1].value.cooked + '?'
+
+    queryParamsQuasis.pop()
+  }
+
+  const url = queryParams
+    ? types.templateLiteral(
+        [...fetchUrlQuasis, ...queryParamsQuasis],
+        [...fetchUrl.expressions.concat(queryParams.expressions)]
+      )
+    : fetchUrl
+
+  const fetchAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('data'),
+      types.awaitExpression(
+        types.callExpression(types.identifier('fetch'), [
+          url,
+          types.objectExpression([
+            types.objectProperty(
+              types.identifier('headers'),
+              types.objectExpression([
+                types.objectProperty(
+                  types.identifier('"Content-Type"'),
+                  types.stringLiteral('application/json'),
+                  false,
+                  false
+                ),
+                authHeaderAST,
+              ])
+            ),
+          ]),
+        ])
+      )
+    ),
+  ])
+
+  const responseJSONAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(
+        types.callExpression(
+          types.memberExpression(types.identifier('data'), types.identifier('json'), false),
+          []
+        )
+      )
+    ),
+  ])
+
+  return [fetchAST, responseJSONAST]
+}
+
+export const generateMemberExpressionASTFromPath = (
+  path: string[]
+): types.MemberExpression | types.Identifier => {
+  const pathClone = [...path]
+  if (path.length === 1) {
+    return types.identifier(path[0])
+  }
+
+  pathClone.pop()
+
+  return types.memberExpression(
+    generateMemberExpressionASTFromPath(pathClone),
+    types.identifier(path[path.length - 1]),
+    false
+  )
+}
+
+const generateURLParamsAST = (
+  urlParams: ResourceUrlParams,
+  propsPrefix?: string,
+  extraUrlParamsGenerator?: () => types.ObjectProperty[]
+) => {
+  const queryString: Record<string, types.Expression> = {}
+  Object.keys(urlParams).forEach((key) => {
+    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key, propsPrefix)
+  })
+
+  const urlObject = types.objectExpression([
+    ...Object.keys(queryString).map((key) => {
+      return types.objectProperty(types.stringLiteral(`${key}`), queryString[key])
+    }),
+    ...(extraUrlParamsGenerator ? extraUrlParamsGenerator() : []),
+  ])
+
+  return types.templateLiteral(
+    [
+      types.templateElement({ raw: '', cooked: '' }, false),
+      types.templateElement({ raw: '', cooked: '' }, true),
+    ],
+    [types.newExpression(types.identifier('URLSearchParams'), [urlObject])]
+  )
+}
+
+const resolveDynamicValuesFromUrlParams = (
+  field: ResourceUrlValues,
+  query: Record<string, types.Expression>,
+  prefix: string = null,
+  propsPrefix: string = ''
+) => {
+  if (Array.isArray(field)) {
+    const arrayValues = field.map((value) => {
+      return resolveUrlParamsValue(value, propsPrefix)
+    })
+    query[prefix] = types.arrayExpression(arrayValues)
+    return
+  }
+
+  if (field.type === 'dynamic' || field.type === 'static') {
+    query[prefix] = resolveUrlParamsValue(field, propsPrefix)
+    return
+  }
+
+  Object.keys(field).forEach((key) => {
+    const value = field[key]
+    const newPrefix = prefix ? `${prefix}[${key}]` : key
+
+    if (typeof value === 'object') {
+      resolveDynamicValuesFromUrlParams(value, query, newPrefix, propsPrefix)
+      return
+    }
+
+    query[newPrefix] = resolveUrlParamsValue(value, propsPrefix)
+  })
+}
+
+const resolveUrlParamsValue = (
+  urlParams: UIDLStaticValue | UIDLDynamicReference,
+  propsPrefix: string = ''
+) => {
+  if (urlParams.type === 'static') {
+    return types.stringLiteral(`${urlParams.content}`)
+  }
+
+  if (urlParams.content.referenceType !== 'prop') {
+    throw new Error('Only prop references are supported for url params')
+  }
+
+  const paramPath = [...(propsPrefix ? [propsPrefix] : []), ...(urlParams.content.path || [])]
+  const templateLiteralElements = paramPath
+    .map((_, index) => {
+      if (index === paramPath.length - 1) {
+        return null
+      }
+
+      const isTail = index === paramPath.length - 2
+      return types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        isTail
+      )
+    })
+    .filter((el) => el)
+
+  return types.templateLiteral(templateLiteralElements, [
+    generateMemberExpressionASTFromPath(paramPath),
+  ])
+}
+
+const computeAuthorizationHeaderAST = (resource: Resource) => {
+  const authToken = resolveResourceValue(resource.authToken)
+  if (!authToken) {
+    return null
+  }
+
+  const authTokenType = resource.authToken?.type
+
+  return types.objectProperty(
+    types.identifier('Authorization'),
+    types.templateLiteral(
+      [
+        types.templateElement(
+          {
+            cooked: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+            raw: authTokenType === 'static' ? `Bearer ${authToken}` : 'Bearer ',
+          },
+          false
+        ),
+        ...(authTokenType === 'static'
+          ? []
+          : [
+              types.templateElement(
+                {
+                  cooked: '',
+                  raw: '',
+                },
+                true
+              ),
+            ]),
+      ],
+      [...(authTokenType === 'static' ? [] : [types.identifier(authToken)])]
+    ),
+    false,
+    false
+  )
+}
+
+const computeFetchUrl = (resource: Resource) => {
+  const fetchBaseUrl = resolveResourceValue(resource.baseUrl)
+  const resourceRoute = resolveResourceValue(resource.route)
+
+  const baseUrlType = resource.baseUrl?.type
+  const routeType = resource.route?.type
+
+  if (baseUrlType === 'static' && routeType === 'static') {
+    const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
+    return types.templateLiteral(
+      [types.templateElement({ cooked: `${stringsToJoin}`, raw: `${stringsToJoin}` }, true)],
+      []
+    )
+  }
+
+  if (!routeType) {
+    return baseUrlType === 'static'
+      ? types.templateLiteral(
+          [types.templateElement({ cooked: `${fetchBaseUrl}`, raw: `${fetchBaseUrl}` }, true)],
+          []
+        )
+      : types.templateLiteral(
+          [
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              false
+            ),
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              true
+            ),
+          ],
+          [types.identifier(fetchBaseUrl)]
+        )
+  }
+
+  return types.templateLiteral(
+    [
+      types.templateElement(
+        {
+          cooked: '',
+          raw: '',
+        },
+        false
+      ),
+      types.templateElement(
+        {
+          cooked: routeType === 'static' ? `/${resourceRoute}` : '/',
+          raw: routeType === 'static' ? `/${resourceRoute}` : '/',
+        },
+        false
+      ),
+      ...(routeType === 'static'
+        ? []
+        : [
+            types.templateElement(
+              {
+                cooked: '',
+                raw: '',
+              },
+              false
+            ),
+          ]),
+    ],
+    [
+      types.identifier(fetchBaseUrl),
+      ...(routeType === 'static' ? [] : [types.identifier(resourceRoute)]),
+    ]
+  )
+}
+
+const resolveResourceValue = (value: ResourceValue) => {
+  if (!value) {
+    return ''
+  }
+
+  if (value.type === 'static') {
+    return value.value
+  }
+
+  return `process.env.${value.value}` || value.fallback
+}

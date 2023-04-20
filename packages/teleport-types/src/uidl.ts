@@ -15,11 +15,34 @@ export interface UIDLRouteDefinitions {
   defaultValue: string
   values: UIDLStateValueDetails[]
 }
+
+export interface ContextUIDLItem {
+  name: string
+  fileName?: string
+}
+
+export interface ContextsUIDL {
+  rootFolder?: string
+  items?: Record<string, ContextUIDLItem>
+}
+
+export interface ResourceItemUIDL extends Resource {
+  id: string
+  name: string
+}
+
+export interface ResourcesUIDL {
+  rootFolder?: string
+  items?: Record<string, ResourceItemUIDL>
+}
+
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  contexts?: ContextsUIDL
+  resources?: ResourcesUIDL
 }
 
 export interface UIDLGlobalProjectValues {
@@ -31,6 +54,7 @@ export interface UIDLGlobalProjectValues {
     head?: string
     body?: string
   }
+  env?: Record<string, string>
   meta: Array<Record<string, string>>
   assets: UIDLGlobalAsset[]
   manifest?: WebManifest
@@ -94,6 +118,35 @@ export type UIDLGlobalAsset =
   | UIDLCanonicalAsset
   | UIDLIconAsset
 
+interface ResourceStaticValue {
+  type: 'static'
+  value: string
+}
+
+interface ResourceEnvValue {
+  type: 'env'
+  value: string
+  fallback?: string
+}
+
+export type ResourceValue = ResourceStaticValue | ResourceEnvValue
+
+export type ResourceUrlValues =
+  | Array<UIDLStaticValue | UIDLDynamicReference>
+  | UIDLStaticValue
+  | UIDLDynamicReference
+
+export interface ResourceUrlParams {
+  [key: string]: ResourceUrlValues
+}
+
+export interface Resource {
+  baseUrl: ResourceValue
+  route?: ResourceValue
+  authToken?: ResourceValue
+  urlParams?: ResourceUrlParams | unknown
+}
+
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -110,6 +163,23 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
+
+export interface InitialPropsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+  }
+  resource: Resource
+}
+
+export interface InitialPathsData {
+  exposeAs: {
+    name: string
+    valuePath?: string[]
+  }
+  resource: Resource
+}
+
 export interface UIDLComponentOutputOptions {
   componentClassName?: string // needs to be a valid class name
   fileName?: string // needs to be a valid file name
@@ -117,15 +187,19 @@ export interface UIDLComponentOutputOptions {
   templateFileName?: string
   moduleName?: string
   folderPath?: string[]
+  pagination?: PagePaginationOptions
+  dynamicRouteAttribute?: string
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
 }
 
 export interface UIDLComponentSEO {
-  title?: string
+  title?: string | UIDLDynamicReference
   metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
 }
 
-export type UIDLMetaTag = Record<string, string>
+export type UIDLMetaTag = Record<string, string | UIDLDynamicReference>
 
 export interface UIDLPropDefinition {
   type: string
@@ -147,19 +221,41 @@ export interface UIDLStateValueDetails {
   seo?: UIDLComponentSEO
 }
 
+export interface PagePaginationOptions {
+  attribute: string
+  pageSize: number
+  // We're using this properti in order to get the total count of items for
+  // a given entity. In order to get the total count, we might need to fetch at least
+  // one item and get the actual count from the meta that is sent together with
+  // the response
+  totalCountPath?: string[]
+  // If we need to handle pagination, we are going to fetch the data using this property
+  // as a query param. This query might be different depending on the source of
+  // the data.
+  pageUrlSearchParamKey?: string
+}
+
 export interface UIDLPageOptions {
   componentName?: string
   navLink?: string
   fileName?: string
   fallback?: boolean
+  dynamicRouteAttribute?: string
+  isIndex?: boolean
+  pagination?: PagePaginationOptions
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
+  propDefinitions?: Record<string, UIDLPropDefinition>
+  stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'ctx'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
+    path?: string[]
     id: string
   }
 }
@@ -180,6 +276,35 @@ export interface UIDLSlotNode {
     name?: string
     fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
   }
+}
+
+export interface UIDLCMSListNode {
+  type: 'cms-list'
+  content: UIDLCMSListNodeContent
+}
+
+export interface UIDLCMSItemNode {
+  type: 'cms-item'
+  content: UIDLCMSItemNodeContent
+}
+
+export interface UIDLCMSListNodeContent {
+  node: UIDLElementNode
+  resourceId?: string
+  statePersistanceName?: string
+  loadingStatePersistanceName?: string
+  errorStatePersistanceName?: string
+  loopItemsReference?: UIDLAttributeValue
+  itemValuePath?: string[]
+}
+
+export interface UIDLCMSItemNodeContent {
+  node: UIDLElementNode
+  resourceId?: string
+  statePersistanceName?: string
+  loadingStatePersistanceName?: string
+  errorStatePersistanceName?: string
+  valuePath?: string[]
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -232,6 +357,7 @@ export interface UIDLElement {
   elementType: string
   semanticType?: string
   name?: string
+  ctxId?: string
   key?: string // internal usage
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
@@ -256,6 +382,8 @@ export type UIDLNode =
   | UIDLConditionalNode
   | UIDLSlotNode
   | UIDLImportReference
+  | UIDLCMSListNode
+  | UIDLCMSItemNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
@@ -420,7 +548,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
 export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'comp'
+    referenceType: 'prop' | 'comp' | 'ctx'
     id: string
   }
 }

@@ -55,7 +55,7 @@ export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) 
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = UIDLUtils.prefixAssetsPath(tag[key], options.assets)
+      tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key] as string)
     })
   })
 }
@@ -324,7 +324,11 @@ const isPowerOfTen = (value: number) => {
 export const ensureDataSourceUniqueness = (node: UIDLNode) => {
   let index = 0
 
-  UIDLUtils.traverseRepeats(node, (repeat) => {
+  UIDLUtils.traverseRepeats(node, (repeat: UIDLRepeatContent) => {
+    if (!repeat.dataSource?.type) {
+      return
+    }
+
     if (repeat.dataSource.type === 'static' && !customDataSourceIdentifierExists(repeat)) {
       repeat.meta = repeat.meta || {}
       repeat.meta.dataSourceIdentifier = index === 0 ? 'items' : `items${index}`

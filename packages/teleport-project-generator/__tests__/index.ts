@@ -109,34 +109,24 @@ describe('Generic Project Generator', () => {
       expect(generator.componentGenerator.generateComponent).toBeCalledTimes(4)
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
-          assets: {
-            identifier: null,
-            mappings: {},
-            prefix: '/static',
-          },
-          designLanguage: undefined,
+        expect.objectContaining({
+          assetsPrefix: '/static',
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
-        }
+        })
       )
       expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
       expect(generator.pageGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({
           name: 'Home',
         }),
-        {
-          assets: {
-            identifier: null,
-            mappings: {},
-            prefix: '/static',
-          },
-          designLanguage: undefined,
+        expect.objectContaining({
+          assetsPrefix: '/static',
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
-        }
+        })
       )
 
       const routerUIDL = {
@@ -178,17 +168,12 @@ describe('Generic Project Generator', () => {
       expect(generator.pageGenerator.generateComponent).toBeCalledTimes(3)
       expect(generator.componentGenerator.generateComponent).toBeCalledWith(
         expect.objectContaining({ name: 'ExpandableArea' }),
-        {
-          assets: {
-            identifier: null,
-            mappings: {},
-            prefix: '/test/static',
-          },
-          designLanguage: undefined,
+        expect.objectContaining({
+          assetsPrefix: '/test/static',
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
-        }
+        })
       )
       expect(generator.routerGenerator.generateComponent).toBeCalledTimes(1)
 
