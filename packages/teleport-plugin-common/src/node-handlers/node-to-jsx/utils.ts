@@ -147,20 +147,34 @@ export const createDynamicValueExpression = (
   params?: JSXGenerationParams
 ) => {
   const { projectContexts = {} } = params || {}
-  const refType = identifier.content.referenceType as 'prop' | 'state' | 'local' | 'ctx'
 
-  if (refType === 'ctx') {
-    const contextMeta = projectContexts[identifier.content.id]
-    return t.memberExpression(
-      t.identifier(StringUtils.camelize(contextMeta.providerName)),
-      t.identifier(identifier.content.path[0])
+  const identifierContent = identifier.content
+
+  if (
+    identifierContent.referenceType === 'expr' ||
+    identifierContent.referenceType === 'attr' ||
+    identifierContent.referenceType === 'children' ||
+    identifierContent.referenceType === 'token'
+  ) {
+    throw new Error(
+      `Dynamic reference type "${identifierContent.referenceType}" is not supported yet`
     )
   }
 
-  const prefix = options.dynamicReferencePrefixMap[refType] || ''
+  if (identifierContent.referenceType === 'ctx') {
+    // TODO handle situation when context is not using path
+    // TODO only allow ctxID not id for context references
+    const contextMeta = projectContexts[identifierContent.ctxId ?? identifierContent.id]
+    return t.memberExpression(
+      t.identifier(StringUtils.camelize(contextMeta.providerName)),
+      t.identifier(identifierContent.path[0])
+    )
+  }
+
+  const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
   return prefix === ''
-    ? t.identifier(identifier.content.id)
-    : t.memberExpression(t.identifier(prefix), t.identifier(identifier.content.id))
+    ? t.identifier(identifierContent.id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(identifierContent.id))
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier

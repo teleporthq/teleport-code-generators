@@ -13,6 +13,14 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    'contentful-richtext-node': {
+      elementType: 'RichText',
+      dependency: {
+        type: 'package',
+        path: '@madebyconnor/rich-text-to-jsx',
+        version: '2.2.1',
+      },
+    },
     'html-node': {
       elementType: 'DangerousHTML',
       dependency: {

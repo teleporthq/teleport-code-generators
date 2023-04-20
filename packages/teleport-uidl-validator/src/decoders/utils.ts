@@ -14,6 +14,7 @@ import {
   intersection,
   unknownJson,
   withDefault,
+  anyJson,
 } from '@mojotech/json-type-validation'
 import {
   UIDLStaticValue,
@@ -82,6 +83,7 @@ import {
   InitialPropsData,
   InitialPathsData,
   UIDLExpressionValue,
+  UIDLDynamicLinkNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -372,6 +374,7 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
 })
 
+// @ts-ignore
 export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
   pageOptions: optional(pageOptionsDecoder),
@@ -462,6 +465,15 @@ export const urlLinkNodeDecoder: Decoder<VUIDLURLLinkNode> = object({
   }),
 })
 
+export const dynamicLinkDecoder: Decoder<UIDLDynamicLinkNode> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: referenceTypeDecoder,
+    path: optional(array(string())),
+    id: string(),
+  }),
+})
+
 export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   type: constant('section'),
   content: dict(string()),
@@ -495,7 +507,8 @@ export const uidlLinkNodeDecoder: Decoder<VUIDLLinkNode> = union(
   sectionLinkNodeDecoder,
   navLinkNodeDecoder,
   uidlMailLinkNodeDecoder,
-  phoneLinkNodeDecoder
+  phoneLinkNodeDecoder,
+  dynamicLinkDecoder
 )
 
 export const elementStateDecoder: Decoder<UIDLElementStyleStates> = oneOf(
@@ -582,7 +595,7 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   events: optional(dict(array(eventHandlerStatementDecoder))),
   abilities: optional(
     object({
-      link: optional(uidlLinkNodeDecoder),
+      link: optional(anyJson()),
     })
   ),
   children: optional(array(lazy(() => uidlNodeDecoder))),

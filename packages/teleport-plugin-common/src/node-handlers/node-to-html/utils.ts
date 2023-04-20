@@ -21,7 +21,6 @@ export const handleAttribute = (
 ) => {
   const { dataObject } = params
   const dynamicAttrKey = templateSyntax.valueBinding(attrKey, node)
-
   switch (attrValue.type) {
     case 'dynamic':
     case 'import':

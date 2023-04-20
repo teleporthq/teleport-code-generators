@@ -38,6 +38,7 @@ import {
   UIDLCMSItemNode,
   UIDLCMSListNode,
   UIDLExternalDependency,
+  UIDLDynamicLinkNode,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -221,6 +222,8 @@ export type VUIDLURLLinkNode = Modify<
   }
 >
 
+export type VUIDLDynamicLinkNode = UIDLDynamicLinkNode
+
 export type VUIDLStyleSetMediaCondition = Modify<
   UIDLStyleSetMediaCondition,
   {
@@ -243,6 +246,7 @@ export type VUIDLLinkNode =
   | UIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
+  | VUIDLDynamicLinkNode
 
 export type VUIDLGlobalAsset =
   | UIDLScriptAsset
