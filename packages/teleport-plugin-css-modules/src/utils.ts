@@ -34,6 +34,7 @@ export const generateStylesFromStyleSetDefinitions = (params: {
     const cls = subselectors
       ? StyleBuilders.createCSSClassWithSelector(
           className,
+          // & is required by jss, otherwise the final result will be empty
           `&${subselectors}`,
           generateStyledFromStyleContent(content)
         )

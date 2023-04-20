@@ -126,6 +126,7 @@ export const generateStylesFromStyleSetDefinitions = (
       ...getCSSVariablesContentFromTokenStyles(tokenStyles),
     } as Record<string, string | number>
 
+    // & is required by jss, otherwise the final result will be empty
     const cls = subselectors
       ? createCSSClassWithSelector(name, `&${subselectors}`, collectedStyles)
       : createCSSClass(name, collectedStyles)
