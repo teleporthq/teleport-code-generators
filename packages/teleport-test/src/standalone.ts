@@ -84,6 +84,10 @@ const run = async () => {
       result = await packProject(cmsProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-cms',
+        },
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT

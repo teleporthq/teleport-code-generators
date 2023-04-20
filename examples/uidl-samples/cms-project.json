@@ -2734,18 +2734,21 @@
                   {
                     "type": "element",
                     "content": {
-                      "elementType": "cms-richtext",
+                      "elementType": "contentful-richtext-node",
                       "referencedStyles": {},
-                      "style": {
-                        "width": {
-                          "type": "static",
-                          "content": "100%"
-                        },
-                        "alignSelf": {
-                          "type": "static",
-                          "content": "stretch"
+                      "attrs": {
+                        "richText": {
+                          "type": "dynamic",
+                          "content": {
+                            "id": "69ab3d76-7870-4d51-bcce-dc944d9f021f",
+                            "referenceType": "ctx",
+                            "path": [
+                              "Content"
+                            ]
+                          }
                         }
                       },
+                      "style": {},
                       "children": []
                     }
                   }
