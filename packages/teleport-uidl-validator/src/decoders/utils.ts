@@ -241,6 +241,8 @@ export const styleSetDefinitionDecoder: Decoder<VUIDLStyleSetDefnition> = object
   ),
   conditions: optional(array(projectStyleConditionsDecoder)),
   content: dict(union(staticValueDecoder, string(), number(), tokenReferenceDecoder)),
+  className: optional(string()),
+  subselectors: optional(string()),
 })
 
 // TODO: Implement decoder for () => void

@@ -28,8 +28,19 @@ export const generateStylesFromStyleSetDefinitions = (params: {
   Object.keys(styleSetDefinitions).forEach((styleId) => {
     const style = styleSetDefinitions[styleId]
     const { content, conditions = [] } = style
-    const className = styleId
-    cssMap.push(StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content)))
+    const className = style.className || styleId
+    const subselectors = style.subselectors
+
+    const cls = subselectors
+      ? StyleBuilders.createCSSClassWithSelector(
+          className,
+          // & is required by jss, otherwise the final result will be empty
+          `&${subselectors}`,
+          generateStyledFromStyleContent(content)
+        )
+      : StyleBuilders.createCSSClass(className, generateStyledFromStyleContent(content))
+
+    cssMap.push(cls)
 
     if (conditions.length === 0) {
       return
@@ -41,16 +52,20 @@ export const generateStylesFromStyleSetDefinitions = (params: {
         cssMap.push(
           StyleBuilders.createCSSClassWithSelector(
             className,
-            `&:${styleRef.meta.state}`,
+            `&${subselectors || ''}:${styleRef.meta.state}`,
             collectedMediaStyles
           )
         )
       }
 
       if (styleRef.type === 'screen-size') {
+        const mediaStyleMap = subselectors
+          ? { [`&${subselectors}`]: collectedMediaStyles }
+          : collectedMediaStyles
+
         mediaStylesMap[styleRef.meta.maxWidth] = {
           ...mediaStylesMap[styleRef.meta.maxWidth],
-          [className]: collectedMediaStyles,
+          [className]: mediaStyleMap,
         }
       }
     })
