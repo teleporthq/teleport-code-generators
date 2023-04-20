@@ -81,6 +81,7 @@ import {
   Resource,
   InitialPropsData,
   InitialPathsData,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -111,6 +112,11 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
   }),
 })
 
+export const expressionValueDecoder: Decoder<UIDLExpressionValue> = object({
+  type: constant('expr'),
+  content: string(),
+})
+
 export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
   type: constant('static'),
   content: union(string(), number(), boolean(), array()),
@@ -125,6 +131,7 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   union(
     staticValueDecoder,
     dynamicValueDecoder,
+    expressionValueDecoder,
     array(union(staticValueDecoder, dynamicValueDecoder))
   )
 )
@@ -138,11 +145,34 @@ export const resourceDecoder: Decoder<Resource> = object({
   route: optional(resourceValueDecoder),
 })
 
+export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
+  type: union(constant('library'), constant('package')),
+  path: string(),
+  version: string(),
+  meta: optional(
+    object({
+      namedImport: optional(boolean()),
+      originalName: optional(string()),
+      importJustPath: optional(boolean()),
+      useAsReference: optional(boolean()),
+    })
+  ),
+})
+
 export const initialPropsDecoder: Decoder<InitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
   }),
+  resourceMappers: optional(
+    array(
+      object({
+        name: string(),
+        resource: externaldependencyDecoder,
+      })
+    )
+  ),
   resource: resourceDecoder,
 })
 
@@ -150,6 +180,7 @@ export const initialPathsDecoder: Decoder<InitialPathsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
   }),
   resource: resourceDecoder,
 })
@@ -312,7 +343,6 @@ export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = obje
   attribute: string(),
   pageSize: number(),
   totalCountPath: optional(array(string())),
-  pageUrlSearchParamKey: optional(string()),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
@@ -361,20 +391,6 @@ export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
   type: constant('package'),
   version: string(),
   path: string(),
-})
-
-export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
-  type: union(constant('library'), constant('package')),
-  path: string(),
-  version: string(),
-  meta: optional(
-    object({
-      namedImport: optional(boolean()),
-      originalName: optional(string()),
-      importJustPath: optional(boolean()),
-      useAsReference: optional(boolean()),
-    })
-  ),
 })
 
 export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({
@@ -645,8 +661,17 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
+    itemValuePath: optional(array(string())),
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
+    resourceMappers: optional(
+      array(
+        object({
+          name: string(),
+          resource: externaldependencyDecoder,
+        })
+      )
+    ),
   }),
 })
 
@@ -659,7 +684,16 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
+    valuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),
+    resourceMappers: optional(
+      array(
+        object({
+          name: string(),
+          resource: externaldependencyDecoder,
+        })
+      )
+    ),
   }),
 })
 

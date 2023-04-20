@@ -10,6 +10,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { Constants, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -81,6 +82,10 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
 
         dependencies.useEffect = Constants.USE_EFFECT_DEPENDENCY
         dependencies.useState = Constants.USE_STATE_DEPENDENCY
+
+        content.resourceMappers?.forEach((mapper) => {
+          dependencies[mapper.name] = mapper.resource
+        })
       } catch (error) {
         return
       }
@@ -94,6 +99,9 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
 
 const computeUseEffectAST = (params: ComputeUseEffectParams) => {
   const { resource, node, setStateName, setErrorStateName, setLoadingStateName } = params
+  if (node.type !== 'cms-item' && node.type !== 'cms-list') {
+    throw new Error('Invalid node type passed to computeUseEffectAST')
+  }
 
   const apiFetchAST = types.variableDeclaration('const', [
     types.variableDeclarator(
@@ -117,6 +125,33 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
       )
     ),
   ])
+
+  let mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
+  node.content.resourceMappers?.forEach((mapper) => {
+    mappedResponse = types.callExpression(types.identifier(mapper.name), [mappedResponse])
+  })
+
+  const mappedDataAST = types.variableDeclaration('const', [
+    types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
+  ])
+
+  const stateNameAST: types.MemberExpression | types.CallExpression | types.Identifier =
+    node.type === 'cms-item'
+      ? types.memberExpression(
+          types.memberExpression(
+            ASTUtils.generateMemberExpressionASTFromPath([
+              node.content.resourceMappers?.length ? 'mappedData' : 'response',
+              ...(node.content.valuePath || []),
+            ]),
+            types.numericLiteral(0),
+            true
+          ),
+          types.identifier((node.content.itemValuePath || []).join('.'))
+        )
+      : ASTUtils.generateMemberExpressionASTFromPath([
+          node.content.resourceMappers?.length ? 'mappedData' : 'response',
+          ...(node.content.valuePath || []),
+        ])
 
   const resourceFetchAST = types.arrowFunctionExpression(
     [],
@@ -146,19 +181,9 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
                       ),
                     ]),
                     types.blockStatement([
+                      ...(node.content.resourceMappers?.length ? [mappedDataAST] : []),
                       types.expressionStatement(
-                        types.callExpression(types.identifier(setStateName), [
-                          node.type === 'cms-item'
-                            ? types.memberExpression(
-                                types.memberExpression(
-                                  types.identifier('response.data'),
-                                  types.numericLiteral(0),
-                                  true
-                                ),
-                                types.identifier((node.content.valuePath || []).join('.'))
-                              )
-                            : types.identifier('response.data'),
-                        ])
+                        types.callExpression(types.identifier(setStateName), [stateNameAST])
                       ),
                     ])
                   ),

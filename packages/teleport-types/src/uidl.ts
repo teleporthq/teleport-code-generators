@@ -135,6 +135,7 @@ export type ResourceUrlValues =
   | Array<UIDLStaticValue | UIDLDynamicReference>
   | UIDLStaticValue
   | UIDLDynamicReference
+  | UIDLExpressionValue
 
 export interface ResourceUrlParams {
   [key: string]: ResourceUrlValues
@@ -168,7 +169,9 @@ export interface InitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
+    itemValuePath?: string[]
   }
+  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
   resource: Resource
 }
 
@@ -176,6 +179,7 @@ export interface InitialPathsData {
   exposeAs: {
     name: string
     valuePath?: string[]
+    itemValuePath?: string[]
   }
   resource: Resource
 }
@@ -229,10 +233,6 @@ export interface PagePaginationOptions {
   // one item and get the actual count from the meta that is sent together with
   // the response
   totalCountPath?: string[]
-  // If we need to handle pagination, we are going to fetch the data using this property
-  // as a query param. This query might be different depending on the source of
-  // the data.
-  pageUrlSearchParamKey?: string
 }
 
 export interface UIDLPageOptions {
@@ -258,6 +258,11 @@ export interface UIDLDynamicReference {
     path?: string[]
     id: string
   }
+}
+
+export interface UIDLExpressionValue {
+  type: 'expr'
+  content: string
 }
 
 export interface UIDLStaticValue {
@@ -295,6 +300,8 @@ export interface UIDLCMSListNodeContent {
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
+  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
+  valuePath?: string[]
   itemValuePath?: string[]
 }
 
@@ -304,7 +311,9 @@ export interface UIDLCMSItemNodeContent {
   statePersistanceName?: string
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
+  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
+  itemValuePath?: string[]
 }
 
 export interface UIDLNestedStyleDeclaration {
