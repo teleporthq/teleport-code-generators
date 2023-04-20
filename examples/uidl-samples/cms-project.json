@@ -240,7 +240,10 @@
             }
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "button"
+        }
       },
       "input": {
         "type": "reusable-project-style-map",
@@ -283,7 +286,10 @@
             }
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "input"
+        }
       },
       "textarea": {
         "type": "reusable-project-style-map",
@@ -326,7 +332,10 @@
             }
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "textarea"
+        }
       },
       "list": {
         "type": "reusable-project-style-map",
@@ -356,7 +365,10 @@
             "content": "outside"
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "list"
+        }
       },
       "list-item": {
         "type": "reusable-project-style-map",
@@ -366,7 +378,10 @@
             "content": "list-item"
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "list-item"
+        }
       },
       "teleport-show": {
         "type": "reusable-project-style-map",
@@ -380,10 +395,16 @@
             "content": "none !important"
           }
         },
-        "conditions": []
+        "conditions": [],
+        "meta": {
+          "className": "teleport-show"
+        }
       },
       "Heading": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "Heading"
+        },
         "content": {
           "fontSize": {
             "type": "static",
@@ -413,6 +434,9 @@
       },
       "Content": {
         "type": "reusable-project-style-map",
+        "meta": {
+          "className": "Content"
+        },
         "content": {
           "fontSize": {
             "type": "static",
@@ -460,32 +484,32 @@
             "pageOptions": {
               "stateDefinitions": {
                 "BookEntity": {
-                  "id": "7efdcd66-a53c-41c2-ba92-f280bcbd2657",
+                  "id": "bb988c55-ab6b-4f4f-8e16-5c826943d4fa",
                   "defaultValue": {},
                   "type": "object"
                 },
                 "BookEntityLoading": {
-                  "id": "6af5e719-76e0-4946-84db-34351b570e59",
+                  "id": "f0fe5993-72a9-4312-8248-90f3a9374e24",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookEntityError": {
-                  "id": "f16a9d17-eaad-44f5-b8f9-7bdb4e77326c",
+                  "id": "b158ebe1-9c3f-46df-ba45-fa39d8288ccc",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookList": {
-                  "id": "64df293a-fbde-45f1-8aff-f085b9e5c3b8",
+                  "id": "7bd19684-c8d5-4df0-a578-bf62713e40b1",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "BookListLoading": {
-                  "id": "818d3930-3d87-4e6d-93c8-a94cfd2a6b74",
+                  "id": "e9e7136d-2ca0-479e-b693-b3052b00c95e",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookListError": {
-                  "id": "dade6128-1a12-4be9-b13b-d2f32bc4ace5",
+                  "id": "1bf4f512-f1b1-4520-9cdf-362540d1636d",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -494,7 +518,7 @@
             }
           },
           {
-            "value": "Author/Author",
+            "value": "/authors/Author",
             "seo": {
               "title": "Author - Massive Glittering Marten",
               "metaTags": [
@@ -507,13 +531,14 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ba4cc152-3079-496f-949f-c81a74405094",
+                  "id": "34b7429d-ed4e-4586-bfbf-07af44b7f7e0",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
               "isIndex": true,
+              "navLink": "/authors",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "AuthorEntities",
@@ -561,7 +586,7 @@
             }
           },
           {
-            "value": "Author/page/Author",
+            "value": "/authors/page/Author",
             "seo": {
               "title": "Author - Massive Glittering Marten",
               "metaTags": [
@@ -574,7 +599,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ba4cc152-3079-496f-949f-c81a74405094",
+                  "id": "34b7429d-ed4e-4586-bfbf-07af44b7f7e0",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -588,6 +613,7 @@
                   "total"
                 ]
               },
+              "navLink": "/authors",
               "dynamicRouteAttribute": "page",
               "initialPathsData": {
                 "exposeAs": {
@@ -675,7 +701,7 @@
             }
           },
           {
-            "value": "Book/Book",
+            "value": "/books/Book",
             "seo": {
               "title": "Book - Massive Glittering Marten",
               "metaTags": [
@@ -688,29 +714,30 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
+                  "id": "30945c73-9998-44fb-a5e2-3c92e906bbcf",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "b844959d-d8c0-41e4-b582-1d6267de7614",
+                  "id": "8ec0737b-b499-48db-8ab3-68b98e936e3c",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "AuthorListLoading": {
-                  "id": "ba3a7498-613a-4363-888a-8cf64447b472",
+                  "id": "8d47539b-2230-40f5-9eb9-ac46acb74ae6",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "AuthorListError": {
-                  "id": "f983ba0e-a9ae-42c8-bed4-9daa026b896d",
+                  "id": "56e6e9cb-1a7d-46b5-b3b6-efa772cd9d4d",
                   "defaultValue": false,
                   "type": "boolean"
                 }
               },
               "isIndex": true,
+              "navLink": "/books",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BookEntities",
@@ -758,7 +785,7 @@
             }
           },
           {
-            "value": "Book/page/Book",
+            "value": "/books/page/Book",
             "seo": {
               "title": "Book - Massive Glittering Marten",
               "metaTags": [
@@ -771,24 +798,24 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
+                  "id": "30945c73-9998-44fb-a5e2-3c92e906bbcf",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "b844959d-d8c0-41e4-b582-1d6267de7614",
+                  "id": "8ec0737b-b499-48db-8ab3-68b98e936e3c",
                   "defaultValue": [],
                   "type": "array"
                 },
                 "AuthorListLoading": {
-                  "id": "ba3a7498-613a-4363-888a-8cf64447b472",
+                  "id": "8d47539b-2230-40f5-9eb9-ac46acb74ae6",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "AuthorListError": {
-                  "id": "f983ba0e-a9ae-42c8-bed4-9daa026b896d",
+                  "id": "56e6e9cb-1a7d-46b5-b3b6-efa772cd9d4d",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -801,6 +828,7 @@
                   "total"
                 ]
               },
+              "navLink": "/books",
               "dynamicRouteAttribute": "page",
               "initialPathsData": {
                 "exposeAs": {
@@ -888,7 +916,7 @@
             }
           },
           {
-            "value": "/author/Author1",
+            "value": "/authors/Author1",
             "seo": {
               "title": "Author1 - Massive Glittering Marten",
               "metaTags": [
@@ -901,14 +929,14 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
+                  "id": "03396584-94a6-4105-bac9-97e0f35c3e1d",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/author",
+              "navLink": "/authors",
               "dynamicRouteAttribute": "id",
               "initialPathsData": {
                 "exposeAs": {
@@ -984,7 +1012,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
+                        "id": "03396584-94a6-4105-bac9-97e0f35c3e1d",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -1003,37 +1031,65 @@
             }
           },
           {
-            "value": "/book/Book1",
+            "value": "/books/Book1",
             "seo": {
-              "title": "Book1 - Massive Glittering Marten",
+              "title": {
+                "id": "8ee99dd2-484d-4c58-91d6-2602c1c0f404",
+                "pos": "",
+                "type": "static",
+                "content": "vdfvfd"
+              },
               "metaTags": [
                 {
+                  "name": "description",
+                  "content": {
+                    "id": "e3916b87-701b-42d4-a253-b1ba80a522d7",
+                    "pos": "",
+                    "type": "static",
+                    "content": "vfdvfdvfd"
+                  }
+                },
+                {
                   "property": "og:title",
-                  "content": "Book1 - Massive Glittering Marten"
+                  "content": {
+                    "id": "b9ed95b1-33dd-402b-a9c3-88f87fa2e9a6",
+                    "pos": "",
+                    "type": "static",
+                    "content": "vfdvfdvfd"
+                  }
+                },
+                {
+                  "property": "og:description",
+                  "content": {
+                    "id": "790e4335-a246-4b87-8cb9-9e1d49edd78b",
+                    "pos": "",
+                    "type": "static",
+                    "content": "vfdvfdvfd"
+                  }
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "dea86bde-766f-49c1-b356-afef1326e680",
+                  "id": "4997e413-7fa6-4ffe-9ced-dbbc97a5a236",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/book",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/books",
+              "dynamicRouteAttribute": "title",
               "initialPathsData": {
                 "exposeAs": {
-                  "name": "id",
+                  "name": "title",
                   "valuePath": [
                     "items"
                   ],
                   "itemValuePath": [
-                    "sys",
-                    "id"
+                    "fields",
+                    "title"
                   ]
                 },
                 "resource": {
@@ -1052,7 +1108,7 @@
                     },
                     "select": {
                       "type": "static",
-                      "content": "sys.id"
+                      "content": "fields.title"
                     }
                   },
                   "route": {
@@ -1096,15 +1152,15 @@
                       "type": "static",
                       "content": "book"
                     },
-                    "sys.id": {
+                    "fields.title": {
                       "type": "dynamic",
                       "content": {
-                        "id": "dea86bde-766f-49c1-b356-afef1326e680",
+                        "id": "4997e413-7fa6-4ffe-9ced-dbbc97a5a236",
                         "referenceType": "prop",
-                        "value": "id",
+                        "value": "title",
                         "path": [
                           "params",
-                          "id"
+                          "title"
                         ]
                       }
                     }
@@ -1122,22 +1178,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "ba4cc152-3079-496f-949f-c81a74405094",
+        "id": "34b7429d-ed4e-4586-bfbf-07af44b7f7e0",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntities": {
-        "id": "a4635804-9827-4adf-bce9-6ec4c655d9a8",
+        "id": "30945c73-9998-44fb-a5e2-3c92e906bbcf",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "44b65732-a756-4c90-94a0-93dafbab56cd",
+        "id": "03396584-94a6-4105-bac9-97e0f35c3e1d",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntity": {
-        "id": "dea86bde-766f-49c1-b356-afef1326e680",
+        "id": "4997e413-7fa6-4ffe-9ced-dbbc97a5a236",
         "defaultValue": [],
         "type": "array"
       }
@@ -1243,7 +1299,7 @@
                         "statePersistanceName": "BookEntity",
                         "loadingStatePersistanceName": "BookEntityLoading",
                         "errorStatePersistanceName": "BookEntityError",
-                        "resourceId": "57643864-aef2-4180-a24e-3723f6998f70"
+                        "resourceId": "26c7f423-d2b2-4ead-bab9-733806965cdc"
                       }
                     },
                     {
@@ -1299,7 +1355,7 @@
                         "statePersistanceName": "BookList",
                         "loadingStatePersistanceName": "BookListLoading",
                         "errorStatePersistanceName": "BookListError",
-                        "resourceId": "373518a1-04d4-4c95-9486-fd96d40dabf6"
+                        "resourceId": "87cae4bc-e124-49c7-9a23-878400ad5cc7"
                       }
                     }
                   ]
@@ -1410,7 +1466,7 @@
                   ]
                 }
               },
-              "value": "Author/Author",
+              "value": "/authors/Author",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1515,7 +1571,7 @@
                   ]
                 }
               },
-              "value": "Author/page/Author",
+              "value": "/authors/page/Author",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1670,13 +1726,13 @@
                         "statePersistanceName": "AuthorList",
                         "loadingStatePersistanceName": "AuthorListLoading",
                         "errorStatePersistanceName": "AuthorListError",
-                        "resourceId": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616"
+                        "resourceId": "a7302389-83cb-4a9f-af7b-0e738c720d37"
                       }
                     }
                   ]
                 }
               },
-              "value": "Book/Book",
+              "value": "/books/Book",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1831,13 +1887,13 @@
                         "statePersistanceName": "AuthorList",
                         "loadingStatePersistanceName": "AuthorListLoading",
                         "errorStatePersistanceName": "AuthorListError",
-                        "resourceId": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616"
+                        "resourceId": "a7302389-83cb-4a9f-af7b-0e738c720d37"
                       }
                     }
                   ]
                 }
               },
-              "value": "Book/page/Book",
+              "value": "/books/page/Book",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1944,7 +2000,7 @@
                   ]
                 }
               },
-              "value": "/author/Author1",
+              "value": "/authors/Author1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -2051,7 +2107,7 @@
                   ]
                 }
               },
-              "value": "/book/Book1",
+              "value": "/books/Book1",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -2404,7 +2460,7 @@
                   "link": {
                     "type": "navlink",
                     "content": {
-                      "routeName": "Author"
+                      "routeName": "/authors"
                     }
                   }
                 },
@@ -2454,7 +2510,7 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "expr",
-                      "expression": "`/author/${authorContext.id}`",
+                      "expression": "`/authors/${authorContext.id}`",
                       "scope": {
                         "authorContext": {
                           "type": "dynamic",
@@ -2706,8 +2762,8 @@
   "resources": {
     "rootFolder": "pages/api",
     "items": {
-      "57643864-aef2-4180-a24e-3723f6998f70": {
-        "id": "57643864-aef2-4180-a24e-3723f6998f70",
+      "26c7f423-d2b2-4ead-bab9-733806965cdc": {
+        "id": "26c7f423-d2b2-4ead-bab9-733806965cdc",
         "name": "Home",
         "baseUrl": {
           "type": "env",
@@ -2732,8 +2788,8 @@
           "value": "entries"
         }
       },
-      "373518a1-04d4-4c95-9486-fd96d40dabf6": {
-        "id": "373518a1-04d4-4c95-9486-fd96d40dabf6",
+      "87cae4bc-e124-49c7-9a23-878400ad5cc7": {
+        "id": "87cae4bc-e124-49c7-9a23-878400ad5cc7",
         "name": "Home1",
         "baseUrl": {
           "type": "env",
@@ -2758,8 +2814,8 @@
           "value": "entries"
         }
       },
-      "6def1c20-24b8-4fed-a9d4-1cd2d68f1616": {
-        "id": "6def1c20-24b8-4fed-a9d4-1cd2d68f1616",
+      "a7302389-83cb-4a9f-af7b-0e738c720d37": {
+        "id": "a7302389-83cb-4a9f-af7b-0e738c720d37",
         "name": "Book",
         "baseUrl": {
           "type": "env",

@@ -198,12 +198,12 @@ export interface UIDLComponentOutputOptions {
 }
 
 export interface UIDLComponentSEO {
-  title?: string | UIDLDynamicReference
+  title?: string | UIDLStaticValue | UIDLDynamicReference
   metaTags?: UIDLMetaTag[]
   assets?: UIDLGlobalAsset[]
 }
 
-export type UIDLMetaTag = Record<string, string | UIDLDynamicReference>
+export type UIDLMetaTag = Record<string, string | UIDLStaticValue | UIDLDynamicReference>
 
 export interface UIDLPropDefinition {
   type: string
