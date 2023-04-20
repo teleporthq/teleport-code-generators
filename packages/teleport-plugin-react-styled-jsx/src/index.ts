@@ -177,8 +177,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
 
       ASTUtils.addClassStringOnJSXTag(
         root as types.JSXElement,
-        Array.from(classNamesToAppend).join(' '),
-        'className',
+        Array.from(classNamesToAppend),
         Array.from(dynamicVariantsToAppend)
       )
     })

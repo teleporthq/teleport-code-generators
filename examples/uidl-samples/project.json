@@ -25,6 +25,11 @@
               "name": "Inter"
           },
           {
+            "type": "font",
+            "path": "https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@300&display=swap",
+            "name": "Chivo Mono"
+        },
+          {
               "type": "script",
               "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
           }
@@ -5274,6 +5279,17 @@
   },
   "components": {
       "Component": {
+        "styleSetDefinitions": {
+            "primaryButton": {
+                "content": {
+                    "fontFamily": "Nova Oval",
+                    "fontWeight": 400,
+                    "marginTop": "100px"
+                },
+                "conditions": [],
+                "type": "reusable-component-style-override"
+            }
+        },
           "propDefinitions": {},
           "node": {
               "type": "element",
@@ -5282,10 +5298,6 @@
                   "referencedStyles": {},
                   "abilities": {},
                   "style": {
-                        "fontFamily": {
-                            "type": "static",
-                            "content": "Inter"
-                        },
                       "width": {
                           "type": "static",
                           "content": "100%"
@@ -5313,15 +5325,86 @@
                   },
                   "children": [
                     {
-                        "type": "static",
-                        "content": "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+                        "type": "element",
+                        "content": {
+                            "elementType": "container",
+                            "style": {
+                                "fontFamily": {
+                                    "type": "static",
+                                    "content": "Inter"
+                                }
+                            },
+                            "referencedStyles": {
+                                "1284ff41-ddec-4fff-be50-00d190082788": {
+                                    "type": "style-map",
+                                    "content": {
+                                        "conditions": [
+                                            {
+                                                "conditionType": "screen-size",
+                                                "maxWidth": 767
+                                            }
+                                        ],
+                                        "mapType": "inlined",
+                                        "styles": {
+                                            "fontFamily": {
+                                                "type": "static",
+                                                "content": "Chivo Mono"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "children": [
+                                "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                            ]
+                        }
+                    },
+                    {
+                        "type": "element",
+                        "content": {
+                            "elementType": "container",
+                            "style": {
+                                "fontFamily": {
+                                    "type": "static",
+                                    "content": "Sedgwick Ave Display"
+                                },
+                                "fontWeight": "400",
+                                "marginTop": "100px"
+                            },
+                            "children": [
+                                "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                            ]
+                        }
+                    },
+                    {
+                        "type": "element",
+                        "content": {
+                            "elementType": "container",
+                            "referencedStyles": {
+                                "c1964328-5a00-4e1e-a118-f395998202c1": {
+                                    "type": "style-map",
+                                    "content": {
+                                        "mapType": "component-referenced",
+                                        "content": {
+                                            "type": "dynamic",
+                                            "content": {
+                                                "referenceType": "comp",
+                                                "id": "primaryButton"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "children": [
+                                "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                            ]
+                        }
                     }
                   ],
                   "semanticType": "div"
               }
           },
-          "name": "Component",
-          "styleSetDefinitions": {}
+          "name": "Component"
       },
       "NavigationLinks": {
           "propDefinitions": {

@@ -144,8 +144,13 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
             t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useEffect')), [
               t.arrowFunctionExpression(
                 [],
-                t.callExpression(t.identifier('import'), [
-                  t.stringLiteral('@lottiefiles/lottie-player'),
+                t.blockStatement([
+                  t.expressionStatement(
+                    t.callExpression(t.identifier('import'), [
+                      t.stringLiteral('@lottiefiles/lottie-player'),
+                    ])
+                  ),
+                  t.returnStatement(),
                 ])
               ),
             ])

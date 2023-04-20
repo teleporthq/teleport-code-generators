@@ -263,29 +263,33 @@ const traverseStyleObject = (style: UIDLStyleDefinitions) => {
 }
 
 // Parses a node structure recursively and applies a function to each UIDLElement instance
-export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => void) => {
+export const traverseElements = (
+  node: UIDLNode,
+  fn: (element: UIDLElement, parent: UIDLNode) => void,
+  parent: UIDLNode | null = null
+) => {
   switch (node.type) {
     case 'element':
-      fn(node.content)
+      fn(node.content, parent)
 
       if (node.content.children) {
         node.content.children.forEach((child) => {
-          traverseElements(child, fn)
+          traverseElements(child, fn, node)
         })
       }
       break
 
     case 'repeat':
-      traverseElements(node.content.node, fn)
+      traverseElements(node.content.node, fn, node)
       break
 
     case 'conditional':
-      traverseElements(node.content.node, fn)
+      traverseElements(node.content.node, fn, node)
       break
 
     case 'slot':
       if (node.content.fallback) {
-        traverseElements(node.content.fallback, fn)
+        traverseElements(node.content.fallback, fn, node)
       }
       break
 

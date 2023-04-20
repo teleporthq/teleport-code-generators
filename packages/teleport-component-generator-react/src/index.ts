@@ -55,10 +55,10 @@ const createReactComponentGenerator: ComponentGeneratorInstance = ({
   mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)
-  generator.addPlugin(stylePlugin)
   generator.addPlugin(propTypesPlugin)
   plugins.forEach((plugin) => generator.addPlugin(plugin))
 
+  generator.addPlugin(stylePlugin)
   // Import plugin needs to be last to handle all dependencies
   // TODO: use a different function to set/interact with the import plugin
   generator.addPlugin(importStatementsPlugin)

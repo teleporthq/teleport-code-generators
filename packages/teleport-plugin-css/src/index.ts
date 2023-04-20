@@ -289,15 +289,15 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       } else {
         ASTUtils.addClassStringOnJSXTag(
           root as types.JSXElement,
-          Array.from(classNamesToAppend).join(' '),
-          classAttributeName,
+          Array.from(classNamesToAppend),
           Array.from(dynamicVariantsToAppend).map((variant) => {
             const dynamicAttrValueIdentifier: types.Identifier = dynamicVariantPrefix
               ? types.identifier(dynamicVariantPrefix)
               : types.identifier(propsPrefix)
 
             return types.memberExpression(dynamicAttrValueIdentifier, types.identifier(variant))
-          })
+          }),
+          classAttributeName
         )
       }
     })

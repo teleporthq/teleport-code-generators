@@ -1,24 +1,24 @@
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ComponentPluginFactory,
   ComponentPlugin,
   ChunkDefinition,
   ChunkType,
-  UIDLDependency,
   FileType,
+  UIDLElement,
 } from '@teleporthq/teleport-types'
-import { GOOGLE_FONTS } from './fonts'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
+import {
+  NEXT_FONT_DEPENDENCY,
+  generateFontDeclerationChunk,
+  getFontAndVariable,
+  isGoogleFont,
+} from './utils'
 
 interface NextImagePluginConfig {
   componentChunkName: string
   localAssetFolder: string
-}
-
-const NEXT_FONT_DEPENDENCY: UIDLDependency = {
-  type: 'library',
-  path: 'next/font/google',
-  version: '13.3.0',
 }
 
 export const createNextGoogleFontPlugin: ComponentPluginFactory<NextImagePluginConfig> = (
@@ -27,81 +27,160 @@ export const createNextGoogleFontPlugin: ComponentPluginFactory<NextImagePluginC
   const { componentChunkName = 'jsx-component' } = config || {}
   const googleFontPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl } = structure
+    const { styleSetDefinitions = {} } = uidl
+    const importSpecifiers: types.ImportSpecifier[] = []
+
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+    const fontDeclerationMap: Record<string, boolean> = {}
     if (!componentChunk) {
       return
     }
 
-    UIDLUtils.traverseElements(uidl.node, ({ style, key }) => {
-      const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
-      if (!style?.fontFamily || style.fontFamily.type !== 'static' || !jsxNode) {
-        return
-      }
-
-      const font = style.fontFamily.content as string
-      const fontVariable = StringUtils.camelCaseToDashCase(
-        StringUtils.removeIllegalCharacters(font)
-      )
-      const isGoogleFont = GOOGLE_FONTS.indexOf(font) !== -1
-      if (!isGoogleFont) {
-        return
-      }
-
-      const chunk: ChunkDefinition = {
-        type: ChunkType.AST,
-        name: 'google-font-import-chunk',
-        fileType: FileType.JS,
-        content: types.importDeclaration(
-          [types.importSpecifier(types.identifier(font), types.identifier(font))],
-          types.stringLiteral(NEXT_FONT_DEPENDENCY.path)
-        ),
-        linkAfter: [],
-      }
-
-      const variableDeclerationChunk: ChunkDefinition = {
-        type: ChunkType.AST,
-        name: 'font-var-chunk',
-        fileType: FileType.JS,
-        content: types.variableDeclaration('const', [
-          types.variableDeclarator(
-            types.identifier(fontVariable),
-            types.callExpression(types.identifier(font), [
-              types.objectExpression([
-                types.objectProperty(types.identifier('preload'), types.identifier('false')),
-              ]),
-            ])
-          ),
-        ]),
-        linkAfter: [],
-      }
-
-      const isInlineStyleAlreadyAdded = jsxNode.openingElement.attributes.find(
-        (attr) => attr.type === 'JSXAttribute' && attr.name.name === 'style'
-      )
-
-      if (!isInlineStyleAlreadyAdded) {
-        const jsxAttribute: types.JSXAttribute = types.jsxAttribute(
-          types.jsxIdentifier('style'),
-          types.jsxExpressionContainer(
-            types.objectExpression([
-              types.objectProperty(
-                types.identifier('fontFamily'),
-                types.memberExpression(
-                  types.memberExpression(types.identifier(fontVariable), types.identifier('style')),
-                  types.identifier('fontFamily')
-                )
-              ),
-            ])
+    const rootNode = componentChunk.meta.nodesLookup[uidl.node.content.key] as types.JSXElement
+    if (rootNode) {
+      Object.values(styleSetDefinitions).forEach((style) => {
+        if (style.content?.fontFamily && isGoogleFont(style.content.fontFamily.content as string)) {
+          const [font, fontDecleration, variable] = getFontAndVariable(
+            style.content.fontFamily.content as string
           )
-        )
-        jsxNode.openingElement.attributes.push(jsxAttribute)
+          style.content.fontFamily = { type: 'static', content: `var(${variable})` }
+          if (!fontDeclerationMap[font]) {
+            importSpecifiers.push(
+              types.importSpecifier(types.identifier(font), types.identifier(font))
+            )
+            chunks.unshift(
+              generateFontDeclerationChunk(
+                font,
+                fontDecleration,
+                variable,
+                (style?.content?.fontWeight?.content as string) || null
+              )
+            )
+
+            ASTUtils.addClassStringOnJSXTag(
+              rootNode,
+              [],
+              [
+                types.memberExpression(
+                  types.identifier(fontDecleration),
+                  types.identifier('variable')
+                ),
+              ]
+            )
+          }
+        }
+      })
+    }
+
+    UIDLUtils.traverseElements(uidl.node, (node, parent) => {
+      const { style = {}, referencedStyles = {} } = node
+
+      const parentJSXNode = componentChunk.meta.nodesLookup[
+        (parent?.content as UIDLElement)?.key
+      ] as types.JSXElement
+      if (!parentJSXNode) {
+        return
       }
 
-      delete style.fontFamily
-      chunks.unshift(chunk)
-      chunks.push(variableDeclerationChunk)
+      /**
+       * `style` are direclty applied on the node. So they can be applied using
+       * style = { fontFamily: inter.style.fontFamily}
+       * https://nextjs.org/docs/api-reference/next/font#style-1
+       */
+
+      if (
+        style?.fontFamily?.type === 'static' &&
+        isGoogleFont(style.fontFamily.content as string)
+      ) {
+        const [font, fontDecleration, variable] = getFontAndVariable(
+          style.fontFamily.content as string
+        )
+
+        ASTUtils.addClassStringOnJSXTag(
+          parentJSXNode,
+          [],
+          [types.memberExpression(types.identifier(fontDecleration), types.identifier('variable'))]
+        )
+        style.fontFamily = { type: 'static', content: `var(${variable})` }
+
+        if (!fontDeclerationMap[fontDecleration]) {
+          fontDeclerationMap[fontDecleration] = true
+          importSpecifiers.push(
+            types.importSpecifier(types.identifier(font), types.identifier(font))
+          )
+          chunks.unshift(
+            generateFontDeclerationChunk(
+              font,
+              fontDecleration,
+              variable,
+              (style?.fontWeight?.content as string) || null
+            )
+          )
+        }
+      }
+
+      /**
+       * Referenced styles are only applied under a specific condition.
+       * So, they need to be applied only using `var(--font)` method.
+       * Or else the styles are overwritten all the time.
+       * https://nextjs.org/docs/api-reference/next/font#css-variables
+       */
+
+      Object.keys(referencedStyles).forEach((styleRef) => {
+        const refStyle = referencedStyles[styleRef]
+        if (refStyle.content.mapType === 'inlined') {
+          const { styles } = refStyle.content
+          if (
+            styles?.fontFamily?.type === 'static' &&
+            isGoogleFont(styles.fontFamily.content as string)
+          ) {
+            if (!parent || parent.type !== 'element') {
+              /**
+               * TODO: using next/font/google in variable mode, works only by wrapping the variable
+               * to the parent node. But, where there is no parent node. It's a edge case and we need to
+               * figure out how to handle this use-case. Most probably this can be acheived by wrapping the node
+               * with a root node with display-contents.
+               */
+            }
+
+            const [font, fontDecleration, variable] = getFontAndVariable(
+              styles.fontFamily.content as string
+            )
+
+            ASTUtils.addClassStringOnJSXTag(
+              parentJSXNode,
+              [],
+              [
+                types.memberExpression(
+                  types.identifier(fontDecleration),
+                  types.identifier('variable')
+                ),
+              ]
+            )
+            styles.fontFamily = { type: 'static', content: `var(${variable})` }
+
+            if (!fontDeclerationMap[fontDecleration]) {
+              fontDeclerationMap[fontDecleration] = true
+              importSpecifiers.push(
+                types.importSpecifier(types.identifier(font), types.identifier(font))
+              )
+              chunks.unshift(generateFontDeclerationChunk(font, fontDecleration, variable))
+            }
+          }
+        }
+      })
     })
 
+    chunks.unshift({
+      type: ChunkType.AST,
+      name: 'google-font-import-chunk',
+      fileType: FileType.JS,
+      content: types.importDeclaration(
+        importSpecifiers,
+        types.stringLiteral(NEXT_FONT_DEPENDENCY.path)
+      ),
+      linkAfter: ['import-lib', 'import-pack', 'import-local'],
+    })
     return structure
   }
 

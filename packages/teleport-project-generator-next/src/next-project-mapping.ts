@@ -11,6 +11,7 @@ export const NextProjectMapping: Mapping = {
       },
       attrs: {
         href: { type: 'dynamic', content: { referenceType: 'attr', id: 'transitionTo' } },
+        legacyBehavior: { type: 'static', content: true },
       },
       children: [
         {
