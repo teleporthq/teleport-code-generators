@@ -50,7 +50,7 @@ const computePropsAST = (
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
     propsData.resourceMappers?.length ? 'mappedData' : 'response',
-    ...propsData.exposeAs.valuePath,
+    ...(propsData.exposeAs.valuePath || []),
   ])
 
   const dataWeNeedAccessorAST =
