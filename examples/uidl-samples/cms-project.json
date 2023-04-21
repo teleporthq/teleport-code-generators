@@ -460,17 +460,17 @@
             "pageOptions": {
               "stateDefinitions": {
                 "BookEntity": {
-                  "id": "b0a77d15-df2b-4b4e-abb6-b65492360eba",
+                  "id": "26c0ad13-83ac-48c7-883f-ad224801a144",
                   "defaultValue": {},
                   "type": "object"
                 },
                 "BookEntityLoading": {
-                  "id": "c7138108-1407-435c-a873-a90f50d7062f",
+                  "id": "3be3eff1-4cce-4b35-9f1e-ca0c2228ae29",
                   "defaultValue": false,
                   "type": "boolean"
                 },
                 "BookEntityError": {
-                  "id": "b84a5998-81a1-4c94-aef1-47ac5b04cf5f",
+                  "id": "99560192-5963-4719-a2f9-db970efe9541",
                   "defaultValue": false,
                   "type": "boolean"
                 }
@@ -492,7 +492,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntity": {
-                  "id": "0f18e793-7330-43d5-9cb4-8f5e3e421b4a",
+                  "id": "43f25a99-7db4-47b3-9762-7fbe5bbce3cb",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -556,6 +556,17 @@
                         "originalName": "resolveContentfulResponse"
                       }
                     }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
+                      }
+                    }
                   }
                 ],
                 "resource": {
@@ -575,7 +586,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "0f18e793-7330-43d5-9cb4-8f5e3e421b4a",
+                        "id": "43f25a99-7db4-47b3-9762-7fbe5bbce3cb",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -607,7 +618,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "7231a576-8bfd-49ad-986c-2a93a0086892",
+                  "id": "dbd4dff9-6ecd-48bf-961e-5edec3cd1820",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -629,6 +640,17 @@
                       "version": "1.1.4",
                       "meta": {
                         "originalName": "resolveContentfulResponse"
+                      }
+                    }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
                       }
                     }
                   }
@@ -674,7 +696,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "7231a576-8bfd-49ad-986c-2a93a0086892",
+                  "id": "dbd4dff9-6ecd-48bf-961e-5edec3cd1820",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -741,6 +763,17 @@
                         "originalName": "resolveContentfulResponse"
                       }
                     }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
+                      }
+                    }
                   }
                 ],
                 "resource": {
@@ -788,7 +821,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "b4d96940-e9f0-4bbd-9cb1-5b1738f0eeda",
+                  "id": "ad87e7fe-ea03-4070-b47c-dc0aa65a1cb4",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -852,6 +885,17 @@
                         "originalName": "resolveContentfulResponse"
                       }
                     }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
+                      }
+                    }
                   }
                 ],
                 "resource": {
@@ -871,7 +915,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "b4d96940-e9f0-4bbd-9cb1-5b1738f0eeda",
+                        "id": "ad87e7fe-ea03-4070-b47c-dc0aa65a1cb4",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -903,7 +947,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "a4bad987-b855-4241-8550-973b8e84cadf",
+                  "id": "ba6f9568-bb75-426b-a034-8a18c0dfbb6a",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -925,6 +969,17 @@
                       "version": "1.1.4",
                       "meta": {
                         "originalName": "resolveContentfulResponse"
+                      }
+                    }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
                       }
                     }
                   }
@@ -970,7 +1025,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "a4bad987-b855-4241-8550-973b8e84cadf",
+                  "id": "ba6f9568-bb75-426b-a034-8a18c0dfbb6a",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -1035,6 +1090,17 @@
                       "version": "1.1.4",
                       "meta": {
                         "originalName": "resolveContentfulResponse"
+                      }
+                    }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
                       }
                     }
                   }
@@ -1084,7 +1150,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "69aa9a0a-f3dc-401f-b75a-7085dab6bae2",
+                  "id": "3dab350c-7586-491b-9bba-5b67c4e8adf5",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -1106,6 +1172,17 @@
                       "version": "1.1.4",
                       "meta": {
                         "originalName": "resolveContentfulResponse"
+                      }
+                    }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
                       }
                     }
                   }
@@ -1151,7 +1228,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BookEntities": {
-                  "id": "69aa9a0a-f3dc-401f-b75a-7085dab6bae2",
+                  "id": "3dab350c-7586-491b-9bba-5b67c4e8adf5",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -1218,6 +1295,17 @@
                         "originalName": "resolveContentfulResponse"
                       }
                     }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
+                      }
+                    }
                   }
                 ],
                 "resource": {
@@ -1265,7 +1353,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntity": {
-                  "id": "71b0ff17-98de-4cff-8d27-e8fa95af173c",
+                  "id": "3b1fe351-4fe5-452c-a2d9-cee22fb95a7e",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -1329,6 +1417,17 @@
                         "originalName": "resolveContentfulResponse"
                       }
                     }
+                  },
+                  {
+                    "name": "normalizeContent",
+                    "resource": {
+                      "type": "package",
+                      "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                      "path": "normalizeContentfulContent",
+                      "meta": {
+                        "originalName": "normalizeContent"
+                      }
+                    }
                   }
                 ],
                 "resource": {
@@ -1348,7 +1447,7 @@
                     "sys.id": {
                       "type": "dynamic",
                       "content": {
-                        "id": "71b0ff17-98de-4cff-8d27-e8fa95af173c",
+                        "id": "3b1fe351-4fe5-452c-a2d9-cee22fb95a7e",
                         "referenceType": "prop",
                         "value": "id",
                         "path": [
@@ -1371,32 +1470,32 @@
     },
     "propDefinitions": {
       "BookEntity": {
-        "id": "0f18e793-7330-43d5-9cb4-8f5e3e421b4a",
+        "id": "43f25a99-7db4-47b3-9762-7fbe5bbce3cb",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntities": {
-        "id": "7231a576-8bfd-49ad-986c-2a93a0086892",
+        "id": "dbd4dff9-6ecd-48bf-961e-5edec3cd1820",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "b4d96940-e9f0-4bbd-9cb1-5b1738f0eeda",
+        "id": "ad87e7fe-ea03-4070-b47c-dc0aa65a1cb4",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntities": {
-        "id": "a4bad987-b855-4241-8550-973b8e84cadf",
+        "id": "ba6f9568-bb75-426b-a034-8a18c0dfbb6a",
         "defaultValue": [],
         "type": "array"
       },
       "BookEntities": {
-        "id": "69aa9a0a-f3dc-401f-b75a-7085dab6bae2",
+        "id": "3dab350c-7586-491b-9bba-5b67c4e8adf5",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntity": {
-        "id": "71b0ff17-98de-4cff-8d27-e8fa95af173c",
+        "id": "3b1fe351-4fe5-452c-a2d9-cee22fb95a7e",
         "defaultValue": [],
         "type": "array"
       }
@@ -1483,9 +1582,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -1497,12 +1594,23 @@
                                 "originalName": "resolveContentfulResponse"
                               }
                             }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
+                              }
+                            }
                           }
                         ],
                         "statePersistanceName": "BookEntity",
                         "loadingStatePersistanceName": "BookEntityLoading",
                         "errorStatePersistanceName": "BookEntityError",
-                        "resourceId": "9f4aadbd-9b92-4923-8461-44e551e2c6c0"
+                        "resourceId": "7816efdd-2f6b-46f5-b5c6-a4336510c92f"
                       }
                     }
                   ]
@@ -1591,9 +1699,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -1603,6 +1709,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -1696,9 +1813,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -1708,6 +1823,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -1801,9 +1927,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -1813,6 +1937,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -1908,9 +2043,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -1920,6 +2053,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -2013,9 +2157,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -2025,6 +2167,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -2118,9 +2271,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -2130,6 +2281,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -2223,9 +2385,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -2235,6 +2395,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -2328,9 +2499,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -2340,6 +2509,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -2435,9 +2615,7 @@
                           }
                         },
                         "valuePath": [],
-                        "itemValuePath": [
-                          "fields"
-                        ],
+                        "itemValuePath": [],
                         "resourceMappers": [
                           {
                             "name": "resolveContentfulResponse",
@@ -2447,6 +2625,17 @@
                               "version": "1.1.4",
                               "meta": {
                                 "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
                               }
                             }
                           }
@@ -3431,8 +3620,8 @@
   "resources": {
     "rootFolder": "pages/api",
     "items": {
-      "9f4aadbd-9b92-4923-8461-44e551e2c6c0": {
-        "id": "9f4aadbd-9b92-4923-8461-44e551e2c6c0",
+      "7816efdd-2f6b-46f5-b5c6-a4336510c92f": {
+        "id": "7816efdd-2f6b-46f5-b5c6-a4336510c92f",
         "name": "Home",
         "baseUrl": {
           "type": "env",
