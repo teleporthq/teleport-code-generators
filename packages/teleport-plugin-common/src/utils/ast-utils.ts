@@ -22,7 +22,7 @@ export const addClassStringOnJSXTag = (
     )
 
     if (attrValue.type === 'StringLiteral') {
-      classString.push(attrValue.value)
+      classString.unshift(attrValue.value)
     }
 
     if (
@@ -40,7 +40,7 @@ export const addClassStringOnJSXTag = (
   if (dynamicValues.length === 0) {
     if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
       const classArray = classAttribute.value.value.split(' ')
-      classArray.push(classString.join(' '))
+      classArray.push(...classString)
       classAttribute.value.value = classArray.join(' ').trim()
     } else {
       throw new Error(

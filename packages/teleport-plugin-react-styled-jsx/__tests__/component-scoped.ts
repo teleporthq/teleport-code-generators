@@ -91,7 +91,7 @@ describe('Component Scoped Styles', () => {
     const dynamicExpression = jsxExpression.attributes[0].value.expression.expressions[0]
 
     expect(jsxExpression.attributes[0].value.expression.quasis[0].value.raw).toContain(
-      'md-8 primary-navbar '
+      'md-8,primary-navbar '
     )
     expect(dynamicExpression.object.name).toBe('props')
     expect(dynamicExpression.property.name).toBe('variant')
