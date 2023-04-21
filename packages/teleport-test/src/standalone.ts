@@ -98,11 +98,11 @@ const run = async () => {
         plugins: [new ProjectPluginNextFonts()],
         publishOptions: {
           ...packerOptions.publishOptions,
-          projectSlug: `teleport-project-next-fonts`,
+          projectSlug: `teleport-project-next-fonts-package`,
         },
       })
-      console.info(`teleport-project-next-fonts`, '-', result.payload)
-      return `teleport-project-next-fonts`
+      console.info(`teleport-project-next-fonts-package`, '-', result.payload)
+      return `teleport-project-next-fonts-package`
     })
 
     /* Frameworks using Css-Modules */

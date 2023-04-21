@@ -18,10 +18,83 @@ import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import css from 'css'
 
+const declerationChunks: ChunkDefinition[] = []
+const importSpecifiers: types.ImportSpecifier[] = []
+const isFontDeclared: Record<string, boolean> = {}
+
+const generateFontAndFontDeclerationChunk = (
+  content: string,
+  statement: types.JSXElement | null,
+  params: { weight: number | string }
+): [string, string, string] => {
+  const [font, fontDecleration, variable] = getFontAndVariable(content)
+  if (isFontDeclared[fontDecleration] && statement) {
+    return [font, fontDecleration, variable]
+  }
+
+  const chunk: ChunkDefinition = generateFontDeclerationChunk(
+    font,
+    fontDecleration,
+    variable,
+    params?.weight
+  )
+
+  if (statement) {
+    ASTUtils.addClassStringOnJSXTag(
+      statement,
+      [],
+      [types.memberExpression(types.identifier(fontDecleration), types.identifier('variable'))]
+    )
+    importSpecifiers.push(types.importSpecifier(types.identifier(font), types.identifier(font)))
+    declerationChunks.push(chunk)
+    isFontDeclared[font] = true
+  }
+
+  return [font, fontDecleration, variable]
+}
+
 export class ProjectPluginNextFonts implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const { strategy, uidl } = structure
     const defaultStyles: UIDLStyleInlineAsset[] = []
+
+    /**
+     * Handling project-styles, and updating fonts and font variables respectively
+     */
+    Object.values(uidl.root?.styleSetDefinitions || {}).forEach((style) => {
+      if (style.type !== 'reusable-project-style-map') {
+        return
+      }
+
+      if (
+        style.content?.fontFamily?.type === 'static' &&
+        isGoogleFont(style.content?.fontFamily.content as string)
+      ) {
+        const [, , variable] = generateFontAndFontDeclerationChunk(
+          style.content.fontFamily.content as string,
+          null,
+          { weight: style.content?.fontWeight?.content as string }
+        )
+        style.content.fontFamily = { type: 'static', content: `var(${variable})` }
+      }
+
+      style?.conditions?.forEach((cond) => {
+        const { content } = cond
+        if (
+          content?.fontFamily?.type !== 'static' ||
+          !isGoogleFont(content.fontFamily.content as string)
+        ) {
+          return
+        }
+
+        const [, , variable] = generateFontAndFontDeclerationChunk(
+          content.fontFamily.content as string,
+          null,
+          { weight: content?.fontWeight?.content as string }
+        )
+        content.fontFamily = { type: 'static', content: `var(${variable})` }
+      })
+    })
 
     uidl.globals.assets = uidl.globals.assets.filter((asset) => {
       if (asset.type === 'font' && asset.path.indexOf('google')) {
@@ -44,10 +117,6 @@ export class ProjectPluginNextFonts implements ProjectPlugin {
     const oldConfigContentGenerator = strategy.framework.config.configContentGenerator
     strategy.framework.config.configContentGenerator = (opts: FrameWorkConfigOptions) => {
       const result = oldConfigContentGenerator(opts)
-
-      const declerationChunks: ChunkDefinition[] = []
-      const importSpecifiers: types.ImportSpecifier[] = []
-      const isFontDeclared: Record<string, boolean> = {}
 
       const appJSChunk = result.chunks.js.find((chunk) => chunk.name === 'app-js-chunk')
 
@@ -107,37 +176,18 @@ export class ProjectPluginNextFonts implements ProjectPlugin {
               return
             }
 
-            const [font, fontDecleration, variable] = getFontAndVariable(item.value)
-            if (!isFontDeclared[font]) {
-              importSpecifiers.push(
-                types.importSpecifier(types.identifier(font), types.identifier(font))
-              )
-              const chunk: ChunkDefinition = generateFontDeclerationChunk(
-                font,
-                fontDecleration,
-                variable,
-                (fontWeight as css.Declaration)?.value || null
-              )
-
-              declerationChunks.push(chunk)
-              ASTUtils.addClassStringOnJSXTag(
-                returnStatement.argument as types.JSXElement,
-                [],
-                [
-                  types.memberExpression(
-                    types.identifier(fontDecleration),
-                    types.identifier('variable')
-                  ),
-                ]
-              )
-              item.value = '${' + `${fontDecleration}.style.fontFamily` + '}'
-              isFontDeclared[font] = true
-            }
+            const [, fontDecleration] = generateFontAndFontDeclerationChunk(
+              item.value,
+              returnStatement.argument as types.JSXElement,
+              { weight: (fontWeight as css.Declaration)?.value }
+            )
+            item.value = '${' + `${fontDecleration}.style.fontFamily` + '}'
           })
         })
 
         /**
-         * Pushing the string styles into the head of __app.js file
+         * Wrapping up default styles that targets tags
+         * as <style jsx global> into the _app.js file
          */
 
         const jsxElm = types.jsxElement(
@@ -154,43 +204,6 @@ export class ProjectPluginNextFonts implements ProjectPlugin {
         )
 
         ;(returnStatement.argument as types.JSXElement).children.unshift(jsxElm)
-      })
-
-      /**
-       * Handling project-styles, and updating fonts and font variables respectively
-       */
-      Object.values(uidl.root?.styleSetDefinitions || {}).forEach((style) => {
-        if (
-          style.content?.fontFamily?.type === 'static' &&
-          isGoogleFont(style.content?.fontFamily.content as string)
-        ) {
-          const [font, fontDecleration, variable] = getFontAndVariable(
-            style.content.fontFamily.content as string
-          )
-          if (!isFontDeclared[font]) {
-            importSpecifiers.push(
-              types.importSpecifier(types.identifier(font), types.identifier(font))
-            )
-            const chunk: ChunkDefinition = generateFontDeclerationChunk(
-              font,
-              fontDecleration,
-              variable,
-              (style?.content?.fontWeight?.content as string) || null
-            )
-            declerationChunks.push(chunk)
-            ASTUtils.addClassStringOnJSXTag(
-              returnStatement.argument as types.JSXElement,
-              [],
-              [
-                types.memberExpression(
-                  types.identifier(fontDecleration),
-                  types.identifier('variable')
-                ),
-              ]
-            )
-            isFontDeclared[font] = true
-          }
-        }
       })
 
       if (importSpecifiers.length) {

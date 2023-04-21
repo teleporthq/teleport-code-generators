@@ -196,6 +196,19 @@
       "styleSetDefinitions": {
           "button": {
               "type": "reusable-project-style-map",
+              "conditions": [
+                { "type": "screen-size",
+                  "meta": {
+                    "maxWidth": 991
+                  },
+                  "content": {
+                    "fontFamily": {
+                        "type": "static",
+                        "content": "Inter"
+                    }
+                  } 
+                }
+              ],
               "content": {
                   "fontSize": {
                       "type": "static",

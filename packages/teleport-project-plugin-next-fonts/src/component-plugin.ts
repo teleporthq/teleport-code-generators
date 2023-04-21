@@ -18,56 +18,60 @@ export const createNextGoogleFontPlugin = () => {
     const componentChunk = chunks.find((chunk) => chunk.name === 'jsx-component')
     const fontDeclerationMap: Record<string, boolean> = {}
     if (!componentChunk) {
-      /**
-       * Changing the project-styles to use the variables, and then we can declare the fonts
-       * and inject in the root _app.js file.
-       */
-      Object.values(styleSetDefinitions).forEach((style) => {
-        if (
-          style.type === 'reusable-project-style-map' &&
-          isGoogleFont(style.content?.fontFamily?.content as string)
-        ) {
-          const [, , variable] = getFontAndVariable(style.content.fontFamily.content as string)
-          style.content.fontFamily = { type: 'static', content: `var(${variable})` }
-        }
-      })
-
       return structure
     }
 
     const rootNode = componentChunk.meta.nodesLookup[uidl.node.content.key] as types.JSXElement
     if (rootNode) {
+      const generateFontDeclerationChunkAndAddToNode = (
+        content: string,
+        params: { weight?: string }
+      ): string => {
+        const [font, fontDecleration, variable] = getFontAndVariable(content)
+        ASTUtils.addClassStringOnJSXTag(
+          rootNode,
+          [],
+          [types.memberExpression(types.identifier(fontDecleration), types.identifier('variable'))]
+        )
+
+        if (!fontDeclerationMap[font]) {
+          importSpecifiers.push(
+            types.importSpecifier(types.identifier(font), types.identifier(font))
+          )
+          chunks.unshift(
+            generateFontDeclerationChunk(font, fontDecleration, variable, params.weight)
+          )
+        }
+
+        return variable
+      }
+
       Object.values(styleSetDefinitions).forEach((style) => {
         if (style.content?.fontFamily && isGoogleFont(style.content.fontFamily.content as string)) {
-          const [font, fontDecleration, variable] = getFontAndVariable(
-            style.content.fontFamily.content as string
+          const variable = generateFontDeclerationChunkAndAddToNode(
+            style.content.fontFamily.content as string,
+            {
+              weight: style.content?.fontWeight?.content as string,
+            }
           )
           style.content.fontFamily = { type: 'static', content: `var(${variable})` }
-          if (!fontDeclerationMap[font]) {
-            importSpecifiers.push(
-              types.importSpecifier(types.identifier(font), types.identifier(font))
-            )
-            chunks.unshift(
-              generateFontDeclerationChunk(
-                font,
-                fontDecleration,
-                variable,
-                (style?.content?.fontWeight?.content as string) || null
-              )
-            )
-
-            ASTUtils.addClassStringOnJSXTag(
-              rootNode,
-              [],
-              [
-                types.memberExpression(
-                  types.identifier(fontDecleration),
-                  types.identifier('variable')
-                ),
-              ]
-            )
-          }
         }
+
+        style?.conditions?.forEach((cond) => {
+          const { content } = cond
+          if (
+            content?.fontFamily?.type === 'static' &&
+            isGoogleFont(content.fontFamily.content as string)
+          ) {
+            const variable = generateFontDeclerationChunkAndAddToNode(
+              content.fontFamily.content as string,
+              {
+                weight: content?.fontWeight?.content as string,
+              }
+            )
+            content.fontFamily = { type: 'static', content: `var(${variable})` }
+          }
+        })
       })
     }
 

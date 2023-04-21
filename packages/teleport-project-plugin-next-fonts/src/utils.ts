@@ -21,7 +21,7 @@ export const generateFontDeclerationChunk = (
   font: string,
   fontVariable: string,
   variable: string,
-  weight?: string
+  weight?: string | number
 ): ChunkDefinition => {
   const objectExpressions: types.ObjectProperty[] = [
     types.objectProperty(types.identifier('preload'), types.identifier('false')),
