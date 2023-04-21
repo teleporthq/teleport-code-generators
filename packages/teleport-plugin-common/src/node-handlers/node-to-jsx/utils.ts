@@ -174,7 +174,7 @@ export const createDynamicValueExpression = (
     }
     return t.memberExpression(
       t.identifier(StringUtils.camelize(contextMeta.providerName)),
-      t.identifier(identifierContent.path.join('.'))
+      t.identifier(identifierContent.path.join('?.'))
     )
   }
 

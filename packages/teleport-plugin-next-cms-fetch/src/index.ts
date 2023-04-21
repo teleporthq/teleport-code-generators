@@ -135,19 +135,23 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
   ])
 
+  const firstMemberAST = types.memberExpression(
+    ASTUtils.generateMemberExpressionASTFromPath([
+      node.content.resourceMappers?.length ? 'mappedData' : 'response',
+      ...(node.content.valuePath || []),
+    ]),
+    types.numericLiteral(0),
+    true
+  )
+
   const stateNameAST: types.MemberExpression | types.CallExpression | types.Identifier =
     node.type === 'cms-item'
-      ? types.memberExpression(
-          types.memberExpression(
-            ASTUtils.generateMemberExpressionASTFromPath([
-              node.content.resourceMappers?.length ? 'mappedData' : 'response',
-              ...(node.content.valuePath || []),
-            ]),
-            types.numericLiteral(0),
-            true
-          ),
-          types.identifier((node.content.itemValuePath || []).join('.'))
-        )
+      ? node.content.itemValuePath.length
+        ? types.memberExpression(
+            firstMemberAST,
+            types.identifier((node.content.itemValuePath || []).join('.'))
+          )
+        : firstMemberAST
       : ASTUtils.generateMemberExpressionASTFromPath([
           node.content.resourceMappers?.length ? 'mappedData' : 'response',
           ...(node.content.valuePath || []),
