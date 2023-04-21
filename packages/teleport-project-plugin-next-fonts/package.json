@@ -1,5 +1,5 @@
 {
-  "name": "@teleporthq/teleport-plugin-next-fonts",
+  "name": "@teleporthq/teleport-project-plugin-next-fonts",
   "version": "0.27.2",
   "description": "A Next-JS plugin for using next/font for google fonts",
   "author": "teleportHQ",
@@ -26,6 +26,8 @@
   "dependencies": {
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-shared": "^0.27.2",
-    "@teleporthq/teleport-types": "^0.27.0"
+    "@teleporthq/teleport-types": "^0.27.0",
+    "@types/css": "^0.0.33",
+    "css": "^3.0.0"
   }
 }

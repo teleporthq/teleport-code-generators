@@ -1,3 +1,7 @@
+/**
+ * The list of google fonts are auto-generated
+ */
+
 export const GOOGLE_FONTS = [
   'ABeeZee',
   'Abel',

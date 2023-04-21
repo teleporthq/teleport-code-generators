@@ -1,12 +1,5 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import {
-  ComponentPluginFactory,
-  ComponentPlugin,
-  ChunkDefinition,
-  ChunkType,
-  FileType,
-  UIDLElement,
-} from '@teleporthq/teleport-types'
+import { ComponentPlugin, ChunkType, FileType, UIDLElement } from '@teleporthq/teleport-types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 import {
@@ -16,24 +9,30 @@ import {
   isGoogleFont,
 } from './utils'
 
-interface NextImagePluginConfig {
-  componentChunkName: string
-  localAssetFolder: string
-}
-
-export const createNextGoogleFontPlugin: ComponentPluginFactory<NextImagePluginConfig> = (
-  config
-) => {
-  const { componentChunkName = 'jsx-component' } = config || {}
+export const createNextGoogleFontPlugin = () => {
   const googleFontPlugin: ComponentPlugin = async (structure) => {
     const { chunks, uidl } = structure
     const { styleSetDefinitions = {} } = uidl
     const importSpecifiers: types.ImportSpecifier[] = []
 
-    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+    const componentChunk = chunks.find((chunk) => chunk.name === 'jsx-component')
     const fontDeclerationMap: Record<string, boolean> = {}
     if (!componentChunk) {
-      return
+      /**
+       * Changing the project-styles to use the variables, and then we can declare the fonts
+       * and inject in the root _app.js file.
+       */
+      Object.values(styleSetDefinitions).forEach((style) => {
+        if (
+          style.type === 'reusable-project-style-map' &&
+          isGoogleFont(style.content?.fontFamily?.content as string)
+        ) {
+          const [, , variable] = getFontAndVariable(style.content.fontFamily.content as string)
+          style.content.fontFamily = { type: 'static', content: `var(${variable})` }
+        }
+      })
+
+      return structure
     }
 
     const rootNode = componentChunk.meta.nodesLookup[uidl.node.content.key] as types.JSXElement
@@ -171,16 +170,19 @@ export const createNextGoogleFontPlugin: ComponentPluginFactory<NextImagePluginC
       })
     })
 
-    chunks.unshift({
-      type: ChunkType.AST,
-      name: 'google-font-import-chunk',
-      fileType: FileType.JS,
-      content: types.importDeclaration(
-        importSpecifiers,
-        types.stringLiteral(NEXT_FONT_DEPENDENCY.path)
-      ),
-      linkAfter: ['import-lib', 'import-pack', 'import-local'],
-    })
+    if (importSpecifiers.length) {
+      chunks.unshift({
+        type: ChunkType.AST,
+        name: 'google-font-import-chunk',
+        fileType: FileType.JS,
+        content: types.importDeclaration(
+          importSpecifiers,
+          types.stringLiteral(NEXT_FONT_DEPENDENCY.path)
+        ),
+        linkAfter: ['import-lib', 'import-pack', 'import-local'],
+      })
+    }
+
     return structure
   }
 

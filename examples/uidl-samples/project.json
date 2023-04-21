@@ -556,38 +556,6 @@
                                       {
                                           "type": "element",
                                           "content": {
-                                              "elementType": "html-node",
-                                              "attrs": {
-                                                  "html": {
-                                                      "type": "raw",
-                                                      "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>"
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
-                                              "elementType": "lottie-node",
-                                              "style": {
-                                                  "width": "200px",
-                                                  "height": "200px"
-                                              },
-                                              "attrs": {
-                                                  "src": {
-                                                      "type": "static",
-                                                      "content": "https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json"
-                                                  },
-                                                  "autoplay": {
-                                                      "type": "static",
-                                                      "content": "true"
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
                                               "elementType": "component",
                                               "dependency": {
                                                   "type": "local"
@@ -636,7 +604,39 @@
                                               "children": [],
                                               "semanticType": "Footer"
                                           }
-                                      }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                            "elementType": "html-node",
+                                            "attrs": {
+                                                "html": {
+                                                    "type": "raw",
+                                                    "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "element",
+                                        "content": {
+                                            "elementType": "lottie-node",
+                                            "style": {
+                                                "width": "200px",
+                                                "height": "200px"
+                                            },
+                                            "attrs": {
+                                                "src": {
+                                                    "type": "static",
+                                                    "content": "https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json"
+                                                },
+                                                "autoplay": {
+                                                    "type": "static",
+                                                    "content": "true"
+                                                }
+                                            }
+                                        }
+                                    }
                                   ],
                                   "semanticType": "div"
                               }

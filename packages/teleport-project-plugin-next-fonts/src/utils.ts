@@ -44,7 +44,7 @@ export const generateFontDeclerationChunk = (
         types.callExpression(types.identifier(font), [types.objectExpression(objectExpressions)])
       ),
     ]),
-    linkAfter: ['google-font-import-chunk'],
+    linkAfter: ['google-font-import-chunk', 'import-js-chunk'],
   }
 }
 
