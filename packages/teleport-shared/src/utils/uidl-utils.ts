@@ -679,6 +679,17 @@ export const extractContextDependenciesFromNode = (
 ) => {
   switch (node.type) {
     case 'element':
+      if (node.content.attrs) {
+        Object.keys(node.content.attrs).forEach((key) => {
+          const attr = node.content.attrs[key]
+          if (attr.type === 'dynamic' && attr.content.referenceType === 'ctx') {
+            const contextName = attr.content.ctxId
+            if (projectContexts[contextName]) {
+              foundDependencies[contextName] = projectContexts[contextName]
+            }
+          }
+        })
+      }
       if (node.content.children) {
         node.content.children.forEach((child) => {
           extractContextDependenciesFromNode(child, projectContexts, foundDependencies)
