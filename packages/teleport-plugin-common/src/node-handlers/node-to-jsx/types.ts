@@ -7,6 +7,7 @@ export interface JSXGenerationParams {
   stateDefinitions: Record<string, UIDLStateDefinition>
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, UIDLDependency>
+  windowImports: Record<string, types.ExpressionStatement>
 }
 
 export interface JSXGenerationOptions {
