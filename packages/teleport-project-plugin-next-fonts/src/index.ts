@@ -227,6 +227,13 @@ export class ProjectPluginNextFonts implements ProjectPlugin {
   }
 
   async runAfter(structure: ProjectPluginStructure) {
+    structure.dependencies = {
+      ...structure.dependencies,
+      react: '^18.2.0',
+      'react-dom': '^18.2.0',
+      next: '^13.3.0',
+    }
+
     return structure
   }
 }
