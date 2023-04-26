@@ -49,7 +49,11 @@ export interface VCMSItemUIDLElementNode
     UIDLCMSItemNode,
     {
       content: {
-        node: VUIDLElementNode
+        nodes: {
+          success: VUIDLElementNode
+          error?: VUIDLElementNode
+          loading?: VUIDLElementNode
+        }
         resourceId?: string
         statePersistanceName?: string
         valuePath?: string[]
@@ -66,7 +70,12 @@ export interface VCMSListUIDLElementNode
     UIDLCMSListNode,
     {
       content: {
-        node: VUIDLElementNode
+        nodes: {
+          success: VUIDLElementNode
+          error?: VUIDLElementNode
+          loading?: VUIDLElementNode
+          empty?: VUIDLElementNode
+        }
         resourceId?: string
         loopItemsReference?: UIDLAttributeValue
         valuePath?: string[]

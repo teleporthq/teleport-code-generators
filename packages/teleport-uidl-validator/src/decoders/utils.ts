@@ -673,7 +673,11 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
 export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
-    node: lazy(() => elementNodeDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+    }),
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
@@ -694,7 +698,12 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
 export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
-    node: lazy(() => elementNodeDecoder),
+    nodes: object({
+      success: lazy(() => elementNodeDecoder),
+      error: optional(lazy(() => elementNodeDecoder)),
+      loading: optional(lazy(() => elementNodeDecoder)),
+      empty: optional(lazy(() => elementNodeDecoder)),
+    }),
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
     loadingStatePersistanceName: optional(string()),

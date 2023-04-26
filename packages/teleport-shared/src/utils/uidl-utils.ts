@@ -178,11 +178,26 @@ export const traverseNodes = (
       break
 
     case 'cms-list':
-      traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
+      if (node.content.nodes.empty) {
+        traverseNodes(node.content.nodes.empty, fn)
+      }
       break
 
     case 'cms-item':
-      traverseNodes(node.content.node, fn, node)
+      traverseNodes(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseNodes(node.content.nodes.loading, fn)
+      }
       break
 
     case 'repeat':
@@ -231,11 +246,26 @@ export const traverseResources = (
       break
 
     case 'cms-list':
-      traverseResources(node.content.node, fn)
+      traverseResources(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
+      if (node.content.nodes.empty) {
+        traverseResources(node.content.nodes.empty, fn)
+      }
       break
 
     case 'cms-item':
-      traverseResources(node.content.node, fn)
+      traverseResources(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseResources(node.content.nodes.loading, fn)
+      }
       break
 
     case 'repeat':
@@ -289,8 +319,26 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       break
 
     case 'cms-list':
+      traverseElements(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
+      if (node.content.nodes.empty) {
+        traverseElements(node.content.nodes.empty, fn)
+      }
+      break
+
     case 'cms-item':
-      traverseElements(node.content.node, fn)
+      traverseElements(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseElements(node.content.nodes.loading, fn)
+      }
       break
 
     case 'repeat':
@@ -335,11 +383,26 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       break
 
     case 'cms-list':
-      traverseRepeats(node.content.node, fn)
+      traverseRepeats(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
+      }
+      if (node.content.nodes.empty) {
+        traverseRepeats(node.content.nodes.empty, fn)
+      }
       break
 
     case 'cms-item':
-      traverseRepeats(node.content.node, fn)
+      traverseRepeats(node.content.nodes.success, fn)
+      if (node.content.nodes.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+      if (node.content.nodes.loading) {
+        traverseRepeats(node.content.nodes.loading, fn)
+      }
       break
 
     case 'repeat':
@@ -631,8 +694,26 @@ export const removeChildNodes = (
       break
 
     case 'cms-list':
+      removeChildNodes(node.content.nodes.success, criteria)
+      if (node.content.nodes.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
+      }
+      if (node.content.nodes.empty) {
+        removeChildNodes(node.content.nodes.empty, criteria)
+      }
+      break
+
     case 'cms-item':
-      removeChildNodes(node.content.node, criteria)
+      removeChildNodes(node.content.nodes.success, criteria)
+      if (node.content.nodes.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+      if (node.content.nodes.loading) {
+        removeChildNodes(node.content.nodes.loading, criteria)
+      }
       break
 
     case 'conditional':
@@ -698,8 +779,54 @@ export const extractContextDependenciesFromNode = (
       break
 
     case 'cms-list':
+      extractContextDependenciesFromNode(
+        node.content.nodes.success,
+        projectContexts,
+        foundDependencies
+      )
+      if (node.content.nodes.error) {
+        extractContextDependenciesFromNode(
+          node.content.nodes.error,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      if (node.content.nodes.loading) {
+        extractContextDependenciesFromNode(
+          node.content.nodes.loading,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      if (node.content.nodes.empty) {
+        extractContextDependenciesFromNode(
+          node.content.nodes.empty,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      break
+
     case 'cms-item':
-      extractContextDependenciesFromNode(node.content.node, projectContexts, foundDependencies)
+      extractContextDependenciesFromNode(
+        node.content.nodes.success,
+        projectContexts,
+        foundDependencies
+      )
+      if (node.content.nodes.error) {
+        extractContextDependenciesFromNode(
+          node.content.nodes.error,
+          projectContexts,
+          foundDependencies
+        )
+      }
+      if (node.content.nodes.loading) {
+        extractContextDependenciesFromNode(
+          node.content.nodes.loading,
+          projectContexts,
+          foundDependencies
+        )
+      }
       break
 
     case 'repeat':

@@ -305,7 +305,12 @@ export interface UIDLCMSItemNode {
 }
 
 export interface UIDLCMSListNodeContent {
-  node: UIDLElementNode
+  nodes: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+    empty?: UIDLElementNode
+  }
   resourceId?: string
   statePersistanceName?: string
   loadingStatePersistanceName?: string
@@ -317,7 +322,11 @@ export interface UIDLCMSListNodeContent {
 }
 
 export interface UIDLCMSItemNodeContent {
-  node: UIDLElementNode
+  nodes: {
+    success: UIDLElementNode
+    error?: UIDLElementNode
+    loading?: UIDLElementNode
+  }
   resourceId?: string
   statePersistanceName?: string
   loadingStatePersistanceName?: string
