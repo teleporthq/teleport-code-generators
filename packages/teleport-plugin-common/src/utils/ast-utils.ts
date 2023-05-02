@@ -7,16 +7,40 @@ import { UIDLStateDefinition, UIDLPropDefinition, UIDLRawValue } from '@teleport
  */
 export const addClassStringOnJSXTag = (
   jsxNode: types.JSXElement,
-  classString: string,
-  classAttributeName?: string,
-  dynamicValues: Array<types.MemberExpression | types.Identifier> = []
+  classString: string[] = [],
+  dynamicValues: Array<types.MemberExpression | types.Identifier> = [],
+  classAttributeName = 'className'
 ) => {
+  const hasExistingClassNames = jsxNode.openingElement.attributes.find(
+    (attr) => attr.type === 'JSXAttribute' && attr.name.name === classAttributeName
+  ) as types.JSXAttribute
+
+  if (hasExistingClassNames) {
+    const attrValue = hasExistingClassNames.value
+    jsxNode.openingElement.attributes = jsxNode.openingElement.attributes.filter(
+      (attr) => attr.type === 'JSXAttribute' && attr.name.name !== classAttributeName
+    )
+
+    if (attrValue.type === 'StringLiteral') {
+      classString.unshift(attrValue.value)
+    }
+
+    if (
+      attrValue.type === 'JSXExpressionContainer' &&
+      attrValue.expression.type === 'TemplateLiteral'
+    ) {
+      attrValue.expression.expressions.forEach((exp) => {
+        dynamicValues.push(exp as types.MemberExpression)
+      })
+    }
+  }
+
   const classAttribute = getClassAttribute(jsxNode, { createIfNotFound: true, classAttributeName })
 
   if (dynamicValues.length === 0) {
     if (classAttribute.value && classAttribute.value.type === 'StringLiteral') {
       const classArray = classAttribute.value.value.split(' ')
-      classArray.push(classString)
+      classArray.push(...classString)
       classAttribute.value.value = classArray.join(' ').trim()
     } else {
       throw new Error(

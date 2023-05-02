@@ -1,0 +1,33 @@
+{
+  "name": "@teleporthq/teleport-project-plugin-next-fonts",
+  "version": "0.27.2",
+  "description": "A Next-JS plugin for using next/font for google fonts",
+  "author": "teleportHQ",
+  "license": "MIT",
+  "homepage": "https://teleporthq.io/",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teleporthq/teleport-code-generators.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teleporthq/teleport-code-generators/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
+  },
+  "dependencies": {
+    "@babel/types": "^7.5.5",
+    "@teleporthq/teleport-shared": "^0.27.2",
+    "@teleporthq/teleport-types": "^0.27.0",
+    "@types/css": "^0.0.33",
+    "css": "^3.0.0"
+  }
+}

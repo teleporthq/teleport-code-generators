@@ -90,7 +90,7 @@ describe('Component Scoped Styles', () => {
     expect(
       jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
         .quasis[0].value.raw
-    ).toBe('md-8 primary-navbar ')
+    ).toBe('md-8,primary-navbar ')
     expect(
       jsxComponent.meta.nodesLookup.container.openingElement.attributes[0].value.expression
         .expressions[0].property.name

@@ -116,6 +116,18 @@ describe('Generic Project Generator', () => {
             prefix: '/static',
           },
           designLanguage: undefined,
+          fonts: [
+            {
+              attrs: {
+                'data-type': {
+                  content: 'default-font',
+                  type: 'static',
+                },
+              },
+              path: 'https://fonts.googleapis.com/css?family=Roboto',
+              type: 'font',
+            },
+          ],
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
@@ -133,6 +145,18 @@ describe('Generic Project Generator', () => {
             prefix: '/static',
           },
           designLanguage: undefined,
+          fonts: [
+            {
+              attrs: {
+                'data-type': {
+                  content: 'default-font',
+                  type: 'static',
+                },
+              },
+              path: 'https://fonts.googleapis.com/css?family=Roboto',
+              type: 'font',
+            },
+          ],
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},
           skipValidation: true,
@@ -184,6 +208,18 @@ describe('Generic Project Generator', () => {
             mappings: {},
             prefix: '/test/static',
           },
+          fonts: [
+            {
+              attrs: {
+                'data-type': {
+                  content: 'default-font',
+                  type: 'static',
+                },
+              },
+              path: 'https://fonts.googleapis.com/css?family=Roboto',
+              type: 'font',
+            },
+          ],
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},

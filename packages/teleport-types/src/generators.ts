@@ -8,6 +8,7 @@ import {
   UIDLDesignTokens,
   UIDLRootComponent,
   UIDLRouteDefinitions,
+  UIDLFontAsset,
 } from './uidl'
 
 export enum FileType {
@@ -114,6 +115,7 @@ export interface GeneratorOptions {
     identifier?: string | null
     mappings?: Record<string, string>
   }
+  fonts?: UIDLFontAsset[]
   mapping?: Mapping
   skipValidation?: boolean
   isRootComponent?: boolean

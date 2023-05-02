@@ -7,7 +7,6 @@ import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import nextImagePlugin from '@teleporthq/teleport-plugin-jsx-next-image'
-
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'

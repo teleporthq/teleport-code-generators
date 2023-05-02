@@ -15,6 +15,7 @@ import {
   GeneratorFactoryParams,
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
+  UIDLFontAsset,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -242,6 +243,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       skipValidation: true,
       designLanguage: uidl.root?.designLanguage,
+      fonts: uidl.globals.assets.filter((asset) => asset.type === 'font') as UIDLFontAsset[],
     }
 
     // Handling project style sheet
@@ -252,6 +254,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
         isRootComponent: true,
         assets: options.assets,
+        fonts: options.fonts,
       })
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,

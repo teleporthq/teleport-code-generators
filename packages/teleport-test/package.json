@@ -37,6 +37,7 @@
     "@teleporthq/teleport-project-plugin-react-jss": "^0.27.2",
     "@teleporthq/teleport-project-plugin-styled-components": "^0.27.2",
     "@teleporthq/teleport-project-plugin-tailwind": "^0.27.2",
+    "@teleporthq/teleport-project-plugin-next-fonts": "^0.27.2",
     "@teleporthq/teleport-publisher-codesandbox": "^0.27.0",
     "@teleporthq/teleport-publisher-disk": "^0.27.0",
     "@teleporthq/teleport-types": "^0.27.0"

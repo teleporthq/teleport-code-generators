@@ -1,4 +1,3 @@
-// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -15,6 +14,7 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
+import { ProjectPluginNextFonts } from '@teleporthq/teleport-project-plugin-next-fonts'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
@@ -64,8 +64,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
@@ -89,6 +89,20 @@ const run = async () => {
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
+    })
+
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [new ProjectPluginNextFonts()],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: `teleport-project-next-fonts-package`,
+        },
+      })
+      console.info(`teleport-project-next-fonts-package`, '-', result.payload)
+      return `teleport-project-next-fonts-package`
     })
 
     /* Frameworks using Css-Modules */

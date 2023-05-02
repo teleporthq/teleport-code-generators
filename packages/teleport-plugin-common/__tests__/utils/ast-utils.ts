@@ -49,7 +49,7 @@ describe('addClassStringOnJSXTag', () => {
   it('adds a class on an element with no classes', () => {
     const tag = createJSXTag('button')
 
-    addClassStringOnJSXTag(tag, 'primary')
+    addClassStringOnJSXTag(tag, ['primary'])
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
     const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
@@ -61,7 +61,7 @@ describe('addClassStringOnJSXTag', () => {
     const tag = createJSXTag('button')
     addAttributeToJSXTag(tag, 'className', 'button')
 
-    addClassStringOnJSXTag(tag, 'primary')
+    addClassStringOnJSXTag(tag, ['primary'])
     expect(tag.openingElement.attributes[0].type).toBe('JSXAttribute')
 
     const classAttr = tag.openingElement.attributes[0] as types.JSXAttribute
