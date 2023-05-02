@@ -1,15 +1,6 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import {
-  ProjectPluginStructure,
-  ProjectPlugin,
-  UIDLExternalDependency,
-  UIDLElementNode,
-} from '@teleporthq/teleport-types'
-
-type SUPPORTED_PROJECT_TYPES =
-  | 'teleport-project-html'
-  | 'teleport-project-react'
-  | 'teleport-project-next'
+import { ProjectPluginStructure, ProjectPlugin, UIDLElementNode } from '@teleporthq/teleport-types'
+import { SUPPORTED_PROJECT_TYPES, JS_EXECUTION_DEPENDENCIES } from './utils'
 
 const NODE_MAPPER: Record<SUPPORTED_PROJECT_TYPES, Promise<(content: unknown) => string>> = {
   'teleport-project-html': import('hast-util-to-html').then((mod) => mod.toHtml),
@@ -17,60 +8,37 @@ const NODE_MAPPER: Record<SUPPORTED_PROJECT_TYPES, Promise<(content: unknown) =>
   'teleport-project-next': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
 }
 
-const JS_EXECUTION_DEPENDENCIES: Record<
-  SUPPORTED_PROJECT_TYPES,
-  Record<string, UIDLExternalDependency>
-> = {
-  'teleport-project-react': {
-    Script: {
-      type: 'package',
-      path: 'dangerous-html',
-      version: '0.1.13',
-      meta: {
-        importAlias: 'dangerous-html/react',
-      },
-    },
-  },
-  'teleport-project-next': {
-    Script: {
-      type: 'library',
-      path: 'next',
-      version: '0.0.0',
-      meta: {
-        importAlias: 'next/script',
-      },
-    },
-  },
-  'teleport-project-html': {
-    DangerousHTML: {
-      type: 'package',
-      path: 'dangerous-html',
-      version: '0.1.13',
-      meta: {
-        importJustPath: true,
-        importAlias: 'https://unpkg.com/dangerous-html/dist/default/lib.umd.js',
-      },
-    },
-  },
-}
-
 export class ProjectPluginParseEmbed implements ProjectPlugin {
+  fromHtml: (value: string, opts: { fragment: boolean }) => unknown
+  hastToJsxOrHtml: (content: unknown) => string
+
+  async loadFromHTML(): Promise<(value: string, opts: { fragment: boolean }) => unknown> {
+    if (!this.fromHtml) {
+      this.fromHtml = (await import('hast-util-from-html')).fromHtml
+    }
+    return this.fromHtml
+  }
+
+  async loadNodeMapper(id: SUPPORTED_PROJECT_TYPES): Promise<(content: unknown) => string> {
+    if (!this.hastToJsxOrHtml) {
+      this.hastToJsxOrHtml = await NODE_MAPPER[id]
+    }
+    return this.hastToJsxOrHtml
+  }
+
   async traverseComponentUIDL(
     node: UIDLElementNode,
     id: SUPPORTED_PROJECT_TYPES
   ): Promise<boolean> {
-    const fromHtml = (await import('hast-util-from-html')).fromHtml
-    const hastToJsxOrHtml = await NODE_MAPPER[id]
-
     return new Promise((resolve, reject) => {
       try {
         let shouldAddJSDependency = false
         UIDLUtils.traverseElements(node, async (element) => {
           if (element.elementType === 'html-node' && element.attrs?.html && NODE_MAPPER[id]) {
-            const hastNodes = fromHtml(element.attrs.html.content as string, {
+            const hastNodes = (await this.loadFromHTML())(element.attrs.html.content as string, {
               fragment: true,
             })
-            const content = hastToJsxOrHtml(hastNodes)
+            const content = (await this.loadNodeMapper(id))(hastNodes)
 
             element.elementType = 'container'
             element.attrs = {}

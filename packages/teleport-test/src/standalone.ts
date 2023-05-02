@@ -76,10 +76,24 @@ const run = async () => {
       result = await packProject(projectUIDL as unknown as ProjectUIDL, {
         ...packerOptions,
         projectType: ProjectType.HTML,
-        plugins: [new ProjectPluginParseEmbed()],
       })
       console.info(ProjectType.HTML, '-', result.payload)
       return ProjectType.HTML
+    })
+
+    /* Plain Html Generator with embed parser */
+    await log(async () => {
+      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.HTML,
+        plugins: [new ProjectPluginParseEmbed()],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: `teleport-project-html-embeds`,
+        },
+      })
+      console.info(ProjectType.HTML, '-', result.payload)
+      return `${ProjectType.HTML} - Parse Embeds`
     })
 
     /* Styled JSX */
