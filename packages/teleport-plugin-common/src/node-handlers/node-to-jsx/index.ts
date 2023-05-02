@@ -8,6 +8,7 @@ import {
   UIDLSlotNode,
   UIDLNode,
   UIDLCMSListNode,
+  UIDLCMSItemNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
@@ -132,15 +133,16 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 
   if (!selfClosing && children) {
     children.forEach((child) => {
-      const childTag = generateNode(child, params, options)
-
-      if (typeof childTag === 'string') {
-        addChildJSXText(elementTag, childTag)
-      } else if (childTag.type === 'JSXExpressionContainer' || childTag.type === 'JSXElement') {
-        addChildJSXTag(elementTag, childTag)
-      } else {
-        addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
-      }
+      const childTags = generateNode(child, params, options)
+      childTags.forEach((childTag) => {
+        if (typeof childTag === 'string') {
+          addChildJSXText(elementTag, childTag)
+        } else if (childTag.type === 'JSXExpressionContainer' || childTag.type === 'JSXElement') {
+          addChildJSXTag(elementTag, childTag)
+        } else {
+          addChildJSXTag(elementTag, types.jsxExpressionContainer(childTag))
+        }
+      })
     })
   }
 
@@ -150,26 +152,28 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 
 export default generateElementNode
 
-const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
+const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, options) => {
   switch (node.type) {
     case 'raw':
-      return options.domHTMLInjection
-        ? options.domHTMLInjection(node.content.toString())
-        : node.content.toString()
+      return [
+        options.domHTMLInjection
+          ? options.domHTMLInjection(node.content.toString())
+          : node.content.toString(),
+      ]
     case 'static':
-      return StringUtils.encode(node.content.toString())
+      return [StringUtils.encode(node.content.toString())]
 
     case 'dynamic':
-      return createDynamicValueExpression(node, options, undefined, params)
+      return [createDynamicValueExpression(node, options, undefined, params)]
 
     case 'cms-item':
-      return generateElementNode(node.content.node, params, options)
+      return generateCMSItemNode(node, params, options)
 
     case 'cms-list':
       return generateCMSListNode(node, params, options)
 
     case 'element':
-      return generateElementNode(node, params, options)
+      return [generateElementNode(node, params, options)]
 
     case 'repeat':
       return generateRepeatNode(node, params, options)
@@ -179,7 +183,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
 
     case 'slot':
       if (options.slotHandling === 'native') {
-        return generateNativeSlotNode(node, params, options)
+        return [generateNativeSlotNode(node, params, options)]
       } else {
         return generatePropsSlotNode(node, params, options)
       }
@@ -195,13 +199,78 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, optio
   }
 }
 
-const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXExpressionContainer> = (
-  node,
-  params,
-  options
-) => {
-  const { node: listContent } = node.content
-  const contentAST = generateNode(listContent, params, options) as types.JSXElement
+const generateCMSItemNode: NodeToJSX<
+  UIDLCMSItemNode,
+  Array<types.JSXElement | types.LogicalExpression>
+> = (node, params, options) => {
+  const { success, error, loading } = node.content.nodes
+  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
+
+  const errorNodeAST =
+    error && errorStatePersistanceName
+      ? types.logicalExpression(
+          '&&',
+          types.identifier(errorStatePersistanceName),
+          generateElementNode(error, params, options) as types.JSXElement
+        )
+      : null
+
+  const loadingNodeAST =
+    loading && loadingStatePersistanceName
+      ? types.logicalExpression(
+          '&&',
+          types.identifier(loadingStatePersistanceName),
+          generateElementNode(loading, params, options) as types.JSXElement
+        )
+      : null
+
+  const successElementAST = generateElementNode(success, params, options)
+  const successAST =
+    !loadingStatePersistanceName || !errorStatePersistanceName
+      ? successElementAST
+      : types.logicalExpression(
+          '&&',
+          types.logicalExpression(
+            '&&',
+            types.unaryExpression('!', types.identifier(loadingStatePersistanceName)),
+            types.unaryExpression('!', types.identifier(errorStatePersistanceName))
+          ),
+          successElementAST
+        )
+
+  return [...(loading ? [loadingNodeAST] : []), ...(error ? [errorNodeAST] : []), successAST]
+}
+
+const generateCMSListNode: NodeToJSX<
+  UIDLCMSListNode,
+  Array<types.JSXExpressionContainer | types.LogicalExpression>
+> = (node, params, options) => {
+  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
+  const { success, empty, error, loading } = node.content.nodes
+
+  const listNodeAST = (generateNode(success, params, options) as types.JSXElement[])[0]
+  const source = getRepeatSourceIdentifier(node.content.loopItemsReference, options)
+
+  const emptyNodeAST = generateNode(empty, params, options)[0] as types.JSXElement
+  const emptyNodeExpressionAST = empty
+    ? types.logicalExpression(
+        '&&',
+        types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
+        emptyNodeAST
+      )
+    : null
+
+  const errorNodeAST = generateNode(error, params, options)[0] as types.JSXElement
+  const errorNodeExpressionAST =
+    error && errorStatePersistanceName
+      ? types.logicalExpression('&&', types.identifier(errorStatePersistanceName), errorNodeAST)
+      : null
+
+  const loadingNodeAST = generateNode(empty, params, options)[0] as types.JSXElement
+  const loadingNodeExpressionAST =
+    loading && loadingStatePersistanceName
+      ? types.logicalExpression('&&', types.identifier(loadingStatePersistanceName), loadingNodeAST)
+      : null
 
   const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey({
     useIndex: true,
@@ -209,38 +278,46 @@ const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXExpressionContain
   })
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
-  addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
+
+  addDynamicAttributeToJSXTag(listNodeAST, 'key', iteratorKey, localIteratorPrefix)
   addDynamicAttributeToJSXTag(
-    contentAST,
+    listNodeAST,
     'value',
     ['item', ...(node.content.itemValuePath || [])].join('.'),
     localIteratorPrefix
   )
 
-  const source = getRepeatSourceIdentifier(node.content.loopItemsReference, options)
-
   const arrowFunctionArguments = [types.identifier(iteratorName)]
   arrowFunctionArguments.push(types.identifier('index'))
 
-  return types.jsxExpressionContainer(
-    types.callExpression(types.memberExpression(source, types.identifier('map')), [
-      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
-    ])
-  )
+  return [
+    ...(emptyNodeExpressionAST ? [emptyNodeExpressionAST] : []),
+    ...(errorNodeExpressionAST ? [errorNodeExpressionAST] : []),
+    ...(loadingNodeExpressionAST ? [loadingNodeExpressionAST] : []),
+    types.logicalExpression(
+      '&&',
+      types.memberExpression(source, types.identifier('length')),
+      types.callExpression(types.memberExpression(source, types.identifier('map')), [
+        types.arrowFunctionExpression(arrowFunctionArguments, listNodeAST),
+      ])
+    ),
+  ]
 }
 
-const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer> = (
+const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer[]> = (
   node,
   params,
   options
 ) => {
   const { node: repeatContent, dataSource, meta } = node.content
-  const contentAST = generateNode(repeatContent, params, options) as types.JSXElement
+  const contentASTs = generateNode(repeatContent, params, options) as types.JSXElement[]
 
   const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey(meta)
 
   const localIteratorPrefix = options.dynamicReferencePrefixMap.local
-  addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
+  contentASTs.forEach((contentAST) => {
+    addDynamicAttributeToJSXTag(contentAST, 'key', iteratorKey, localIteratorPrefix)
+  })
 
   const source = getRepeatSourceIdentifier(dataSource, options)
 
@@ -249,14 +326,16 @@ const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer
     arrowFunctionArguments.push(types.identifier('index'))
   }
 
-  return types.jsxExpressionContainer(
-    types.callExpression(types.memberExpression(source, types.identifier('map')), [
-      types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
-    ])
+  return contentASTs.map((contentAST) =>
+    types.jsxExpressionContainer(
+      types.callExpression(types.memberExpression(source, types.identifier('map')), [
+        types.arrowFunctionExpression(arrowFunctionArguments, contentAST),
+      ])
+    )
   )
 }
 
-const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpression> = (
+const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpression[]> = (
   node,
   params,
   options
@@ -264,17 +343,19 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   const { reference, value } = node.content
   const conditionIdentifier = createConditionIdentifier(reference, params, options)
 
-  const subTree = generateNode(node.content.node, params, options)
+  const subTrees = generateNode(node.content.node, params, options)
 
   const condition: UIDLConditionalExpression =
     value !== undefined && value !== null
       ? { conditions: [{ operand: value, operation: '===' }] }
       : node.content.condition
 
-  return createConditionalJSXExpression(subTree, condition, conditionIdentifier)
+  return subTrees.map((subTree) =>
+    createConditionalJSXExpression(subTree, condition, conditionIdentifier)
+  )
 }
 
-const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContainer> = (
+const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContainer[]> = (
   node: UIDLSlotNode,
   params,
   options
@@ -292,20 +373,23 @@ const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContaine
   const childrenExpression = createDynamicValueExpression(childrenProp, options)
 
   if (node.content.fallback) {
-    const fallbackContent = generateNode(node.content.fallback, params, options)
+    const fallbackContents = generateNode(node.content.fallback, params, options)
     // only static dynamic or element are allowed here
-    const fallbackNode =
-      typeof fallbackContent === 'string'
-        ? types.stringLiteral(fallbackContent)
-        : (fallbackContent as types.JSXElement | types.MemberExpression)
 
-    // props.children with fallback
-    return types.jsxExpressionContainer(
-      types.logicalExpression('||', childrenExpression, fallbackNode)
-    )
+    return fallbackContents.map((fallbackContent) => {
+      const fallbackNode =
+        typeof fallbackContent === 'string'
+          ? types.stringLiteral(fallbackContent)
+          : (fallbackContent as types.JSXElement | types.MemberExpression)
+
+      // props.children with fallback
+      return types.jsxExpressionContainer(
+        types.logicalExpression('||', childrenExpression, fallbackNode)
+      )
+    })
   }
 
-  return types.jsxExpressionContainer(childrenExpression)
+  return [types.jsxExpressionContainer(childrenExpression)]
 }
 
 const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
@@ -320,14 +404,17 @@ const generateNativeSlotNode: NodeToJSX<UIDLSlotNode, types.JSXElement> = (
   }
 
   if (node.content.fallback) {
-    const fallbackContent = generateNode(node.content.fallback, params, options)
-    if (typeof fallbackContent === 'string') {
-      addChildJSXText(slotNode, fallbackContent)
-    } else if (fallbackContent.type === 'MemberExpression') {
-      addChildJSXTag(slotNode, types.jsxExpressionContainer(fallbackContent))
-    } else {
-      addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
-    }
+    const fallbackContents = generateNode(node.content.fallback, params, options)
+
+    fallbackContents.forEach((fallbackContent) => {
+      if (typeof fallbackContent === 'string') {
+        addChildJSXText(slotNode, fallbackContent)
+      } else if (fallbackContent.type === 'MemberExpression') {
+        addChildJSXTag(slotNode, types.jsxExpressionContainer(fallbackContent))
+      } else {
+        addChildJSXTag(slotNode, fallbackContent as types.JSXElement)
+      }
+    })
   }
 
   return slotNode
