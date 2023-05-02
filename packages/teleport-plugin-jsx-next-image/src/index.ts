@@ -7,20 +7,11 @@ interface NextImagePluginConfig {
   localAssetFolder: string
 }
 
-/*
-  At the moment, the plugin is very restricted wo work only in the following cases.
-  - When both the units specified for the img match. 
-    Eg - both height and width to have same 'px' identifier
-
--   When the `img` tag has only width and height specified.
-    https://github.com/vercel/next.js/discussions/18312
-*/
-
 const CSS_REGEX = /^([+-]?(?:\d+|\d*\.\d+))([a-z]*|%)$/
 const NEXT_HEAD_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'next/image',
-  version: '10.2.0',
+  version: '13.3.0',
 }
 
 export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig> = (config) => {
@@ -36,7 +27,7 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
     UIDLUtils.traverseElements(uidl.node, (element) => {
       const { elementType, attrs = {}, style = {}, key } = element
 
-      if (key && elementType === 'img' && Object.keys(style).length === 2) {
+      if (key && elementType === 'img') {
         const imageSource = attrs?.src?.content.toString()
         if (!imageSource?.startsWith(`/${localAssetFolder}`)) {
           return
@@ -50,7 +41,7 @@ export const createNextImagePlugin: ComponentPluginFactory<NextImagePluginConfig
         const heightUnit = String(height.content).match(CSS_REGEX)?.[2]
         const widthUnit = String(width.content).match(CSS_REGEX)?.[2]
 
-        if (heightUnit?.length === 0 || heightUnit !== widthUnit) {
+        if (heightUnit === 'px' && heightUnit !== widthUnit) {
           return
         }
 
