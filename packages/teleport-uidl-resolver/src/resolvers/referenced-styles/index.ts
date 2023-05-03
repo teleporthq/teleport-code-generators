@@ -53,6 +53,7 @@ const sortByStateAndCondition = (
   if (Object.keys(styles).length === 0) {
     return {}
   }
+
   const allMediaRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const allElementStateRelatedStyles: Record<string, UIDLElementNodeInlineReferencedStyle> = {}
   const globalReferencedStyles: Record<string, UIDLElementNodeProjectReferencedStyle> = {}
@@ -69,7 +70,7 @@ const sortByStateAndCondition = (
               ...styleRef,
               content: {
                 ...styleRef.content,
-                styles: prefixAssetURLs(styleRef.content.styles, options?.assetsPrefix || ''),
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
               },
             }
           }
@@ -79,7 +80,7 @@ const sortByStateAndCondition = (
               ...styleRef,
               content: {
                 ...styleRef.content,
-                styles: prefixAssetURLs(styleRef.content.styles, options?.assetsPrefix || ''),
+                styles: prefixAssetURLs(styleRef.content.styles, options?.assets),
               },
             }
           }

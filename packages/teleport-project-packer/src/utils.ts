@@ -25,7 +25,7 @@ export const injectAssetsToProject = async (
   const { assets, path = [] } = assetsData
 
   assets.forEach((asset: GeneratedFile) => {
-    const filePath = [...assetsRootPath, ...path]
+    const filePath = [...assetsRootPath, ...path, ...(asset?.path || [])]
     project = injectFileInGeneratedFolder(project, asset, filePath)
   })
 

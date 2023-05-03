@@ -191,7 +191,7 @@ export const appendAssetsAST = (
   assets.forEach((asset) => {
     let assetPath
     if ('path' in asset) {
-      assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+      assetPath = UIDLUtils.prefixAssetsPath(asset.path, options?.assets)
     }
 
     // link canonical for SEO

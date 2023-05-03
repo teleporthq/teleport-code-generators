@@ -1,4 +1,4 @@
-import { UIDLUtils, StringUtils, Constants } from '@teleporthq/teleport-shared'
+import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLEventDefinitions,
   UIDLElement,
@@ -49,13 +49,13 @@ export const mergeMappings = (
 }
 
 export const resolveMetaTags = (uidl: ComponentUIDL, options: GeneratorOptions) => {
-  if (!uidl.seo || !uidl.seo.metaTags || !options.assetsPrefix) {
+  if (!uidl.seo || !uidl.seo.metaTags || !options.assets) {
     return
   }
 
   uidl.seo.metaTags.forEach((tag) => {
     Object.keys(tag).forEach((key) => {
-      tag[key] = UIDLUtils.prefixAssetsPath(options.assetsPrefix, tag[key] as string)
+      tag[key] = UIDLUtils.prefixAssetsPath(tag[key] as string, options.assets)
     })
   })
 }
@@ -84,7 +84,7 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
-  const { mapping, localDependenciesPrefix, assetsPrefix } = options
+  const { mapping, localDependenciesPrefix } = options
   const {
     events: eventsMapping,
     elements: elementsMapping,
@@ -121,8 +121,8 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   }
 
   // Resolve assets prefix inside style (ex: background-image)
-  if (originalElement.style && assetsPrefix) {
-    originalElement.style = prefixAssetURLs(originalElement.style, assetsPrefix)
+  if (originalElement.style && options?.assets) {
+    originalElement.style = prefixAssetURLs(originalElement.style, options.assets)
   }
 
   // Map events separately
@@ -131,13 +131,13 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
   }
 
   // Prefix the attributes which may point to local assets
-  if (originalElement.attrs && assetsPrefix) {
+  if (originalElement.attrs && options?.assets) {
     Object.keys(originalElement.attrs).forEach((attrKey) => {
       const attrValue = originalElement.attrs[attrKey]
       if (attrValue.type === 'static' && typeof attrValue.content === 'string') {
         originalElement.attrs[attrKey].content = UIDLUtils.prefixAssetsPath(
-          assetsPrefix,
-          attrValue.content
+          attrValue.content,
+          options.assets
         )
       }
     })
@@ -344,14 +344,14 @@ const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
  * @param style the style object on the current node
- * @param assetsPrefix a string representing the asset prefix
+ * @param assets comes from project generator options which contains the prefix, mappings and identifier
  */
 
 export const prefixAssetURLs = <
   T extends UIDLStaticValue | UIDLDynamicReference | UIDLStyleSetTokenReference
 >(
   style: Record<string, T>,
-  assetsPrefix: string
+  assets: GeneratorOptions['assets']
 ): Record<string, T> => {
   // iterate through all the style keys
   return Object.keys(style).reduce((acc: Record<string, T>, styleKey: string) => {
@@ -368,19 +368,24 @@ export const prefixAssetURLs = <
           return acc
         }
 
-        if (
-          typeof staticContent === 'string' &&
-          STYLE_PROPERTIES_WITH_URL.includes(styleKey) &&
-          staticContent.includes(Constants.ASSETS_IDENTIFIER)
-        ) {
-          // split the string at the beginning of the ASSETS_IDENTIFIER string
-          const startIndex = staticContent.indexOf(Constants.ASSETS_IDENTIFIER) - 1 // account for the leading '/'
-          const newStyleValue =
-            staticContent.slice(0, startIndex) +
-            UIDLUtils.prefixAssetsPath(
-              assetsPrefix,
-              staticContent.slice(startIndex, staticContent.length)
-            )
+        if (typeof staticContent === 'string' && STYLE_PROPERTIES_WITH_URL.includes(styleKey)) {
+          const asset =
+            staticContent.indexOf('url(') === -1
+              ? staticContent
+              : staticContent.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+
+          /*
+            background image such as gradient shouldn't be urls
+            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+            but we don't compute and generate a url)
+          */
+          if (!asset.startsWith('/')) {
+            acc[styleKey] = styleValue
+            return acc
+          }
+
+          const url = UIDLUtils.prefixAssetsPath(asset, assets)
+          const newStyleValue = `url("${url}")`
           acc[styleKey] = {
             type: 'static',
             content: newStyleValue,
@@ -392,8 +397,6 @@ export const prefixAssetURLs = <
       default:
         throw new Error(`Invalid styleValue type '${styleValue}'`)
     }
-
-    return acc
   }, {})
 }
 
@@ -500,6 +503,40 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
     Object.keys(uidl.stateDefinitions).forEach((state) => {
       if (illegalPropNames.includes(state)) {
         throw new Error(`Illegal state key '${state}'`)
+      }
+    })
+  }
+}
+
+export const checkForDefaultPropsContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.propDefinitions) {
+    Object.keys(uidl.propDefinitions).forEach((prop) => {
+      const propDefaultValue = uidl.propDefinitions[prop].defaultValue
+      if (typeof propDefaultValue === 'string' && assets) {
+        uidl.propDefinitions[prop].defaultValue = UIDLUtils.prefixAssetsPath(
+          propDefaultValue,
+          assets
+        )
+      }
+    })
+  }
+}
+
+export const checkForDefaultStateValueContainingAssets = (
+  uidl: ComponentUIDL,
+  assets: GeneratorOptions['assets']
+) => {
+  if (uidl.stateDefinitions) {
+    Object.keys(uidl.stateDefinitions).forEach((state) => {
+      const stateDefaultValue = uidl.stateDefinitions[state].defaultValue
+      if (typeof stateDefaultValue === 'string' && assets) {
+        uidl.stateDefinitions[state].defaultValue = UIDLUtils.prefixAssetsPath(
+          stateDefaultValue,
+          assets
+        )
       }
     })
   }
