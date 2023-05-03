@@ -1,4 +1,3 @@
-// @ts-ignore
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -64,8 +63,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result

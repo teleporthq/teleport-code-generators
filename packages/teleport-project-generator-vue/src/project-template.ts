@@ -43,6 +43,9 @@ export default {
       content: String.raw`const path = require('path')
 
 module.exports = {
+  devServer: {
+    allowedHosts: "all",
+  },
   css: {
     loaderOptions: {
       css: {
