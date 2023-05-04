@@ -21,6 +21,14 @@ export const ReactMapping: Mapping = {
         version: '2.2.1',
       },
     },
+    'markdown-node': {
+      elementType: 'Markdown',
+      dependency: {
+        type: 'package',
+        path: 'markdown-to-jsx',
+        version: '7.2.0',
+      },
+    },
     'html-node': {
       elementType: 'DangerousHTML',
       dependency: {
