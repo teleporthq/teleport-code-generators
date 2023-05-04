@@ -126,7 +126,7 @@ export const createEntryFile = async (
   // If no function is provided in the strategy, the createHTMLEntryFileChunks is used by default
   const chunkGenerationFunction =
     strategy.entry?.chunkGenerationFunction || createHTMLEntryFileChunks
-  const { assetsPrefix } = entryFileOptions
+  const { assets } = entryFileOptions
   const options = { ...strategy.entry?.options, ...entryFileOptions }
 
   const appRootOverride = (options && options.appRootOverride) || null
@@ -135,7 +135,7 @@ export const createEntryFile = async (
   const customHeadContent = (options && options.customHeadContent) || null
   const customTags = (options && options.customTags) || []
   const chunks = chunkGenerationFunction(uidl, {
-    assetsPrefix,
+    assets,
     appRootOverride,
     customHeadContent,
     customTags,
@@ -150,7 +150,7 @@ const createHTMLEntryFileChunks = (
   uidl: ProjectUIDL,
   options: EntryFileOptions
 ): Record<string, ChunkDefinition[]> => {
-  const { assetsPrefix = '', appRootOverride, customHeadContent, customTags } = options
+  const { appRootOverride, customHeadContent, customTags } = options
   const { settings, meta, assets, manifest, customCode } = uidl.globals
 
   const htmlNode = HASTBuilders.createHTMLNode('html')
@@ -210,14 +210,18 @@ const createHTMLEntryFileChunks = (
   if (manifest) {
     const linkTag = HASTBuilders.createHTMLNode('link')
     HASTUtils.addAttributeToNode(linkTag, 'rel', 'manifest')
-    HASTUtils.addAttributeToNode(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
+    HASTUtils.addAttributeToNode(
+      linkTag,
+      'href',
+      UIDLUtils.prefixAssetsPath('/manifest.json', options.assets)
+    )
     HASTUtils.addChildNode(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
     const metaTag = HASTBuilders.createHTMLNode('meta')
     Object.keys(metaItem).forEach((key) => {
-      const prefixedURL = UIDLUtils.prefixAssetsPath(assetsPrefix, metaItem[key])
+      const prefixedURL = UIDLUtils.prefixAssetsPath(metaItem[key], options.assets)
       HASTUtils.addAttributeToNode(metaTag, key, prefixedURL)
     })
     HASTUtils.addChildNode(headNode, metaTag)
@@ -226,7 +230,7 @@ const createHTMLEntryFileChunks = (
   assets.forEach((asset) => {
     let assetPath
     if ('path' in asset) {
-      assetPath = UIDLUtils.prefixAssetsPath(options.assetsPrefix, asset.path)
+      assetPath = UIDLUtils.prefixAssetsPath(asset.path, options.assets)
     }
 
     // link canonical for SEO
@@ -381,7 +385,10 @@ export const createGitIgnoreFile = () => {
 }
 
 // Creates a manifest json file with the UIDL having priority over the default values
-export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string): GeneratedFile => {
+export const createManifestJSONFile = (
+  uidl: ProjectUIDL,
+  assets: GeneratorOptions['assets']
+): GeneratedFile => {
   const manifest = uidl.globals.manifest
   const projectName = uidl.name
   const defaultManifest: WebManifest = {
@@ -392,7 +399,7 @@ export const createManifestJSONFile = (uidl: ProjectUIDL, assetsPrefix?: string)
   }
 
   const icons = manifest.icons.map((icon) => {
-    const src = UIDLUtils.prefixAssetsPath(assetsPrefix || '', icon.src)
+    const src = UIDLUtils.prefixAssetsPath(icon.src, assets)
     return { ...icon, src }
   })
 

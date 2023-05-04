@@ -1,4 +1,4 @@
-/* 
+/*
     Styleset-Definitions have conditions which helps in applying media styles
     and pseudo styles on them. These need to be sorted as we do for referenced-Styles
 */
@@ -22,7 +22,7 @@ export const resolveStyleSetDefinitions = (
     if (conditions.length === 0) {
       acc[styleId] = {
         ...styleRef,
-        content: prefixAssetURLs(styleRef.content, options?.assetsPrefix || ''),
+        content: prefixAssetURLs(styleRef.content, options?.assets),
       }
       return acc
     }
@@ -32,13 +32,13 @@ export const resolveStyleSetDefinitions = (
         if (item.type === 'screen-size') {
           media.push({
             ...item,
-            content: prefixAssetURLs(item.content, options?.assetsPrefix || ''),
+            content: prefixAssetURLs(item.content, options?.assets),
           })
         }
         if (item.type === 'element-state') {
           state.push({
             ...item,
-            content: prefixAssetURLs(item.content, options?.assetsPrefix || ''),
+            content: prefixAssetURLs(item.content, options?.assets),
           })
         }
         return [media, state]

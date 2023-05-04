@@ -13,6 +13,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import * as types from '@babel/types'
 
 import {
   DEFAULT_COMPONENT_CHUNK_NAME,
@@ -49,6 +50,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     // This will help us inject style or classes at a later stage in the pipeline, upon traversing the UIDL
     // The structure will be populated as the AST is being created
     const nodesLookup = {}
+    const windowImports: Record<string, types.ExpressionStatement> = {}
     const jsxParams = {
       propDefinitions,
       stateDefinitions,
@@ -56,6 +58,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       dependencies,
       projectContexts,
       projectResources,
+      windowImports,
     }
 
     const jsxOptions: JSXGenerationOptions = {
@@ -77,8 +80,13 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
     const pureComponent = ASTUtils.createPureComponent(
       componentName,
       stateDefinitions,
-      jsxTagStructure
+      jsxTagStructure,
+      windowImports
     )
+
+    if (Object.keys(windowImports).length) {
+      dependencies.useEffect = Constants.USE_STATE_DEPENDENCY
+    }
 
     structure.chunks.push({
       type: ChunkType.AST,

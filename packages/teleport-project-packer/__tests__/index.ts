@@ -55,7 +55,7 @@ describe('teleport generic project packer', () => {
 
   it('should fail to pack if no generator function is provided', async () => {
     const packer = createProjectPacker()
-    const uidl = (projectJson as unknown) as ProjectUIDL
+    const uidl = projectJson as unknown as ProjectUIDL
     const options: PackerFactoryParams = {
       template: templateDefinition,
       remoteTemplateDefinition: { provider: 'github', username: 'test', repo: 'test' },
@@ -70,7 +70,7 @@ describe('teleport generic project packer', () => {
       template: templateDefinition,
     })
 
-    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL)
+    const { success, payload } = await packer.pack(projectJson as unknown as ProjectUIDL)
     expect(success).toBeTruthy()
 
     expect(payload)
@@ -85,7 +85,7 @@ describe('teleport generic project packer', () => {
       assets: assetsData,
     })
 
-    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL)
+    const { success, payload } = await packer.pack(projectJson as unknown as ProjectUIDL)
     expect(success).toBeTruthy()
 
     const { project } = payload
@@ -111,7 +111,7 @@ describe('teleport generic project packer', () => {
       assets: assetsData,
     })
 
-    const { success, payload } = await packer.pack((projectJson as unknown) as ProjectUIDL, {
+    const { success, payload } = await packer.pack(projectJson as unknown as ProjectUIDL, {
       template: templateDefinition,
     })
     expect(success).toBeTruthy()
@@ -171,6 +171,7 @@ const dummyGeneratorFunction = async (
 }
 
 const dummyGenerator = {
+  setAssets: jest.fn(),
   addMapping: jest.fn(),
   getAssetsPath: jest.fn(() => ['static']),
   generateProject: dummyGeneratorFunction,

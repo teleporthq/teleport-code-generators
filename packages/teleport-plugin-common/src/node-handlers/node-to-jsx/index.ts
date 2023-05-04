@@ -26,6 +26,7 @@ import {
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
   addRawAttributeToJSXTag,
+  generateDynamicWindowImport,
   addDynamicExpressionAttributeToJSXTag,
   addDynamicCtxAttributeToJSXTag,
 } from '../../utils/ast-utils'
@@ -65,6 +66,11 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
         // Make a copy to avoid reference leaking
         dependencies[tagName] = { ...dependency }
       }
+    }
+
+    if (dependency?.meta && `needsWindowObject` in dependency.meta) {
+      const dynamicWindowImport = generateDynamicWindowImport('useEffect', dependency.path)
+      params.windowImports[dependency.path] = dynamicWindowImport
     }
   }
 
@@ -248,10 +254,14 @@ const generateCMSListNode: NodeToJSX<
   const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
   const { success, empty, error, loading } = node.content.nodes
 
-  const listNodeAST = (generateNode(success, params, options) as types.JSXElement[])[0]
+  const listNodeAST = !!success
+    ? (generateNode(success, params, options) as types.JSXElement[])[0]
+    : null
   const source = getRepeatSourceIdentifier(node.content.loopItemsReference, options)
 
-  const emptyNodeAST = generateNode(empty, params, options)[0] as types.JSXElement
+  const emptyNodeAST = !!empty
+    ? (generateNode(empty, params, options)[0] as types.JSXElement)
+    : null
   const emptyNodeExpressionAST = empty
     ? types.logicalExpression(
         '&&',
@@ -260,13 +270,17 @@ const generateCMSListNode: NodeToJSX<
       )
     : null
 
-  const errorNodeAST = generateNode(error, params, options)[0] as types.JSXElement
+  const errorNodeAST = !!error
+    ? (generateNode(error, params, options)[0] as types.JSXElement)
+    : null
   const errorNodeExpressionAST =
     error && errorStatePersistanceName
       ? types.logicalExpression('&&', types.identifier(errorStatePersistanceName), errorNodeAST)
       : null
 
-  const loadingNodeAST = generateNode(empty, params, options)[0] as types.JSXElement
+  const loadingNodeAST = !!loading
+    ? (generateNode(loading, params, options)[0] as types.JSXElement)
+    : null
   const loadingNodeExpressionAST =
     loading && loadingStatePersistanceName
       ? types.logicalExpression('&&', types.identifier(loadingStatePersistanceName), loadingNodeAST)

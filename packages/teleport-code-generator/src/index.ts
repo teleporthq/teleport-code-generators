@@ -113,7 +113,14 @@ const projectPublisherFactories: Omit<Record<PublisherType, Function>, Publisher
 
 export const packProject: PackProjectFunction = async (
   projectUIDL,
-  { projectType, publisher: publisherType, publishOptions = {}, assets = [], plugins = [] }
+  {
+    projectType,
+    publisher: publisherType,
+    publishOptions = {},
+    assets = [],
+    plugins = [],
+    assetsFolder = [Constants.ASSETS_IDENTIFIER],
+  }
 ) => {
   const packer = createProjectPacker()
   let publisher
@@ -166,7 +173,7 @@ export const packProject: PackProjectFunction = async (
 
   packer.setAssets({
     assets,
-    path: [Constants.ASSETS_IDENTIFIER],
+    path: assetsFolder,
   })
 
   packer.setGenerator(projectGeneratorFactory)

@@ -148,20 +148,6 @@ export const resourceDecoder: Decoder<Resource> = object({
   route: optional(resourceValueDecoder),
 })
 
-export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
-  type: union(constant('library'), constant('package')),
-  path: string(),
-  version: string(),
-  meta: optional(
-    object({
-      namedImport: optional(boolean()),
-      originalName: optional(string()),
-      importJustPath: optional(boolean()),
-      useAsReference: optional(boolean()),
-    })
-  ),
-})
-
 export const initialPropsDecoder: Decoder<InitialPropsData> = object({
   exposeAs: object({
     name: string(),
@@ -172,7 +158,7 @@ export const initialPropsDecoder: Decoder<InitialPropsData> = object({
     array(
       object({
         name: string(),
-        resource: externaldependencyDecoder,
+        resource: lazy(() => externaldependencyDecoder),
       })
     )
   ),
@@ -397,6 +383,21 @@ export const peerDependencyDecoder: Decoder<UIDLPeerDependency> = object({
   type: constant('package'),
   version: string(),
   path: string(),
+})
+
+export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object({
+  type: union(constant('library'), constant('package')),
+  path: string(),
+  version: string(),
+  meta: optional(
+    object({
+      namedImport: optional(boolean()),
+      originalName: optional(string()),
+      importJustPath: optional(boolean()),
+      useAsReference: optional(boolean()),
+      needsWindowObject: optional(boolean()),
+    })
+  ),
 })
 
 export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({

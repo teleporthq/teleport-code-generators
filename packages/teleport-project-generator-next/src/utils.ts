@@ -34,14 +34,18 @@ export const createDocumentFileChunks = (uidl: ProjectUIDL, options: EntryFileOp
   if (manifest) {
     const linkTag = ASTBuilders.createJSXTag('link')
     ASTUtils.addAttributeToJSXTag(linkTag, 'rel', 'manifest')
-    ASTUtils.addAttributeToJSXTag(linkTag, 'href', `${options.assetsPrefix}/manifest.json`)
+    ASTUtils.addAttributeToJSXTag(
+      linkTag,
+      'href',
+      UIDLUtils.prefixAssetsPath(`/manifest.json`, options.assets)
+    )
     ASTUtils.addChildJSXTag(headNode, linkTag)
   }
 
   meta.forEach((metaItem) => {
     const metaTag = ASTBuilders.createJSXTag('meta')
     Object.keys(metaItem).forEach((key) => {
-      const metaValue = UIDLUtils.prefixAssetsPath(options.assetsPrefix, metaItem[key])
+      const metaValue = UIDLUtils.prefixAssetsPath(metaItem[key], options.assets)
       ASTUtils.addAttributeToJSXTag(metaTag, key, metaValue)
     })
     ASTUtils.addChildJSXTag(headNode, metaTag)
@@ -136,16 +140,6 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
           ]),
         ],
         t.blockStatement([
-          t.expressionStatement(
-            t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useEffect')), [
-              t.arrowFunctionExpression(
-                [],
-                t.callExpression(t.identifier('import'), [
-                  t.stringLiteral('@lottiefiles/lottie-player'),
-                ])
-              ),
-            ])
-          ),
           t.returnStatement(
             t.jsxElement(
               t.jsxOpeningElement(
