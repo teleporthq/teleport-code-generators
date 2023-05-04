@@ -819,6 +819,26 @@
                                                     {
                                                         "type": "element",
                                                         "content": {
+                                                            "elementType": "lottie-node",
+                                                            "style": {
+                                                                "width": "200px",
+                                                                "height": "200px"
+                                                            },
+                                                            "attrs": {
+                                                                "src": {
+                                                                    "type": "static",
+                                                                    "content": "https://assets9.lottiefiles.com/datafiles/gUENLc1262ccKIO/data.json"
+                                                                },
+                                                                "autoplay": {
+                                                                    "type": "static",
+                                                                    "content": "true"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    {
+                                                        "type": "element",
+                                                        "content": {
                                                             "elementType": "text",
                                                             "referencedStyles": {},
                                                             "abilities": {},

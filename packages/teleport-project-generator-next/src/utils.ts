@@ -140,16 +140,6 @@ export const configContentGenerator = (options: FrameWorkConfigOptions, t = type
           ]),
         ],
         t.blockStatement([
-          t.expressionStatement(
-            t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useEffect')), [
-              t.arrowFunctionExpression(
-                [],
-                t.callExpression(t.identifier('import'), [
-                  t.stringLiteral('@lottiefiles/lottie-player'),
-                ])
-              ),
-            ])
-          ),
           t.returnStatement(
             t.jsxElement(
               t.jsxOpeningElement(

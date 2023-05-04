@@ -26,6 +26,7 @@ import {
   addAttributeToJSXTag,
   addDynamicAttributeToJSXTag,
   addRawAttributeToJSXTag,
+  generateDynamicWindowImport,
   addDynamicExpressionAttributeToJSXTag,
   addDynamicCtxAttributeToJSXTag,
 } from '../../utils/ast-utils'
@@ -65,6 +66,11 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
         // Make a copy to avoid reference leaking
         dependencies[tagName] = { ...dependency }
       }
+    }
+
+    if (dependency?.meta && `needsWindowObject` in dependency.meta) {
+      const dynamicWindowImport = generateDynamicWindowImport('useEffect', dependency.path)
+      params.windowImports[dependency.path] = dynamicWindowImport
     }
   }
 
