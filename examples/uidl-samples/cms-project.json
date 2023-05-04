@@ -3256,6 +3256,27 @@
                             "style": {},
                             "children": []
                           }
+                        },
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "markdown-node",
+                            "referencedStyles": {},
+                            "children": [
+                              {
+                                "type": "dynamic",
+                                "content": {
+                                  "id": "6a27e84c-13eb-4b7f-9ee2-8cf7a6e6399d",
+                                  "referenceType": "ctx",
+                                  "path": [
+                                    "content"
+                                  ]
+                                }
+                              }
+                            ],
+                            "style": {},
+                            "attrs": {}
+                          }
                         }
                       ]
                     }
@@ -3624,7 +3645,6 @@
     }
   },
   "resources": {
-    "rootFolder": "pages/api",
     "items": {
       "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475": {
         "id": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475",

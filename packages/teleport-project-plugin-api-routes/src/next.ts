@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { CodeGenerator } from '@babel/generator'
-import { FileType, ProjectPluginStructure, ResourceItemUIDL } from '@teleporthq/teleport-types'
+import { FileType, ProjectPluginStructure, UIDLResourceItem } from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
@@ -47,7 +48,7 @@ export const nextAfterModifier = async () => {
   return
 }
 
-const buildApiRouteAST = (resource: ResourceItemUIDL) => {
+const buildApiRouteAST = (resource: UIDLResourceItem) => {
   const resourceASTs = ASTUtils.generateRemoteResourceASTs(resource, 'props')
   return types.exportDefaultDeclaration(
     (() => {

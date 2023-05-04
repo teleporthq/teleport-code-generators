@@ -26,14 +26,25 @@ export interface ContextsUIDL {
   items?: Record<string, ContextUIDLItem>
 }
 
-export interface ResourceItemUIDL extends Resource {
-  id: string
-  name: string
+export interface UIDLENVValue {
+  type: 'env'
+  content: string
 }
 
-export interface ResourcesUIDL {
-  rootFolder?: string
-  items?: Record<string, ResourceItemUIDL>
+export interface UIDLResourceItem {
+  name: string
+  headers?: Record<string, UIDLStaticValue | UIDLENVValue>
+  path: {
+    baseUrl: UIDLStaticValue | UIDLENVValue
+    route: UIDLStaticValue
+  }
+  params?: Record<string, UIDLStaticValue>
+  method?: 'GET' | 'POST'
+  body?: Record<string, UIDLStaticValue>
+}
+
+export interface UIDLResources {
+  items?: Record<string, UIDLResourceItem>
 }
 
 export interface ProjectUIDL {
@@ -42,7 +53,7 @@ export interface ProjectUIDL {
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
   contexts?: ContextsUIDL
-  resources?: ResourcesUIDL
+  resources?: UIDLResources
 }
 
 export interface UIDLGlobalProjectValues {
@@ -141,13 +152,6 @@ export interface ResourceUrlParams {
   [key: string]: ResourceUrlValues
 }
 
-export interface Resource {
-  baseUrl: ResourceValue
-  route?: ResourceValue
-  authToken?: ResourceValue
-  urlParams?: ResourceUrlParams | unknown
-}
-
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -172,7 +176,7 @@ export interface InitialPropsData {
     itemValuePath?: string[]
   }
   resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
-  resource: Resource
+  resource: UIDLResources
 }
 
 export interface InitialPathsData {
@@ -181,7 +185,7 @@ export interface InitialPathsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: Resource
+  resource: UIDLResources
 }
 
 export interface UIDLComponentOutputOptions {

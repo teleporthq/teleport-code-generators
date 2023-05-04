@@ -1,4 +1,4 @@
-import { GenericUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -15,6 +15,7 @@ import {
   GeneratorFactoryParams,
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
+  FileType,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -40,6 +41,8 @@ import {
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 import { join } from 'path'
+import { resourceGenerator } from './resource'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -214,8 +217,9 @@ export class ProjectGenerator implements ProjectGeneratorType {
       if (this.strategy.router?.generator) {
         this.routerGenerator = bootstrapGenerator(this.strategy.router, this.strategy.style)
       }
-    } catch (e) {
-      throw new TeleportError(`Error in Generating Project after runBefore - ${e}`)
+    } catch (error) {
+      console.trace(error)
+      throw new TeleportError(`Error in Generating Project after runBefore`)
     }
 
     const { components = {} } = uidl
@@ -328,6 +332,20 @@ export class ProjectGenerator implements ProjectGeneratorType {
         })
 
         collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
+      }
+    }
+
+    const resources = Object.values(uidl?.resources?.items || {})
+
+    if (this.strategy?.resources && resources.length > 0) {
+      for (const resource of resources) {
+        const { chunks, dependencies } = resourceGenerator(resource)
+        collectedDependencies = { ...collectedDependencies, ...dependencies }
+        const result = createComponentGenerator().linkCodeChunks(
+          { [FileType.JS]: chunks },
+          StringUtils.camelCaseToDashCase(resource.name)
+        )
+        console.log(result[0])
       }
     }
 

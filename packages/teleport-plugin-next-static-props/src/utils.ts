@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { InitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'

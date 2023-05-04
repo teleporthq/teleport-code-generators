@@ -307,6 +307,9 @@ export interface ProjectStrategy {
       ) => { file: GeneratedFile; dependencies: Record<string, string> }
     }
   }
+  resources?: {
+    path: string[]
+  }
 }
 
 export interface ConfigGeneratorResult {

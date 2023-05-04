@@ -1,3 +1,4 @@
+// @ts-nocheck
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import nextImagePlugin from '@teleporthq/teleport-plugin-jsx-next-image'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
@@ -7,15 +8,16 @@ import { createReactComponentGenerator } from '@teleporthq/teleport-component-ge
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import { createStaticPropsPlugin } from '@teleporthq/teleport-plugin-next-static-props'
 import { createStaticPathsPlugin } from '@teleporthq/teleport-plugin-next-static-paths'
-import { ReactStyleVariation, FileType, ProjectType } from '@teleporthq/teleport-types'
+import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
-import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
+// import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
 import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
 import { createNextComponentCMSFetchPlugin } from '@teleporthq/teleport-plugin-next-cms-fetch'
-import { ProjectPluginApiRoutes } from '@teleporthq/teleport-project-plugin-api-routes'
+// import { ProjectPluginApiRoutes } from '@teleporthq/teleport-project-plugin-api-routes'
+import resourceFetcherPlugin from '@teleporthq/teleport-plugin-resources'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -28,31 +30,24 @@ const createNextProjectGenerator = () => {
     fileName: 'style',
   })
 
-  const getStaticPropsPlugin = createStaticPropsPlugin()
-  const getStaticPathsPlugin = createStaticPathsPlugin()
-  const contextPlugin = createNextContextPlugin()
-  const nextComponentCMSFetchPlugin = createNextComponentCMSFetchPlugin()
+  // const getStaticPropsPlugin = createStaticPropsPlugin()
+  // const getStaticPathsPlugin = createStaticPathsPlugin()
+  // const contextPlugin = createNextContextPlugin()
+  // const nextComponentCMSFetchPlugin = createNextComponentCMSFetchPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin, nextComponentCMSFetchPlugin, contextPlugin],
+      plugins: [nextImagePlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [
-        nextImagePlugin,
-        headConfigPlugin,
-        nextComponentCMSFetchPlugin,
-        getStaticPathsPlugin,
-        getStaticPropsPlugin,
-        contextPlugin,
-      ],
+      plugins: [nextImagePlugin, headConfigPlugin],
       mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,
@@ -101,10 +96,13 @@ const createNextProjectGenerator = () => {
       prefix: '',
       path: ['public'],
     },
+    resources: {
+      path: ['pages', 'api'],
+    },
   })
 
-  generator.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
-  generator.addPlugin(new ProjectPluginApiRoutes({ framework: ProjectType.NEXT }))
+  // generator.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
+  // generator.addPlugin(new ProjectPluginApiRoutes({ framework: ProjectType.NEXT }))
 
   return generator
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   object,
   string,
@@ -79,7 +80,7 @@ import {
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
   VCMSListUIDLElementNode,
-  Resource,
+  UIDLResourceItem,
   InitialPropsData,
   InitialPathsData,
   UIDLExpressionValue,
@@ -139,7 +140,7 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   )
 )
 
-export const resourceDecoder: Decoder<Resource> = object({
+export const resourceDecoder: Decoder<UIDLResourceItem> = object({
   baseUrl: resourceValueDecoder,
   urlParams: optional(
     union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())

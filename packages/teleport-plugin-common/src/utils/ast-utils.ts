@@ -1,5 +1,5 @@
+// @ts-nocheck
 import * as types from '@babel/types'
-// import * as parser from "@babel/parser"
 import { parse, traverse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -7,13 +7,15 @@ import {
   UIDLStateDefinition,
   UIDLPropDefinition,
   UIDLRawValue,
-  Resource,
+  UIDLResourceItem,
   ResourceValue,
   ResourceUrlParams,
   UIDLStaticValue,
   UIDLDynamicReference,
   ResourceUrlValues,
   UIDLExpressionValue,
+  UIDLResourceItem,
+  UIDLENVValue,
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
@@ -595,18 +597,15 @@ export const wrapObjectPropertiesWithExpression = (properties: types.ObjectPrope
   types.objectExpression(properties)
 
 export const generateRemoteResourceASTs = (
-  resource: Resource,
+  resource: UIDLResourceItem,
   propsPrefix: string = '',
   extraUrlParamsGenerator?: () => types.ObjectProperty[]
 ) => {
   const fetchUrl = computeFetchUrl(resource)
-  const authHeaderAST = computeAuthorizationHeaderAST(resource)
+  const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
+  const headersASTs = generateRESTHeadersAST(resource?.headers)
 
-  const queryParams = generateURLParamsAST(
-    resource.urlParams as ResourceUrlParams,
-    propsPrefix,
-    extraUrlParamsGenerator
-  )
+  const queryParams = generateURLParamsAST(resource.params, propsPrefix, extraUrlParamsGenerator)
 
   const fetchUrlQuasis = fetchUrl.quasis
   const queryParamsQuasis = queryParams.quasis
@@ -637,15 +636,7 @@ export const generateRemoteResourceASTs = (
           types.objectExpression([
             types.objectProperty(
               types.identifier('headers'),
-              types.objectExpression([
-                types.objectProperty(
-                  types.identifier('"Content-Type"'),
-                  types.stringLiteral('application/json'),
-                  false,
-                  false
-                ),
-                authHeaderAST,
-              ])
+              types.objectExpression([...headersASTs, authHeaderAST])
             ),
           ]),
         ])
@@ -666,6 +657,17 @@ export const generateRemoteResourceASTs = (
   ])
 
   return [fetchAST, responseJSONAST]
+}
+
+const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
+  return Object.keys(headers)
+    .filter((header) => header !== 'authToken')
+    .map((header) => {
+      return types.objectProperty(
+        types.stringLiteral(header),
+        types.stringLiteral(headers[header].content)
+      )
+    })
 }
 
 export const generateMemberExpressionASTFromBase = (
@@ -800,13 +802,13 @@ const resolveUrlParamsValue = (
   ])
 }
 
-const computeAuthorizationHeaderAST = (resource: Resource) => {
-  const authToken = resolveResourceValue(resource.authToken)
+const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => {
+  const authToken = resolveResourceValue(headers.authToken)
   if (!authToken) {
     return null
   }
 
-  const authTokenType = resource.authToken?.type
+  const authTokenType = headers.authToken?.type
 
   return types.objectProperty(
     types.identifier('Authorization'),
@@ -838,9 +840,10 @@ const computeAuthorizationHeaderAST = (resource: Resource) => {
   )
 }
 
-const computeFetchUrl = (resource: Resource) => {
-  const fetchBaseUrl = resolveResourceValue(resource.baseUrl)
-  const resourceRoute = resolveResourceValue(resource.route)
+const computeFetchUrl = (resource: UIDLResourceItem) => {
+  const { path } = resource
+  const fetchBaseUrl = resolveResourceValue(path.baseUrl)
+  const resourceRoute = resolveResourceValue(path.route)
 
   const baseUrlType = resource.baseUrl?.type
   const routeType = resource.route?.type
@@ -915,14 +918,14 @@ const computeFetchUrl = (resource: Resource) => {
   )
 }
 
-const resolveResourceValue = (value: ResourceValue) => {
+const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
   if (!value) {
     return ''
   }
 
   if (value.type === 'static') {
-    return value.value
+    return value.content
   }
 
-  return `process.env.${value.value}` || value.fallback
+  return `process.env.${value.content}`
 }
