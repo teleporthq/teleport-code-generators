@@ -310,6 +310,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       originalName: optional(string()),
       importJustPath: optional(boolean()),
       useAsReference: optional(boolean()),
+      needsWindowObject: optional(boolean()),
     })
   ),
 })

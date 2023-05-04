@@ -409,9 +409,14 @@ export const createPureComponent = (
   name: string,
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
+  windowImports: Record<string, types.ExpressionStatement> = {},
   t = types
 ): types.VariableDeclaration => {
-  const arrowFunctionBody = createReturnExpressionSyntax(stateDefinitions, jsxTagTree)
+  const arrowFunctionBody = createReturnExpressionSyntax(
+    stateDefinitions,
+    jsxTagTree,
+    windowImports
+  )
   const arrowFunction = t.arrowFunctionExpression([t.identifier('props')], arrowFunctionBody)
 
   const declarator = t.variableDeclarator(t.identifier(name), arrowFunction)
@@ -423,6 +428,7 @@ export const createPureComponent = (
 export const createReturnExpressionSyntax = (
   stateDefinitions: Record<string, UIDLStateDefinition>,
   jsxTagTree: types.JSXElement,
+  windowImports: Record<string, types.ExpressionStatement> = {},
   t = types
 ) => {
   const returnStatement = t.returnStatement(jsxTagTree)
@@ -431,7 +437,7 @@ export const createReturnExpressionSyntax = (
     createStateHookAST(stateKey, stateDefinitions[stateKey])
   )
 
-  return t.blockStatement([...stateHooks, returnStatement] || [])
+  return t.blockStatement([...stateHooks, ...Object.values(windowImports), returnStatement] || [])
 }
 
 /**
@@ -456,6 +462,21 @@ export const createStateHookAST = (
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
   ])
+}
+
+export const generateDynamicWindowImport = (
+  hookName = 'useEffect',
+  dependency: string
+): types.ExpressionStatement => {
+  return types.expressionStatement(
+    types.callExpression(types.identifier(hookName), [
+      types.arrowFunctionExpression(
+        [],
+        types.callExpression(types.identifier('import'), [types.stringLiteral(dependency)])
+      ),
+      types.arrayExpression([]),
+    ])
+  )
 }
 
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
