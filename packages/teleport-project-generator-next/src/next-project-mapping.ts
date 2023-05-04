@@ -36,6 +36,15 @@ export const NextProjectMapping: Mapping = {
     },
     'lottie-node': {
       elementType: 'lottie-player',
+      dependency: {
+        type: 'package',
+        version: '1.6.0',
+        path: '@lottiefiles/lottie-player',
+        meta: {
+          importJustPath: true,
+          needsWindowObject: true,
+        },
+      },
     },
   },
 }

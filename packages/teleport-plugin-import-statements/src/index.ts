@@ -41,7 +41,11 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
       if (Object.keys(importDefinitions).length > 0) {
         Object.keys(importDefinitions).forEach((dependencyRef) => {
           const dependency = importDefinitions[dependencyRef]
-          if (dependency.meta?.useAsReference || dependency.meta?.importJustPath) {
+          if (
+            dependency.meta?.useAsReference ||
+            dependency.meta?.importJustPath ||
+            dependency?.meta.needsWindowObject
+          ) {
             return
           }
 
@@ -84,6 +88,10 @@ const groupDependenciesByPackage = (
 
       // Should not be the case at this point
       if (!dep.path) {
+        return
+      }
+
+      if (dep?.meta && 'needsWindowObject' in dep.meta) {
         return
       }
 

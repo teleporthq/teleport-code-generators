@@ -368,6 +368,7 @@ export interface UIDLExternalDependency {
     importJustPath?: boolean
     useAsReference?: boolean
     importAlias?: string
+    needsWindowObject?: boolean
   }
 }
 

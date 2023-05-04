@@ -1,9 +1,6 @@
 import { createAngularModulePlugin } from '@teleporthq/teleport-plugin-angular-module'
 import { createImportPlugin } from '@teleporthq/teleport-plugin-import-statements'
-import {
-  createAngularComponentGenerator,
-  AngularMapping,
-} from '@teleporthq/teleport-component-generator-angular'
+import { createAngularComponentGenerator } from '@teleporthq/teleport-component-generator-angular'
 import { createPrettierTSPostProcessor } from '@teleporthq/teleport-postprocessor-prettier-ts'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
@@ -45,7 +42,7 @@ const createAngularProjectGenerator = () => {
     },
     pages: {
       generator: createAngularComponentGenerator,
-      mappings: [AngularMapping as Mapping],
+      mappings: [AngularProjectMapping as Mapping],
       path: ['src', 'app', 'pages'],
       module: {
         generator: createComponentGenerator,
