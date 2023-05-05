@@ -458,6 +458,19 @@
                   "content": "New Project3"
                 }
               ]
+            },
+            "pageOptions": {
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BookEntity",
+                  "valuePath": [],
+                  "itemValuePath": []
+                },
+                "resourceId": {
+                  "type": "static",
+                  "content": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475"
+                }
+              }
             }
           },
           {
@@ -10446,6 +10459,24 @@
       "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475": {
         "id": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475",
         "name": "Entries",
+        "mappers": {
+          "resolveContentfulResponse": {
+            "type": "package",
+            "path": "contentful-resolve-response",
+            "version": "1.1.4",
+            "meta": {
+              "originalName": "resolveContentfulResponse"
+            }
+          },
+          "normalize": {
+            "type": "package",
+            "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+            "path": "@teleporthq/teleport-cms-mappers/contentful",
+            "meta": {
+              "namedImport": true
+            }
+          }
+        },
         "headers": {
           "authToken": {
             "type": "env",
@@ -10473,7 +10504,7 @@
           },
           "limit": {
             "type": "static",
-            "content": "10"
+            "content": 10
           }
         }
       },

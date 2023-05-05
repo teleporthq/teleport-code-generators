@@ -1,27 +1,20 @@
 // @ts-nocheck
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { InitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { UIDLInitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPropsAST = (
-  initialPropsData: InitialPropsData,
+  initialPropsData: UIDLInitialPropsData,
   propsPrefix = '',
   isDetailsPage = false,
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST = computePropsAST(
-    initialPropsData,
-    propsPrefix,
-    isDetailsPage,
-    pagination
-  )
-
   return types.exportNamedDeclaration(
     (() => {
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
         [types.identifier('context')],
-        types.blockStatement([...computedResourceAST]),
+        types.blockStatement([...computePropsAST(initialPropsData, propsPrefix, pagination)]),
         false,
         true
       )
@@ -33,24 +26,18 @@ export const generateInitialPropsAST = (
 }
 
 const computePropsAST = (
-  propsData: InitialPropsData,
+  propsData: UIDLInitialPropsData,
   propsPrefix = '',
   isDetailsPage = false,
   pagination?: PagePaginationOptions
 ) => {
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(propsData.resource, propsPrefix)
-
-  let mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
-  propsData.resourceMappers?.forEach((mapper) => {
-    mappedResponse = types.callExpression(types.identifier(mapper.name), [mappedResponse])
-  })
-
+  const mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
   const mappedDataAST = types.variableDeclaration('const', [
     types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
   ])
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-    propsData.resourceMappers?.length ? 'mappedData' : 'response',
+    'response',
     ...(propsData.exposeAs.valuePath || []),
   ])
 
@@ -83,5 +70,5 @@ const computePropsAST = (
     ])
   )
 
-  return [...resourceASTs, ...(propsData.resourceMappers?.length ? [mappedDataAST] : []), returnAST]
+  return [returnAST]
 }

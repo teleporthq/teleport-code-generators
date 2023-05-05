@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   object,
   string,
@@ -13,7 +12,6 @@ import {
   lazy,
   oneOf,
   intersection,
-  unknownJson,
   withDefault,
   anyJson,
 } from '@mojotech/json-type-validation'
@@ -75,26 +73,21 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
-  ResourceValue,
   ResourceUrlParams,
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
   VCMSListUIDLElementNode,
   UIDLResourceItem,
-  InitialPropsData,
+  UIDLInitialPropsData,
   InitialPathsData,
   UIDLExpressionValue,
   UIDLDynamicLinkNode,
+  UIDLENVValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
 const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
   CustomCombinators
-
-const resourceValueDecoder: Decoder<ResourceValue> = union(
-  object({ type: constant('static'), value: string() }),
-  object({ type: constant('env'), value: string(), fallback: optional(string()) })
-)
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -131,7 +124,7 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   content: string(),
 })
 
-const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
+export const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   union(
     staticValueDecoder,
     dynamicValueDecoder,
@@ -140,30 +133,37 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   )
 )
 
-export const resourceDecoder: Decoder<UIDLResourceItem> = object({
-  baseUrl: resourceValueDecoder,
-  urlParams: optional(
-    union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())
-  ),
-  authToken: optional(resourceValueDecoder),
-  route: optional(resourceValueDecoder),
+export const envValueDecoder: Decoder<UIDLENVValue> = object({
+  type: constant('env'),
+  content: string(),
 })
 
-export const initialPropsDecoder: Decoder<InitialPropsData> = object({
+export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
+  name: string(),
+  headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
+  path: object({
+    baseUrl: union(staticValueDecoder, envValueDecoder),
+    route: staticValueDecoder,
+  }),
+  params: optional(dict(staticValueDecoder)),
+  method: withDefault('GET', union(constant('GET'), constant('POST'))),
+  body: optional(dict(staticValueDecoder)),
+  mappers: optional(dict(lazy(() => dependencyDecoder))),
+})
+
+/*
+  TODO: In UIDL validation, we should throw error if the resourceId is missing from the resources.
+*/
+export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resourceMappers: optional(
-    array(
-      object({
-        name: string(),
-        resource: lazy(() => externaldependencyDecoder),
-      })
-    )
-  ),
-  resource: resourceDecoder,
+  resourceId: object({
+    type: constant('static'),
+    content: string(),
+  }),
 })
 
 export const initialPathsDecoder: Decoder<InitialPathsData> = object({
@@ -172,7 +172,7 @@ export const initialPathsDecoder: Decoder<InitialPathsData> = object({
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: resourceDecoder,
+  resource: resourceItemDecoder,
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({

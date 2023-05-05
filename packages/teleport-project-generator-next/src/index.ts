@@ -30,7 +30,7 @@ const createNextProjectGenerator = () => {
     fileName: 'style',
   })
 
-  // const getStaticPropsPlugin = createStaticPropsPlugin()
+  const staticPropsPlugin = createStaticPropsPlugin()
   // const getStaticPathsPlugin = createStaticPathsPlugin()
   // const contextPlugin = createNextContextPlugin()
   // const nextComponentCMSFetchPlugin = createNextComponentCMSFetchPlugin()
@@ -47,7 +47,7 @@ const createNextProjectGenerator = () => {
     pages: {
       generator: createReactComponentGenerator,
       path: ['pages'],
-      plugins: [nextImagePlugin, headConfigPlugin],
+      plugins: [nextImagePlugin, headConfigPlugin, staticPropsPlugin],
       mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,

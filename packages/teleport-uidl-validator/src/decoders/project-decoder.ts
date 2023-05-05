@@ -5,9 +5,7 @@ import {
   string,
   dict,
   array,
-  union,
-  constant,
-  withDefault,
+  lazy,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -16,10 +14,8 @@ import {
   ContextsUIDL,
   ContextUIDLItem,
   UIDLResources,
-  UIDLResourceItem,
-  UIDLENVValue,
 } from '@teleporthq/teleport-types'
-import { globalAssetsDecoder, staticValueDecoder } from './utils'
+import { globalAssetsDecoder, resourceItemDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -62,25 +58,8 @@ export const contextsDecoder: Decoder<ContextsUIDL> = object({
   items: dict(optional(contextItemDecoder)),
 })
 
-export const envValueDecoder: Decoder<UIDLENVValue> = object({
-  type: constant('env'),
-  content: string(),
-})
-
-export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
-  name: string(),
-  headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
-  path: object({
-    baseUrl: union(staticValueDecoder, envValueDecoder),
-    route: staticValueDecoder,
-  }),
-  params: optional(dict(staticValueDecoder)),
-  method: withDefault('GET', union(constant('GET'), constant('POST'))),
-  body: optional(dict(staticValueDecoder)),
-})
-
 export const resourcesDecoder: Decoder<UIDLResources> = object({
-  items: optional(dict(resourceItemDecoder)),
+  items: optional(dict(lazy(() => resourceItemDecoder))),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({

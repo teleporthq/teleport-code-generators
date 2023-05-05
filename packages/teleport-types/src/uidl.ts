@@ -41,6 +41,7 @@ export interface UIDLResourceItem {
   params?: Record<string, UIDLStaticValue>
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
+  mappers?: Record<string, UIDLDependency>
 }
 
 export interface UIDLResources {
@@ -169,14 +170,16 @@ export interface ComponentUIDL {
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 
-export interface InitialPropsData {
+export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
-  resource: UIDLResources
+  resourceId: {
+    type: 'static'
+    content: string
+  }
 }
 
 export interface InitialPathsData {
@@ -185,7 +188,7 @@ export interface InitialPathsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResources
+  resource: UIDLResourceItem
 }
 
 export interface UIDLComponentOutputOptions {
@@ -197,7 +200,7 @@ export interface UIDLComponentOutputOptions {
   folderPath?: string[]
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
-  initialPropsData?: InitialPropsData
+  initialPropsData?: UIDLInitialPropsData
   initialPathsData?: InitialPathsData
 }
 
@@ -247,7 +250,7 @@ export interface UIDLPageOptions {
   dynamicRouteAttribute?: string
   isIndex?: boolean
   pagination?: PagePaginationOptions
-  initialPropsData?: InitialPropsData
+  initialPropsData?: UIDLInitialPropsData
   initialPathsData?: InitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
