@@ -97,7 +97,7 @@ const createNextProjectGenerator = () => {
       path: ['public'],
     },
     resources: {
-      path: ['pages', 'api'],
+      path: ['resources'],
     },
   })
 

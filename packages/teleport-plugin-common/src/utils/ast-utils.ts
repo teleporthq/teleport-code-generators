@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as types from '@babel/types'
 import { parse, traverse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
@@ -7,8 +6,6 @@ import {
   UIDLStateDefinition,
   UIDLPropDefinition,
   UIDLRawValue,
-  UIDLResourceItem,
-  ResourceValue,
   ResourceUrlParams,
   UIDLStaticValue,
   UIDLDynamicReference,
@@ -596,6 +593,10 @@ export const generateDynamicWindowImport = (
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
 
+/*
+ * TODO: Add the ability to support body and payload.
+ * UIDLResourceItem['body']
+ */
 export const generateRemoteResourceASTs = (
   resource: UIDLResourceItem,
   propsPrefix: string = '',
@@ -606,11 +607,10 @@ export const generateRemoteResourceASTs = (
   const headersASTs = generateRESTHeadersAST(resource?.headers)
 
   const queryParams = generateURLParamsAST(resource.params, propsPrefix, extraUrlParamsGenerator)
-
   const fetchUrlQuasis = fetchUrl.quasis
-  const queryParamsQuasis = queryParams.quasis
+  const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
 
-  if (queryParams.expressions.length > 0) {
+  if (queryParams?.expressions.length > 0) {
     fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw =
       fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw + '?'
 
@@ -620,7 +620,7 @@ export const generateRemoteResourceASTs = (
     queryParamsQuasis.pop()
   }
 
-  const url = queryParams
+  const url = queryParams?.quasis
     ? types.templateLiteral(
         [...fetchUrlQuasis, ...queryParamsQuasis],
         [...fetchUrl.expressions.concat(queryParams.expressions)]
@@ -634,6 +634,7 @@ export const generateRemoteResourceASTs = (
         types.callExpression(types.identifier('fetch'), [
           url,
           types.objectExpression([
+            types.objectProperty(types.identifier('method'), types.stringLiteral(resource.method)),
             types.objectProperty(
               types.identifier('headers'),
               types.objectExpression([...headersASTs, authHeaderAST])
@@ -665,7 +666,7 @@ const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.Obj
     .map((header) => {
       return types.objectProperty(
         types.stringLiteral(header),
-        types.stringLiteral(headers[header].content)
+        types.stringLiteral(String(headers[header].content))
       )
     })
 }
@@ -709,7 +710,11 @@ const generateURLParamsAST = (
   urlParams: ResourceUrlParams,
   propsPrefix?: string,
   extraUrlParamsGenerator?: () => types.ObjectProperty[]
-) => {
+): types.TemplateLiteral | null => {
+  if (!urlParams) {
+    return null
+  }
+
   const queryString: Record<string, types.Expression> = {}
   Object.keys(urlParams).forEach((key) => {
     resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key, propsPrefix)
@@ -833,7 +838,7 @@ const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => 
               ),
             ]),
       ],
-      [...(authTokenType === 'static' ? [] : [types.identifier(authToken)])]
+      [...(authTokenType === 'static' ? [] : [types.identifier(String(authToken))])]
     ),
     false,
     false
@@ -845,8 +850,8 @@ const computeFetchUrl = (resource: UIDLResourceItem) => {
   const fetchBaseUrl = resolveResourceValue(path.baseUrl)
   const resourceRoute = resolveResourceValue(path.route)
 
-  const baseUrlType = resource.baseUrl?.type
-  const routeType = resource.route?.type
+  const baseUrlType = path.baseUrl?.type
+  const routeType = path.route?.type
 
   if (baseUrlType === 'static' && routeType === 'static') {
     const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
@@ -879,7 +884,7 @@ const computeFetchUrl = (resource: UIDLResourceItem) => {
               true
             ),
           ],
-          [types.identifier(fetchBaseUrl)]
+          [types.identifier(String(fetchBaseUrl))]
         )
   }
 
@@ -912,8 +917,8 @@ const computeFetchUrl = (resource: UIDLResourceItem) => {
           ]),
     ],
     [
-      types.identifier(fetchBaseUrl),
-      ...(routeType === 'static' ? [] : [types.identifier(resourceRoute)]),
+      types.identifier(String(fetchBaseUrl)),
+      ...(routeType === 'static' ? [] : [types.identifier(String(resourceRoute))]),
     ]
   )
 }

@@ -10476,6 +10476,30 @@
             "content": "10"
           }
         }
+      },
+      "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a476": {
+        "id": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a476",
+        "name": "EntryAuthor",
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          },
+          "Content-Type": {
+            "type": "static",
+            "content": "application/json"
+          }
+        },
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "author"
+          }
+        }
       }
     }
   }

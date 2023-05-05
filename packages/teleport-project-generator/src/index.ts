@@ -341,11 +341,14 @@ export class ProjectGenerator implements ProjectGeneratorType {
       for (const resource of resources) {
         const { chunks, dependencies } = resourceGenerator(resource)
         collectedDependencies = { ...collectedDependencies, ...dependencies }
-        const result = createComponentGenerator().linkCodeChunks(
+        const files = createComponentGenerator().linkCodeChunks(
           { [FileType.JS]: chunks },
           StringUtils.camelCaseToDashCase(resource.name)
         )
-        console.log(result[0])
+        inMemoryFilesMap.set(`resource-${resource.name}`, {
+          files,
+          path: this.strategy.resources.path,
+        })
       }
     }
 
