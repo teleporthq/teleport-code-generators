@@ -79,10 +79,11 @@ import {
   VCMSListUIDLElementNode,
   UIDLResourceItem,
   UIDLInitialPropsData,
-  InitialPathsData,
+  UIDLInitialPathsData,
   UIDLExpressionValue,
   UIDLDynamicLinkNode,
   UIDLENVValue,
+  UIDLDynamicFunctionParam,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -138,6 +139,14 @@ export const envValueDecoder: Decoder<UIDLENVValue> = object({
   content: string(),
 })
 
+export const dyamicFunctionParam: Decoder<UIDLDynamicFunctionParam> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('prop'),
+    id: string(),
+  }),
+})
+
 export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   name: string(),
   headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
@@ -145,10 +154,10 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
     baseUrl: union(staticValueDecoder, envValueDecoder),
     route: staticValueDecoder,
   }),
-  params: optional(dict(staticValueDecoder)),
   method: withDefault('GET', union(constant('GET'), constant('POST'))),
   body: optional(dict(staticValueDecoder)),
   mappers: optional(dict(lazy(() => dependencyDecoder))),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
 })
 
 /*
@@ -166,13 +175,16 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   }),
 })
 
-export const initialPathsDecoder: Decoder<InitialPathsData> = object({
+export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: resourceItemDecoder,
+  resourceId: object({
+    type: constant('static'),
+    content: string(),
+  }),
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({

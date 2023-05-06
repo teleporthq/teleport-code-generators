@@ -470,6 +470,22 @@
                   "type": "static",
                   "content": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475"
                 }
+              },
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "id",
+                  "valuePath": [
+                    "items"
+                  ],
+                  "itemValuePath": [
+                    "sys",
+                    "id"
+                  ]
+                },
+                "resourceId": {
+                  "type": "static",
+                  "content": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475"
+                }
               }
             }
           },
@@ -10457,7 +10473,6 @@
   "resources": {
     "items": {
       "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475": {
-        "id": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475",
         "name": "Entries",
         "mappers": {
           "resolveContentfulResponse": {
@@ -10470,7 +10485,7 @@
           },
           "normalize": {
             "type": "package",
-            "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+            "version": "0.0.0",
             "path": "@teleporthq/teleport-cms-mappers/contentful",
             "meta": {
               "namedImport": true
@@ -10509,7 +10524,6 @@
         }
       },
       "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a476": {
-        "id": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a476",
         "name": "EntryAuthor",
         "headers": {
           "authToken": {
@@ -10529,6 +10543,56 @@
           "route": {
             "type": "static",
             "content": "author"
+          }
+        }
+      },
+      "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a477": {
+        "name": "SysInfo",
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "mappers": {
+          "resolveContentfulResponse": {
+            "type": "package",
+            "path": "contentful-resolve-response",
+            "version": "1.1.4",
+            "meta": {
+              "originalName": "resolveContentfulResponse"
+            }
+          },
+          "normalize": {
+            "type": "package",
+            "version": "0.0.0",
+            "path": "@teleporthq/teleport-cms-mappers/contentful",
+            "meta": {
+              "namedImport": true
+            }
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "book"
+          },
+          "sys.id": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "id"
+            }
           }
         }
       }

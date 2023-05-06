@@ -28,7 +28,13 @@ export const resourceGenerator = (
     fileType: FileType.JS,
     name: 'fetch-chunk',
     content: types.exportDefaultDeclaration(
-      types.functionDeclaration(null, [], types.blockStatement(moduleBody), false, true)
+      types.functionDeclaration(
+        null,
+        [types.assignmentPattern(types.identifier('params'), types.objectExpression([]))],
+        types.blockStatement(moduleBody),
+        false,
+        true
+      )
     ),
     linkAfter: [],
   })

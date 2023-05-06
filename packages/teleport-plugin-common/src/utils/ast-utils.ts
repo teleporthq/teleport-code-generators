@@ -6,13 +6,11 @@ import {
   UIDLStateDefinition,
   UIDLPropDefinition,
   UIDLRawValue,
-  ResourceUrlParams,
   UIDLStaticValue,
   UIDLDynamicReference,
-  ResourceUrlValues,
-  UIDLExpressionValue,
   UIDLResourceItem,
   UIDLENVValue,
+  UIDLDynamicFunctionParam,
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
@@ -596,17 +594,17 @@ export const wrapObjectPropertiesWithExpression = (properties: types.ObjectPrope
 /*
  * TODO: Add the ability to support body and payload.
  * UIDLResourceItem['body']
+ * All the dynamic props are sent using the function props
  */
 export const generateRemoteResourceASTs = (
   resource: UIDLResourceItem,
-  propsPrefix: string = '',
   extraUrlParamsGenerator?: () => types.ObjectProperty[]
 ) => {
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
   const headersASTs = generateRESTHeadersAST(resource?.headers)
 
-  const queryParams = generateURLParamsAST(resource.params, propsPrefix, extraUrlParamsGenerator)
+  const queryParams = generateURLParamsAST(resource?.params, extraUrlParamsGenerator)
   const fetchUrlQuasis = fetchUrl.quasis
   const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
 
@@ -707,8 +705,7 @@ export const generateMemberExpressionASTFromPath = (
 }
 
 const generateURLParamsAST = (
-  urlParams: ResourceUrlParams,
-  propsPrefix?: string,
+  urlParams: Record<string, UIDLStaticValue | UIDLDynamicFunctionParam>,
   extraUrlParamsGenerator?: () => types.ObjectProperty[]
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
@@ -717,7 +714,7 @@ const generateURLParamsAST = (
 
   const queryString: Record<string, types.Expression> = {}
   Object.keys(urlParams).forEach((key) => {
-    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key, propsPrefix)
+    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key)
   })
 
   const urlObject = types.objectExpression([
@@ -737,61 +734,29 @@ const generateURLParamsAST = (
 }
 
 const resolveDynamicValuesFromUrlParams = (
-  field: ResourceUrlValues,
+  field: UIDLStaticValue | UIDLDynamicFunctionParam,
   query: Record<string, types.Expression>,
-  prefix: string = null,
-  propsPrefix: string = ''
+  prefix: string = null
 ) => {
-  if (Array.isArray(field)) {
-    const arrayValues = field.map((value) => {
-      return resolveUrlParamsValue(value, propsPrefix)
-    })
-    query[prefix] = types.arrayExpression(arrayValues)
+  if (field.type === 'dynamic' || field.type === 'static') {
+    query[prefix] = resolveUrlParamsValue(field)
     return
   }
-
-  if (field.type === 'dynamic' || field.type === 'static' || field.type === 'expr') {
-    query[prefix] = resolveUrlParamsValue(field, propsPrefix)
-    return
-  }
-
-  Object.keys(field).forEach((key) => {
-    const value = field[key]
-    const newPrefix = prefix ? `${prefix}[${key}]` : key
-
-    if (typeof value === 'object') {
-      resolveDynamicValuesFromUrlParams(value, query, newPrefix, propsPrefix)
-      return
-    }
-
-    query[newPrefix] = resolveUrlParamsValue(value, propsPrefix)
-  })
 }
 
-const resolveUrlParamsValue = (
-  urlParams: UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue,
-  propsPrefix: string = ''
-) => {
-  if (urlParams.type === 'static') {
-    return types.stringLiteral(`${urlParams.content}`)
+const resolveUrlParamsValue = (urlParam: UIDLStaticValue | UIDLDynamicFunctionParam) => {
+  if (urlParam.type === 'static') {
+    return types.stringLiteral(`${urlParam.content}`)
   }
 
-  if (urlParams.type === 'expr') {
-    return types.identifier(urlParams.content)
-  }
-
-  if (urlParams.content.referenceType !== 'prop') {
+  if (urlParam.content.referenceType !== 'prop') {
     throw new Error('Only prop references are supported for url params')
   }
 
-  const paramPath = [...(propsPrefix ? [propsPrefix] : []), ...(urlParams.content.path || [])]
+  const paramPath = ['params', urlParam.content.id]
   const templateLiteralElements = paramPath
     .map((_, index) => {
-      if (index === paramPath.length - 1) {
-        return null
-      }
-
-      const isTail = index === paramPath.length - 2
+      const isTail = index === paramPath.length - 1
       return types.templateElement(
         {
           cooked: '',

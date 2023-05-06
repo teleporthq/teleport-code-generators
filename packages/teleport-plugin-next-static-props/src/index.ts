@@ -36,7 +36,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     }
 
     const resourceImportName = StringUtils.dashCaseToCamelCase(
-      StringUtils.camelCaseToDashCase(usedResource.name)
+      StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
     )
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
@@ -46,8 +46,8 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsData,
-      'context',
       !!uidl.outputOptions.dynamicRouteAttribute,
+      resourceImportName,
       uidl.outputOptions.pagination
     )
 

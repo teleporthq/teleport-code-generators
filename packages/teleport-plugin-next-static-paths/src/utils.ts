@@ -1,10 +1,10 @@
 // @ts-nocheck
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { InitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { UIDLInitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPathsAST = (
-  initialData: InitialPathsData,
+  initialData: UIDLInitialPathsData,
   propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {
@@ -27,7 +27,7 @@ export const generateInitialPathsAST = (
 }
 
 const computePropsAST = (
-  initialData: InitialPathsData,
+  initialData: UIDLInitialPathsData,
   propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {

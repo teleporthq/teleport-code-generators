@@ -31,6 +31,16 @@ export interface UIDLENVValue {
   content: string
 }
 
+export type UIDLDynamicFunctionParam = Modify<
+  UIDLDynamicReference,
+  {
+    content: {
+      referenceType: 'prop'
+      id: string
+    }
+  }
+>
+
 export interface UIDLResourceItem {
   name: string
   headers?: Record<string, UIDLStaticValue | UIDLENVValue>
@@ -38,10 +48,10 @@ export interface UIDLResourceItem {
     baseUrl: UIDLStaticValue | UIDLENVValue
     route: UIDLStaticValue
   }
-  params?: Record<string, UIDLStaticValue>
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
   mappers?: Record<string, UIDLDependency>
+  params?: Record<string, UIDLStaticValue | UIDLDynamicFunctionParam>
 }
 
 export interface UIDLResources {
@@ -53,6 +63,11 @@ export interface ProjectUIDL {
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  /**
+   * TODO: Contexts are more of framework specific things. So, when we see
+   * Multiple resources are items, the `next-project-generator` should take care of
+   * adding the contexts
+   */
   contexts?: ContextsUIDL
   resources?: UIDLResources
 }
@@ -179,16 +194,20 @@ export interface UIDLInitialPropsData {
   resourceId: {
     type: 'static'
     content: string
+    /* TODO: Add a new value called `params` which computes the values and pass to the fetcher */
   }
 }
 
-export interface InitialPathsData {
+export interface UIDLInitialPathsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResourceItem
+  resourceId: {
+    type: 'static'
+    content: string
+  }
 }
 
 export interface UIDLComponentOutputOptions {
@@ -201,7 +220,7 @@ export interface UIDLComponentOutputOptions {
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
   initialPropsData?: UIDLInitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPathsData?: UIDLInitialPathsData
 }
 
 export interface UIDLComponentSEO {
@@ -251,7 +270,7 @@ export interface UIDLPageOptions {
   isIndex?: boolean
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPathsData?: UIDLInitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }

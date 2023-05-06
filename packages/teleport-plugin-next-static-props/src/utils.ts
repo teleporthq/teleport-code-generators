@@ -1,12 +1,11 @@
-// @ts-nocheck
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { UIDLInitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPropsAST = (
   initialPropsData: UIDLInitialPropsData,
-  propsPrefix = '',
   isDetailsPage = false,
+  resourceImportName: string,
   pagination?: PagePaginationOptions
 ) => {
   return types.exportNamedDeclaration(
@@ -14,7 +13,9 @@ export const generateInitialPropsAST = (
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
         [types.identifier('context')],
-        types.blockStatement([...computePropsAST(initialPropsData, propsPrefix, pagination)]),
+        types.blockStatement([
+          ...computePropsAST(initialPropsData, isDetailsPage, resourceImportName, pagination),
+        ]),
         false,
         true
       )
@@ -27,13 +28,15 @@ export const generateInitialPropsAST = (
 
 const computePropsAST = (
   propsData: UIDLInitialPropsData,
-  propsPrefix = '',
   isDetailsPage = false,
+  resourceImportName: string,
   pagination?: PagePaginationOptions
 ) => {
-  const mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
-  const mappedDataAST = types.variableDeclaration('const', [
-    types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
+  const declerationAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(types.callExpression(types.identifier(resourceImportName), []))
+    ),
   ])
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
@@ -70,5 +73,5 @@ const computePropsAST = (
     ])
   )
 
-  return [returnAST]
+  return [declerationAST, returnAST]
 }
