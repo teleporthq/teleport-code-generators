@@ -9,6 +9,7 @@
     "version": {
       "allowBranch": [
         "development",
+        "feat/better-fetch",
         "hotfix/*"
       ],
       "message": "chore(release): 'publish %s'"
