@@ -138,7 +138,8 @@
                 }
               }
             }
-          },{
+          },
+          {
             "type": "conditional",
             "content": {
               "node": {
@@ -331,7 +332,11 @@
                           "attrs": {
                             "items": {
                               "type": "static",
-                              "content": ["angular", "react", "vue"]
+                              "content": [
+                                "angular",
+                                "react",
+                                "vue"
+                              ]
                             }
                           }
                         }
@@ -367,10 +372,12 @@
                   "type": "element",
                   "content": {
                     "elementType": "text",
-                    "children": [{
-                      "type": "static",
-                      "content": "Now you see me!"
-                    }]
+                    "children": [
+                      {
+                        "type": "static",
+                        "content": "Now you see me!"
+                      }
+                    ]
                   }
                 }
               }
@@ -385,22 +392,24 @@
                     "content": true
                   }
                 },
-                "children": [{
-                  "type": "element",
-                  "content": {
-                    "elementType": "source",
-                    "attrs": {
-                      "type": {
-                        "type": "static",
-                        "content": "video/mp4"
-                      },
-                      "url": {
-                        "type": "static",
-                        "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "source",
+                      "attrs": {
+                        "type": {
+                          "type": "static",
+                          "content": "video/mp4"
+                        },
+                        "url": {
+                          "type": "static",
+                          "content": "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                        }
                       }
                     }
                   }
-                }]
+                ]
               }
             },
             {
@@ -466,52 +475,57 @@
               "type": "element",
               "content": {
                 "elementType": "text",
-                "children": [{
-                  "type": "dynamic",
-                  "content": {
-                    "referenceType": "prop",
-                    "id": "title"
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "prop",
+                      "id": "title"
+                    }
                   }
-                }]
+                ]
               }
             },
             {
               "type": "element",
               "content": {
                 "elementType": "button",
-                "children": [{
-                  "type": "conditional",
-                  "content": {
-                    "node": {
-                      "type": "static",
-                      "content": "Hide me"
-                    },
-                    "value": true,
-                    "reference": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "state",
-                        "id": "isExpanded"
+                "children": [
+                  {
+                    "type": "conditional",
+                    "content": {
+                      "node": {
+                        "type": "static",
+                        "content": "Hide me"
+                      },
+                      "value": true,
+                      "reference": {
+                        "type": "dynamic",
+                        "content": {
+                          "referenceType": "state",
+                          "id": "isExpanded"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "conditional",
+                    "content": {
+                      "node": {
+                        "type": "static",
+                        "content": "Show me"
+                      },
+                      "value": false,
+                      "reference": {
+                        "type": "dynamic",
+                        "content": {
+                          "referenceType": "state",
+                          "id": "isExpanded"
+                        }
                       }
                     }
                   }
-                },{
-                  "type": "conditional",
-                  "content": {
-                    "node": {
-                      "type": "static",
-                      "content": "Show me"
-                    },
-                    "value": false,
-                    "reference": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "state",
-                        "id": "isExpanded"
-                      }
-                    }
-                  }
-                }],
+                ],
                 "events": {
                   "click": [
                     {
@@ -530,13 +544,15 @@
                   "type": "element",
                   "content": {
                     "elementType": "text",
-                    "children": [{
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "prop",
-                        "id": "text"
+                    "children": [
+                      {
+                        "type": "dynamic",
+                        "content": {
+                          "referenceType": "prop",
+                          "id": "text"
+                        }
                       }
-                    }]
+                    ]
                   }
                 },
                 "value": true,
@@ -571,16 +587,20 @@
               "content": {
                 "elementType": "button",
                 "name": "openmodal",
-                "children": [{
-                  "type": "static",
-                  "content": "Show Popup"
-                }],
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Show Popup"
+                  }
+                ],
                 "events": {
-                  "click": [{
-                    "type": "stateChange",
-                    "modifies": "isOpen",
-                    "newState": true
-                  }]
+                  "click": [
+                    {
+                      "type": "stateChange",
+                      "modifies": "isOpen",
+                      "newState": true
+                    }
+                  ]
                 }
               }
             },
@@ -597,11 +617,13 @@
                       "type": "local"
                     },
                     "events": {
-                      "onClose": [{
-                        "type": "stateChange",
-                        "modifies": "isOpen",
-                        "newState": false
-                      }]
+                      "onClose": [
+                        {
+                          "type": "stateChange",
+                          "modifies": "isOpen",
+                          "newState": false
+                        }
+                      ]
                     }
                   }
                 },
@@ -641,33 +663,41 @@
         "type": "element",
         "content": {
           "elementType": "container",
-          "children": [{
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "message"
-            }
-          },{
-            "type": "element",
-            "content": {
-              "elementType": "button",
-              "name": "close",
-              "children": [{
-                "type": "static",
-                "content": "Close me"
-              }],
-              "events": {
-                "click": [{
-                  "type": "propCall",
-                  "calls": "onClose"
-                },{
-                  "type": "stateChange",
-                  "modifies": "fakeState",
-                  "newState": false
-                }]
+          "children": [
+            {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "message"
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "button",
+                "name": "close",
+                "children": [
+                  {
+                    "type": "static",
+                    "content": "Close me"
+                  }
+                ],
+                "events": {
+                  "click": [
+                    {
+                      "type": "propCall",
+                      "calls": "onClose"
+                    },
+                    {
+                      "type": "stateChange",
+                      "modifies": "fakeState",
+                      "newState": false
+                    }
+                  ]
+                }
               }
             }
-          }]
+          ]
         }
       }
     }
