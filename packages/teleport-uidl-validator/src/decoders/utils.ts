@@ -395,6 +395,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       originalName: optional(string()),
       importJustPath: optional(boolean()),
       useAsReference: optional(boolean()),
+      importAlias: optional(string()),
       needsWindowObject: optional(boolean()),
     })
   ),
@@ -408,6 +409,7 @@ export const localDependencyDecoder: Decoder<UIDLLocalDependency> = object({
       namedImport: optional(boolean()),
       originalName: optional(string()),
       importJustPath: optional(boolean()),
+      importAlias: optional(string()),
     })
   ),
 })
