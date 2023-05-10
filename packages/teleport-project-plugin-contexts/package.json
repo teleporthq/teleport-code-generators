@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-contexts",
-  "version": "0.27.3-alpha.0",
+  "version": "0.27.3-alpha.1",
   "description": "A plugin for configuring teleportHQ projects using contexts",
   "author": "teleportHQ",
   "license": "MIT",

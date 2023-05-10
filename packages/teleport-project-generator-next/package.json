@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-next",
-  "version": "0.27.3-alpha.0",
+  "version": "0.27.3-alpha.1",
   "description": "Project generator for a standard Next.js project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -39,7 +39,7 @@
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.27.3-alpha.0",
     "@teleporthq/teleport-project-generator": "^0.27.3-alpha.0",
     "@teleporthq/teleport-project-plugin-api-routes": "^0.27.3-alpha.0",
-    "@teleporthq/teleport-project-plugin-contexts": "^0.27.3-alpha.0",
+    "@teleporthq/teleport-project-plugin-contexts": "^0.27.3-alpha.1",
     "@teleporthq/teleport-shared": "^0.27.3-alpha.0",
     "@teleporthq/teleport-types": "^0.27.3-alpha.0"
   },
