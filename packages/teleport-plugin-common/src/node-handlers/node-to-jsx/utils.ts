@@ -1,6 +1,10 @@
 import * as types from '@babel/types'
 
-import { convertValueToLiteral } from '../../utils/ast-utils'
+import {
+  convertValueToLiteral,
+  createStateStoringFunction,
+  createStateStoringValue,
+} from '../../utils/ast-utils'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
@@ -124,7 +128,7 @@ const createStateChangeStatement = (
   switch (options.stateHandling) {
     case 'hooks':
       return t.expressionStatement(
-        t.callExpression(t.identifier(`set${StringUtils.capitalize(stateKey)}`), [newStateValue])
+        t.callExpression(t.identifier(createStateStoringFunction(stateKey)), [newStateValue])
       )
     case 'function':
       return t.expressionStatement(
@@ -172,6 +176,7 @@ export const createDynamicValueExpression = (
         } on node ${JSON.stringify(identifierContent)}`
       )
     }
+
     return t.memberExpression(
       t.identifier(StringUtils.camelize(contextMeta.providerName)),
       t.identifier(identifierContent.path.join('?.'))
@@ -180,8 +185,11 @@ export const createDynamicValueExpression = (
 
   const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
   return prefix === ''
-    ? t.identifier(identifierContent.id)
-    : t.memberExpression(t.identifier(prefix), t.identifier(identifierContent.id))
+    ? t.identifier(createStateStoringValue(identifierContent.id))
+    : t.memberExpression(
+        t.identifier(prefix),
+        t.identifier(createStateStoringValue(identifierContent.id))
+      )
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier

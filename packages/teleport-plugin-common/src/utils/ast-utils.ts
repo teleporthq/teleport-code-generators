@@ -568,13 +568,18 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(stateKey),
-        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
+        t.identifier(createStateStoringValue(stateKey)),
+        t.identifier(createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
   ])
 }
+
+export const createStateStoringValue = (value: string) =>
+  StringUtils.camelize(StringUtils.dashCaseToCamelCase(value))
+export const createStateStoringFunction = (value: string) =>
+  `set${StringUtils.capitalize(StringUtils.dashCaseToUpperCamelCase(value))}`
 
 export const generateDynamicWindowImport = (
   hookName = 'useEffect',
