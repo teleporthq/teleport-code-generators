@@ -13,6 +13,8 @@ import {
   UIDLStyleSetTokenReference,
   UIDLStaticValue,
   UIDLDynamicReference,
+  UIDLPropDefinition,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -139,6 +141,13 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
           attrValue.content,
           options.assets
         )
+      }
+
+      if (attrValue.type === 'dynamic' && attrValue.content.referenceType === 'prop') {
+        originalElement.attrs[attrKey].content = {
+          referenceType: 'prop',
+          id: StringUtils.createStateOrPropStoringValue(attrValue.content.id),
+        }
       }
     })
   }
@@ -376,7 +385,7 @@ export const prefixAssetURLs = <
 
           /*
             background image such as gradient shouldn't be urls
-            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function
             but we don't compute and generate a url)
           */
           if (!asset.startsWith('/')) {
@@ -406,7 +415,6 @@ const resolveAttributes = (
 ) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
   const resolvedAttrs: Record<string, UIDLAttributeValue> = {}
-
   // This will gather all the attributes from the UIDL which are mapped using the elements-mapping
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
@@ -492,19 +500,29 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
   }
 
   if (uidl.propDefinitions) {
-    Object.keys(uidl.propDefinitions).forEach((prop) => {
-      if (illegalPropNames.includes(prop)) {
-        throw new Error(`Illegal prop key '${prop}'`)
-      }
-    })
+    uidl.propDefinitions = Object.keys(uidl.propDefinitions).reduce(
+      (acc: Record<string, UIDLPropDefinition>, prop) => {
+        if (illegalPropNames.includes(prop)) {
+          throw new Error(`Illegal prop key '${prop}'`)
+        }
+        acc[StringUtils.createStateOrPropStoringValue(prop)] = uidl.propDefinitions[prop]
+        return acc
+      },
+      {}
+    )
   }
 
   if (uidl.stateDefinitions) {
-    Object.keys(uidl.stateDefinitions).forEach((state) => {
-      if (illegalPropNames.includes(state)) {
-        throw new Error(`Illegal state key '${state}'`)
-      }
-    })
+    uidl.stateDefinitions = Object.keys(uidl.stateDefinitions).reduce(
+      (acc: Record<string, UIDLStateDefinition>, state) => {
+        if (illegalPropNames.includes(state)) {
+          throw new Error(`Illegal state key '${state}'`)
+        }
+        acc[StringUtils.createStateOrPropStoringValue(state)] = uidl.stateDefinitions[state]
+        return acc
+      },
+      {}
+    )
   }
 }
 

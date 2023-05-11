@@ -37,6 +37,10 @@ export const slugify = (str: string): string => {
     .replace(/&/g, '-and-') // Replace & with 'and'
 }
 
+export const createStateOrPropStoringValue = (value: string) => camelize(dashCaseToCamelCase(value))
+export const createStateStoringFunction = (value: string) =>
+  `set${capitalize(dashCaseToUpperCamelCase(value))}`
+
 export const addSpacesToEachLine = (spaces: string, str: string) => {
   // indent the first line
   const respaced = spaces + str

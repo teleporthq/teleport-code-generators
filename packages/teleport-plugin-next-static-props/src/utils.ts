@@ -1,6 +1,7 @@
 import * as types from '@babel/types'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { InitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { StringUtils } from '@teleporthq/teleport-shared'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 export const generateInitialPropsAST = (
   initialPropsData: InitialPropsData,
@@ -64,7 +65,7 @@ const computePropsAST = (
         types.identifier('props'),
         types.objectExpression([
           types.objectProperty(
-            types.identifier(propsData.exposeAs.name),
+            types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
             propsData.exposeAs.itemValuePath?.length
               ? ASTUtils.generateMemberExpressionASTFromBase(
                   dataWeNeedAccessorAST,

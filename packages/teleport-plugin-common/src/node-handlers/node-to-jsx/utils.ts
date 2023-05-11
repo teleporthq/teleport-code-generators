@@ -1,10 +1,6 @@
 import * as types from '@babel/types'
 
-import {
-  convertValueToLiteral,
-  createStateStoringFunction,
-  createStateStoringValue,
-} from '../../utils/ast-utils'
+import { convertValueToLiteral } from '../../utils/ast-utils'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLPropDefinition,
@@ -128,7 +124,9 @@ const createStateChangeStatement = (
   switch (options.stateHandling) {
     case 'hooks':
       return t.expressionStatement(
-        t.callExpression(t.identifier(createStateStoringFunction(stateKey)), [newStateValue])
+        t.callExpression(t.identifier(StringUtils.createStateStoringFunction(stateKey)), [
+          newStateValue,
+        ])
       )
     case 'function':
       return t.expressionStatement(
@@ -185,10 +183,10 @@ export const createDynamicValueExpression = (
 
   const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
   return prefix === ''
-    ? t.identifier(createStateStoringValue(identifierContent.id))
+    ? t.identifier(StringUtils.createStateOrPropStoringValue(identifierContent.id))
     : t.memberExpression(
         t.identifier(prefix),
-        t.identifier(createStateStoringValue(identifierContent.id))
+        t.identifier(StringUtils.createStateOrPropStoringValue(identifierContent.id))
       )
 }
 

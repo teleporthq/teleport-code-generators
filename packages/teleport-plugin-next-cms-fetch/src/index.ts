@@ -8,7 +8,7 @@ import {
   UIDLCMSListNodeContent,
   UIDLNode,
 } from '@teleporthq/teleport-types'
-import { Constants, UIDLUtils } from '@teleporthq/teleport-shared'
+import { Constants, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
@@ -58,9 +58,9 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
       const loadingStateName = content.loadingStatePersistanceName
       const errorStateName = content.errorStatePersistanceName
 
-      const setStateName = ASTUtils.createStateStoringFunction(stateName)
-      const setLoadingStateName = ASTUtils.createStateStoringFunction(loadingStateName)
-      const setErrorStateName = ASTUtils.createStateStoringFunction(errorStateName)
+      const setStateName = StringUtils.createStateStoringFunction(stateName)
+      const setLoadingStateName = StringUtils.createStateStoringFunction(loadingStateName)
+      const setErrorStateName = StringUtils.createStateStoringFunction(errorStateName)
 
       const useEffectCall = computeUseEffectAST({
         resource,
