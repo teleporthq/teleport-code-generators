@@ -685,8 +685,6 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
     resourceMappers: optional(
       array(
         object({
@@ -709,8 +707,6 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     }),
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),

@@ -368,6 +368,15 @@ export const prefixAssetURLs = <
 
     switch (styleValue.type) {
       case 'dynamic':
+        if (styleValue.content.referenceType === 'prop') {
+          acc[styleKey] = {
+            type: styleValue.type,
+            content: {
+              referenceType: styleValue.content.referenceType,
+              id: StringUtils.createStateOrPropStoringValue(styleValue.content.id),
+            },
+          } as T
+        }
         acc[styleKey] = styleValue
         return acc
       case 'static':

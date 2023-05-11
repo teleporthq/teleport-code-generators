@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { readFileSync, mkdirSync, rmdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
@@ -72,14 +73,14 @@ const run = async () => {
     let result
 
     /* Plain Html Generator */
-    await log(async () => {
-      result = await packProject(projectUIDL as unknown as ProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.HTML,
-      })
-      console.info(ProjectType.HTML, '-', result.payload)
-      return ProjectType.HTML
-    })
+    // await log(async () => {
+    //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.HTML,
+    //   })
+    //   console.info(ProjectType.HTML, '-', result.payload)
+    //   return ProjectType.HTML
+    // })
 
     /* CMS uidl */
     await log(async () => {

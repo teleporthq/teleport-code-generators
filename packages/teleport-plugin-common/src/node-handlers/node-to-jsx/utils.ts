@@ -123,11 +123,7 @@ const createStateChangeStatement = (
 
   switch (options.stateHandling) {
     case 'hooks':
-      return t.expressionStatement(
-        t.callExpression(t.identifier(StringUtils.createStateStoringFunction(stateKey)), [
-          newStateValue,
-        ])
-      )
+      return t.expressionStatement(t.callExpression(t.identifier(stateKey), [newStateValue]))
     case 'function':
       return t.expressionStatement(
         t.callExpression(t.identifier('this.setState'), [

@@ -313,8 +313,6 @@ export interface UIDLCMSListNodeContent {
   }
   resourceId?: string
   statePersistanceName?: string
-  loadingStatePersistanceName?: string
-  errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]

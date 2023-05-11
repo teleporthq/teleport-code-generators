@@ -210,7 +210,13 @@ const generateCMSItemNode: NodeToJSX<
   Array<types.JSXElement | types.LogicalExpression>
 > = (node, params, options) => {
   const { success, error, loading } = node.content.nodes
-  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
+  const { statePersistanceName } = node.content
+  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${statePersistanceName}Loading`
+  )
+  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${statePersistanceName}Error`
+  )
 
   const errorNodeAST =
     error && errorStatePersistanceName
@@ -251,8 +257,14 @@ const generateCMSListNode: NodeToJSX<
   UIDLCMSListNode,
   Array<types.JSXExpressionContainer | types.LogicalExpression>
 > = (node, params, options) => {
-  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
   const { success, empty, error, loading } = node.content.nodes
+  const { statePersistanceName } = node.content
+  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${statePersistanceName}Loading`
+  )
+  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${statePersistanceName}Error`
+  )
 
   const listNodeAST = !!success
     ? (generateNode(success, params, options) as types.JSXElement[])[0]
