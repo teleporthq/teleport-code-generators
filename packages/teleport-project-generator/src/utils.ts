@@ -172,10 +172,18 @@ export const extractPageOptions = (
     // default values extracted from state name
     fileName: friendlyFileName,
     componentName: friendlyComponentName,
-    pagination: pageDefinition?.pageOptions?.pagination,
-    dynamicRouteAttribute: pageDefinition?.pageOptions?.dynamicRouteAttribute,
-    initialPropsData: pageDefinition?.pageOptions?.initialPropsData,
-    initialPathsData: pageDefinition?.pageOptions?.initialPathsData,
+    ...(pageDefinition?.pageOptions?.pagination && {
+      pagination: pageDefinition.pageOptions.pagination,
+    }),
+    ...(pageDefinition?.pageOptions?.dynamicRouteAttribute && {
+      dynamicRouteAttribute: pageDefinition.pageOptions.dynamicRouteAttribute,
+    }),
+    ...(pageDefinition?.pageOptions?.initialPropsData && {
+      initialPropsData: pageDefinition?.pageOptions?.initialPropsData,
+    }),
+    ...(pageDefinition?.pageOptions?.initialPathsData && {
+      initialPathsData: pageDefinition?.pageOptions?.initialPathsData,
+    }),
     navLink: pageDefinition?.pageOptions?.fallback
       ? '**'
       : '/' + (isHomePage ? '' : friendlyFileName),

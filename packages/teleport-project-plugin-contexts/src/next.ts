@@ -12,7 +12,9 @@ export const nextBeforeModifier = async (structure: ProjectPluginStructure) => {
   const { rootFolder = 'contexts', items = {} } = structure.uidl.contexts || {}
 
   Object.keys(items).forEach((key) => {
-    const firstCharCapitalized = StringUtils.capitalize(items[key].name)
+    const firstCharCapitalized = StringUtils.capitalize(
+      StringUtils.dashCaseToCamelCase(StringUtils.removeIllegalCharacters(items[key].name))
+    )
     const contextName = `${firstCharCapitalized}Context`
 
     const contextContent = prettierJS({

@@ -54,6 +54,8 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           mapping: {},
+          projectContexts: {},
+          projectResources: {},
           skipValidation: true,
         })
       )
@@ -117,6 +119,8 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
+          projectContexts: {},
+          projectResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -134,6 +138,8 @@ describe('Generic Project Generator', () => {
           },
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
+          projectContexts: {},
+          projectResources: {},
           mapping: {},
           skipValidation: true,
         }
@@ -184,6 +190,8 @@ describe('Generic Project Generator', () => {
             mappings: {},
             prefix: '/test/static',
           },
+          projectContexts: {},
+          projectResources: {},
           designLanguage: undefined,
           projectRouteDefinition: uidl.root.stateDefinitions.route,
           mapping: {},

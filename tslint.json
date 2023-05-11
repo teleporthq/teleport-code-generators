@@ -5,12 +5,28 @@
     "tslint-config-prettier"
   ],
   "rules": {
-    "array-type": [true, "array-simple"],
+    "array-type": [
+      true,
+      "array-simple"
+    ],
     "curly": true,
-    "interface-name": [true, "never-prefix"],
+    "interface-name": [
+      true,
+      "never-prefix"
+    ],
     "max-classes-per-file": false,
-    "member-ordering": [true, {"order": "statics-first"}],
-    "no-any": [true, {"ignore-rest-args": true}],
+    "member-ordering": [
+      true,
+      {
+        "order": "statics-first"
+      }
+    ],
+    "no-any": [
+      true,
+      {
+        "ignore-rest-args": true
+      }
+    ],
     "no-arg": true,
     "no-bitwise": true,
     "no-console": [
@@ -19,8 +35,7 @@
       "error",
       "debug",
       "time",
-      "timeEnd",
-      "trace"
+      "timeEnd"
     ],
     "no-debugger": true,
     "no-implicit-dependencies": false,
@@ -28,7 +43,12 @@
     "no-shadowed-variable": true,
     "no-submodule-imports": false,
     "no-switch-case-fall-through": true,
-    "no-this-assignment": [true, {"allow-destructuring": true}],
+    "no-this-assignment": [
+      true,
+      {
+        "allow-destructuring": true
+      }
+    ],
     "no-null-undefined-union": true,
     "object-literal-sort-keys": false,
     "ordered-imports": false,
