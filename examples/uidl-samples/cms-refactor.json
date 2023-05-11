@@ -10485,10 +10485,12 @@
           },
           "normalize": {
             "type": "package",
-            "version": "0.0.0",
-            "path": "@teleporthq/teleport-cms-mappers/contentful",
+            "version": "git+https://github.com/teleporthq/teleport-cms-mappers.git",
+            "path": "normalize",
             "meta": {
-              "namedImport": true
+              "namedImport": true,
+              "originalName": "normalize",
+              "importAlias": "normalize/contentful"
             }
           }
         },
@@ -10575,10 +10577,12 @@
           },
           "normalize": {
             "type": "package",
-            "version": "0.0.0",
-            "path": "@teleporthq/teleport-cms-mappers/contentful",
+            "version": "git+https://github.com/teleporthq/teleport-cms-mappers.git",
+            "path": "normalize",
             "meta": {
-              "namedImport": true
+              "namedImport": true,
+              "originalName": "normalize",
+              "importAlias": "normalize/contentful"
             }
           }
         },

@@ -35,7 +35,16 @@ const computePropsAST = (
   const declerationAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('response'),
-      types.awaitExpression(types.callExpression(types.identifier(resourceImportName), []))
+      types.awaitExpression(
+        types.callExpression(types.identifier(resourceImportName), [
+          types.optionalMemberExpression(
+            types.identifier('context'),
+            types.identifier('params'),
+            false,
+            true
+          ),
+        ])
+      )
     ),
   ])
 
