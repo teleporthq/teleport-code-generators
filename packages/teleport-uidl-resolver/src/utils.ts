@@ -168,6 +168,12 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
       })
   }
 
+  originalElement?.children?.forEach((child) => {
+    if (child.type === 'dynamic' && ['state', 'prop'].includes(child.content.referenceType)) {
+      child.content.id = StringUtils.createStateOrPropStoringValue(child.content.id)
+    }
+  })
+
   if (mappedElement.children) {
     originalElement.children = resolveChildren(mappedElement.children, originalElement.children)
 

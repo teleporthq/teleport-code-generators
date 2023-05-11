@@ -123,7 +123,11 @@ const createStateChangeStatement = (
 
   switch (options.stateHandling) {
     case 'hooks':
-      return t.expressionStatement(t.callExpression(t.identifier(stateKey), [newStateValue]))
+      return t.expressionStatement(
+        t.callExpression(t.identifier(StringUtils.createStateStoringFunction(stateKey)), [
+          newStateValue,
+        ])
+      )
     case 'function':
       return t.expressionStatement(
         t.callExpression(t.identifier('this.setState'), [
@@ -179,11 +183,8 @@ export const createDynamicValueExpression = (
 
   const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
   return prefix === ''
-    ? t.identifier(StringUtils.createStateOrPropStoringValue(identifierContent.id))
-    : t.memberExpression(
-        t.identifier(prefix),
-        t.identifier(StringUtils.createStateOrPropStoringValue(identifierContent.id))
-      )
+    ? t.identifier(identifierContent.id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(identifierContent.id))
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier
