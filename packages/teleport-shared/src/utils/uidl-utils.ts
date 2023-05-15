@@ -637,11 +637,21 @@ export const transformStylesAssignmentsToJson = (
 
     if (!Array.isArray(styleContentAtKey) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type } = styleContentAtKey as Record<string, unknown>
+      const { type, content } = styleContentAtKey as UIDLStaticValue | UIDLDynamicReference
 
-      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = styleContentAtKey as UIDLStyleValue
+      if (type === 'static') {
+        acc[key] = styleContentAtKey as UIDLStaticValue
         return acc
+      }
+
+      if (type === 'dynamic' && ['state', 'prop'].includes(content?.referenceType)) {
+        acc[key] = {
+          type,
+          content: {
+            ...content,
+            id: StringUtils.createStateOrPropStoringValue(content.id),
+          },
+        }
       }
 
       return acc
@@ -678,9 +688,23 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
+      if (['static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
+      }
+
+      const { content } = attributeContent as UIDLDynamicReference
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          return (acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          })
+        }
+        return (acc[key] = attributeContent as UIDLAttributeValue)
       }
 
       throw new Error(

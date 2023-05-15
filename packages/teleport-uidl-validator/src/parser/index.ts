@@ -17,6 +17,9 @@ import {
   UIDLGlobalAsset,
   UIDLRootComponent,
   VUIDLLinkNode,
+  UIDLCMSItemNode,
+  UIDLPropDefinition,
+  UIDLStateDefinition,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -28,6 +31,30 @@ export const parseComponentJSON = (
   params: ParseComponentJSONParams = {}
 ): ComponentUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
+
+  if (safeInput.propDefinitions) {
+    safeInput.propDefinitions = Object.keys(safeInput.propDefinitions).reduce(
+      (acc: Record<string, UIDLPropDefinition>, prop) => {
+        acc[StringUtils.createStateOrPropStoringValue(prop)] = (
+          safeInput.propDefinitions as Record<string, UIDLPropDefinition>
+        )[prop]
+        return acc
+      },
+      {}
+    )
+  }
+
+  if (safeInput.stateDefinitions) {
+    safeInput.stateDefinitions = Object.keys(safeInput.stateDefinitions).reduce(
+      (acc: Record<string, UIDLStateDefinition>, state) => {
+        acc[StringUtils.createStateOrPropStoringValue(state)] = (
+          safeInput.stateDefinitions as Record<string, UIDLStateDefinition>
+        )[state]
+        return acc
+      },
+      {}
+    )
+  }
 
   if (safeInput?.styleSetDefinitions) {
     const { styleSetDefinitions } = safeInput
@@ -122,6 +149,25 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
     case 'cms-list':
     case 'element':
       const elementContent = node.content as Record<string, unknown>
+
+      if (node.type === 'cms-item') {
+        const {
+          nodes: { success, error },
+        } = (node as unknown as UIDLCMSItemNode).content
+
+        if (success) {
+          success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            success?.content?.attrs || {}
+          )
+        }
+
+        if (error) {
+          error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            error?.content?.attrs || {}
+          )
+        }
+      }
+
       if (elementContent.hasOwnProperty('loopItemsReference')) {
         const { loopItemsReference } = elementContent as {
           loopItemsReference: {
