@@ -210,19 +210,22 @@ const generateCMSItemNode: NodeToJSX<
   Array<types.JSXElement | types.LogicalExpression>
 > = (node, params, options) => {
   const { success, error, loading } = node.content.nodes
-  const { statePersistanceName } = node.content
-  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${statePersistanceName}Loading`
-  )
-  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${statePersistanceName}Error`
-  )
+  /*
+   * TODO:
+   * Adding `loading` and `error` states at the moment are being conntrolled by the UIDL.
+   * But this needs to be changed, the generators itself should make the decision. Depending
+   * on the style flavour that is being ued.
+   */
+  const { statePersistanceName, loadingStatePersistanceName, errorStatePersistanceName } =
+    node.content
+  const loadingState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Loading`)
+  const errorState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Error`)
 
   const errorNodeAST =
     error && errorStatePersistanceName
       ? types.logicalExpression(
           '&&',
-          types.identifier(errorStatePersistanceName),
+          types.identifier(errorState),
           generateElementNode(error, params, options) as types.JSXElement
         )
       : null
@@ -231,7 +234,7 @@ const generateCMSItemNode: NodeToJSX<
     loading && loadingStatePersistanceName
       ? types.logicalExpression(
           '&&',
-          types.identifier(loadingStatePersistanceName),
+          types.identifier(loadingState),
           generateElementNode(loading, params, options) as types.JSXElement
         )
       : null
@@ -244,8 +247,8 @@ const generateCMSItemNode: NodeToJSX<
           '&&',
           types.logicalExpression(
             '&&',
-            types.unaryExpression('!', types.identifier(loadingStatePersistanceName)),
-            types.unaryExpression('!', types.identifier(errorStatePersistanceName))
+            types.unaryExpression('!', types.identifier(loadingState)),
+            types.unaryExpression('!', types.identifier(errorState))
           ),
           successElementAST
         )
