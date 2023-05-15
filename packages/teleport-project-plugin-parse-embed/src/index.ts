@@ -1,5 +1,11 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import { ProjectPluginStructure, ProjectPlugin, UIDLElementNode } from '@teleporthq/teleport-types'
+import {
+  ProjectPluginStructure,
+  ProjectPlugin,
+  UIDLElementNode,
+  UIDLRootComponent,
+  ComponentUIDL,
+} from '@teleporthq/teleport-types'
 import { SUPPORTED_PROJECT_TYPES, JS_EXECUTION_DEPENDENCIES } from './utils'
 
 const NODE_MAPPER: Record<SUPPORTED_PROJECT_TYPES, Promise<(content: unknown) => string>> = {
@@ -33,13 +39,12 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     return new Promise((resolve, reject) => {
       try {
         let shouldAddJSDependency = false
-        UIDLUtils.traverseElements(node, async (element) => {
+        UIDLUtils.traverseElements(node, (element) => {
           if (element.elementType === 'html-node' && element.attrs?.html && NODE_MAPPER[id]) {
-            const hastNodes = (await this.loadFromHTML())(element.attrs.html.content as string, {
+            const hastNodes = this.fromHtml(element.attrs.html.content as string, {
               fragment: true,
             })
-            const content = (await this.loadNodeMapper(id))(hastNodes)
-
+            const content = this.hastToJsxOrHtml(hastNodes)
             element.elementType = 'container'
             element.attrs = {}
             element.style = { display: { type: 'static', content: 'contents' } }
@@ -50,11 +55,12 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
               },
             ]
 
-            if (content.includes('<Script')) {
+            if (content.includes('<Script>')) {
               shouldAddJSDependency = true
             }
           }
         })
+
         resolve(shouldAddJSDependency)
       } catch (error) {
         reject(error)
@@ -62,39 +68,39 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     })
   }
 
+  async traverseNodeAndAddImport(
+    componentUIDL: UIDLRootComponent | ComponentUIDL,
+    projectType: SUPPORTED_PROJECT_TYPES
+  ) {
+    const shouldAddJSDependency = await this.traverseComponentUIDL(componentUIDL.node, projectType)
+
+    if (shouldAddJSDependency) {
+      componentUIDL.importDefinitions = {
+        ...(componentUIDL?.importDefinitions || {}),
+        ...JS_EXECUTION_DEPENDENCIES[projectType],
+      }
+    }
+  }
+
   async runBefore(structure: ProjectPluginStructure) {
+    await this.loadFromHTML()
     const projectType = structure.strategy.id as SUPPORTED_PROJECT_TYPES
+    await this.loadNodeMapper(projectType)
+
     if (!NODE_MAPPER[projectType]) {
       return structure
     }
 
-    const shouldAddJSDependency = await this.traverseComponentUIDL(
-      structure.uidl.root.node,
-      projectType
-    )
-
-    if (shouldAddJSDependency) {
-      structure.uidl.root.importDefinitions = {
-        ...(structure.uidl.root?.importDefinitions || {}),
-        ...JS_EXECUTION_DEPENDENCIES[projectType],
-      }
-    }
-
+    const promises: Array<Promise<void>> = []
+    promises.push(this.traverseNodeAndAddImport(structure.uidl.root, projectType))
     const components = Object.keys(structure.uidl?.components || {})
     for (let i = 0; i < components.length; i++) {
-      const isJSNodeProcessed = await this.traverseComponentUIDL(
-        structure.uidl.components[components[i]].node,
-        projectType
+      promises.push(
+        this.traverseNodeAndAddImport(structure.uidl.components[components[i]], projectType)
       )
-
-      if (isJSNodeProcessed) {
-        structure.uidl.components[components[i]].importDefinitions = {
-          ...(structure.uidl.components[components[i]]?.importDefinitions || {}),
-          ...JS_EXECUTION_DEPENDENCIES[projectType],
-        }
-      }
     }
 
+    await Promise.all(promises)
     return structure
   }
 

@@ -141,7 +141,7 @@ export const prefixAssetsPath = (
      - asset is missing in the project packer
      - It's not a asset and so we don't need to provide any mapping for it
 
-    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas 
+    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas
     the src / url leading to the asset can be encoded and we need to check the decoded version against the asset mapping
   */
 

@@ -167,7 +167,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
-
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
