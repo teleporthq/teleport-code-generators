@@ -48,7 +48,6 @@ class ProjectAssemblyLine {
     )
 
     return {
-      uidl: finalStructure.uidl,
       files: finalStructure.files,
       dependencies: finalStructure.dependencies,
       devDependencies: finalStructure.devDependencies,
