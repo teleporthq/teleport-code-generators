@@ -5,6 +5,7 @@ import {
   FileType,
   TeleportError,
 } from '@teleporthq/teleport-types'
+import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPathsAST } from './utils'
 
 interface StaticPropsPluginConfig {
@@ -33,6 +34,10 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       )
     }
 
+    const resourceImportName = StringUtils.dashCaseToCamelCase(
+      StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
+    )
+
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
@@ -40,7 +45,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
     const getStaticPathsAST = generateInitialPathsAST(
       uidl.outputOptions.initialPathsData,
-      undefined,
+      resourceImportName,
       uidl.outputOptions.pagination
     )
 

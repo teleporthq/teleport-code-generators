@@ -194,7 +194,6 @@ export interface UIDLInitialPropsData {
   resourceId: {
     type: 'static'
     content: string
-    /* TODO: Add a new value called `params` which computes the values and pass to the fetcher */
   }
 }
 
