@@ -333,7 +333,12 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
 export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
   attribute: string(),
   pageSize: number(),
-  totalCountPath: optional(array(string())),
+  totalCountPath: optional(
+    object({
+      type: union(constant('headers'), constant('body')),
+      path: array(union(string(), number())),
+    })
+  ),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
