@@ -178,7 +178,11 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
-        const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
+        const errorMsg = `"${
+          node.content.id
+        }" is used but not defined. Please add it in propDefinitions \n Used on Node ${JSON.stringify(
+          node.content
+        )}`
         errors.push(errorMsg)
       }
 

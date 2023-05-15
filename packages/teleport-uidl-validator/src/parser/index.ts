@@ -32,24 +32,22 @@ export const parseComponentJSON = (
 ): ComponentUIDL => {
   const safeInput = params.noClone ? input : UIDLUtils.cloneObject(input)
 
-  if (safeInput.propDefinitions) {
+  if (safeInput?.propDefinitions) {
     safeInput.propDefinitions = Object.keys(safeInput.propDefinitions).reduce(
       (acc: Record<string, UIDLPropDefinition>, prop) => {
-        acc[StringUtils.createStateOrPropStoringValue(prop)] = (
-          safeInput.propDefinitions as Record<string, UIDLPropDefinition>
-        )[prop]
+        const propName = StringUtils.createStateOrPropStoringValue(prop)
+        acc[propName] = (safeInput.propDefinitions as Record<string, UIDLPropDefinition>)[prop]
         return acc
       },
       {}
     )
   }
 
-  if (safeInput.stateDefinitions) {
+  if (safeInput?.stateDefinitions) {
     safeInput.stateDefinitions = Object.keys(safeInput.stateDefinitions).reduce(
       (acc: Record<string, UIDLStateDefinition>, state) => {
-        acc[StringUtils.createStateOrPropStoringValue(state)] = (
-          safeInput.stateDefinitions as Record<string, UIDLStateDefinition>
-        )[state]
+        const stateName = StringUtils.createStateOrPropStoringValue(state)
+        acc[stateName] = (safeInput.stateDefinitions as Record<string, UIDLStateDefinition>)[state]
         return acc
       },
       {}
@@ -57,9 +55,7 @@ export const parseComponentJSON = (
   }
 
   if (safeInput?.styleSetDefinitions) {
-    const { styleSetDefinitions } = safeInput
-
-    Object.values(styleSetDefinitions).forEach((styleRef) => {
+    Object.values(safeInput?.styleSetDefinitions).forEach((styleRef) => {
       const { conditions = [] } = styleRef
       styleRef.content = UIDLUtils.transformStylesAssignmentsToJson(styleRef.content)
       if (conditions.length > 0) {

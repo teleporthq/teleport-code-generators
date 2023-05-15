@@ -140,6 +140,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   if (!selfClosing && children) {
     children.forEach((child) => {
       const childTags = generateNode(child, params, options)
+
       childTags.forEach((childTag) => {
         if (typeof childTag === 'string') {
           addChildJSXText(elementTag, childTag)

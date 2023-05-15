@@ -644,13 +644,17 @@ export const transformStylesAssignmentsToJson = (
         return acc
       }
 
-      if (type === 'dynamic' && ['state', 'prop'].includes(content?.referenceType)) {
-        acc[key] = {
-          type,
-          content: {
-            ...content,
-            id: StringUtils.createStateOrPropStoringValue(content.id),
-          },
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          }
+        } else {
+          acc[key] = styleContentAtKey as UIDLDynamicReference
         }
       }
 
@@ -696,15 +700,17 @@ export const transformAttributesAssignmentsToJson = (
       const { content } = attributeContent as UIDLDynamicReference
       if (type === 'dynamic') {
         if (['state', 'prop'].includes(content?.referenceType)) {
-          return (acc[key] = {
+          acc[key] = {
             type,
             content: {
               ...content,
               id: StringUtils.createStateOrPropStoringValue(content.id),
             },
-          })
+          }
+        } else {
+          acc[key] = attributeContent as UIDLAttributeValue
         }
-        return (acc[key] = attributeContent as UIDLAttributeValue)
+        return acc
       }
 
       throw new Error(
@@ -715,14 +721,6 @@ export const transformAttributesAssignmentsToJson = (
         )}`
       )
     }
-
-    throw new Error(
-      `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
-        attributeContent,
-        null,
-        2
-      )}`
-    )
   }, newStyleObject)
 
   return newStyleObject
