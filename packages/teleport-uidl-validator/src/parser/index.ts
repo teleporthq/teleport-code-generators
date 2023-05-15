@@ -120,28 +120,29 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list':
-      const { loopItemsReference } = node.content as {
-        loopItemsReference: {
-          type: string
-          content: {
-            referenceType: string
-            id: string
-          }
-        }
-      }
-
-      if (
-        loopItemsReference &&
-        loopItemsReference?.type === 'dynamic' &&
-        ['state', 'prop'].includes(loopItemsReference?.content.referenceType)
-      ) {
-        loopItemsReference.content.id = StringUtils.createStateOrPropStoringValue(
-          loopItemsReference.content.id
-        )
-      }
-      break
     case 'element':
       const elementContent = node.content as Record<string, unknown>
+      if (elementContent.hasOwnProperty('loopItemsReference')) {
+        const { loopItemsReference } = elementContent as {
+          loopItemsReference: {
+            type: string
+            content: {
+              referenceType: string
+              id: string
+            }
+          }
+        }
+
+        if (
+          loopItemsReference &&
+          loopItemsReference?.type === 'dynamic' &&
+          ['state', 'prop'].includes(loopItemsReference?.content.referenceType)
+        ) {
+          loopItemsReference.content.id = StringUtils.createStateOrPropStoringValue(
+            loopItemsReference.content.id
+          )
+        }
+      }
 
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {

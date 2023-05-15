@@ -425,7 +425,7 @@ export const checStylekContentForErrors = (
       typeof styleContent.content !== 'number'
     ) {
       errors.push(
-        `Project Style sheet / styleSetDefinitions only support styles with static 
+        `Project Style sheet / styleSetDefinitions only support styles with static
         content and dynamic tokens, received ${styleContent}`
       )
     }
