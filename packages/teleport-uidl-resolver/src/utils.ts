@@ -156,13 +156,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
           options.assets
         )
       }
-
-      if (attrValue.type === 'dynamic' && attrValue.content.referenceType === 'prop') {
-        originalElement.attrs[attrKey].content = {
-          referenceType: 'prop',
-          id: StringUtils.createStateOrPropStoringValue(attrValue.content.id),
-        }
-      }
     })
   }
 
@@ -181,25 +174,6 @@ export const resolveElement = (element: UIDLElement, options: GeneratorOptions) 
         delete originalElement.attrs[key]
       })
   }
-
-  originalElement?.children?.forEach((child) => {
-    if (child.type === 'dynamic' && ['state', 'prop'].includes(child.content.referenceType)) {
-      child.content.id = StringUtils.createStateOrPropStoringValue(child.content.id)
-    }
-
-    if (child.type === 'cms-list') {
-      const { loopItemsReference } = child.content
-
-      if (
-        loopItemsReference.type === 'dynamic' &&
-        ['state', 'prop'].includes(loopItemsReference.content.referenceType)
-      ) {
-        loopItemsReference.content.id = StringUtils.createStateOrPropStoringValue(
-          loopItemsReference.content.id
-        )
-      }
-    }
-  })
 
   if (mappedElement.children) {
     originalElement.children = resolveChildren(mappedElement.children, originalElement.children)
@@ -406,7 +380,7 @@ export const prefixAssetURLs = <
             type: styleValue.type,
             content: {
               referenceType: styleValue.content.referenceType,
-              id: StringUtils.createStateOrPropStoringValue(styleValue.content.id),
+              id: styleValue.content.id,
             },
           } as T
         }

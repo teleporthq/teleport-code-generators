@@ -1,5 +1,4 @@
-import { UIDLUtils } from '@teleporthq/teleport-shared'
-
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   UIDLDynamicReference,
   ComponentUIDL,
@@ -17,6 +16,7 @@ import {
   VUIDLGlobalAsset,
   UIDLGlobalAsset,
   UIDLRootComponent,
+  VUIDLLinkNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -120,6 +120,26 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list':
+      const { loopItemsReference } = node.content as {
+        loopItemsReference: {
+          type: string
+          content: {
+            referenceType: string
+            id: string
+          }
+        }
+      }
+
+      if (
+        loopItemsReference &&
+        loopItemsReference?.type === 'dynamic' &&
+        ['state', 'prop'].includes(loopItemsReference?.content.referenceType)
+      ) {
+        loopItemsReference.content.id = StringUtils.createStateOrPropStoringValue(
+          loopItemsReference.content.id
+        )
+      }
+      break
     case 'element':
       const elementContent = node.content as Record<string, unknown>
 
@@ -169,10 +189,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         )
       }
 
-      // @ts-ignore
-      if (elementContent.abilities?.link) {
-        // @ts-ignore
-        const { content, type } = elementContent.abilities?.link
+      if (elementContent?.abilities?.hasOwnProperty('link')) {
+        const { content, type } = (elementContent.abilities as { link: VUIDLLinkNode }).link
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
         }

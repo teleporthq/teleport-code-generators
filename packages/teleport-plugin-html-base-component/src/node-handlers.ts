@@ -424,7 +424,13 @@ const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
 ): string => {
-  const usedReferenceValue = definitions[key]
+  /*
+   * Reason for checking using `createStateOrPropStoringValues
+   * HTML generators are run in a nested way. And they are not passed through
+   * parser which is responsible for converting this. So, the nodes will miss
+   * the name conversion for these nodes.
+   */
+  const usedReferenceValue = definitions[StringUtils.createStateOrPropStoringValue(key)]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(

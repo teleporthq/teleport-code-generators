@@ -3262,16 +3262,18 @@
                           "content": {
                             "elementType": "markdown-node",
                             "referencedStyles": {},
-                            "children": [{
-                              "type": "dynamic",
-                              "content": {
-                                "id": "6a27e84c-13eb-4b7f-9ee2-8cf7a6e6399d",
-                                "referenceType": "ctx",
-                                "path": [
-                                  "content"
-                                ]
+                            "children": [
+                              {
+                                "type": "dynamic",
+                                "content": {
+                                  "id": "6a27e84c-13eb-4b7f-9ee2-8cf7a6e6399d",
+                                  "referenceType": "ctx",
+                                  "path": [
+                                    "content"
+                                  ]
+                                }
                               }
-                            }],
+                            ],
                             "style": {},
                             "attrs": {}
                           }
