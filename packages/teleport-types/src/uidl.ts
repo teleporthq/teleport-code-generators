@@ -337,10 +337,14 @@ export interface UIDLCMSListNodeContent {
     empty?: UIDLElementNode
   }
   resourceId?: string
+<<<<<<< Updated upstream
   statePersistanceName?: string
   loadingStatePersistanceName?: string
   errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
+=======
+  reference: UIDLDynamicReference
+>>>>>>> Stashed changes
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
@@ -352,10 +356,8 @@ export interface UIDLCMSItemNodeContent {
     error?: UIDLElementNode
     loading?: UIDLElementNode
   }
+  reference: UIDLDynamicReference
   resourceId?: string
-  statePersistanceName?: string
-  loadingStatePersistanceName?: string
-  errorStatePersistanceName?: string
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
@@ -642,9 +644,9 @@ export type UIDLElementStyleStates =
 
 export interface UIDLStyleSetDefinition {
   type:
-    | 'reusable-project-style-map'
-    | 'reusable-component-style-map'
-    | 'reusable-component-style-override'
+  | 'reusable-project-style-map'
+  | 'reusable-component-style-map'
+  | 'reusable-component-style-override'
   conditions?: UIDLStyleSetConditions[]
   content: Record<string, UIDLStyleSheetContent>
   /**

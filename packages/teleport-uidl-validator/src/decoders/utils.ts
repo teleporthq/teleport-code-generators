@@ -695,7 +695,6 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
     }),
     resourceId: optional(string()),
-    statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
     loadingStatePersistanceName: optional(string()),
@@ -721,12 +720,15 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
     resourceId: optional(string()),
+<<<<<<< Updated upstream
     statePersistanceName: optional(string()),
     loadingStatePersistanceName: optional(string()),
     errorStatePersistanceName: optional(string()),
+=======
+>>>>>>> Stashed changes
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
-    loopItemsReference: optional(attributeValueDecoder),
+    loopItemsReference: optional(dynamicValueDecoder),
     resourceMappers: optional(
       array(
         object({

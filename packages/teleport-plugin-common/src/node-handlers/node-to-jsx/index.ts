@@ -210,24 +210,46 @@ const generateCMSItemNode: NodeToJSX<
   Array<types.JSXElement | types.LogicalExpression>
 > = (node, params, options) => {
   const { success, error, loading } = node.content.nodes
+<<<<<<< Updated upstream
   const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
+=======
+  const { loopItemsReference } = node.content
+  const { content, type } = loopItemsReference
+
+  /*
+  * CMS list node can only be a dynamic !!
+  */
+  if (type !== 'dynamic' && !content.id) {
+    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
+      Missing loopItemsReference`)
+  }
+
+  const
+
+  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${content.id}Loading`
+  )
+  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${content.id}Error`
+  )
+>>>>>>> Stashed changes
 
   const errorNodeAST =
     error && errorStatePersistanceName
       ? types.logicalExpression(
-          '&&',
-          types.identifier(errorStatePersistanceName),
-          generateElementNode(error, params, options) as types.JSXElement
-        )
+        '&&',
+        types.identifier(errorStatePersistanceName),
+        generateElementNode(error, params, options) as types.JSXElement
+      )
       : null
 
   const loadingNodeAST =
     loading && loadingStatePersistanceName
       ? types.logicalExpression(
-          '&&',
-          types.identifier(loadingStatePersistanceName),
-          generateElementNode(loading, params, options) as types.JSXElement
-        )
+        '&&',
+        types.identifier(loadingStatePersistanceName),
+        generateElementNode(loading, params, options) as types.JSXElement
+      )
       : null
 
   const successElementAST = generateElementNode(success, params, options)
@@ -235,14 +257,14 @@ const generateCMSItemNode: NodeToJSX<
     !loadingStatePersistanceName || !errorStatePersistanceName
       ? successElementAST
       : types.logicalExpression(
+        '&&',
+        types.logicalExpression(
           '&&',
-          types.logicalExpression(
-            '&&',
-            types.unaryExpression('!', types.identifier(loadingStatePersistanceName)),
-            types.unaryExpression('!', types.identifier(errorStatePersistanceName))
-          ),
-          successElementAST
-        )
+          types.unaryExpression('!', types.identifier(loadingStatePersistanceName)),
+          types.unaryExpression('!', types.identifier(errorStatePersistanceName))
+        ),
+        successElementAST
+      )
 
   return [...(loading ? [loadingNodeAST] : []), ...(error ? [errorNodeAST] : []), successAST]
 }
@@ -253,6 +275,28 @@ const generateCMSListNode: NodeToJSX<
 > = (node, params, options) => {
   const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
   const { success, empty, error, loading } = node.content.nodes
+<<<<<<< Updated upstream
+=======
+  const { loopItemsReference } = node.content
+  const { content, type } = loopItemsReference
+
+  /*
+  * CMS list node can only be a dynamic !!
+  */
+  if (type !== 'dynamic' && !content.id) {
+    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
+      Missing loopItemsReference`)
+  }
+
+  const
+
+  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${content.id}Loading`
+  )
+  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
+    `${content.id}Error`
+  )
+>>>>>>> Stashed changes
 
   const listNodeAST = !!success
     ? (generateNode(success, params, options) as types.JSXElement[])[0]
@@ -264,10 +308,10 @@ const generateCMSListNode: NodeToJSX<
     : null
   const emptyNodeExpressionAST = empty
     ? types.logicalExpression(
-        '&&',
-        types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
-        emptyNodeAST
-      )
+      '&&',
+      types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
+      emptyNodeAST
+    )
     : null
 
   const errorNodeAST = !!error
