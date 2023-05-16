@@ -140,7 +140,6 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   if (!selfClosing && children) {
     children.forEach((child) => {
       const childTags = generateNode(child, params, options)
-
       childTags.forEach((childTag) => {
         if (typeof childTag === 'string') {
           addChildJSXText(elementTag, childTag)
@@ -217,32 +216,29 @@ const generateCMSItemNode: NodeToJSX<
    * But this needs to be changed, the generators itself should make the decision. Depending
    * on the style flavour that is being ued.
    */
-  const { statePersistanceName, loadingStatePersistanceName, errorStatePersistanceName } =
-    node.content
+  const { statePersistanceName } = node.content
   const loadingState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Loading`)
   const errorState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Error`)
 
-  const errorNodeAST =
-    error && errorStatePersistanceName
-      ? types.logicalExpression(
-          '&&',
-          types.identifier(errorState),
-          generateElementNode(error, params, options) as types.JSXElement
-        )
-      : null
+  const errorNodeAST = error
+    ? types.logicalExpression(
+        '&&',
+        types.identifier(errorState),
+        generateElementNode(error, params, options) as types.JSXElement
+      )
+    : null
 
-  const loadingNodeAST =
-    loading && loadingStatePersistanceName
-      ? types.logicalExpression(
-          '&&',
-          types.identifier(loadingState),
-          generateElementNode(loading, params, options) as types.JSXElement
-        )
-      : null
+  const loadingNodeAST = loading
+    ? types.logicalExpression(
+        '&&',
+        types.identifier(loadingState),
+        generateElementNode(loading, params, options) as types.JSXElement
+      )
+    : null
 
   const successElementAST = generateElementNode(success, params, options)
   const successAST =
-    !loadingStatePersistanceName || !errorStatePersistanceName
+    !loading || !error
       ? successElementAST
       : types.logicalExpression(
           '&&',
