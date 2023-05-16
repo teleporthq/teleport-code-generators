@@ -125,14 +125,14 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       Object.keys(node.content?.events || {}).forEach((eventKey) => {
         node.content.events[eventKey].forEach((event) => {
           if (event.type === 'stateChange' && !stateKeys.includes(event.modifies)) {
-            const errorMsg = `"${event.modifies}" is used in events, but not defined. Please add it in stateDefinitions`
+            const errorMsg = `"${event.modifies}" is used in events, but not defined. Please add it in stateDefinitions of ${input.name}`
             errors.push(errorMsg)
             return
           }
 
           if (event.type === 'propCall' && !propKeys.includes(event.calls)) {
             errors.push(
-              `"${event.calls}" is used in events, but missing from propDefinitons. Please add it in propDefinitions `
+              `"${event.calls}" is used in events, but missing from propDefinitons. Please add it in propDefinitions ${input.name} `
             )
             return
           }
@@ -148,7 +148,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
           if (styleRef.content.content.content.referenceType === 'prop') {
             const referencedProp = styleRef.content.content.content.id
             if (!dynamicPathExistsInDefinitions(referencedProp, propKeys)) {
-              const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions`
+              const errorMsg = `"${referencedProp}" is used but not defined. Please add it in propDefinitions ${input.name}`
               errors.push(errorMsg)
               return
             }
@@ -178,7 +178,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
-        const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions`
+        const errorMsg = `"${node.content.id}" is used but not defined. Please add it in propDefinitions ${input.name}`
         errors.push(errorMsg)
       }
 
@@ -424,7 +424,7 @@ export const checStylekContentForErrors = (
       typeof styleContent.content !== 'number'
     ) {
       errors.push(
-        `Project Style sheet / styleSetDefinitions only support styles with static 
+        `Project Style sheet / styleSetDefinitions only support styles with static
         content and dynamic tokens, received ${styleContent}`
       )
     }
