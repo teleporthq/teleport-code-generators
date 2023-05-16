@@ -20,6 +20,7 @@ import {
   UIDLCMSItemNode,
   UIDLPropDefinition,
   UIDLStateDefinition,
+  UIDLCMSListNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -82,7 +83,7 @@ export const parseComponentJSON = (
   }
 
   // other parsers for other sections of the component here
-  result.node = parseComponentNode(node) as UIDLElementNode
+  result.node = parseComponentNode(node, result) as UIDLElementNode
 
   return result
 }
@@ -139,7 +140,7 @@ export const parseProjectJSON = (
   return result
 }
 
-const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
+const parseComponentNode = (node: Record<string, unknown>, component: ComponentUIDL): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list':
@@ -148,7 +149,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
       if (node.type === 'cms-item') {
         const {
-          nodes: { success, error },
+          nodes: { success, error, loading },
+          statePersistanceName,
         } = (node as unknown as UIDLCMSItemNode).content
 
         if (success) {
@@ -161,17 +163,52 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
           error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
             error?.content?.attrs || {}
           )
+          component.stateDefinitions[`${statePersistanceName}Error`] = {
+            type: 'boolean',
+            defaultValue: false,
+          }
+        }
+
+        if (loading) {
+          component.stateDefinitions[`${statePersistanceName}Loading`] = {
+            type: 'boolean',
+            defaultValue: false,
+          }
         }
       }
 
-      if (elementContent.hasOwnProperty('loopItemsReference')) {
-        const { loopItemsReference } = elementContent as {
-          loopItemsReference: {
-            type: string
-            content: {
-              referenceType: string
-              id: string
-            }
+      if (node.type === 'cms-list' && elementContent.hasOwnProperty('loopItemsReference')) {
+        const {
+          loopItemsReference,
+          statePersistanceName,
+          nodes: { success, error, loading },
+        } = (node as unknown as UIDLCMSListNode).content
+        const identifier =
+          loopItemsReference?.type === 'dynamic' &&
+          loopItemsReference.content.referenceType === 'prop'
+            ? 'propDefinitions'
+            : 'stateDefinitions'
+
+        if (success) {
+          success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            success?.content?.attrs || {}
+          )
+        }
+
+        if (error) {
+          error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            error?.content?.attrs || {}
+          )
+          component[identifier][`${statePersistanceName}Error`] = {
+            type: 'boolean',
+            defaultValue: false,
+          }
+        }
+
+        if (loading) {
+          component[identifier][`${statePersistanceName}Loading`] = {
+            type: 'boolean',
+            defaultValue: false,
           }
         }
 
@@ -244,7 +281,7 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
           if (typeof child === 'string') {
             return UIDLUtils.transformStringAssignmentToJson(child)
           } else {
-            return parseComponentNode(child)
+            return parseComponentNode(child, component)
           }
         }, [])
       }
@@ -256,7 +293,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const { reference } = conditionalNode.content
 
       conditionalNode.content.node = parseComponentNode(
-        conditionalNode.content.node as unknown as Record<string, unknown>
+        conditionalNode.content.node as unknown as Record<string, unknown>,
+        component
       )
 
       if (typeof reference === 'string') {
@@ -272,7 +310,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
       const { dataSource } = repeatNode.content
 
       repeatNode.content.node = parseComponentNode(
-        repeatNode.content.node as unknown as Record<string, unknown>
+        repeatNode.content.node as unknown as Record<string, unknown>,
+        component
       ) as UIDLElementNode
 
       if (typeof dataSource === 'string') {
@@ -286,7 +325,8 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
 
       if (slotNode.content.fallback) {
         slotNode.content.fallback = parseComponentNode(
-          slotNode.content.fallback as unknown as Record<string, unknown>
+          slotNode.content.fallback as unknown as Record<string, unknown>,
+          component
         ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
       }
 

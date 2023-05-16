@@ -464,45 +464,15 @@
                   "defaultValue": [],
                   "type": "array"
                 },
-                "AuthorListLoading": {
-                  "id": "01a8f5bd-bbd7-4e8c-9425-18a4393487c6",
-                  "defaultValue": false,
-                  "type": "boolean"
-                },
-                "AuthorListError": {
-                  "id": "44916d1d-83b2-4741-8d92-bed6b23d3e23",
-                  "defaultValue": false,
-                  "type": "boolean"
-                },
                 "AuthorList1": {
                   "id": "4371da4b-cbee-4c68-b8a8-39864a1e1a13",
                   "defaultValue": [],
                   "type": "array"
                 },
-                "AuthorListLoading1": {
-                  "id": "e8e69ab3-b0dd-4dee-b516-fcd69715ab2f",
-                  "defaultValue": false,
-                  "type": "boolean"
-                },
-                "AuthorListError1": {
-                  "id": "9f1970dc-207e-4075-b2a4-d2e595a37faf",
-                  "defaultValue": false,
-                  "type": "boolean"
-                },
                 "AuthorEntity": {
                   "id": "a8adc2b5-fb7c-41a9-8600-55ce665870d4",
                   "defaultValue": {},
                   "type": "object"
-                },
-                "AuthorEntityLoading": {
-                  "id": "92fc9f25-c10b-4703-b459-f70a953719f6",
-                  "defaultValue": false,
-                  "type": "boolean"
-                },
-                "AuthorEntityError": {
-                  "id": "6f2340bf-b9dd-4ae4-8aa9-0f4eb5fdeb35",
-                  "defaultValue": false,
-                  "type": "boolean"
                 }
               },
               "propDefinitions": {}
@@ -1552,8 +1522,6 @@
                           }
                         ],
                         "statePersistanceName": "AuthorList",
-                        "loadingStatePersistanceName": "AuthorListLoading",
-                        "errorStatePersistanceName": "AuthorListError",
                         "resourceId": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475"
                       }
                     },
@@ -1796,8 +1764,6 @@
                           }
                         ],
                         "statePersistanceName": "AuthorList1",
-                        "loadingStatePersistanceName": "AuthorListLoading1",
-                        "errorStatePersistanceName": "AuthorListError1",
                         "resourceId": "a229b188-cf3d-4393-b9c1-89249461d58b"
                       }
                     },
@@ -2014,8 +1980,6 @@
                           }
                         ],
                         "statePersistanceName": "AuthorEntity",
-                        "loadingStatePersistanceName": "AuthorEntityLoading",
-                        "errorStatePersistanceName": "AuthorEntityError",
                         "resourceId": "2fb8a008-ca8b-4dc5-94d7-c6f24d544b65"
                       }
                     }
