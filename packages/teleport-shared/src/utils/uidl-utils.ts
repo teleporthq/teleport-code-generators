@@ -25,6 +25,7 @@ import {
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
+import { StringUtils } from '..'
 
 export const extractRoutes = (rootComponent: UIDLRootComponent) => {
   // Assuming root element starts with a UIDLElementNode
@@ -143,7 +144,7 @@ export const prefixAssetsPath = (
      - asset is missing in the project packer
      - It's not a asset and so we don't need to provide any mapping for it
 
-    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas 
+    Note: We need to check for decoded asset name as well as for some special characters such as katakana / kanjis / hiraganas
     the src / url leading to the asset can be encoded and we need to check the decoded version against the asset mapping
   */
 
@@ -609,7 +610,7 @@ export const transformStringAssignmentToJson = (
       type: 'dynamic',
       content: {
         referenceType,
-        id: path,
+        id: StringUtils.createStateOrPropStoringValue(path),
       },
     }
   }
@@ -636,11 +637,25 @@ export const transformStylesAssignmentsToJson = (
 
     if (!Array.isArray(styleContentAtKey) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type } = styleContentAtKey as Record<string, unknown>
+      const { type, content } = styleContentAtKey as UIDLStaticValue | UIDLDynamicReference
 
-      if (['dynamic', 'static'].indexOf(type as string) !== -1) {
-        acc[key] = styleContentAtKey as UIDLStyleValue
+      if (type === 'static') {
+        acc[key] = styleContentAtKey as UIDLStaticValue
         return acc
+      }
+
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          }
+        } else {
+          acc[key] = styleContentAtKey as UIDLDynamicReference
+        }
       }
 
       return acc
@@ -677,8 +692,24 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['dynamic', 'static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
+      if (['static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
+        return acc
+      }
+
+      const { content } = attributeContent as UIDLDynamicReference
+      if (type === 'dynamic') {
+        if (['state', 'prop'].includes(content?.referenceType)) {
+          acc[key] = {
+            type,
+            content: {
+              ...content,
+              id: StringUtils.createStateOrPropStoringValue(content.id),
+            },
+          }
+        } else {
+          acc[key] = attributeContent as UIDLAttributeValue
+        }
         return acc
       }
 
@@ -690,14 +721,6 @@ export const transformAttributesAssignmentsToJson = (
         )}`
       )
     }
-
-    throw new Error(
-      `transformAttributesAssignmentsToJson encountered a style value that is not supported ${JSON.stringify(
-        attributeContent,
-        null,
-        2
-      )}`
-    )
   }, newStyleObject)
 
   return newStyleObject

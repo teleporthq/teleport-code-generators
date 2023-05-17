@@ -1,5 +1,4 @@
 import * as types from '@babel/types'
-// import * as parser from "@babel/parser"
 import { parse, traverse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
@@ -164,6 +163,7 @@ export const addDynamicExpressionAttributeToJSXTag = (
       const { projectContexts } = params
       const contextMeta = projectContexts[entityToResolve.content.ctxId]
       const nameOfContext = StringUtils.camelize(contextMeta.providerName)
+
       return nameOfContext
     }
     return name
@@ -568,8 +568,8 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(stateKey),
-        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
+        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
+        t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),

@@ -13,6 +13,7 @@ import {
   UIDLStyleSetTokenReference,
   UIDLStaticValue,
   UIDLDynamicReference,
+  UIDLConditionalNode,
 } from '@teleporthq/teleport-types'
 import deepmerge from 'deepmerge'
 
@@ -80,7 +81,20 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
     if (node.type === 'repeat') {
       resolveRepeat(node.content, parentNode)
     }
+
+    if (node.type === 'conditional') {
+      resolveConditional(node, options)
+    }
   })
+}
+
+export const resolveConditional = (condNode: UIDLConditionalNode, options: GeneratorOptions) => {
+  if (condNode.content?.node) {
+    const { type, content } = condNode.content.node
+    if (type === 'element') {
+      resolveElement(content, options)
+    }
+  }
 }
 
 export const resolveElement = (element: UIDLElement, options: GeneratorOptions) => {
@@ -359,6 +373,15 @@ export const prefixAssetURLs = <
 
     switch (styleValue.type) {
       case 'dynamic':
+        if (styleValue.content.referenceType === 'prop') {
+          acc[styleKey] = {
+            type: styleValue.type,
+            content: {
+              referenceType: styleValue.content.referenceType,
+              id: styleValue.content.id,
+            },
+          } as T
+        }
         acc[styleKey] = styleValue
         return acc
       case 'static':
@@ -376,7 +399,7 @@ export const prefixAssetURLs = <
 
           /*
             background image such as gradient shouldn't be urls
-            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function
             but we don't compute and generate a url)
           */
           if (!asset.startsWith('/')) {
@@ -406,7 +429,6 @@ const resolveAttributes = (
 ) => {
   // We gather the results here uniting the mapped attributes and the uidl attributes.
   const resolvedAttrs: Record<string, UIDLAttributeValue> = {}
-
   // This will gather all the attributes from the UIDL which are mapped using the elements-mapping
   // These attributes will not be added on the tag as they are, but using the elements-mapping
   // Such an example is the url attribute on the Link tag, which needs to be mapped in the case of html to href
@@ -491,21 +513,17 @@ export const checkForIllegalNames = (uidl: ComponentUIDL, mapping: Mapping) => {
     uidl.outputOptions.componentClassName = `App${uidl.outputOptions.componentClassName}`
   }
 
-  if (uidl.propDefinitions) {
-    Object.keys(uidl.propDefinitions).forEach((prop) => {
-      if (illegalPropNames.includes(prop)) {
-        throw new Error(`Illegal prop key '${prop}'`)
-      }
-    })
-  }
+  Object.keys(uidl.propDefinitions || {}).forEach((prop) => {
+    if (illegalPropNames.includes(prop)) {
+      throw new Error(`Illegal prop key '${prop}'`)
+    }
+  })
 
-  if (uidl.stateDefinitions) {
-    Object.keys(uidl.stateDefinitions).forEach((state) => {
-      if (illegalPropNames.includes(state)) {
-        throw new Error(`Illegal state key '${state}'`)
-      }
-    })
-  }
+  Object.keys(uidl.stateDefinitions || {}).forEach((state) => {
+    if (illegalPropNames.includes(state)) {
+      throw new Error(`Illegal state key '${state}'`)
+    }
+  })
 }
 
 export const checkForDefaultPropsContainingAssets = (
