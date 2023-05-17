@@ -312,11 +312,6 @@ export interface UIDLCMSListNodeContent {
     empty?: UIDLElementNode
   }
   resourceId?: string
-  /*
-   * TODO:
-   * This can be improved more into static/dyamic ref
-   * Instead of having the names in two places
-   */
   statePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>

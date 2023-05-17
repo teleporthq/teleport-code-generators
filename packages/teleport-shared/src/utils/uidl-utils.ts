@@ -692,8 +692,18 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['static', 'import', 'comp-style', 'raw'].indexOf(type as string) !== -1) {
+      if (['static', 'import', 'raw'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
+        return acc
+      }
+
+      if (type === 'comp-style') {
+        acc[key] = {
+          type: 'comp-style',
+          content: StringUtils.createStateOrPropStoringValue(
+            (attributeContent as UIDLComponentStyleReference).content
+          ),
+        }
         return acc
       }
 

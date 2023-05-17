@@ -22,7 +22,7 @@ import {
   UIDLStateDefinition,
   UIDLCMSListNode,
   UIDLElementNodeInlineReferencedStyle,
-  UIDLElementNodeCompReferencedStyle,
+  UIDLURLLinkNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -245,20 +245,6 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
                 }
               }
 
-              const { content } = styleRef as UIDLElementNodeCompReferencedStyle
-              if (
-                content.content.type === 'dynamic' &&
-                ['state', 'prop'].includes(content.content.content.referenceType)
-              ) {
-                styleRef.content.content = {
-                  type: 'dynamic',
-                  content: {
-                    refereceType: content.content.content.referenceType,
-                    id: StringUtils.createStateOrPropStoringValue(content.content.content.id),
-                  },
-                }
-              }
-
               break
             }
 
@@ -287,6 +273,16 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         const { content, type } = (elementContent.abilities as { link: VUIDLLinkNode }).link
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
+        }
+
+        if (type === 'url' && (content as UIDLURLLinkNode['content']).url.type === 'dynamic') {
+          ;(content as UIDLURLLinkNode['content']).url.content = {
+            referenceType: ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference)
+              .content.referenceType,
+            id: StringUtils.createStateOrPropStoringValue(
+              ((content as UIDLURLLinkNode['content']).url as UIDLDynamicReference).content.id
+            ),
+          }
         }
       }
 

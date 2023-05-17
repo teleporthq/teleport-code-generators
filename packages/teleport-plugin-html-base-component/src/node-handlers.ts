@@ -108,6 +108,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     dependency,
     key,
   } = node.content
+
   const elementNode = HASTBuilders.createHTMLNode(elementType)
   templatesLookUp[key] = elementNode
 
@@ -228,6 +229,7 @@ const generateComponentContent = async (
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
+
   const propsForInstance = Object.keys(combinedProps).reduce(
     (acc: Record<string, UIDLPropDefinition>, propKey) => {
       if (attrs[propKey]) {
@@ -260,6 +262,7 @@ const generateComponentContent = async (
     },
     {}
   )
+
   const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
   lookUpTemplates[key] = elementNode
 
@@ -424,13 +427,7 @@ const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
 ): string => {
-  /*
-   * Reason for checking using `createStateOrPropStoringValues
-   * HTML generators are run in a nested way. And they are not passed through
-   * parser which is responsible for converting this. So, the nodes will miss
-   * the name conversion for these nodes.
-   */
-  const usedReferenceValue = definitions[StringUtils.createStateOrPropStoringValue(key)]
+  const usedReferenceValue = definitions[key]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(
