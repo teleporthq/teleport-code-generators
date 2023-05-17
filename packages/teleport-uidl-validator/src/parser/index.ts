@@ -21,6 +21,8 @@ import {
   UIDLPropDefinition,
   UIDLStateDefinition,
   UIDLCMSListNode,
+  UIDLElementNodeInlineReferencedStyle,
+  UIDLElementNodeCompReferencedStyle,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -225,13 +227,10 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {
-          const { content } = styleRef
-
-          switch (content.mapType) {
+          switch (styleRef.content.mapType) {
             case 'inlined': {
-              content.styles = UIDLUtils.transformStylesAssignmentsToJson(
-                content.styles as Record<string, string>
-              )
+              const { content } = styleRef as UIDLElementNodeInlineReferencedStyle
+              content.styles = UIDLUtils.transformStylesAssignmentsToJson(content.styles)
               break
             }
 
@@ -245,12 +244,27 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
                   content: styleRef.content.content,
                 }
               }
+
+              const { content } = styleRef as UIDLElementNodeCompReferencedStyle
+              if (
+                content.content.type === 'dynamic' &&
+                ['state', 'prop'].includes(content.content.content.referenceType)
+              ) {
+                styleRef.content.content = {
+                  type: 'dynamic',
+                  content: {
+                    refereceType: content.content.content.referenceType,
+                    id: StringUtils.createStateOrPropStoringValue(content.content.content.id),
+                  },
+                }
+              }
+
               break
             }
 
             default: {
               throw new ParserError(
-                `Un-expected mapType passed in referencedStyles - ${content.mapType}`
+                `Un-expected mapType passed in referencedStyles - ${styleRef.content.mapType}`
               )
             }
           }
@@ -333,6 +347,11 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       return slotNode
 
     case 'dynamic':
+      const dyamicNode = node as unknown as UIDLDynamicReference
+      if (['state', 'prop'].includes(dyamicNode.content.referenceType)) {
+        dyamicNode.content.id = StringUtils.createStateOrPropStoringValue(dyamicNode.content.id)
+      }
+      return dyamicNode
     case 'static':
     case 'raw':
       return node as unknown as UIDLNode
