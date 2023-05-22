@@ -856,6 +856,20 @@ export const extractContextDependenciesFromNode = (
           extractContextDependenciesFromNode(child, projectContexts, foundDependencies)
         })
       }
+
+      if (node.content.abilities?.link && node.content.abilities.link.type === 'dynamic') {
+        const nodeScope = node.content.abilities.link.content.scope
+        if (nodeScope) {
+          Object.values(nodeScope).forEach((scope) => {
+            if (scope.type === 'dynamic') {
+              const contextName = scope.content.ctxId
+              if (projectContexts[contextName]) {
+                foundDependencies[contextName] = projectContexts[contextName]
+              }
+            }
+          })
+        }
+      }
       break
 
     case 'cms-list':
