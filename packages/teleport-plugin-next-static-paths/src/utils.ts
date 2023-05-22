@@ -33,7 +33,8 @@ const computePropsAST = (
   const resourceASTs = ASTUtils.generateRemoteResourceASTs(initialData.resource, propsPrefix)
 
   const paginationASTs = []
-  if (pagination) {
+  // TODO: When pagination is used totalCountPath is mandatory
+  if (pagination && pagination?.totalCountPath) {
     const { type, path } = pagination.totalCountPath || {}
     if (type === 'headers') {
       // By default, 'resourceASTs' contains two elements. The first one is the 'fetch' call

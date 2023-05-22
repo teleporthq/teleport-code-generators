@@ -228,11 +228,11 @@ export interface UIDLStateValueDetails {
 export interface PagePaginationOptions {
   attribute: string
   pageSize: number
-  // We're using this properti in order to get the total count of items for
+  // We're using this property in order to get the total count of items for
   // a given entity. In order to get the total count, we might need to fetch at least
   // one item and get the actual count from the meta that is sent together with
   // the response
-  totalCountPath?: { type: 'headers' | 'body'; path: Array<string | number> }
+  totalCountPath: { type: 'headers' | 'body'; path: Array<string | number> }
 }
 
 export interface UIDLPageOptions {
