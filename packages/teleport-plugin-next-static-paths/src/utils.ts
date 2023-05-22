@@ -1,13 +1,13 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLInitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { InitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPathsAST = (
-  initialData: UIDLInitialPathsData,
-  resourceImportName: string,
+  initialData: InitialPathsData,
+  propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST = computePropsAST(initialData, resourceImportName, pagination)
+  const computedResourceAST = computePropsAST(initialData, propsPrefix, pagination)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -26,45 +26,18 @@ export const generateInitialPathsAST = (
 }
 
 const computePropsAST = (
-  initialData: UIDLInitialPathsData,
-  resourceImportName: string,
+  initialData: InitialPathsData,
+  propsPrefix: string = '',
   pagination?: PagePaginationOptions
 ) => {
-  const declerationAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('response'),
-      types.awaitExpression(types.callExpression(types.identifier(resourceImportName), []))
-    ),
-  ])
+  const resourceASTs = ASTUtils.generateRemoteResourceASTs(initialData.resource, propsPrefix)
 
   const paginationASTs = []
   if (pagination) {
-    const { type, path } = pagination.totalCountPath || {}
-    if (type === 'headers') {
-      // By default, 'resourceASTs' contains two elements. The first one is the 'fetch' call
-      // and the second one is the 'json' call. We need to remove the 'json' call because
-      // we are not using it when we are taking the total count from the headers.
-      resourceASTs.pop()
-
-      // We need to parse the headers as JSON because they are returned as a map.
-      const parseHeadersAST = types.variableDeclaration('const', [
-        types.variableDeclarator(
-          types.identifier('headers'),
-          types.callExpression(
-            types.memberExpression(types.identifier('Object'), types.identifier('fromEntries')),
-            [types.memberExpression(types.identifier('data'), types.identifier('headers'))]
-          )
-        ),
-      ])
-      paginationASTs.push(parseHeadersAST)
-    }
-
     const itemsCountAST = types.variableDeclaration('const', [
       types.variableDeclarator(
         types.identifier('totalCount'),
-        type === 'body'
-          ? ASTUtils.generateMemberExpressionASTFromPath(['response', ...path])
-          : ASTUtils.generateMemberExpressionASTFromPath(['headers', ...path])
+        ASTUtils.generateMemberExpressionASTFromPath(['response', ...pagination.totalCountPath])
       ),
     ])
 
@@ -175,5 +148,5 @@ const computePropsAST = (
     ])
   )
 
-  return [declerationAST, ...paginationASTs, returnAST]
+  return [...resourceASTs, ...paginationASTs, returnAST]
 }

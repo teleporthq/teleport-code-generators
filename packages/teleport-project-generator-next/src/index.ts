@@ -28,8 +28,8 @@ const createNextProjectGenerator = () => {
     fileName: 'style',
   })
 
-  const staticPropsPlugin = createStaticPropsPlugin()
-  const staticPathsPlugin = createStaticPathsPlugin()
+  const getStaticPropsPlugin = createStaticPropsPlugin()
+  const getStaticPathsPlugin = createStaticPathsPlugin()
   const contextPlugin = createNextContextPlugin()
   const nextComponentCMSFetchPlugin = createNextComponentCMSFetchPlugin()
 
@@ -38,7 +38,7 @@ const createNextProjectGenerator = () => {
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin],
+      plugins: [nextImagePlugin, nextComponentCMSFetchPlugin, contextPlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
@@ -49,8 +49,8 @@ const createNextProjectGenerator = () => {
         nextImagePlugin,
         headConfigPlugin,
         nextComponentCMSFetchPlugin,
-        staticPathsPlugin,
-        staticPropsPlugin,
+        getStaticPathsPlugin,
+        getStaticPropsPlugin,
         contextPlugin,
       ],
       mappings: [NextProjectMapping],
@@ -100,9 +100,6 @@ const createNextProjectGenerator = () => {
     static: {
       prefix: '',
       path: ['public'],
-    },
-    resources: {
-      path: ['resources'],
     },
   })
 

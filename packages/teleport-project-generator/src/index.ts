@@ -1,4 +1,4 @@
-import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { Validator, Parser } from '@teleporthq/teleport-uidl-validator'
 import {
   GeneratorOptions,
@@ -15,7 +15,6 @@ import {
   GeneratorFactoryParams,
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
-  FileType,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -41,10 +40,6 @@ import {
 import { DEFAULT_TEMPLATE } from './constants'
 import ProjectAssemblyLine from './assembly-line'
 import { join } from 'path'
-import { resourceGenerator } from './resource'
-import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
-import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 
 type UpdateGeneratorCallback = (generator: ComponentGenerator) => void
 
@@ -163,6 +158,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
+
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
     if (valid && projectUIDL) {
@@ -218,9 +214,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
       if (this.strategy.router?.generator) {
         this.routerGenerator = bootstrapGenerator(this.strategy.router, this.strategy.style)
       }
-    } catch (error) {
-      console.trace(error)
-      throw new TeleportError(`Error in Generating Project after runBefore`)
+    } catch (e) {
+      throw new TeleportError(`Error in Generating Project after runBefore - ${e}`)
     }
 
     const { components = {} } = uidl
@@ -253,15 +248,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       skipValidation: true,
       designLanguage: uidl.root?.designLanguage,
-      ...(this.strategy?.resources?.path && {
-        resources: {
-          items: uidl?.resources?.items,
-          path: GenericUtils.generateLocalDependenciesPrefix(
-            this.strategy.pages.path,
-            this.strategy.resources.path
-          ),
-        },
-      }),
     }
 
     // Handling project style sheet
@@ -306,354 +292,300 @@ export class ProjectGenerator implements ProjectGeneratorType {
           },
           designLanguage: uidl.root?.designLanguage,
         }
-
-        Object.assign(pageOptions, { projectContexts, projectResources })
-
-        if ('addExternalComponents' in this.pageGenerator) {
-          ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-            externals: components,
-            skipValidation: true,
-            assets: options.assets,
-          })
-        }
-
-        const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
-        // Pages might be generated inside subfolders in the main pages folder
-        const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
-        const path = this.strategy.pages.path.concat(relativePath)
-
-        inMemoryFilesMap.set(pageUIDL.name, {
-          path,
-          files,
-        })
-
-        collectedDependencies = { ...collectedDependencies, ...dependencies }
-        if (this.strategy.pages?.module) {
-          const pageModuleGenerator = bootstrapGenerator(
-            this.strategy.pages.module,
-            this.strategy.style
-          )
-          const pageModule = await createPageModule(pageUIDL, pageModuleGenerator, options)
-
-          inMemoryFilesMap.set(`${pageUIDL.name}Module`, {
-            path,
-            files: pageModule.files,
-          })
-
-          collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
-        }
       }
 
-      const resources = Object.values(uidl?.resources?.items || {})
+      Object.assign(pageOptions, { projectContexts, projectResources })
 
-      if (this.strategy?.resources && resources.length > 0) {
-        const resourceCompGenerator = createComponentGenerator()
-        resourceCompGenerator.addPostProcessor(prettierJS)
-
-        for (const resource of resources) {
-          const { chunks, dependencies } = resourceGenerator(resource)
-          const { chunks: importChunks } = await importStatementsPlugin({
-            uidl: uidl.root,
-            dependencies,
-            chunks: [],
-            options: {},
-          })
-          const files = resourceCompGenerator.linkCodeChunks(
-            { [FileType.JS]: [...importChunks, ...chunks] },
-            StringUtils.camelCaseToDashCase(resource.name)
-          )
-
-          collectedDependencies = {
-            ...collectedDependencies,
-            ...Object.keys(dependencies).reduce((acc: Record<string, string>, item: string) => {
-              const dep = dependencies[item]
-              if (dep.type === 'package') {
-                acc[dep.path] = dep.version
-              }
-              return acc
-            }, {}),
-          }
-
-          inMemoryFilesMap.set(`resource-${resource.name}`, {
-            files,
-            path: this.strategy.resources.path,
-          })
-        }
-      }
-
-      // Handling module generation for components
-      if (this.strategy?.components?.module) {
-        const componentModuleGenerator = bootstrapGenerator(
-          this.strategy.components.module,
-          this.strategy.style
-        )
-        const componentsModule = await createComponentModule(
-          uidl,
-          this.strategy,
-          componentModuleGenerator
-        )
-
-        inMemoryFilesMap.set(componentsModule.files[0].name, {
-          path: this.strategy.components.path,
-          files: componentsModule.files,
-        })
-
-        collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
-      }
-
-      // Handling components
-      for (const componentName of Object.keys(components)) {
-        if (!this.strategy?.components?.generator) {
-          throw new TeleportError(
-            `Component Generator is missing from the strategy - ${JSON.stringify(
-              this.strategy.components
-            )}`
-          )
-        }
-
-        let componentOptions = {
-          ...options,
-          ...(options.resources &&
-            this.strategy.resources.path && {
-              resources: {
-                ...options?.resources,
-                path: GenericUtils.generateLocalDependenciesPrefix(
-                  this.strategy.components.path,
-                  this.strategy.resources.path
-                ),
-              },
-            }),
-        }
-
-        if (this.strategy.projectStyleSheet) {
-          const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
-            this.strategy.components.path,
-            this.strategy.projectStyleSheet.path
-          )
-
-          componentOptions = {
-            ...componentOptions,
-            projectStyleSet: {
-              styleSetDefinitions,
-              fileName: this.strategy.projectStyleSheet.fileName,
-              path: this.strategy.components?.options?.createFolderForEachComponent
-                ? join('..', globalStyleSheetPath)
-                : globalStyleSheetPath,
-              importFile: this.strategy.projectStyleSheet?.importFile || false,
-            },
-            designLanguage: uidl.root?.designLanguage,
-          }
-        }
-
-        Object.assign(componentOptions, { projectContexts, projectResources })
-
-        if ('addExternalComponents' in this.componentGenerator) {
-          ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
-            externals: components,
-            skipValidation: true,
-            assets: options.assets,
-          })
-        }
-
-        const componentUIDL = components[componentName]
-        const { files, dependencies } = await createComponent(
-          componentUIDL,
-          this.componentGenerator,
-          componentOptions
-        )
-
-        // Components might be generated inside subfolders in the main components folder
-        const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
-        const path = this.strategy.components.path.concat(relativePath)
-
-        inMemoryFilesMap.set(componentName, {
-          path,
-          files,
-        })
-
-        collectedDependencies = { ...collectedDependencies, ...dependencies }
-      }
-
-      // Handling framework specific changes to the project
-      const { framework } = this.strategy
-
-      // Can be used for replacing a couple of strings
-      if (framework?.replace) {
-        const shouldAddChanges = Boolean(
-          framework.replace?.isGlobalStylesDependent &&
-            (Object.keys(styleSetDefinitions).length > 0 ||
-              Object.keys(uidl?.root?.designLanguage?.tokens || {}).length > 0)
-        )
-
-        if (shouldAddChanges) {
-          const { fileName, fileType } = framework.replace
-          const result = framework.replace.replaceFile(
-            template,
-            collectedDependencies,
-            fileName,
-            fileType
-          )
-          collectedDependencies = result.dependencies
-
-          inMemoryFilesMap.set(fileName, {
-            path: this.strategy.framework.replace.path,
-            files: [result.file],
-          })
-        }
-      }
-
-      // If we want to generate a completly new file
-      if (framework?.config) {
-        const {
-          fileName,
-          fileType,
-          configContentGenerator,
-          generator,
-          plugins: frameworkConfigPlugins,
-        } = framework.config
-
-        if (configContentGenerator && generator) {
-          const result: ConfigGeneratorResult = configContentGenerator({
-            fileName,
-            fileType,
-            globalStyles: {
-              path: GenericUtils.generateLocalDependenciesPrefix(
-                framework.config.path,
-                this.strategy.projectStyleSheet.path
-              ),
-              sheetName: this.strategy.projectStyleSheet
-                ? this.strategy.projectStyleSheet.fileName
-                : '',
-              isGlobalStylesDependent:
-                framework.config?.isGlobalStylesDependent ??
-                Boolean(
-                  Object.keys(styleSetDefinitions).length > 0 ||
-                    Object.keys(uidl.root?.designLanguage?.tokens || {}).length > 0
-                ),
-            },
-            dependencies: collectedDependencies,
-          })
-
-          collectedDependencies = result.dependencies
-
-          if (Object.keys(result?.chunks).length > 0) {
-            const configGenerator: (params: GeneratorFactoryParams) => ComponentGenerator =
-              framework.config.generator
-            const files = configGenerator({ plugins: frameworkConfigPlugins }).linkCodeChunks(
-              result.chunks,
-              framework.config.fileName
-            )
-
-            inMemoryFilesMap.set(fileName, {
-              path: this.strategy.framework.config.path,
-              files,
-            })
-          }
-        }
-      }
-
-      // Global settings are transformed into the root html file and the manifest file for PWA support
-      if (uidl.globals.manifest) {
-        const manifestFile = createManifestJSONFile(uidl, options.assets)
-
-        inMemoryFilesMap.set(manifestFile.name, {
-          path: this.strategy.static.path,
-          files: [manifestFile],
+      if ('addExternalComponents' in this.pageGenerator) {
+        ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+          assets: options.assets,
         })
       }
 
-      if (uidl.globals.env) {
-        const envFiles = createEnvFiles(uidl.globals.env)
-        envFiles.forEach((file) => {
-          inMemoryFilesMap.set(file.name, {
-            path: [],
-            files: [file],
-          })
-        })
+      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
+      // Pages might be generated inside subfolders in the main pages folder
+      const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
+      const path = this.strategy.pages.path.concat(relativePath)
 
-        const gitIgnoreFile = createGitIgnoreFile()
-        inMemoryFilesMap.set(gitIgnoreFile.name, {
-          path: [],
-          files: [gitIgnoreFile],
-        })
-      }
-
-      // TODO: Projects which don't need a router file will miss collecting
-      // dependencies which are specified on them
-
-      // Create the routing component in case the project generator has a strategy for that
-      if (this.strategy.router) {
-        const { routerFile, dependencies } = await createRouterFile(
-          uidl.root,
-          this.strategy,
-          this.routerGenerator
-        )
-
-        inMemoryFilesMap.set('router', {
-          path: this.strategy.router.path,
-          files: [routerFile],
-        })
-
-        collectedDependencies = { ...collectedDependencies, ...dependencies }
-      }
-
-      // Create the entry file of the project (ex: index.html, _document.js)
-      if (this.strategy.entry) {
-        const entryFile = await createEntryFile(uidl, this.strategy, options)
-        inMemoryFilesMap.set('entry', {
-          path: this.strategy.entry.path,
-          files: entryFile,
-        })
-      }
-
-      // If the framework needs all the external css dependencies to be placed in some other file
-      if (framework?.externalStyles && this.strategy.pages.options?.useFileNameForNavigation) {
-        const { fileName } = framework.externalStyles
-        const folder = inMemoryFilesMap.get(fileName)
-
-        if (!folder) {
-          throw new Error(`Canno't find file - ${fileName} from the list of files generated`)
-        }
-
-        const [resultFile] = await generateExternalCSSImports(uidl.root)
-        const files = fileFileAndReplaceContent(folder.files, fileName, resultFile.content)
-
-        inMemoryFilesMap.set(fileName, {
-          path: folder.path,
-          files,
-        })
-      }
-
-      try {
-        const runAfterResult = await this.assemblyLine.runAfter({
-          uidl,
-          template,
-          files: inMemoryFilesMap,
-          strategy: this.strategy,
-          dependencies: collectedDependencies,
-          devDependencies: collectedDevDependencies,
-          rootFolder,
-        })
-
-        collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
-        collectedDevDependencies = {
-          ...collectedDevDependencies,
-          ...runAfterResult.devDependencies,
-        }
-        inMemoryFilesMap = runAfterResult.files
-      } catch (e) {
-        throw new TeleportError(`Error in generating project after runAfter - ${e}`)
-      }
-
-      inMemoryFilesMap.forEach((stage) => {
-        injectFilesToPath(rootFolder, stage.path, stage.files)
+      inMemoryFilesMap.set(pageUIDL.name, {
+        path,
+        files,
       })
 
-      // Inject all the collected dependencies in the package.json file
-      handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
+      if (this.strategy.pages?.module) {
+        const pageModuleGenerator = bootstrapGenerator(
+          this.strategy.pages.module,
+          this.strategy.style
+        )
+        const pageModule = await createPageModule(pageUIDL, pageModuleGenerator, options)
 
-      return rootFolder
+        inMemoryFilesMap.set(`${pageUIDL.name}Module`, {
+          path,
+          files: pageModule.files,
+        })
+
+        collectedDependencies = { ...collectedDependencies, ...pageModule.dependencies }
+      }
     }
+
+    // Handling module generation for components
+    if (this.strategy?.components?.module) {
+      const componentModuleGenerator = bootstrapGenerator(
+        this.strategy.components.module,
+        this.strategy.style
+      )
+      const componentsModule = await createComponentModule(
+        uidl,
+        this.strategy,
+        componentModuleGenerator
+      )
+
+      inMemoryFilesMap.set(componentsModule.files[0].name, {
+        path: this.strategy.components.path,
+        files: componentsModule.files,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
+    }
+
+    // Handling components
+    for (const componentName of Object.keys(components)) {
+      if (!this.strategy?.components?.generator) {
+        throw new TeleportError(
+          `Component Generator is missing from the strategy - ${JSON.stringify(
+            this.strategy.components
+          )}`
+        )
+      }
+
+      let componentOptions = options
+      if (this.strategy.projectStyleSheet) {
+        const globalStyleSheetPath = GenericUtils.generateLocalDependenciesPrefix(
+          this.strategy.components.path,
+          this.strategy.projectStyleSheet.path
+        )
+        componentOptions = {
+          ...options,
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet.fileName,
+            path: this.strategy.components?.options?.createFolderForEachComponent
+              ? join('..', globalStyleSheetPath)
+              : globalStyleSheetPath,
+            importFile: this.strategy.projectStyleSheet?.importFile || false,
+          },
+          designLanguage: uidl.root?.designLanguage,
+        }
+      }
+
+      Object.assign(componentOptions, { projectContexts, projectResources })
+
+      if ('addExternalComponents' in this.componentGenerator) {
+        ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
+          externals: components,
+          skipValidation: true,
+          assets: options.assets,
+        })
+      }
+
+      const componentUIDL = components[componentName]
+      const { files, dependencies } = await createComponent(
+        componentUIDL,
+        this.componentGenerator,
+        componentOptions
+      )
+
+      // Components might be generated inside subfolders in the main components folder
+      const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
+      const path = this.strategy.components.path.concat(relativePath)
+
+      inMemoryFilesMap.set(componentName, {
+        path,
+        files,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    // Handling framework specific changes to the project
+    const { framework } = this.strategy
+
+    // Can be used for replacing a couple of strings
+    if (framework?.replace) {
+      const shouldAddChanges = Boolean(
+        framework.replace?.isGlobalStylesDependent &&
+          (Object.keys(styleSetDefinitions).length > 0 ||
+            Object.keys(uidl?.root?.designLanguage?.tokens || {}).length > 0)
+      )
+
+      if (shouldAddChanges) {
+        const { fileName, fileType } = framework.replace
+        const result = framework.replace.replaceFile(
+          template,
+          collectedDependencies,
+          fileName,
+          fileType
+        )
+        collectedDependencies = result.dependencies
+
+        inMemoryFilesMap.set(fileName, {
+          path: this.strategy.framework.replace.path,
+          files: [result.file],
+        })
+      }
+    }
+
+    // If we want to generate a completly new file
+    if (framework?.config) {
+      const {
+        fileName,
+        fileType,
+        configContentGenerator,
+        generator,
+        plugins: frameworkConfigPlugins,
+      } = framework.config
+
+      if (configContentGenerator && generator) {
+        const result: ConfigGeneratorResult = configContentGenerator({
+          fileName,
+          fileType,
+          globalStyles: {
+            path: GenericUtils.generateLocalDependenciesPrefix(
+              framework.config.path,
+              this.strategy.projectStyleSheet.path
+            ),
+            sheetName: this.strategy.projectStyleSheet
+              ? this.strategy.projectStyleSheet.fileName
+              : '',
+            isGlobalStylesDependent:
+              framework.config?.isGlobalStylesDependent ??
+              Boolean(
+                Object.keys(styleSetDefinitions).length > 0 ||
+                  Object.keys(uidl.root?.designLanguage?.tokens || {}).length > 0
+              ),
+          },
+          dependencies: collectedDependencies,
+        })
+
+        collectedDependencies = result.dependencies
+
+        if (Object.keys(result?.chunks).length > 0) {
+          const configGenerator: (params: GeneratorFactoryParams) => ComponentGenerator =
+            framework.config.generator
+          const files = configGenerator({ plugins: frameworkConfigPlugins }).linkCodeChunks(
+            result.chunks,
+            framework.config.fileName
+          )
+
+          inMemoryFilesMap.set(fileName, {
+            path: this.strategy.framework.config.path,
+            files,
+          })
+        }
+      }
+    }
+
+    // Global settings are transformed into the root html file and the manifest file for PWA support
+    if (uidl.globals.manifest) {
+      const manifestFile = createManifestJSONFile(uidl, options.assets)
+
+      inMemoryFilesMap.set(manifestFile.name, {
+        path: this.strategy.static.path,
+        files: [manifestFile],
+      })
+    }
+
+    if (uidl.globals.env) {
+      const envFiles = createEnvFiles(uidl.globals.env)
+      envFiles.forEach((file) => {
+        inMemoryFilesMap.set(file.name, {
+          path: [],
+          files: [file],
+        })
+      })
+
+      const gitIgnoreFile = createGitIgnoreFile()
+      inMemoryFilesMap.set(gitIgnoreFile.name, {
+        path: [],
+        files: [gitIgnoreFile],
+      })
+    }
+
+    // TODO: Projects which don't need a router file will miss collecting
+    // dependencies which are specified on them
+
+    // Create the routing component in case the project generator has a strategy for that
+    if (this.strategy.router) {
+      const { routerFile, dependencies } = await createRouterFile(
+        uidl.root,
+        this.strategy,
+        this.routerGenerator
+      )
+
+      inMemoryFilesMap.set('router', {
+        path: this.strategy.router.path,
+        files: [routerFile],
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    // Create the entry file of the project (ex: index.html, _document.js)
+    if (this.strategy.entry) {
+      const entryFile = await createEntryFile(uidl, this.strategy, options)
+      inMemoryFilesMap.set('entry', {
+        path: this.strategy.entry.path,
+        files: entryFile,
+      })
+    }
+
+    // If the framework needs all the external css dependencies to be placed in some other file
+    if (framework?.externalStyles && this.strategy.pages.options?.useFileNameForNavigation) {
+      const { fileName } = framework.externalStyles
+      const folder = inMemoryFilesMap.get(fileName)
+
+      if (!folder) {
+        throw new Error(`Canno't find file - ${fileName} from the list of files generated`)
+      }
+
+      const [resultFile] = await generateExternalCSSImports(uidl.root)
+      const files = fileFileAndReplaceContent(folder.files, fileName, resultFile.content)
+
+      inMemoryFilesMap.set(fileName, {
+        path: folder.path,
+        files,
+      })
+    }
+
+    try {
+      const runAfterResult = await this.assemblyLine.runAfter({
+        uidl,
+        template,
+        files: inMemoryFilesMap,
+        strategy: this.strategy,
+        dependencies: collectedDependencies,
+        devDependencies: collectedDevDependencies,
+        rootFolder,
+      })
+
+      collectedDependencies = { ...collectedDependencies, ...runAfterResult.dependencies }
+      collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
+      inMemoryFilesMap = runAfterResult.files
+    } catch (e) {
+      throw new TeleportError(`Error in generating project after runAfter - ${e}`)
+    }
+
+    inMemoryFilesMap.forEach((stage) => {
+      injectFilesToPath(rootFolder, stage.path, stage.files)
+    })
+
+    // Inject all the collected dependencies in the package.json file
+    handlePackageJSON(rootFolder, uidl, collectedDependencies, collectedDevDependencies)
+
+    return rootFolder
   }
 
   public addMapping(mapping: Mapping) {
