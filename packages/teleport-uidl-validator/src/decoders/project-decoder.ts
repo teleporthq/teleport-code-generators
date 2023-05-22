@@ -5,7 +5,7 @@ import {
   string,
   dict,
   array,
-  lazy,
+  intersection,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -13,9 +13,10 @@ import {
   VProjectUIDL,
   ContextsUIDL,
   ContextUIDLItem,
-  UIDLResources,
+  ResourcesUIDL,
+  ResourceItemUIDL,
 } from '@teleporthq/teleport-types'
-import { globalAssetsDecoder, resourceItemDecoder } from './utils'
+import { globalAssetsDecoder, resourceDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -58,8 +59,17 @@ export const contextsDecoder: Decoder<ContextsUIDL> = object({
   items: dict(optional(contextItemDecoder)),
 })
 
-export const resourcesDecoder: Decoder<UIDLResources> = object({
-  items: optional(dict(lazy(() => resourceItemDecoder))),
+export const projectResourceItemDecoder: Decoder<ResourceItemUIDL> = intersection(
+  resourceDecoder,
+  object({
+    id: string(),
+    name: string(),
+  })
+)
+
+export const resourcesDecoder: Decoder<ResourcesUIDL> = object({
+  rootFolder: optional(string()),
+  items: dict(optional(projectResourceItemDecoder)),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({

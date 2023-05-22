@@ -9,7 +9,6 @@ import {
   UIDLRootComponent,
   UIDLRouteDefinitions,
   UIDLPageOptions,
-  UIDLResourceItem,
 } from './uidl'
 
 export enum FileType {
@@ -147,10 +146,6 @@ export interface GeneratorOptions {
   projectResources?: Record<string, ProjectResource>
   designLanguage?: {
     tokens?: UIDLDesignTokens
-  }
-  resources?: {
-    items: Record<string, UIDLResourceItem>
-    path: string
   }
 }
 
@@ -311,9 +306,6 @@ export interface ProjectStrategy {
         fileType: string
       ) => { file: GeneratedFile; dependencies: Record<string, string> }
     }
-  }
-  resources?: {
-    path: string[]
   }
 }
 

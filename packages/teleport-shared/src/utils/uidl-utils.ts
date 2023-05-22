@@ -21,7 +21,7 @@ import {
   UIDLComponentStyleReference,
   UIDLRootComponent,
   ProjectContext,
-  UIDLResourceItem,
+  Resource,
   GeneratorOptions,
 } from '@teleporthq/teleport-types'
 import { basename } from 'path'
@@ -280,7 +280,7 @@ export const traverseNodes = (
 
 export const traverseResources = (
   node: UIDLNode,
-  fn: (node: UIDLResourceItem, parentNode: UIDLNode) => void
+  fn: (node: Resource, parentNode: UIDLNode) => void
 ) => {
   switch (node.type) {
     case 'element':

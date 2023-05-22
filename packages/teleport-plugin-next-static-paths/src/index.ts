@@ -3,9 +3,7 @@ import {
   ComponentPlugin,
   ComponentPluginFactory,
   FileType,
-  TeleportError,
 } from '@teleporthq/teleport-types'
-import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPathsAST } from './utils'
 
 interface StaticPropsPluginConfig {
@@ -18,25 +16,10 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const staticPathsPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
-    const { resources } = options
-
-    if (!uidl.outputOptions?.initialPathsData || !resources?.items) {
+    const { uidl, chunks } = structure
+    if (!uidl.outputOptions?.initialPathsData) {
       return structure
     }
-
-    const { resourceId } = uidl?.outputOptions?.initialPropsData
-    const usedResource = resources.items[resourceId.content]
-
-    if (!usedResource) {
-      throw new TeleportError(
-        `Resource ${resourceId.content} is being used, but missing from the project ressources`
-      )
-    }
-
-    const resourceImportName = StringUtils.dashCaseToCamelCase(
-      StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
-    )
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
@@ -45,7 +28,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
     const getStaticPathsAST = generateInitialPathsAST(
       uidl.outputOptions.initialPathsData,
-      resourceImportName,
+      undefined,
       uidl.outputOptions.pagination
     )
 

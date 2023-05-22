@@ -26,36 +26,14 @@ export interface ContextsUIDL {
   items?: Record<string, ContextUIDLItem>
 }
 
-export interface UIDLENVValue {
-  type: 'env'
-  content: string
-}
-
-export type UIDLDynamicFunctionParam = Modify<
-  UIDLDynamicReference,
-  {
-    content: {
-      referenceType: 'prop'
-      id: string
-    }
-  }
->
-
-export interface UIDLResourceItem {
+export interface ResourceItemUIDL extends Resource {
+  id: string
   name: string
-  headers?: Record<string, UIDLStaticValue | UIDLENVValue>
-  path: {
-    baseUrl: UIDLStaticValue | UIDLENVValue
-    route: UIDLStaticValue
-  }
-  method?: 'GET' | 'POST'
-  body?: Record<string, UIDLStaticValue>
-  mappers?: Record<string, UIDLDependency>
-  params?: Record<string, UIDLStaticValue | UIDLDynamicFunctionParam>
 }
 
-export interface UIDLResources {
-  items?: Record<string, UIDLResourceItem>
+export interface ResourcesUIDL {
+  rootFolder?: string
+  items?: Record<string, ResourceItemUIDL>
 }
 
 export interface ProjectUIDL {
@@ -63,13 +41,8 @@ export interface ProjectUIDL {
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
-  /**
-   * TODO: Contexts are more of framework specific things. So, when we see
-   * Multiple resources are items, the `next-project-generator` should take care of
-   * adding the contexts
-   */
   contexts?: ContextsUIDL
-  resources?: UIDLResources
+  resources?: ResourcesUIDL
 }
 
 export interface UIDLGlobalProjectValues {
@@ -168,6 +141,13 @@ export interface ResourceUrlParams {
   [key: string]: ResourceUrlValues
 }
 
+export interface Resource {
+  baseUrl: ResourceValue
+  route?: ResourceValue
+  authToken?: ResourceValue
+  urlParams?: ResourceUrlParams | unknown
+}
+
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -185,28 +165,23 @@ export interface ComponentUIDL {
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 
-export interface UIDLInitialPropsData {
+export interface InitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resourceId: {
-    type: 'static'
-    content: string
-  }
+  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
+  resource: Resource
 }
 
-export interface UIDLInitialPathsData {
+export interface InitialPathsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resourceId: {
-    type: 'static'
-    content: string
-  }
+  resource: Resource
 }
 
 export interface UIDLComponentOutputOptions {
@@ -218,8 +193,8 @@ export interface UIDLComponentOutputOptions {
   folderPath?: string[]
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
-  initialPropsData?: UIDLInitialPropsData
-  initialPathsData?: UIDLInitialPathsData
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
 }
 
 export interface UIDLComponentSEO {
@@ -257,7 +232,7 @@ export interface PagePaginationOptions {
   // a given entity. In order to get the total count, we might need to fetch at least
   // one item and get the actual count from the meta that is sent together with
   // the response
-  totalCountPath?: { type: 'headers' | 'body'; path: Array<string | number> }
+  totalCountPath?: string[]
 }
 
 export interface UIDLPageOptions {
@@ -268,8 +243,8 @@ export interface UIDLPageOptions {
   dynamicRouteAttribute?: string
   isIndex?: boolean
   pagination?: PagePaginationOptions
-  initialPropsData?: UIDLInitialPropsData
-  initialPathsData?: UIDLInitialPathsData
+  initialPropsData?: InitialPropsData
+  initialPathsData?: InitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
@@ -338,8 +313,6 @@ export interface UIDLCMSListNodeContent {
   }
   resourceId?: string
   statePersistanceName?: string
-  loadingStatePersistanceName?: string
-  errorStatePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
@@ -354,8 +327,6 @@ export interface UIDLCMSItemNodeContent {
   }
   resourceId?: string
   statePersistanceName?: string
-  loadingStatePersistanceName?: string
-  errorStatePersistanceName?: string
   resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
