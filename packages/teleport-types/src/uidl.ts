@@ -26,14 +26,36 @@ export interface ContextsUIDL {
   items?: Record<string, ContextUIDLItem>
 }
 
-export interface ResourceItemUIDL extends Resource {
-  id: string
-  name: string
+export interface UIDLENVValue {
+  type: 'env'
+  content: string
 }
 
-export interface ResourcesUIDL {
-  rootFolder?: string
-  items?: Record<string, ResourceItemUIDL>
+export type UIDLDynamicFunctionParam = Modify<
+  UIDLDynamicReference,
+  {
+    content: {
+      referenceType: 'prop'
+      id: string
+    }
+  }
+>
+
+export interface UIDLResourceItem {
+  name: string
+  headers?: Record<string, UIDLStaticValue | UIDLENVValue>
+  path: {
+    baseUrl: UIDLStaticValue | UIDLENVValue
+    route: UIDLStaticValue
+  }
+  method?: 'GET' | 'POST'
+  body?: Record<string, UIDLStaticValue>
+  mappers?: Record<string, UIDLDependency>
+  params?: Record<string, UIDLStaticValue | UIDLDynamicFunctionParam>
+}
+
+export interface UIDLResources {
+  items?: Record<string, UIDLResourceItem>
 }
 
 export interface ProjectUIDL {
@@ -41,8 +63,13 @@ export interface ProjectUIDL {
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
+  /**
+   * TODO: Contexts are more of framework specific things. So, when we see
+   * Multiple resources are items, the `next-project-generator` should take care of
+   * adding the contexts
+   */
   contexts?: ContextsUIDL
-  resources?: ResourcesUIDL
+  resources?: UIDLResources
 }
 
 export interface UIDLGlobalProjectValues {
@@ -141,13 +168,6 @@ export interface ResourceUrlParams {
   [key: string]: ResourceUrlValues
 }
 
-export interface Resource {
-  baseUrl: ResourceValue
-  route?: ResourceValue
-  authToken?: ResourceValue
-  urlParams?: ResourceUrlParams | unknown
-}
-
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -165,23 +185,28 @@ export interface ComponentUIDL {
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
 
-export interface InitialPropsData {
+export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
-  resource: Resource
+  resourceId: {
+    type: 'static'
+    content: string
+  }
 }
 
-export interface InitialPathsData {
+export interface UIDLInitialPathsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: Resource
+  resourceId: {
+    type: 'static'
+    content: string
+  }
 }
 
 export interface UIDLComponentOutputOptions {
@@ -193,8 +218,8 @@ export interface UIDLComponentOutputOptions {
   folderPath?: string[]
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
-  initialPropsData?: InitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
 }
 
 export interface UIDLComponentSEO {
@@ -243,8 +268,8 @@ export interface UIDLPageOptions {
   dynamicRouteAttribute?: string
   isIndex?: boolean
   pagination?: PagePaginationOptions
-  initialPropsData?: InitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }

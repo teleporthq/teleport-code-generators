@@ -12,7 +12,6 @@ import {
   lazy,
   oneOf,
   intersection,
-  unknownJson,
   withDefault,
   anyJson,
 } from '@mojotech/json-type-validation'
@@ -74,26 +73,22 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
-  ResourceValue,
   ResourceUrlParams,
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
   VCMSListUIDLElementNode,
-  Resource,
-  InitialPropsData,
-  InitialPathsData,
+  UIDLResourceItem,
+  UIDLInitialPropsData,
+  UIDLInitialPathsData,
   UIDLExpressionValue,
   UIDLDynamicLinkNode,
+  UIDLENVValue,
+  UIDLDynamicFunctionParam,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
 const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
   CustomCombinators
-
-const resourceValueDecoder: Decoder<ResourceValue> = union(
-  object({ type: constant('static'), value: string() }),
-  object({ type: constant('env'), value: string(), fallback: optional(string()) })
-)
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -130,7 +125,7 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   content: string(),
 })
 
-const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
+export const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   union(
     staticValueDecoder,
     dynamicValueDecoder,
@@ -139,39 +134,57 @@ const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
   )
 )
 
-export const resourceDecoder: Decoder<Resource> = object({
-  baseUrl: resourceValueDecoder,
-  urlParams: optional(
-    union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())
-  ),
-  authToken: optional(resourceValueDecoder),
-  route: optional(resourceValueDecoder),
+export const envValueDecoder: Decoder<UIDLENVValue> = object({
+  type: constant('env'),
+  content: string(),
 })
 
-export const initialPropsDecoder: Decoder<InitialPropsData> = object({
+export const dyamicFunctionParam: Decoder<UIDLDynamicFunctionParam> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('prop'),
+    id: string(),
+  }),
+})
+
+export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
+  name: string(),
+  headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
+  path: object({
+    baseUrl: union(staticValueDecoder, envValueDecoder),
+    route: staticValueDecoder,
+  }),
+  method: withDefault('GET', union(constant('GET'), constant('POST'))),
+  body: optional(dict(staticValueDecoder)),
+  mappers: optional(dict(lazy(() => dependencyDecoder))),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
+})
+
+/*
+  TODO: In UIDL validation, we should throw error if the resourceId is missing from the resources.
+*/
+export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resourceMappers: optional(
-    array(
-      object({
-        name: string(),
-        resource: lazy(() => externaldependencyDecoder),
-      })
-    )
-  ),
-  resource: resourceDecoder,
+  resourceId: object({
+    type: constant('static'),
+    content: string(),
+  }),
 })
 
-export const initialPathsDecoder: Decoder<InitialPathsData> = object({
+export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: resourceDecoder,
+  resourceId: object({
+    type: constant('static'),
+    content: string(),
+  }),
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
@@ -690,8 +703,6 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
     resourceMappers: optional(
       array(
         object({
@@ -714,8 +725,6 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     }),
     resourceId: optional(string()),
     statePersistanceName: optional(string()),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(attributeValueDecoder),

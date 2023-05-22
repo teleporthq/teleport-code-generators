@@ -55,12 +55,10 @@ export const createNextComponentCMSFetchPlugin: ComponentPluginFactory<ContextPl
       }
 
       const stateName = content.statePersistanceName
-      const loadingStateName = content.loadingStatePersistanceName
-      const errorStateName = content.errorStatePersistanceName
 
-      const setStateName = `set${StringUtils.capitalize(stateName)}`
-      const setLoadingStateName = `set${StringUtils.capitalize(loadingStateName)}`
-      const setErrorStateName = `set${StringUtils.capitalize(errorStateName)}`
+      const setStateName = StringUtils.createStateStoringFunction(stateName)
+      const setLoadingStateName = StringUtils.createStateStoringFunction(`${stateName}Loading`)
+      const setErrorStateName = StringUtils.createStateStoringFunction(`${stateName}Error`)
 
       const useEffectCall = computeUseEffectAST({
         resource,

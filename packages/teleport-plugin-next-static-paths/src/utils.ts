@@ -1,13 +1,13 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { InitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { UIDLInitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPathsAST = (
-  initialData: InitialPathsData,
-  propsPrefix: string = '',
+  initialData: UIDLInitialPathsData,
+  resourceImportName: string,
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST = computePropsAST(initialData, propsPrefix, pagination)
+  const computedResourceAST = computePropsAST(initialData, resourceImportName, pagination)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -26,11 +26,16 @@ export const generateInitialPathsAST = (
 }
 
 const computePropsAST = (
-  initialData: InitialPathsData,
-  propsPrefix: string = '',
+  initialData: UIDLInitialPathsData,
+  resourceImportName: string,
   pagination?: PagePaginationOptions
 ) => {
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(initialData.resource, propsPrefix)
+  const declerationAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(types.callExpression(types.identifier(resourceImportName), []))
+    ),
+  ])
 
   const paginationASTs = []
   if (pagination) {
@@ -170,5 +175,5 @@ const computePropsAST = (
     ])
   )
 
-  return [...resourceASTs, ...paginationASTs, returnAST]
+  return [declerationAST, ...paginationASTs, returnAST]
 }
