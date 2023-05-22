@@ -139,7 +139,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
       }
 
       if (Object.keys(dynamicStyles).length > 0) {
-        /* If dynamic styles are on nested-styles they are unfortunately lost, 
+        /* If dynamic styles are on nested-styles they are unfortunately lost,
           since inline style does not support that */
         if (templateStyle === 'html') {
           const inlineStyles = createDynamicInlineStyle(dynamicStyles)
@@ -206,7 +206,7 @@ const createCSSPlugin: ComponentPluginFactory<CSSPluginConfig> = (config) => {
                 propDefinitions[styleRef.content.content.content.id]?.defaultValue
 
               if (defaultPropValue) {
-                /* Changing the default value of the prop. 
+                /* Changing the default value of the prop.
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too. */
                 propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
                   forceScoping,

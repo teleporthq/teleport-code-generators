@@ -458,6 +458,26 @@
                   "content": "New Project3"
                 }
               ]
+            },
+            "pageOptions": {
+              "stateDefinitions": {
+                "AuthorList": {
+                  "id": "2ab206c8-f384-40dc-ae68-1302121dd1c5",
+                  "defaultValue": [],
+                  "type": "array"
+                },
+                "AuthorList1": {
+                  "id": "4371da4b-cbee-4c68-b8a8-39864a1e1a13",
+                  "defaultValue": [],
+                  "type": "array"
+                },
+                "AuthorEntity": {
+                  "id": "a8adc2b5-fb7c-41a9-8600-55ce665870d4",
+                  "defaultValue": {},
+                  "type": "object"
+                }
+              },
+              "propDefinitions": {}
             }
           },
           {
@@ -557,7 +577,42 @@
                             "type": "raw",
                             "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>"
                           }
-                        }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "state",
+                            "id": "AuthorList"
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": [],
+                        "resourceMappers": [
+                          {
+                            "name": "resolveContentfulResponse",
+                            "resource": {
+                              "type": "package",
+                              "path": "contentful-resolve-response",
+                              "version": "1.1.4",
+                              "meta": {
+                                "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
+                              }
+                            }
+                          }
+                        ],
+                        "statePersistanceName": "AuthorList",
+                        "resourceId": "6b5f14bd-1b8f-4b6a-b592-9f2e4e56a475"
                       }
                     },
                     {
@@ -577,7 +632,9 @@
                             "type": "static",
                             "content": "true"
                           }
-                        }
+                        ],
+                        "statePersistanceName": "AuthorList1",
+                        "resourceId": "a229b188-cf3d-4393-b9c1-89249461d58b"
                       }
                     },
                     {
@@ -587,49 +644,34 @@
                         "dependency": {
                           "type": "local"
                         },
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [],
-                        "semanticType": "Header"
-                      }
-                    },
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "component",
-                        "dependency": {
-                          "type": "local"
-                        },
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [],
-                        "semanticType": "Hero"
-                      }
-                    },
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "component",
-                        "dependency": {
-                          "type": "local"
-                        },
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [],
-                        "semanticType": "Features"
-                      }
-                    },
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "component",
-                        "dependency": {
-                          "type": "local"
-                        },
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [],
-                        "semanticType": "Footer"
+                        "valuePath": [],
+                        "itemValuePath": [],
+                        "resourceMappers": [
+                          {
+                            "name": "resolveContentfulResponse",
+                            "resource": {
+                              "type": "package",
+                              "path": "contentful-resolve-response",
+                              "version": "1.1.4",
+                              "meta": {
+                                "originalName": "resolveContentfulResponse"
+                              }
+                            }
+                          },
+                          {
+                            "name": "normalizeContent",
+                            "resource": {
+                              "type": "package",
+                              "version": "git+https://github.com/ionutpasca/contentful-normaliser.git",
+                              "path": "normalizeContentfulContent",
+                              "meta": {
+                                "originalName": "normalizeContent"
+                              }
+                            }
+                          }
+                        ],
+                        "statePersistanceName": "AuthorEntity",
+                        "resourceId": "2fb8a008-ca8b-4dc5-94d7-c6f24d544b65"
                       }
                     }
                   ],
@@ -10360,8 +10402,22 @@
                         {
                           "type": "dynamic",
                           "content": {
-                            "referenceType": "prop",
-                            "id": "subtitle"
+                            "elementType": "markdown-node",
+                            "referencedStyles": {},
+                            "children": [
+                              {
+                                "type": "dynamic",
+                                "content": {
+                                  "id": "6a27e84c-13eb-4b7f-9ee2-8cf7a6e6399d",
+                                  "referenceType": "ctx",
+                                  "path": [
+                                    "content"
+                                  ]
+                                }
+                              }
+                            ],
+                            "style": {},
+                            "attrs": {}
                           }
                         }
                       ],

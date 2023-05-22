@@ -108,6 +108,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
     dependency,
     key,
   } = node.content
+
   const elementNode = HASTBuilders.createHTMLNode(elementType)
   templatesLookUp[key] = elementNode
 
@@ -228,6 +229,7 @@ const generateComponentContent = async (
   }
 
   const combinedProps = { ...propDefinitions, ...(comp?.propDefinitions || {}) }
+
   const propsForInstance = Object.keys(combinedProps).reduce(
     (acc: Record<string, UIDLPropDefinition>, propKey) => {
       if (attrs[propKey]) {
@@ -260,6 +262,7 @@ const generateComponentContent = async (
     },
     {}
   )
+
   const elementNode = HASTBuilders.createHTMLNode(StringUtils.camelCaseToDashCase(elementType))
   lookUpTemplates[key] = elementNode
 

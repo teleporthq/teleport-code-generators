@@ -210,61 +210,45 @@ const generateCMSItemNode: NodeToJSX<
   Array<types.JSXElement | types.LogicalExpression>
 > = (node, params, options) => {
   const { success, error, loading } = node.content.nodes
-<<<<<<< Updated upstream
-  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
-=======
-  const { loopItemsReference } = node.content
-  const { content, type } = loopItemsReference
-
   /*
-  * CMS list node can only be a dynamic !!
-  */
-  if (type !== 'dynamic' && !content.id) {
-    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
-      Missing loopItemsReference`)
-  }
+   * TODO:
+   * Adding `loading` and `error` states at the moment are being conntrolled by the UIDL.
+   * But this needs to be changed, the generators itself should make the decision. Depending
+   * on the style flavour that is being ued.
+   */
+  const { statePersistanceName } = node.content
+  const loadingState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Loading`)
+  const errorState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Error`)
 
-  const
-
-  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${content.id}Loading`
-  )
-  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${content.id}Error`
-  )
->>>>>>> Stashed changes
-
-  const errorNodeAST =
-    error && errorStatePersistanceName
-      ? types.logicalExpression(
+  const errorNodeAST = error
+    ? types.logicalExpression(
         '&&',
-        types.identifier(errorStatePersistanceName),
+        types.identifier(errorState),
         generateElementNode(error, params, options) as types.JSXElement
       )
-      : null
+    : null
 
-  const loadingNodeAST =
-    loading && loadingStatePersistanceName
-      ? types.logicalExpression(
+  const loadingNodeAST = loading
+    ? types.logicalExpression(
         '&&',
-        types.identifier(loadingStatePersistanceName),
+        types.identifier(loadingState),
         generateElementNode(loading, params, options) as types.JSXElement
       )
-      : null
+    : null
 
   const successElementAST = generateElementNode(success, params, options)
   const successAST =
-    !loadingStatePersistanceName || !errorStatePersistanceName
+    !loading || !error
       ? successElementAST
       : types.logicalExpression(
-        '&&',
-        types.logicalExpression(
           '&&',
-          types.unaryExpression('!', types.identifier(loadingStatePersistanceName)),
-          types.unaryExpression('!', types.identifier(errorStatePersistanceName))
-        ),
-        successElementAST
-      )
+          types.logicalExpression(
+            '&&',
+            types.unaryExpression('!', types.identifier(loadingState)),
+            types.unaryExpression('!', types.identifier(errorState))
+          ),
+          successElementAST
+        )
 
   return [...(loading ? [loadingNodeAST] : []), ...(error ? [errorNodeAST] : []), successAST]
 }
@@ -273,30 +257,14 @@ const generateCMSListNode: NodeToJSX<
   UIDLCMSListNode,
   Array<types.JSXExpressionContainer | types.LogicalExpression>
 > = (node, params, options) => {
-  const { loadingStatePersistanceName, errorStatePersistanceName } = node.content
   const { success, empty, error, loading } = node.content.nodes
-<<<<<<< Updated upstream
-=======
-  const { loopItemsReference } = node.content
-  const { content, type } = loopItemsReference
-
-  /*
-  * CMS list node can only be a dynamic !!
-  */
-  if (type !== 'dynamic' && !content.id) {
-    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
-      Missing loopItemsReference`)
-  }
-
-  const
-
+  const { statePersistanceName } = node.content
   const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${content.id}Loading`
+    `${statePersistanceName}Loading`
   )
   const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${content.id}Error`
+    `${statePersistanceName}Error`
   )
->>>>>>> Stashed changes
 
   const listNodeAST = !!success
     ? (generateNode(success, params, options) as types.JSXElement[])[0]
@@ -308,10 +276,10 @@ const generateCMSListNode: NodeToJSX<
     : null
   const emptyNodeExpressionAST = empty
     ? types.logicalExpression(
-      '&&',
-      types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
-      emptyNodeAST
-    )
+        '&&',
+        types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
+        emptyNodeAST
+      )
     : null
 
   const errorNodeAST = !!error
