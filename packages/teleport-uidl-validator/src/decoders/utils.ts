@@ -346,7 +346,10 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
 export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
   attribute: string(),
   pageSize: number(),
-  totalCountPath: optional(array(string())),
+  totalCountPath: object({
+    type: union(constant('headers'), constant('body')),
+    path: array(union(string(), number())),
+  }),
 })
 
 export const stateDefinitionsDecoder: Decoder<UIDLStateDefinition> = object({
@@ -697,8 +700,6 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     resourceId: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
     resourceMappers: optional(
       array(
         object({
@@ -720,12 +721,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
     resourceId: optional(string()),
-<<<<<<< Updated upstream
     statePersistanceName: optional(string()),
-    loadingStatePersistanceName: optional(string()),
-    errorStatePersistanceName: optional(string()),
-=======
->>>>>>> Stashed changes
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(dynamicValueDecoder),

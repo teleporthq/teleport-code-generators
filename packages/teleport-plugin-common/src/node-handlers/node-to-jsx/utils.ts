@@ -124,7 +124,9 @@ const createStateChangeStatement = (
   switch (options.stateHandling) {
     case 'hooks':
       return t.expressionStatement(
-        t.callExpression(t.identifier(`set${StringUtils.capitalize(stateKey)}`), [newStateValue])
+        t.callExpression(t.identifier(StringUtils.createStateStoringFunction(stateKey)), [
+          newStateValue,
+        ])
       )
     case 'function':
       return t.expressionStatement(
@@ -172,6 +174,7 @@ export const createDynamicValueExpression = (
         } on node ${JSON.stringify(identifierContent)}`
       )
     }
+
     return t.memberExpression(
       t.identifier(StringUtils.camelize(contextMeta.providerName)),
       t.identifier(identifierContent.path.join('?.'))

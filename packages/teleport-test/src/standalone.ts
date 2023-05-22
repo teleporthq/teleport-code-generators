@@ -72,11 +72,7 @@ const run = async () => {
 
     let result
 
-<<<<<<< Updated upstream
     // /* Plain Html Generator */
-=======
-    /* Plain Html Generator */
->>>>>>> Stashed changes
     // await log(async () => {
     //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
     //     ...packerOptions,
@@ -100,11 +96,7 @@ const run = async () => {
       return ProjectType.NEXT
     })
 
-<<<<<<< Updated upstream
     // /* Styled JSX */
-=======
-    /* Styled JSX */
->>>>>>> Stashed changes
     // await log(async () => {
     //   result = await packProject(projectUIDL, {
     //     ...packerOptions,

@@ -2,11 +2,11 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
   /*
     Remove common path elements from the beginning of the
     components and pages full path (if any)
-  
+
     For example, having:
     - fromPath = ['src', 'components']
     - toPath = ['src', 'pages']
-  
+
     If we want to have an import statement that goes from the pages folder to the
     components folder, we only need to go back one step, so we are removing
     the first element from both the paths ('src') and build the dependencyPrefix accordingly

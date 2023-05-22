@@ -38,11 +38,29 @@ const computePropsAST = (
   ])
 
   const paginationASTs = []
-  if (pagination) {
+  // TODO: When pagination is used totalCountPath is mandatory
+  if (pagination && pagination?.totalCountPath) {
+    const { type, path } = pagination.totalCountPath || {}
+    if (type === 'headers') {
+      // We need to parse the headers as JSON because they are returned as a map.
+      const parseHeadersAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('headers'),
+          types.callExpression(
+            types.memberExpression(types.identifier('Object'), types.identifier('fromEntries')),
+            [types.memberExpression(types.identifier('data'), types.identifier('headers'))]
+          )
+        ),
+      ])
+      paginationASTs.push(parseHeadersAST)
+    }
+
     const itemsCountAST = types.variableDeclaration('const', [
       types.variableDeclarator(
         types.identifier('totalCount'),
-        ASTUtils.generateMemberExpressionASTFromPath(['response', ...pagination.totalCountPath])
+        type === 'body'
+          ? ASTUtils.generateMemberExpressionASTFromPath(['response', ...path])
+          : ASTUtils.generateMemberExpressionASTFromPath(['headers', ...path])
       ),
     ])
 

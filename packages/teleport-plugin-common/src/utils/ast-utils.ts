@@ -161,6 +161,7 @@ export const addDynamicExpressionAttributeToJSXTag = (
       const { projectContexts } = params
       const contextMeta = projectContexts[entityToResolve.content.ctxId]
       const nameOfContext = StringUtils.camelize(contextMeta.providerName)
+
       return nameOfContext
     }
     return name
@@ -565,8 +566,8 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(stateKey),
-        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
+        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
+        t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
@@ -688,19 +689,30 @@ export const generateMemberExpressionASTFromBase = (
 }
 
 export const generateMemberExpressionASTFromPath = (
-  path: string[]
+  path: Array<string | number>
 ): types.MemberExpression | types.Identifier => {
   const pathClone = [...path]
   if (path.length === 1) {
-    return types.identifier(path[0])
+    return types.identifier(path[0].toString())
   }
 
   pathClone.pop()
 
+  const currentPath = path[path.length - 1]
+  if (typeof currentPath === 'number') {
+    return types.memberExpression(
+      generateMemberExpressionASTFromPath(pathClone),
+      types.numericLiteral(currentPath),
+      true
+    )
+  }
+
+  const containsSpecial = currentPath.indexOf('.') !== -1 || currentPath.indexOf('-') !== -1
+
   return types.memberExpression(
     generateMemberExpressionASTFromPath(pathClone),
-    types.identifier(path[path.length - 1]),
-    false
+    containsSpecial ? types.stringLiteral(currentPath) : types.identifier(currentPath),
+    containsSpecial
   )
 }
 
