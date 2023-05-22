@@ -4,6 +4,7 @@ import {
   ComponentPlugin,
   ComponentUIDL,
   GeneratorOptions,
+  UIDLRootComponent,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils } from '@teleporthq/teleport-shared'
 
@@ -15,7 +16,7 @@ export default class AssemblyLine {
   }
 
   public async run(
-    uidl: ComponentUIDL,
+    uidl: ComponentUIDL | UIDLRootComponent,
     options: GeneratorOptions,
     initialStructure: ComponentStructure = {
       uidl,

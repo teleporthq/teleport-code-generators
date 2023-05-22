@@ -1,148 +1,1217 @@
 {
-  "name": "PersonSpotlight",
   "propDefinitions": {
-    "name": {
-      "type": "string",
-      "defaultValue": "John Doe"
+    "rootClassName": {
+      "id": "4ed71726-2afe-4130-ae89-b8dc1f52f450",
+      "defaultValue": "",
+      "type": "string"
     },
-    "url": {
-      "type": "string",
-      "defaultValue": "http://lorempixel.com/150/150/"
+    "contact": {
+      "id": "bd86ab36-28b7-4e7d-b2d9-5d6b6bef63ff",
+      "defaultValue": "Contact us today for free quote",
+      "type": "string"
     },
-    "flag": {
-      "type": "string",
-      "defaultValue": "🇷🇴"
+    "btn_contact": {
+      "id": "e5202d38-cfea-4bdd-9325-fa7c7aa0bcac",
+      "defaultValue": "Contact us for a free quote",
+      "type": "string"
     },
-    "link": {
-      "type": "string",
-      "defaultValue": "https://twitter.com/teleportHQio"
-    },
-    "displayLink": {
-      "type": "string",
-      "defaultValue": "@teleportHQ"
-    },
-    "bio": {
-      "type": "string",
-      "defaultValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    "btn_callnow": {
+      "id": "fc01ecba-c5e7-442f-955f-78ba01b05a7c",
+      "defaultValue": "1300 421 122",
+      "type": "string"
     }
   },
+  "stateDefinitions": {},
   "node": {
     "type": "element",
     "content": {
       "elementType": "container",
+      "semanticType": "div",
+      "referencedStyles": {
+        "432ee4ee-2836-4cab-b48e-92af7f63ca0e": {
+          "type": "style-map",
+          "content": {
+            "conditions": [
+              {
+                "maxWidth": 479,
+                "conditionType": "screen-size"
+              }
+            ],
+            "mapType": "inlined",
+            "styles": {
+              "width": {
+                "type": "static",
+                "content": "auto"
+              },
+              "paddingTop": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "--dl-space-space-tripleunit"
+                }
+              },
+              "paddingLeft": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "--dl-space-space-unit"
+                }
+              },
+              "paddingRight": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "--dl-space-space-unit"
+                }
+              },
+              "paddingBottom": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "--dl-space-space-tripleunit"
+                }
+              }
+            }
+          }
+        },
+        "879460f2-6162-4801-8d0a-cbdb6b4be5a3": {
+          "type": "style-map",
+          "content": {
+            "mapType": "component-referenced",
+            "content": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "rootClassName"
+              }
+            }
+          }
+        },
+        "dabe35b2-f5c0-4ece-a570-2ad67ba3f71e": {
+          "type": "style-map",
+          "content": {
+            "mapType": "component-referenced",
+            "content": {
+              "type": "dynamic",
+              "content": {
+                "referenceType": "prop",
+                "id": "rootClassName"
+              }
+            }
+          }
+        }
+      },
+      "abilities": {},
       "style": {
-        "width": "300px",
-        "border": "1px solid #ccc",
-        "padding": "10px",
-        "margin": "5px"
+        "width": {
+          "type": "static",
+          "content": "100%"
+        },
+        "height": {
+          "type": "static",
+          "content": "auto"
+        },
+        "display": {
+          "type": "static",
+          "content": "flex"
+        },
+        "position": {
+          "type": "static",
+          "content": "relative"
+        },
+        "alignItems": {
+          "type": "static",
+          "content": "center"
+        },
+        "paddingTop": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-space-space-tripleunit"
+          }
+        },
+        "paddingLeft": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-space-space-doubleunit"
+          }
+        },
+        "paddingRight": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-space-space-doubleunit"
+          }
+        },
+        "flexDirection": {
+          "type": "static",
+          "content": "row"
+        },
+        "paddingBottom": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-space-space-tripleunit"
+          }
+        },
+        "justifyContent": {
+          "type": "static",
+          "content": "center"
+        },
+        "backgroundColor": {
+          "type": "static",
+          "content": "rgba(5, 11, 107, 0.68)"
+        }
       },
       "children": [
         {
           "type": "element",
           "content": {
-            "elementType": "image",
-            "attrs": {
-              "url": "$props.url"
+            "elementType": "container",
+            "semanticType": "div",
+            "referencedStyles": {
+              "30beb6d6-8a8e-4d87-aa87-4ff3d749afe9": {
+                "type": "style-map",
+                "content": {
+                  "conditions": [
+                    {
+                      "maxWidth": 991,
+                      "conditionType": "screen-size"
+                    }
+                  ],
+                  "mapType": "inlined",
+                  "styles": {
+                    "gap": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "token",
+                        "id": "--dl-space-space-quadruple"
+                      }
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  }
+                }
+              }
             },
+            "abilities": {},
             "style": {
-              "display": "block",
-              "margin": "auto",
-              "border-radius": "100%"
-            }
-          }
-        },
-        {
-          "type": "element",
-          "content": {
-            "elementType": "textblock",
-            "style": {
-              "font-size": "22px",
-              "font-weight": "900",
-              "margin": "0",
-              "text-align": "center"
+              "gap": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "token",
+                  "id": "--dl-space-space-doubleunit"
+                }
+              },
+              "width": {
+                "type": "static",
+                "content": "100%"
+              },
+              "display": {
+                "type": "static",
+                "content": "flex"
+              },
+              "maxWidth": {
+                "type": "static",
+                "content": "1400px"
+              },
+              "alignItems": {
+                "type": "static",
+                "content": "center"
+              },
+              "flexDirection": {
+                "type": "static",
+                "content": "row"
+              },
+              "justifyContent": {
+                "type": "static",
+                "content": "center"
+              }
             },
             "children": [
               {
                 "type": "element",
                 "content": {
-                  "elementType": "text",
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "name": "Container",
+                  "referencedStyles": {
+                    "c8c9b8d0-727f-43b6-9930-10f82c65323a": {
+                      "type": "style-map",
+                      "content": {
+                        "conditions": [
+                          {
+                            "maxWidth": 991,
+                            "conditionType": "screen-size"
+                          }
+                        ],
+                        "mapType": "inlined",
+                        "styles": {
+                          "alignSelf": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "center"
+                          },
+                          "justifyContent": {
+                            "type": "static",
+                            "content": "center"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "abilities": {},
                   "style": {
-                    "margin-right": "7px",
-                    "font-size": "28px",
-                    "vertical-align": "middle"
+                    "width": {
+                      "type": "static",
+                      "content": "50%"
+                    },
+                    "height": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "position": {
+                      "type": "static",
+                      "content": "relative"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "marginRight": {
+                      "type": "static",
+                      "content": "0px"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
+                    }
                   },
                   "children": [
                     {
-                      "type": "dynamic",
+                      "type": "element",
                       "content": {
-                        "referenceType": "prop",
-                        "id": "flag"
+                        "elementType": "container",
+                        "semanticType": "div",
+                        "referencedStyles": {
+                          "93ebd947-7b1a-4692-84dd-f553e7550e72": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 991,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "alignSelf": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "column"
+                          },
+                          "justifyContent": {
+                            "type": "static",
+                            "content": "flex-start"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "h1",
+                              "referencedStyles": {
+                                "b2d51705-affa-45fb-83f8-168c9daac1b7": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "alignSelf": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "textAlign": {
+                                        "type": "static",
+                                        "content": "center"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-base-white"
+                                  }
+                                },
+                                "width": {
+                                  "type": "static",
+                                  "content": "80%"
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "textTransform": {
+                                  "type": "static",
+                                  "content": "capitalize"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "span",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "For a "
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "span",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "color": {
+                                        "type": "static",
+                                        "content": "var(--dl-color-primary-orange)"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "FREE quote or more information"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "span",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": " About Our Services"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "text",
+                              "semanticType": "span",
+                              "referencedStyles": {
+                                "b3416c7c-cbdc-4a29-91e9-55823f01e56b": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "alignSelf": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "textAlign": {
+                                        "type": "static",
+                                        "content": "center"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "color": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "token",
+                                    "id": "--dl-color-base-white"
+                                  }
+                                },
+                                "fontSize": {
+                                  "type": "static",
+                                  "content": "16px"
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "fontStyle": {
+                                  "type": "static",
+                                  "content": "normal"
+                                },
+                                "textAlign": {
+                                  "type": "static",
+                                  "content": "left"
+                                },
+                                "fontFamily": {
+                                  "type": "static",
+                                  "content": "Fira Sans"
+                                },
+                                "fontWeight": {
+                                  "type": "static",
+                                  "content": "400"
+                                },
+                                "paddingTop": {
+                                  "type": "static",
+                                  "content": "24px"
+                                },
+                                "paddingBottom": {
+                                  "type": "static",
+                                  "content": "40px"
+                                },
+                                "textTransform": {
+                                  "type": "static",
+                                  "content": "capitalize"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Never beeen so easy to get your project done"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "semanticType": "div",
+                        "referencedStyles": {
+                          "7a1c10e0-c8ac-400f-a251-5a528c457ae0": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "flexDirection": {
+                                  "type": "static",
+                                  "content": "column"
+                                }
+                              }
+                            }
+                          },
+                          "c2808b3c-fd62-4916-9c85-7652cb4ce901": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 767,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "100%"
+                                },
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "center"
+                                }
+                              }
+                            }
+                          },
+                          "f4704c9e-d1d2-4c33-86d4-afb11b666333": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 991,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "alignSelf": {
+                                  "type": "static",
+                                  "content": "center"
+                                },
+                                "alignItems": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                },
+                                "justifyContent": {
+                                  "type": "static",
+                                  "content": "flex-start"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "style": {
+                          "gap": {
+                            "type": "static",
+                            "content": "15px"
+                          },
+                          "flex": {
+                            "type": "static",
+                            "content": "0 0 auto"
+                          },
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "display": {
+                            "type": "static",
+                            "content": "flex"
+                          },
+                          "alignSelf": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "alignItems": {
+                            "type": "static",
+                            "content": "flex-start"
+                          },
+                          "flexDirection": {
+                            "type": "static",
+                            "content": "row"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "semanticType": "div",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "span",
+                                    "name": "Button",
+                                    "referencedStyles": {
+                                      "6c077fb1-460b-4a50-b42f-004ed8933a02": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 767,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "abilities": {
+                                      "link": {
+                                        "type": "phone",
+                                        "content": {
+                                          "phone": "1300421122"
+                                        }
+                                      }
+                                    },
+                                    "style": {
+                                      "color": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-color-neutral-0"
+                                        }
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "auto"
+                                      },
+                                      "fontSize": {
+                                        "type": "static",
+                                        "content": "16px"
+                                      },
+                                      "alignSelf": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "fontStyle": {
+                                        "type": "static",
+                                        "content": "normal"
+                                      },
+                                      "textAlign": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "fontFamily": {
+                                        "type": "static",
+                                        "content": "Fira Sans"
+                                      },
+                                      "fontWeight": {
+                                        "type": "static",
+                                        "content": "600"
+                                      },
+                                      "paddingTop": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      },
+                                      "borderColor": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-color-primary-orange"
+                                        }
+                                      },
+                                      "borderWidth": {
+                                        "type": "static",
+                                        "content": "2px"
+                                      },
+                                      "paddingLeft": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      },
+                                      "borderRadius": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-radius-radius-radius4"
+                                        }
+                                      },
+                                      "paddingRight": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      },
+                                      "paddingBottom": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      },
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "id": "btn_callnow",
+                                          "referenceType": "prop"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "semanticType": "div",
+                              "referencedStyles": {
+                                "1ea195a6-8cdb-4052-8d11-c7de47019e9c": {
+                                  "type": "style-map",
+                                  "content": {
+                                    "conditions": [
+                                      {
+                                        "maxWidth": 991,
+                                        "conditionType": "screen-size"
+                                      }
+                                    ],
+                                    "mapType": "inlined",
+                                    "styles": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "auto"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "abilities": {},
+                              "style": {
+                                "width": {
+                                  "type": "static",
+                                  "content": "auto"
+                                },
+                                "height": {
+                                  "type": "static",
+                                  "content": "auto"
+                                },
+                                "display": {
+                                  "type": "static",
+                                  "content": "flex"
+                                },
+                                "position": {
+                                  "type": "static",
+                                  "content": "relative"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "button",
+                                    "referencedStyles": {
+                                      "7a6b503b-9d47-4a04-976f-437a0aa6ffbc": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "content": "hover",
+                                              "conditionType": "element-state"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "color": {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "token",
+                                                "id": "--dl-color-gray-black"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "5cea4a5e-bcf5-47f0-ba4e-a84b214e83c6": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 767,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "99d69b27-4e48-408f-a8c7-09b35ead7d65": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 479,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "c8ae37a6-017a-4e65-a3f3-4f0ddfa2fa28": {
+                                        "type": "style-map",
+                                        "content": {
+                                          "conditions": [
+                                            {
+                                              "maxWidth": 991,
+                                              "conditionType": "screen-size"
+                                            }
+                                          ],
+                                          "mapType": "inlined",
+                                          "styles": {
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100%"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "abilities": {
+                                      "link": {
+                                        "type": "section",
+                                        "content": {
+                                          "section": "form"
+                                        }
+                                      }
+                                    },
+                                    "attrs": {
+                                      "type": {
+                                        "type": "static",
+                                        "content": "button"
+                                      }
+                                    },
+                                    "style": {
+                                      "color": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-color-base-white"
+                                        }
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "height": {
+                                        "type": "static",
+                                        "content": "auto"
+                                      },
+                                      "minWidth": {
+                                        "type": "static",
+                                        "content": "190px"
+                                      },
+                                      "textAlign": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "paddingTop": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      },
+                                      "borderColor": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-color-primary-orange"
+                                        }
+                                      },
+                                      "borderWidth": {
+                                        "type": "static",
+                                        "content": "2px"
+                                      },
+                                      "paddingLeft": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      },
+                                      "borderRadius": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-radius-radius-radius4"
+                                        }
+                                      },
+                                      "paddingRight": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      },
+                                      "paddingBottom": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      },
+                                      "textDecoration": {
+                                        "type": "static",
+                                        "content": "none"
+                                      },
+                                      "backgroundColor": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-color-primary-orange"
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "id": "btn_contact",
+                                          "referenceType": "prop"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
                 }
               },
               {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "prop",
-                  "id": "name"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "element",
-          "content": {
-            "elementType": "textblock",
-            "style": {
-              "fontSize": "16px",
-              "margin": "0",
-              "text-align": "center"
-            },
-            "children": [
-              {
                 "type": "element",
                 "content": {
-                  "elementType": "link",
-                  "style": {
-                    "text-decoration": "none",
-                    "color": "#822cec"
-                  },
-                  "attrs": {
-                    "url": {
-                      "type": "dynamic",
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {
+                    "f230bafe-8ed4-45fd-8165-55e3955c1257": {
+                      "type": "style-map",
                       "content": {
-                        "referenceType": "prop",
-                        "id": "link"
+                        "conditions": [
+                          {
+                            "maxWidth": 991,
+                            "conditionType": "screen-size"
+                          }
+                        ],
+                        "mapType": "inlined",
+                        "styles": {
+                          "width": {
+                            "type": "static",
+                            "content": "90%"
+                          }
+                        }
                       }
                     }
                   },
+                  "abilities": {},
+                  "style": {
+                    "gap": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "token",
+                        "id": "--dl-space-space-unit"
+                      }
+                    },
+                    "flex": {
+                      "type": "static",
+                      "content": "0 0 auto"
+                    },
+                    "width": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "alignSelf": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
+                    }
+                  },
                   "children": [
-                    "$props.displayLink"
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "image",
+                        "referencedStyles": {
+                          "cbceee76-d35d-4c33-b4f4-bf13c22ad1db": {
+                            "type": "style-map",
+                            "content": {
+                              "conditions": [
+                                {
+                                  "maxWidth": 479,
+                                  "conditionType": "screen-size"
+                                }
+                              ],
+                              "mapType": "inlined",
+                              "styles": {
+                                "height": {
+                                  "type": "static",
+                                  "content": "auto"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "abilities": {},
+                        "attrs": {
+                          "alt": {
+                            "type": "static",
+                            "content": "image"
+                          },
+                          "src": {
+                            "type": "static",
+                            "content": "60f4148f-b337-4aeb-950a-ddc9209b4f73"
+                          }
+                        },
+                        "style": {
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "height": {
+                            "type": "static",
+                            "content": "600px"
+                          },
+                          "objectFit": {
+                            "type": "static",
+                            "content": "cover"
+                          }
+                        },
+                        "children": []
+                      }
+                    }
                   ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "element",
-          "content": {
-            "elementType": "textblock",
-            "children": [
-              {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "prop",
-                  "id": "bio"
                 }
               }
             ]
           }
         }
       ]
+    }
+  },
+  "name": "CTA-2",
+  "styleSetDefinitions": {
+    "rootClassName": {
+      "content": {
+        "backgroundColor": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-color-neutral-black"
+          }
+        }
+      },
+      "conditions": [],
+      "type": "reusable-component-style-override"
+    },
+    "rootClassName1": {
+      "content": {},
+      "conditions": [],
+      "type": "reusable-component-style-override"
+    },
+    "rootClassName2": {
+      "content": {
+        "backgroundColor": {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "token",
+            "id": "--dl-color-gray-black"
+          }
+        }
+      },
+      "conditions": [],
+      "type": "reusable-component-style-override"
     }
   }
 }

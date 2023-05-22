@@ -169,9 +169,11 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       })
 
       if (dynamicVariants.length > 1) {
-        errors.push(`Node ${
-          node.content?.name || node.content?.key
-        } is using multiple dynamic variants using propDefinitions.
+        errors.push(`Node ${JSON.stringify(
+          node.content.referencedStyles,
+          null,
+          2
+        )} is using multiple dynamic variants using propDefinitions.
         We can have only one dynamic variant at once`)
       }
     }
