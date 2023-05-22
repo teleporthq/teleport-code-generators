@@ -161,7 +161,6 @@ export const addDynamicExpressionAttributeToJSXTag = (
       const { projectContexts } = params
       const contextMeta = projectContexts[entityToResolve.content.ctxId]
       const nameOfContext = StringUtils.camelize(contextMeta.providerName)
-
       return nameOfContext
     }
     return name
@@ -566,8 +565,8 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
-        t.identifier(StringUtils.createStateStoringFunction(stateKey)),
+        t.identifier(stateKey),
+        t.identifier(`set${StringUtils.capitalize(stateKey)}`),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
     ),
