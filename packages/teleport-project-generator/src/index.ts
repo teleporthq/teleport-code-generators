@@ -253,13 +253,16 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       skipValidation: true,
       designLanguage: uidl.root?.designLanguage,
-      resources: {
-        items: uidl?.resources?.items,
-        path: GenericUtils.generateLocalDependenciesPrefix(
-          this.strategy.pages.path,
-          this.strategy.resources.path
-        ),
-      },
+      ...(uidl.resources &&
+        this.strategy.resources?.path && {
+          resources: {
+            items: uidl?.resources?.items,
+            path: GenericUtils.generateLocalDependenciesPrefix(
+              this.strategy.pages.path,
+              this.strategy.resources.path
+            ),
+          },
+        }),
     }
 
     // Handling project style sheet
