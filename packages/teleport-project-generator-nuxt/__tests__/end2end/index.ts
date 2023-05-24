@@ -46,7 +46,7 @@ describe('Vue Nuxt Project Generator', () => {
     expect(components.files[2].content).toContain(`import { Button } from 'antd'`)
     expect(pages.files[0].name).toBe('index')
     expect(pages.files[0].content).toContain(
-      `import DangerousHTML from 'dangerous-html/dist/vue/lib.mjs'`
+      `import DangerousHTML from 'dangerous-html/dist/vue/lib.js'`
     )
 
     expect(packageJSON.content).toContain(`"antd": "4.5.4"`)
