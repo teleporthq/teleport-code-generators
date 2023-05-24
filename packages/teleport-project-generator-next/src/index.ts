@@ -7,15 +7,12 @@ import { createReactComponentGenerator } from '@teleporthq/teleport-component-ge
 import { createJSXHeadConfigPlugin } from '@teleporthq/teleport-plugin-jsx-head-config'
 import { createStaticPropsPlugin } from '@teleporthq/teleport-plugin-next-static-props'
 import { createStaticPathsPlugin } from '@teleporthq/teleport-plugin-next-static-paths'
-import { ReactStyleVariation, FileType, ProjectType } from '@teleporthq/teleport-types'
+import { ReactStyleVariation, FileType } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin } from '@teleporthq/teleport-plugin-css'
-import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
+import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
 import { createDocumentFileChunks, configContentGenerator } from './utils'
 import { NextProjectMapping } from './next-project-mapping'
 import NextTemplate from './project-template'
-import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
-import { createNextComponentCMSFetchPlugin } from '@teleporthq/teleport-plugin-next-cms-fetch'
-import { ProjectPluginApiRoutes } from '@teleporthq/teleport-project-plugin-api-routes'
 
 const createNextProjectGenerator = () => {
   const headConfigPlugin = createJSXHeadConfigPlugin({
@@ -31,14 +28,13 @@ const createNextProjectGenerator = () => {
   const getStaticPropsPlugin = createStaticPropsPlugin()
   const getStaticPathsPlugin = createStaticPathsPlugin()
   const contextPlugin = createNextContextPlugin()
-  const nextComponentCMSFetchPlugin = createNextComponentCMSFetchPlugin()
 
   const generator = createProjectGenerator({
     id: 'teleport-project-next',
     style: ReactStyleVariation.StyledJSX,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [nextImagePlugin, nextComponentCMSFetchPlugin, contextPlugin],
+      plugins: [nextImagePlugin, contextPlugin],
       mappings: [NextProjectMapping],
       path: ['components'],
     },
@@ -47,11 +43,10 @@ const createNextProjectGenerator = () => {
       path: ['pages'],
       plugins: [
         nextImagePlugin,
+        contextPlugin,
         headConfigPlugin,
-        nextComponentCMSFetchPlugin,
         getStaticPathsPlugin,
         getStaticPropsPlugin,
-        contextPlugin,
       ],
       mappings: [NextProjectMapping],
       options: {
@@ -97,14 +92,14 @@ const createNextProjectGenerator = () => {
         fileType: FileType.JS,
       },
     },
+    resources: {
+      path: ['resources'],
+    },
     static: {
       prefix: '',
       path: ['public'],
     },
   })
-
-  generator.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
-  generator.addPlugin(new ProjectPluginApiRoutes({ framework: ProjectType.NEXT }))
 
   return generator
 }

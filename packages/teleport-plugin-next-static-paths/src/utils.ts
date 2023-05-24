@@ -1,13 +1,14 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { InitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { UIDLInitialPathsData, PagePaginationOptions } from '@teleporthq/teleport-types'
 
 export const generateInitialPathsAST = (
-  initialData: InitialPathsData,
-  propsPrefix: string = '',
+  initialData: UIDLInitialPathsData,
+  resourceImportName: string,
+  resource: UIDLInitialPathsData['resource'],
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST = computePropsAST(initialData, propsPrefix, pagination)
+  const computedResourceAST = computePropsAST(initialData, resourceImportName, resource, pagination)
 
   return types.exportNamedDeclaration(
     (() => {
@@ -26,29 +27,61 @@ export const generateInitialPathsAST = (
 }
 
 const computePropsAST = (
-  initialData: InitialPathsData,
-  propsPrefix: string = '',
+  initialData: UIDLInitialPathsData,
+  resourceImportName: string,
+  resource: UIDLInitialPathsData['resource'],
   pagination?: PagePaginationOptions
 ) => {
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(initialData.resource, propsPrefix)
+  const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
+    (acc: types.ObjectProperty[], item) => {
+      const prop = resource.params[item]
+      if (prop.type === 'static') {
+        acc.push(
+          types.objectProperty(
+            types.stringLiteral(item),
+            typeof prop.content === 'string'
+              ? types.stringLiteral(prop.content)
+              : typeof prop.content === 'boolean'
+              ? types.booleanLiteral(prop.content)
+              : typeof prop.content === 'number'
+              ? types.numericLiteral(prop.content)
+              : types.identifier(String(prop.content))
+          )
+        )
+      }
+
+      if (prop.type === 'expr') {
+        acc.push(types.objectProperty(types.stringLiteral(item), types.identifier(prop.content)))
+      }
+
+      return acc
+    },
+    []
+  )
+
+  const declerationAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(
+        types.callExpression(types.identifier(resourceImportName), [
+          types.objectExpression(funcParams),
+        ])
+      )
+    ),
+  ])
 
   const paginationASTs = []
   // TODO: When pagination is used totalCountPath is mandatory
   if (pagination && pagination?.totalCountPath) {
     const { type, path } = pagination.totalCountPath || {}
     if (type === 'headers') {
-      // By default, 'resourceASTs' contains two elements. The first one is the 'fetch' call
-      // and the second one is the 'json' call. We need to remove the 'json' call because
-      // we are not using it when we are taking the total count from the headers.
-      resourceASTs.pop()
-
       // We need to parse the headers as JSON because they are returned as a map.
       const parseHeadersAST = types.variableDeclaration('const', [
         types.variableDeclarator(
           types.identifier('headers'),
           types.callExpression(
             types.memberExpression(types.identifier('Object'), types.identifier('fromEntries')),
-            [types.memberExpression(types.identifier('data'), types.identifier('headers'))]
+            [types.memberExpression(types.identifier('response'), types.identifier('headers'))]
           )
         ),
       ])
@@ -171,5 +204,5 @@ const computePropsAST = (
     ])
   )
 
-  return [...resourceASTs, ...paginationASTs, returnAST]
+  return [declerationAST, ...paginationASTs, returnAST]
 }

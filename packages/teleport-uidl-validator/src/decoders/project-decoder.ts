@@ -5,18 +5,15 @@ import {
   string,
   dict,
   array,
-  intersection,
+  lazy,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
   WebManifest,
   VProjectUIDL,
-  ContextsUIDL,
-  ContextUIDLItem,
-  ResourcesUIDL,
-  ResourceItemUIDL,
+  UIDLResources,
 } from '@teleporthq/teleport-types'
-import { globalAssetsDecoder, resourceDecoder } from './utils'
+import { dependencyDecoder, globalAssetsDecoder, resourceItemDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -49,27 +46,9 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
   variables: optional(dict(string())),
 })
 
-export const contextItemDecoder: Decoder<ContextUIDLItem> = object({
-  name: string(),
-  fileName: optional(string()),
-})
-
-export const contextsDecoder: Decoder<ContextsUIDL> = object({
-  rootFolder: optional(string()),
-  items: dict(optional(contextItemDecoder)),
-})
-
-export const projectResourceItemDecoder: Decoder<ResourceItemUIDL> = intersection(
-  resourceDecoder,
-  object({
-    id: string(),
-    name: string(),
-  })
-)
-
-export const resourcesDecoder: Decoder<ResourcesUIDL> = object({
-  rootFolder: optional(string()),
-  items: dict(optional(projectResourceItemDecoder)),
+export const resourcesDecoder: Decoder<UIDLResources> = object({
+  mappers: optional(dict(lazy(() => dependencyDecoder))),
+  items: optional(dict(lazy(() => resourceItemDecoder))),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
@@ -77,6 +56,16 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   globals: globalProjectValuesDecoder,
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
-  contexts: optional(contextsDecoder),
   resources: optional(resourcesDecoder),
+  contexts: optional(
+    object({
+      rootFolder: string(),
+      items: dict(
+        object({
+          name: string(),
+          fileName: optional(string()),
+        })
+      ),
+    })
+  ),
 })

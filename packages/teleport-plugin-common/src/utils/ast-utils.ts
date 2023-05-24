@@ -6,13 +6,11 @@ import {
   UIDLStateDefinition,
   UIDLPropDefinition,
   UIDLRawValue,
-  Resource,
-  ResourceValue,
-  ResourceUrlParams,
   UIDLStaticValue,
   UIDLDynamicReference,
-  ResourceUrlValues,
-  UIDLExpressionValue,
+  UIDLResourceItem,
+  UIDLENVValue,
+  UIDLPropValue,
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
@@ -103,6 +101,11 @@ export const addDynamicAttributeToJSXTag = (
   prefix: string = '',
   t = types
 ) => {
+  // TODO: Fix  !!
+  if (!value) {
+    return
+  }
+
   const content =
     prefix === ''
       ? t.identifier(value)
@@ -594,24 +597,21 @@ export const generateDynamicWindowImport = (
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
 
-export const generateRemoteResourceASTs = (
-  resource: Resource,
-  propsPrefix: string = '',
-  extraUrlParamsGenerator?: () => types.ObjectProperty[]
-) => {
+/*
+ * TODO: Add the ability to support body and payload.
+ * UIDLResourceItem['body']
+ * All the dynamic props are sent using the function props
+ */
+export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
-  const authHeaderAST = computeAuthorizationHeaderAST(resource)
+  const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
+  const headersASTs = generateRESTHeadersAST(resource?.headers)
 
-  const queryParams = generateURLParamsAST(
-    resource.urlParams as ResourceUrlParams,
-    propsPrefix,
-    extraUrlParamsGenerator
-  )
-
+  const queryParams = generateURLParamsAST(resource?.params)
   const fetchUrlQuasis = fetchUrl.quasis
-  const queryParamsQuasis = queryParams.quasis
+  const queryParamsQuasis = queryParams?.quasis || [types.templateElement({ raw: '', cooked: '' })]
 
-  if (queryParams.expressions.length > 0) {
+  if (queryParams?.expressions.length > 0) {
     fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw =
       fetchUrlQuasis[fetchUrlQuasis.length - 1].value.raw + '?'
 
@@ -621,7 +621,63 @@ export const generateRemoteResourceASTs = (
     queryParamsQuasis.pop()
   }
 
-  const url = queryParams
+  const paramsDeclerations: Array<types.ObjectProperty | types.SpreadElement> = Object.keys(
+    resource?.params || {}
+  ).reduce((acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
+    const prop = resource.params[item]
+    if (prop.type === 'static') {
+      acc.push(
+        types.objectProperty(
+          types.identifier(item),
+          typeof prop.content === 'number'
+            ? types.numericLiteral(prop.content)
+            : typeof prop.content === 'boolean'
+            ? types.booleanLiteral(prop.content)
+            : typeof prop.content === 'string'
+            ? types.stringLiteral(prop.content)
+            : types.identifier(String(prop.content))
+        )
+      )
+    }
+
+    if (prop.type === 'dynamic') {
+      acc.push(
+        types.spreadElement(
+          types.logicalExpression(
+            '&&',
+            types.memberExpression(
+              types.identifier('params'),
+              types.stringLiteral(item),
+              true,
+              false
+            ),
+            types.objectExpression([
+              types.objectProperty(
+                types.stringLiteral(item),
+                types.memberExpression(
+                  types.identifier('params'),
+                  types.stringLiteral(item),
+                  true,
+                  false
+                )
+              ),
+            ])
+          )
+        )
+      )
+    }
+
+    return acc
+  }, [])
+
+  const paramsAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('urlParams'),
+      types.objectExpression(paramsDeclerations)
+    ),
+  ])
+
+  const url = queryParams?.quasis
     ? types.templateLiteral(
         [...fetchUrlQuasis, ...queryParamsQuasis],
         [...fetchUrl.expressions.concat(queryParams.expressions)]
@@ -635,17 +691,10 @@ export const generateRemoteResourceASTs = (
         types.callExpression(types.identifier('fetch'), [
           url,
           types.objectExpression([
+            types.objectProperty(types.identifier('method'), types.stringLiteral(resource.method)),
             types.objectProperty(
               types.identifier('headers'),
-              types.objectExpression([
-                types.objectProperty(
-                  types.identifier('"Content-Type"'),
-                  types.stringLiteral('application/json'),
-                  false,
-                  false
-                ),
-                authHeaderAST,
-              ])
+              types.objectExpression([...headersASTs, authHeaderAST])
             ),
           ]),
         ])
@@ -665,7 +714,18 @@ export const generateRemoteResourceASTs = (
     ),
   ])
 
-  return [fetchAST, responseJSONAST]
+  return [paramsAST, fetchAST, responseJSONAST]
+}
+
+const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.ObjectProperty[] => {
+  return Object.keys(headers)
+    .filter((header) => header !== 'authToken')
+    .map((header) => {
+      return types.objectProperty(
+        types.stringLiteral(header),
+        types.stringLiteral(String(headers[header].content))
+      )
+    })
 }
 
 export const generateMemberExpressionASTFromBase = (
@@ -715,87 +775,50 @@ export const generateMemberExpressionASTFromPath = (
 }
 
 const generateURLParamsAST = (
-  urlParams: ResourceUrlParams,
-  propsPrefix?: string,
-  extraUrlParamsGenerator?: () => types.ObjectProperty[]
-) => {
+  urlParams: Record<string, UIDLStaticValue | UIDLPropValue>
+): types.TemplateLiteral | null => {
+  if (!urlParams) {
+    return null
+  }
+
   const queryString: Record<string, types.Expression> = {}
   Object.keys(urlParams).forEach((key) => {
-    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key, propsPrefix)
+    resolveDynamicValuesFromUrlParams(urlParams[key], queryString, key)
   })
-
-  const urlObject = types.objectExpression([
-    ...Object.keys(queryString).map((key) => {
-      return types.objectProperty(types.stringLiteral(`${key}`), queryString[key])
-    }),
-    ...(extraUrlParamsGenerator ? extraUrlParamsGenerator() : []),
-  ])
 
   return types.templateLiteral(
     [
       types.templateElement({ raw: '', cooked: '' }, false),
       types.templateElement({ raw: '', cooked: '' }, true),
     ],
-    [types.newExpression(types.identifier('URLSearchParams'), [urlObject])]
+    [types.newExpression(types.identifier('URLSearchParams'), [types.identifier('urlParams')])]
   )
 }
 
 const resolveDynamicValuesFromUrlParams = (
-  field: ResourceUrlValues,
+  field: UIDLStaticValue | UIDLPropValue,
   query: Record<string, types.Expression>,
-  prefix: string = null,
-  propsPrefix: string = ''
+  prefix: string = null
 ) => {
-  if (Array.isArray(field)) {
-    const arrayValues = field.map((value) => {
-      return resolveUrlParamsValue(value, propsPrefix)
-    })
-    query[prefix] = types.arrayExpression(arrayValues)
+  if (field.type === 'dynamic' || field.type === 'static') {
+    query[prefix] = resolveUrlParamsValue(field)
     return
   }
-
-  if (field.type === 'dynamic' || field.type === 'static' || field.type === 'expr') {
-    query[prefix] = resolveUrlParamsValue(field, propsPrefix)
-    return
-  }
-
-  Object.keys(field).forEach((key) => {
-    const value = field[key]
-    const newPrefix = prefix ? `${prefix}[${key}]` : key
-
-    if (typeof value === 'object') {
-      resolveDynamicValuesFromUrlParams(value, query, newPrefix, propsPrefix)
-      return
-    }
-
-    query[newPrefix] = resolveUrlParamsValue(value, propsPrefix)
-  })
 }
 
-const resolveUrlParamsValue = (
-  urlParams: UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue,
-  propsPrefix: string = ''
-) => {
-  if (urlParams.type === 'static') {
-    return types.stringLiteral(`${urlParams.content}`)
+const resolveUrlParamsValue = (urlParam: UIDLStaticValue | UIDLPropValue) => {
+  if (urlParam.type === 'static') {
+    return types.stringLiteral(`${urlParam.content}`)
   }
 
-  if (urlParams.type === 'expr') {
-    return types.identifier(urlParams.content)
-  }
-
-  if (urlParams.content.referenceType !== 'prop') {
+  if (urlParam.content.referenceType !== 'prop') {
     throw new Error('Only prop references are supported for url params')
   }
 
-  const paramPath = [...(propsPrefix ? [propsPrefix] : []), ...(urlParams.content.path || [])]
+  const paramPath = ['params', urlParam.content.id]
   const templateLiteralElements = paramPath
     .map((_, index) => {
-      if (index === paramPath.length - 1) {
-        return null
-      }
-
-      const isTail = index === paramPath.length - 2
+      const isTail = index === paramPath.length - 1
       return types.templateElement(
         {
           cooked: '',
@@ -811,13 +834,13 @@ const resolveUrlParamsValue = (
   ])
 }
 
-const computeAuthorizationHeaderAST = (resource: Resource) => {
-  const authToken = resolveResourceValue(resource.authToken)
+const computeAuthorizationHeaderAST = (headers: UIDLResourceItem['headers']) => {
+  const authToken = resolveResourceValue(headers.authToken)
   if (!authToken) {
     return null
   }
 
-  const authTokenType = resource.authToken?.type
+  const authTokenType = headers.authToken?.type
 
   return types.objectProperty(
     types.identifier('Authorization'),
@@ -842,19 +865,20 @@ const computeAuthorizationHeaderAST = (resource: Resource) => {
               ),
             ]),
       ],
-      [...(authTokenType === 'static' ? [] : [types.identifier(authToken)])]
+      [...(authTokenType === 'static' ? [] : [types.identifier(String(authToken))])]
     ),
     false,
     false
   )
 }
 
-const computeFetchUrl = (resource: Resource) => {
-  const fetchBaseUrl = resolveResourceValue(resource.baseUrl)
-  const resourceRoute = resolveResourceValue(resource.route)
+const computeFetchUrl = (resource: UIDLResourceItem) => {
+  const { path } = resource
+  const fetchBaseUrl = resolveResourceValue(path.baseUrl)
+  const resourceRoute = resolveResourceValue(path.route)
 
-  const baseUrlType = resource.baseUrl?.type
-  const routeType = resource.route?.type
+  const baseUrlType = path.baseUrl?.type
+  const routeType = path.route?.type
 
   if (baseUrlType === 'static' && routeType === 'static') {
     const stringsToJoin = [fetchBaseUrl, resourceRoute].filter((item) => item).join('/')
@@ -887,7 +911,7 @@ const computeFetchUrl = (resource: Resource) => {
               true
             ),
           ],
-          [types.identifier(fetchBaseUrl)]
+          [types.identifier(String(fetchBaseUrl))]
         )
   }
 
@@ -920,20 +944,20 @@ const computeFetchUrl = (resource: Resource) => {
           ]),
     ],
     [
-      types.identifier(fetchBaseUrl),
-      ...(routeType === 'static' ? [] : [types.identifier(resourceRoute)]),
+      types.identifier(String(fetchBaseUrl)),
+      ...(routeType === 'static' ? [] : [types.identifier(String(resourceRoute))]),
     ]
   )
 }
 
-const resolveResourceValue = (value: ResourceValue) => {
+const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
   if (!value) {
     return ''
   }
 
   if (value.type === 'static') {
-    return value.value
+    return value.content
   }
 
-  return `process.env.${value.value}` || value.fallback
+  return `process.env.${value.content}`
 }

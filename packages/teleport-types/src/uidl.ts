@@ -21,19 +21,56 @@ export interface ContextUIDLItem {
   fileName?: string
 }
 
-export interface ContextsUIDL {
-  rootFolder?: string
-  items?: Record<string, ContextUIDLItem>
+export interface UIDLENVValue {
+  type: 'env'
+  content: string
 }
 
-export interface ResourceItemUIDL extends Resource {
-  id: string
+export interface UIDLPropValue {
+  type: 'dynamic'
+  content: {
+    referenceType: 'prop'
+    id: string
+  }
+}
+
+export interface UIDLResourceItem {
   name: string
+  headers?: Record<string, UIDLStaticValue | UIDLENVValue>
+  path: {
+    baseUrl: UIDLStaticValue | UIDLENVValue
+    route: UIDLStaticValue
+  }
+  method?: 'GET' | 'POST'
+  body?: Record<string, UIDLStaticValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  /**
+   * TODO
+   * @JK
+   * Allow users to link the mappers on demand. Not mandatory at the moment.
+   * This helps in applying a specific mapper only at certain ocassions.
+   */
+  mappers?: Record<string, UIDLDependency>
 }
 
-export interface ResourcesUIDL {
-  rootFolder?: string
-  items?: Record<string, ResourceItemUIDL>
+/**
+ * Common headers like Authorization and etc can be moved here.
+ * Instead of re-repeating them in every call.
+ * Eg: `Content-Type`
+ */
+export interface UIDLResources {
+  mappers?: Record<string, UIDLDependency>
+  items?: Record<string, UIDLResourceItem>
+}
+
+export interface UIDLContextItem {
+  name: string
+  fileName?: string
+}
+
+export interface UIDLContexts {
+  rootFolder: string
+  items: Record<string, UIDLContextItem>
 }
 
 export interface ProjectUIDL {
@@ -41,8 +78,8 @@ export interface ProjectUIDL {
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
-  contexts?: ContextsUIDL
-  resources?: ResourcesUIDL
+  contexts?: UIDLContexts
+  resources?: UIDLResources
 }
 
 export interface UIDLGlobalProjectValues {
@@ -118,35 +155,11 @@ export type UIDLGlobalAsset =
   | UIDLCanonicalAsset
   | UIDLIconAsset
 
-interface ResourceStaticValue {
-  type: 'static'
-  value: string
-}
-
-interface ResourceEnvValue {
-  type: 'env'
-  value: string
-  fallback?: string
-}
-
-export type ResourceValue = ResourceStaticValue | ResourceEnvValue
-
 export type ResourceUrlValues =
   | Array<UIDLStaticValue | UIDLDynamicReference>
   | UIDLStaticValue
   | UIDLDynamicReference
   | UIDLExpressionValue
-
-export interface ResourceUrlParams {
-  [key: string]: ResourceUrlValues
-}
-
-export interface Resource {
-  baseUrl: ResourceValue
-  route?: ResourceValue
-  authToken?: ResourceValue
-  urlParams?: ResourceUrlParams | unknown
-}
 
 export interface ComponentUIDL {
   name: string
@@ -164,24 +177,28 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
-
-export interface InitialPropsData {
+export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
-  resource: Resource
+  resource: {
+    id: string
+    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  }
 }
 
-export interface InitialPathsData {
+export interface UIDLInitialPathsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: Resource
+  resource: {
+    id: string
+    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  }
 }
 
 export interface UIDLComponentOutputOptions {
@@ -193,8 +210,8 @@ export interface UIDLComponentOutputOptions {
   folderPath?: string[]
   pagination?: PagePaginationOptions
   dynamicRouteAttribute?: string
-  initialPropsData?: InitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
 }
 
 export interface UIDLComponentSEO {
@@ -243,8 +260,8 @@ export interface UIDLPageOptions {
   dynamicRouteAttribute?: string
   isIndex?: boolean
   pagination?: PagePaginationOptions
-  initialPropsData?: InitialPropsData
-  initialPathsData?: InitialPathsData
+  initialPropsData?: UIDLInitialPropsData
+  initialPathsData?: UIDLInitialPathsData
   propDefinitions?: Record<string, UIDLPropDefinition>
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
@@ -314,7 +331,6 @@ export interface UIDLCMSListNodeContent {
   resourceId?: string
   statePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
-  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
 }
@@ -327,7 +343,6 @@ export interface UIDLCMSItemNodeContent {
   }
   resourceId?: string
   statePersistanceName?: string
-  resourceMappers: Array<{ name: string; resource: UIDLExternalDependency }>
   valuePath?: string[]
   itemValuePath?: string[]
 }

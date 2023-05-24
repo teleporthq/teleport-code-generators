@@ -258,7 +258,17 @@ const generateCMSListNode: NodeToJSX<
   Array<types.JSXExpressionContainer | types.LogicalExpression>
 > = (node, params, options) => {
   const { success, empty, error, loading } = node.content.nodes
-  const { statePersistanceName } = node.content
+  const { loopItemsReference, statePersistanceName } = node.content
+  const { type } = loopItemsReference
+
+  /*
+   * CMS list node can only be a dynamic !!
+   */
+  if (type !== 'dynamic') {
+    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
+      Missing loopItemsReference`)
+  }
+
   const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
     `${statePersistanceName}Loading`
   )
