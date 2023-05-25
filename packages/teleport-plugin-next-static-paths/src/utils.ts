@@ -35,24 +35,7 @@ const computePropsAST = (
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
     (acc: types.ObjectProperty[], item) => {
       const prop = resource.params[item]
-      if (prop.type === 'static') {
-        acc.push(
-          types.objectProperty(
-            types.stringLiteral(item),
-            typeof prop.content === 'string'
-              ? types.stringLiteral(prop.content)
-              : typeof prop.content === 'boolean'
-              ? types.booleanLiteral(prop.content)
-              : typeof prop.content === 'number'
-              ? types.numericLiteral(prop.content)
-              : types.identifier(String(prop.content))
-          )
-        )
-      }
-
-      if (prop.type === 'expr') {
-        acc.push(types.objectProperty(types.stringLiteral(item), types.identifier(prop.content)))
-      }
+      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
 
       return acc
     },

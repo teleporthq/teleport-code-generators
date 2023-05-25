@@ -43,7 +43,7 @@ export interface UIDLResourceItem {
   }
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue>
   /**
    * TODO
    * @JK
@@ -328,11 +328,14 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
-  resourceId?: string
   statePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   valuePath?: string[]
   itemValuePath?: string[]
+  resource: {
+    id: string
+    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  }
 }
 
 export interface UIDLCMSItemNodeContent {
@@ -341,10 +344,13 @@ export interface UIDLCMSItemNodeContent {
     error?: UIDLElementNode
     loading?: UIDLElementNode
   }
-  resourceId?: string
   statePersistanceName?: string
   valuePath?: string[]
   itemValuePath?: string[]
+  resource: {
+    id: string
+    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  }
 }
 
 export interface UIDLNestedStyleDeclaration {

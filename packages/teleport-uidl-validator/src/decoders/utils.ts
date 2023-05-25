@@ -146,14 +146,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   }),
   method: withDefault('GET', union(constant('GET'), constant('POST'))),
   body: optional(dict(staticValueDecoder)),
-  mappers: optional(
-    dict(
-      union(
-        lazy(() => dependencyDecoder),
-        string()
-      )
-    )
-  ),
+  mappers: optional(dict(lazy(() => dependencyDecoder))),
   params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
 })
 
@@ -695,13 +688,13 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    resourceMappers: optional(
-      array(
-        object({
-          name: string(),
-          resource: externaldependencyDecoder,
-        })
-      )
+    resource: optional(
+      object({
+        id: string(),
+        params: optional(
+          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
+        ),
+      })
     ),
   }),
 })
@@ -715,18 +708,17 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
-    resourceId: optional(string()),
     statePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(dynamicValueDecoder),
-    resourceMappers: optional(
-      array(
-        object({
-          name: string(),
-          resource: externaldependencyDecoder,
-        })
-      )
+    resource: optional(
+      object({
+        id: string(),
+        params: optional(
+          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
+        ),
+      })
     ),
   }),
 })

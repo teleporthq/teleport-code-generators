@@ -11,9 +11,11 @@ import {
   UIDLResourceItem,
   UIDLENVValue,
   UIDLPropValue,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
+
 /**
  * Adds a class definition string to an existing string of classes
  */
@@ -960,4 +962,21 @@ const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
   }
 
   return `process.env.${value.content}`
+}
+
+export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue) => {
+  if (prop.type === 'expr') {
+    return types.identifier(prop.content)
+  }
+
+  const value =
+    typeof prop.content === 'string'
+      ? types.stringLiteral(prop.content)
+      : typeof prop.content === 'boolean'
+      ? types.booleanLiteral(prop.content)
+      : typeof prop.content === 'number'
+      ? types.numericLiteral(prop.content)
+      : types.identifier(String(prop.content))
+
+  return value
 }

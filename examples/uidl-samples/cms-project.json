@@ -37,7 +37,6 @@
         }
       }
     ],
-    "env": {},
     "meta": [
       {
         "name": "viewport",
@@ -455,7 +454,13 @@
               ]
             },
             "pageOptions": {
-              "stateDefinitions": {},
+              "stateDefinitions": {
+                "AuthorList": {
+                  "id": "cade1fed-9d3b-4336-a6ef-baa4a50e88cf",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
               "propDefinitions": {}
             }
           },
@@ -473,7 +478,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "fec14a2b-e06f-4e85-b45f-2375079a0b43",
+                  "id": "a9505053-1a37-494f-9629-1c26e92c95e7",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -487,13 +492,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "58d75725-77bf-4d42-b8db-cb42b63e3464",
-                  "params": {
-                    "limit": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
+                  "id": "edb3b4a0-c017-4552-9043-c2307a48c29f",
+                  "params": {}
                 }
               }
             }
@@ -512,7 +512,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "fec14a2b-e06f-4e85-b45f-2375079a0b43",
+                  "id": "a9505053-1a37-494f-9629-1c26e92c95e7",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -539,7 +539,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "679543e3-9dfe-475a-b328-464f3c66a9e6",
+                  "id": "a1a0ceca-a89f-4c23-a40e-3986a014546d",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -555,17 +555,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "896b41c4-988d-4007-8211-5ea8587d4e5c",
-                  "params": {
-                    "limit": {
-                      "type": "static",
-                      "content": 10
-                    },
-                    "skip": {
-                      "type": "static",
-                      "content": "(context.params.page - 1) * 10"
-                    }
-                  }
+                  "id": "c0e912cf-ab58-4584-9cc5-60cad28c23d9",
+                  "params": {}
                 }
               }
             }
@@ -584,7 +575,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "6f34fe9c-e505-42df-bd35-8936a9ee82d1",
+                  "id": "682e02e8-d2f5-4c11-81ca-abff063618c9",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -602,7 +593,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "0c47f09e-4df9-4031-a23f-e17d8acc6d2d",
+                  "id": "df04ed2b-37d4-491b-9f7b-ab91ffcd9c42",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -622,13 +613,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "e6e6f0ca-4b9c-458d-bc27-130308166b4c",
-                  "params": {
-                    "sys.id": {
-                      "type": "expr",
-                      "content": "context.params.id"
-                    }
-                  }
+                  "id": "ef08a4cf-3a52-4fb3-b362-b207507aa48f",
+                  "params": {}
                 }
               }
             }
@@ -647,7 +633,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntity": {
-                  "id": "9b48837b-7d38-41ed-a8e9-a8585e335cd8",
+                  "id": "85feed53-1708-4442-8239-5a5dbd38b904",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -665,7 +651,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "add65e05-841c-4e96-bf1b-75e01dd1a297",
+                  "id": "e0bc93ee-0b49-4542-97a5-03adb59e68d6",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -685,13 +671,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "73adba8d-df35-4289-9972-f73b54ed68d3",
-                  "params": {
-                    "sys.id": {
-                      "type": "expr",
-                      "content": "context.params.id"
-                    }
-                  }
+                  "id": "bd391ab5-f966-4b56-b378-410b1e982308",
+                  "params": {}
                 }
               }
             }
@@ -710,7 +691,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "697d9c09-4fe3-4288-a332-76050a8ea129",
+                  "id": "196ba761-719d-4fad-bf97-86fd7df565da",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -724,13 +705,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "03493c72-8f9b-4a5e-b00d-e0112c616296",
-                  "params": {
-                    "limit": {
-                      "type": "static",
-                      "content": 10
-                    }
-                  }
+                  "id": "9e0ccb5d-7c34-4b96-af93-3183cbfb529c",
+                  "params": {}
                 }
               }
             }
@@ -749,7 +725,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "697d9c09-4fe3-4288-a332-76050a8ea129",
+                  "id": "196ba761-719d-4fad-bf97-86fd7df565da",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -776,7 +752,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "00c76082-fe06-4f4d-9175-fee9677fa85e",
+                  "id": "4e92d173-ecbc-4b33-b805-f27f31754d24",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -792,17 +768,8 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "a08759bf-f4a0-467c-a7bd-005f4f102e09",
-                  "params": {
-                    "limit": {
-                      "type": "static",
-                      "content": 10
-                    },
-                    "skip": {
-                      "type": "static",
-                      "content": "(context.params.page - 1) * 10"
-                    }
-                  }
+                  "id": "1c298716-2750-45cb-87c9-7bfb95a1c9b2",
+                  "params": {}
                 }
               }
             }
@@ -812,22 +779,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "fec14a2b-e06f-4e85-b45f-2375079a0b43",
+        "id": "a9505053-1a37-494f-9629-1c26e92c95e7",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "6f34fe9c-e505-42df-bd35-8936a9ee82d1",
+        "id": "682e02e8-d2f5-4c11-81ca-abff063618c9",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntity": {
-        "id": "9b48837b-7d38-41ed-a8e9-a8585e335cd8",
+        "id": "85feed53-1708-4442-8239-5a5dbd38b904",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntities": {
-        "id": "697d9c09-4fe3-4288-a332-76050a8ea129",
+        "id": "196ba761-719d-4fad-bf97-86fd7df565da",
         "defaultValue": [],
         "type": "array"
       }
@@ -868,12 +835,209 @@
                       "type": "static",
                       "content": "center"
                     },
+                    "paddingTop": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "token",
+                        "id": "--dl-space-space-twounits"
+                      }
+                    },
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
+                    },
+                    "paddingBottom": {
+                      "type": "dynamic",
+                      "content": {
+                        "referenceType": "token",
+                        "id": "--dl-space-space-twounits"
+                      }
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
                     }
                   },
-                  "children": []
+                  "children": [
+                    {
+                      "type": "element",
+                      "content": {
+                        "elementType": "text",
+                        "semanticType": "h1",
+                        "referencedStyles": {},
+                        "abilities": {},
+                        "children": [
+                          {
+                            "type": "static",
+                            "content": "Authors List"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-list",
+                              "semanticType": "cms-list",
+                              "ctxId": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "HomeListContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "loading": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "name": "Loading",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "h1",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Heading"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "empty": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "name": "Empty",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "flex": {
+                                        "type": "static",
+                                        "content": "0 0 auto"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "2px dashed rgba(120, 120, 120, 0.4)"
+                                      },
+                                      "height": {
+                                        "type": "static",
+                                        "content": "100px"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "flex-start"
+                                      }
+                                    },
+                                    "children": []
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "h1",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Heading"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "error": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "fragment",
+                              "name": "Error",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "h1",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Heading"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "state",
+                            "id": "AuthorList"
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": [],
+                        "statePersistanceName": "AuthorList",
+                        "resource": {
+                          "id": "9c93ba91-5cd6-483f-b5b3-4ca0828ebf62",
+                          "params": {
+                            "limit": {
+                              "type": "static",
+                              "content": 100
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               },
               "value": "Home",
@@ -1429,6 +1593,152 @@
     }
   },
   "components": {
+    "HomeListContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "contents"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "alt": {
+                    "type": "static",
+                    "content": "image"
+                  },
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "ctx",
+                      "id": "ce6c18ef-ab2c-4ed9-8bf7-f555c7fd8312",
+                      "ctxId": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
+                      "path": [
+                        "image",
+                        "url"
+                      ]
+                    }
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "200px"
+                  },
+                  "marginTop": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "marginTop": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  },
+                  "textAlign": {
+                    "type": "static",
+                    "content": "left"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "name"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "maxWidth": {
+                    "type": "static",
+                    "content": "500px"
+                  },
+                  "marginTop": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-unit"
+                    }
+                  },
+                  "textAlign": {
+                    "type": "static",
+                    "content": "left"
+                  },
+                  "marginBottom": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "token",
+                      "id": "--dl-space-space-twounits"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "description"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "HomeListContent",
+      "styleSetDefinitions": {}
+    },
     "AuthorListContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -1941,9 +2251,62 @@
   },
   "resources": {
     "items": {
-      "58d75725-77bf-4d42-b8db-cb42b63e3464": {
-        "id": "58d75725-77bf-4d42-b8db-cb42b63e3464",
-        "name": "Author-page-initial-props-58d75",
+      "9c93ba91-5cd6-483f-b5b3-4ca0828ebf62": {
+        "id": "9c93ba91-5cd6-483f-b5b3-4ca0828ebf62",
+        "name": "Home",
+        "mappers": {
+          "resolveContentfulResponse": {
+            "type": "package",
+            "path": "contentful-resolve-response",
+            "version": "1.1.4",
+            "meta": {
+              "originalName": "resolveContentfulResponse"
+            }
+          },
+          "normalize": {
+            "type": "package",
+            "version": "git+https://github.com/teleporthq/teleport-cms-mappers.git",
+            "path": "normalize",
+            "meta": {
+              "namedImport": true,
+              "originalName": "normalize",
+              "importAlias": "normalize/contentful"
+            }
+          }
+        },
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "limit": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "limit"
+            }
+          }
+        }
+      },
+      "edb3b4a0-c017-4552-9043-c2307a48c29f": {
+        "id": "edb3b4a0-c017-4552-9043-c2307a48c29f",
+        "name": "Author-page-initial-props-edb3b",
         "headers": {
           "authToken": {
             "type": "env",
@@ -1974,9 +2337,9 @@
           }
         }
       },
-      "679543e3-9dfe-475a-b328-464f3c66a9e6": {
-        "id": "679543e3-9dfe-475a-b328-464f3c66a9e6",
-        "name": "Author-page-initial-paths-67954",
+      "a1a0ceca-a89f-4c23-a40e-3986a014546d": {
+        "id": "a1a0ceca-a89f-4c23-a40e-3986a014546d",
+        "name": "Author-page-initial-paths-a1a0c",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2007,9 +2370,9 @@
           }
         }
       },
-      "896b41c4-988d-4007-8211-5ea8587d4e5c": {
-        "id": "896b41c4-988d-4007-8211-5ea8587d4e5c",
-        "name": "Author-page-initial-props-896b4",
+      "c0e912cf-ab58-4584-9cc5-60cad28c23d9": {
+        "id": "c0e912cf-ab58-4584-9cc5-60cad28c23d9",
+        "name": "Author-page-initial-props-c0e91",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2047,9 +2410,9 @@
           }
         }
       },
-      "0c47f09e-4df9-4031-a23f-e17d8acc6d2d": {
-        "id": "0c47f09e-4df9-4031-a23f-e17d8acc6d2d",
-        "name": "Author-page-initial-paths-0c47f",
+      "df04ed2b-37d4-491b-9f7b-ab91ffcd9c42": {
+        "id": "df04ed2b-37d4-491b-9f7b-ab91ffcd9c42",
+        "name": "Author-page-initial-paths-df04e",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2083,9 +2446,9 @@
           }
         }
       },
-      "e6e6f0ca-4b9c-458d-bc27-130308166b4c": {
-        "id": "e6e6f0ca-4b9c-458d-bc27-130308166b4c",
-        "name": "Author-page-initial-props-e6e6f",
+      "ef08a4cf-3a52-4fb3-b362-b207507aa48f": {
+        "id": "ef08a4cf-3a52-4fb3-b362-b207507aa48f",
+        "name": "Author-page-initial-props-ef08a",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2102,23 +2465,11 @@
             "content": "entries"
           }
         },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "author"
-          },
-          "sys.id": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "sys.id"
-            }
-          }
-        }
+        "params": {}
       },
-      "add65e05-841c-4e96-bf1b-75e01dd1a297": {
-        "id": "add65e05-841c-4e96-bf1b-75e01dd1a297",
-        "name": "BlogPost-page-initial-paths-add65",
+      "e0bc93ee-0b49-4542-97a5-03adb59e68d6": {
+        "id": "e0bc93ee-0b49-4542-97a5-03adb59e68d6",
+        "name": "BlogPost-page-initial-paths-e0bc9",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2152,9 +2503,9 @@
           }
         }
       },
-      "73adba8d-df35-4289-9972-f73b54ed68d3": {
-        "id": "73adba8d-df35-4289-9972-f73b54ed68d3",
-        "name": "BlogPost-page-initial-props-73adb",
+      "bd391ab5-f966-4b56-b378-410b1e982308": {
+        "id": "bd391ab5-f966-4b56-b378-410b1e982308",
+        "name": "BlogPost-page-initial-props-bd391",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2171,23 +2522,11 @@
             "content": "entries"
           }
         },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "blogPost"
-          },
-          "sys.id": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "sys.id"
-            }
-          }
-        }
+        "params": {}
       },
-      "03493c72-8f9b-4a5e-b00d-e0112c616296": {
-        "id": "03493c72-8f9b-4a5e-b00d-e0112c616296",
-        "name": "BlogPost-page-initial-props-03493",
+      "9e0ccb5d-7c34-4b96-af93-3183cbfb529c": {
+        "id": "9e0ccb5d-7c34-4b96-af93-3183cbfb529c",
+        "name": "BlogPost-page-initial-props-9e0cc",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2218,9 +2557,9 @@
           }
         }
       },
-      "00c76082-fe06-4f4d-9175-fee9677fa85e": {
-        "id": "00c76082-fe06-4f4d-9175-fee9677fa85e",
-        "name": "BlogPost-page-initial-paths-00c76",
+      "4e92d173-ecbc-4b33-b805-f27f31754d24": {
+        "id": "4e92d173-ecbc-4b33-b805-f27f31754d24",
+        "name": "BlogPost-page-initial-paths-4e92d",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2251,9 +2590,9 @@
           }
         }
       },
-      "a08759bf-f4a0-467c-a7bd-005f4f102e09": {
-        "id": "a08759bf-f4a0-467c-a7bd-005f4f102e09",
-        "name": "BlogPost-page-initial-props-a0875",
+      "1c298716-2750-45cb-87c9-7bfb95a1c9b2": {
+        "id": "1c298716-2750-45cb-87c9-7bfb95a1c9b2",
+        "name": "BlogPost-page-initial-props-1c298",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2316,6 +2655,10 @@
   "contexts": {
     "rootFolder": "contexts",
     "items": {
+      "8b4666a1-e209-4bee-9826-fee0ab2eab1a": {
+        "name": "Home",
+        "fileName": "Home"
+      },
       "55340b79-1f1f-4485-aa5b-ae447470fbaf": {
         "name": "Author",
         "fileName": "Author"

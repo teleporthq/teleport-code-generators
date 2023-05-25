@@ -173,14 +173,13 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
+    const projectResources = {}
+    const projectContexts = {}
 
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
       throw new Error(contentValidationResult.errorMsg)
     }
-
-    const projectContexts = {}
-    const projectResources = {}
 
     try {
       const runBeforeResult = await this.assemblyLine.runBefore({
@@ -254,6 +253,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       skipValidation: true,
       designLanguage: uidl.root?.designLanguage,
+      ...(uidl?.resources && { ...uidl.resources, path: this.strategy.resources.path }),
     }
 
     // Handling project style sheet
@@ -270,6 +270,42 @@ export class ProjectGenerator implements ProjectGeneratorType {
         files,
       })
       collectedDependencies = { ...collectedDependencies, ...dependencies }
+    }
+
+    const resources = Object.values(uidl?.resources?.items)
+    if (this.strategy?.resources && resources.length > 0) {
+      const resourceCompGenerator = createComponentGenerator()
+      resourceCompGenerator.addPostProcessor(prettierJS)
+
+      for (const resource of resources) {
+        const { chunks, dependencies } = resourceGenerator(resource, uidl.resources?.mappers)
+        const { chunks: importChunks } = await importStatementsPlugin({
+          uidl: uidl.root,
+          dependencies,
+          chunks: [],
+          options: {},
+        })
+        const files = resourceCompGenerator.linkCodeChunks(
+          { [FileType.JS]: [...importChunks, ...chunks] },
+          StringUtils.camelCaseToDashCase(resource.name)
+        )
+
+        collectedDependencies = {
+          ...collectedDependencies,
+          ...Object.keys(dependencies).reduce((acc: Record<string, string>, item: string) => {
+            const dep = dependencies[item]
+            if (dep.type === 'package') {
+              acc[dep.path] = dep.version
+            }
+            return acc
+          }, {}),
+        }
+
+        inMemoryFilesMap.set(`resource-${resource.name}`, {
+          files,
+          path: this.strategy.resources.path,
+        })
+      }
     }
 
     // Handling pages
@@ -370,44 +406,10 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDependencies = { ...collectedDependencies, ...componentsModule.dependencies }
     }
 
-    const resources = Object.values(uidl?.resources?.items || {})
-    if (this.strategy?.resources && resources.length > 0) {
-      const resourceCompGenerator = createComponentGenerator()
-      resourceCompGenerator.addPostProcessor(prettierJS)
-
-      for (const resource of resources) {
-        const { chunks, dependencies } = resourceGenerator(resource, uidl.resources?.mappers)
-        const { chunks: importChunks } = await importStatementsPlugin({
-          uidl: uidl.root,
-          dependencies,
-          chunks: [],
-          options: {},
-        })
-        const files = resourceCompGenerator.linkCodeChunks(
-          { [FileType.JS]: [...importChunks, ...chunks] },
-          StringUtils.camelCaseToDashCase(resource.name)
-        )
-
-        collectedDependencies = {
-          ...collectedDependencies,
-          ...Object.keys(dependencies).reduce((acc: Record<string, string>, item: string) => {
-            const dep = dependencies[item]
-            if (dep.type === 'package') {
-              acc[dep.path] = dep.version
-            }
-            return acc
-          }, {}),
-        }
-
-        inMemoryFilesMap.set(`resource-${resource.name}`, {
-          files,
-          path: this.strategy.resources.path,
-        })
-      }
-    }
-
     // Handling components
     for (const componentName of Object.keys(components)) {
+      Object.assign(options, { projectContexts, projectResources })
+
       if (!this.strategy?.components?.generator) {
         throw new TeleportError(
           `Component Generator is missing from the strategy - ${JSON.stringify(
@@ -435,8 +437,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
           designLanguage: uidl.root?.designLanguage,
         }
       }
-
-      Object.assign(componentOptions, { projectContexts, projectResources })
 
       if ('addExternalComponents' in this.componentGenerator) {
         ;(this.componentGenerator as unknown as HTMLComponentGenerator).addExternalComponents({

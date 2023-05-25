@@ -1,13 +1,14 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
 import { nextAfterModifier, nextBeforeModifier } from './next'
 
-type SUPPORTED_FRAMEWORKS = ProjectType.NEXT
+type SUPPORTED_FRAMEWORKS = ProjectType.NEXT | ProjectType.REACT
 
 const frameworkBeforeMap: Record<
   SUPPORTED_FRAMEWORKS,
   (strucutre: ProjectPluginStructure) => Promise<void>
 > = {
   [ProjectType.NEXT]: nextBeforeModifier,
+  [ProjectType.REACT]: nextBeforeModifier,
 }
 
 const frameworkAfterMap: Record<
@@ -15,6 +16,7 @@ const frameworkAfterMap: Record<
   (strucutre: ProjectPluginStructure) => Promise<void>
 > = {
   [ProjectType.NEXT]: nextAfterModifier,
+  [ProjectType.REACT]: nextAfterModifier,
 }
 
 export class ProjectPluginContexts implements ProjectPlugin {

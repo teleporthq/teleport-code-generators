@@ -68,6 +68,7 @@ import {
 } from '@teleporthq/teleport-component-generator-html'
 import { isNodeProcess } from './utils'
 import { ProjectPluginContexts } from '@teleporthq/teleport-project-plugin-contexts'
+import { ProjectPluginNextInlineFetch } from '@teleporthq/teleport-project-plugin-next-inline-fetch'
 
 const componentGeneratorFactories: Record<ComponentType, ComponentGeneratorInstance> = {
   [ComponentType.REACT]: createReactComponentGenerator,
@@ -150,7 +151,12 @@ export const packProject: PackProjectFunction = async (
   }
 
   if (projectType === ProjectType.NEXT) {
-    projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: ProjectType.NEXT }))
+    projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: projectType }))
+    projectGeneratorFactory.addPlugin(new ProjectPluginNextInlineFetch())
+  }
+
+  if (projectType === ProjectType.REACT) {
+    projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: projectType }))
   }
 
   if (plugins?.length > 0) {

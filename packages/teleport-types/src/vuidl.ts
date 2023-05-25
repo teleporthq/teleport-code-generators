@@ -37,8 +37,9 @@ import {
   UIDLRootComponent,
   UIDLCMSItemNode,
   UIDLCMSListNode,
-  UIDLExternalDependency,
   UIDLDynamicLinkNode,
+  UIDLPropValue,
+  UIDLExpressionValue,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -54,13 +55,13 @@ export interface VCMSItemUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
         }
-        resourceId?: string
         statePersistanceName?: string
         valuePath?: string[]
         itemValuePath?: string[]
-        loadingStatePersistanceName?: string
-        errorStatePersistanceName?: string
-        resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
+        resource?: {
+          id: string
+          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+        }
       }
     }
   > {}
@@ -76,14 +77,14 @@ export interface VCMSListUIDLElementNode
           loading?: VUIDLElementNode
           empty?: VUIDLElementNode
         }
-        resourceId?: string
         loopItemsReference?: UIDLAttributeValue
         valuePath?: string[]
         itemValuePath?: string[]
         statePersistanceName?: string
-        loadingStatePersistanceName?: string
-        errorStatePersistanceName?: string
-        resourceMappers?: Array<{ name: string; resource: UIDLExternalDependency }>
+        resource?: {
+          id: string
+          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+        }
       }
     }
   > {}
