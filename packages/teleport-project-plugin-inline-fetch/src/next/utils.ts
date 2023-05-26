@@ -50,28 +50,35 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
       if (!content?.resource?.id) {
         return
       }
-      const resource = resources.items[content.resource.id]
-      if (!resource) {
+      const usedResource = resources.items[content.resource.id]
+      if (!usedResource) {
         throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
       }
 
       const stateName = content.statePersistanceName
       const setStateName = StringUtils.createStateStoringFunction(stateName)
+
+      /**
+       * TODO: @JK Loading and error states should not be set,
+       * If the users didn't mention any load anf error states in UIDL.
+       */
+
       const setLoadingStateName = StringUtils.createStateStoringFunction(`${stateName}Loading`)
       const setErrorStateName = StringUtils.createStateStoringFunction(`${stateName}Error`)
-      const resourceImportName = StringUtils.camelCaseToDashCase(`${stateName}-reource`)
-      const importName = StringUtils.dashCaseToCamelCase(resourceImportName)
+      const resourceImportVariable = StringUtils.dashCaseToCamelCase(`${stateName}-reource`)
+      const importName = StringUtils.camelCaseToDashCase(usedResource.name)
+      const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
 
-      files.set(resourceImportName, {
+      files.set(resourceImportVariable, {
         files: [
           {
-            name: resourceImportName,
+            name: resouceFileName,
             fileType: FileType.JS,
-            content: `import ${importName} from '../../resources/${resourceImportName}'
+            content: `import ${resourceImportVariable} from '../../resources/${importName}'
 
 export default async function handler(req, res) {
   try {
-    const response = await ${importName}(JSON.parse(req.body))
+    const response = await ${resourceImportVariable}(JSON.parse(req.body))
     return res.status(200).json(response)
   } catch (error) {
     return res.status(500).send('Something went wrong')
@@ -84,7 +91,7 @@ export default async function handler(req, res) {
       })
 
       const useEffectCall = computeUseEffectAST({
-        resource: resourceImportName,
+        resource: resouceFileName,
         setStateName,
         setLoadingStateName,
         setErrorStateName,
@@ -120,15 +127,6 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const apiFetchAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('data'),
-      types.awaitExpression(
-        types.callExpression(types.identifier('fetch'), [types.stringLiteral(`/api/${resource}`)])
-      )
-    ),
-  ])
-
   const funcParams: types.ObjectProperty[] = Object.keys(
     node.content.resource?.params || {}
   ).reduce((acc: types.ObjectProperty[], item) => {
@@ -138,18 +136,34 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     return acc
   }, [])
 
+  const apiFetchAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('data'),
+      types.awaitExpression(
+        types.callExpression(types.identifier('fetch'), [
+          types.stringLiteral(`/api/${resource}`),
+          types.objectExpression([
+            types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+            types.objectProperty(
+              types.identifier('body'),
+              types.callExpression(
+                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+                [types.objectExpression(funcParams)]
+              )
+            ),
+          ]),
+        ])
+      )
+    ),
+  ])
+
   const responseJSONAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('response'),
       types.awaitExpression(
         types.callExpression(
           types.memberExpression(types.identifier('data'), types.identifier('json'), false),
-          [
-            types.objectExpression([
-              types.objectProperty(types.identifier('method'), types.identifier('POST')),
-              types.objectProperty(types.identifier('body'), types.objectExpression(funcParams)),
-            ]),
-          ]
+          []
         )
       )
     ),

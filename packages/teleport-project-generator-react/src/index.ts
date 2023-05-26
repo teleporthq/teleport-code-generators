@@ -6,7 +6,6 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import headConfigPlugin from '@teleporthq/teleport-plugin-jsx-head-config'
 import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
-import pluginJSXInlineFetch from '@teleporthq/teleport-plugin-jsx-inline-fetch'
 import { ReactStyleVariation } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin, createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
@@ -21,14 +20,14 @@ const createReactProjectGenerator = () => {
     style: ReactStyleVariation.CSS,
     components: {
       generator: createReactComponentGenerator,
-      plugins: [contextPlugin, pluginJSXInlineFetch],
+      plugins: [contextPlugin],
       mappings: [ReactProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       mappings: [ReactProjectMapping],
-      plugins: [headConfigPlugin, contextPlugin, pluginJSXInlineFetch],
+      plugins: [headConfigPlugin, contextPlugin],
       path: ['src', 'views'],
     },
     projectStyleSheet: {

@@ -2,15 +2,25 @@ import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { generateLoadingStateAST } from './utils'
 
 interface InlineFetchRequestsPlugin {
   componentChunkName: string
 }
 
-export const createInlineFetchRequestsPlugins: ComponentPluginFactory<InlineFetchRequestsPlugin> = (
-  config
-) => {
+export const generateLoadingStateAST = (statePersistanceName: string, value: boolean) => {
+  const setLoadingState = types.expressionStatement(
+    types.callExpression(
+      types.identifier(StringUtils.createStateStoringFunction(`${statePersistanceName}Loading`)),
+      [types.booleanLiteral(value)]
+    )
+  )
+
+  return setLoadingState
+}
+
+export const createInlineJSXFetchRequestsPlugins: ComponentPluginFactory<
+  InlineFetchRequestsPlugin
+> = (config) => {
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const inlineStylesPlugin: ComponentPlugin = async (structure) => {
@@ -127,5 +137,3 @@ export const createInlineFetchRequestsPlugins: ComponentPluginFactory<InlineFetc
   }
   return inlineStylesPlugin
 }
-
-export default createInlineFetchRequestsPlugins()

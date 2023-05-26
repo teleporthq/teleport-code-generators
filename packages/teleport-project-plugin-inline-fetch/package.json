@@ -1,5 +1,5 @@
 {
-    "name": "@teleporthq/teleport-project-plugin-next-inline-fetch",
+    "name": "@teleporthq/teleport-project-plugin-inline-fetch",
     "version": "0.27.3-alpha.3",
     "description": "A plugin for adding getStaticPaths inside a nextjs page",
     "author": "teleportHQ",

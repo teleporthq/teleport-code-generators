@@ -15,6 +15,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
 import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
+import { ASTUtils } from '..'
 
 /**
  * Adds a class definition string to an existing string of classes
@@ -628,18 +629,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   ).reduce((acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
     const prop = resource.params[item]
     if (prop.type === 'static') {
-      acc.push(
-        types.objectProperty(
-          types.identifier(item),
-          typeof prop.content === 'number'
-            ? types.numericLiteral(prop.content)
-            : typeof prop.content === 'boolean'
-            ? types.booleanLiteral(prop.content)
-            : typeof prop.content === 'string'
-            ? types.stringLiteral(prop.content)
-            : types.identifier(String(prop.content))
-        )
-      )
+      acc.push(types.objectProperty(types.identifier(item), ASTUtils.resolveObjectValue(prop)))
     }
 
     if (prop.type === 'dynamic') {
