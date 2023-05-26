@@ -629,7 +629,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   ).reduce((acc: Array<types.ObjectProperty | types.SpreadElement>, item) => {
     const prop = resource.params[item]
     if (prop.type === 'static') {
-      acc.push(types.objectProperty(types.identifier(item), ASTUtils.resolveObjectValue(prop)))
+      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
     }
 
     if (prop.type === 'dynamic') {

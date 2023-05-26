@@ -20,9 +20,6 @@ interface ContextPluginConfig {
 
 interface ComputeUseEffectParams {
   resource: string
-  setStateName: string
-  setLoadingStateName: string
-  setErrorStateName: string
   node: UIDLCMSItemNode | UIDLCMSListNode
 }
 
@@ -55,17 +52,13 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
       }
 
-      const stateName = content.statePersistanceName
-      const setStateName = StringUtils.createStateStoringFunction(stateName)
-
       /**
        * TODO: @JK Loading and error states should not be set,
        * If the users didn't mention any load anf error states in UIDL.
        */
-
-      const setLoadingStateName = StringUtils.createStateStoringFunction(`${stateName}Loading`)
-      const setErrorStateName = StringUtils.createStateStoringFunction(`${stateName}Error`)
-      const resourceImportVariable = StringUtils.dashCaseToCamelCase(`${stateName}-reource`)
+      const resourceImportVariable = StringUtils.dashCaseToCamelCase(
+        `${content.statePersistanceName}-reource`
+      )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
 
@@ -92,9 +85,6 @@ export default async function handler(req, res) {
 
       const useEffectCall = computeUseEffectAST({
         resource: resouceFileName,
-        setStateName,
-        setLoadingStateName,
-        setErrorStateName,
         node: node as UIDLCMSItemNode | UIDLCMSListNode,
       })
 
@@ -122,17 +112,25 @@ export default async function handler(req, res) {
 }
 
 const computeUseEffectAST = (params: ComputeUseEffectParams) => {
-  const { resource, node, setStateName, setErrorStateName, setLoadingStateName } = params
+  const { resource, node } = params
+  const { statePersistanceName } = node.content
+  const setStateName = StringUtils.createStateStoringFunction(statePersistanceName)
+
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
+
+  const setLoadingStateName = StringUtils.createStateStoringFunction(
+    `${statePersistanceName}Loading`
+  )
+  const setErrorStateName = StringUtils.createStateStoringFunction(`${statePersistanceName}Error`)
 
   const funcParams: types.ObjectProperty[] = Object.keys(
     node.content.resource?.params || {}
   ).reduce((acc: types.ObjectProperty[], item) => {
     const prop = node.content.resource.params[item]
-    acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
 
+    acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
     return acc
   }, [])
 
@@ -140,19 +138,27 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     types.variableDeclarator(
       types.identifier('data'),
       types.awaitExpression(
-        types.callExpression(types.identifier('fetch'), [
-          types.stringLiteral(`/api/${resource}`),
-          types.objectExpression([
-            types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
-            types.objectProperty(
-              types.identifier('body'),
-              types.callExpression(
-                types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-                [types.objectExpression(funcParams)]
-              )
-            ),
-          ]),
-        ])
+        types.callExpression(
+          types.identifier('fetch'),
+          [
+            types.stringLiteral(`/api/${resource}`),
+            funcParams.length > 0
+              ? types.objectExpression([
+                  types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+                  types.objectProperty(
+                    types.identifier('body'),
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('JSON'),
+                        types.identifier('stringify')
+                      ),
+                      [types.objectExpression(funcParams)]
+                    )
+                  ),
+                ])
+              : null,
+          ].filter(Boolean)
+        )
       )
     ),
   ])
@@ -188,6 +194,7 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
           ...(node.content.valuePath || []),
         ])
 
+  const { loading, error } = node.content.nodes
   const resourceFetchAST = types.arrowFunctionExpression(
     [],
     types.blockStatement([
@@ -196,50 +203,67 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
           types.identifier('fetchData'),
           types.arrowFunctionExpression(
             [],
-            types.blockStatement([
-              types.expressionStatement(
-                types.callExpression(types.identifier(setLoadingStateName), [
-                  types.booleanLiteral(true),
-                ])
-              ),
-              types.tryStatement(
-                types.blockStatement([
-                  apiFetchAST,
-                  responseJSONAST,
-                  types.ifStatement(
-                    types.memberExpression(types.identifier('response'), types.identifier('error')),
-                    types.blockStatement([
-                      types.expressionStatement(
-                        types.callExpression(types.identifier(setErrorStateName), [
-                          types.booleanLiteral(true),
-                        ])
-                      ),
-                    ]),
-                    types.blockStatement([
-                      types.expressionStatement(
-                        types.callExpression(types.identifier(setStateName), [stateNameAST])
-                      ),
-                    ])
-                  ),
-                ]),
-                types.catchClause(
-                  types.identifier('error'),
-                  types.blockStatement([
-                    types.expressionStatement(
-                      types.callExpression(types.identifier(setErrorStateName), [
+            types.blockStatement(
+              [
+                loading
+                  ? types.expressionStatement(
+                      types.callExpression(types.identifier(setLoadingStateName), [
                         types.booleanLiteral(true),
                       ])
+                    )
+                  : null,
+                types.tryStatement(
+                  types.blockStatement([
+                    apiFetchAST,
+                    responseJSONAST,
+                    types.ifStatement(
+                      types.memberExpression(
+                        types.identifier('response'),
+                        types.identifier('error')
+                      ),
+                      types.blockStatement(
+                        [
+                          error
+                            ? types.expressionStatement(
+                                types.callExpression(types.identifier(setErrorStateName), [
+                                  types.booleanLiteral(true),
+                                ])
+                              )
+                            : null,
+                        ].filter(Boolean)
+                      ),
+                      types.blockStatement([
+                        types.expressionStatement(
+                          types.callExpression(types.identifier(setStateName), [stateNameAST])
+                        ),
+                      ])
                     ),
-                  ])
-                )
-              ),
+                  ]),
+                  types.catchClause(
+                    types.identifier('error'),
+                    types.blockStatement(
+                      [
+                        error
+                          ? types.expressionStatement(
+                              types.callExpression(types.identifier(setErrorStateName), [
+                                types.booleanLiteral(true),
+                              ])
+                            )
+                          : null,
+                      ].filter(Boolean)
+                    )
+                  )
+                ),
 
-              types.expressionStatement(
-                types.callExpression(types.identifier(setLoadingStateName), [
-                  types.booleanLiteral(false),
-                ])
-              ),
-            ]),
+                loading
+                  ? types.expressionStatement(
+                      types.callExpression(types.identifier(setLoadingStateName), [
+                        types.booleanLiteral(false),
+                      ])
+                    )
+                  : null,
+              ].filter(Boolean)
+            ),
             true
           )
         ),

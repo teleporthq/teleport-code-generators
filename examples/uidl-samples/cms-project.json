@@ -456,7 +456,7 @@
             "pageOptions": {
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "a3a0bdf4-3bba-4163-94a1-1c58c9b43e84",
+                  "id": "4a2903e5-67a3-428a-80c6-888008a4aced",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -478,9 +478,31 @@
             "pageOptions": {
               "stateDefinitions": {
                 "BlogPostList": {
-                  "id": "e11dea60-ee47-421e-a121-6e919eb23a38",
+                  "id": "8f46719e-22ce-45e3-8047-49d653e91453",
                   "defaultValue": [],
                   "type": "array"
+                }
+              },
+              "propDefinitions": {}
+            }
+          },
+          {
+            "value": "single",
+            "seo": {
+              "title": "single - Twin Repulsive Cormorant",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "single - Twin Repulsive Cormorant"
+                }
+              ]
+            },
+            "pageOptions": {
+              "stateDefinitions": {
+                "AuthorEntity": {
+                  "id": "a6e824a1-e686-4e83-ac2b-c7bd345e2d62",
+                  "defaultValue": {},
+                  "type": "object"
                 }
               },
               "propDefinitions": {}
@@ -500,7 +522,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "42e8d2f6-9fc4-4c56-b928-c962005d12a3",
+                  "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -514,7 +536,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "f6287a67-8eb7-4180-b0ff-db9e37f09747",
+                  "id": "d2fc8402-f661-4060-aa03-7a197b64e595",
                   "params": {}
                 }
               }
@@ -534,7 +556,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "42e8d2f6-9fc4-4c56-b928-c962005d12a3",
+                  "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -561,7 +583,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "0eee4ca0-05c1-4c3e-972a-6d3ecf688f95",
+                  "id": "6b0bfe1d-bdff-42c4-a2a5-758a3216d714",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -577,7 +599,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "383af415-12cf-4226-a33f-b0ff53992b49",
+                  "id": "e4154823-5754-438a-95d0-c894a23f072c",
                   "params": {}
                 }
               }
@@ -597,7 +619,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "4017df69-0c74-4d04-bc51-7a718f798863",
+                  "id": "4c8b46b7-8436-4ac5-a236-a2288f16e3f6",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -615,7 +637,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "e0945f43-ec58-4f72-acaf-482e5caecf3d",
+                  "id": "f1d999eb-09ad-4613-acb5-bfba4243fe44",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -635,7 +657,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "06cbf3ef-0567-42de-9410-63fab873b6f8",
+                  "id": "b8433044-292a-4bd2-a839-1d9d87dcfaf8",
                   "params": {}
                 }
               }
@@ -655,7 +677,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntity": {
-                  "id": "a789e197-58ec-4ee4-b23d-dcab5a56136d",
+                  "id": "9bef1de4-38bb-4438-a069-9678567ae169",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -673,7 +695,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "1589c167-f234-4b17-80bd-8bb66e9402c1",
+                  "id": "383ec9f6-d54e-4e35-add4-7e4d44cea4b0",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -693,7 +715,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "1e2d8e6d-5baf-4458-9cfd-5925b89093b6",
+                  "id": "a026ca19-320c-4e12-94f2-984420928c7b",
                   "params": {}
                 }
               }
@@ -713,7 +735,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "105d97ff-fb34-4c7d-8f2d-dc563a2651aa",
+                  "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -727,7 +749,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "9ffd1238-7ce3-4072-9205-dde9bd4c88a6",
+                  "id": "3634c462-6d49-4827-a7ff-932dba3ac4d0",
                   "params": {}
                 }
               }
@@ -747,7 +769,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "105d97ff-fb34-4c7d-8f2d-dc563a2651aa",
+                  "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -774,7 +796,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "61cf46b9-23fb-4694-bc79-278258fffab4",
+                  "id": "3b6d048b-ed43-499e-adf8-f32b6349ae4b",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -790,7 +812,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "2580ac22-527d-4d2b-9155-cf63449684d1",
+                  "id": "eb505e91-3a37-4142-a393-5569ec5b2c4c",
                   "params": {}
                 }
               }
@@ -801,22 +823,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "42e8d2f6-9fc4-4c56-b928-c962005d12a3",
+        "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "4017df69-0c74-4d04-bc51-7a718f798863",
+        "id": "4c8b46b7-8436-4ac5-a236-a2288f16e3f6",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntity": {
-        "id": "a789e197-58ec-4ee4-b23d-dcab5a56136d",
+        "id": "9bef1de4-38bb-4438-a069-9678567ae169",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntities": {
-        "id": "105d97ff-fb34-4c7d-8f2d-dc563a2651aa",
+        "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
         "defaultValue": [],
         "type": "array"
       }
@@ -1049,7 +1071,7 @@
                         "itemValuePath": [],
                         "statePersistanceName": "AuthorList",
                         "resource": {
-                          "id": "4b4c1801-cc73-4f1a-a47c-4854191bc39c",
+                          "id": "c447ad00-03ec-463b-8631-4775d0004fbe",
                           "params": {
                             "limit": {
                               "type": "static",
@@ -1087,35 +1109,27 @@
                       "type": "static",
                       "content": "100%"
                     },
-                    "minHeight": {
+                    "display": {
                       "type": "static",
-                      "content": "100vh"
+                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
                       "content": "auto"
                     },
-                    "display": {
+                    "minHeight": {
                       "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
+                      "content": "100vh"
                     },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
                     },
-                    "justifyContent": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "paddingRight": {
+                    "paddingTop": {
                       "type": "dynamic",
                       "content": {
                         "referenceType": "token",
-                        "id": "--dl-space-space-oneandhalfunits"
+                        "id": "--dl-space-space-twounits"
                       }
                     },
                     "paddingLeft": {
@@ -1125,12 +1139,16 @@
                         "id": "--dl-space-space-oneandhalfunits"
                       }
                     },
-                    "paddingTop": {
+                    "paddingRight": {
                       "type": "dynamic",
                       "content": {
                         "referenceType": "token",
-                        "id": "--dl-space-space-twounits"
+                        "id": "--dl-space-space-oneandhalfunits"
                       }
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
                     },
                     "paddingBottom": {
                       "type": "dynamic",
@@ -1138,6 +1156,10 @@
                         "referenceType": "token",
                         "id": "--dl-space-space-twounits"
                       }
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
                     }
                   },
                   "children": [
@@ -1258,7 +1280,7 @@
                         "itemValuePath": [],
                         "statePersistanceName": "BlogPostList",
                         "resource": {
-                          "id": "2a650e47-41c0-4b4a-8c1a-99252f343b7d",
+                          "id": "5b7f930e-c310-445b-b295-0c2907732fa5",
                           "params": {
                             "limit": {
                               "type": "static",
@@ -1272,6 +1294,105 @@
                 }
               },
               "value": "Posts",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-item",
+                              "semanticType": "cms-item",
+                              "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                              "attrs": {
+                                "value": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "state",
+                                    "id": "AuthorEntity"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "singleDetailsContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": [],
+                        "statePersistanceName": "AuthorEntity",
+                        "resource": {
+                          "id": "b99da920-e2ec-45d5-bb1e-a969f5a683ce"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "single",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -2053,6 +2174,108 @@
       "name": "PostsListContent",
       "styleSetDefinitions": {}
     },
+    "singleDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "contents"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "ctx",
+                      "id": "3ea584f2-197e-43f4-952b-f225629096bb",
+                      "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "path": [
+                        "image",
+                        "url"
+                      ]
+                    }
+                  },
+                  "alt": {
+                    "type": "static",
+                    "content": "image"
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "200px"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "name"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "description"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "singleDetailsContent",
+      "styleSetDefinitions": {}
+    },
     "AuthorListContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -2565,8 +2788,8 @@
   },
   "resources": {
     "items": {
-      "4b4c1801-cc73-4f1a-a47c-4854191bc39c": {
-        "id": "4b4c1801-cc73-4f1a-a47c-4854191bc39c",
+      "c447ad00-03ec-463b-8631-4775d0004fbe": {
+        "id": "c447ad00-03ec-463b-8631-4775d0004fbe",
         "name": "Home",
         "mappers": {
           "resolveContentfulResponse": {
@@ -2618,8 +2841,8 @@
           }
         }
       },
-      "2a650e47-41c0-4b4a-8c1a-99252f343b7d": {
-        "id": "2a650e47-41c0-4b4a-8c1a-99252f343b7d",
+      "5b7f930e-c310-445b-b295-0c2907732fa5": {
+        "id": "5b7f930e-c310-445b-b295-0c2907732fa5",
         "name": "Posts",
         "mappers": {
           "resolveContentfulResponse": {
@@ -2671,9 +2894,39 @@
           }
         }
       },
-      "f6287a67-8eb7-4180-b0ff-db9e37f09747": {
-        "id": "f6287a67-8eb7-4180-b0ff-db9e37f09747",
-        "name": "Author-page-initial-props-f6287",
+      "b99da920-e2ec-45d5-bb1e-a969f5a683ce": {
+        "id": "b99da920-e2ec-45d5-bb1e-a969f5a683ce",
+        "name": "single",
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "sys.id": {
+            "type": "static",
+            "content": "1usfwyCuEJHsArZSqZJ45j"
+          }
+        }
+      },
+      "d2fc8402-f661-4060-aa03-7a197b64e595": {
+        "id": "d2fc8402-f661-4060-aa03-7a197b64e595",
+        "name": "Author-page-initial-props-d2fc8",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2704,9 +2957,9 @@
           }
         }
       },
-      "0eee4ca0-05c1-4c3e-972a-6d3ecf688f95": {
-        "id": "0eee4ca0-05c1-4c3e-972a-6d3ecf688f95",
-        "name": "Author-page-initial-paths-0eee4",
+      "6b0bfe1d-bdff-42c4-a2a5-758a3216d714": {
+        "id": "6b0bfe1d-bdff-42c4-a2a5-758a3216d714",
+        "name": "Author-page-initial-paths-6b0bf",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2737,9 +2990,9 @@
           }
         }
       },
-      "383af415-12cf-4226-a33f-b0ff53992b49": {
-        "id": "383af415-12cf-4226-a33f-b0ff53992b49",
-        "name": "Author-page-initial-props-383af",
+      "e4154823-5754-438a-95d0-c894a23f072c": {
+        "id": "e4154823-5754-438a-95d0-c894a23f072c",
+        "name": "Author-page-initial-props-e4154",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2777,9 +3030,9 @@
           }
         }
       },
-      "e0945f43-ec58-4f72-acaf-482e5caecf3d": {
-        "id": "e0945f43-ec58-4f72-acaf-482e5caecf3d",
-        "name": "Author-page-initial-paths-e0945",
+      "f1d999eb-09ad-4613-acb5-bfba4243fe44": {
+        "id": "f1d999eb-09ad-4613-acb5-bfba4243fe44",
+        "name": "Author-page-initial-paths-f1d99",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2813,9 +3066,9 @@
           }
         }
       },
-      "06cbf3ef-0567-42de-9410-63fab873b6f8": {
-        "id": "06cbf3ef-0567-42de-9410-63fab873b6f8",
-        "name": "Author-page-initial-props-06cbf",
+      "b8433044-292a-4bd2-a839-1d9d87dcfaf8": {
+        "id": "b8433044-292a-4bd2-a839-1d9d87dcfaf8",
+        "name": "Author-page-initial-props-b8433",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2834,9 +3087,9 @@
         },
         "params": {}
       },
-      "1589c167-f234-4b17-80bd-8bb66e9402c1": {
-        "id": "1589c167-f234-4b17-80bd-8bb66e9402c1",
-        "name": "BlogPost-page-initial-paths-1589c",
+      "383ec9f6-d54e-4e35-add4-7e4d44cea4b0": {
+        "id": "383ec9f6-d54e-4e35-add4-7e4d44cea4b0",
+        "name": "BlogPost-page-initial-paths-383ec",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2870,9 +3123,9 @@
           }
         }
       },
-      "1e2d8e6d-5baf-4458-9cfd-5925b89093b6": {
-        "id": "1e2d8e6d-5baf-4458-9cfd-5925b89093b6",
-        "name": "BlogPost-page-initial-props-1e2d8",
+      "a026ca19-320c-4e12-94f2-984420928c7b": {
+        "id": "a026ca19-320c-4e12-94f2-984420928c7b",
+        "name": "BlogPost-page-initial-props-a026c",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2891,9 +3144,9 @@
         },
         "params": {}
       },
-      "9ffd1238-7ce3-4072-9205-dde9bd4c88a6": {
-        "id": "9ffd1238-7ce3-4072-9205-dde9bd4c88a6",
-        "name": "BlogPost-page-initial-props-9ffd1",
+      "3634c462-6d49-4827-a7ff-932dba3ac4d0": {
+        "id": "3634c462-6d49-4827-a7ff-932dba3ac4d0",
+        "name": "BlogPost-page-initial-props-3634c",
         "headers": {
           "authToken": {
             "type": "env",
@@ -2924,9 +3177,9 @@
           }
         }
       },
-      "61cf46b9-23fb-4694-bc79-278258fffab4": {
-        "id": "61cf46b9-23fb-4694-bc79-278258fffab4",
-        "name": "BlogPost-page-initial-paths-61cf4",
+      "3b6d048b-ed43-499e-adf8-f32b6349ae4b": {
+        "id": "3b6d048b-ed43-499e-adf8-f32b6349ae4b",
+        "name": "BlogPost-page-initial-paths-3b6d0",
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2957,9 +3210,9 @@
           }
         }
       },
-      "2580ac22-527d-4d2b-9155-cf63449684d1": {
-        "id": "2580ac22-527d-4d2b-9155-cf63449684d1",
-        "name": "BlogPost-page-initial-props-2580a",
+      "eb505e91-3a37-4142-a393-5569ec5b2c4c": {
+        "id": "eb505e91-3a37-4142-a393-5569ec5b2c4c",
+        "name": "BlogPost-page-initial-props-eb505",
         "headers": {
           "authToken": {
             "type": "env",
@@ -3029,6 +3282,10 @@
       "4bdc72bb-eda3-494e-9a25-0455445c89c1": {
         "name": "Posts",
         "fileName": "Posts"
+      },
+      "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a": {
+        "name": "single",
+        "fileName": "single"
       },
       "55340b79-1f1f-4485-aa5b-ae447470fbaf": {
         "name": "Author",
