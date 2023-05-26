@@ -19,8 +19,7 @@
       "error",
       "debug",
       "time",
-      "timeEnd",
-      "trace"
+      "timeEnd"
     ],
     "no-debugger": true,
     "no-implicit-dependencies": false,

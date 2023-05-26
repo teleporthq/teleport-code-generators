@@ -43,7 +43,7 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "devDependencies": {
+  "dependencies": {
     "@manypkg/cli": "^0.20.0",
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
