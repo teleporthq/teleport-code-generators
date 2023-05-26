@@ -71,7 +71,9 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
 export default async function handler(req, res) {
   try {
-    const response = await ${resourceImportVariable}(JSON.parse(req.body))
+    const response = await ${resourceImportVariable}(${
+              content.resource.params ? 'JSON.parse(req.body)' : ''
+            })
     return res.status(200).json(response)
   } catch (error) {
     return res.status(500).send('Something went wrong')
