@@ -15,7 +15,7 @@ export const NuxtProjectMapping: Mapping = {
         path: 'dangerous-html',
         version: '0.1.13',
         meta: {
-          importAlias: 'dangerous-html/dist/vue/lib.mjs',
+          importAlias: 'dangerous-html/dist/vue/lib.js',
         },
       },
     },
