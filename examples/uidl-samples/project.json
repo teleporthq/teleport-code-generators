@@ -551,18 +551,6 @@
                                       {
                                           "type": "element",
                                           "content": {
-                                              "elementType": "html-node",
-                                              "attrs": {
-                                                  "html": {
-                                                      "type": "raw",
-                                                      "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>"
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      {
-                                          "type": "element",
-                                          "content": {
                                               "elementType": "lottie-node",
                                               "style": {
                                                   "width": "200px",
@@ -5297,7 +5285,38 @@
                           "content": "column"
                       }
                   },
-                  "children": [],
+                  "children": [
+                    {
+                        "type": "element",
+                        "content": {
+                            "elementType": "html-node",
+                            "attrs": {
+                                "html": {
+                                    "type": "raw",
+                                    "content": "<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don't Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script src='https://platform.twitter.com/widgets.js'></script>"
+                                }
+                            }
+                        }
+                    },
+                    {
+                      "type": "element",
+                      "content": {
+                          "elementType": "html-node",
+                          "attrs": {
+                              "html": {
+                                  "type": "raw",
+                                  "content": "<p>Test<script>console.log('test')</script></p>"
+                              }
+                          },
+                          "styles": {
+                              "width": {
+                                  "type": "static",
+                                  "content": "400px"
+                              }
+                          }
+                      }
+                  }
+                  ],
                   "semanticType": "div"
               }
           },

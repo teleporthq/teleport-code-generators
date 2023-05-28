@@ -5673,10 +5673,10 @@ hast-util-to-html@^8.0.4:
     stringify-entities "^4.0.0"
     zwitch "^2.0.4"
 
-hast-util-to-jsx-inline-script@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/hast-util-to-jsx-inline-script/-/hast-util-to-jsx-inline-script-1.0.0.tgz#c2d4f1bff67c6533f157a2d8c0dc48ee9d135484"
-  integrity sha512-vi3B967U+QfUa5bYPFLIEG4P/JYAWhuUSlJOkf4MQ9BbseHQ32JU2AcCrfuvQ8AdND4Sx2xr8xUiz2D81ihCiA==
+hast-util-to-jsx-inline-script@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/hast-util-to-jsx-inline-script/-/hast-util-to-jsx-inline-script-1.1.0.tgz#0dab3d2957108c4647e15bcec197ff08fd307dd4"
+  integrity sha512-SB4fJs5HdS2XHDrVtGueMDfkUSK1J0bVAmvvWdmzJ/XimblCv3ArcQKKRWGfe4RWeoJt+QovmRivCgpfL7pFUw==
   dependencies:
     kebab-case "^1.0.0"
     postcss "^7.0.39"
