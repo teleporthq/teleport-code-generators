@@ -35,6 +35,7 @@
     "@teleporthq/teleport-project-generator-vue": "^0.27.3-alpha.4",
     "@teleporthq/teleport-project-packer": "^0.27.3-alpha.4",
     "@teleporthq/teleport-project-plugin-api-routes": "^0.27.3-alpha.4",
+    "@teleporthq/teleport-project-plugin-contexts": "^0.27.3-alpha.4",
     "@teleporthq/teleport-project-plugin-inline-fetch": "^0.27.3-alpha.4",
     "@teleporthq/teleport-publisher-codesandbox": "^0.27.3-alpha.4",
     "@teleporthq/teleport-publisher-disk": "^0.27.3-alpha.4",
