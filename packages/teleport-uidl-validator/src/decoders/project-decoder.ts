@@ -47,7 +47,7 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
 })
 
 export const resourcesDecoder: Decoder<UIDLResources> = object({
-  mappers: optional(dict(lazy(() => dependencyDecoder))),
+  resourceMappers: optional(dict(lazy(() => dependencyDecoder))),
   items: optional(dict(lazy(() => resourceItemDecoder))),
 })
 

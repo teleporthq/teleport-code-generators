@@ -11,17 +11,16 @@ import * as types from '@babel/types'
 
 export const resourceGenerator = (
   resource: UIDLResourceItem,
-  mappers?: UIDLResources['mappers']
+  mappers?: UIDLResources['resourceMappers']
 ): { chunks: ChunkDefinition[]; dependencies: Record<string, UIDLDependency> } => {
   const chunks: ChunkDefinition[] = []
   const dependencies: Record<string, UIDLDependency> = {}
   const ast = ASTUtils.generateRemoteResourceASTs(resource)
   let returnStatement: types.Identifier | types.CallExpression = types.identifier('response')
-  const combinedMappers = { ...(mappers || {}), ...(resource?.mappers || {}) }
 
-  Object.keys(combinedMappers).forEach((mapper) => {
+  resource.mappers.forEach((mapper) => {
     returnStatement = types.callExpression(types.identifier(mapper), [returnStatement])
-    dependencies[mapper] = combinedMappers[mapper]
+    dependencies[mapper] = mappers[mapper]
   })
 
   const moduleBody = [...ast, types.returnStatement(returnStatement)]

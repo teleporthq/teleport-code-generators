@@ -44,13 +44,7 @@ export interface UIDLResourceItem {
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
   params?: Record<string, UIDLStaticValue | UIDLPropValue>
-  /**
-   * TODO
-   * @JK
-   * Allow users to link the mappers on demand. Not mandatory at the moment.
-   * This helps in applying a specific mapper only at certain ocassions.
-   */
-  mappers?: Record<string, UIDLDependency>
+  mappers?: string[]
 }
 
 /**
@@ -59,7 +53,7 @@ export interface UIDLResourceItem {
  * Eg: `Content-Type`
  */
 export interface UIDLResources {
-  mappers?: Record<string, UIDLDependency>
+  resourceMappers?: Record<string, UIDLDependency>
   items?: Record<string, UIDLResourceItem>
 }
 

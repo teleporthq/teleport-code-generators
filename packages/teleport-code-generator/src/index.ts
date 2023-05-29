@@ -150,7 +150,7 @@ export const packProject: PackProjectFunction = async (
     projectGeneratorFactory.addPlugin(nuxtErrorPageMapper)
   }
 
-  if (projectType === ProjectType.NEXT || projectType === ProjectType.REACT) {
+  if (projectType === ProjectType.NEXT) {
     projectGeneratorFactory.addPlugin(new ProjectPluginContexts({ framework: projectType }))
     projectGeneratorFactory.addPlugin(new ProjectPluginInlineFetch({ framework: projectType }))
   }

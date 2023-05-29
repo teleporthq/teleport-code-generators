@@ -146,7 +146,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   }),
   method: withDefault('GET', union(constant('GET'), constant('POST'))),
   body: optional(dict(staticValueDecoder)),
-  mappers: optional(dict(lazy(() => dependencyDecoder))),
+  mappers: optional(array(string())),
   params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
 })
 

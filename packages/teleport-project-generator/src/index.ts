@@ -253,7 +253,11 @@ export class ProjectGenerator implements ProjectGeneratorType {
       mapping,
       skipValidation: true,
       designLanguage: uidl.root?.designLanguage,
-      ...(uidl?.resources && { ...uidl.resources, path: this.strategy.resources.path }),
+      ...(uidl?.resources &&
+        this.strategy?.resources?.path && {
+          ...uidl.resources,
+          path: this.strategy.resources.path,
+        }),
     }
 
     // Handling project style sheet
@@ -272,13 +276,16 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDependencies = { ...collectedDependencies, ...dependencies }
     }
 
-    const resources = Object.values(uidl?.resources?.items)
+    const resources = Object.values(uidl?.resources?.items || {})
     if (this.strategy?.resources && resources.length > 0) {
       const resourceCompGenerator = createComponentGenerator()
       resourceCompGenerator.addPostProcessor(prettierJS)
 
       for (const resource of resources) {
-        const { chunks, dependencies } = resourceGenerator(resource, uidl.resources?.mappers)
+        const { chunks, dependencies } = resourceGenerator(
+          resource,
+          uidl.resources?.resourceMappers || {}
+        )
         const { chunks: importChunks } = await importStatementsPlugin({
           uidl: uidl.root,
           dependencies,
@@ -325,7 +332,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         projectContexts,
         projectResources,
         ...(uidl.resources &&
-          this.strategy.resources?.path && {
+          this.strategy?.resources?.path && {
             resources: {
               items: uidl?.resources?.items,
               path: GenericUtils.generateLocalDependenciesPrefix(

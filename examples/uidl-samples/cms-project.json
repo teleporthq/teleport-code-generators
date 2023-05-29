@@ -2791,26 +2791,7 @@
       "c447ad00-03ec-463b-8631-4775d0004fbe": {
         "id": "c447ad00-03ec-463b-8631-4775d0004fbe",
         "name": "Home",
-        "mappers": {
-          "resolveContentfulResponse": {
-            "type": "package",
-            "path": "contentful-resolve-response",
-            "version": "1.1.4",
-            "meta": {
-              "originalName": "resolveContentfulResponse"
-            }
-          },
-          "normalize": {
-            "type": "package",
-            "version": "git+https://github.com/teleporthq/teleport-cms-mappers.git",
-            "path": "normalize",
-            "meta": {
-              "namedImport": true,
-              "originalName": "normalize",
-              "importAlias": "normalize/contentful"
-            }
-          }
-        },
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2844,26 +2825,7 @@
       "5b7f930e-c310-445b-b295-0c2907732fa5": {
         "id": "5b7f930e-c310-445b-b295-0c2907732fa5",
         "name": "Posts",
-        "mappers": {
-          "resolveContentfulResponse": {
-            "type": "package",
-            "path": "contentful-resolve-response",
-            "version": "1.1.4",
-            "meta": {
-              "originalName": "resolveContentfulResponse"
-            }
-          },
-          "normalize": {
-            "type": "package",
-            "version": "git+https://github.com/teleporthq/teleport-cms-mappers.git",
-            "path": "normalize",
-            "meta": {
-              "namedImport": true,
-              "originalName": "normalize",
-              "importAlias": "normalize/contentful"
-            }
-          }
-        },
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2896,6 +2858,7 @@
       },
       "b99da920-e2ec-45d5-bb1e-a969f5a683ce": {
         "id": "b99da920-e2ec-45d5-bb1e-a969f5a683ce",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "name": "single",
         "path": {
           "baseUrl": {
@@ -2927,6 +2890,7 @@
       "d2fc8402-f661-4060-aa03-7a197b64e595": {
         "id": "d2fc8402-f661-4060-aa03-7a197b64e595",
         "name": "Author-page-initial-props-d2fc8",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -2960,6 +2924,7 @@
       "6b0bfe1d-bdff-42c4-a2a5-758a3216d714": {
         "id": "6b0bfe1d-bdff-42c4-a2a5-758a3216d714",
         "name": "Author-page-initial-paths-6b0bf",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2993,6 +2958,7 @@
       "e4154823-5754-438a-95d0-c894a23f072c": {
         "id": "e4154823-5754-438a-95d0-c894a23f072c",
         "name": "Author-page-initial-props-e4154",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3033,6 +2999,7 @@
       "f1d999eb-09ad-4613-acb5-bfba4243fe44": {
         "id": "f1d999eb-09ad-4613-acb5-bfba4243fe44",
         "name": "Author-page-initial-paths-f1d99",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3069,6 +3036,7 @@
       "b8433044-292a-4bd2-a839-1d9d87dcfaf8": {
         "id": "b8433044-292a-4bd2-a839-1d9d87dcfaf8",
         "name": "Author-page-initial-props-b8433",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3089,6 +3057,7 @@
       },
       "383ec9f6-d54e-4e35-add4-7e4d44cea4b0": {
         "id": "383ec9f6-d54e-4e35-add4-7e4d44cea4b0",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "name": "BlogPost-page-initial-paths-383ec",
         "path": {
           "baseUrl": {
@@ -3126,6 +3095,7 @@
       "a026ca19-320c-4e12-94f2-984420928c7b": {
         "id": "a026ca19-320c-4e12-94f2-984420928c7b",
         "name": "BlogPost-page-initial-props-a026c",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3147,6 +3117,7 @@
       "3634c462-6d49-4827-a7ff-932dba3ac4d0": {
         "id": "3634c462-6d49-4827-a7ff-932dba3ac4d0",
         "name": "BlogPost-page-initial-props-3634c",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3180,6 +3151,7 @@
       "3b6d048b-ed43-499e-adf8-f32b6349ae4b": {
         "id": "3b6d048b-ed43-499e-adf8-f32b6349ae4b",
         "name": "BlogPost-page-initial-paths-3b6d0",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3213,6 +3185,7 @@
       "eb505e91-3a37-4142-a393-5569ec5b2c4c": {
         "id": "eb505e91-3a37-4142-a393-5569ec5b2c4c",
         "name": "BlogPost-page-initial-props-eb505",
+        "mappers": ["normalize", "resolveContentfulResponse"],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3251,7 +3224,7 @@
         }
       }
     },
-    "mappers": {
+    "resourceMappers": {
       "resolveContentfulResponse": {
         "type": "package",
         "path": "contentful-resolve-response",
