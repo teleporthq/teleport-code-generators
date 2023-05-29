@@ -3,11 +3,7 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const nextBeforeModifier = async (structure: ProjectPluginStructure) => {
-  const { strategy, files, projectContexts } = structure
-
-  if (strategy.id !== 'teleport-project-next') {
-    throw new Error('Plugin can be used only with teleport-project-next')
-  }
+  const { files, projectContexts } = structure
 
   const { rootFolder = 'contexts', items = {} } = structure.uidl.contexts || {}
 

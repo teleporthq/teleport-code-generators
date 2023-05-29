@@ -38,8 +38,6 @@
     "@teleporthq/teleport-plugin-next-static-props": "^0.27.3-alpha.3",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.27.3-alpha.3",
     "@teleporthq/teleport-project-generator": "^0.27.3-alpha.3",
-    "@teleporthq/teleport-project-plugin-api-routes": "^0.27.3-alpha.3",
-    "@teleporthq/teleport-project-plugin-contexts": "^0.27.3-alpha.3",
     "@teleporthq/teleport-shared": "^0.27.3-alpha.3",
     "@teleporthq/teleport-types": "^0.27.3-alpha.3"
   },

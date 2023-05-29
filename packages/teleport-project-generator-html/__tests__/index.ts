@@ -1,7 +1,7 @@
 import { FileType } from '@teleporthq/teleport-types'
 import ProjectTemplate from '../src/project-template'
 import { htmlErrorPageMapping } from '../src/error-page-mapping'
-import { createHTMLProjectGenerator } from '../src'
+import { createHTMLProjectGenerator, pluginCloneGlobals, pluginHomeReplace } from '../src'
 import fallbackUidlSample from '../../../examples/uidl-samples/project.json'
 import uidlWithCompStyleOverrides from '../../../examples/test-samples/comp-style-overrides.json'
 import uidlWithImages from '../../../examples/test-samples/html-image-use-cases.json'
@@ -9,6 +9,9 @@ import uidlWithImages from '../../../examples/test-samples/html-image-use-cases.
 describe('Passes the rootClass which using the component', () => {
   it('run without crashing while using with HTML', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
+
     generator.setAssets({
       mappings: {},
       identifier: 'playground_assets',
@@ -32,6 +35,9 @@ describe('Passes the rootClass which using the component', () => {
 describe('Image Resolution', () => {
   it('resolves all local assets to be refered from public folder', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
+
     generator.setAssets({
       mappings: {
         'kitten.png': '',
@@ -72,6 +78,8 @@ describe('Image Resolution', () => {
 
   it('creates a default route if a page is marked as fallback', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
 
     generator.setAssets({
       mappings: {},
@@ -90,6 +98,9 @@ describe('Image Resolution', () => {
 describe('Meta tags from globals', () => {
   it('are added to each page`s head', async () => {
     const generator = createHTMLProjectGenerator()
+    generator.addPlugin(pluginHomeReplace)
+    generator.addPlugin(pluginCloneGlobals)
+
     const { files } = await generator.generateProject(fallbackUidlSample)
     const pages = files.filter((file) => file.fileType === 'html')
 

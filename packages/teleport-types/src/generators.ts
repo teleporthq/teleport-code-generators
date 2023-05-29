@@ -9,6 +9,7 @@ import {
   UIDLRootComponent,
   UIDLRouteDefinitions,
   UIDLPageOptions,
+  UIDLResources,
 } from './uidl'
 
 export enum FileType {
@@ -147,6 +148,7 @@ export interface GeneratorOptions {
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }
+  resources?: { items: UIDLResources['items'] } & { path: ProjectStrategy['resources']['path'] }
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string
@@ -306,6 +308,9 @@ export interface ProjectStrategy {
         fileType: string
       ) => { file: GeneratedFile; dependencies: Record<string, string> }
     }
+  }
+  resources?: {
+    path: string[]
   }
 }
 

@@ -21,6 +21,8 @@
     "add-contributor": "all-contributors add",
     "changelog": "lerna-changelog",
     "version": "lerna version",
+    "many:check": "manypkg check",
+    "many:fix": "manypkg fix",
     "publish": "lerna publish from-package --no-verify-access",
     "local:adduser": "npm adduser --registry http://localhost:4873",
     "local:publish": "lerna exec --bail=false  -- npm publish -f --registry http://localhost:4873",
@@ -28,7 +30,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "pretty-quick --staged && npm run lint"
+      "pre-commit": "pretty-quick --staged && npm run lint && npm run many:check"
     }
   },
   "engines": {
@@ -41,7 +43,8 @@
   "author": "teleportHQ",
   "license": "MIT",
   "homepage": "https://teleporthq.io/",
-  "devDependencies": {
+  "dependencies": {
+    "@manypkg/cli": "^0.20.0",
     "@types/babel-types": "^7.0.7",
     "@types/jest": "^25.1.1",
     "@types/node": "^16",
@@ -57,7 +60,7 @@
     "jest": "^26.6.3",
     "lerna": "^5.3.0",
     "lerna-changelog": "^2.2.0",
-    "prettier": "^2.8.8",
+    "prettier": "^2.3.1",
     "pretty-quick": "^3.1.0",
     "rimraf": "^3.0.0",
     "ts-jest": "^26.5.6",

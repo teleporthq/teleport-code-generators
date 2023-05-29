@@ -1,27 +1,29 @@
 import * as types from '@babel/types'
-import { InitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
-import { StringUtils } from '@teleporthq/teleport-shared'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { UIDLInitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const generateInitialPropsAST = (
-  initialPropsData: InitialPropsData,
-  propsPrefix = '',
+  initialPropsData: UIDLInitialPropsData,
   isDetailsPage = false,
+  resourceImportName: string,
+  resource: UIDLInitialPropsData['resource'],
   pagination?: PagePaginationOptions
 ) => {
-  const computedResourceAST = computePropsAST(
-    initialPropsData,
-    propsPrefix,
-    isDetailsPage,
-    pagination
-  )
-
   return types.exportNamedDeclaration(
     (() => {
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
         [types.identifier('context')],
-        types.blockStatement([...computedResourceAST]),
+        types.blockStatement([
+          ...computePropsAST(
+            initialPropsData,
+            isDetailsPage,
+            resourceImportName,
+            resource,
+            pagination
+          ),
+        ]),
         false,
         true
       )
@@ -33,24 +35,45 @@ export const generateInitialPropsAST = (
 }
 
 const computePropsAST = (
-  propsData: InitialPropsData,
-  propsPrefix = '',
+  propsData: UIDLInitialPropsData,
   isDetailsPage = false,
+  resourceImportName: string,
+  resource: UIDLInitialPropsData['resource'],
   pagination?: PagePaginationOptions
 ) => {
-  const resourceASTs = ASTUtils.generateRemoteResourceASTs(propsData.resource, propsPrefix)
+  const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
+    (acc: types.ObjectProperty[], item) => {
+      const prop = resource.params[item]
+      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
 
-  let mappedResponse: types.CallExpression | types.Identifier = types.identifier('response')
-  propsData.resourceMappers?.forEach((mapper) => {
-    mappedResponse = types.callExpression(types.identifier(mapper.name), [mappedResponse])
-  })
+      return acc
+    },
+    []
+  )
 
-  const mappedDataAST = types.variableDeclaration('const', [
-    types.variableDeclarator(types.identifier('mappedData'), mappedResponse),
+  const declerationAST = types.variableDeclaration('const', [
+    types.variableDeclarator(
+      types.identifier('response'),
+      types.awaitExpression(
+        types.callExpression(types.identifier(resourceImportName), [
+          types.objectExpression([
+            types.spreadElement(
+              types.memberExpression(
+                types.identifier('context'),
+                types.identifier('params'),
+                false,
+                true
+              )
+            ),
+            ...funcParams,
+          ]),
+        ])
+      )
+    ),
   ])
 
   const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-    propsData.resourceMappers?.length ? 'mappedData' : 'response',
+    'response',
     ...(propsData.exposeAs.valuePath || []),
   ])
 
@@ -83,5 +106,5 @@ const computePropsAST = (
     ])
   )
 
-  return [...resourceASTs, ...(propsData.resourceMappers?.length ? [mappedDataAST] : []), returnAST]
+  return [declerationAST, returnAST]
 }

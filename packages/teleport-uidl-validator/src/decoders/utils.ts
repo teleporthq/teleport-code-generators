@@ -12,7 +12,6 @@ import {
   lazy,
   oneOf,
   intersection,
-  unknownJson,
   withDefault,
   anyJson,
 } from '@mojotech/json-type-validation'
@@ -74,26 +73,21 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
-  ResourceValue,
-  ResourceUrlParams,
   PagePaginationOptions,
   VCMSItemUIDLElementNode,
   VCMSListUIDLElementNode,
-  Resource,
-  InitialPropsData,
-  InitialPathsData,
+  UIDLInitialPathsData,
+  UIDLInitialPropsData,
   UIDLExpressionValue,
   UIDLDynamicLinkNode,
+  UIDLENVValue,
+  UIDLPropValue,
+  UIDLResourceItem,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
 const { isValidComponentName, isValidFileName, isValidElementName, isValidNavLink } =
   CustomCombinators
-
-const resourceValueDecoder: Decoder<ResourceValue> = union(
-  object({ type: constant('static'), value: string() }),
-  object({ type: constant('env'), value: string(), fallback: optional(string()) })
-)
 
 export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('prop'),
@@ -130,48 +124,54 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   content: string(),
 })
 
-const resourceUrlParamsDecoder: Decoder<ResourceUrlParams> = dict(
-  union(
-    staticValueDecoder,
-    dynamicValueDecoder,
-    expressionValueDecoder,
-    array(union(staticValueDecoder, dynamicValueDecoder))
-  )
-)
-
-export const resourceDecoder: Decoder<Resource> = object({
-  baseUrl: resourceValueDecoder,
-  urlParams: optional(
-    union(resourceUrlParamsDecoder, dict(resourceUrlParamsDecoder), unknownJson())
-  ),
-  authToken: optional(resourceValueDecoder),
-  route: optional(resourceValueDecoder),
+export const envValueDecoder: Decoder<UIDLENVValue> = object({
+  type: constant('env'),
+  content: string(),
 })
 
-export const initialPropsDecoder: Decoder<InitialPropsData> = object({
+export const dyamicFunctionParam: Decoder<UIDLPropValue> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('prop'),
+    id: string(),
+  }),
+})
+
+export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
+  name: string(),
+  headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
+  path: object({
+    baseUrl: union(staticValueDecoder, envValueDecoder),
+    route: staticValueDecoder,
+  }),
+  method: withDefault('GET', union(constant('GET'), constant('POST'))),
+  body: optional(dict(staticValueDecoder)),
+  mappers: optional(array(string())),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
+})
+
+export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resourceMappers: optional(
-    array(
-      object({
-        name: string(),
-        resource: lazy(() => externaldependencyDecoder),
-      })
-    )
-  ),
-  resource: resourceDecoder,
+  resource: object({
+    id: string(),
+    params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+  }),
 })
 
-export const initialPathsDecoder: Decoder<InitialPathsData> = object({
+export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: resourceDecoder,
+  resource: object({
+    id: string(),
+    params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+  }),
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
@@ -688,13 +688,13 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     statePersistanceName: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    resourceMappers: optional(
-      array(
-        object({
-          name: string(),
-          resource: externaldependencyDecoder,
-        })
-      )
+    resource: optional(
+      object({
+        id: string(),
+        params: optional(
+          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
+        ),
+      })
     ),
   }),
 })
@@ -708,18 +708,17 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
-    resourceId: optional(string()),
     statePersistanceName: optional(string()),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
-    loopItemsReference: optional(attributeValueDecoder),
-    resourceMappers: optional(
-      array(
-        object({
-          name: string(),
-          resource: externaldependencyDecoder,
-        })
-      )
+    loopItemsReference: optional(dynamicValueDecoder),
+    resource: optional(
+      object({
+        id: string(),
+        params: optional(
+          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
+        ),
+      })
     ),
   }),
 })

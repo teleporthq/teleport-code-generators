@@ -1,25 +1,26 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
 import { nextAfterModifier, nextBeforeModifier } from './next'
+import { jsxAfterModifier, jsxBeforeModifier } from './react'
 
 type SUPPORTED_FRAMEWORKS = ProjectType.NEXT | ProjectType.REACT
 
 const frameworkBeforeMap: Record<
   SUPPORTED_FRAMEWORKS,
-  (strucutre: ProjectPluginStructure) => Promise<void>
+  (strucutre: ProjectPluginStructure) => ProjectPluginStructure
 > = {
   [ProjectType.NEXT]: nextBeforeModifier,
-  [ProjectType.REACT]: nextBeforeModifier,
+  [ProjectType.REACT]: jsxBeforeModifier,
 }
 
 const frameworkAfterMap: Record<
   SUPPORTED_FRAMEWORKS,
-  (strucutre: ProjectPluginStructure) => Promise<void>
+  (strucutre: ProjectPluginStructure) => ProjectPluginStructure
 > = {
   [ProjectType.NEXT]: nextAfterModifier,
-  [ProjectType.REACT]: nextAfterModifier,
+  [ProjectType.REACT]: jsxAfterModifier,
 }
 
-export class ProjectPluginContexts implements ProjectPlugin {
+export class ProjectPluginInlineFetch implements ProjectPlugin {
   framework: SUPPORTED_FRAMEWORKS
 
   constructor(params: { framework: SUPPORTED_FRAMEWORKS }) {
@@ -31,8 +32,7 @@ export class ProjectPluginContexts implements ProjectPlugin {
     if (!beforeModifier) {
       return structure
     }
-    await beforeModifier(structure)
-    return structure
+    return beforeModifier(structure)
   }
 
   async runAfter(structure: ProjectPluginStructure) {
@@ -40,7 +40,6 @@ export class ProjectPluginContexts implements ProjectPlugin {
     if (!afterModifier) {
       return structure
     }
-    await afterModifier(structure)
-    return structure
+    return afterModifier(structure)
   }
 }

@@ -8,23 +8,26 @@ import prettierJS from '@teleporthq/teleport-postprocessor-prettier-js'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { ReactStyleVariation } from '@teleporthq/teleport-types'
 import { createStyleSheetPlugin, createCSSPlugin } from '@teleporthq/teleport-plugin-css'
+import { createNextContextPlugin } from '@teleporthq/teleport-plugin-next-context'
 
 import { ReactProjectMapping } from './react-project-mapping'
 import ReactTemplate from './project-template'
 
 const createReactProjectGenerator = () => {
+  const contextPlugin = createNextContextPlugin()
   const generator = createProjectGenerator({
     id: 'teleport-project-react',
     style: ReactStyleVariation.CSS,
     components: {
       generator: createReactComponentGenerator,
+      plugins: [contextPlugin],
       mappings: [ReactProjectMapping],
       path: ['src', 'components'],
     },
     pages: {
       generator: createReactComponentGenerator,
       mappings: [ReactProjectMapping],
-      plugins: [headConfigPlugin],
+      plugins: [headConfigPlugin, contextPlugin],
       path: ['src', 'views'],
     },
     projectStyleSheet: {
@@ -59,6 +62,9 @@ const createReactProjectGenerator = () => {
     static: {
       prefix: '',
       path: ['public'],
+    },
+    resources: {
+      path: ['resources'],
     },
   })
 
