@@ -71,9 +71,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
 export default async function handler(req, res) {
   try {
-    const response = await ${resourceImportVariable}(${
-              content.resource.params ? 'JSON.parse(req.body)' : ''
-            })
+    const response = await ${resourceImportVariable}(${content.resource.params ? 'req.body' : ''})
     return res.status(200).json(response)
   } catch (error) {
     return res.status(500).send('Something went wrong')
@@ -147,6 +145,10 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
             funcParams.length > 0
               ? types.objectExpression([
                   types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+                  types.objectProperty(
+                    types.stringLiteral('Content-Type'),
+                    types.stringLiteral('application/json')
+                  ),
                   types.objectProperty(
                     types.identifier('body'),
                     types.callExpression(

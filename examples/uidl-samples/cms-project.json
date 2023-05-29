@@ -443,6 +443,28 @@
         "defaultValue": "Home",
         "values": [
           {
+            "value": "single",
+            "seo": {
+              "title": "single - Twin Repulsive Cormorant",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "single - Twin Repulsive Cormorant"
+                }
+              ]
+            },
+            "pageOptions": {
+              "stateDefinitions": {
+                "AuthorEntity": {
+                  "id": "2f1940f4-fafa-4a6c-b928-449e9ef63df3",
+                  "defaultValue": {},
+                  "type": "object"
+                }
+              },
+              "propDefinitions": {}
+            }
+          },
+          {
             "value": "Home",
             "seo": {
               "title": "Twin Repulsive Cormorant",
@@ -456,7 +478,7 @@
             "pageOptions": {
               "stateDefinitions": {
                 "AuthorList": {
-                  "id": "4a2903e5-67a3-428a-80c6-888008a4aced",
+                  "id": "6b9f0337-6bc0-49dd-bfe4-a28c261cd236",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -478,31 +500,9 @@
             "pageOptions": {
               "stateDefinitions": {
                 "BlogPostList": {
-                  "id": "8f46719e-22ce-45e3-8047-49d653e91453",
+                  "id": "d183e60d-88cc-46ae-8ac9-8e4c9c038c7d",
                   "defaultValue": [],
                   "type": "array"
-                }
-              },
-              "propDefinitions": {}
-            }
-          },
-          {
-            "value": "single",
-            "seo": {
-              "title": "single - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "single - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "stateDefinitions": {
-                "AuthorEntity": {
-                  "id": "a6e824a1-e686-4e83-ac2b-c7bd345e2d62",
-                  "defaultValue": {},
-                  "type": "object"
                 }
               },
               "propDefinitions": {}
@@ -522,7 +522,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
+                  "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -536,7 +536,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "d2fc8402-f661-4060-aa03-7a197b64e595",
+                  "id": "d5f84624-d812-43cc-90ba-79d2491de42e",
                   "params": {}
                 }
               }
@@ -556,7 +556,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntities": {
-                  "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
+                  "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -583,7 +583,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "6b0bfe1d-bdff-42c4-a2a5-758a3216d714",
+                  "id": "2ad4b914-6249-4ccc-9165-ceceb0614bdb",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -599,7 +599,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "e4154823-5754-438a-95d0-c894a23f072c",
+                  "id": "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab",
                   "params": {}
                 }
               }
@@ -619,7 +619,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "AuthorEntity": {
-                  "id": "4c8b46b7-8436-4ac5-a236-a2288f16e3f6",
+                  "id": "01efaf53-76ed-4d10-914d-4cde8f078202",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -637,7 +637,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "f1d999eb-09ad-4613-acb5-bfba4243fe44",
+                  "id": "1840c650-5818-4019-8861-ec39fc3500d0",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -657,7 +657,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "b8433044-292a-4bd2-a839-1d9d87dcfaf8",
+                  "id": "929573c1-1ee2-4352-b679-bfebc208b096",
                   "params": {}
                 }
               }
@@ -677,7 +677,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntity": {
-                  "id": "9bef1de4-38bb-4438-a069-9678567ae169",
+                  "id": "e253018a-6f43-4685-9dc4-ce35946040a3",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -695,7 +695,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "383ec9f6-d54e-4e35-add4-7e4d44cea4b0",
+                  "id": "2ed571bd-6b48-40da-8518-8f32e6443bf6",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -715,7 +715,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "a026ca19-320c-4e12-94f2-984420928c7b",
+                  "id": "3156ffb5-0536-4e2f-bbe9-c286625d9ad4",
                   "params": {}
                 }
               }
@@ -735,7 +735,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
+                  "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -749,7 +749,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "3634c462-6d49-4827-a7ff-932dba3ac4d0",
+                  "id": "6fd735ca-ac1e-41d4-be09-6832c86b7393",
                   "params": {}
                 }
               }
@@ -769,7 +769,7 @@
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntities": {
-                  "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
+                  "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -796,7 +796,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "3b6d048b-ed43-499e-adf8-f32b6349ae4b",
+                  "id": "2012853e-0174-423d-b575-2191180faacb",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -812,7 +812,7 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "eb505e91-3a37-4142-a393-5569ec5b2c4c",
+                  "id": "0d1ac6e0-7b02-4824-a900-77deff7f48fd",
                   "params": {}
                 }
               }
@@ -823,22 +823,22 @@
     },
     "propDefinitions": {
       "AuthorEntities": {
-        "id": "ca5f4528-160f-49ee-bcd9-36ab408e3945",
+        "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
         "defaultValue": [],
         "type": "array"
       },
       "AuthorEntity": {
-        "id": "4c8b46b7-8436-4ac5-a236-a2288f16e3f6",
+        "id": "01efaf53-76ed-4d10-914d-4cde8f078202",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntity": {
-        "id": "9bef1de4-38bb-4438-a069-9678567ae169",
+        "id": "e253018a-6f43-4685-9dc4-ce35946040a3",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntities": {
-        "id": "bfd0d48b-ed58-4338-96bc-392443f0bc16",
+        "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
         "defaultValue": [],
         "type": "array"
       }
@@ -848,6 +848,105 @@
       "content": {
         "elementType": "Router",
         "children": [
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    },
+                    "justifyContent": {
+                      "type": "static",
+                      "content": "center"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-item",
+                              "semanticType": "cms-item",
+                              "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                              "attrs": {
+                                "value": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "state",
+                                    "id": "AuthorEntity"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "singleDetailsContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": [],
+                        "statePersistanceName": "AuthorEntity",
+                        "resource": {
+                          "id": "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "single",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
           {
             "type": "conditional",
             "content": {
@@ -1071,7 +1170,7 @@
                         "itemValuePath": [],
                         "statePersistanceName": "AuthorList",
                         "resource": {
-                          "id": "c447ad00-03ec-463b-8631-4775d0004fbe",
+                          "id": "f1602b82-df50-4db7-965e-4a91405af370",
                           "params": {
                             "limit": {
                               "type": "static",
@@ -1280,7 +1379,7 @@
                         "itemValuePath": [],
                         "statePersistanceName": "BlogPostList",
                         "resource": {
-                          "id": "5b7f930e-c310-445b-b295-0c2907732fa5",
+                          "id": "addfd6ef-dcfa-49a8-a4fc-f917001d2100",
                           "params": {
                             "limit": {
                               "type": "static",
@@ -1294,105 +1393,6 @@
                 }
               },
               "value": "Posts",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "justifyContent": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-item",
-                      "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-item",
-                              "semanticType": "cms-item",
-                              "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                              "attrs": {
-                                "value": {
-                                  "type": "dynamic",
-                                  "content": {
-                                    "referenceType": "state",
-                                    "id": "AuthorEntity"
-                                  }
-                                }
-                              },
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "singleDetailsContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": [],
-                        "statePersistanceName": "AuthorEntity",
-                        "resource": {
-                          "id": "b99da920-e2ec-45d5-bb1e-a969f5a683ce"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "single",
               "reference": {
                 "type": "dynamic",
                 "content": {
@@ -1945,6 +1945,108 @@
     }
   },
   "components": {
+    "singleDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "contents"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "image",
+                "referencedStyles": {},
+                "abilities": {},
+                "attrs": {
+                  "alt": {
+                    "type": "static",
+                    "content": "image"
+                  },
+                  "src": {
+                    "type": "dynamic",
+                    "content": {
+                      "referenceType": "ctx",
+                      "id": "3ea584f2-197e-43f4-952b-f225629096bb",
+                      "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "path": [
+                        "image",
+                        "url"
+                      ]
+                    }
+                  }
+                },
+                "style": {
+                  "width": {
+                    "type": "static",
+                    "content": "200px"
+                  },
+                  "objectFit": {
+                    "type": "static",
+                    "content": "cover"
+                  }
+                },
+                "children": []
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "h1",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "name"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "element",
+              "content": {
+                "elementType": "text",
+                "semanticType": "span",
+                "referencedStyles": {},
+                "abilities": {},
+                "children": [
+                  {
+                    "type": "dynamic",
+                    "content": {
+                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
+                      "referenceType": "ctx",
+                      "path": [
+                        "description"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "singleDetailsContent",
+      "styleSetDefinitions": {}
+    },
     "HomeListContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -2172,108 +2274,6 @@
         }
       },
       "name": "PostsListContent",
-      "styleSetDefinitions": {}
-    },
-    "singleDetailsContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "image",
-                "referencedStyles": {},
-                "abilities": {},
-                "attrs": {
-                  "src": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "ctx",
-                      "id": "3ea584f2-197e-43f4-952b-f225629096bb",
-                      "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "path": [
-                        "image",
-                        "url"
-                      ]
-                    }
-                  },
-                  "alt": {
-                    "type": "static",
-                    "content": "image"
-                  }
-                },
-                "style": {
-                  "width": {
-                    "type": "static",
-                    "content": "200px"
-                  },
-                  "objectFit": {
-                    "type": "static",
-                    "content": "cover"
-                  }
-                },
-                "children": []
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "h1",
-                "referencedStyles": {},
-                "abilities": {},
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "name"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "span",
-                "referencedStyles": {},
-                "abilities": {},
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "description"
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "singleDetailsContent",
       "styleSetDefinitions": {}
     },
     "AuthorListContent": {
@@ -2788,10 +2788,47 @@
   },
   "resources": {
     "items": {
-      "c447ad00-03ec-463b-8631-4775d0004fbe": {
-        "id": "c447ad00-03ec-463b-8631-4775d0004fbe",
+      "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce": {
+        "id": "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce",
+        "name": "single",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "sys.id": {
+            "type": "static",
+            "content": "1usfwyCuEJHsArZSqZJ45j"
+          }
+        }
+      },
+      "f1602b82-df50-4db7-965e-4a91405af370": {
+        "id": "f1602b82-df50-4db7-965e-4a91405af370",
         "name": "Home",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2822,10 +2859,13 @@
           }
         }
       },
-      "5b7f930e-c310-445b-b295-0c2907732fa5": {
-        "id": "5b7f930e-c310-445b-b295-0c2907732fa5",
+      "addfd6ef-dcfa-49a8-a4fc-f917001d2100": {
+        "id": "addfd6ef-dcfa-49a8-a4fc-f917001d2100",
         "name": "Posts",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2856,41 +2896,13 @@
           }
         }
       },
-      "b99da920-e2ec-45d5-bb1e-a969f5a683ce": {
-        "id": "b99da920-e2ec-45d5-bb1e-a969f5a683ce",
-        "mappers": ["normalize", "resolveContentfulResponse"],
-        "name": "single",
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "author"
-          },
-          "sys.id": {
-            "type": "static",
-            "content": "1usfwyCuEJHsArZSqZJ45j"
-          }
-        }
-      },
-      "d2fc8402-f661-4060-aa03-7a197b64e595": {
-        "id": "d2fc8402-f661-4060-aa03-7a197b64e595",
-        "name": "Author-page-initial-props-d2fc8",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "d5f84624-d812-43cc-90ba-79d2491de42e": {
+        "id": "d5f84624-d812-43cc-90ba-79d2491de42e",
+        "name": "Author-page-initial-props-d5f84",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -2921,10 +2933,13 @@
           }
         }
       },
-      "6b0bfe1d-bdff-42c4-a2a5-758a3216d714": {
-        "id": "6b0bfe1d-bdff-42c4-a2a5-758a3216d714",
-        "name": "Author-page-initial-paths-6b0bf",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "2ad4b914-6249-4ccc-9165-ceceb0614bdb": {
+        "id": "2ad4b914-6249-4ccc-9165-ceceb0614bdb",
+        "name": "Author-page-initial-paths-2ad4b",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -2955,10 +2970,13 @@
           }
         }
       },
-      "e4154823-5754-438a-95d0-c894a23f072c": {
-        "id": "e4154823-5754-438a-95d0-c894a23f072c",
-        "name": "Author-page-initial-props-e4154",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab": {
+        "id": "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab",
+        "name": "Author-page-initial-props-ba3c8",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -2996,10 +3014,13 @@
           }
         }
       },
-      "f1d999eb-09ad-4613-acb5-bfba4243fe44": {
-        "id": "f1d999eb-09ad-4613-acb5-bfba4243fe44",
-        "name": "Author-page-initial-paths-f1d99",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "1840c650-5818-4019-8861-ec39fc3500d0": {
+        "id": "1840c650-5818-4019-8861-ec39fc3500d0",
+        "name": "Author-page-initial-paths-1840c",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3033,10 +3054,13 @@
           }
         }
       },
-      "b8433044-292a-4bd2-a839-1d9d87dcfaf8": {
-        "id": "b8433044-292a-4bd2-a839-1d9d87dcfaf8",
-        "name": "Author-page-initial-props-b8433",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "929573c1-1ee2-4352-b679-bfebc208b096": {
+        "id": "929573c1-1ee2-4352-b679-bfebc208b096",
+        "name": "Author-page-initial-props-92957",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3055,10 +3079,13 @@
         },
         "params": {}
       },
-      "383ec9f6-d54e-4e35-add4-7e4d44cea4b0": {
-        "id": "383ec9f6-d54e-4e35-add4-7e4d44cea4b0",
-        "mappers": ["normalize", "resolveContentfulResponse"],
-        "name": "BlogPost-page-initial-paths-383ec",
+      "2ed571bd-6b48-40da-8518-8f32e6443bf6": {
+        "id": "2ed571bd-6b48-40da-8518-8f32e6443bf6",
+        "name": "BlogPost-page-initial-paths-2ed57",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3092,10 +3119,13 @@
           }
         }
       },
-      "a026ca19-320c-4e12-94f2-984420928c7b": {
-        "id": "a026ca19-320c-4e12-94f2-984420928c7b",
-        "name": "BlogPost-page-initial-props-a026c",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "3156ffb5-0536-4e2f-bbe9-c286625d9ad4": {
+        "id": "3156ffb5-0536-4e2f-bbe9-c286625d9ad4",
+        "name": "BlogPost-page-initial-props-3156f",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3114,10 +3144,13 @@
         },
         "params": {}
       },
-      "3634c462-6d49-4827-a7ff-932dba3ac4d0": {
-        "id": "3634c462-6d49-4827-a7ff-932dba3ac4d0",
-        "name": "BlogPost-page-initial-props-3634c",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "6fd735ca-ac1e-41d4-be09-6832c86b7393": {
+        "id": "6fd735ca-ac1e-41d4-be09-6832c86b7393",
+        "name": "BlogPost-page-initial-props-6fd73",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3148,10 +3181,13 @@
           }
         }
       },
-      "3b6d048b-ed43-499e-adf8-f32b6349ae4b": {
-        "id": "3b6d048b-ed43-499e-adf8-f32b6349ae4b",
-        "name": "BlogPost-page-initial-paths-3b6d0",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "2012853e-0174-423d-b575-2191180faacb": {
+        "id": "2012853e-0174-423d-b575-2191180faacb",
+        "name": "BlogPost-page-initial-paths-20128",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "path": {
           "baseUrl": {
             "type": "env",
@@ -3182,10 +3218,13 @@
           }
         }
       },
-      "eb505e91-3a37-4142-a393-5569ec5b2c4c": {
-        "id": "eb505e91-3a37-4142-a393-5569ec5b2c4c",
-        "name": "BlogPost-page-initial-props-eb505",
-        "mappers": ["normalize", "resolveContentfulResponse"],
+      "0d1ac6e0-7b02-4824-a900-77deff7f48fd": {
+        "id": "0d1ac6e0-7b02-4824-a900-77deff7f48fd",
+        "name": "BlogPost-page-initial-props-0d1ac",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
         "headers": {
           "authToken": {
             "type": "env",
@@ -3248,6 +3287,10 @@
   "contexts": {
     "rootFolder": "contexts",
     "items": {
+      "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a": {
+        "name": "single",
+        "fileName": "single"
+      },
       "8b4666a1-e209-4bee-9826-fee0ab2eab1a": {
         "name": "Home",
         "fileName": "Home"
@@ -3255,10 +3298,6 @@
       "4bdc72bb-eda3-494e-9a25-0455445c89c1": {
         "name": "Posts",
         "fileName": "Posts"
-      },
-      "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a": {
-        "name": "single",
-        "fileName": "single"
       },
       "55340b79-1f1f-4485-aa5b-ae447470fbaf": {
         "name": "Author",

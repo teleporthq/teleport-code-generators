@@ -3,6 +3,7 @@ import {
   ChunkDefinition,
   ChunkType,
   FileType,
+  TeleportError,
   UIDLDependency,
   UIDLResourceItem,
   UIDLResources,
@@ -20,6 +21,13 @@ export const resourceGenerator = (
 
   resource.mappers.forEach((mapper) => {
     returnStatement = types.callExpression(types.identifier(mapper), [returnStatement])
+
+    if (!mappers[mapper]) {
+      throw new TeleportError(
+        `Resource mapper ${mapper} is not defined in the UIDL. Check "uidl.resources.mappers"`
+      )
+    }
+
     dependencies[mapper] = mappers[mapper]
   })
 
