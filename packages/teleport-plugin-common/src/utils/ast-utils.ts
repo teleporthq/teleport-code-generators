@@ -639,7 +639,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
             '&&',
             types.memberExpression(
               types.identifier('params'),
-              types.stringLiteral(item),
+              types.stringLiteral(prop.content.id),
               true,
               false
             ),
@@ -648,7 +648,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
                 types.stringLiteral(item),
                 types.memberExpression(
                   types.identifier('params'),
-                  types.stringLiteral(item),
+                  types.stringLiteral(prop.content.id),
                   true,
                   false
                 )

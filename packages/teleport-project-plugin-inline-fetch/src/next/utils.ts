@@ -146,8 +146,13 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
               ? types.objectExpression([
                   types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
                   types.objectProperty(
-                    types.stringLiteral('Content-Type'),
-                    types.stringLiteral('application/json')
+                    types.identifier('headers'),
+                    types.objectExpression([
+                      types.objectProperty(
+                        types.stringLiteral('Content-Type'),
+                        types.stringLiteral('application/json')
+                      ),
+                    ])
                   ),
                   types.objectProperty(
                     types.identifier('body'),
