@@ -426,12 +426,12 @@ export const prefixAssetURLs = <
 
         if (typeof staticContent === 'string' && STYLE_PROPERTIES_WITH_URL.includes(styleKey)) {
           // need to split the styles in case of multiple background being added (eg: gradient + bgImage)
-          let assetList = parseStaticStyles(staticContent)
-          assetList = assetList.map((assetL) => {
+          let styleList = parseStaticStyles(staticContent)
+          styleList = styleList.map((subStyle) => {
             const asset =
               staticContent.indexOf('url(') === -1
-                ? assetL
-                : assetL.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+                ? subStyle
+                : subStyle.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
 
             /*
               background image such as gradient shouldn't be urls
@@ -439,7 +439,7 @@ export const prefixAssetURLs = <
               but we don't compute and generate a url)
             */
             if (!asset.startsWith('/')) {
-              return assetL
+              return subStyle
             }
 
             const url = UIDLUtils.prefixAssetsPath(asset, assets)
@@ -449,7 +449,7 @@ export const prefixAssetURLs = <
 
           acc[styleKey] = {
             type: 'static',
-            content: assetList.join(','),
+            content: styleList.join(','),
           } as T
         } else {
           acc[styleKey] = styleValue
