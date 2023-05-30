@@ -17,8 +17,16 @@ import {
   checkForDefaultPropsContainingAssets,
   checkForDefaultStateValueContainingAssets,
   resolveElement,
+  parseStaticStyles,
+  prefixAssetURLs,
 } from '../src/utils'
-import { UIDLElement, UIDLNode, UIDLRepeatNode, Mapping } from '@teleporthq/teleport-types'
+import {
+  UIDLElement,
+  UIDLNode,
+  UIDLRepeatNode,
+  Mapping,
+  UIDLStyleDefinitions,
+} from '@teleporthq/teleport-types'
 import mapping from './mapping.json'
 
 describe('generateUniqueKeys', () => {
@@ -473,5 +481,44 @@ describe('resolveLinkElement', () => {
   it('resolve image element', () => {
     resolveElement(assetElement, { assets, mapping: genereicMapping })
     expect(assetElement.attrs?.src.content).toBe('public/assets/sub1/sub2/kittens.png')
+  })
+})
+
+describe('parseBackgroundWithMultipleStyles', () => {
+  const styleToParse: UIDLStyleDefinitions = {
+    backgroundImage: {
+      type: 'static',
+      content:
+        'linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.5) 100.00%),url("/kittens.png")',
+    },
+  }
+
+  const assets = {
+    prefix: 'public',
+    identifier: 'assets',
+    mappings: {
+      'kittens.png': 'sub1/sub2',
+      'dogs.png': 'dog/pictures',
+    },
+  }
+  it('correctly splits the style content into two separate styles', () => {
+    const parsedStyle = parseStaticStyles(styleToParse.backgroundImage.content as string)
+    expect(parsedStyle).toBeDefined()
+    expect(parsedStyle.length).toBe(2)
+    expect(parsedStyle[0]).toBe(
+      'linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.5) 100.00%)'
+    )
+    expect(parsedStyle[1]).toBe('url("/kittens.png")')
+  })
+
+  it('correctly generates background image style with correct url', () => {
+    const parsedStyle = prefixAssetURLs(styleToParse, assets)
+    expect(parsedStyle.backgroundImage).toBeDefined()
+    expect(parsedStyle.backgroundImage.content).toBeDefined()
+    if (parsedStyle.backgroundImage.content) {
+      expect(parsedStyle.backgroundImage.content).toContain(
+        'linear-gradient(90deg, rgb(189, 195, 199) 0.00%,rgba(44, 62, 80, 0.5) 100.00%),url("public/assets/sub1/sub2/kittens.png")'
+      )
+    }
   })
 })

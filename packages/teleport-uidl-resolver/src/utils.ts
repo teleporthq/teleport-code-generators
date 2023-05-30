@@ -337,6 +337,66 @@ const customDataSourceIdentifierExists = (repeat: UIDLRepeatContent) => {
   return !!(repeat.meta && repeat.meta.dataSourceIdentifier)
 }
 
+export function parseStaticStyles(styles: string) {
+  const stylesList: string[] = []
+  const tokens = /[,\(\)]/
+  let parens = 0
+  let buffer = ''
+
+  if (styles == null) {
+    return stylesList
+  }
+
+  while (styles.length) {
+    const match = tokens.exec(styles)
+    if (!match) {
+      break
+    }
+    const char = match[0]
+    let ignoreChar = false
+    let foundAssetId = false
+
+    switch (char) {
+      case ',':
+        if (!parens) {
+          if (buffer) {
+            stylesList.push(buffer.trim())
+            buffer = ''
+          } else {
+            foundAssetId = true
+          }
+
+          ignoreChar = true
+        }
+        break
+      case '(':
+        parens++
+        break
+      case ')':
+        parens--
+        break
+      default:
+        break
+    }
+
+    const index = match.index + 1
+    buffer += styles.slice(0, ignoreChar ? index - 1 : index)
+    styles = styles.slice(index)
+
+    if (foundAssetId) {
+      stylesList.push(buffer.trim())
+      buffer = ''
+      ignoreChar = true
+    }
+  }
+
+  if (buffer.length || styles.length) {
+    stylesList.push((buffer + styles).trim())
+  }
+
+  return stylesList
+}
+
 /**
  * Prefixes all urls inside the style object with the assetsPrefix
  * @param style the style object on the current node
@@ -365,26 +425,31 @@ export const prefixAssetURLs = <
         }
 
         if (typeof staticContent === 'string' && STYLE_PROPERTIES_WITH_URL.includes(styleKey)) {
-          const asset =
-            staticContent.indexOf('url(') === -1
-              ? staticContent
-              : staticContent.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+          // need to split the styles in case of multiple background being added (eg: gradient + bgImage)
+          let styleList = parseStaticStyles(staticContent)
+          styleList = styleList.map((subStyle) => {
+            const asset =
+              staticContent.indexOf('url(') === -1
+                ? subStyle
+                : subStyle.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
 
-          /*
-            background image such as gradient shouldn't be urls
-            we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
-            but we don't compute and generate a url)
-          */
-          if (!asset.startsWith('/')) {
-            acc[styleKey] = styleValue
-            return acc
-          }
+            /*
+              background image such as gradient shouldn't be urls
+              we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+              but we don't compute and generate a url)
+            */
+            if (!asset.startsWith('/')) {
+              return subStyle
+            }
 
-          const url = UIDLUtils.prefixAssetsPath(asset, assets)
-          const newStyleValue = `url("${url}")`
+            const url = UIDLUtils.prefixAssetsPath(asset, assets)
+            const newStyleValue = `url("${url}")`
+            return newStyleValue
+          })
+
           acc[styleKey] = {
             type: 'static',
-            content: newStyleValue,
+            content: styleList.join(','),
           } as T
         } else {
           acc[styleKey] = styleValue
