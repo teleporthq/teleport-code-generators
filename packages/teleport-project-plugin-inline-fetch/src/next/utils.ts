@@ -57,7 +57,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
        * If the users didn't mention any load anf error states in UIDL.
        */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
-        `${content.statePersistanceName}-reource`
+        StringUtils.camelize(`${content.statePersistanceName}-reource`)
       )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
