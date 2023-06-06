@@ -55,7 +55,7 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
               },
             ]
 
-            if (content.includes('<Script>')) {
+            if (content.includes('<Script')) {
               shouldAddJSDependency = true
             }
           }
