@@ -33,6 +33,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
 
     if (uidl?.importDefinitions) {
       const { importDefinitions = {} } = uidl
+
       collectedDependencies = {
         ...collectedDependencies,
         ...importDefinitions,
@@ -47,6 +48,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
           ) {
             return
           }
+
           dependencies[dependencyRef] = {
             type: 'package',
             path: dependency.meta?.importJustPath ? dependency.path : dependencyRef,

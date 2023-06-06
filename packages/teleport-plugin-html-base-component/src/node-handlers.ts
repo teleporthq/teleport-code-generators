@@ -48,6 +48,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   structure
 ) => {
   switch (node.type) {
+    case 'inject':
     case 'raw':
       return HASTBuilders.createTextNode(node.content.toString())
 
@@ -406,7 +407,7 @@ const handleAttributes = (
     }
 
     if (attrValue.type === 'raw') {
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, attrValue.content)
       return
     }
 
@@ -424,7 +425,7 @@ const getValueFromReference = (
   key: string,
   definitions: Record<string, UIDLPropDefinition>
 ): string => {
-  const usedReferenceValue = definitions[key]
+  const usedReferenceValue = definitions[key.includes('.') ? key.split('.')[0] : key]
 
   if (!usedReferenceValue) {
     throw new HTMLComponentGeneratorError(
@@ -442,7 +443,7 @@ const getValueFromReference = (
     )
   }
 
-  if (!['string', 'number'].includes(usedReferenceValue?.type)) {
+  if (!['string', 'number', 'object'].includes(usedReferenceValue?.type)) {
     throw new HTMLComponentGeneratorError(
       `Attribute is using dynamic value, but received of type ${JSON.stringify(
         usedReferenceValue,

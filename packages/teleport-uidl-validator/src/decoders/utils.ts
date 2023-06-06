@@ -20,7 +20,6 @@ import {
   UIDLDynamicReference,
   UIDLPropDefinition,
   UIDLStateDefinition,
-  UIDLStateValueDetails,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLDependency,
@@ -72,6 +71,8 @@ import {
   VUIDLElementNodeClassReferencedStyle,
   UIDLCompDynamicReference,
   UIDLComponentStyleReference,
+  UIDLInjectValue,
+  VUIDLStateValueDetails,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -102,6 +103,11 @@ export const staticValueDecoder: Decoder<UIDLStaticValue> = object({
 
 export const rawValueDecoder: Decoder<UIDLRawValue> = object({
   type: constant('raw'),
+  content: string(),
+})
+
+export const injectValueDecoder: Decoder<UIDLInjectValue> = object({
+  type: constant('inject'),
   content: string(),
 })
 
@@ -252,7 +258,7 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   assets: optional(array(globalAssetsDecoder)),
 })
 
-export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
+export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
   value: union(string(), number(), boolean()),
   pageOptions: optional(pageOptionsDecoder),
   seo: optional(componentSeoDecoder),
@@ -310,6 +316,7 @@ export const externaldependencyDecoder: Decoder<UIDLExternalDependency> = object
       originalName: optional(string()),
       importJustPath: optional(boolean()),
       useAsReference: optional(boolean()),
+      importAlias: optional(string()),
       needsWindowObject: optional(boolean()),
     })
   ),
@@ -576,12 +583,9 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
 })
 
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
-  elementNodeDecoder,
-  dynamicValueDecoder,
-  staticValueDecoder,
-  rawValueDecoder,
-  conditionalNodeDecoder,
-  repeatNodeDecoder,
-  slotNodeDecoder,
+  union(dynamicValueDecoder, staticValueDecoder),
+  union(rawValueDecoder, elementNodeDecoder),
+  union(repeatNodeDecoder, conditionalNodeDecoder),
+  union(slotNodeDecoder, injectValueDecoder),
   string()
 )
