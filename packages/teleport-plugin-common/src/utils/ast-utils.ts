@@ -694,17 +694,55 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     ),
   ])
 
-  const responseJSONAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('response'),
-      types.awaitExpression(
-        types.callExpression(
-          types.memberExpression(types.identifier('data'), types.identifier('json'), false),
-          []
-        )
-      )
-    ),
-  ])
+  const responseType = resource?.response?.type ?? 'json'
+  let responseJSONAST
+
+  switch (responseType) {
+    case 'json':
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('json'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+
+    case 'text': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('text'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+    }
+
+    case 'headers': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.memberExpression(types.identifier('data'), types.identifier('headers'))
+        ),
+      ])
+      break
+    }
+
+    default: {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('response'), types.identifier('data')),
+      ])
+    }
+  }
 
   return [paramsAST, fetchAST, responseJSONAST]
 }

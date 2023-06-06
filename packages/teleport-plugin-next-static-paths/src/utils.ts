@@ -64,7 +64,7 @@ const computePropsAST = (
           types.identifier('headers'),
           types.callExpression(
             types.memberExpression(types.identifier('Object'), types.identifier('fromEntries')),
-            [types.memberExpression(types.identifier('response'), types.identifier('headers'))]
+            [types.identifier('response')]
           )
         ),
       ])
