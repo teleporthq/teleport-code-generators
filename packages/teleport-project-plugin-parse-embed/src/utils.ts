@@ -11,7 +11,7 @@ export const JS_EXECUTION_DEPENDENCIES: Record<
 > = {
   'teleport-project-react': {
     Script: {
-      type: 'package',
+      type: 'library',
       path: 'dangerous-html',
       version: '0.1.13',
       meta: {
@@ -23,7 +23,7 @@ export const JS_EXECUTION_DEPENDENCIES: Record<
     Script: {
       type: 'library',
       path: 'next',
-      version: '0.0.0',
+      version: '^12.1.0',
       meta: {
         importAlias: 'next/script',
       },

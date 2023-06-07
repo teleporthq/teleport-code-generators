@@ -109,9 +109,6 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
       return structure
     }
 
-    /* tslint:disable no-string-literal */
-    delete structure.dependencies['Script']
-
     if (structure.strategy.id === 'teleport-project-react') {
       structure.dependencies['dangerous-html'] = '^0.1.13'
     }
