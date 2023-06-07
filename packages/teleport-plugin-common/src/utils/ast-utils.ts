@@ -697,6 +697,15 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const responseType = resource?.response?.type ?? 'json'
   let responseJSONAST
 
+  /**
+   * Responce types can be of json, text and we might be reading just headers
+   * So, with the response type of the resource. We are returning either
+   * - data.json()
+   * - data.text()
+   * - data.headers
+   * back to the caller, from the fetch response.
+   */
+
   switch (responseType) {
     case 'json':
       responseJSONAST = types.variableDeclaration('const', [
