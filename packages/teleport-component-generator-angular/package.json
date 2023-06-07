@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-component-generator-angular",
-  "version": "0.27.4",
+  "version": "0.27.5",
   "description": "Component generator customization, capable of creating Angular components",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -24,14 +24,14 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.27.4",
-    "@teleporthq/teleport-plugin-angular-base-component": "^0.27.3",
-    "@teleporthq/teleport-plugin-css": "^0.27.3",
-    "@teleporthq/teleport-plugin-import-statements": "^0.27.3",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.27.3",
-    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.27.3",
-    "@teleporthq/teleport-shared": "^0.27.3",
-    "@teleporthq/teleport-types": "^0.27.3"
+    "@teleporthq/teleport-component-generator": "^0.27.5",
+    "@teleporthq/teleport-plugin-angular-base-component": "^0.27.5",
+    "@teleporthq/teleport-plugin-css": "^0.27.5",
+    "@teleporthq/teleport-plugin-import-statements": "^0.27.5",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.27.5",
+    "@teleporthq/teleport-postprocessor-prettier-ts": "^0.27.5",
+    "@teleporthq/teleport-shared": "^0.27.5",
+    "@teleporthq/teleport-types": "^0.27.5"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
