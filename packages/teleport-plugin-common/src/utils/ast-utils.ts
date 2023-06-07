@@ -694,17 +694,64 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     ),
   ])
 
-  const responseJSONAST = types.variableDeclaration('const', [
-    types.variableDeclarator(
-      types.identifier('response'),
-      types.awaitExpression(
-        types.callExpression(
-          types.memberExpression(types.identifier('data'), types.identifier('json'), false),
-          []
-        )
-      )
-    ),
-  ])
+  const responseType = resource?.response?.type ?? 'json'
+  let responseJSONAST
+
+  /**
+   * Responce types can be of json, text and we might be reading just headers
+   * So, with the response type of the resource. We are returning either
+   * - data.json()
+   * - data.text()
+   * - data.headers
+   * back to the caller, from the fetch response.
+   */
+
+  switch (responseType) {
+    case 'json':
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('json'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+
+    case 'text': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.awaitExpression(
+            types.callExpression(
+              types.memberExpression(types.identifier('data'), types.identifier('text'), false),
+              []
+            )
+          )
+        ),
+      ])
+      break
+    }
+
+    case 'headers': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('response'),
+          types.memberExpression(types.identifier('data'), types.identifier('headers'))
+        ),
+      ])
+      break
+    }
+
+    default: {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('response'), types.identifier('data')),
+      ])
+    }
+  }
 
   return [paramsAST, fetchAST, responseJSONAST]
 }

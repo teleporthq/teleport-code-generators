@@ -148,6 +148,11 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   body: optional(dict(staticValueDecoder)),
   mappers: withDefault([], array(string())),
   params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
+  response: optional(
+    object({
+      type: withDefault('json', union(constant('json'), constant('headers'), constant('text'))),
+    })
+  ),
 })
 
 export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({

@@ -45,6 +45,9 @@ export interface UIDLResourceItem {
   body?: Record<string, UIDLStaticValue>
   params?: Record<string, UIDLStaticValue | UIDLPropValue>
   mappers?: string[]
+  response?: {
+    type: 'headers' | 'text' | 'json'
+  }
 }
 
 /**
