@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-html",
-  "version": "0.27.5",
+  "version": "0.27.6",
   "description": "Project generator for generate plain html files",
   "author": "teleportHQ",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "@teleporthq/teleport-component-generator-html": "^0.27.5",
     "@teleporthq/teleport-plugin-css": "^0.27.5",
     "@teleporthq/teleport-postprocessor-prettier-html": "^0.27.5",
-    "@teleporthq/teleport-project-generator": "^0.27.5",
+    "@teleporthq/teleport-project-generator": "^0.27.6",
     "cheerio": "^1.0.0-rc.12",
     "path-browserify": "^1.0.1"
   }
