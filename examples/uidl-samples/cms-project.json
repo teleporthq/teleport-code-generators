@@ -1,8 +1,8 @@
 {
-  "name": "Twin Repulsive Cormorant",
+  "name": "Earnest Clean Grasshopper",
   "globals": {
     "settings": {
-      "title": "Twin Repulsive Cormorant",
+      "title": "Earnest Clean Grasshopper",
       "language": "en"
     },
     "assets": [
@@ -56,141 +56,141 @@
     "name": "App",
     "designLanguage": {
       "tokens": {
-        "--dl-size-size-small": {
-          "type": "static",
-          "content": "48px"
-        },
-        "--dl-color-danger-700": {
-          "type": "static",
-          "content": "#E14747"
-        },
-        "--dl-color-success-300": {
-          "type": "static",
-          "content": "#199033"
-        },
-        "--dl-size-size-xxlarge": {
-          "type": "static",
-          "content": "288px"
-        },
-        "--dl-color-success-700": {
-          "type": "static",
-          "content": "#4CC366"
-        },
-        "--dl-color-gray-900": {
-          "type": "static",
-          "content": "#D9D9D9"
-        },
-        "--dl-size-size-medium": {
-          "type": "static",
-          "content": "96px"
-        },
-        "--dl-space-space-fiveunits": {
-          "type": "static",
-          "content": "80px"
-        },
-        "--dl-color-primary-100": {
-          "type": "static",
-          "content": "#003EB3"
-        },
-        "--dl-size-size-large": {
-          "type": "static",
-          "content": "144px"
-        },
-        "--dl-color-primary-500": {
-          "type": "static",
-          "content": "#14A9FF"
-        },
         "--dl-radius-radius-round": {
           "type": "static",
           "content": "50%"
-        },
-        "--dl-color-danger-300": {
-          "type": "static",
-          "content": "#A22020"
-        },
-        "--dl-color-gray-500": {
-          "type": "static",
-          "content": "#595959"
-        },
-        "--dl-space-space-threeunits": {
-          "type": "static",
-          "content": "48px"
-        },
-        "--dl-radius-radius-radius8": {
-          "type": "static",
-          "content": "8px"
         },
         "--dl-color-danger-500": {
           "type": "static",
           "content": "#BF2626"
         },
-        "--dl-space-space-sixunits": {
+        "--dl-size-size-xxlarge": {
           "type": "static",
-          "content": "96px"
+          "content": "288px"
         },
         "--dl-color-gray-black": {
           "type": "static",
           "content": "#000000"
         },
-        "--dl-radius-radius-radius2": {
-          "type": "static",
-          "content": "2px"
-        },
-        "--dl-color-primary-300": {
-          "type": "static",
-          "content": "#0074F0"
-        },
-        "--dl-size-size-xsmall": {
-          "type": "static",
-          "content": "16px"
-        },
         "--dl-color-gray-700": {
           "type": "static",
           "content": "#999999"
-        },
-        "--dl-radius-radius-radius4": {
-          "type": "static",
-          "content": "4px"
-        },
-        "--dl-color-success-500": {
-          "type": "static",
-          "content": "#32A94C"
-        },
-        "--dl-space-space-twounits": {
-          "type": "static",
-          "content": "32px"
-        },
-        "--dl-color-gray-white": {
-          "type": "static",
-          "content": "#FFFFFF"
-        },
-        "--dl-space-space-halfunit": {
-          "type": "static",
-          "content": "8px"
-        },
-        "--dl-size-size-maxwidth": {
-          "type": "static",
-          "content": "1400px"
         },
         "--dl-space-space-oneandhalfunits": {
           "type": "static",
           "content": "24px"
         },
+        "--dl-color-primary-300": {
+          "type": "static",
+          "content": "#0074F0"
+        },
+        "--dl-size-size-xlarge": {
+          "type": "static",
+          "content": "192px"
+        },
         "--dl-color-primary-700": {
           "type": "static",
           "content": "#85DCFF"
+        },
+        "--dl-space-space-halfunit": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-color-primary-100": {
+          "type": "static",
+          "content": "#003EB3"
+        },
+        "--dl-color-danger-300": {
+          "type": "static",
+          "content": "#A22020"
+        },
+        "--dl-radius-radius-radius8": {
+          "type": "static",
+          "content": "8px"
+        },
+        "--dl-size-size-small": {
+          "type": "static",
+          "content": "48px"
         },
         "--dl-space-space-fourunits": {
           "type": "static",
           "content": "64px"
         },
+        "--dl-color-gray-900": {
+          "type": "static",
+          "content": "#D9D9D9"
+        },
+        "--dl-color-danger-700": {
+          "type": "static",
+          "content": "#E14747"
+        },
+        "--dl-space-space-fiveunits": {
+          "type": "static",
+          "content": "80px"
+        },
+        "--dl-size-size-xsmall": {
+          "type": "static",
+          "content": "16px"
+        },
+        "--dl-space-space-threeunits": {
+          "type": "static",
+          "content": "48px"
+        },
         "--dl-space-space-unit": {
           "type": "static",
           "content": "16px"
         },
-        "--dl-size-size-xlarge": {
+        "--dl-space-space-sixunits": {
           "type": "static",
-          "content": "192px"
+          "content": "96px"
+        },
+        "--dl-color-gray-500": {
+          "type": "static",
+          "content": "#595959"
+        },
+        "--dl-radius-radius-radius4": {
+          "type": "static",
+          "content": "4px"
+        },
+        "--dl-color-primary-500": {
+          "type": "static",
+          "content": "#14A9FF"
+        },
+        "--dl-color-success-300": {
+          "type": "static",
+          "content": "#199033"
+        },
+        "--dl-size-size-medium": {
+          "type": "static",
+          "content": "96px"
+        },
+        "--dl-color-gray-white": {
+          "type": "static",
+          "content": "#FFFFFF"
+        },
+        "--dl-radius-radius-radius2": {
+          "type": "static",
+          "content": "2px"
+        },
+        "--dl-color-success-700": {
+          "type": "static",
+          "content": "#4CC366"
+        },
+        "--dl-color-success-500": {
+          "type": "static",
+          "content": "#32A94C"
+        },
+        "--dl-size-size-maxwidth": {
+          "type": "static",
+          "content": "1400px"
+        },
+        "--dl-size-size-large": {
+          "type": "static",
+          "content": "144px"
+        },
+        "--dl-space-space-twounits": {
+          "type": "static",
+          "content": "32px"
         }
       }
     },
@@ -378,35 +378,6 @@
         },
         "conditions": []
       },
-      "Heading": {
-        "type": "reusable-project-style-map",
-        "content": {
-          "fontSize": {
-            "type": "static",
-            "content": "32px"
-          },
-          "fontFamily": {
-            "type": "static",
-            "content": "Inter"
-          },
-          "fontWeight": {
-            "type": "static",
-            "content": "700"
-          },
-          "lineHeight": {
-            "type": "static",
-            "content": "1.15"
-          },
-          "textTransform": {
-            "type": "static",
-            "content": "none"
-          },
-          "textDecoration": {
-            "type": "static",
-            "content": "none"
-          }
-        }
-      },
       "Content": {
         "type": "reusable-project-style-map",
         "content": {
@@ -435,6 +406,35 @@
             "content": "none"
           }
         }
+      },
+      "Heading": {
+        "type": "reusable-project-style-map",
+        "content": {
+          "fontSize": {
+            "type": "static",
+            "content": "32px"
+          },
+          "fontFamily": {
+            "type": "static",
+            "content": "Inter"
+          },
+          "fontWeight": {
+            "type": "static",
+            "content": "700"
+          },
+          "lineHeight": {
+            "type": "static",
+            "content": "1.15"
+          },
+          "textTransform": {
+            "type": "static",
+            "content": "none"
+          },
+          "textDecoration": {
+            "type": "static",
+            "content": "none"
+          }
+        }
       }
     },
     "stateDefinitions": {
@@ -443,247 +443,43 @@
         "defaultValue": "Home",
         "values": [
           {
-            "value": "single",
-            "seo": {
-              "title": "single - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "single - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "stateDefinitions": {
-                "AuthorEntity": {
-                  "id": "2f1940f4-fafa-4a6c-b928-449e9ef63df3",
-                  "defaultValue": {},
-                  "type": "object"
-                }
-              },
-              "propDefinitions": {}
-            }
-          },
-          {
             "value": "Home",
             "seo": {
-              "title": "Twin Repulsive Cormorant",
+              "title": "Earnest Clean Grasshopper",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "Twin Repulsive Cormorant"
+                  "content": "Earnest Clean Grasshopper"
                 }
               ]
             },
             "pageOptions": {
-              "stateDefinitions": {
-                "AuthorList": {
-                  "id": "6b9f0337-6bc0-49dd-bfe4-a28c261cd236",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
+              "stateDefinitions": {},
               "propDefinitions": {}
-            }
-          },
-          {
-            "value": "Posts",
-            "seo": {
-              "title": "Posts - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Posts - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "stateDefinitions": {
-                "BlogPostList": {
-                  "id": "d183e60d-88cc-46ae-8ac9-8e4c9c038c7d",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "propDefinitions": {}
-            }
-          },
-          {
-            "value": "author/Author",
-            "seo": {
-              "title": "Author - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Author - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "AuthorEntities": {
-                  "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": true,
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "AuthorEntities",
-                  "valuePath": [],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "d5f84624-d812-43cc-90ba-79d2491de42e",
-                  "params": {}
-                }
-              }
-            }
-          },
-          {
-            "value": "author/page/Author",
-            "seo": {
-              "title": "Author - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Author - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "AuthorEntities": {
-                  "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": false,
-              "pagination": {
-                "attribute": "page",
-                "pageSize": 10,
-                "totalCountPath": {
-                  "type": "headers",
-                  "path": [
-                    "total"
-                  ]
-                }
-              },
-              "dynamicRouteAttribute": "page",
-              "initialPathsData": {
-                "exposeAs": {
-                  "name": "page",
-                  "valuePath": [],
-                  "itemValuePath": [
-                    "fields"
-                  ]
-                },
-                "resource": {
-                  "id": "2ad4b914-6249-4ccc-9165-ceceb0614bdb",
-                  "params": {
-                    "content_type": {
-                      "type": "static",
-                      "content": "author"
-                    }
-                  }
-                }
-              },
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "AuthorEntities",
-                  "valuePath": [],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab",
-                  "params": {}
-                }
-              }
-            }
-          },
-          {
-            "value": "/author/Author1",
-            "seo": {
-              "title": "Author1 - Twin Repulsive Cormorant",
-              "metaTags": [
-                {
-                  "property": "og:title",
-                  "content": "Author1 - Twin Repulsive Cormorant"
-                }
-              ]
-            },
-            "pageOptions": {
-              "propDefinitions": {
-                "AuthorEntity": {
-                  "id": "01efaf53-76ed-4d10-914d-4cde8f078202",
-                  "defaultValue": [],
-                  "type": "array"
-                }
-              },
-              "stateDefinitions": {},
-              "isIndex": false,
-              "dynamicRouteAttribute": "id",
-              "initialPathsData": {
-                "exposeAs": {
-                  "name": "id",
-                  "valuePath": [],
-                  "itemValuePath": [
-                    "sys",
-                    "id"
-                  ]
-                },
-                "resource": {
-                  "id": "1840c650-5818-4019-8861-ec39fc3500d0",
-                  "params": {
-                    "content_type": {
-                      "type": "static",
-                      "content": "author"
-                    },
-                    "select": {
-                      "type": "static",
-                      "content": "sys.id"
-                    }
-                  }
-                }
-              },
-              "initialPropsData": {
-                "exposeAs": {
-                  "name": "AuthorEntity",
-                  "valuePath": [],
-                  "itemValuePath": []
-                },
-                "resource": {
-                  "id": "929573c1-1ee2-4352-b679-bfebc208b096",
-                  "params": {}
-                }
-              }
             }
           },
           {
             "value": "/blog-post/BlogPost",
             "seo": {
-              "title": "BlogPost - Twin Repulsive Cormorant",
+              "title": "BlogPost - Earnest Clean Grasshopper",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "BlogPost - Twin Repulsive Cormorant"
+                  "content": "BlogPost - Earnest Clean Grasshopper"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
                 "BlogPostEntity": {
-                  "id": "e253018a-6f43-4685-9dc4-ce35946040a3",
+                  "id": "4eaf32a8-cc54-43ec-81d3-91578de0d25a",
                   "defaultValue": [],
                   "type": "array"
                 }
               },
               "stateDefinitions": {},
               "isIndex": false,
+              "navLink": "/blog-post",
               "dynamicRouteAttribute": "id",
               "initialPathsData": {
                 "exposeAs": {
@@ -695,7 +491,7 @@
                   ]
                 },
                 "resource": {
-                  "id": "2ed571bd-6b48-40da-8518-8f32e6443bf6",
+                  "id": "c8e1b18f-03b4-46e2-8a51-aa33a57b96fd",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -715,27 +511,27 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "3156ffb5-0536-4e2f-bbe9-c286625d9ad4",
+                  "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
                   "params": {}
                 }
               }
             }
           },
           {
-            "value": "blog-post/BlogPost1",
+            "value": "author/Author",
             "seo": {
-              "title": "BlogPost1 - Twin Repulsive Cormorant",
+              "title": "Author - Earnest Clean Grasshopper",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "BlogPost1 - Twin Repulsive Cormorant"
+                  "content": "Author - Earnest Clean Grasshopper"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
-                "BlogPostEntities": {
-                  "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
+                "AuthorEntities": {
+                  "id": "8af42e03-433f-45b4-a123-931a55f61dd6",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -744,32 +540,32 @@
               "isIndex": true,
               "initialPropsData": {
                 "exposeAs": {
-                  "name": "BlogPostEntities",
+                  "name": "AuthorEntities",
                   "valuePath": [],
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "6fd735ca-ac1e-41d4-be09-6832c86b7393",
+                  "id": "6dccbbb5-8b6d-4a57-b8eb-f8edcd3b8543",
                   "params": {}
                 }
               }
             }
           },
           {
-            "value": "blog-post/page/BlogPost1",
+            "value": "author/page/Author",
             "seo": {
-              "title": "BlogPost1 - Twin Repulsive Cormorant",
+              "title": "Author - Earnest Clean Grasshopper",
               "metaTags": [
                 {
                   "property": "og:title",
-                  "content": "BlogPost1 - Twin Repulsive Cormorant"
+                  "content": "Author - Earnest Clean Grasshopper"
                 }
               ]
             },
             "pageOptions": {
               "propDefinitions": {
-                "BlogPostEntities": {
-                  "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
+                "AuthorEntities": {
+                  "id": "8af42e03-433f-45b4-a123-931a55f61dd6",
                   "defaultValue": [],
                   "type": "array"
                 }
@@ -780,7 +576,7 @@
                 "attribute": "page",
                 "pageSize": 10,
                 "totalCountPath": {
-                  "type": "headers",
+                  "type": "body",
                   "path": [
                     "total"
                   ]
@@ -796,7 +592,109 @@
                   ]
                 },
                 "resource": {
-                  "id": "2012853e-0174-423d-b575-2191180faacb",
+                  "id": "74730ab5-0ace-46df-a034-b85843b2ab0a",
+                  "params": {
+                    "content_type": {
+                      "type": "static",
+                      "content": "author"
+                    }
+                  }
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "AuthorEntities",
+                  "valuePath": [],
+                  "itemValuePath": []
+                },
+                "resource": {
+                  "id": "1bc92eb6-33f5-4890-b99c-f315389401e4",
+                  "params": {
+                    "skip": {
+                      "type": "expr",
+                      "content": "(context.params.page - 1) * 10"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "blog-post/BlogPost1",
+            "seo": {
+              "title": "BlogPost1 - Earnest Clean Grasshopper",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "BlogPost1 - Earnest Clean Grasshopper"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BlogPostEntities": {
+                  "id": "20cfaf9e-400d-4861-b882-8508591b3add",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": true,
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "BlogPostEntities",
+                  "valuePath": [],
+                  "itemValuePath": []
+                },
+                "resource": {
+                  "id": "cd5d9649-40e3-4e36-8a79-d8fc7247c4e2",
+                  "params": {}
+                }
+              }
+            }
+          },
+          {
+            "value": "blog-post/page/BlogPost1",
+            "seo": {
+              "title": "BlogPost1 - Earnest Clean Grasshopper",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "BlogPost1 - Earnest Clean Grasshopper"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "BlogPostEntities": {
+                  "id": "20cfaf9e-400d-4861-b882-8508591b3add",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": false,
+              "pagination": {
+                "attribute": "page",
+                "pageSize": 10,
+                "totalCountPath": {
+                  "type": "body",
+                  "path": [
+                    "total"
+                  ]
+                }
+              },
+              "dynamicRouteAttribute": "page",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "page",
+                  "valuePath": [],
+                  "itemValuePath": [
+                    "fields"
+                  ]
+                },
+                "resource": {
+                  "id": "1aa2c5d7-7259-4225-8dee-3cdf475871fa",
                   "params": {
                     "content_type": {
                       "type": "static",
@@ -812,7 +710,71 @@
                   "itemValuePath": []
                 },
                 "resource": {
-                  "id": "0d1ac6e0-7b02-4824-a900-77deff7f48fd",
+                  "id": "f484ccd3-cbd8-4f06-9fd5-c4c5ba3ddd6e",
+                  "params": {
+                    "skip": {
+                      "type": "expr",
+                      "content": "(context.params.page - 1) * 10"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "value": "/author/Author1",
+            "seo": {
+              "title": "Author1 - Earnest Clean Grasshopper",
+              "metaTags": [
+                {
+                  "property": "og:title",
+                  "content": "Author1 - Earnest Clean Grasshopper"
+                }
+              ]
+            },
+            "pageOptions": {
+              "propDefinitions": {
+                "AuthorEntity": {
+                  "id": "de101747-8b12-4a5e-86a1-a3fd8124c921",
+                  "defaultValue": [],
+                  "type": "array"
+                }
+              },
+              "stateDefinitions": {},
+              "isIndex": false,
+              "navLink": "/author",
+              "dynamicRouteAttribute": "id",
+              "initialPathsData": {
+                "exposeAs": {
+                  "name": "id",
+                  "valuePath": [],
+                  "itemValuePath": [
+                    "sys",
+                    "id"
+                  ]
+                },
+                "resource": {
+                  "id": "f198fae6-98e0-4e9e-a9cc-b65b05dd84c6",
+                  "params": {
+                    "content_type": {
+                      "type": "static",
+                      "content": "author"
+                    },
+                    "select": {
+                      "type": "static",
+                      "content": "sys.id"
+                    }
+                  }
+                }
+              },
+              "initialPropsData": {
+                "exposeAs": {
+                  "name": "AuthorEntity",
+                  "valuePath": [],
+                  "itemValuePath": []
+                },
+                "resource": {
+                  "id": "c755fe31-bf8b-46eb-b822-dd47a3cabb5c",
                   "params": {}
                 }
               }
@@ -822,23 +784,23 @@
       }
     },
     "propDefinitions": {
-      "AuthorEntities": {
-        "id": "938ee0fb-2d24-4eda-a0ad-10ade75bf7aa",
-        "defaultValue": [],
-        "type": "array"
-      },
-      "AuthorEntity": {
-        "id": "01efaf53-76ed-4d10-914d-4cde8f078202",
-        "defaultValue": [],
-        "type": "array"
-      },
       "BlogPostEntity": {
-        "id": "e253018a-6f43-4685-9dc4-ce35946040a3",
+        "id": "4eaf32a8-cc54-43ec-81d3-91578de0d25a",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorEntities": {
+        "id": "8af42e03-433f-45b4-a123-931a55f61dd6",
         "defaultValue": [],
         "type": "array"
       },
       "BlogPostEntities": {
-        "id": "eaceb465-da6c-4978-be5f-e6df55f75cd3",
+        "id": "20cfaf9e-400d-4861-b882-8508591b3add",
+        "defaultValue": [],
+        "type": "array"
+      },
+      "AuthorEntity": {
+        "id": "de101747-8b12-4a5e-86a1-a3fd8124c921",
         "defaultValue": [],
         "type": "array"
       }
@@ -867,104 +829,12 @@
                       "type": "static",
                       "content": "flex"
                     },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "justifyContent": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-item",
+                    "padding": {
+                      "type": "dynamic",
                       "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-item",
-                              "semanticType": "cms-item",
-                              "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                              "attrs": {
-                                "value": {
-                                  "type": "dynamic",
-                                  "content": {
-                                    "referenceType": "state",
-                                    "id": "AuthorEntity"
-                                  }
-                                }
-                              },
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "singleDetailsContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": [],
-                        "statePersistanceName": "AuthorEntity",
-                        "resource": {
-                          "id": "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce"
-                        }
+                        "referenceType": "token",
+                        "id": "--dl-space-space-threeunits"
                       }
-                    }
-                  ]
-                }
-              },
-              "value": "single",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
                     },
                     "overflow": {
                       "type": "static",
@@ -976,25 +846,11 @@
                     },
                     "alignItems": {
                       "type": "static",
-                      "content": "center"
-                    },
-                    "paddingTop": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-twounits"
-                      }
+                      "content": "flex-start"
                     },
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
-                    },
-                    "paddingBottom": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-twounits"
-                      }
                     },
                     "justifyContent": {
                       "type": "static",
@@ -1002,21 +858,6 @@
                     }
                   },
                   "children": [
-                    {
-                      "type": "element",
-                      "content": {
-                        "elementType": "text",
-                        "semanticType": "h1",
-                        "referencedStyles": {},
-                        "abilities": {},
-                        "children": [
-                          {
-                            "type": "static",
-                            "content": "Authors List"
-                          }
-                        ]
-                      }
-                    },
                     {
                       "type": "cms-list",
                       "content": {
@@ -1025,8 +866,6 @@
                             "type": "element",
                             "content": {
                               "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
                               "children": [
                                 {
                                   "type": "element",
@@ -1043,140 +882,21 @@
                                 }
                               ]
                             }
-                          },
-                          "loading": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Loading",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          },
-                          "empty": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Empty",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "semanticType": "div",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "style": {
-                                      "flex": {
-                                        "type": "static",
-                                        "content": "0 0 auto"
-                                      },
-                                      "width": {
-                                        "type": "static",
-                                        "content": "100%"
-                                      },
-                                      "border": {
-                                        "type": "static",
-                                        "content": "2px dashed rgba(120, 120, 120, 0.4)"
-                                      },
-                                      "height": {
-                                        "type": "static",
-                                        "content": "100px"
-                                      },
-                                      "display": {
-                                        "type": "static",
-                                        "content": "flex"
-                                      },
-                                      "alignItems": {
-                                        "type": "static",
-                                        "content": "flex-start"
-                                      }
-                                    },
-                                    "children": []
-                                  }
-                                },
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          },
-                          "error": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Error",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
                           }
                         },
                         "loopItemsReference": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "state",
-                            "id": "AuthorList"
+                            "id": "BlogPostList"
                           }
                         },
                         "valuePath": [],
                         "itemValuePath": [],
-                        "statePersistanceName": "AuthorList",
+                        "statePersistanceName": "BlogPostList",
                         "resource": {
-                          "id": "f1602b82-df50-4db7-965e-4a91405af370",
-                          "params": {
-                            "limit": {
-                              "type": "static",
-                              "content": 100
-                            }
-                          }
+                          "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
+                          "params": {}
                         }
                       }
                     }
@@ -1224,393 +944,6 @@
                       "type": "static",
                       "content": "center"
                     },
-                    "paddingTop": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-twounits"
-                      }
-                    },
-                    "paddingLeft": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-oneandhalfunits"
-                      }
-                    },
-                    "paddingRight": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-oneandhalfunits"
-                      }
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    },
-                    "paddingBottom": {
-                      "type": "dynamic",
-                      "content": {
-                        "referenceType": "token",
-                        "id": "--dl-space-space-twounits"
-                      }
-                    },
-                    "justifyContent": {
-                      "type": "static",
-                      "content": "center"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "4bdc72bb-eda3-494e-9a25-0455445c89c1",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "PostsListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          },
-                          "loading": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Loading",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          },
-                          "empty": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Empty",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          },
-                          "error": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "name": "Error",
-                              "referencedStyles": {},
-                              "abilities": {},
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "static",
-                                        "content": "Heading"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "state",
-                            "id": "BlogPostList"
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": [],
-                        "statePersistanceName": "BlogPostList",
-                        "resource": {
-                          "id": "addfd6ef-dcfa-49a8-a4fc-f917001d2100",
-                          "params": {
-                            "limit": {
-                              "type": "static",
-                              "content": 100
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "Posts",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "55340b79-1f1f-4485-aa5b-ae447470fbaf",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "AuthorEntities"
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "author/Author",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-list",
-                      "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "55340b79-1f1f-4485-aa5b-ae447470fbaf",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "AuthorEntities"
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "author/page/Author",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
                     "flexDirection": {
                       "type": "static",
                       "content": "column"
@@ -1625,99 +958,6 @@
                             "type": "element",
                             "content": {
                               "elementType": "cms-item",
-                              "semanticType": "cms-item",
-                              "ctxId": "740e5ae4-52e6-436b-b5ef-d399b6ce7b60",
-                              "attrs": {
-                                "value": {
-                                  "type": "dynamic",
-                                  "content": {
-                                    "referenceType": "prop",
-                                    "id": "AuthorEntity"
-                                  }
-                                }
-                              },
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorDetailsContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": []
-                      }
-                    }
-                  ]
-                }
-              },
-              "value": "/author/Author1",
-              "reference": {
-                "type": "dynamic",
-                "content": {
-                  "referenceType": "state",
-                  "id": "route"
-                }
-              }
-            }
-          },
-          {
-            "type": "conditional",
-            "content": {
-              "node": {
-                "type": "element",
-                "content": {
-                  "elementType": "container",
-                  "semanticType": "div",
-                  "referencedStyles": {},
-                  "abilities": {},
-                  "style": {
-                    "width": {
-                      "type": "static",
-                      "content": "100%"
-                    },
-                    "display": {
-                      "type": "static",
-                      "content": "flex"
-                    },
-                    "overflow": {
-                      "type": "static",
-                      "content": "auto"
-                    },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
-                    "alignItems": {
-                      "type": "static",
-                      "content": "center"
-                    },
-                    "flexDirection": {
-                      "type": "static",
-                      "content": "column"
-                    }
-                  },
-                  "children": [
-                    {
-                      "type": "cms-item",
-                      "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-item",
-                              "semanticType": "cms-item",
-                              "ctxId": "71a466c8-ff63-46d4-9ecc-e624edb50980",
                               "attrs": {
                                 "value": {
                                   "type": "dynamic",
@@ -1807,8 +1047,180 @@
                             "type": "element",
                             "content": {
                               "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a",
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "AuthorListContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": []
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "author/Author",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-list",
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "AuthorListContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "loopItemsReference": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntities"
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": []
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "author/page/Author",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-list",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-list",
                               "children": [
                                 {
                                   "type": "element",
@@ -1896,8 +1308,6 @@
                             "type": "element",
                             "content": {
                               "elementType": "cms-list",
-                              "semanticType": "cms-list",
-                              "ctxId": "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a",
                               "children": [
                                 {
                                   "type": "element",
@@ -1939,114 +1349,101 @@
                 }
               }
             }
+          },
+          {
+            "type": "conditional",
+            "content": {
+              "node": {
+                "type": "element",
+                "content": {
+                  "elementType": "container",
+                  "semanticType": "div",
+                  "referencedStyles": {},
+                  "abilities": {},
+                  "style": {
+                    "width": {
+                      "type": "static",
+                      "content": "100%"
+                    },
+                    "display": {
+                      "type": "static",
+                      "content": "flex"
+                    },
+                    "overflow": {
+                      "type": "static",
+                      "content": "auto"
+                    },
+                    "minHeight": {
+                      "type": "static",
+                      "content": "100vh"
+                    },
+                    "alignItems": {
+                      "type": "static",
+                      "content": "center"
+                    },
+                    "flexDirection": {
+                      "type": "static",
+                      "content": "column"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "cms-item",
+                      "content": {
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "cms-item",
+                              "attrs": {
+                                "value": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "prop",
+                                    "id": "AuthorEntity"
+                                  }
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "component",
+                                    "dependency": {
+                                      "type": "local"
+                                    },
+                                    "semanticType": "AuthorDetailsContent",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "valuePath": [],
+                        "itemValuePath": []
+                      }
+                    }
+                  ]
+                }
+              },
+              "value": "/author/Author1",
+              "reference": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "state",
+                  "id": "route"
+                }
+              }
+            }
           }
         ]
       }
     }
   },
   "components": {
-    "singleDetailsContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "image",
-                "referencedStyles": {},
-                "abilities": {},
-                "attrs": {
-                  "alt": {
-                    "type": "static",
-                    "content": "image"
-                  },
-                  "src": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "ctx",
-                      "id": "3ea584f2-197e-43f4-952b-f225629096bb",
-                      "ctxId": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "path": [
-                        "image",
-                        "url"
-                      ]
-                    }
-                  }
-                },
-                "style": {
-                  "width": {
-                    "type": "static",
-                    "content": "200px"
-                  },
-                  "objectFit": {
-                    "type": "static",
-                    "content": "cover"
-                  }
-                },
-                "children": []
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "h1",
-                "referencedStyles": {},
-                "abilities": {},
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "name"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "span",
-                "referencedStyles": {},
-                "abilities": {},
-                "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "description"
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "singleDetailsContent",
-      "styleSetDefinitions": {}
-    },
     "HomeListContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
@@ -2067,52 +1464,8 @@
             {
               "type": "element",
               "content": {
-                "elementType": "image",
-                "referencedStyles": {},
-                "abilities": {},
-                "attrs": {
-                  "alt": {
-                    "type": "static",
-                    "content": "image"
-                  },
-                  "src": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "ctx",
-                      "id": "ce6c18ef-ab2c-4ed9-8bf7-f555c7fd8312",
-                      "ctxId": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
-                      "path": [
-                        "image",
-                        "url"
-                      ]
-                    }
-                  }
-                },
-                "style": {
-                  "width": {
-                    "type": "static",
-                    "content": "200px"
-                  },
-                  "marginTop": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-twounits"
-                    }
-                  },
-                  "objectFit": {
-                    "type": "static",
-                    "content": "cover"
-                  }
-                },
-                "children": []
-              }
-            },
-            {
-              "type": "element",
-              "content": {
                 "elementType": "text",
-                "semanticType": "h1",
+                "semanticType": "h3",
                 "referencedStyles": {},
                 "abilities": {},
                 "style": {
@@ -2120,25 +1473,12 @@
                     "type": "dynamic",
                     "content": {
                       "referenceType": "token",
-                      "id": "--dl-space-space-unit"
+                      "id": "--dl-space-space-oneandhalfunits"
                     }
-                  },
-                  "textAlign": {
-                    "type": "static",
-                    "content": "left"
                   }
                 },
                 "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "name"
-                      ]
-                    }
-                  }
+
                 ]
               }
             },
@@ -2150,40 +1490,16 @@
                 "referencedStyles": {},
                 "abilities": {},
                 "style": {
-                  "maxWidth": {
-                    "type": "static",
-                    "content": "500px"
-                  },
                   "marginTop": {
                     "type": "dynamic",
                     "content": {
                       "referenceType": "token",
-                      "id": "--dl-space-space-unit"
-                    }
-                  },
-                  "textAlign": {
-                    "type": "static",
-                    "content": "left"
-                  },
-                  "marginBottom": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-twounits"
+                      "id": "--dl-space-space-halfunit"
                     }
                   }
                 },
                 "children": [
-                  {
-                    "type": "dynamic",
-                    "content": {
-                      "id": "8b4666a1-e209-4bee-9826-fee0ab2eab1a",
-                      "referenceType": "ctx",
-                      "path": [
-                        "description"
-                      ]
-                    }
-                  }
+
                 ]
               }
             }
@@ -2193,7 +1509,7 @@
       "name": "HomeListContent",
       "styleSetDefinitions": {}
     },
-    "PostsListContent": {
+    "BlogPostDetailsContent": {
       "propDefinitions": {},
       "stateDefinitions": {},
       "node": {
@@ -2213,57 +1529,90 @@
             {
               "type": "element",
               "content": {
-                "elementType": "text",
-                "semanticType": "h1",
+                "elementType": "container",
+                "semanticType": "div",
                 "referencedStyles": {},
                 "abilities": {},
                 "style": {
-                  "marginTop": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-oneandhalfunits"
-                    }
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
                   }
                 },
                 "children": [
                   {
-                    "type": "dynamic",
+                    "type": "element",
                     "content": {
-                      "id": "4bdc72bb-eda3-494e-9a25-0455445c89c1",
-                      "referenceType": "ctx",
-                      "path": [
-                        "title"
+                      "elementType": "text",
+                      "semanticType": "h1",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+
                       ]
                     }
-                  }
-                ]
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "span",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "marginTop": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-unit"
-                    }
-                  }
-                },
-                "children": [
+                  },
                   {
-                    "type": "dynamic",
+                    "type": "element",
                     "content": {
-                      "id": "4bdc72bb-eda3-494e-9a25-0455445c89c1",
-                      "referenceType": "ctx",
-                      "path": [
-                        "content"
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": []
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "container",
+                      "semanticType": "div",
+                      "referencedStyles": {},
+                      "style": {
+                        "width": {
+                          "type": "static",
+                          "content": "100%"
+                        },
+                        "alignSelf": {
+                          "type": "static",
+                          "content": "stretch"
+                        }
+                      },
+                      "children": [
+                        {
+                          "type": "element",
+                          "content": {
+                            "elementType": "contentful-richtext-node",
+                            "referencedStyles": {},
+                            "attrs": {
+                            },
+                            "style": {},
+                            "children": []
+                          }
+                        }
                       ]
                     }
                   }
@@ -2273,7 +1622,7 @@
           ]
         }
       },
-      "name": "PostsListContent",
+      "name": "BlogPostDetailsContent",
       "styleSetDefinitions": {}
     },
     "AuthorListContent": {
@@ -2331,16 +1680,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "55340b79-1f1f-4485-aa5b-ae447470fbaf",
-                            "referenceType": "ctx",
-                            "path": [
-                              "name"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   },
@@ -2352,16 +1692,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "55340b79-1f1f-4485-aa5b-ae447470fbaf",
-                            "referenceType": "ctx",
-                            "path": [
-                              "name"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   },
@@ -2373,16 +1704,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "55340b79-1f1f-4485-aa5b-ae447470fbaf",
-                            "referenceType": "ctx",
-                            "path": [
-                              "description"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   }
@@ -2393,277 +1715,6 @@
         }
       },
       "name": "AuthorListContent",
-      "styleSetDefinitions": {}
-    },
-    "AuthorDetailsContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "740e5ae4-52e6-436b-b5ef-d399b6ce7b60",
-                            "referenceType": "ctx",
-                            "path": [
-                              "name"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "740e5ae4-52e6-436b-b5ef-d399b6ce7b60",
-                            "referenceType": "ctx",
-                            "path": [
-                              "description"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "740e5ae4-52e6-436b-b5ef-d399b6ce7b60",
-                            "referenceType": "ctx",
-                            "path": [
-                              "id"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "AuthorDetailsContent",
-      "styleSetDefinitions": {}
-    },
-    "BlogPostDetailsContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "71a466c8-ff63-46d4-9ecc-e624edb50980",
-                            "referenceType": "ctx",
-                            "path": [
-                              "title"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "71a466c8-ff63-46d4-9ecc-e624edb50980",
-                            "referenceType": "ctx",
-                            "path": [
-                              "category"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "71a466c8-ff63-46d4-9ecc-e624edb50980",
-                            "referenceType": "ctx",
-                            "path": [
-                              "shortDescription"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "container",
-                      "semanticType": "div",
-                      "referencedStyles": {},
-                      "style": {
-                        "width": {
-                          "type": "static",
-                          "content": "100%"
-                        },
-                        "alignSelf": {
-                          "type": "static",
-                          "content": "stretch"
-                        }
-                      },
-                      "children": [
-                        {
-                          "type": "element",
-                          "content": {
-                            "elementType": "contentful-richtext-node",
-                            "referencedStyles": {},
-                            "attrs": {
-                              "richText": {
-                                "type": "dynamic",
-                                "content": {
-                                  "id": "71a466c8-ff63-46d4-9ecc-e624edb50980",
-                                  "referenceType": "ctx",
-                                  "path": [
-                                    "content"
-                                  ]
-                                }
-                              }
-                            },
-                            "style": {},
-                            "children": []
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "BlogPostDetailsContent",
       "styleSetDefinitions": {}
     },
     "BlogPostListContent": {
@@ -2721,16 +1772,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a",
-                            "referenceType": "ctx",
-                            "path": [
-                              "title"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   },
@@ -2742,16 +1784,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a",
-                            "referenceType": "ctx",
-                            "path": [
-                              "title"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   },
@@ -2763,16 +1796,7 @@
                       "referencedStyles": {},
                       "abilities": {},
                       "children": [
-                        {
-                          "type": "dynamic",
-                          "content": {
-                            "id": "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a",
-                            "referenceType": "ctx",
-                            "path": [
-                              "category"
-                            ]
-                          }
-                        }
+
                       ]
                     }
                   }
@@ -2784,46 +1808,100 @@
       },
       "name": "BlogPostListContent",
       "styleSetDefinitions": {}
+    },
+    "AuthorDetailsContent": {
+      "propDefinitions": {},
+      "stateDefinitions": {},
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "semanticType": "div",
+          "referencedStyles": {},
+          "abilities": {},
+          "style": {
+            "display": {
+              "type": "static",
+              "content": "contents"
+            }
+          },
+          "children": [
+            {
+              "type": "element",
+              "content": {
+                "elementType": "container",
+                "semanticType": "div",
+                "referencedStyles": {},
+                "abilities": {},
+                "style": {
+                  "gap": {
+                    "type": "static",
+                    "content": "12px"
+                  },
+                  "width": {
+                    "type": "static",
+                    "content": "100%"
+                  },
+                  "display": {
+                    "type": "static",
+                    "content": "flex"
+                  },
+                  "flexDirection": {
+                    "type": "static",
+                    "content": "column"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "h1",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+
+                      ]
+                    }
+                  },
+                  {
+                    "type": "element",
+                    "content": {
+                      "elementType": "text",
+                      "semanticType": "span",
+                      "referencedStyles": {},
+                      "abilities": {},
+                      "children": [
+
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "AuthorDetailsContent",
+      "styleSetDefinitions": {}
     }
   },
   "resources": {
     "items": {
-      "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce": {
-        "id": "8a8052f8-40e7-49f0-800a-0d6e76cbc6ce",
-        "name": "single",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "author"
-          },
-          "sys.id": {
-            "type": "static",
-            "content": "1usfwyCuEJHsArZSqZJ45j"
-          }
-        }
-      },
-      "f1602b82-df50-4db7-965e-4a91405af370": {
-        "id": "f1602b82-df50-4db7-965e-4a91405af370",
+      "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9": {
+        "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
         "name": "Home",
         "mappers": [
           "resolveContentfulResponse",
@@ -2848,240 +1926,17 @@
         "params": {
           "content_type": {
             "type": "static",
-            "content": "author"
-          },
-          "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
-          }
-        }
-      },
-      "addfd6ef-dcfa-49a8-a4fc-f917001d2100": {
-        "id": "addfd6ef-dcfa-49a8-a4fc-f917001d2100",
-        "name": "Posts",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "static",
             "content": "blogPost"
           },
           "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
+            "type": "static",
+            "content": 100
           }
         }
       },
-      "d5f84624-d812-43cc-90ba-79d2491de42e": {
-        "id": "d5f84624-d812-43cc-90ba-79d2491de42e",
-        "name": "Author-page-initial-props-d5f84",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "author"
-          },
-          "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
-          }
-        }
-      },
-      "2ad4b914-6249-4ccc-9165-ceceb0614bdb": {
-        "id": "2ad4b914-6249-4ccc-9165-ceceb0614bdb",
-        "name": "Author-page-initial-paths-2ad4b",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "author"
-            }
-          },
-          "limit": {
-            "type": "static",
-            "content": 1
-          }
-        }
-      },
-      "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab": {
-        "id": "ba3c8ad1-e508-496c-9f12-4d0d2b80a5ab",
-        "name": "Author-page-initial-props-ba3c8",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "static",
-            "content": "author"
-          },
-          "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
-          },
-          "skip": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "skip"
-            }
-          }
-        }
-      },
-      "1840c650-5818-4019-8861-ec39fc3500d0": {
-        "id": "1840c650-5818-4019-8861-ec39fc3500d0",
-        "name": "Author-page-initial-paths-1840c",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "content_type": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "author"
-            }
-          },
-          "select": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "select"
-            }
-          }
-        }
-      },
-      "929573c1-1ee2-4352-b679-bfebc208b096": {
-        "id": "929573c1-1ee2-4352-b679-bfebc208b096",
-        "name": "Author-page-initial-props-92957",
-        "mappers": [
-          "resolveContentfulResponse",
-          "normalize"
-        ],
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "entries"
-          }
-        },
-        "params": {}
-      },
-      "2ed571bd-6b48-40da-8518-8f32e6443bf6": {
-        "id": "2ed571bd-6b48-40da-8518-8f32e6443bf6",
-        "name": "BlogPost-page-initial-paths-2ed57",
+      "c8e1b18f-03b4-46e2-8a51-aa33a57b96fd": {
+        "id": "c8e1b18f-03b4-46e2-8a51-aa33a57b96fd",
+        "name": "BlogPost-page-initial-paths-c8e1b",
         "mappers": [
           "resolveContentfulResponse",
           "normalize"
@@ -3119,9 +1974,9 @@
           }
         }
       },
-      "3156ffb5-0536-4e2f-bbe9-c286625d9ad4": {
-        "id": "3156ffb5-0536-4e2f-bbe9-c286625d9ad4",
-        "name": "BlogPost-page-initial-props-3156f",
+      "8818bd27-7d3d-4ec8-871c-be15549974a8": {
+        "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
+        "name": "BlogPost-page-initial-props-8818b",
         "mappers": [
           "resolveContentfulResponse",
           "normalize"
@@ -3144,9 +1999,121 @@
         },
         "params": {}
       },
-      "6fd735ca-ac1e-41d4-be09-6832c86b7393": {
-        "id": "6fd735ca-ac1e-41d4-be09-6832c86b7393",
-        "name": "BlogPost-page-initial-props-6fd73",
+      "6dccbbb5-8b6d-4a57-b8eb-f8edcd3b8543": {
+        "id": "6dccbbb5-8b6d-4a57-b8eb-f8edcd3b8543",
+        "name": "Author-page-initial-props-6dccb",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "limit": {
+            "type": "static",
+            "content": 10
+          }
+        }
+      },
+      "74730ab5-0ace-46df-a034-b85843b2ab0a": {
+        "id": "74730ab5-0ace-46df-a034-b85843b2ab0a",
+        "name": "Author-page-initial-paths-74730",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "author"
+            }
+          },
+          "limit": {
+            "type": "static",
+            "content": 1
+          }
+        }
+      },
+      "1bc92eb6-33f5-4890-b99c-f315389401e4": {
+        "id": "1bc92eb6-33f5-4890-b99c-f315389401e4",
+        "name": "Author-page-initial-props-1bc92",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "static",
+            "content": "author"
+          },
+          "limit": {
+            "type": "static",
+            "content": 10
+          },
+          "skip": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "skip"
+            }
+          }
+        }
+      },
+      "cd5d9649-40e3-4e36-8a79-d8fc7247c4e2": {
+        "id": "cd5d9649-40e3-4e36-8a79-d8fc7247c4e2",
+        "name": "BlogPost-page-initial-props-cd5d9",
         "mappers": [
           "resolveContentfulResponse",
           "normalize"
@@ -3173,17 +2140,14 @@
             "content": "blogPost"
           },
           "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
+            "type": "static",
+            "content": 10
           }
         }
       },
-      "2012853e-0174-423d-b575-2191180faacb": {
-        "id": "2012853e-0174-423d-b575-2191180faacb",
-        "name": "BlogPost-page-initial-paths-20128",
+      "1aa2c5d7-7259-4225-8dee-3cdf475871fa": {
+        "id": "1aa2c5d7-7259-4225-8dee-3cdf475871fa",
+        "name": "BlogPost-page-initial-paths-1aa2c",
         "mappers": [
           "resolveContentfulResponse",
           "normalize"
@@ -3218,9 +2182,9 @@
           }
         }
       },
-      "0d1ac6e0-7b02-4824-a900-77deff7f48fd": {
-        "id": "0d1ac6e0-7b02-4824-a900-77deff7f48fd",
-        "name": "BlogPost-page-initial-props-0d1ac",
+      "f484ccd3-cbd8-4f06-9fd5-c4c5ba3ddd6e": {
+        "id": "f484ccd3-cbd8-4f06-9fd5-c4c5ba3ddd6e",
+        "name": "BlogPost-page-initial-props-f484c",
         "mappers": [
           "resolveContentfulResponse",
           "normalize"
@@ -3247,11 +2211,8 @@
             "content": "blogPost"
           },
           "limit": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "limit"
-            }
+            "type": "static",
+            "content": 10
           },
           "skip": {
             "type": "dynamic",
@@ -3261,6 +2222,71 @@
             }
           }
         }
+      },
+      "f198fae6-98e0-4e9e-a9cc-b65b05dd84c6": {
+        "id": "f198fae6-98e0-4e9e-a9cc-b65b05dd84c6",
+        "name": "Author-page-initial-paths-f198f",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "params": {
+          "content_type": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "author"
+            }
+          },
+          "select": {
+            "type": "dynamic",
+            "content": {
+              "referenceType": "prop",
+              "id": "select"
+            }
+          }
+        }
+      },
+      "c755fe31-bf8b-46eb-b822-dd47a3cabb5c": {
+        "id": "c755fe31-bf8b-46eb-b822-dd47a3cabb5c",
+        "name": "Author-page-initial-props-c755f",
+        "mappers": [
+          "resolveContentfulResponse",
+          "normalize"
+        ],
+        "headers": {
+          "authToken": {
+            "type": "env",
+            "content": "CMS_ACCESS_TOKEN"
+          }
+        },
+        "path": {
+          "baseUrl": {
+            "type": "env",
+            "content": "CMS_URL"
+          },
+          "route": {
+            "type": "static",
+            "content": "entries"
+          }
+        },
+        "params": {}
       }
     },
     "resourceMappers": {
@@ -3281,39 +2307,6 @@
           "originalName": "normalize",
           "importAlias": "normalize/contentful"
         }
-      }
-    }
-  },
-  "contexts": {
-    "rootFolder": "contexts",
-    "items": {
-      "7d5d6265-e286-4c1f-81c6-c81ca01d4e1a": {
-        "name": "single",
-        "fileName": "single"
-      },
-      "8b4666a1-e209-4bee-9826-fee0ab2eab1a": {
-        "name": "Home",
-        "fileName": "Home"
-      },
-      "4bdc72bb-eda3-494e-9a25-0455445c89c1": {
-        "name": "Posts",
-        "fileName": "Posts"
-      },
-      "55340b79-1f1f-4485-aa5b-ae447470fbaf": {
-        "name": "Author",
-        "fileName": "Author"
-      },
-      "740e5ae4-52e6-436b-b5ef-d399b6ce7b60": {
-        "name": "Author",
-        "fileName": "Author"
-      },
-      "71a466c8-ff63-46d4-9ecc-e624edb50980": {
-        "name": "BlogPost",
-        "fileName": "BlogPost"
-      },
-      "1ff4b6f2-1d31-4484-aecc-9ec7bf7b085a": {
-        "name": "BlogPost",
-        "fileName": "BlogPost"
       }
     }
   }

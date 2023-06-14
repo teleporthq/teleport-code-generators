@@ -57,15 +57,4 @@ export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({
   root: rootComponentUIDLDecoder,
   components: optional(dict(componentUIDLDecoder)),
   resources: optional(resourcesDecoder),
-  contexts: optional(
-    object({
-      rootFolder: string(),
-      items: dict(
-        object({
-          name: string(),
-          fileName: optional(string()),
-        })
-      ),
-    })
-  ),
 })

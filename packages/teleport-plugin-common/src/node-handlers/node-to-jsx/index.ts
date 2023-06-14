@@ -28,7 +28,6 @@ import {
   addRawAttributeToJSXTag,
   generateDynamicWindowImport,
   addDynamicExpressionAttributeToJSXTag,
-  addDynamicCtxAttributeToJSXTag,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -38,8 +37,8 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   params,
   jsxOptions
 ) => {
-  const { dependencies, nodesLookup, projectContexts = {}, projectResources = {} } = params
-  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions, projectContexts, projectResources }
+  const { dependencies, nodesLookup, projectResources = {} } = params
+  const options = { ...DEFAULT_JSX_OPTIONS, ...jsxOptions, projectResources }
   const { elementType, selfClosing, children, key, attrs, dependency, events } = node.content
 
   const originalElementName = elementType || 'component'
@@ -90,21 +89,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
             content: { id, referenceType },
           } = attributeValue
           const prefix =
-            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local' | 'ctx']
+            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
 
           if (referenceType === 'expr') {
-            addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, params)
-            break
-          }
-
-          if (referenceType === 'ctx') {
-            addDynamicCtxAttributeToJSXTag({
-              jsxASTNode: elementTag,
-              name: attrKey,
-              attrValue: attributeValue,
-              options: jsxOptions,
-              generationParams: params,
-            })
+            addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue)
             break
           }
 
@@ -170,7 +158,7 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
       return [StringUtils.encode(node.content.toString())]
 
     case 'dynamic':
-      return [createDynamicValueExpression(node, options, undefined, params)]
+      return [createDynamicValueExpression(node, options, undefined)]
 
     case 'cms-item':
       return generateCMSItemNode(node, params, options)

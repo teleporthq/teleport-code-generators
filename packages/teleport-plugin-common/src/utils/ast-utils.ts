@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { parse, traverse } from '@babel/core'
+import { parse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
@@ -13,8 +13,6 @@ import {
   UIDLPropValue,
   UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
-import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
-import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
 import { ASTUtils } from '..'
 
 /**
@@ -120,26 +118,6 @@ export const addDynamicAttributeToJSXTag = (
 }
 
 /**
- * Makes `${name}={${ContextName}.${path}}` happen in AST
- */
-export const addDynamicCtxAttributeToJSXTag = (params: {
-  jsxASTNode: types.JSXElement
-  name: string
-  attrValue: UIDLDynamicReference
-  options: JSXGenerationOptions
-  generationParams: JSXGenerationParams
-  t?: typeof types
-}) => {
-  const { jsxASTNode, name, t = types, attrValue, options, generationParams } = params
-
-  const content = createDynamicValueExpression(attrValue, options, t, generationParams)
-
-  jsxASTNode.openingElement.attributes.push(
-    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
-  )
-}
-
-/**
  * Make code expressions happen in AST
  * Replace variables that are found in AST with
  * the corresponding value from the contexts for now
@@ -148,7 +126,6 @@ export const addDynamicCtxAttributeToJSXTag = (params: {
 export const addDynamicExpressionAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
   dynamicRef: UIDLDynamicReference,
-  params: JSXGenerationParams,
   t = types
 ) => {
   const dynamicContent = dynamicRef.content
@@ -162,18 +139,6 @@ export const addDynamicExpressionAttributeToJSXTag = (
   }
 
   const ast = parse(code, options)
-
-  replaceIdentifiersWithScopes(ast, dynamicContent.scope, (_, name) => {
-    const entityToResolve = dynamicContent.scope[name]
-    if (entityToResolve.type === 'dynamic') {
-      const { projectContexts } = params
-      const contextMeta = projectContexts[entityToResolve.content.ctxId]
-      const nameOfContext = StringUtils.camelize(contextMeta.providerName)
-
-      return nameOfContext
-    }
-    return name
-  })
 
   if (!('program' in ast)) {
     throw new Error(
@@ -195,27 +160,6 @@ export const addDynamicExpressionAttributeToJSXTag = (
   )
 }
 
-type ReplacementCallback = (path: babel.NodePath<types.Identifier>, name: string) => string
-type ExpressionScopes = Record<string, UIDLStaticValue | UIDLDynamicReference>
-
-function replaceIdentifiersWithScopes(
-  node: babel.Node,
-  scopes: ExpressionScopes,
-  callback: ReplacementCallback
-) {
-  const visitor = {
-    Identifier(path: babel.NodePath<types.Identifier>) {
-      const { name } = path.node
-      if (scopes[name]) {
-        const newName = callback(path, name)
-        if (newName !== name) {
-          path.replaceWith(types.identifier(newName))
-        }
-      }
-    },
-  }
-  traverse(node, visitor)
-}
 /*
   Use, when we need to add a mix of dynamic and static values to
   the same attribute at the same time.

@@ -145,11 +145,8 @@ const createStateChangeStatement = (
 export const createDynamicValueExpression = (
   identifier: UIDLDynamicReference,
   options: JSXGenerationOptions,
-  t = types,
-  params?: JSXGenerationParams
+  t = types
 ) => {
-  const { projectContexts = {} } = params || {}
-
   const identifierContent = identifier.content
 
   if (
@@ -160,24 +157,6 @@ export const createDynamicValueExpression = (
   ) {
     throw new Error(
       `Dynamic reference type "${identifierContent.referenceType}" is not supported yet`
-    )
-  }
-
-  if (identifierContent.referenceType === 'ctx') {
-    // TODO handle situation when context is not using path
-    // TODO only allow ctxID not id for context references
-    const contextMeta = projectContexts[identifierContent.ctxId ?? identifierContent.id]
-    if (!contextMeta) {
-      throw new Error(
-        `Could not find the referenced context: ${
-          identifierContent.ctxId ?? identifierContent.id
-        } on node ${JSON.stringify(identifierContent)}`
-      )
-    }
-
-    return t.memberExpression(
-      t.identifier(StringUtils.camelize(contextMeta.providerName)),
-      t.identifier(identifierContent.path.join('?.'))
     )
   }
 

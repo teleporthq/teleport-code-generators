@@ -60,22 +60,11 @@ export interface UIDLResources {
   items?: Record<string, UIDLResourceItem>
 }
 
-export interface UIDLContextItem {
-  name: string
-  fileName?: string
-}
-
-export interface UIDLContexts {
-  rootFolder: string
-  items: Record<string, UIDLContextItem>
-}
-
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
-  contexts?: UIDLContexts
   resources?: UIDLResources
 }
 
@@ -263,15 +252,7 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType =
-  | 'prop'
-  | 'state'
-  | 'local'
-  | 'attr'
-  | 'children'
-  | 'token'
-  | 'ctx'
-  | 'expr'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -280,7 +261,6 @@ export interface UIDLDynamicReference {
     path?: string[]
     id: string
     expression?: string
-    ctxId?: string
     scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
   }
 }
@@ -319,6 +299,8 @@ export interface UIDLCMSItemNode {
 }
 
 export interface UIDLCMSListNodeContent {
+  elementType: string
+  semanticType?: string
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -400,7 +382,6 @@ export interface UIDLElement {
   elementType: string
   semanticType?: string
   name?: string
-  ctxId?: string
   key?: string // internal usage
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
@@ -598,7 +579,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
 export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'comp' | 'ctx'
+    referenceType: 'prop' | 'comp'
     id: string
   }
 }

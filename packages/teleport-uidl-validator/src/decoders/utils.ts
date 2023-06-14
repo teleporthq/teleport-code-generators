@@ -95,8 +95,7 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token'),
-  constant('ctx')
+  constant('token')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -105,7 +104,6 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
     referenceType: referenceTypeDecoder,
     path: optional(array(string())),
     id: string(),
-    ctxId: optional(string()),
   }),
 })
 
@@ -579,7 +577,7 @@ export const elementInlineReferencedStyle: Decoder<VUIDLElementNodeInlineReferen
 export const classDynamicReferenceDecoder: Decoder<UIDLCompDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
-    referenceType: union(constant('prop'), constant('comp'), constant('ctx')),
+    referenceType: union(constant('prop'), constant('comp')),
     id: string(),
   }),
 })
@@ -602,7 +600,6 @@ export const elementDecoder: Decoder<VUIDLElement> = object({
   semanticType: optional(string()),
   name: optional(isValidElementName() as unknown as Decoder<string>),
   key: optional(string()),
-  ctxId: optional(string()),
   dependency: optional(dependencyDecoder),
   style: optional(dict(union(attributeValueDecoder, string(), number()))),
   attrs: optional(dict(union(attributeValueDecoder, string(), number()))),

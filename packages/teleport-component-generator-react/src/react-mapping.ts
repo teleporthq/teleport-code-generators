@@ -51,6 +51,30 @@ export const ReactMapping: Mapping = {
         },
       },
     },
+    'cms-list': {
+      elementType: 'CMSList',
+      semanticType: 'CMSList',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-item': {
+      elementType: 'CMSItem',
+      semanticType: 'CMSItem',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
   },
   events: {
     click: 'onClick',

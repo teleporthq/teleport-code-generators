@@ -99,7 +99,7 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
   const usedImportKeys: string[] = []
   const errors: string[] = []
 
-  UIDLUtils.traverseNodes(input.node as UIDLNode, (node) => {
+  UIDLUtils.traverseNodes(input.node as UIDLNode, (node, parent) => {
     if (node.type === 'element') {
       const { content } = node
       const compStyleReference = Object.values(content?.attrs || {}).find(
@@ -178,11 +178,10 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
 
     if (node.type === 'dynamic' && node.content.referenceType === 'prop') {
       if (!dynamicPathExistsInDefinitions(node.content.id, propKeys)) {
-        const errorMsg = `"${
-          node.content.id
-        }" is used but not defined. Please add it in propDefinitions \n Used on Node ${JSON.stringify(
-          node.content
-        )}`
+        const errorMsg = `\n "${node.content.id}" is used but not defined in ${
+          input.name
+        } component. Please add it in propDefinitions.
+Used on Node ${JSON.stringify(node)}.\nParent node is ${JSON.stringify(parent, null, 2)}`
         errors.push(errorMsg)
       }
 
