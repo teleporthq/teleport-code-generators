@@ -149,8 +149,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     case 'element':
       if (node.type === 'cms-item') {
         const {
+          resource,
           nodes: { success, error, loading },
         } = (node as unknown as UIDLCMSItemNode).content
+
+        if ('type' in resource && resource.content.referenceType === 'prop') {
+          resource.content.id = StringUtils.createStateOrPropStoringValue(resource.content.id)
+        }
 
         if (success) {
           success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
@@ -173,8 +178,13 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (node.type === 'cms-list') {
         const {
+          resource,
           nodes: { success, error, loading, empty },
         } = (node as unknown as UIDLCMSListNode).content
+
+        if ('type' in resource && resource.content.referenceType === 'prop') {
+          resource.content.id = StringUtils.createStateOrPropStoringValue(resource.content.id)
+        }
 
         if (success) {
           success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(

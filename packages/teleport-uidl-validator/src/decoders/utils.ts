@@ -686,16 +686,16 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
       error: optional(lazy(() => elementNodeDecoder)),
       loading: optional(lazy(() => elementNodeDecoder)),
     }),
-    resourceId: optional(string()),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    resource: optional(
+    resource: union(
       object({
         id: string(),
         params: optional(
           dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
         ),
-      })
+      }),
+      lazy(() => dyamicFunctionParam)
     ),
   }),
 })
@@ -711,13 +711,14 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     }),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
-    resource: optional(
+    resource: union(
       object({
         id: string(),
         params: optional(
           dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
         ),
-      })
+      }),
+      lazy(() => dyamicFunctionParam)
     ),
   }),
 })

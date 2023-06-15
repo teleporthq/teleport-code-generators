@@ -298,9 +298,20 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+/*
+  A cms-list node can fetch data from the remote resouce
+  or it can refer to a `prop` value for page list.
+  It can have either remote resource or prop but not both.
+  In the case of `prop` the data is fetched using `getStaticProps`
+  or `getStaticPaths` at the moment in NextJS.
+*/
+
+export interface UIDLResourceLink {
+  id: string
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+}
+
 export interface UIDLCMSListNodeContent {
-  elementType: string
-  semanticType?: string
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -309,10 +320,7 @@ export interface UIDLCMSListNodeContent {
   }
   valuePath?: string[]
   itemValuePath?: string[]
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource: UIDLResourceLink | UIDLPropValue
 }
 
 export interface UIDLCMSItemNodeContent {
@@ -323,10 +331,7 @@ export interface UIDLCMSItemNodeContent {
   }
   valuePath?: string[]
   itemValuePath?: string[]
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource: UIDLResourceLink | UIDLPropValue
 }
 
 export interface UIDLNestedStyleDeclaration {

@@ -55,13 +55,14 @@ export interface VCMSItemUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
         }
-        statePersistanceName?: string
         valuePath?: string[]
         itemValuePath?: string[]
-        resource?: {
-          id: string
-          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-        }
+        resource:
+          | {
+              id: string
+              params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+            }
+          | UIDLPropValue
       }
     }
   > {}
@@ -77,14 +78,14 @@ export interface VCMSListUIDLElementNode
           loading?: VUIDLElementNode
           empty?: VUIDLElementNode
         }
-        loopItemsReference?: UIDLAttributeValue
         valuePath?: string[]
         itemValuePath?: string[]
-        statePersistanceName?: string
-        resource?: {
-          id: string
-          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-        }
+        resource:
+          | {
+              id: string
+              params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+            }
+          | UIDLPropValue
       }
     }
   > {}

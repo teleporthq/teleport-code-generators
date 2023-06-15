@@ -200,17 +200,29 @@ const generateCMSItemNode: NodeToJSX<
   return []
 }
 
-const generateCMSListNode: NodeToJSX<UIDLCMSListNode, Array<types.JSXElement>> = (
+const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXElement[]> = (
   node,
   params,
   options
 ) => {
-  const { loading, error, empty } = node.content.nodes
+  const { resource } = node.content
+  const { loading, error, empty, success } = node.content.nodes
+
+  if (!success) {
+    return []
+  }
 
   const cmsListTag = types.jsxElement(
     types.jsxOpeningElement(types.jsxIdentifier('CMSList'), []),
     types.jsxClosingElement(types.jsxIdentifier('CMSList')),
-    []
+    [
+      types.jsxExpressionContainer(
+        types.arrowFunctionExpression(
+          [types.identifier('props')],
+          generateNode(success, params, options)[0] as types.JSXElement
+        )
+      ),
+    ]
   )
 
   if (loading) {
@@ -236,6 +248,20 @@ const generateCMSListNode: NodeToJSX<UIDLCMSListNode, Array<types.JSXElement>> =
       types.jsxAttribute(
         types.jsxIdentifier('empty'),
         types.jsxExpressionContainer(generateNode(empty, params, options)[0] as types.JSXElement)
+      )
+    )
+  }
+
+  if ('type' in resource) {
+    cmsListTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('initialData'),
+        types.jsxExpressionContainer(
+          types.memberExpression(
+            types.identifier(resource.content.referenceType),
+            types.identifier(resource.content.id)
+          )
+        )
       )
     )
   }
