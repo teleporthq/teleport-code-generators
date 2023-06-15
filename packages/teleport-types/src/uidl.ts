@@ -307,8 +307,6 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
-  statePersistanceName?: string
-  loopItemsReference?: UIDLAttributeValue
   valuePath?: string[]
   itemValuePath?: string[]
   resource: {
@@ -323,7 +321,6 @@ export interface UIDLCMSItemNodeContent {
     error?: UIDLElementNode
     loading?: UIDLElementNode
   }
-  statePersistanceName?: string
   valuePath?: string[]
   itemValuePath?: string[]
   resource: {

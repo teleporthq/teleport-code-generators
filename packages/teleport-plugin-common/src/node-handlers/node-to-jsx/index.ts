@@ -196,153 +196,51 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
 const generateCMSItemNode: NodeToJSX<
   UIDLCMSItemNode,
   Array<types.JSXElement | types.LogicalExpression>
-> = (node, params, options) => {
-  const { success, error, loading } = node.content.nodes
-  /*
-   * TODO:
-   * Adding `loading` and `error` states at the moment are being conntrolled by the UIDL.
-   * But this needs to be changed, the generators itself should make the decision. Depending
-   * on the style flavour that is being ued.
-   */
-  const { statePersistanceName } = node.content
-  const loadingState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Loading`)
-  const errorState = StringUtils.createStateOrPropStoringValue(`${statePersistanceName}Error`)
-
-  const errorNodeAST = error
-    ? types.logicalExpression(
-        '&&',
-        types.identifier(errorState),
-        generateElementNode(error, params, options) as types.JSXElement
-      )
-    : null
-
-  const loadingNodeAST = loading
-    ? types.logicalExpression(
-        '&&',
-        types.identifier(loadingState),
-        generateElementNode(loading, params, options) as types.JSXElement
-      )
-    : null
-
-  const successElementAST = generateElementNode(success, params, options)
-  const successAST =
-    !loading || !error
-      ? successElementAST
-      : types.logicalExpression(
-          '&&',
-          types.logicalExpression(
-            '&&',
-            types.unaryExpression('!', types.identifier(loadingState)),
-            types.unaryExpression('!', types.identifier(errorState))
-          ),
-          successElementAST
-        )
-
-  return [...(loading ? [loadingNodeAST] : []), ...(error ? [errorNodeAST] : []), successAST]
+> = () => {
+  return []
 }
 
-const generateCMSListNode: NodeToJSX<
-  UIDLCMSListNode,
-  Array<types.JSXExpressionContainer | types.LogicalExpression>
-> = (node, params, options) => {
-  const { success, empty, error, loading } = node.content.nodes
-  const { loopItemsReference, statePersistanceName } = node.content
-  const { type } = loopItemsReference
+const generateCMSListNode: NodeToJSX<UIDLCMSListNode, Array<types.JSXElement>> = (
+  node,
+  params,
+  options
+) => {
+  const { loading, error, empty } = node.content.nodes
 
-  let errorNodeAST: types.JSXElement | null = null
-  let emptyNodeAST: types.JSXElement | null = null
-  let loadingNodeAST: types.JSXElement | null = null
-  let listNodeAST: types.JSXElement | null = null
-  const source = getRepeatSourceIdentifier(node.content.loopItemsReference, options)
-
-  /*
-   * TODO: @JK move this too into validator
-   * CMS list node can only be a dynamic !!
-   */
-  if (type !== 'dynamic') {
-    throw new Error(`Node ${node} is dynamic, but the referece link is missing. \n
-      Missing loopItemsReference`)
-  }
-
-  const loadingStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${statePersistanceName}Loading`
-  )
-  const errorStatePersistanceName = StringUtils.createStateOrPropStoringValue(
-    `${statePersistanceName}Error`
+  const cmsListTag = types.jsxElement(
+    types.jsxOpeningElement(types.jsxIdentifier('CMSList'), []),
+    types.jsxClosingElement(types.jsxIdentifier('CMSList')),
+    []
   )
 
-  if (empty) {
-    emptyNodeAST = generateNode(empty, params, options)[0] as types.JSXElement
+  if (loading) {
+    cmsListTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('loading'),
+        types.jsxExpressionContainer(generateNode(loading, params, options)[0] as types.JSXElement)
+      )
+    )
   }
 
   if (error) {
-    errorNodeAST = generateNode(error, params, options)[0] as types.JSXElement
-    params.stateDefinitions[`${statePersistanceName}Error`] = {
-      type: 'boolean',
-      defaultValue: false,
-    }
-  }
-
-  if (loading) {
-    loadingNodeAST = generateNode(loading, params, options)[0] as types.JSXElement
-    params.stateDefinitions[`${statePersistanceName}Loading`] = {
-      type: 'boolean',
-      defaultValue: false,
-    }
-  }
-
-  if (success) {
-    listNodeAST = (generateNode(success, params, options) as types.JSXElement[])[0]
-  }
-
-  const emptyNodeExpressionAST = empty
-    ? types.logicalExpression(
-        '&&',
-        types.unaryExpression('!', types.memberExpression(source, types.identifier('length'))),
-        emptyNodeAST
+    cmsListTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('error'),
+        types.jsxExpressionContainer(generateNode(error, params, options)[0] as types.JSXElement)
       )
-    : null
+    )
+  }
 
-  const errorNodeExpressionAST =
-    error && errorStatePersistanceName
-      ? types.logicalExpression('&&', types.identifier(errorStatePersistanceName), errorNodeAST)
-      : null
+  if (empty) {
+    cmsListTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('empty'),
+        types.jsxExpressionContainer(generateNode(empty, params, options)[0] as types.JSXElement)
+      )
+    )
+  }
 
-  const loadingNodeExpressionAST =
-    loading && loadingStatePersistanceName
-      ? types.logicalExpression('&&', types.identifier(loadingStatePersistanceName), loadingNodeAST)
-      : null
-
-  const { iteratorName, iteratorKey } = UIDLUtils.getRepeatIteratorNameAndKey({
-    useIndex: true,
-    iteratorName: 'item',
-  })
-
-  const localIteratorPrefix = options.dynamicReferencePrefixMap.local
-
-  addDynamicAttributeToJSXTag(listNodeAST, 'key', iteratorKey, localIteratorPrefix)
-  addDynamicAttributeToJSXTag(
-    listNodeAST,
-    'value',
-    ['item', ...(node.content.itemValuePath || [])].join('.'),
-    localIteratorPrefix
-  )
-
-  const arrowFunctionArguments = [types.identifier(iteratorName)]
-  arrowFunctionArguments.push(types.identifier('index'))
-
-  return [
-    ...(emptyNodeExpressionAST ? [emptyNodeExpressionAST] : []),
-    ...(errorNodeExpressionAST ? [errorNodeExpressionAST] : []),
-    ...(loadingNodeExpressionAST ? [loadingNodeExpressionAST] : []),
-    types.logicalExpression(
-      '&&',
-      types.memberExpression(source, types.identifier('length')),
-      types.callExpression(types.memberExpression(source, types.identifier('map')), [
-        types.arrowFunctionExpression(arrowFunctionArguments, listNodeAST),
-      ])
-    ),
-  ]
+  return [cmsListTag]
 }
 
 const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer[]> = (

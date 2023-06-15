@@ -50,7 +50,10 @@ export const createInlineJSXFetchRequestsPlugins: ComponentPluginFactory<
 
     UIDLUtils.traverseNodes(uidl.node, (node) => {
       if (node.type === 'cms-list' && node.content?.resource && items[node.content.resource.id]) {
-        const { statePersistanceName } = node.content
+        /**
+         *  TODO @JK Remove this
+         */
+        const statePersistanceName = 'stateChange'
         const usedResource = items[node.content.resource.id]
 
         const resourceImportName = StringUtils.dashCaseToCamelCase(

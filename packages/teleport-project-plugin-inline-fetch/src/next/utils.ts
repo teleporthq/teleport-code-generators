@@ -57,7 +57,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
        * If the users didn't mention any load anf error states in UIDL.
        */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
-        StringUtils.camelize(`${content.statePersistanceName}-reource`)
+        StringUtils.camelize(`${content}-stateChange-reource`)
       )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
@@ -113,7 +113,10 @@ export default async function handler(req, res) {
 
 const computeUseEffectAST = (params: ComputeUseEffectParams) => {
   const { resource, node } = params
-  const { statePersistanceName } = node.content
+  /**
+   * TODO: @JK remove this
+   */
+  const statePersistanceName = 'stateChange'
   const setStateName = StringUtils.createStateStoringFunction(statePersistanceName)
 
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
