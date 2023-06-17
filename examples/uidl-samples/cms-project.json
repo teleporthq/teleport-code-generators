@@ -861,43 +861,116 @@
                     {
                       "type": "cms-list",
                       "content": {
+                        "resource": {
+                          "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
+                          "params": {}
+                        },
                         "nodes": {
-                          "success": {
+                          "success":  {
                             "type": "element",
                             "content": {
-                              "elementType": "cms-list",
+                              "elementType": "container",
+                              "semanticType": "div",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "contents"
+                                }
+                              },
                               "children": [
                                 {
                                   "type": "element",
                                   "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "HomeListContent",
+                                    "elementType": "text",
+                                    "semanticType": "h3",
                                     "referencedStyles": {},
                                     "abilities": {},
-                                    "children": []
+                                    "style": {
+                                      "marginTop": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-oneandhalfunits"
+                                        }
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "cms",
+                                          "id": "title",
+                                          "path": ["name"]
+                                        }
+                                      }
+                                    ]
                                   }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "text",
+                                    "semanticType": "span",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "marginTop": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "token",
+                                          "id": "--dl-space-space-halfunit"
+                                        }
+                                      }
+                                    },
+                                    "children": [
+
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "loading": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Loading state of the cms-list"
+                                }
+                              ]
+                            }
+                          },
+                          "error": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Error state of the cms-list"
+                                }
+                              ]
+                            }
+                          },
+                          "empty": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "container",
+                              "children": [
+                                {
+                                  "type": "static",
+                                  "content": "Empty state of the cms-list"
                                 }
                               ]
                             }
                           }
                         },
-                        "loopItemsReference": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "state",
-                            "id": "BlogPostList"
-                          }
-                        },
                         "valuePath": [],
-                        "itemValuePath": [],
-                        "statePersistanceName": "BlogPostList",
-                        "resource": {
-                          "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
-                          "params": {}
-                        }
+                        "itemValuePath": []
                       }
                     }
                   ]
@@ -953,35 +1026,25 @@
                     {
                       "type": "cms-item",
                       "content": {
+                        "initialData":{
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BlogPostEntity"
+                          }
+                        },
                         "nodes": {
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "cms-item",
-                              "attrs": {
-                                "value": {
-                                  "type": "dynamic",
-                                  "content": {
-                                    "referenceType": "prop",
-                                    "id": "BlogPostEntity"
-                                  }
-                                }
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
                               },
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "BlogPostDetailsContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
+                              "semanticType": "BlogPostDetailsContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
                             }
                           }
                         },
@@ -1042,34 +1105,26 @@
                     {
                       "type": "cms-list",
                       "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "AuthorEntities"
+                          }
+                        },
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "semanticType": "AuthorListContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
+                            }
                           }
                         },
                         "valuePath": [],
@@ -1129,34 +1184,26 @@
                     {
                       "type": "cms-list",
                       "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "AuthorEntities"
+                          }
+                        },
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "semanticType": "AuthorListContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
+                            }
                           }
                         },
                         "valuePath": [],
@@ -1216,34 +1263,26 @@
                     {
                       "type": "cms-list",
                       "content": {
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "cms-list",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "BlogPostListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "loopItemsReference": {
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
                             "id": "BlogPostEntities"
+                          }
+                        },
+                        "nodes": {
+                          "success": {
+                            "type": "element",
+                            "content": {
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "semanticType": "BlogPostListContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
+                            }
                           }
                         },
                         "valuePath": [],
@@ -1304,29 +1343,21 @@
                       "type": "cms-list",
                       "content": {
                         "nodes": {
-                          "success": {
+                          "success":  {
                             "type": "element",
                             "content": {
-                              "elementType": "cms-list",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "BlogPostListContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
+                              },
+                              "semanticType": "BlogPostListContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
                             }
                           }
                         },
-                        "loopItemsReference": {
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
@@ -1390,35 +1421,25 @@
                     {
                       "type": "cms-item",
                       "content": {
+                        "initialData":{
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "AuthorEntity"
+                          }
+                        },
                         "nodes": {
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "cms-item",
-                              "attrs": {
-                                "value": {
-                                  "type": "dynamic",
-                                  "content": {
-                                    "referenceType": "prop",
-                                    "id": "AuthorEntity"
-                                  }
-                                }
+                              "elementType": "component",
+                              "dependency": {
+                                "type": "local"
                               },
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "component",
-                                    "dependency": {
-                                      "type": "local"
-                                    },
-                                    "semanticType": "AuthorDetailsContent",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": []
-                                  }
-                                }
-                              ]
+                              "semanticType": "AuthorDetailsContent",
+                              "referencedStyles": {},
+                              "abilities": {},
+                              "children": []
                             }
                           }
                         },
@@ -1444,71 +1465,6 @@
     }
   },
   "components": {
-    "HomeListContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "h3",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "marginTop": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-oneandhalfunits"
-                    }
-                  }
-                },
-                "children": [
-
-                ]
-              }
-            },
-            {
-              "type": "element",
-              "content": {
-                "elementType": "text",
-                "semanticType": "span",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "marginTop": {
-                    "type": "dynamic",
-                    "content": {
-                      "referenceType": "token",
-                      "id": "--dl-space-space-halfunit"
-                    }
-                  }
-                },
-                "children": [
-
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "HomeListContent",
-      "styleSetDefinitions": {}
-    },
     "BlogPostDetailsContent": {
       "propDefinitions": {},
       "stateDefinitions": {},

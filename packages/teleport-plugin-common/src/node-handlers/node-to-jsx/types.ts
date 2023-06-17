@@ -29,7 +29,7 @@ export interface JSXGenerationOptions {
     prop: string
     state: string
     local: string
-    ctx: string
+    cms: string
   }
 
   /*

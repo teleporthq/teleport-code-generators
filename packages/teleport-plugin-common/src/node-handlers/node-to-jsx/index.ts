@@ -161,10 +161,8 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
       return [createDynamicValueExpression(node, options, undefined)]
 
     case 'cms-item':
-      return generateCMSItemNode(node, params, options)
-
     case 'cms-list':
-      return generateCMSListNode(node, params, options)
+      return generateCMSNode(node, params, options)
 
     case 'element':
       return [generateElementNode(node, params, options)]
@@ -193,32 +191,49 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
   }
 }
 
-const generateCMSItemNode: NodeToJSX<
-  UIDLCMSItemNode,
-  Array<types.JSXElement | types.LogicalExpression>
-> = () => {
-  return []
-}
-
-const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXElement[]> = (
+const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXElement[]> = (
   node,
   params,
   options
 ) => {
-  const { resource } = node.content
-  const { loading, error, empty, success } = node.content.nodes
+  const { initialData, key } = node.content
+  const { loading, error, success } = node.content.nodes
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
+
+  if (node.type === 'cms-list') {
+    params.dependencies[jsxTag] = {
+      type: 'local',
+      path: 'components/cms-list',
+    }
+  }
+
+  if (node.type === 'cms-item') {
+    params.dependencies[jsxTag] = {
+      type: 'local',
+      path: 'components/cms-item',
+    }
+  }
 
   if (!success) {
     return []
   }
 
+  /*
+    Make sure if the users are using nested values, the `path` value
+    from the `dynamic` reference is respected.
+    Eg: ${item.user.name}
+   */
+
   const cmsListTag = types.jsxElement(
-    types.jsxOpeningElement(types.jsxIdentifier('CMSList'), []),
-    types.jsxClosingElement(types.jsxIdentifier('CMSList')),
+    types.jsxOpeningElement(
+      types.jsxIdentifier(StringUtils.dashCaseToUpperCamelCase(node.type)),
+      []
+    ),
+    types.jsxClosingElement(types.jsxIdentifier(jsxTag)),
     [
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
-          [types.identifier('props')],
+          [types.identifier(options.dynamicReferencePrefixMap['cms'])],
           generateNode(success, params, options)[0] as types.JSXElement
         )
       ),
@@ -243,29 +258,32 @@ const generateCMSListNode: NodeToJSX<UIDLCMSListNode, types.JSXElement[]> = (
     )
   }
 
-  if (empty) {
+  if ('empty' in node.content.nodes) {
     cmsListTag.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('empty'),
-        types.jsxExpressionContainer(generateNode(empty, params, options)[0] as types.JSXElement)
+        types.jsxExpressionContainer(
+          generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
+        )
       )
     )
   }
 
-  if ('type' in resource) {
+  if (initialData && initialData.content.referenceType === 'prop') {
     cmsListTag.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
         types.jsxExpressionContainer(
           types.memberExpression(
-            types.identifier(resource.content.referenceType),
-            types.identifier(resource.content.id)
+            types.identifier(options.dynamicReferencePrefixMap[initialData.content.referenceType]),
+            types.identifier(initialData.content.id)
           )
         )
       )
     )
   }
 
+  params.nodesLookup[key] = cmsListTag
   return [cmsListTag]
 }
 

@@ -252,7 +252,15 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
+export type ReferenceType =
+  | 'prop'
+  | 'state'
+  | 'local'
+  | 'attr'
+  | 'children'
+  | 'token'
+  | 'expr'
+  | 'cms'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
@@ -312,6 +320,8 @@ export interface UIDLResourceLink {
 }
 
 export interface UIDLCMSListNodeContent {
+  name: string
+  key: string // internal usage
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -320,10 +330,13 @@ export interface UIDLCMSListNodeContent {
   }
   valuePath?: string[]
   itemValuePath?: string[]
-  resource: UIDLResourceLink | UIDLPropValue
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLCMSItemNodeContent {
+  name: string
+  key: string // internal usage
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -331,7 +344,8 @@ export interface UIDLCMSItemNodeContent {
   }
   valuePath?: string[]
   itemValuePath?: string[]
-  resource: UIDLResourceLink | UIDLPropValue
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLNestedStyleDeclaration {

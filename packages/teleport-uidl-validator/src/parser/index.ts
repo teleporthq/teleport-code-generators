@@ -149,12 +149,12 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     case 'element':
       if (node.type === 'cms-item') {
         const {
-          resource,
+          initialData,
           nodes: { success, error, loading },
         } = (node as unknown as UIDLCMSItemNode).content
 
-        if ('type' in resource && resource.content.referenceType === 'prop') {
-          resource.content.id = StringUtils.createStateOrPropStoringValue(resource.content.id)
+        if (initialData) {
+          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
         }
 
         if (success) {
@@ -178,12 +178,12 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (node.type === 'cms-list') {
         const {
-          resource,
+          initialData,
           nodes: { success, error, loading, empty },
         } = (node as unknown as UIDLCMSListNode).content
 
-        if ('type' in resource && resource.content.referenceType === 'prop') {
-          resource.content.id = StringUtils.createStateOrPropStoringValue(resource.content.id)
+        if (initialData) {
+          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
         }
 
         if (success) {

@@ -95,7 +95,8 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token')
+  constant('token'),
+  constant('cms')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -681,6 +682,7 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
 export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
+    name: withDefault('cms-item', string()),
     nodes: object({
       success: lazy(() => elementNodeDecoder),
       error: optional(lazy(() => elementNodeDecoder)),
@@ -688,21 +690,22 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     }),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    resource: union(
+    resource: optional(
       object({
         id: string(),
         params: optional(
           dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
         ),
-      }),
-      lazy(() => dyamicFunctionParam)
+      })
     ),
+    initialData: optional(lazy(() => dyamicFunctionParam)),
   }),
 })
 
 export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
+    name: withDefault('cms-list', string()),
     nodes: object({
       success: lazy(() => elementNodeDecoder),
       error: optional(lazy(() => elementNodeDecoder)),
@@ -711,15 +714,15 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     }),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
-    resource: union(
+    resource: optional(
       object({
         id: string(),
         params: optional(
           dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
         ),
-      }),
-      lazy(() => dyamicFunctionParam)
+      })
     ),
+    initialData: optional(lazy(() => dyamicFunctionParam)),
   }),
 })
 

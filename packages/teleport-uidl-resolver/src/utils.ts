@@ -85,6 +85,14 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
     if (node.type === 'conditional') {
       resolveConditional(node, options)
     }
+
+    if (node.type === 'cms-item') {
+      node.content.name = node.content?.name || 'cms-item'
+    }
+
+    if (node.type === 'cms-list') {
+      node.content.name = node.content?.name || 'cms-list'
+    }
   })
 }
 
@@ -274,6 +282,21 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
 // container, container1, container2, etc. OR
 // container, container01, container02, ... container10, container11,... in case the number is higher
 export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
+  UIDLUtils.traverseNodes(node, (child) => {
+    if (child.type !== 'cms-item' && child.type !== 'cms-list') {
+      return
+    }
+
+    const nodeOcurrence = lookup[child.content.name.toLowerCase()]
+    if (nodeOcurrence.count === 1) {
+      child.content.key = child.content.name
+    } else {
+      const currentKey = nodeOcurrence.nextKey
+      child.content.key = generateKey(child.content.name, currentKey)
+      nodeOcurrence.nextKey = generateNextIncrementalKey(currentKey)
+    }
+  })
+
   UIDLUtils.traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
@@ -310,21 +333,35 @@ export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseElements(node, (element) => {
     // Element name is stored as a lower case string in the lookup
     const elementName = element.name.toLowerCase()
-    if (!lookup[elementName]) {
-      lookup[elementName] = {
-        count: 0,
-        nextKey: '0',
-      }
-    }
-
-    lookup[elementName].count++
-    const newCount = lookup[elementName].count
-    if (newCount > 9 && isPowerOfTen(newCount)) {
-      // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
-      // nextKey will start either from: '0', '00', '000', etc.
-      lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
-    }
+    nodeAndElementLookup(elementName, lookup)
   })
+}
+
+export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
+  UIDLUtils.traverseNodes(node, (child) => {
+    if (child.type !== 'cms-item' && child.type !== 'cms-list') {
+      return
+    }
+    const nodeName = child.content.name.toLowerCase()
+    nodeAndElementLookup(nodeName, lookup)
+  })
+}
+
+const nodeAndElementLookup = (elementName: string, lookup: ElementsLookup) => {
+  if (!lookup[elementName]) {
+    lookup[elementName] = {
+      count: 0,
+      nextKey: '0',
+    }
+  }
+
+  lookup[elementName].count++
+  const newCount = lookup[elementName].count
+  if (newCount > 9 && isPowerOfTen(newCount)) {
+    // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+    // nextKey will start either from: '0', '00', '000', etc.
+    lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+  }
 }
 
 const isPowerOfTen = (value: number) => {

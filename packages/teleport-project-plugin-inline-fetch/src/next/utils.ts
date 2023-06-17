@@ -1,0 +1,183 @@
+import {
+  ChunkDefinition,
+  ComponentPlugin,
+  ComponentPluginFactory,
+  FileType,
+  InMemoryFileRecord,
+  UIDLCMSItemNode,
+  UIDLCMSItemNodeContent,
+  UIDLCMSListNode,
+  UIDLCMSListNodeContent,
+  UIDLNode,
+  UIDLResourceItem,
+} from '@teleporthq/teleport-types'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import * as types from '@babel/types'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+
+interface ContextPluginConfig {
+  componentChunkName?: string
+  files: Map<string, InMemoryFileRecord>
+}
+
+export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
+  config
+) => {
+  const { componentChunkName = 'jsx-component', files } = config || {}
+
+  const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
+    const { uidl, chunks, options } = structure
+    const { resources } = options
+
+    const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
+    if (!componentChunk) {
+      return structure
+    }
+
+    UIDLUtils.traverseNodes(uidl.node, (node) => {
+      const { type } = node as UIDLNode
+      if (type !== 'cms-list' && type !== 'cms-item') {
+        return
+      }
+
+      const content = node.content as UIDLCMSListNodeContent | UIDLCMSItemNodeContent
+      if (!content?.resource?.id) {
+        return
+      }
+
+      const usedResource = resources.items[content.resource.id]
+      if (!usedResource) {
+        throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
+      }
+
+      /**
+       * TODO: @JK Loading and error states should not be set,
+       * If the users didn't mention any load anf error states in UIDL.
+       */
+      const resourceImportVariable = StringUtils.dashCaseToCamelCase(
+        StringUtils.camelize(`${usedResource.name}-reource`)
+      )
+      const importName = StringUtils.camelCaseToDashCase(usedResource.name)
+      const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
+
+      files.set(resourceImportVariable, {
+        files: [
+          {
+            name: resouceFileName,
+            fileType: FileType.JS,
+            content: `import ${resourceImportVariable} from '../../resources/${importName}'
+
+export default async function handler(req, res) {
+  try {
+    const response = await ${resourceImportVariable}(${content.resource.params ? 'req.body' : ''})
+    return res.status(200).json(response)
+  } catch (error) {
+    return res.status(500).send('Something went wrong')
+  }
+}
+`,
+          },
+        ],
+        path: ['pages', 'api'],
+      })
+
+      computeUseEffectAST({
+        fileName: resouceFileName,
+        resource: usedResource,
+        node: node as UIDLCMSItemNode | UIDLCMSListNode,
+        componentChunk,
+      })
+    })
+
+    return structure
+  }
+
+  return nextComponentCMSFetchPlugin
+}
+
+const computeUseEffectAST = (params: {
+  fileName: string
+  resource: UIDLResourceItem
+  node: UIDLCMSItemNode | UIDLCMSListNode
+  componentChunk: ChunkDefinition
+}) => {
+  const { node, fileName, componentChunk } = params
+  const { key } = node.content
+  const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
+
+  if (node.type !== 'cms-item' && node.type !== 'cms-list') {
+    throw new Error('Invalid node type passed to computeUseEffectAST')
+  }
+
+  const funcParams: types.ObjectProperty[] = Object.keys(
+    node.content.resource?.params || {}
+  ).reduce((acc: types.ObjectProperty[], item) => {
+    const prop = node.content.resource.params[item]
+
+    acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
+    return acc
+  }, [])
+
+  /*
+    For NextJS projects, we wrap the direct CMS calls with a `/api`
+    from Next. So, the return type is always going to be `json`. We can safely
+    set the return type to `.json()`. Because the actual return type is handled
+    in the resource itself. `/api/resource/resource.js`
+  */
+
+  const resourceAST = types.arrowFunctionExpression(
+    [types.identifier('params')],
+    types.callExpression(
+      types.memberExpression(
+        types.callExpression(
+          types.identifier('fetch'),
+          [
+            types.stringLiteral(`/api/${fileName}`),
+            funcParams.length > 0
+              ? types.objectExpression([
+                  types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+                  types.objectProperty(
+                    types.identifier('headers'),
+                    types.objectExpression([
+                      types.objectProperty(
+                        types.stringLiteral('Content-Type'),
+                        types.stringLiteral('application/json')
+                      ),
+                    ])
+                  ),
+                  types.objectProperty(
+                    types.identifier('body'),
+                    types.callExpression(
+                      types.memberExpression(
+                        types.identifier('JSON'),
+                        types.identifier('stringify')
+                      ),
+                      [types.objectExpression(funcParams)]
+                    )
+                  ),
+                ])
+              : null,
+          ].filter(Boolean)
+        ),
+        types.identifier('then')
+      ),
+      [
+        types.arrowFunctionExpression(
+          [types.identifier('params')],
+          types.callExpression(
+            types.memberExpression(types.identifier('res'), types.identifier('json')),
+            []
+          )
+        ),
+      ]
+    )
+  )
+
+  jsxNode.openingElement.attributes.push(
+    types.jSXAttribute(types.jsxIdentifier('fetcher'), types.jsxExpressionContainer(resourceAST))
+  )
+
+  return
+}
+
+export default createNextComponentInlineFetchPlugin()

@@ -5,7 +5,7 @@ export const DEFAULT_JSX_OPTIONS: JSXGenerationOptions = {
     prop: '',
     state: '',
     local: '',
-    ctx: '',
+    cms: 'item',
   },
   dependencyHandling: 'import',
   stateHandling: 'mutation',
