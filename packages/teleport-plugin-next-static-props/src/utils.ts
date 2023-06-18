@@ -82,6 +82,15 @@ const computePropsAST = (
       ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
       : responseMemberAST
 
+  console.log(
+    propsData.exposeAs.itemValuePath?.length
+      ? ASTUtils.generateMemberExpressionASTFromBase(
+          dataWeNeedAccessorAST,
+          propsData.exposeAs.itemValuePath
+        )
+      : dataWeNeedAccessorAST
+  )
+
   const returnAST = types.returnStatement(
     types.objectExpression([
       types.objectProperty(

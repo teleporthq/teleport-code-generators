@@ -957,6 +957,8 @@ export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLE
       ? types.booleanLiteral(prop.content)
       : typeof prop.content === 'number'
       ? types.numericLiteral(prop.content)
+      : typeof prop.content === 'object'
+      ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
       : types.identifier(String(prop.content))
 
   return value

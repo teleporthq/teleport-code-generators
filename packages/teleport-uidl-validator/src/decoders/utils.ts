@@ -683,6 +683,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
     name: withDefault('cms-item', string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
     nodes: object({
       success: lazy(() => elementNodeDecoder),
       error: optional(lazy(() => elementNodeDecoder)),
@@ -706,6 +707,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
     name: withDefault('cms-list', string()),
+    attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
     nodes: object({
       success: lazy(() => elementNodeDecoder),
       error: optional(lazy(() => elementNodeDecoder)),

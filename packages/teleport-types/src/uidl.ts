@@ -322,6 +322,7 @@ export interface UIDLResourceLink {
 export interface UIDLCMSListNodeContent {
   name: string
   key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -337,6 +338,7 @@ export interface UIDLCMSListNodeContent {
 export interface UIDLCMSItemNodeContent {
   name: string
   key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode

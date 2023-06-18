@@ -28,6 +28,7 @@ import {
   addRawAttributeToJSXTag,
   generateDynamicWindowImport,
   addDynamicExpressionAttributeToJSXTag,
+  resolveObjectValue,
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
@@ -196,7 +197,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   params,
   options
 ) => {
-  const { initialData, key } = node.content
+  const { initialData, key, attrs } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
@@ -279,6 +280,54 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
             types.identifier(initialData.content.id)
           )
         )
+      )
+    )
+  }
+
+  if (attrs) {
+    const nodeParams: types.ObjectProperty[] = Object.keys(attrs).reduce(
+      (acc: types.ObjectProperty[], attrKey) => {
+        const property = attrs[attrKey]
+        if (property.type === 'static') {
+          acc.push(types.objectProperty(types.identifier(attrKey), resolveObjectValue(property)))
+        }
+
+        if (property.type === 'dynamic') {
+          switch (property.content.referenceType) {
+            case 'cms':
+              acc.push(
+                types.objectProperty(
+                  types.identifier(attrKey),
+                  options.dynamicReferencePrefixMap[property.content.referenceType]
+                    ? types.memberExpression(
+                        types.identifier(
+                          options.dynamicReferencePrefixMap[property.content.referenceType]
+                        ),
+                        types.identifier(property.content.id)
+                      )
+                    : types.identifier(property.content.id)
+                )
+              )
+              break
+            default:
+              throw new Error(
+                `Received a un-supported dynamic link on ${node.type}. ${JSON.stringify(
+                  property,
+                  null,
+                  2
+                )}`
+              )
+          }
+        }
+
+        return acc
+      },
+      []
+    )
+    cmsListTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('params'),
+        types.jsxExpressionContainer(types.objectExpression(nodeParams))
       )
     )
   }

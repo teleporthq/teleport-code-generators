@@ -13,7 +13,6 @@ import {
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
-import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -50,10 +49,6 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
       }
 
-      /**
-       * TODO: @JK Loading and error states should not be set,
-       * If the users didn't mention any load anf error states in UIDL.
-       */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
         StringUtils.camelize(`${usedResource.name}-reource`)
       )
@@ -102,21 +97,14 @@ const computeUseEffectAST = (params: {
   componentChunk: ChunkDefinition
 }) => {
   const { node, fileName, componentChunk } = params
-  const { key } = node.content
+  const { key, attrs = {} } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
 
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const funcParams: types.ObjectProperty[] = Object.keys(
-    node.content.resource?.params || {}
-  ).reduce((acc: types.ObjectProperty[], item) => {
-    const prop = node.content.resource.params[item]
-
-    acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
-    return acc
-  }, [])
+  // TODO: Handle itemValuePath condition for the responses
 
   /*
     For NextJS projects, we wrap the direct CMS calls with a `/api`
@@ -133,7 +121,7 @@ const computeUseEffectAST = (params: {
           types.identifier('fetch'),
           [
             types.stringLiteral(`/api/${fileName}`),
-            funcParams.length > 0
+            Object.keys(attrs).length > 0
               ? types.objectExpression([
                   types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
                   types.objectProperty(
@@ -152,7 +140,7 @@ const computeUseEffectAST = (params: {
                         types.identifier('JSON'),
                         types.identifier('stringify')
                       ),
-                      [types.objectExpression(funcParams)]
+                      [types.identifier('params')]
                     )
                   ),
                 ])
@@ -163,7 +151,7 @@ const computeUseEffectAST = (params: {
       ),
       [
         types.arrowFunctionExpression(
-          [types.identifier('params')],
+          [types.identifier('res')],
           types.callExpression(
             types.memberExpression(types.identifier('res'), types.identifier('json')),
             []
