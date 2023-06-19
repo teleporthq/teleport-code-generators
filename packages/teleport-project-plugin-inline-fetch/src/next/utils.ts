@@ -13,7 +13,6 @@ import {
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
-// import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -55,6 +54,15 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
       )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
+      let funcParams = ''
+
+      if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
+        funcParams = 'req.query'
+      }
+
+      if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'POST') {
+        funcParams = 'req.body'
+      }
 
       files.set(resourceImportVariable, {
         files: [
@@ -65,7 +73,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
 export default async function handler(req, res) {
   try {
-    const response = await ${resourceImportVariable}(${content.resource.params ? 'req.body' : ''})
+    const response = await ${resourceImportVariable}(${funcParams})
     return res.status(200).json(response)
   } catch (error) {
     return res.status(500).send('Something went wrong')
@@ -97,36 +105,51 @@ const computeUseEffectAST = (params: {
   node: UIDLCMSItemNode | UIDLCMSListNode
   componentChunk: ChunkDefinition
 }) => {
-  const { node, fileName, componentChunk } = params
+  const { node, fileName, componentChunk, resource } = params
   const { key, attrs = {}, itemValuePath } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
+  let resourcePath: types.StringLiteral | types.TemplateLiteral = types.stringLiteral(
+    `/api/${fileName}`
+  )
 
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const fetchParams: types.ObjectExpression | null =
-    Object.keys(attrs).length > 0
-      ? types.objectExpression([
-          types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
-          types.objectProperty(
-            types.identifier('headers'),
-            types.objectExpression([
-              types.objectProperty(
-                types.stringLiteral('Content-Type'),
-                types.stringLiteral('application/json')
-              ),
-            ])
-          ),
-          types.objectProperty(
-            types.identifier('body'),
-            types.callExpression(
-              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
-              [types.identifier('params')]
-            )
-          ),
-        ])
-      : null
+  const resourceParameters: types.ObjectProperty[] = []
+
+  if (resource.method === 'GET' && Object.keys(attrs).length > 0) {
+    resourcePath = types.templateLiteral(
+      [
+        types.templateElement({ raw: `/api/${fileName}?`, cooked: `/api/${fileName}?` }),
+        types.templateElement({ raw: '', cooked: '' }),
+      ],
+      [types.newExpression(types.identifier('URLSearchParams'), [types.identifier('params')])]
+    )
+  }
+
+  if (resource.method === 'POST' && Object.keys(attrs).length > 0) {
+    resourceParameters.push(
+      types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+      types.objectProperty(
+        types.identifier('body'),
+        types.callExpression(
+          types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+          [types.identifier('params')]
+        )
+      )
+    )
+  }
+
+  const headers = types.objectProperty(
+    types.identifier('headers'),
+    types.objectExpression([
+      types.objectProperty(
+        types.stringLiteral('Content-Type'),
+        types.stringLiteral('application/json')
+      ),
+    ])
+  )
 
   /*
     For NextJS projects, we wrap the direct CMS calls with a `/api`
@@ -144,7 +167,9 @@ const computeUseEffectAST = (params: {
               types.memberExpression(
                 types.callExpression(
                   types.identifier('fetch'),
-                  [types.stringLiteral(`/api/${fileName}`), fetchParams].filter(Boolean)
+                  [resourcePath, types.objectExpression([headers, ...resourceParameters])].filter(
+                    Boolean
+                  )
                 ),
                 types.identifier('then')
               ),
@@ -160,7 +185,9 @@ const computeUseEffectAST = (params: {
             )
           : types.callExpression(
               types.identifier('fetch'),
-              [types.stringLiteral(`/api/${fileName}`), fetchParams].filter(Boolean)
+              [resourcePath, types.objectExpression([headers, ...resourceParameters])].filter(
+                Boolean
+              )
             ),
         types.identifier('then')
       ),

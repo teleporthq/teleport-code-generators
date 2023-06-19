@@ -544,11 +544,6 @@ export const generateDynamicWindowImport = (
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
 
-/*
- * TODO: Add the ability to support body and payload.
- * UIDLResourceItem['body']
- * All the dynamic props are sent using the function props
- */
 export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
@@ -757,7 +752,7 @@ export const generateMemberExpressionASTFromPath = (
   )
 }
 
-const generateURLParamsAST = (
+export const generateURLParamsAST = (
   urlParams: Record<string, UIDLStaticValue | UIDLPropValue>
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
