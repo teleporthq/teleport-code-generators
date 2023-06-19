@@ -13,6 +13,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
+// import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -97,14 +98,35 @@ const computeUseEffectAST = (params: {
   componentChunk: ChunkDefinition
 }) => {
   const { node, fileName, componentChunk } = params
-  const { key, attrs = {} } = node.content
+  const { key, attrs = {}, itemValuePath } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
 
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  // TODO: Handle itemValuePath condition for the responses
+  const fetchParams: types.ObjectExpression | null =
+    Object.keys(attrs).length > 0
+      ? types.objectExpression([
+          types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
+          types.objectProperty(
+            types.identifier('headers'),
+            types.objectExpression([
+              types.objectProperty(
+                types.stringLiteral('Content-Type'),
+                types.stringLiteral('application/json')
+              ),
+            ])
+          ),
+          types.objectProperty(
+            types.identifier('body'),
+            types.callExpression(
+              types.memberExpression(types.identifier('JSON'), types.identifier('stringify')),
+              [types.identifier('params')]
+            )
+          ),
+        ])
+      : null
 
   /*
     For NextJS projects, we wrap the direct CMS calls with a `/api`
@@ -117,47 +139,53 @@ const computeUseEffectAST = (params: {
     [types.identifier('params')],
     types.callExpression(
       types.memberExpression(
-        types.callExpression(
-          types.identifier('fetch'),
-          [
-            types.stringLiteral(`/api/${fileName}`),
-            Object.keys(attrs).length > 0
-              ? types.objectExpression([
-                  types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
-                  types.objectProperty(
-                    types.identifier('headers'),
-                    types.objectExpression([
-                      types.objectProperty(
-                        types.stringLiteral('Content-Type'),
-                        types.stringLiteral('application/json')
-                      ),
-                    ])
-                  ),
-                  types.objectProperty(
-                    types.identifier('body'),
-                    types.callExpression(
-                      types.memberExpression(
-                        types.identifier('JSON'),
-                        types.identifier('stringify')
-                      ),
-                      [types.identifier('params')]
-                    )
-                  ),
-                ])
-              : null,
-          ].filter(Boolean)
-        ),
+        node.type === 'cms-item' && itemValuePath.length >= 0
+          ? types.callExpression(
+              types.memberExpression(
+                types.callExpression(
+                  types.identifier('fetch'),
+                  [types.stringLiteral(`/api/${fileName}`), fetchParams].filter(Boolean)
+                ),
+                types.identifier('then')
+              ),
+              [
+                types.arrowFunctionExpression(
+                  [types.identifier('res')],
+                  types.callExpression(
+                    types.memberExpression(types.identifier('res'), types.identifier('json')),
+                    []
+                  )
+                ),
+              ]
+            )
+          : types.callExpression(
+              types.identifier('fetch'),
+              [types.stringLiteral(`/api/${fileName}`), fetchParams].filter(Boolean)
+            ),
         types.identifier('then')
       ),
-      [
-        types.arrowFunctionExpression(
-          [types.identifier('res')],
-          types.callExpression(
-            types.memberExpression(types.identifier('res'), types.identifier('json')),
-            []
-          )
-        ),
-      ]
+      node.type === 'cms-item' && itemValuePath.length >= 0
+        ? [
+            types.arrowFunctionExpression(
+              [types.identifier('data')],
+              types.memberExpression(
+                types.identifier('data'),
+                itemValuePath.length > 0
+                  ? types.identifier((node.content.itemValuePath || []).join('.'))
+                  : types.numericLiteral(0),
+                true
+              )
+            ),
+          ]
+        : [
+            types.arrowFunctionExpression(
+              [types.identifier('res')],
+              types.callExpression(
+                types.memberExpression(types.identifier('res'), types.identifier('json')),
+                []
+              )
+            ),
+          ]
     )
   )
 

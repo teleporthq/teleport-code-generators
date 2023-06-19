@@ -161,6 +161,14 @@ export const createDynamicValueExpression = (
   }
 
   const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
+
+  if (identifierContent?.path) {
+    const expression = [identifierContent.id, ...(identifierContent?.path || [])].join('?.')
+    return prefix === ''
+      ? t.identifier(expression)
+      : t.memberExpression(t.identifier(prefix), t.identifier(expression))
+  }
+
   return prefix === ''
     ? t.identifier(identifierContent.id)
     : t.memberExpression(t.identifier(prefix), t.identifier(identifierContent.id))

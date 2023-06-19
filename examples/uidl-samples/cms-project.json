@@ -37,6 +37,10 @@
         }
       }
     ],
+    "env": {
+      "CMS_URL": "",
+      "CMS_ACCESS_TOKEN": ""
+    },
     "meta": [
       {
         "name": "viewport",
@@ -736,8 +740,8 @@
               "propDefinitions": {
                 "AuthorEntity": {
                   "id": "de101747-8b12-4a5e-86a1-a3fd8124c921",
-                  "defaultValue": [],
-                  "type": "array"
+                  "defaultValue": {},
+                  "type": "object"
                 }
               },
               "stateDefinitions": {},
@@ -873,10 +877,23 @@
                               "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
+                              "attrs": {
+                                  "key": {
+                                    "type": "dynamic",
+                                    "content": {
+                                      "referenceType": "cms",
+                                      "id": "id"
+                                    }
+                                  }
+                              },
                               "style": {
-                                "display": {
+                                "paddingBottom": {
                                   "type": "static",
-                                  "content": "contents"
+                                  "content": "25px"
+                                },
+                                "borderBottom": {
+                                  "type": "static",
+                                  "content": "2px #000 solid"
                                 }
                               },
                               "children": [
@@ -927,6 +944,44 @@
                                       { "type": "dynamic", "content": {
                                         "referenceType": "cms",
                                         "id": "updatedAt"
+                                      }}
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "style": {
+                                        "marginTop": {
+                                          "type": "static",
+                                          "content": "8px"
+                                        },
+                                        "marginBottom": {
+                                          "type": "static",
+                                          "content": "8px"
+                                        }
+                                    },
+                                    "children": [
+                                      { "type": "static", "content": "Written by - "},
+                                      { "type": "dynamic", "content": {
+                                        "referenceType": "cms",
+                                        "id": "author",
+                                        "path": ["name"]
+                                      }}
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "children": [
+                                      { "type": "static", "content": "Author Id - "},
+                                      { "type": "dynamic", "content": {
+                                        "referenceType": "cms",
+                                        "id": "author",
+                                        "path": ["id"]
                                       }}
                                     ]
                                   }
@@ -1148,7 +1203,7 @@
                               "children": [
                                 {
                                   "type": "static",
-                                  "content": "Loading state of the cms-list"
+                                  "content": "Loading state of the list"
                                 }
                               ]
                             }
@@ -1160,7 +1215,7 @@
                               "children": [
                                 {
                                   "type": "static",
-                                  "content": "Error state of the cms-list"
+                                  "content": "Error state of the list"
                                 }
                               ]
                             }
@@ -1172,7 +1227,7 @@
                               "children": [
                                 {
                                   "type": "static",
-                                  "content": "Empty state of the cms-list"
+                                  "content": "Empty state of the list"
                                 }
                               ]
                             }
@@ -1450,14 +1505,94 @@
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "component",
-                              "dependency": {
-                                "type": "local"
-                              },
-                              "semanticType": "AuthorListContent",
+                              "elementType": "container",
+                              "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
-                              "children": []
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "contents"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "20px"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "name" }}
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "description"}}
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                              { "type": "static", "content": "Loading from environment" },
+                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "environment", "path": ["id"] }},
+                                              { "type": "static", "content": "Author Id"},
+                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -1529,14 +1664,87 @@
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "component",
-                              "dependency": {
-                                "type": "local"
-                              },
-                              "semanticType": "AuthorListContent",
+                              "elementType": "container",
+                              "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
-                              "children": []
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "contents"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -1608,14 +1816,108 @@
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "component",
-                              "dependency": {
-                                "type": "local"
-                              },
-                              "semanticType": "BlogPostListContent",
+                              "elementType": "container",
+                              "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
-                              "children": []
+                              "attrs": {
+                                "key": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "cms",
+                                    "id": "id"
+                                  }
+                                }
+                              },
+                              "style": {
+                                "margin": {
+                                  "type": "static",
+                                  "content": "25px"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "start"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            {"type": "dynamic", "content": { "referenceType": "cms", "id": "title" }}
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "shortDescription" }}
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "slug" }}
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -1680,14 +1982,87 @@
                           "success":  {
                             "type": "element",
                             "content": {
-                              "elementType": "component",
-                              "dependency": {
-                                "type": "local"
-                              },
-                              "semanticType": "BlogPostListContent",
+                              "elementType": "container",
+                              "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
-                              "children": []
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "contents"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "alignItems": {
+                                        "type": "static",
+                                        "content": "center"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "h1",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -1766,14 +2141,62 @@
                           "success": {
                             "type": "element",
                             "content": {
-                              "elementType": "component",
-                              "dependency": {
-                                "type": "local"
-                              },
-                              "semanticType": "AuthorDetailsContent",
+                              "elementType": "container",
+                              "semanticType": "div",
                               "referencedStyles": {},
                               "abilities": {},
-                              "children": []
+                              "style": {
+                                "display": {
+                                  "type": "static",
+                                  "content": "contents"
+                                }
+                              },
+                              "children": [
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "semanticType": "div",
+                                    "referencedStyles": {},
+                                    "abilities": {},
+                                    "style": {
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "flexDirection": {
+                                        "type": "static",
+                                        "content": "column"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "text",
+                                          "semanticType": "span",
+                                          "referencedStyles": {},
+                                          "abilities": {},
+                                          "children": [
+                                              { "type": "static", "content": "Loading from environment" },
+                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "environment", "path": ["id"] }},
+                                              { "type": "static", "content": "Author Id"},
+                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -1798,280 +2221,7 @@
       }
     }
   },
-  "components": {
-    "AuthorListContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "alignItems": {
-                    "type": "static",
-                    "content": "center"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "AuthorListContent",
-      "styleSetDefinitions": {}
-    },
-    "BlogPostListContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "alignItems": {
-                    "type": "static",
-                    "content": "center"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "BlogPostListContent",
-      "styleSetDefinitions": {}
-    },
-    "AuthorDetailsContent": {
-      "propDefinitions": {},
-      "stateDefinitions": {},
-      "node": {
-        "type": "element",
-        "content": {
-          "elementType": "container",
-          "semanticType": "div",
-          "referencedStyles": {},
-          "abilities": {},
-          "style": {
-            "display": {
-              "type": "static",
-              "content": "contents"
-            }
-          },
-          "children": [
-            {
-              "type": "element",
-              "content": {
-                "elementType": "container",
-                "semanticType": "div",
-                "referencedStyles": {},
-                "abilities": {},
-                "style": {
-                  "gap": {
-                    "type": "static",
-                    "content": "12px"
-                  },
-                  "width": {
-                    "type": "static",
-                    "content": "100%"
-                  },
-                  "display": {
-                    "type": "static",
-                    "content": "flex"
-                  },
-                  "flexDirection": {
-                    "type": "static",
-                    "content": "column"
-                  }
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "h1",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  },
-                  {
-                    "type": "element",
-                    "content": {
-                      "elementType": "text",
-                      "semanticType": "span",
-                      "referencedStyles": {},
-                      "abilities": {},
-                      "children": [
-
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "name": "AuthorDetailsContent",
-      "styleSetDefinitions": {}
-    }
-  },
+  "components": {},
   "resources": {
     "items": {
       "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9": {

@@ -234,6 +234,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     [
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
+          /* tslint:disable:no-string-literal */
           [types.identifier(options.dynamicReferencePrefixMap['cms'])],
           generateNode(success, params, options)[0] as types.JSXElement
         )
