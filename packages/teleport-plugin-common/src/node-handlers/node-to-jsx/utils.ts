@@ -148,30 +148,29 @@ export const createDynamicValueExpression = (
   t = types
 ) => {
   const identifierContent = identifier.content
+  const { referenceType, path = [], id } = identifierContent
 
   if (
-    identifierContent.referenceType === 'expr' ||
-    identifierContent.referenceType === 'attr' ||
-    identifierContent.referenceType === 'children' ||
-    identifierContent.referenceType === 'token'
+    referenceType === 'expr' ||
+    referenceType === 'attr' ||
+    referenceType === 'children' ||
+    referenceType === 'token'
   ) {
-    throw new Error(
-      `Dynamic reference type "${identifierContent.referenceType}" is not supported yet`
-    )
+    throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)
   }
 
-  const prefix = options.dynamicReferencePrefixMap[identifierContent.referenceType] || ''
+  const prefix = options.dynamicReferencePrefixMap[referenceType] || ''
 
   if (identifierContent?.path) {
-    const expression = [identifierContent.id, ...(identifierContent?.path || [])].join('?.')
+    const expression = [id, ...path].join('?.')
     return prefix === ''
       ? t.identifier(expression)
       : t.memberExpression(t.identifier(prefix), t.identifier(expression))
   }
 
   return prefix === ''
-    ? t.identifier(identifierContent.id)
-    : t.memberExpression(t.identifier(prefix), t.identifier(identifierContent.id))
+    ? t.identifier(id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(id))
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier

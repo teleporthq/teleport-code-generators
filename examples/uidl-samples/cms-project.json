@@ -863,6 +863,21 @@
                   },
                   "children": [
                     {
+                      "type": "element",
+                      "content": {
+                        "elementType": "container",
+                        "style": {
+                          "fontWeight": "bold"
+                        },
+                        "children": [
+                          {
+                            "type": "static",
+                            "content": "Blog posts"
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "cms-list",
                       "content": {
                         "resource": {
@@ -870,7 +885,7 @@
                           "params": {}
                         },
                         "nodes": {
-                          "success":  {
+                          "success": {
                             "type": "element",
                             "content": {
                               "elementType": "container",
@@ -878,13 +893,13 @@
                               "referencedStyles": {},
                               "abilities": {},
                               "attrs": {
-                                  "key": {
-                                    "type": "dynamic",
-                                    "content": {
-                                      "referenceType": "cms",
-                                      "id": "id"
-                                    }
+                                "key": {
+                                  "type": "dynamic",
+                                  "content": {
+                                    "referenceType": "cms",
+                                    "id": "id"
                                   }
+                                }
                               },
                               "style": {
                                 "paddingBottom": {
@@ -900,117 +915,131 @@
                                 {
                                   "type": "element",
                                   "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h3",
-                                    "referencedStyles": {},
-                                    "abilities": {},
+                                    "elementType": "container",
                                     "style": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
                                       "marginTop": {
-                                        "type": "dynamic",
-                                        "content": {
-                                          "referenceType": "token",
-                                          "id": "--dl-space-space-oneandhalfunits"
-                                        }
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "8px"
                                       }
-                                    },
-                                    "children": [
-                                      {
-                                        "type": "dynamic",
-                                        "content": {
-                                          "referenceType": "cms",
-                                          "id": "title",
-                                          "path": ["name"]
-                                        }
-                                      }
-                                    ]
-                                  }
-                                },
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "style": {
-                                        "marginTop": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        },
-                                        "marginBottom": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        }
-                                    },
-                                    "children": [
-                                      { "type": "static", "content": "Updated at"},
-                                      { "type": "dynamic", "content": {
-                                        "referenceType": "cms",
-                                        "id": "updatedAt"
-                                      }}
-                                    ]
-                                  }
-                                },
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "style": {
-                                        "marginTop": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        },
-                                        "marginBottom": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        }
-                                    },
-                                    "children": [
-                                      { "type": "static", "content": "Written by - "},
-                                      { "type": "dynamic", "content": {
-                                        "referenceType": "cms",
-                                        "id": "author",
-                                        "path": ["name"]
-                                      }}
-                                    ]
-                                  }
-                                },
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "children": [
-                                      { "type": "static", "content": "Author Id - "},
-                                      { "type": "dynamic", "content": {
-                                        "referenceType": "cms",
-                                        "id": "author",
-                                        "path": ["id"]
-                                      }}
-                                    ]
-                                  }
-                                },
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "container",
-                                    "style": {
-                                        "marginTop": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        },
-                                        "marginBottom": {
-                                          "type": "static",
-                                          "content": "8px"
-                                        }
                                     },
                                     "children": [
                                       {
                                         "type": "static",
-                                        "content": "Blog id - "
+                                        "content": "Written by - "
                                       },
                                       {
-                                      "type": "dynamic",
-                                      "content": {
-                                        "referenceType": "cms",
-                                        "id": "id"
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "cms",
+                                          "id": "author",
+                                          "path": [
+                                            "name"
+                                          ]
+                                        }
                                       }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "image",
+                                    "style": {
+                                      "margin": {
+                                        "type": "static",
+                                        "content": "12px"
+                                      },
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100px"
+                                      },
+                                      "height": {
+                                        "type": "static",
+                                        "content": "100px"
+                                      }
+                                    },
+                                    "attrs": {
+                                      "src": {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "cms",
+                                          "id": "author",
+                                          "path": [
+                                            "image",
+                                            "url"
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Author Id - "
+                                      },
+                                      {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "cms",
+                                          "id": "author",
+                                          "path": [
+                                            "id"
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "abilities": {
+                                      "link": {
+                                        "type": "navlink",
+                                        "content": {
+                                          "routeName": "blog-post",
+                                          "referenceType": "cms",
+                                          "path": [
+                                            "id"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "style": {
+                                      "marginTop": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Blog id "
+                                      },
+                                      {
+                                        "type": "dynamic",
+                                        "content": {
+                                          "referenceType": "cms",
+                                          "id": "id"
+                                        }
                                       }
                                     ]
                                   }
@@ -1154,7 +1183,7 @@
                                                                 "type": "dynamic",
                                                                 "content": {
                                                                   "referenceType": "cms",
-                                                                    "id": "content"
+                                                                  "id": "content"
                                                                 }
                                                               }
                                                             },
@@ -1290,7 +1319,7 @@
                     {
                       "type": "cms-item",
                       "content": {
-                        "initialData":{
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
@@ -1419,7 +1448,7 @@
                                                     "type": "dynamic",
                                                     "content": {
                                                       "referenceType": "cms",
-                                                        "id": "content"
+                                                      "id": "content"
                                                     }
                                                   }
                                                 },
@@ -1558,7 +1587,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "name" }}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "name"
+                                              }
+                                            }
                                           ]
                                         }
                                       },
@@ -1570,7 +1605,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "description"}}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "description"
+                                              }
+                                            }
                                           ]
                                         }
                                       },
@@ -1582,10 +1623,31 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                              { "type": "static", "content": "Loading from environment" },
-                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "environment", "path": ["id"] }},
-                                              { "type": "static", "content": "Author Id"},
-                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                            {
+                                              "type": "static",
+                                              "content": "Loading from environment"
+                                            },
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "environment",
+                                                "path": [
+                                                  "id"
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "type": "static",
+                                              "content": "Author Id"
+                                            },
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "id"
+                                              }
+                                            }
                                           ]
                                         }
                                       }
@@ -1712,9 +1774,7 @@
                                           "semanticType": "h1",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       },
                                       {
@@ -1724,9 +1784,7 @@
                                           "semanticType": "span",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       },
                                       {
@@ -1736,9 +1794,7 @@
                                           "semanticType": "span",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       }
                                     ]
@@ -1874,7 +1930,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            {"type": "dynamic", "content": { "referenceType": "cms", "id": "title" }}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "title"
+                                              }
+                                            }
                                           ]
                                         }
                                       },
@@ -1886,7 +1948,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "shortDescription" }}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "shortDescription"
+                                              }
+                                            }
                                           ]
                                         }
                                       },
@@ -1898,7 +1966,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "slug" }}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "slug"
+                                              }
+                                            }
                                           ]
                                         }
                                       },
@@ -1910,7 +1984,13 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                            { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "id"
+                                              }
+                                            }
                                           ]
                                         }
                                       }
@@ -1979,7 +2059,7 @@
                       "type": "cms-list",
                       "content": {
                         "nodes": {
-                          "success":  {
+                          "success": {
                             "type": "element",
                             "content": {
                               "elementType": "container",
@@ -2030,9 +2110,7 @@
                                           "semanticType": "h1",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       },
                                       {
@@ -2042,9 +2120,7 @@
                                           "semanticType": "span",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       },
                                       {
@@ -2054,9 +2130,7 @@
                                           "semanticType": "span",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": [
-
-                                          ]
+                                          "children": []
                                         }
                                       }
                                     ]
@@ -2130,7 +2204,7 @@
                     {
                       "type": "cms-item",
                       "content": {
-                        "initialData":{
+                        "initialData": {
                           "type": "dynamic",
                           "content": {
                             "referenceType": "prop",
@@ -2186,10 +2260,31 @@
                                           "referencedStyles": {},
                                           "abilities": {},
                                           "children": [
-                                              { "type": "static", "content": "Loading from environment" },
-                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "environment", "path": ["id"] }},
-                                              { "type": "static", "content": "Author Id"},
-                                              { "type": "dynamic", "content": { "referenceType": "cms", "id": "id" }}
+                                            {
+                                              "type": "static",
+                                              "content": "Loading from environment"
+                                            },
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "environment",
+                                                "path": [
+                                                  "id"
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "type": "static",
+                                              "content": "Author Id"
+                                            },
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "id"
+                                              }
+                                            }
                                           ]
                                         }
                                       }

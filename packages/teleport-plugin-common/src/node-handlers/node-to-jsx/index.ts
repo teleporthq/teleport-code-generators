@@ -87,7 +87,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       switch (attributeValue.type) {
         case 'dynamic':
           const {
-            content: { id, referenceType },
+            content: { id, referenceType, path },
           } = attributeValue
           const prefix =
             options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
@@ -97,7 +97,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
             break
           }
 
-          addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix)
+          addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix, path)
           break
         case 'import':
           addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
@@ -289,6 +289,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     const nodeParams: types.ObjectProperty[] = Object.keys(attrs).reduce(
       (acc: types.ObjectProperty[], attrKey) => {
         const property = attrs[attrKey]
+
         if (property.type === 'static') {
           acc.push(types.objectProperty(types.identifier(attrKey), resolveObjectValue(property)))
         }
@@ -299,14 +300,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
               acc.push(
                 types.objectProperty(
                   types.identifier(attrKey),
-                  options.dynamicReferencePrefixMap[property.content.referenceType]
-                    ? types.memberExpression(
-                        types.identifier(
-                          options.dynamicReferencePrefixMap[property.content.referenceType]
-                        ),
-                        types.identifier(property.content.id)
-                      )
-                    : types.identifier(property.content.id)
+                  createDynamicValueExpression(property, options)
                 )
               )
               break

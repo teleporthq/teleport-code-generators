@@ -472,8 +472,9 @@ export interface UIDLSectionLinkNode {
 
 export interface UIDLNavLinkNode {
   type: 'navlink'
-  content: { routeName: string }
+  content: { routeName: string; path?: string[]; referenceType?: ReferenceType }
 }
+
 export interface UIDLMailLinkNode {
   type: 'mail'
   content: {

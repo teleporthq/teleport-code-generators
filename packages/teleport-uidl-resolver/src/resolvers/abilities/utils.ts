@@ -34,6 +34,46 @@ export const insertLinks = (
       child.content.fallback = insertLinks(child.content.fallback, options, linkInNode, node)
     }
 
+    if (child.type === 'cms-list') {
+      const {
+        nodes: { success, error, empty, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (empty) {
+        insertLinks(empty, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-item') {
+      const {
+        nodes: { success, error, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
     return child
   })
 
@@ -147,6 +187,23 @@ const createLinkAttributes = (
       }
 
     case 'navlink': {
+      /*
+        In projects we need a to support routes with dynamic attributes to it.
+        Example `/blog-post/${item.id}`\
+
+        Where, /blog-post is a static value but the other values are dynamic.
+      */
+      if (link.content?.path && link.content.referenceType === 'cms') {
+        const content = `/${link.content.routeName}/\${item.${link.content.path.join('?.')}\}`
+
+        return {
+          transitionTo: {
+            type: 'raw',
+            content,
+          },
+        }
+      }
+
       return {
         transitionTo: {
           type: 'static',

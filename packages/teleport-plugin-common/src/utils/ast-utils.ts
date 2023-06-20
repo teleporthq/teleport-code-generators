@@ -93,24 +93,20 @@ const getClassAttribute = (
 
 /**
  * Makes `${name}={${prefix}.${value}}` happen in AST
- * doesn't handle ctx or expr referenceType
  */
 export const addDynamicAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
   value: string,
   prefix: string = '',
+  path: string[] = [],
   t = types
 ) => {
-  // TODO: Fix  !!
-  if (!value) {
-    return
-  }
-
+  const attrValue = [value, ...path].join('?.')
   const content =
     prefix === ''
-      ? t.identifier(value)
-      : t.memberExpression(t.identifier(prefix), t.identifier(value))
+      ? t.identifier(attrValue)
+      : t.memberExpression(t.identifier(prefix), t.identifier(attrValue))
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
