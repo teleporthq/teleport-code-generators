@@ -865,14 +865,41 @@
                     {
                       "type": "element",
                       "content": {
-                        "elementType": "container",
+                        "elementType": "b",
                         "style": {
-                          "fontWeight": "bold"
+                          "width": {
+                            "type": "static",
+                            "content": "100%"
+                          },
+                          "marginTop": {
+                            "type": "static",
+                            "content": "8px"
+                          },
+                          "marginBottom": {
+                            "type": "static",
+                            "content": "8px"
+                          },
+                          "border": {
+                            "type": "static",
+                            "content": "1px solid #000"
+                          },
+                          "padding": {
+                            "type": "static",
+                            "content": "8px"
+                          }
+                        },
+                        "abilities": {
+                          "link": {
+                            "type": "navlink",
+                            "content": {
+                              "routeName": "/blog-post"
+                            }
+                          }
                         },
                         "children": [
                           {
                             "type": "static",
-                            "content": "Blog posts"
+                            "content": "Blog posts (static url)"
                           }
                         ]
                       }
@@ -928,20 +955,36 @@
                                       "marginBottom": {
                                         "type": "static",
                                         "content": "8px"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "1px solid #000"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "8px"
                                       }
                                     },
                                     "children": [
                                       {
                                         "type": "static",
-                                        "content": "Written by - "
+                                        "content": "Loading author name from a nested object {item.author.name}. \n Blog is written by"
                                       },
                                       {
-                                        "type": "dynamic",
+                                        "type": "element",
                                         "content": {
-                                          "referenceType": "cms",
-                                          "id": "author",
-                                          "path": [
-                                            "name"
+                                          "elementType": "b",
+                                          "children": [
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "author",
+                                                "path": [
+                                                  "name"
+                                                ]
+                                              }
+                                            }
                                           ]
                                         }
                                       }
@@ -951,52 +994,190 @@
                                 {
                                   "type": "element",
                                   "content": {
-                                    "elementType": "image",
+                                    "elementType": "container",
                                     "style": {
-                                      "margin": {
-                                        "type": "static",
-                                        "content": "12px"
-                                      },
                                       "width": {
                                         "type": "static",
-                                        "content": "100px"
+                                        "content": "100%"
                                       },
-                                      "height": {
+                                      "marginTop": {
                                         "type": "static",
-                                        "content": "100px"
+                                        "content": "8px"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "1px solid #000"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "8px"
                                       }
                                     },
-                                    "attrs": {
-                                      "src": {
-                                        "type": "dynamic",
+                                    "children": [
+                                      {
+                                        "type": "element",
                                         "content": {
-                                          "referenceType": "cms",
-                                          "id": "author",
-                                          "path": [
-                                            "image",
-                                            "url"
+                                          "elementType": "container",
+                                          "abilities": {
+                                            "link": {
+                                              "type": "url",
+                                              "content": {
+                                                "url": {
+                                                  "type": "dynamic",
+                                                  "content": {
+                                                    "referenceType": "cms",
+                                                    "id": "author",
+                                                    "path": [
+                                                      "image",
+                                                      "url"
+                                                    ]
+                                                  }
+                                                },
+                                                "newTab": true
+                                              }
+                                            }
+                                          },
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": "Click here to open a new tab with dynamic url"
+                                            }
                                           ]
                                         }
                                       }
-                                    }
+                                    ]
                                   }
                                 },
                                 {
                                   "type": "element",
                                   "content": {
                                     "elementType": "container",
+                                    "style": {
+                                      "marginTop": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "1px solid #000"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      }
+                                    },
                                     "children": [
                                       {
                                         "type": "static",
-                                        "content": "Author Id - "
+                                        "content": "Loading image from remote CMS URL"
                                       },
                                       {
-                                        "type": "dynamic",
+                                        "type": "element",
                                         "content": {
+                                          "elementType": "image",
+                                          "style": {
+                                            "margin": {
+                                              "type": "static",
+                                              "content": "12px"
+                                            },
+                                            "width": {
+                                              "type": "static",
+                                              "content": "100px"
+                                            },
+                                            "height": {
+                                              "type": "static",
+                                              "content": "100px"
+                                            }
+                                          },
+                                          "attrs": {
+                                            "src": {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "author",
+                                                "path": [
+                                                  "image",
+                                                  "url"
+                                                ]
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "element",
+                                  "content": {
+                                    "elementType": "container",
+                                    "abilities": {
+                                      "link": {
+                                        "type": "navlink",
+                                        "content": {
+                                          "routeName": "blog-post",
                                           "referenceType": "cms",
-                                          "id": "author",
                                           "path": [
                                             "id"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "style": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
+                                      "marginTop": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "marginBottom": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "1px solid #000"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      },
+                                      "display": {
+                                        "type": "static",
+                                        "content": "flex"
+                                      },
+                                      "gap": {
+                                        "type": "static",
+                                        "content": "8px"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "static",
+                                        "content": "Click on the blog id, to redirect to a new dynamic path in the blog"
+                                      },
+                                      {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "b",
+                                          "children": [
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "id": "id"
+                                              }
+                                            }
                                           ]
                                         }
                                       }
@@ -1020,6 +1201,10 @@
                                       }
                                     },
                                     "style": {
+                                      "width": {
+                                        "type": "static",
+                                        "content": "100%"
+                                      },
                                       "marginTop": {
                                         "type": "static",
                                         "content": "8px"
@@ -1027,171 +1212,46 @@
                                       "marginBottom": {
                                         "type": "static",
                                         "content": "8px"
+                                      },
+                                      "border": {
+                                        "type": "static",
+                                        "content": "1px solid #000"
+                                      },
+                                      "padding": {
+                                        "type": "static",
+                                        "content": "8px"
                                       }
                                     },
                                     "children": [
                                       {
-                                        "type": "static",
-                                        "content": "Blog id "
-                                      },
-                                      {
-                                        "type": "dynamic",
-                                        "content": {
-                                          "referenceType": "cms",
-                                          "id": "id"
-                                        }
-                                      }
-                                    ]
-                                  }
-                                },
-                                {
-                                  "type": "cms-item",
-                                  "content": {
-                                    "attrs": {
-                                      "id": {
-                                        "type": "dynamic",
-                                        "content": {
-                                          "referenceType": "cms",
-                                          "id": "id"
-                                        }
-                                      }
-                                    },
-                                    "resource": {
-                                      "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
-                                      "params": {}
-                                    },
-                                    "itemValuePath": [],
-                                    "nodes": {
-                                      "success": {
                                         "type": "element",
                                         "content": {
                                           "elementType": "container",
-                                          "semanticType": "div",
-                                          "referencedStyles": {},
-                                          "abilities": {},
                                           "style": {
                                             "display": {
                                               "type": "static",
-                                              "content": "contents"
+                                              "content": "flex"
+                                            },
+                                            "gap": {
+                                              "type": "static",
+                                              "content": "8px"
                                             }
                                           },
                                           "children": [
                                             {
+                                              "type": "static",
+                                              "content": "Loading the full blog-post content using blog id "
+                                            },
+                                            {
                                               "type": "element",
                                               "content": {
-                                                "elementType": "container",
-                                                "semanticType": "div",
-                                                "referencedStyles": {},
-                                                "abilities": {},
-                                                "style": {
-                                                  "gap": {
-                                                    "type": "static",
-                                                    "content": "12px"
-                                                  },
-                                                  "width": {
-                                                    "type": "static",
-                                                    "content": "100%"
-                                                  },
-                                                  "display": {
-                                                    "type": "static",
-                                                    "content": "flex"
-                                                  },
-                                                  "flexDirection": {
-                                                    "type": "static",
-                                                    "content": "column"
-                                                  }
-                                                },
+                                                "elementType": "b",
                                                 "children": [
                                                   {
-                                                    "type": "element",
+                                                    "type": "dynamic",
                                                     "content": {
-                                                      "elementType": "text",
-                                                      "semanticType": "h1",
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "children": [
-                                                        {
-                                                          "type": "dynamic",
-                                                          "content": {
-                                                            "referenceType": "cms",
-                                                            "id": "title"
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "type": "element",
-                                                    "content": {
-                                                      "elementType": "text",
-                                                      "semanticType": "span",
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "children": [
-                                                        {
-                                                          "type": "dynamic",
-                                                          "content": {
-                                                            "referenceType": "cms",
-                                                            "id": "category"
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "type": "element",
-                                                    "content": {
-                                                      "elementType": "text",
-                                                      "semanticType": "span",
-                                                      "referencedStyles": {},
-                                                      "abilities": {},
-                                                      "children": [
-                                                        {
-                                                          "type": "dynamic",
-                                                          "content": {
-                                                            "referenceType": "cms",
-                                                            "id": "shortDescription"
-                                                          }
-                                                        }
-                                                      ]
-                                                    }
-                                                  },
-                                                  {
-                                                    "type": "element",
-                                                    "content": {
-                                                      "elementType": "container",
-                                                      "semanticType": "div",
-                                                      "referencedStyles": {},
-                                                      "style": {
-                                                        "width": {
-                                                          "type": "static",
-                                                          "content": "100%"
-                                                        },
-                                                        "alignSelf": {
-                                                          "type": "static",
-                                                          "content": "stretch"
-                                                        }
-                                                      },
-                                                      "children": [
-                                                        {
-                                                          "type": "element",
-                                                          "content": {
-                                                            "elementType": "contentful-richtext-node",
-                                                            "referencedStyles": {},
-                                                            "attrs": {
-                                                              "richText": {
-                                                                "type": "dynamic",
-                                                                "content": {
-                                                                  "referenceType": "cms",
-                                                                  "id": "content"
-                                                                }
-                                                              }
-                                                            },
-                                                            "style": {},
-                                                            "children": []
-                                                          }
-                                                        }
-                                                      ]
+                                                      "referenceType": "cms",
+                                                      "id": "id"
                                                     }
                                                   }
                                                 ]
@@ -1200,26 +1260,185 @@
                                           ]
                                         }
                                       },
-                                      "loading": {
-                                        "type": "element",
+                                      {
+                                        "type": "cms-item",
                                         "content": {
-                                          "elementType": "container",
-                                          "children": [
-                                            {
-                                              "type": "static",
-                                              "content": "Loading blog-post for"
-                                            },
-                                            {
+                                          "attrs": {
+                                            "id": {
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
                                                 "id": "id"
                                               }
                                             }
-                                          ]
+                                          },
+                                          "resource": {
+                                            "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
+                                            "params": {}
+                                          },
+                                          "itemValuePath": [],
+                                          "nodes": {
+                                            "success": {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                  "display": {
+                                                    "type": "static",
+                                                    "content": "contents"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "element",
+                                                    "content": {
+                                                      "elementType": "container",
+                                                      "semanticType": "div",
+                                                      "referencedStyles": {},
+                                                      "abilities": {},
+                                                      "style": {
+                                                        "gap": {
+                                                          "type": "static",
+                                                          "content": "12px"
+                                                        },
+                                                        "width": {
+                                                          "type": "static",
+                                                          "content": "100%"
+                                                        },
+                                                        "display": {
+                                                          "type": "static",
+                                                          "content": "flex"
+                                                        },
+                                                        "flexDirection": {
+                                                          "type": "static",
+                                                          "content": "column"
+                                                        }
+                                                      },
+                                                      "children": [
+                                                        {
+                                                          "type": "element",
+                                                          "content": {
+                                                            "elementType": "text",
+                                                            "semanticType": "h1",
+                                                            "referencedStyles": {},
+                                                            "abilities": {},
+                                                            "children": [
+                                                              {
+                                                                "type": "dynamic",
+                                                                "content": {
+                                                                  "referenceType": "cms",
+                                                                  "id": "title"
+                                                                }
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        {
+                                                          "type": "element",
+                                                          "content": {
+                                                            "elementType": "text",
+                                                            "semanticType": "span",
+                                                            "referencedStyles": {},
+                                                            "abilities": {},
+                                                            "children": [
+                                                              {
+                                                                "type": "dynamic",
+                                                                "content": {
+                                                                  "referenceType": "cms",
+                                                                  "id": "category"
+                                                                }
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        {
+                                                          "type": "element",
+                                                          "content": {
+                                                            "elementType": "text",
+                                                            "semanticType": "span",
+                                                            "referencedStyles": {},
+                                                            "abilities": {},
+                                                            "children": [
+                                                              {
+                                                                "type": "dynamic",
+                                                                "content": {
+                                                                  "referenceType": "cms",
+                                                                  "id": "shortDescription"
+                                                                }
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        {
+                                                          "type": "element",
+                                                          "content": {
+                                                            "elementType": "container",
+                                                            "semanticType": "div",
+                                                            "referencedStyles": {},
+                                                            "style": {
+                                                              "width": {
+                                                                "type": "static",
+                                                                "content": "100%"
+                                                              },
+                                                              "alignSelf": {
+                                                                "type": "static",
+                                                                "content": "stretch"
+                                                              }
+                                                            },
+                                                            "children": [
+                                                              {
+                                                                "type": "element",
+                                                                "content": {
+                                                                  "elementType": "contentful-richtext-node",
+                                                                  "referencedStyles": {},
+                                                                  "attrs": {
+                                                                    "richText": {
+                                                                      "type": "dynamic",
+                                                                      "content": {
+                                                                        "referenceType": "cms",
+                                                                        "id": "content"
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "style": {},
+                                                                  "children": []
+                                                                }
+                                                              }
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "loading": {
+                                              "type": "element",
+                                              "content": {
+                                                "elementType": "container",
+                                                "children": [
+                                                  {
+                                                    "type": "static",
+                                                    "content": "Loading blog-post for"
+                                                  },
+                                                  {
+                                                    "type": "dynamic",
+                                                    "content": {
+                                                      "referenceType": "cms",
+                                                      "id": "id"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          }
                                         }
                                       }
-                                    }
+                                    ]
                                   }
                                 }
                               ]
