@@ -52,19 +52,29 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
       }
 
-      /**
-       * TODO: @JK Loading and error states should not be set,
-       * If the users didn't mention any load anf error states in UIDL.
-       */
+      /*
+        Identifier that imports the module.
+        import '...' from 'resoruce'
+      */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
         StringUtils.camelize(`${content.statePersistanceName}-reource`)
       )
+
+      /*
+        Idenfitier that points to the actual resource path
+        import resoruce from '....'
+      */
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
+
+      /*
+        Identifier that defines the route name and the file name.
+        Because each file name defines a individual API
+      */
       const resourceFileName = StringUtils.camelCaseToDashCase(
-        `${resourceImportVariable}-${usedResource.name}`
+        `${resourceImportVariable}-${importName}`
       )
 
-      files.set(resourceImportVariable, {
+      files.set(resourceFileName, {
         files: [
           {
             name: resourceFileName,
