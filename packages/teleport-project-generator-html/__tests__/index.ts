@@ -20,7 +20,7 @@ describe('Passes the rootClass which using the component', () => {
       (file) => file.name === 'index' && file.fileType === FileType.HTML
     )
     const styleFile = result.files.find(
-      (file) => file.name === 'landing-page' && file.fileType === FileType.CSS
+      (file) => file.name === 'index' && file.fileType === FileType.CSS
     )
 
     expect(mainFile).toBeDefined()
@@ -41,7 +41,7 @@ describe('Image Resolution', () => {
     })
     const { files } = await generator.generateProject(uidlWithImages)
 
-    const mainCSS = files.find((file) => file.name === 'home' && file.fileType === FileType.CSS)
+    const mainCSS = files.find((file) => file.name === 'index' && file.fileType === FileType.CSS)
     const indexFile = files.find((file) => file.name === 'index' && file.fileType === FileType.HTML)
 
     expect(indexFile).toBeDefined()

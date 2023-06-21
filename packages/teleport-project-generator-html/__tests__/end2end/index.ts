@@ -73,7 +73,7 @@ describe('Unwinds the slot inside the component when used in page', () => {
       (file) => file.name === 'index' && file.fileType === FileType.HTML
     )
     const cssFile = result.files.find(
-      (file) => file.name === 'home' && file.fileType === FileType.CSS
+      (file) => file.name === 'index' && file.fileType === FileType.CSS
     )
 
     expect(indexFile).toBeDefined()
