@@ -60,12 +60,14 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         StringUtils.camelize(`${content.statePersistanceName}-reource`)
       )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-      const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
+      const resourceFileName = StringUtils.camelCaseToDashCase(
+        `${resourceImportVariable}-${usedResource.name}`
+      )
 
       files.set(resourceImportVariable, {
         files: [
           {
-            name: resouceFileName,
+            name: resourceFileName,
             fileType: FileType.JS,
             content: `import ${resourceImportVariable} from '../../resources/${importName}'
 
@@ -84,7 +86,7 @@ export default async function handler(req, res) {
       })
 
       const useEffectCall = computeUseEffectAST({
-        resource: resouceFileName,
+        resource: resourceFileName,
         node: node as UIDLCMSItemNode | UIDLCMSListNode,
       })
 
