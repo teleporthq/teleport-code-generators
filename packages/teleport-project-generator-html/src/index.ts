@@ -20,6 +20,9 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
     pages: {
       generator: createHTMLComponentGenerator,
       path: [''],
+      options: {
+        useFileNameForNavigation: true,
+      },
     },
     static: {
       prefix: 'public',
