@@ -8,6 +8,7 @@ import {
   UIDLCMSListNode,
   UIDLCMSListNodeContent,
   UIDLNode,
+  UIDLPropDefinition,
 } from '@teleporthq/teleport-types'
 import { Constants, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
@@ -21,6 +22,7 @@ interface ContextPluginConfig {
 interface ComputeUseEffectParams {
   resource: string
   node: UIDLCMSItemNode | UIDLCMSListNode
+  propDefinitions: Record<string, UIDLPropDefinition>
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
@@ -36,6 +38,8 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
     if (!componentChunk) {
       return structure
     }
+
+    let routerAdded = false
 
     UIDLUtils.traverseNodes(uidl.node, (node) => {
       const { type } = node as UIDLNode
@@ -57,7 +61,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
        * If the users didn't mention any load anf error states in UIDL.
        */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
-        StringUtils.camelize(`${content.statePersistanceName}-reource`)
+        StringUtils.camelize(`${content.statePersistanceName}-resource`)
       )
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resourceFileName = StringUtils.camelCaseToDashCase(
@@ -88,6 +92,7 @@ export default async function handler(req, res) {
       const useEffectCall = computeUseEffectAST({
         resource: resourceFileName,
         node: node as UIDLCMSItemNode | UIDLCMSListNode,
+        propDefinitions: uidl.propDefinitions,
       })
 
       try {
@@ -99,6 +104,18 @@ export default async function handler(req, res) {
 
         const indexToAddAt = returnStatementIndex !== -1 ? returnStatementIndex : 0
         astBody.splice(indexToAddAt, 0, useEffectCall)
+
+        if (!routerAdded && node.type === 'cms-list' && node.content.paginationQueryParam) {
+          dependencies.useRouter = Constants.USE_ROUTER_DEPENDENCY
+          const routerImport = types.variableDeclaration('const', [
+            types.variableDeclarator(
+              types.identifier('router'),
+              types.callExpression(types.identifier('useRouter'), [])
+            ),
+          ])
+          astBody.splice(indexToAddAt, 0, routerImport)
+          routerAdded = true
+        }
 
         dependencies.useEffect = Constants.USE_EFFECT_DEPENDENCY
         dependencies.useState = Constants.USE_STATE_DEPENDENCY
@@ -114,7 +131,7 @@ export default async function handler(req, res) {
 }
 
 const computeUseEffectAST = (params: ComputeUseEffectParams) => {
-  const { resource, node } = params
+  const { resource, node, propDefinitions } = params
   const { statePersistanceName } = node.content
   const setStateName = StringUtils.createStateStoringFunction(statePersistanceName)
 
@@ -283,10 +300,59 @@ const computeUseEffectAST = (params: ComputeUseEffectParams) => {
     ])
   )
 
+  const useEffectDependency = resolveEffectPaginationDependency(node, propDefinitions)
+
   return types.callExpression(types.identifier('useEffect'), [
     resourceFetchAST,
-    types.arrayExpression([]),
+    types.arrayExpression(useEffectDependency),
   ])
+}
+
+const resolveEffectPaginationDependency = (
+  node: UIDLCMSItemNode | UIDLCMSListNode,
+  propDefinitions: Record<string, UIDLPropDefinition>
+): types.Expression[] => {
+  if (node.type !== 'cms-list' || !node.content.paginationQueryParam) {
+    return []
+  }
+
+  if (
+    node.content.paginationQueryParam.type === 'static' ||
+    typeof node.content.paginationQueryParam.content === 'string'
+  ) {
+    return [
+      types.memberExpression(
+        types.memberExpression(types.identifier('router'), types.identifier('query')),
+        types.stringLiteral(node.content.paginationQueryParam.content.toString()),
+        true,
+        true
+      ),
+    ]
+  }
+
+  if (
+    node.content.paginationQueryParam.content.id &&
+    node.content.paginationQueryParam.content.referenceType === 'prop'
+  ) {
+    const prop = Object.keys(propDefinitions).find(
+      (propName) =>
+        node.content.paginationQueryParam.type === 'dynamic' &&
+        propDefinitions[propName].id === node.content.paginationQueryParam.content.id
+    )
+
+    if (prop) {
+      return [
+        types.memberExpression(
+          types.memberExpression(types.identifier('router'), types.identifier('query')),
+          types.identifier(`props['${prop}']`),
+          true,
+          true
+        ),
+      ]
+    }
+  }
+
+  return []
 }
 
 export default createNextComponentInlineFetchPlugin()

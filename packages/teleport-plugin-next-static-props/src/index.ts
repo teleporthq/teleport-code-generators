@@ -36,7 +36,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     }
 
     const resourceImportName = StringUtils.dashCaseToCamelCase(
-      StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
+      StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
     )
 
     const getStaticPropsAST = generateInitialPropsAST(
