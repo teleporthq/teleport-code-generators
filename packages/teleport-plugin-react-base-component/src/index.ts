@@ -65,7 +65,6 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
         prop: 'props',
         state: '',
         local: '',
-        cms: 'item',
       },
       dependencyHandling: 'import',
       stateHandling: 'hooks',

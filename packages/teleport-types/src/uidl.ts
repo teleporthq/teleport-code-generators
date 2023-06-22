@@ -141,12 +141,6 @@ export type UIDLGlobalAsset =
   | UIDLCanonicalAsset
   | UIDLIconAsset
 
-export type ResourceUrlValues =
-  | Array<UIDLStaticValue | UIDLDynamicReference>
-  | UIDLStaticValue
-  | UIDLDynamicReference
-  | UIDLExpressionValue
-
 export interface ComponentUIDL {
   name: string
   node: UIDLElementNode
@@ -252,24 +246,23 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType =
-  | 'prop'
-  | 'state'
-  | 'local'
-  | 'attr'
-  | 'children'
-  | 'token'
-  | 'expr'
-  | 'cms'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
     path?: string[]
-    id: string
     expression?: string
-    scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
+    id: string
+  }
+}
+
+export interface UIDLCMSReference {
+  type: 'dynamic'
+  content: {
+    referenceType: 'cms'
+    path: string[]
   }
 }
 
@@ -292,7 +285,7 @@ export interface UIDLSlotNode {
   type: 'slot'
   content: {
     name?: string
-    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
+    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLCMSReference
   }
 }
 
@@ -329,6 +322,7 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
+  loopReferenceItem: string
   valuePath?: string[]
   itemValuePath?: string[]
   resource?: UIDLResourceLink
@@ -339,6 +333,7 @@ export interface UIDLCMSItemNodeContent {
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
+  loopReferenceItem: string
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -416,6 +411,7 @@ export interface UIDLElement {
 }
 
 export type UIDLNode =
+  | UIDLCMSReference
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
@@ -433,6 +429,7 @@ export interface UIDLComponentStyleReference {
 }
 
 export type UIDLAttributeValue =
+  | UIDLCMSReference
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLImportReference
@@ -463,7 +460,7 @@ export interface UIDLURLLinkNode {
 // for now only links will have this express
 // type for dynamic content, but in the future
 // all dynamic content will be handled this way
-export type UIDLDynamicLinkNode = UIDLDynamicReference
+export type UIDLDynamicLinkNode = UIDLDynamicReference | UIDLCMSReference
 
 export interface UIDLSectionLinkNode {
   type: 'section'
@@ -472,7 +469,11 @@ export interface UIDLSectionLinkNode {
 
 export interface UIDLNavLinkNode {
   type: 'navlink'
-  content: { routeName: string; path?: string[]; referenceType?: ReferenceType }
+  content: {
+    routeName: string
+    path?: string[]
+    referenceType?: UIDLCMSReference['content']['referenceType']
+  }
 }
 
 export interface UIDLMailLinkNode {

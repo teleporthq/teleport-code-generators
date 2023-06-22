@@ -87,17 +87,33 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       switch (attributeValue.type) {
         case 'dynamic':
           const {
-            content: { id, referenceType, path },
+            content: { referenceType, path },
           } = attributeValue
-          const prefix =
-            options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
 
-          if (referenceType === 'expr') {
-            addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue)
-            break
+          switch (referenceType) {
+            case 'cms':
+              addDynamicAttributeToJSXTag(elementTag, attrKey, '', '', path)
+              break
+
+            case 'expr':
+              addDynamicExpressionAttributeToJSXTag(
+                elementTag,
+                attributeValue as UIDLDynamicReference
+              )
+              break
+            default:
+              const prefix =
+                options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
+              addDynamicAttributeToJSXTag(
+                elementTag,
+                attrKey,
+                (attributeValue as UIDLDynamicReference).content.id,
+                prefix,
+                path
+              )
+
+              break
           }
-
-          addDynamicAttributeToJSXTag(elementTag, attrKey, id, prefix, path)
           break
         case 'import':
           addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
@@ -197,7 +213,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   params,
   options
 ) => {
-  const { initialData, key, attrs } = node.content
+  const { initialData, key, attrs, loopReferenceItem } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
@@ -235,7 +251,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
           /* tslint:disable:no-string-literal */
-          [types.identifier(options.dynamicReferencePrefixMap['cms'])],
+          [types.identifier(loopReferenceItem)],
           generateNode(success, params, options)[0] as types.JSXElement
         )
       ),

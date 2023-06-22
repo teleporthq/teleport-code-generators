@@ -17,6 +17,7 @@ import {
   UIDLStyleValue,
   GeneratorOptions,
   UIDLRouteDefinitions,
+  UIDLCMSReference,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
@@ -336,12 +337,18 @@ const generateComponentContent = async (
   return compTag
 }
 
-const generateDynamicNode: NodeToHTML<UIDLDynamicReference, HastNode> = (
+const generateDynamicNode: NodeToHTML<UIDLDynamicReference | UIDLCMSReference, HastNode> = (
   node,
   _,
   propDefinitions,
   stateDefinitions
 ) => {
+  if (node.content.referenceType === 'cms') {
+    throw new Error(
+      `CMS projects are not supported in HTML, received ${JSON.stringify(node, null, 2)}`
+    )
+  }
+
   const spanTag = HASTBuilders.createHTMLNode('span')
   const usedReferenceValue =
     node.content.referenceType === 'prop'
@@ -399,7 +406,7 @@ const handleAttributes = (
       return
     }
 
-    if (attrValue.type === 'dynamic') {
+    if (attrValue.type === 'dynamic' && attrValue.content.referenceType !== 'cms') {
       const value =
         attrValue.content.referenceType === 'prop'
           ? getValueFromReference(attrValue.content.id, propDefinitions)

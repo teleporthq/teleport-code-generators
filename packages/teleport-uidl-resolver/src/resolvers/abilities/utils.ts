@@ -194,7 +194,7 @@ const createLinkAttributes = (
         Where, /blog-post is a static value but the other values are dynamic.
       */
       if (link.content?.path && link.content.referenceType === 'cms') {
-        const content = `/${link.content.routeName}/\${item.${link.content.path.join('?.')}\}`
+        const content = `/${link.content.routeName}/\${${link.content.path.join('?.')}\}`
 
         return {
           transitionTo: {

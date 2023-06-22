@@ -102,7 +102,8 @@ export const addDynamicAttributeToJSXTag = (
   path: string[] = [],
   t = types
 ) => {
-  const attrValue = [value, ...path].join('?.')
+  const values = [value, ...path].filter((item) => item !== '')
+  const attrValue = values.length === 1 ? values[0] : values.join('?.')
   const content =
     prefix === ''
       ? t.identifier(attrValue)

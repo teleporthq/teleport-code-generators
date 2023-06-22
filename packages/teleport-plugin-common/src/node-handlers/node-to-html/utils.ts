@@ -7,6 +7,7 @@ import {
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
   UIDLElementNode,
+  UIDLDynamicReference,
 } from '@teleporthq/teleport-types'
 import { HTMLTemplateGenerationParams, HTMLTemplateSyntax } from './types'
 
@@ -24,7 +25,16 @@ export const handleAttribute = (
   switch (attrValue.type) {
     case 'dynamic':
     case 'import':
-      hastUtils.addAttributeToNode(htmlNode, dynamicAttrKey, attrValue.content.id)
+      if (attrValue.type === 'dynamic' && attrValue.content.referenceType === 'cms') {
+        throw new Error(
+          `CMS projects are not supported yet, recevied ${JSON.stringify(attrValue, null, 2)}`
+        )
+      }
+      hastUtils.addAttributeToNode(
+        htmlNode,
+        dynamicAttrKey,
+        (attrValue as UIDLDynamicReference).content.id
+      )
       break
     case 'comp-style':
       hastUtils.addAttributeToNode(

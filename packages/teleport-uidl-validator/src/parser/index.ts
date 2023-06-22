@@ -23,6 +23,7 @@ import {
   UIDLURLLinkNode,
   UIDLCMSItemNode,
   UIDLCMSListNode,
+  UIDLCMSReference,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -324,7 +325,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         slotNode.content.fallback = parseComponentNode(
           slotNode.content.fallback as unknown as Record<string, unknown>,
           component
-        ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
+        ) as UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLCMSReference
       }
 
       return slotNode

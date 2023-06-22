@@ -17,6 +17,7 @@ import {
   UIDLRawValue,
   UIDLReferencedStyles,
   UIDLElement,
+  UIDLCMSReference,
 } from '@teleporthq/teleport-types'
 
 export const component = (
@@ -131,7 +132,7 @@ export const dynamicNode = (referenceType: ReferenceType, id: string): UIDLDynam
 }
 
 export const slotNode = (
-  fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference,
+  fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLCMSReference,
   name?: string
 ): UIDLSlotNode => {
   return {
@@ -160,7 +161,7 @@ export const conditionalNode = (
 
 export const repeatNode = (
   node: UIDLElementNode,
-  dataSource: UIDLAttributeValue,
+  dataSource: UIDLDynamicReference | UIDLStaticValue | UIDLRawValue,
   meta?: Record<string, unknown>
 ): UIDLRepeatNode => {
   return {
