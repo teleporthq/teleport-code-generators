@@ -37,10 +37,6 @@
         }
       }
     ],
-    "env": {
-      "CMS_URL": "",
-      "CMS_ACCESS_TOKEN": ""
-    },
     "meta": [
       {
         "name": "viewport",
@@ -1643,7 +1639,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["title"]
+                                                "path": ["blogPostEntity", "title"]
                                               }
                                             }
                                           ]
@@ -1661,7 +1657,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["category"]
+                                                "path": ["blogPostEntity", "category"]
                                               }
                                             }
                                           ]
@@ -1679,7 +1675,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["shortDescription"]
+                                                "path": ["blogPostEntity", "shortDescription"]
                                               }
                                             }
                                           ]
@@ -1712,7 +1708,7 @@
                                                     "type": "dynamic",
                                                     "content": {
                                                       "referenceType": "cms",
-                                                      "path": ["content"]
+                                                      "path": ["blogPostEntity", "content"]
                                                     }
                                                   }
                                                 },
@@ -2148,7 +2144,7 @@
                                   "type": "dynamic",
                                   "content": {
                                     "referenceType": "cms",
-                                    "path": ["id"]
+                                    "path": ["itemFour", "id"]
                                   }
                                 }
                               },
@@ -2201,7 +2197,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["title"]
+                                                "path": ["itemFour","title"]
                                               }
                                             }
                                           ]
@@ -2219,7 +2215,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["shortDescription"]
+                                                "path": ["itemFour", "shortDescription"]
                                               }
                                             }
                                           ]
@@ -2237,7 +2233,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["slug"]
+                                                "path": ["itemFour", "slug"]
                                               }
                                             }
                                           ]
@@ -2255,7 +2251,7 @@
                                               "type": "dynamic",
                                               "content": {
                                                 "referenceType": "cms",
-                                                "path": ["id"]
+                                                "path": ["itemFour", "id"]
                                               }
                                             }
                                           ]
@@ -2378,7 +2374,15 @@
                                           "semanticType": "h1",
                                           "referencedStyles": {},
                                           "abilities": {},
-                                          "children": []
+                                          "children": [
+                                            {
+                                              "type": "dynamic",
+                                              "content": {
+                                                "referenceType": "cms",
+                                                "path": ["itemFive", "title"]
+                                              }
+                                            }
+                                          ]
                                         }
                                       },
                                       {
