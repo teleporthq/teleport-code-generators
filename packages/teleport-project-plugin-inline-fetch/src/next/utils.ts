@@ -49,9 +49,18 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
       }
 
+      /*
+        Identifier that imports the module.
+        import '...' from 'resoruce'
+      */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
         StringUtils.camelize(`${usedResource.name}-reource`)
       )
+
+      /*
+        Idenfitier that points to the actual resource path
+        import resoruce from '....'
+      */
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
       const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
       let funcParams = ''
@@ -64,10 +73,18 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         funcParams = 'req.body'
       }
 
-      files.set(resourceImportVariable, {
+      /*
+        Identifier that defines the route name and the file name.
+        Because each file name defines a individual API
+      */
+      const resourceFileName = StringUtils.camelCaseToDashCase(
+        `${resourceImportVariable}-${importName}`
+      )
+
+      files.set(resourceFileName, {
         files: [
           {
-            name: resouceFileName,
+            name: resourceFileName,
             fileType: FileType.JS,
             content: `import ${resourceImportVariable} from '../../resources/${importName}'
 
