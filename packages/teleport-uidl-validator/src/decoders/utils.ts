@@ -700,7 +700,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
       error: optional(lazy(() => elementNodeDecoder)),
       loading: optional(lazy(() => elementNodeDecoder)),
     }),
-    loopReferenceItem: string(),
+    cmsIdentifier: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
     resource: optional(
@@ -726,7 +726,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
-    loopReferenceItem: string(),
+    cmsIdentifier: string(),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     resource: optional(

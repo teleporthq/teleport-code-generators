@@ -322,7 +322,7 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
-  loopReferenceItem: string
+  cmsIdentifier: string
   valuePath?: string[]
   itemValuePath?: string[]
   resource?: UIDLResourceLink
@@ -333,7 +333,7 @@ export interface UIDLCMSItemNodeContent {
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
-  loopReferenceItem: string
+  cmsIdentifier: string
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode

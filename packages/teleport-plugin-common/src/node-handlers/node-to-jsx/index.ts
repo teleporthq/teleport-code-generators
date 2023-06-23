@@ -213,7 +213,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   params,
   options
 ) => {
-  const { initialData, key, attrs, loopReferenceItem } = node.content
+  const { initialData, key, attrs, cmsIdentifier } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
@@ -251,7 +251,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
           /* tslint:disable:no-string-literal */
-          [types.identifier(loopReferenceItem)],
+          [types.identifier(cmsIdentifier)],
           generateNode(success, params, options)[0] as types.JSXElement
         )
       ),
