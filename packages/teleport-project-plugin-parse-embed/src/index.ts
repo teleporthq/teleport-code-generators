@@ -16,7 +16,7 @@ const NODE_MAPPER: Record<SUPPORTED_PROJECT_TYPES, Promise<(content: unknown) =>
 
 export class ProjectPluginParseEmbed implements ProjectPlugin {
   fromHtml: (value: string, opts: { fragment: boolean }) => unknown
-  hastToJsxOrHtml: (content: unknown) => string
+  hastToJsxOrHtml: (content: unknown, opts: { wrapper: string }) => string
 
   async loadFromHTML(): Promise<(value: string, opts: { fragment: boolean }) => unknown> {
     if (!this.fromHtml) {
@@ -25,7 +25,9 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     return this.fromHtml
   }
 
-  async loadNodeMapper(id: SUPPORTED_PROJECT_TYPES): Promise<(content: unknown) => string> {
+  async loadNodeMapper(
+    id: SUPPORTED_PROJECT_TYPES
+  ): Promise<(content: unknown, opts: { wrapper: string }) => string> {
     if (!this.hastToJsxOrHtml) {
       this.hastToJsxOrHtml = await NODE_MAPPER[id]
     }
@@ -40,7 +42,7 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
             const hastNodes = this.fromHtml(element.attrs.html.content as string, {
               fragment: true,
             })
-            const content = this.hastToJsxOrHtml(hastNodes)
+            const content = this.hastToJsxOrHtml(hastNodes, { wrapper: 'fragment' })
             element.elementType = 'container'
             element.attrs = {}
             element.style = { display: { type: 'static', content: 'contents' } }
