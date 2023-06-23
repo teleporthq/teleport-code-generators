@@ -109,6 +109,7 @@ export const rawValueDecoder: Decoder<UIDLRawValue> = object({
 export const injectValueDecoder: Decoder<UIDLInjectValue> = object({
   type: constant('inject'),
   content: string(),
+  dependency: optional(lazy(() => externaldependencyDecoder)),
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({

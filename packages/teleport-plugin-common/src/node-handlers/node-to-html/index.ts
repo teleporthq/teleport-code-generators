@@ -89,6 +89,10 @@ export default generateElementNode
 const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, templateSyntax) => {
   switch (node.type) {
     case 'inject':
+      if (node?.dependency) {
+        /* tslint:disable:no-string-literal */
+        params.dependencies['Script'] = node.dependency
+      }
       return node.content.toString()
 
     case 'raw':

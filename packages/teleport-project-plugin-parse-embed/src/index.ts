@@ -6,7 +6,7 @@ import {
   UIDLRootComponent,
   ComponentUIDL,
 } from '@teleporthq/teleport-types'
-import { SUPPORTED_PROJECT_TYPES, JS_EXECUTION_DEPENDENCIES } from './utils'
+import { JS_EXECUTION_DEPENDENCIES, SUPPORTED_PROJECT_TYPES } from './utils'
 
 const NODE_MAPPER: Record<SUPPORTED_PROJECT_TYPES, Promise<(content: unknown) => string>> = {
   'teleport-project-html': import('hast-util-to-html').then((mod) => mod.toHtml),
@@ -32,13 +32,9 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     return this.hastToJsxOrHtml
   }
 
-  async traverseComponentUIDL(
-    node: UIDLElementNode,
-    id: SUPPORTED_PROJECT_TYPES
-  ): Promise<boolean> {
+  async traverseComponentUIDL(node: UIDLElementNode, id: SUPPORTED_PROJECT_TYPES): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        let shouldAddJSDependency = false
         UIDLUtils.traverseElements(node, (element) => {
           if (element.elementType === 'html-node' && element.attrs?.html && NODE_MAPPER[id]) {
             const hastNodes = this.fromHtml(element.attrs.html.content as string, {
@@ -52,16 +48,12 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
               {
                 type: 'inject',
                 content,
+                ...(content.includes('<Script') && { dependency: JS_EXECUTION_DEPENDENCIES[id] }),
               },
             ]
-
-            if (content.includes('<Script')) {
-              shouldAddJSDependency = true
-            }
           }
         })
-
-        resolve(shouldAddJSDependency)
+        resolve()
       } catch (error) {
         reject(error)
       }
@@ -72,14 +64,7 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     componentUIDL: UIDLRootComponent | ComponentUIDL,
     projectType: SUPPORTED_PROJECT_TYPES
   ) {
-    const shouldAddJSDependency = await this.traverseComponentUIDL(componentUIDL.node, projectType)
-
-    if (shouldAddJSDependency) {
-      componentUIDL.importDefinitions = {
-        ...(componentUIDL?.importDefinitions || {}),
-        ...JS_EXECUTION_DEPENDENCIES[projectType],
-      }
-    }
+    await this.traverseComponentUIDL(componentUIDL.node, projectType)
   }
 
   async runBefore(structure: ProjectPluginStructure) {
@@ -93,6 +78,7 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
 
     const promises: Array<Promise<void>> = []
     promises.push(this.traverseNodeAndAddImport(structure.uidl.root, projectType))
+
     const components = Object.keys(structure.uidl?.components || {})
     for (let i = 0; i < components.length; i++) {
       promises.push(

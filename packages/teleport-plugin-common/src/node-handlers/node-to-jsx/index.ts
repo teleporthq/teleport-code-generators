@@ -139,6 +139,10 @@ export default generateElementNode
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType> = (node, params, options) => {
   switch (node.type) {
     case 'inject':
+      if (node?.dependency) {
+        /* tslint:disable:no-string-literal */
+        params.dependencies['Script'] = node.dependency
+      }
       return node.content.toString()
 
     case 'raw':
