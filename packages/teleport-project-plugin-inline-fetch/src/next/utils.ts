@@ -62,7 +62,6 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         import resoruce from '....'
       */
       const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-      const resouceFileName = StringUtils.camelCaseToDashCase(resourceImportVariable)
       let funcParams = ''
 
       if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
@@ -103,7 +102,7 @@ export default async function handler(req, res) {
       })
 
       computeUseEffectAST({
-        fileName: resouceFileName,
+        fileName: resourceFileName,
         resource: usedResource,
         node: node as UIDLCMSItemNode | UIDLCMSListNode,
         componentChunk,
