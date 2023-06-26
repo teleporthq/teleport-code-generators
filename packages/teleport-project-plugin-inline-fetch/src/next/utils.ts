@@ -13,6 +13,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 interface ContextPluginConfig {
   componentChunkName?: string
@@ -122,15 +123,15 @@ const computeUseEffectAST = (params: {
   componentChunk: ChunkDefinition
 }) => {
   const { node, fileName, componentChunk, resource } = params
-  const { key, attrs = {}, itemValuePath } = node.content
+  if (node.type !== 'cms-item' && node.type !== 'cms-list') {
+    throw new Error('Invalid node type passed to computeUseEffectAST')
+  }
+
+  const { key, attrs = {}, itemValuePath = [], valuePath = [] } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
   let resourcePath: types.StringLiteral | types.TemplateLiteral = types.stringLiteral(
     `/api/${fileName}`
   )
-
-  if (node.type !== 'cms-item' && node.type !== 'cms-list') {
-    throw new Error('Invalid node type passed to computeUseEffectAST')
-  }
 
   const resourceParameters: types.ObjectProperty[] = []
 
@@ -174,62 +175,51 @@ const computeUseEffectAST = (params: {
     in the resource itself. `/api/resource/resource.js`
   */
 
+  const fetchAST = types.callExpression(
+    types.memberExpression(
+      types.callExpression(
+        types.identifier('fetch'),
+        [resourcePath, types.objectExpression([headers, ...resourceParameters])].filter(Boolean)
+      ),
+      types.identifier('then')
+    ),
+    [
+      types.arrowFunctionExpression(
+        [types.identifier('res')],
+        types.callExpression(
+          types.memberExpression(types.identifier('res'), types.identifier('json')),
+          []
+        )
+      ),
+    ]
+  )
+
+  let responseExpression: types.MemberExpression
+
+  if (node.type === 'cms-item') {
+    responseExpression =
+      itemValuePath.length > 0
+        ? (ASTUtils.generateMemberExpressionASTFromPath([
+            'data',
+            ...itemValuePath,
+          ]) as types.MemberExpression)
+        : types.memberExpression(types.identifier('data'), types.numericLiteral(0), true)
+  }
+
+  if (node.type === 'cms-list') {
+    responseExpression = ASTUtils.generateMemberExpressionASTFromPath([
+      'data',
+      ...valuePath,
+    ]) as types.MemberExpression
+  }
+
   const resourceAST = types.arrowFunctionExpression(
     [types.identifier('params')],
-    types.callExpression(
-      types.memberExpression(
-        node.type === 'cms-item' && itemValuePath.length >= 0
-          ? types.callExpression(
-              types.memberExpression(
-                types.callExpression(
-                  types.identifier('fetch'),
-                  [resourcePath, types.objectExpression([headers, ...resourceParameters])].filter(
-                    Boolean
-                  )
-                ),
-                types.identifier('then')
-              ),
-              [
-                types.arrowFunctionExpression(
-                  [types.identifier('res')],
-                  types.callExpression(
-                    types.memberExpression(types.identifier('res'), types.identifier('json')),
-                    []
-                  )
-                ),
-              ]
-            )
-          : types.callExpression(
-              types.identifier('fetch'),
-              [resourcePath, types.objectExpression([headers, ...resourceParameters])].filter(
-                Boolean
-              )
-            ),
-        types.identifier('then')
-      ),
-      node.type === 'cms-item' && itemValuePath.length >= 0
-        ? [
-            types.arrowFunctionExpression(
-              [types.identifier('data')],
-              types.memberExpression(
-                types.identifier('data'),
-                itemValuePath.length > 0
-                  ? types.identifier((node.content.itemValuePath || []).join('.'))
-                  : types.numericLiteral(0),
-                true
-              )
-            ),
-          ]
-        : [
-            types.arrowFunctionExpression(
-              [types.identifier('res')],
-              types.callExpression(
-                types.memberExpression(types.identifier('res'), types.identifier('json')),
-                []
-              )
-            ),
-          ]
-    )
+    valuePath.length || itemValuePath.length > 0
+      ? types.callExpression(types.memberExpression(fetchAST, types.identifier('then'), false), [
+          types.arrowFunctionExpression([types.identifier('data')], responseExpression),
+        ])
+      : fetchAST
   )
 
   jsxNode.openingElement.attributes.push(
