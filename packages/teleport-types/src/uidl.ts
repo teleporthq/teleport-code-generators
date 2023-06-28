@@ -177,6 +177,7 @@ export interface UIDLRawValue {
 export interface UIDLInjectValue {
   type: 'inject'
   content: string
+  dependency?: UIDLExternalDependency
 }
 
 export interface UIDLSlotNode {
