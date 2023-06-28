@@ -23,6 +23,15 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        version: 'github:teleporthq/date-time-primitive',
+        path: '@teleporthq/date-time-primitive',
+        meta: { importAlias: '@teleporthq/date-time-primitive/react' },
+      },
+    },
     'html-node': {
       elementType: 'DangerousHTML',
       dependency: {

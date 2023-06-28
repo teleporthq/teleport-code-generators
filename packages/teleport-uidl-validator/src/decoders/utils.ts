@@ -83,6 +83,7 @@ import {
   UIDLENVValue,
   UIDLPropValue,
   UIDLResourceItem,
+  VUIDLDateTimeNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -681,6 +682,11 @@ export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   content: elementDecoder,
 })
 
+export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
+  type: constant('date-time-node'),
+  content: elementDecoder,
+})
+
 export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
@@ -736,5 +742,5 @@ export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  union(repeatNodeDecoder, slotNodeDecoder, string())
+  union(repeatNodeDecoder, dateTimeNodeDecoder, slotNodeDecoder, string())
 )
