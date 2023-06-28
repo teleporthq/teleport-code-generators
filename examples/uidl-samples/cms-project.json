@@ -907,7 +907,7 @@
                           "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
                           "params": {}
                         },
-                        "loopReferenceItem": "itemOne",
+                        "cmsIdentifier": "itemOne",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1279,7 +1279,7 @@
                                             "params": {}
                                           },
                                           "itemValuePath": [],
-                                          "loopReferenceItem": "dynamicOne",
+                                          "cmsIdentifier": "dynamicOne",
                                           "nodes": {
                                             "success": {
                                               "type": "element",
@@ -1578,14 +1578,6 @@
                     {
                       "type": "cms-item",
                       "content": {
-                        "initialData": {
-                          "type": "dynamic",
-                          "content": {
-                            "referenceType": "prop",
-                            "id": "BlogPostEntity"
-                          }
-                        },
-                        "loopReferenceItem": "blogPostEntity",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1726,8 +1718,16 @@
                             }
                           }
                         },
+                        "initialData": {
+                          "type": "dynamic",
+                          "content": {
+                            "referenceType": "prop",
+                            "id": "BlogPostEntity"
+                          }
+                        },
                         "valuePath": [],
-                        "itemValuePath": []
+                        "itemValuePath": [],
+                        "cmsIdentifier": "blogPostEntity"
                       }
                     }
                   ]
@@ -1790,7 +1790,7 @@
                             "id": "AuthorEntities"
                           }
                         },
-                        "loopReferenceItem": "itemTwo",
+                        "cmsIdentifier": "itemTwo",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -1983,7 +1983,7 @@
                             "id": "AuthorEntities"
                           }
                         },
-                        "loopReferenceItem": "itemThree",
+                        "cmsIdentifier": "itemThree",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -2130,7 +2130,7 @@
                             "id": "BlogPostEntities"
                           }
                         },
-                        "loopReferenceItem": "itemFour",
+                        "cmsIdentifier": "itemFour",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -2321,7 +2321,7 @@
                     {
                       "type": "cms-list",
                       "content": {
-                        "loopReferenceItem": "itemFive",
+                        "cmsIdentifier": "itemFive",
                         "nodes": {
                           "success": {
                             "type": "element",
@@ -2483,7 +2483,7 @@
                             "id": "AuthorEntity"
                           }
                         },
-                        "loopReferenceItem": "authorEntity",
+                        "cmsIdentifier": "authorEntity",
                         "nodes": {
                           "success": {
                             "type": "element",
