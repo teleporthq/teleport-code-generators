@@ -223,6 +223,7 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  id?: string
   meta?: {
     target: 'style'
   }
@@ -328,6 +329,7 @@ export interface UIDLCMSListNodeContent {
   statePersistanceName?: string
   loopItemsReference?: UIDLAttributeValue
   valuePath?: string[]
+  paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
   itemValuePath?: string[]
   resource: {
     id: string

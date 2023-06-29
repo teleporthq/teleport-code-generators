@@ -333,6 +333,7 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
+  id: optional(string()),
 })
 
 export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
@@ -717,6 +718,9 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     loopItemsReference: optional(dynamicValueDecoder),
+    paginationQueryParam: optional(
+      union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder)
+    ),
     resource: optional(
       object({
         id: string(),

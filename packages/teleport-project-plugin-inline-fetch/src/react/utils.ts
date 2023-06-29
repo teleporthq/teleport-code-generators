@@ -54,7 +54,7 @@ export const createInlineJSXFetchRequestsPlugins: ComponentPluginFactory<
         const usedResource = items[node.content.resource.id]
 
         const resourceImportName = StringUtils.dashCaseToCamelCase(
-          StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
+          StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
         )
 
         const funcParams: types.ObjectProperty[] = Object.keys(
