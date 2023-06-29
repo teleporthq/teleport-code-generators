@@ -398,6 +398,11 @@ export interface UIDLElementNode {
   content: UIDLElement
 }
 
+export interface UIDLDateTimeNode {
+  type: 'date-time-node'
+  content: UIDLElement
+}
+
 export interface UIDLElement {
   elementType: string
   semanticType?: string
@@ -429,6 +434,7 @@ export type UIDLNode =
   | UIDLImportReference
   | UIDLCMSListNode
   | UIDLCMSItemNode
+  | UIDLDateTimeNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'
