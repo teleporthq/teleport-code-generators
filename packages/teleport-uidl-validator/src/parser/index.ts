@@ -258,6 +258,15 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (elementContent?.abilities?.hasOwnProperty('link')) {
         const { content, type } = (elementContent.abilities as { link: VUIDLLinkNode }).link
+
+        if (type === 'navlink' && typeof content.routeName === 'string') {
+          const route: UIDLStaticValue = {
+            type: 'static',
+            content: content.routeName,
+          }
+          content.routeName = route
+        }
+
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
         }

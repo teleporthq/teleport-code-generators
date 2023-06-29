@@ -958,7 +958,17 @@
                                                             "elementType": "text",
                                                             "semanticType": "h1",
                                                             "referencedStyles": {},
-                                                            "abilities": {},
+                                                            "abilities": {
+                                                              "link": {
+                                                                "type": "navlink",
+                                                                "content": {
+                                                                  "routeName": {
+                                                                    "type": "expr",
+                                                                    "content": "`/blog-post/${dynamicOne.id}`"
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
                                                             "children": [
                                                               {
                                                                 "type": "expr",

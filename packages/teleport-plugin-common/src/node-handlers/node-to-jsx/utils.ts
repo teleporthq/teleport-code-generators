@@ -148,14 +148,10 @@ export const createDynamicValueExpression = (
   t = types
 ) => {
   const identifierContent = identifier.content
-  const { referenceType, expression, id } = identifierContent
+  const { referenceType, id } = identifierContent
 
   if (referenceType === 'attr' || referenceType === 'children' || referenceType === 'token') {
     throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)
-  }
-
-  if (expression && referenceType === 'expr') {
-    return t.identifier(expression)
   }
 
   const prefix =

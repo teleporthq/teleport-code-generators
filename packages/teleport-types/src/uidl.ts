@@ -252,7 +252,6 @@ export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
-    expression?: string
     id: string
   }
 }
@@ -461,7 +460,7 @@ export interface UIDLSectionLinkNode {
 export interface UIDLNavLinkNode {
   type: 'navlink'
   content: {
-    routeName: string
+    routeName: UIDLAttributeValue
   }
 }
 

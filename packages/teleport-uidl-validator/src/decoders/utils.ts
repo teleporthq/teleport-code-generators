@@ -29,7 +29,6 @@ import {
   UIDLStyleValue,
   UIDLAttributeValue,
   UIDLEventHandlerStatement,
-  UIDLNavLinkNode,
   UIDLMailLinkNode,
   UIDLPhoneLinkNode,
   UIDLRawValue,
@@ -83,6 +82,7 @@ import {
   UIDLENVValue,
   UIDLPropValue,
   UIDLResourceItem,
+  VUIDLNavLinkNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -492,10 +492,10 @@ export const sectionLinkNodeDecoder: Decoder<VUIDLSectionLinkNode> = object({
   content: dict(string()),
 })
 
-export const navLinkNodeDecoder: Decoder<UIDLNavLinkNode> = object({
+export const navLinkNodeDecoder: Decoder<VUIDLNavLinkNode> = object({
   type: constant('navlink'),
   content: object({
-    routeName: string(),
+    routeName: union(attributeValueDecoder, string()),
   }),
 })
 

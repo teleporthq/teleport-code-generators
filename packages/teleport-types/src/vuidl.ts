@@ -235,6 +235,15 @@ export type VUIDLURLLinkNode = Modify<
   }
 >
 
+export type VUIDLNavLinkNode = Modify<
+  UIDLNavLinkNode,
+  {
+    content: {
+      routeName: string | UIDLAttributeValue
+    }
+  }
+>
+
 export type VUIDLDynamicLinkNode = UIDLDynamicLinkNode
 
 export type VUIDLStyleSetMediaCondition = Modify<
@@ -256,7 +265,7 @@ export type VUIDLStyleSetConditions = VUIDLStyleSetMediaCondition | VUIDLStyleSe
 export type VUIDLLinkNode =
   | VUIDLURLLinkNode
   | VUIDLSectionLinkNode
-  | UIDLNavLinkNode
+  | VUIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
   | VUIDLDynamicLinkNode
