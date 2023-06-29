@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-resolver",
-  "version": "0.27.5",
+  "version": "0.27.8",
   "description": "A small package that handles the transition from UIDL to HTML elements and has support for custom mappings.",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,9 +24,9 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-shared": "^0.27.5",
-    "@teleporthq/teleport-types": "^0.27.5",
-    "@teleporthq/teleport-uidl-builders": "^0.27.5",
+    "@teleporthq/teleport-shared": "^0.27.8",
+    "@teleporthq/teleport-types": "^0.27.8",
+    "@teleporthq/teleport-uidl-builders": "^0.27.8",
     "deepmerge": "^4.0.0"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

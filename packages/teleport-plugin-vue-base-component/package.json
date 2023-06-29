@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-vue-base-component",
-  "version": "0.27.5",
+  "version": "0.27.8",
   "description": "A plugin for handling the skeleton/baseline for a Vue component",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.27.5",
-    "@teleporthq/teleport-shared": "^0.27.5",
-    "@teleporthq/teleport-types": "^0.27.5"
+    "@teleporthq/teleport-plugin-common": "^0.27.8",
+    "@teleporthq/teleport-shared": "^0.27.8",
+    "@teleporthq/teleport-types": "^0.27.8"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
 }
