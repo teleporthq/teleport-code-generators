@@ -83,7 +83,6 @@ import {
   UIDLENVValue,
   UIDLPropValue,
   UIDLResourceItem,
-  UIDLCMSReference,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -105,15 +104,6 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
     referenceType: referenceTypeDecoder,
     path: optional(array(string())),
     id: string(),
-  }),
-})
-
-export const cmsValueDecoder: Decoder<UIDLCMSReference> = object({
-  type: constant('dynamic'),
-  content: object({
-    referenceType: constant('cms'),
-    path: array(string()),
-    expression: optional(string()),
   }),
 })
 
@@ -445,7 +435,7 @@ export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
 export const attributeValueDecoder: Decoder<UIDLAttributeValue> = union(
   dynamicValueDecoder,
   staticValueDecoder,
-  cmsValueDecoder,
+  lazy(() => expressionValueDecoder),
   importReferenceDecoder,
   rawValueDecoder,
   lazy(() => uidlComponentStyleReference)
@@ -643,7 +633,6 @@ export const slotNodeDecoder: Decoder<VUIDLSlotNode> = object({
         union(
           staticValueDecoder,
           dynamicValueDecoder,
-          cmsValueDecoder,
           lazy(() => elementNodeDecoder)
         )
       ),
@@ -700,7 +689,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
       error: optional(lazy(() => elementNodeDecoder)),
       loading: optional(lazy(() => elementNodeDecoder)),
     }),
-    cmsIdentifier: string(),
+    renderPropIdentifier: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
     resource: optional(
@@ -726,7 +715,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
-    cmsIdentifier: string(),
+    renderPropIdentifier: string(),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
     resource: optional(
@@ -749,5 +738,5 @@ export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  union(repeatNodeDecoder, slotNodeDecoder, cmsValueDecoder, string())
+  union(repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
 )

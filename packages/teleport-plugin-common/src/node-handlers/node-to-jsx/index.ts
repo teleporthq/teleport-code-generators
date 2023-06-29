@@ -9,6 +9,7 @@ import {
   UIDLNode,
   UIDLCMSListNode,
   UIDLCMSItemNode,
+  UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
@@ -32,6 +33,7 @@ import {
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
+import { ASTUtils } from '../..'
 
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
@@ -87,20 +89,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
       switch (attributeValue.type) {
         case 'dynamic':
           const {
-            content: { referenceType, path },
+            content: { referenceType },
           } = attributeValue
 
           switch (referenceType) {
-            case 'cms':
-              addDynamicAttributeToJSXTag(elementTag, attrKey, '', '', path)
-              break
-
-            case 'expr':
-              addDynamicExpressionAttributeToJSXTag(
-                elementTag,
-                attributeValue as UIDLDynamicReference
-              )
-              break
             default:
               const prefix =
                 options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
@@ -108,8 +100,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
                 elementTag,
                 attrKey,
                 (attributeValue as UIDLDynamicReference).content.id,
-                prefix,
-                path
+                prefix
               )
 
               break
@@ -123,8 +114,10 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
           break
         case 'comp-style':
         case 'static':
-          const { content } = attributeValue
-          addAttributeToJSXTag(elementTag, attrKey, content)
+          addAttributeToJSXTag(elementTag, attrKey, attributeValue.content)
+          break
+        case 'expr':
+          addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
           break
         default:
           throw new Error(
@@ -165,6 +158,8 @@ export default generateElementNode
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, options) => {
   switch (node.type) {
+    case 'expr':
+      return [generateExpressionNode(node, params, options)]
     case 'raw':
       return [
         options.domHTMLInjection
@@ -208,12 +203,19 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
   }
 }
 
+const generateExpressionNode: NodeToJSX<UIDLExpressionValue, types.JSXExpressionContainer> = (
+  node
+) => {
+  const expression = ASTUtils.getExpressionFromUIDLExpressionNode(node)
+  return types.jsxExpressionContainer(expression)
+}
+
 const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXElement[]> = (
   node,
   params,
   options
 ) => {
-  const { initialData, key, attrs, cmsIdentifier } = node.content
+  const { initialData, key, attrs, renderPropIdentifier } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
@@ -251,7 +253,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       types.jsxExpressionContainer(
         types.arrowFunctionExpression(
           /* tslint:disable:no-string-literal */
-          [types.identifier(cmsIdentifier)],
+          [types.identifier(renderPropIdentifier)],
           generateNode(success, params, options)[0] as types.JSXElement
         )
       ),
@@ -310,25 +312,9 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
           acc.push(types.objectProperty(types.identifier(attrKey), resolveObjectValue(property)))
         }
 
-        if (property.type === 'dynamic') {
-          switch (property.content.referenceType) {
-            case 'cms':
-              acc.push(
-                types.objectProperty(
-                  types.identifier(attrKey),
-                  createDynamicValueExpression(property, options)
-                )
-              )
-              break
-            default:
-              throw new Error(
-                `Received a un-supported dynamic link on ${node.type}. ${JSON.stringify(
-                  property,
-                  null,
-                  2
-                )}`
-              )
-          }
+        if (property.type === 'expr') {
+          const expression = ASTUtils.getExpressionFromUIDLExpressionNode(property)
+          acc.push(types.objectProperty(types.identifier(attrKey), expression))
         }
 
         return acc

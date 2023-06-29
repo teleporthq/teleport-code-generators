@@ -267,6 +267,7 @@ export const traverseNodes = (
     case 'comp-style':
     case 'dynamic':
     case 'import':
+    case 'expr':
     case 'raw':
       break
 
@@ -405,6 +406,7 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
     case 'static':
     case 'dynamic':
     case 'raw':
+    case 'expr':
       break
 
     default:
@@ -471,6 +473,7 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
     case 'static':
     case 'dynamic':
     case 'raw':
+    case 'expr':
       break
 
     default:
@@ -691,7 +694,7 @@ export const transformAttributesAssignmentsToJson = (
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
       const { type } = attributeContent as Record<string, unknown>
-      if (['static', 'import', 'raw'].indexOf(type as string) !== -1) {
+      if (['static', 'import', 'raw', 'expr'].indexOf(type as string) !== -1) {
         acc[key] = attributeContent as UIDLAttributeValue
         return acc
       }
@@ -808,6 +811,7 @@ export const removeChildNodes = (
     case 'static':
     case 'dynamic':
     case 'raw':
+    case 'expr':
       break
 
     default:

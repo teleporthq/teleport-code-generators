@@ -252,17 +252,8 @@ export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
-    path?: string[]
     expression?: string
     id: string
-  }
-}
-
-export interface UIDLCMSReference {
-  type: 'dynamic'
-  content: {
-    referenceType: 'cms'
-    path: string[]
   }
 }
 
@@ -285,7 +276,7 @@ export interface UIDLSlotNode {
   type: 'slot'
   content: {
     name?: string
-    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLCMSReference
+    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue
   }
 }
 
@@ -322,7 +313,7 @@ export interface UIDLCMSListNodeContent {
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
-  cmsIdentifier: string
+  renderPropIdentifier: string
   valuePath?: string[]
   itemValuePath?: string[]
   resource?: UIDLResourceLink
@@ -333,7 +324,7 @@ export interface UIDLCMSItemNodeContent {
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
-  cmsIdentifier: string
+  renderPropIdentifier: string
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -411,7 +402,7 @@ export interface UIDLElement {
 }
 
 export type UIDLNode =
-  | UIDLCMSReference
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
@@ -429,7 +420,7 @@ export interface UIDLComponentStyleReference {
 }
 
 export type UIDLAttributeValue =
-  | UIDLCMSReference
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLImportReference
@@ -460,7 +451,7 @@ export interface UIDLURLLinkNode {
 // for now only links will have this express
 // type for dynamic content, but in the future
 // all dynamic content will be handled this way
-export type UIDLDynamicLinkNode = UIDLDynamicReference | UIDLCMSReference
+export type UIDLDynamicLinkNode = UIDLDynamicReference
 
 export interface UIDLSectionLinkNode {
   type: 'section'
@@ -471,8 +462,6 @@ export interface UIDLNavLinkNode {
   type: 'navlink'
   content: {
     routeName: string
-    path?: string[]
-    referenceType?: UIDLCMSReference['content']['referenceType']
   }
 }
 

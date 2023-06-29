@@ -215,7 +215,7 @@ const computeUseEffectAST = (params: {
 
   const resourceAST = types.arrowFunctionExpression(
     [types.identifier('params')],
-    valuePath.length || itemValuePath.length > 0
+    valuePath.length || itemValuePath.length >= 0
       ? types.callExpression(types.memberExpression(fetchAST, types.identifier('then'), false), [
           types.arrowFunctionExpression([types.identifier('data')], responseExpression),
         ])

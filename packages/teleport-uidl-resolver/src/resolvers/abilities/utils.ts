@@ -187,23 +187,6 @@ const createLinkAttributes = (
       }
 
     case 'navlink': {
-      /*
-        In projects we need a to support routes with dynamic attributes to it.
-        Example `/blog-post/${item.id}`\
-
-        Where, /blog-post is a static value but the other values are dynamic.
-      */
-      if (link.content?.path && link.content.referenceType === 'cms') {
-        const content = `/${link.content.routeName}/\${${link.content.path.join('?.')}\}`
-
-        return {
-          transitionTo: {
-            type: 'raw',
-            content,
-          },
-        }
-      }
-
       return {
         transitionTo: {
           type: 'static',

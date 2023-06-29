@@ -7,7 +7,6 @@ import {
   UIDLPropDefinition,
   UIDLRawValue,
   UIDLStaticValue,
-  UIDLDynamicReference,
   UIDLResourceItem,
   UIDLENVValue,
   UIDLPropValue,
@@ -99,15 +98,12 @@ export const addDynamicAttributeToJSXTag = (
   name: string,
   value: string,
   prefix: string = '',
-  path: string[] = [],
   t = types
 ) => {
-  const values = [value, ...path].filter((item) => item !== '')
-  const attrValue = values.length === 1 ? values[0] : values.join('?.')
   const content =
     prefix === ''
-      ? t.identifier(attrValue)
-      : t.memberExpression(t.identifier(prefix), t.identifier(attrValue))
+      ? t.identifier(value)
+      : t.memberExpression(t.identifier(prefix), t.identifier(value))
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
@@ -122,15 +118,16 @@ export const addDynamicAttributeToJSXTag = (
  */
 export const addDynamicExpressionAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
-  dynamicRef: UIDLDynamicReference,
+  dynamicRef: UIDLExpressionValue,
+  attrKey: string,
   t = types
 ) => {
   const dynamicContent = dynamicRef.content
-  if (dynamicContent.referenceType !== 'expr') {
+  if (dynamicRef.type !== 'expr') {
     throw new Error(`This method only works with dynamic nodes that have code expressions`)
   }
 
-  const code = dynamicContent.expression
+  const code = dynamicContent
   const options = {
     sourceType: 'module' as const,
   }
@@ -151,7 +148,7 @@ export const addDynamicExpressionAttributeToJSXTag = (
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(
-      t.jsxIdentifier('href'),
+      t.jsxIdentifier(attrKey),
       t.jsxExpressionContainer(theStatementOnlyWihtoutTheProgram.expression)
     )
   )
@@ -954,4 +951,26 @@ export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLE
       : types.identifier(String(prop.content))
 
   return value
+}
+
+export const getExpressionFromUIDLExpressionNode = (
+  node: UIDLExpressionValue
+): types.Expression => {
+  const ast = parse(node.content, {
+    sourceType: 'module' as const,
+  })
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
+
+  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+    throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
+  }
+
+  return theStatementOnlyWihtoutTheProgram.expression
 }

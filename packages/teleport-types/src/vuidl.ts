@@ -40,7 +40,6 @@ import {
   UIDLDynamicLinkNode,
   UIDLPropValue,
   UIDLExpressionValue,
-  UIDLCMSReference,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -125,7 +124,7 @@ export type VUIDLNode =
   | VUIDLSlotNode
   | VCMSItemUIDLElementNode
   | VCMSListUIDLElementNode
-  | UIDLCMSReference
+  | UIDLExpressionValue
   | string
 
 export type VUIDLElement = Modify<
@@ -213,7 +212,7 @@ export type VUIDLSlotNode = Modify<
     content:
       | {
           name?: string
-          fallback?: VUIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLCMSReference
+          fallback?: VUIDLElementNode | UIDLStaticValue | UIDLDynamicReference
         }
       | {}
   }

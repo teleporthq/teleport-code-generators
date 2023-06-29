@@ -94,11 +94,6 @@ const generateNode: NodeToHTML<UIDLNode, HastNode | string> = (node, params, tem
       return StringUtils.encode(node.content.toString())
 
     case 'dynamic':
-      if (node.content.referenceType === 'cms') {
-        throw new Error(
-          `CMS projects are not supported yet.. \n Recevied ${JSON.stringify(node, null, 2)}`
-        )
-      }
       return templateSyntax.interpolation(node.content.id)
 
     case 'element':
@@ -138,14 +133,8 @@ const generateRepeatNode: NodeToHTML<UIDLRepeatNode, HastNode> = (node, params, 
   const repeatContentTag = generateElementNode(repeatContent, params, templateSyntax)
 
   let dataObjectIdentifier = meta.dataSourceIdentifier || `items`
-  if (dataSource.type === 'dynamic' && dataSource.content.referenceType !== 'cms') {
+  if (dataSource.type === 'dynamic') {
     dataObjectIdentifier = dataSource.content.id
-  }
-  if (dataSource.type === 'dynamic' && dataSource.content.referenceType === 'cms') {
-    dataObjectIdentifier =
-      dataSource.content.path?.length > 1
-        ? dataSource.content.path.join('?.')
-        : dataSource.content.path[0]
   } else {
     params.dataObject[dataObjectIdentifier] = dataSource.content
   }

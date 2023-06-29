@@ -11,7 +11,6 @@ import {
   UIDLConditionalExpression,
   UIDLPropCallEvent,
   UIDLStateModifierEvent,
-  UIDLCMSReference,
 } from '@teleporthq/teleport-types'
 
 import {
@@ -144,41 +143,26 @@ const createStateChangeStatement = (
 }
 
 export const createDynamicValueExpression = (
-  identifier: UIDLDynamicReference | UIDLCMSReference,
+  identifier: UIDLDynamicReference,
   options: JSXGenerationOptions,
   t = types
 ) => {
   const identifierContent = identifier.content
-  const { referenceType, path = [] } = identifierContent
+  const { referenceType, expression, id } = identifierContent
 
-  if (
-    referenceType === 'expr' ||
-    referenceType === 'attr' ||
-    referenceType === 'children' ||
-    referenceType === 'token'
-  ) {
+  if (referenceType === 'attr' || referenceType === 'children' || referenceType === 'token') {
     throw new Error(`Dynamic reference type "${referenceType}" is not supported yet`)
   }
 
-  let prefix = ''
-  const expression = [...path]
-
-  if (referenceType !== 'cms') {
-    expression.unshift(identifierContent.id)
-    prefix = options.dynamicReferencePrefixMap[referenceType] || ''
+  if (expression && referenceType === 'expr') {
+    return t.identifier(expression)
   }
 
-  const value = expression.length === 1 ? expression[0] : expression.join('?.')
-
-  if (identifierContent?.path) {
-    return prefix === ''
-      ? t.identifier(value)
-      : t.memberExpression(t.identifier(prefix), t.identifier(value))
-  }
-
+  const prefix =
+    options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local'] || ''
   return prefix === ''
-    ? t.identifier(value)
-    : t.memberExpression(t.identifier(prefix), t.identifier(value))
+    ? t.identifier(id)
+    : t.memberExpression(t.identifier(prefix), t.identifier(id))
 }
 
 // Prepares an identifier (from props or state) to be used as a conditional rendering identifier
