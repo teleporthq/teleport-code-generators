@@ -56,7 +56,7 @@ describe('insertLink', () => {
 
     expect(secondChildAfterInsertLinks.content.elementType).toBe('navlink')
     expect(secondChildAfterInsertLinks.content.attrs.transitionTo.content).toBe(
-      `/${navlink.content.routeName}`
+      `/${navlink.content.routeName.content}`
     )
   })
 
