@@ -8,8 +8,11 @@ import {
   UIDLCMSItemNodeContent,
   UIDLCMSListNode,
   UIDLCMSListNodeContent,
+  UIDLExpressionValue,
   UIDLNode,
+  UIDLPropValue,
   UIDLResourceItem,
+  UIDLStaticValue,
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
@@ -40,14 +43,17 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         return
       }
 
-      const content = node.content as UIDLCMSListNodeContent | UIDLCMSItemNodeContent
-      if (!content?.resource?.id) {
+      const { resource: { id = null, params = {} } = {} } = node.content as
+        | UIDLCMSListNodeContent
+        | UIDLCMSItemNodeContent
+
+      if (!id) {
         return
       }
 
-      const usedResource = resources.items[content.resource.id]
+      const usedResource = resources.items[id]
       if (!usedResource) {
-        throw new Error(`Tried to find a resource that does not exist ${content.resource.id}`)
+        throw new Error(`Tried to find a resource that does not exist ${id}`)
       }
 
       /*
@@ -107,6 +113,7 @@ export default async function handler(req, res) {
         resource: usedResource,
         node: node as UIDLCMSItemNode | UIDLCMSListNode,
         componentChunk,
+        params,
       })
     })
 
@@ -121,13 +128,14 @@ const computeUseEffectAST = (params: {
   resource: UIDLResourceItem
   node: UIDLCMSItemNode | UIDLCMSListNode
   componentChunk: ChunkDefinition
+  params: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
 }) => {
   const { node, fileName, componentChunk, resource } = params
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
 
-  const { key, attrs = {}, itemValuePath = [], valuePath = [] } = node.content
+  const { key, itemValuePath = [], valuePath = [] } = node.content
   const jsxNode = componentChunk.meta.nodesLookup[key] as types.JSXElement
   let resourcePath: types.StringLiteral | types.TemplateLiteral = types.stringLiteral(
     `/api/${fileName}`
@@ -135,7 +143,7 @@ const computeUseEffectAST = (params: {
 
   const resourceParameters: types.ObjectProperty[] = []
 
-  if (resource.method === 'GET' && Object.keys(attrs).length > 0) {
+  if (resource.method === 'GET' && Object.keys(params).length > 0) {
     resourcePath = types.templateLiteral(
       [
         types.templateElement({ raw: `/api/${fileName}?`, cooked: `/api/${fileName}?` }),
@@ -145,7 +153,7 @@ const computeUseEffectAST = (params: {
     )
   }
 
-  if (resource.method === 'POST' && Object.keys(attrs).length > 0) {
+  if (resource.method === 'POST' && Object.keys(params).length > 0) {
     resourceParameters.push(
       types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
       types.objectProperty(

@@ -865,15 +865,14 @@
                                       {
                                         "type": "cms-item",
                                         "content": {
-                                          "attrs": {
-                                            "id": {
-                                              "type": "expr",
-                                              "content": "itemOne?.id"
-                                            }
-                                          },
                                           "resource": {
                                             "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
-                                            "params": {}
+                                            "params": {
+                                              "id": {
+                                                "type": "expr",
+                                                "content": "itemOne?.id"
+                                              }
+                                            }
                                           },
                                           "itemValuePath": [],
                                           "renderPropIdentifier": "dynamicOne",

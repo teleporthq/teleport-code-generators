@@ -215,7 +215,13 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   params,
   options
 ) => {
-  const { initialData, key, attrs, renderPropIdentifier } = node.content
+  const {
+    initialData,
+    key,
+    // attrs,
+    renderPropIdentifier,
+    resource: { params: resourceParams } = {},
+  } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
@@ -303,18 +309,18 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     )
   }
 
-  if (attrs) {
-    const nodeParams: types.ObjectProperty[] = Object.keys(attrs).reduce(
+  if (Object.keys(resourceParams || {}).length > 0) {
+    const nodeParams: types.ObjectProperty[] = Object.keys(resourceParams).reduce(
       (acc: types.ObjectProperty[], attrKey) => {
-        const property = attrs[attrKey]
+        const property = resourceParams[attrKey]
 
         if (property.type === 'static') {
-          acc.push(types.objectProperty(types.identifier(attrKey), resolveObjectValue(property)))
+          acc.push(types.objectProperty(types.stringLiteral(attrKey), resolveObjectValue(property)))
         }
 
         if (property.type === 'expr') {
           const expression = ASTUtils.getExpressionFromUIDLExpressionNode(property)
-          acc.push(types.objectProperty(types.identifier(attrKey), expression))
+          acc.push(types.objectProperty(types.stringLiteral(attrKey), expression))
         }
 
         return acc
