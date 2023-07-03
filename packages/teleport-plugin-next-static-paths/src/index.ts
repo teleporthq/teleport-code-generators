@@ -36,7 +36,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     }
 
     const resourceImportName = StringUtils.dashCaseToCamelCase(
-      StringUtils.camelCaseToDashCase(`${usedResource.name}-reource`)
+      StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
     )
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)

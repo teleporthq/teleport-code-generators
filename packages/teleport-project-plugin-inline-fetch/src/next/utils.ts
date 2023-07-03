@@ -61,7 +61,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         import '...' from 'resoruce'
       */
       const resourceImportVariable = StringUtils.dashCaseToCamelCase(
-        StringUtils.camelize(`${usedResource.name}-reource`)
+        StringUtils.camelize(`${usedResource.name}-resource`)
       )
 
       /*
