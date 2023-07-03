@@ -83,6 +83,7 @@ import {
   UIDLPropValue,
   UIDLResourceItem,
   VUIDLNavLinkNode,
+  VUIDLDateTimeNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -331,6 +332,7 @@ export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   ),
   defaultValue: optional(stateOrPropDefinitionDecoder),
   isRequired: optional(boolean()),
+  id: optional(string()),
 })
 
 export const pageOptionsPaginationDecoder: Decoder<PagePaginationOptions> = object({
@@ -676,6 +678,11 @@ export const conditionalNodeDecoder: Decoder<VUIDLConditionalNode> = object({
 
 export const elementNodeDecoder: Decoder<VUIDLElementNode> = object({
   type: constant('element'),
+  content: elementDecoder,
+})
+
+export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
+  type: constant('date-time-node'),
   content: elementDecoder,
 })
 

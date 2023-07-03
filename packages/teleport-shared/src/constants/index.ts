@@ -12,6 +12,15 @@ export const PRETTIER_CONFIG: PrettierFormatOptions = {
   bracketSpacing: true,
 }
 
+export const USE_ROUTER_DEPENDENCY: UIDLDependency = {
+  type: 'library',
+  path: 'next/router',
+  version: '12.1.0',
+  meta: {
+    namedImport: true,
+  },
+}
+
 export const USE_EFFECT_DEPENDENCY: UIDLDependency = {
   type: 'library',
   path: 'react',

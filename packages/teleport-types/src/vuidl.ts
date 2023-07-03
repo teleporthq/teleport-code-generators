@@ -40,10 +40,13 @@ import {
   UIDLDynamicLinkNode,
   UIDLPropValue,
   UIDLExpressionValue,
+  UIDLDateTimeNode,
 } from './uidl'
 import { Modify } from './helper'
 
 export interface VUIDLElementNode extends Modify<UIDLElementNode, { content: VUIDLElement }> {}
+
+export interface VUIDLDateTimeNode extends Modify<UIDLDateTimeNode, { content: VUIDLElement }> {}
 
 export interface VCMSItemUIDLElementNode
   extends Modify<
@@ -118,6 +121,7 @@ export type VUIDLNode =
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
+  | VUIDLDateTimeNode
   | VUIDLElementNode
   | VUIDLRepeatNode
   | VUIDLConditionalNode

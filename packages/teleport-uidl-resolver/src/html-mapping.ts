@@ -33,6 +33,15 @@ export const HTMLMapping: Mapping = {
         },
       },
     },
+    'date-time-node': {
+      elementType: 'date-time-primitive',
+      dependency: {
+        type: 'package',
+        version: 'github:teleporthq/date-time-primitive',
+        path: '@teleporthq/date-time-primitive',
+        meta: { importJustPath: true },
+      },
+    },
     'lottie-node': {
       elementType: 'lottie-player',
       dependency: {

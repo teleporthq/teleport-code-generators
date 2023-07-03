@@ -206,6 +206,7 @@ export interface UIDLPropDefinition {
   type: string
   defaultValue?: string | number | boolean | unknown[] | object | (() => void)
   isRequired?: boolean
+  id?: string
   meta?: {
     target: 'style'
   }
@@ -315,6 +316,7 @@ export interface UIDLCMSListNodeContent {
   }
   renderPropIdentifier: string
   valuePath?: string[]
+  paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
   itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
@@ -383,6 +385,11 @@ export interface UIDLElementNode {
   content: UIDLElement
 }
 
+export interface UIDLDateTimeNode {
+  type: 'date-time-node'
+  content: UIDLElement
+}
+
 export interface UIDLElement {
   elementType: string
   semanticType?: string
@@ -414,6 +421,7 @@ export type UIDLNode =
   | UIDLImportReference
   | UIDLCMSListNode
   | UIDLCMSItemNode
+  | UIDLDateTimeNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

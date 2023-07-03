@@ -15,8 +15,17 @@ export const NuxtProjectMapping: Mapping = {
         path: 'dangerous-html',
         version: '0.1.12',
         meta: {
-          importAlias: 'dangerous-html/dist/vue/lib.mjs',
+          importAlias: 'dangerous-html/dist/vue/lib.js',
         },
+      },
+    },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        version: 'github:teleporthq/date-time-primitive',
+        path: '@teleporthq/date-time-primitive',
+        meta: { importAlias: '@teleporthq/date-time-primitive/dist/vue/lib.js' },
       },
     },
   },
