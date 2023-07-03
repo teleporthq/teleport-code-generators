@@ -12,10 +12,10 @@ export const NuxtProjectMapping: Mapping = {
       elementType: 'DangerousHTML',
       dependency: {
         type: 'package',
-        path: 'dangerous-html',
-        version: '0.1.12',
+        path: '@teleporthq/thq-vue-components',
+        version: '1.0.1',
         meta: {
-          importAlias: 'dangerous-html/dist/vue/lib.js',
+          namedImport: true,
         },
       },
     },
@@ -23,9 +23,11 @@ export const NuxtProjectMapping: Mapping = {
       elementType: 'DateTimePrimitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
-        meta: { importAlias: '@teleporthq/date-time-primitive/dist/vue/lib.js' },
+        version: '1.0.1',
+        path: '@teleporthq/thq-vue-components',
+        meta: {
+          namedImport: true,
+        },
       },
     },
   },

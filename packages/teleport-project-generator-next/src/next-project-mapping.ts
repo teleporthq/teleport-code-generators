@@ -23,23 +23,25 @@ export const NextProjectMapping: Mapping = {
         },
       ],
     },
-    'date-time-node': {
-      elementType: 'DateTimePrimitive',
-      dependency: {
-        type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
-        meta: { importAlias: '@teleporthq/date-time-primitive/react' },
-      },
-    },
     'html-node': {
       elementType: 'DangerousHTML',
       dependency: {
         type: 'package',
-        path: 'dangerous-html',
-        version: '0.1.12',
+        path: '@teleporthq/thq-react-components',
+        version: '1.0.1',
         meta: {
-          importAlias: 'dangerous-html/react',
+          namedImport: true,
+        },
+      },
+    },
+    'date-time-node': {
+      elementType: 'DateTimePrimitive',
+      dependency: {
+        type: 'package',
+        version: '1.0.1',
+        path: '@teleporthq/thq-react-components',
+        meta: {
+          namedImport: true,
         },
       },
     },

@@ -6,10 +6,10 @@ export const VueMapping: Mapping = {
       elementType: 'DangerousHTML',
       dependency: {
         type: 'package',
-        path: 'dangerous-html',
-        version: '0.1.12',
+        path: '@teleporthq/thq-vue-components',
+        version: '1.0.1',
         meta: {
-          importAlias: 'dangerous-html/vue',
+          namedImport: true,
         },
       },
     },
@@ -17,9 +17,11 @@ export const VueMapping: Mapping = {
       elementType: 'DateTimePrimitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
-        meta: { importAlias: '@teleporthq/date-time-primitive/vue' },
+        version: '1.0.1',
+        path: '@teleporthq/thq-vue-components',
+        meta: {
+          namedImport: true,
+        },
       },
     },
     'lottie-node': {
