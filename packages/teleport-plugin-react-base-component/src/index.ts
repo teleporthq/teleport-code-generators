@@ -82,6 +82,20 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       windowImports
     )
 
+    if (dependencies?.useRouter) {
+      const routerAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('router'),
+          types.callExpression(types.identifier('useRouter'), [])
+        ),
+      ])
+      const componentBody = (
+        (pureComponent.declarations[0] as types.VariableDeclarator)
+          .init as types.ArrowFunctionExpression
+      ).body as types.BlockStatement
+      componentBody.body.unshift(routerAST)
+    }
+
     if (Object.keys(windowImports).length) {
       dependencies.useEffect = Constants.USE_STATE_DEPENDENCY
     }

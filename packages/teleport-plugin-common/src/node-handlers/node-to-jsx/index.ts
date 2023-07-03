@@ -218,21 +218,25 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   const {
     initialData,
     key,
-    // attrs,
     renderPropIdentifier,
     resource: { params: resourceParams } = {},
+    router,
   } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
 
-  if (node.type === 'cms-list') {
+  if (router && options?.dependencyHandling === 'import') {
+    params.dependencies.useRouter = router
+  }
+
+  if (node.type === 'cms-list' && options?.dependencyHandling === 'import') {
     params.dependencies[jsxTag] = {
       type: 'local',
       path: 'components/cms-list',
     }
   }
 
-  if (node.type === 'cms-item') {
+  if (node.type === 'cms-item' && options?.dependencyHandling === 'import') {
     params.dependencies[jsxTag] = {
       type: 'local',
       path: 'components/cms-item',

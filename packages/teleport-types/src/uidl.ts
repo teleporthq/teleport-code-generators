@@ -306,6 +306,7 @@ export interface UIDLCMSListNodeContent {
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
+  router?: UIDLDependency
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
@@ -324,6 +325,7 @@ export interface UIDLCMSItemNodeContent {
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
   renderPropIdentifier: string
+  router?: UIDLDependency
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
