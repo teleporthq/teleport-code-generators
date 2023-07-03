@@ -1,4 +1,6 @@
-export default {
+import { GeneratedFolder } from '@teleporthq/teleport-types'
+
+const projectTemplate: GeneratedFolder = {
   name: 'teleport-project-vue',
   files: [
     {
@@ -109,3 +111,5 @@ new Vue({
     },
   ],
 }
+
+export default projectTemplate

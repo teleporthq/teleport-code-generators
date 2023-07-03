@@ -174,7 +174,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     const uidl = Parser.parseProjectJSON(cleanedUIDL)
     const projectResources = {}
-    const projectContexts = {}
 
     const contentValidationResult = this.validator.validateProjectContent(uidl)
     if (!contentValidationResult.valid) {
@@ -189,7 +188,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
         strategy: this.strategy,
         dependencies: collectedDependencies,
         devDependencies: collectedDevDependencies,
-        projectContexts,
         projectResources,
         rootFolder,
       })
@@ -329,7 +327,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const path = this.strategy.pages.path.concat(relativePath)
 
       Object.assign(pageOptions, {
-        projectContexts,
         projectResources,
         ...(uidl.resources &&
           this.strategy?.resources?.path && {
@@ -415,7 +412,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Handling components
     for (const componentName of Object.keys(components)) {
-      Object.assign(options, { projectContexts, projectResources })
+      Object.assign(options, { projectResources })
 
       if (!this.strategy?.components?.generator) {
         throw new TeleportError(

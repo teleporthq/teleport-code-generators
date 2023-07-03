@@ -17,12 +17,12 @@ import {
   UIDLGlobalAsset,
   UIDLRootComponent,
   VUIDLLinkNode,
-  UIDLCMSItemNode,
   UIDLPropDefinition,
   UIDLStateDefinition,
-  UIDLCMSListNode,
   UIDLElementNodeInlineReferencedStyle,
   UIDLURLLinkNode,
+  UIDLCMSItemNode,
+  UIDLCMSListNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -147,14 +147,16 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     case 'cms-item':
     case 'cms-list':
     case 'element':
-      const elementContent = node.content as Record<string, unknown>
-
       if (node.type === 'cms-item') {
         const {
+          initialData,
           nodes: { success, error, loading },
-          statePersistanceName,
         } = (node as unknown as UIDLCMSItemNode).content
 
+        if (initialData) {
+          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
+        }
+
         if (success) {
           success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
             success?.content?.attrs || {}
@@ -165,31 +167,24 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
             error?.content?.attrs || {}
           )
-          component.stateDefinitions[`${statePersistanceName}Error`] = {
-            type: 'boolean',
-            defaultValue: false,
-          }
         }
 
         if (loading) {
-          component.stateDefinitions[`${statePersistanceName}Loading`] = {
-            type: 'boolean',
-            defaultValue: false,
-          }
+          loading.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            loading?.content?.attrs || {}
+          )
         }
       }
 
-      if (node.type === 'cms-list' && elementContent.hasOwnProperty('loopItemsReference')) {
+      if (node.type === 'cms-list') {
         const {
-          loopItemsReference,
-          statePersistanceName,
-          nodes: { success, error, loading },
+          initialData,
+          nodes: { success, error, loading, empty },
         } = (node as unknown as UIDLCMSListNode).content
-        const identifier =
-          loopItemsReference?.type === 'dynamic' &&
-          loopItemsReference.content.referenceType === 'prop'
-            ? 'propDefinitions'
-            : 'stateDefinitions'
+
+        if (initialData) {
+          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
+        }
 
         if (success) {
           success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
@@ -201,30 +196,22 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
             error?.content?.attrs || {}
           )
-          component[identifier][`${statePersistanceName}Error`] = {
-            type: 'boolean',
-            defaultValue: false,
-          }
         }
 
         if (loading) {
-          component[identifier][`${statePersistanceName}Loading`] = {
-            type: 'boolean',
-            defaultValue: false,
-          }
+          loading.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            loading?.content?.attrs || {}
+          )
         }
 
-        if (
-          loopItemsReference &&
-          loopItemsReference?.type === 'dynamic' &&
-          ['state', 'prop'].includes(loopItemsReference?.content.referenceType)
-        ) {
-          loopItemsReference.content.id = StringUtils.createStateOrPropStoringValue(
-            loopItemsReference.content.id
+        if (empty) {
+          empty.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            empty?.content?.attrs || {}
           )
         }
       }
 
+      const elementContent = node.content as Record<string, unknown>
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {
           switch (styleRef.content.mapType) {
@@ -271,6 +258,15 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (elementContent?.abilities?.hasOwnProperty('link')) {
         const { content, type } = (elementContent.abilities as { link: VUIDLLinkNode }).link
+
+        if (type === 'navlink' && typeof content.routeName === 'string') {
+          const route: UIDLStaticValue = {
+            type: 'static',
+            content: content.routeName,
+          }
+          content.routeName = route
+        }
+
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
         }

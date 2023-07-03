@@ -4,7 +4,6 @@ import {
   UIDLPropDefinition,
   UIDLDependency,
   UIDLStateDefinition,
-  ProjectContext,
   ProjectResource,
 } from '@teleporthq/teleport-types'
 
@@ -14,7 +13,6 @@ export interface JSXGenerationParams {
   nodesLookup: Record<string, types.JSXElement>
   dependencies: Record<string, UIDLDependency>
   windowImports: Record<string, types.ExpressionStatement>
-  projectContexts?: Record<string, ProjectContext>
   projectResources?: Record<string, ProjectResource>
 }
 
@@ -31,7 +29,6 @@ export interface JSXGenerationOptions {
     prop: string
     state: string
     local: string
-    ctx: string
   }
 
   /*

@@ -1,5 +1,5 @@
 import * as types from '@babel/types'
-import { parse, traverse } from '@babel/core'
+import { parse } from '@babel/core'
 import ParsedASTNode from './parsed-ast'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import {
@@ -7,14 +7,11 @@ import {
   UIDLPropDefinition,
   UIDLRawValue,
   UIDLStaticValue,
-  UIDLDynamicReference,
   UIDLResourceItem,
   UIDLENVValue,
   UIDLPropValue,
   UIDLExpressionValue,
 } from '@teleporthq/teleport-types'
-import { JSXGenerationOptions, JSXGenerationParams } from '../node-handlers/node-to-jsx/types'
-import { createDynamicValueExpression } from '../node-handlers/node-to-jsx/utils'
 import { ASTUtils } from '..'
 
 /**
@@ -95,7 +92,6 @@ const getClassAttribute = (
 
 /**
  * Makes `${name}={${prefix}.${value}}` happen in AST
- * doesn't handle ctx or expr referenceType
  */
 export const addDynamicAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
@@ -104,35 +100,10 @@ export const addDynamicAttributeToJSXTag = (
   prefix: string = '',
   t = types
 ) => {
-  // TODO: Fix  !!
-  if (!value) {
-    return
-  }
-
   const content =
     prefix === ''
       ? t.identifier(value)
       : t.memberExpression(t.identifier(prefix), t.identifier(value))
-
-  jsxASTNode.openingElement.attributes.push(
-    t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
-  )
-}
-
-/**
- * Makes `${name}={${ContextName}.${path}}` happen in AST
- */
-export const addDynamicCtxAttributeToJSXTag = (params: {
-  jsxASTNode: types.JSXElement
-  name: string
-  attrValue: UIDLDynamicReference
-  options: JSXGenerationOptions
-  generationParams: JSXGenerationParams
-  t?: typeof types
-}) => {
-  const { jsxASTNode, name, t = types, attrValue, options, generationParams } = params
-
-  const content = createDynamicValueExpression(attrValue, options, t, generationParams)
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(t.jsxIdentifier(name), t.jsxExpressionContainer(content))
@@ -147,33 +118,21 @@ export const addDynamicCtxAttributeToJSXTag = (params: {
  */
 export const addDynamicExpressionAttributeToJSXTag = (
   jsxASTNode: types.JSXElement,
-  dynamicRef: UIDLDynamicReference,
-  params: JSXGenerationParams,
+  dynamicRef: UIDLExpressionValue,
+  attrKey: string,
   t = types
 ) => {
   const dynamicContent = dynamicRef.content
-  if (dynamicContent.referenceType !== 'expr') {
+  if (dynamicRef.type !== 'expr') {
     throw new Error(`This method only works with dynamic nodes that have code expressions`)
   }
 
-  const code = dynamicContent.expression
+  const code = dynamicContent
   const options = {
     sourceType: 'module' as const,
   }
 
   const ast = parse(code, options)
-
-  replaceIdentifiersWithScopes(ast, dynamicContent.scope, (_, name) => {
-    const entityToResolve = dynamicContent.scope[name]
-    if (entityToResolve.type === 'dynamic') {
-      const { projectContexts } = params
-      const contextMeta = projectContexts[entityToResolve.content.ctxId]
-      const nameOfContext = StringUtils.camelize(contextMeta.providerName)
-
-      return nameOfContext
-    }
-    return name
-  })
 
   if (!('program' in ast)) {
     throw new Error(
@@ -189,33 +148,12 @@ export const addDynamicExpressionAttributeToJSXTag = (
 
   jsxASTNode.openingElement.attributes.push(
     t.jsxAttribute(
-      t.jsxIdentifier('href'),
+      t.jsxIdentifier(attrKey),
       t.jsxExpressionContainer(theStatementOnlyWihtoutTheProgram.expression)
     )
   )
 }
 
-type ReplacementCallback = (path: babel.NodePath<types.Identifier>, name: string) => string
-type ExpressionScopes = Record<string, UIDLStaticValue | UIDLDynamicReference>
-
-function replaceIdentifiersWithScopes(
-  node: babel.Node,
-  scopes: ExpressionScopes,
-  callback: ReplacementCallback
-) {
-  const visitor = {
-    Identifier(path: babel.NodePath<types.Identifier>) {
-      const { name } = path.node
-      if (scopes[name]) {
-        const newName = callback(path, name)
-        if (newName !== name) {
-          path.replaceWith(types.identifier(newName))
-        }
-      }
-    },
-  }
-  traverse(node, visitor)
-}
 /*
   Use, when we need to add a mix of dynamic and static values to
   the same attribute at the same time.
@@ -600,11 +538,6 @@ export const generateDynamicWindowImport = (
 export const wrapObjectPropertiesWithExpression = (properties: types.ObjectProperty[]) =>
   types.objectExpression(properties)
 
-/*
- * TODO: Add the ability to support body and payload.
- * UIDLResourceItem['body']
- * All the dynamic props are sent using the function props
- */
 export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
@@ -813,7 +746,7 @@ export const generateMemberExpressionASTFromPath = (
   )
 }
 
-const generateURLParamsAST = (
+export const generateURLParamsAST = (
   urlParams: Record<string, UIDLStaticValue | UIDLPropValue>
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
@@ -1013,7 +946,31 @@ export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLE
       ? types.booleanLiteral(prop.content)
       : typeof prop.content === 'number'
       ? types.numericLiteral(prop.content)
+      : typeof prop.content === 'object'
+      ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
       : types.identifier(String(prop.content))
 
   return value
+}
+
+export const getExpressionFromUIDLExpressionNode = (
+  node: UIDLExpressionValue
+): types.Expression => {
+  const ast = parse(node.content, {
+    sourceType: 'module' as const,
+  })
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0]
+
+  if (theStatementOnlyWihtoutTheProgram.type !== 'ExpressionStatement') {
+    throw new Error(`Expr dynamic attribute only support expressions statements at the moment.`)
+  }
+
+  return theStatementOnlyWihtoutTheProgram.expression
 }

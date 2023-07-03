@@ -37,7 +37,7 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
 
   const reactComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, dependencies, options } = structure
-    const { projectContexts, projectResources } = options
+    const { projectResources } = options
     const { stateDefinitions = {}, propDefinitions = {} } = uidl
 
     dependencies.React = REACT_LIBRARY_DEPENDENCY
@@ -56,7 +56,6 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       stateDefinitions,
       nodesLookup,
       dependencies,
-      projectContexts,
       projectResources,
       windowImports,
     }
@@ -66,7 +65,6 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
         prop: 'props',
         state: '',
         local: '',
-        ctx: '',
       },
       dependencyHandling: 'import',
       stateHandling: 'hooks',
@@ -83,6 +81,20 @@ export const createReactComponentPlugin: ComponentPluginFactory<ReactPluginConfi
       jsxTagStructure,
       windowImports
     )
+
+    if (dependencies?.useRouter) {
+      const routerAST = types.variableDeclaration('const', [
+        types.variableDeclarator(
+          types.identifier('router'),
+          types.callExpression(types.identifier('useRouter'), [])
+        ),
+      ])
+      const componentBody = (
+        (pureComponent.declarations[0] as types.VariableDeclarator)
+          .init as types.ArrowFunctionExpression
+      ).body as types.BlockStatement
+      componentBody.body.unshift(routerAST)
+    }
 
     if (Object.keys(windowImports).length) {
       dependencies.useEffect = Constants.USE_STATE_DEPENDENCY

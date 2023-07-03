@@ -33,7 +33,6 @@
     "@teleporthq/teleport-plugin-jsx-head-config": "^0.27.6-alpha.0",
     "@teleporthq/teleport-plugin-jsx-next-image": "^0.27.6-alpha.0",
     "@teleporthq/teleport-plugin-next-cms-fetch": "^0.27.3-alpha.3",
-    "@teleporthq/teleport-plugin-next-context": "^0.27.6-alpha.0",
     "@teleporthq/teleport-plugin-next-static-paths": "^0.27.6-alpha.0",
     "@teleporthq/teleport-plugin-next-static-props": "^0.27.6-alpha.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.27.6-alpha.0",

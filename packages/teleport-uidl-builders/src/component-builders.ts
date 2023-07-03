@@ -160,7 +160,7 @@ export const conditionalNode = (
 
 export const repeatNode = (
   node: UIDLElementNode,
-  dataSource: UIDLAttributeValue,
+  dataSource: UIDLDynamicReference | UIDLStaticValue | UIDLRawValue,
   meta?: Record<string, unknown>
 ): UIDLRepeatNode => {
   return {

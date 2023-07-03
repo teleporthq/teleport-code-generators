@@ -53,18 +53,19 @@ export interface VCMSItemUIDLElementNode
     UIDLCMSItemNode,
     {
       content: {
+        name?: string
         nodes: {
           success: VUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
         }
-        statePersistanceName?: string
         valuePath?: string[]
         itemValuePath?: string[]
         resource?: {
           id: string
           params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
         }
+        initialData?: UIDLPropValue
       }
     }
   > {}
@@ -74,20 +75,21 @@ export interface VCMSListUIDLElementNode
     UIDLCMSListNode,
     {
       content: {
+        name?: string
         nodes: {
+          key?: string
           success: VUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
           empty?: VUIDLElementNode
         }
-        loopItemsReference?: UIDLAttributeValue
         valuePath?: string[]
         itemValuePath?: string[]
-        statePersistanceName?: string
-        resource?: {
+        resource: {
           id: string
           params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
         }
+        initialData?: UIDLPropValue
       }
     }
   > {}
@@ -126,6 +128,7 @@ export type VUIDLNode =
   | VUIDLSlotNode
   | VCMSItemUIDLElementNode
   | VCMSListUIDLElementNode
+  | UIDLExpressionValue
   | string
 
 export type VUIDLElement = Modify<
@@ -236,6 +239,15 @@ export type VUIDLURLLinkNode = Modify<
   }
 >
 
+export type VUIDLNavLinkNode = Modify<
+  UIDLNavLinkNode,
+  {
+    content: {
+      routeName: string | UIDLAttributeValue
+    }
+  }
+>
+
 export type VUIDLDynamicLinkNode = UIDLDynamicLinkNode
 
 export type VUIDLStyleSetMediaCondition = Modify<
@@ -257,7 +269,7 @@ export type VUIDLStyleSetConditions = VUIDLStyleSetMediaCondition | VUIDLStyleSe
 export type VUIDLLinkNode =
   | VUIDLURLLinkNode
   | VUIDLSectionLinkNode
-  | UIDLNavLinkNode
+  | VUIDLNavLinkNode
   | UIDLMailLinkNode
   | UIDLPhoneLinkNode
   | VUIDLDynamicLinkNode

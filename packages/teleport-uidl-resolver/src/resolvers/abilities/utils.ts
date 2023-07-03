@@ -34,6 +34,46 @@ export const insertLinks = (
       child.content.fallback = insertLinks(child.content.fallback, options, linkInNode, node)
     }
 
+    if (child.type === 'cms-list') {
+      const {
+        nodes: { success, error, empty, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (empty) {
+        insertLinks(empty, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-item') {
+      const {
+        nodes: { success, error, loading },
+      } = child.content
+
+      if (success) {
+        insertLinks(success, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+
+      if (loading) {
+        insertLinks(loading, options, false, node)
+      }
+    }
+
     return child
   })
 
@@ -148,10 +188,7 @@ const createLinkAttributes = (
 
     case 'navlink': {
       return {
-        transitionTo: {
-          type: 'static',
-          content: resolveNavlink(link.content.routeName, options),
-        },
+        transitionTo: resolveNavlink(link.content.routeName, options),
       }
     }
 
@@ -179,27 +216,44 @@ const createLinkAttributes = (
   }
 }
 
-const resolveNavlink = (routeName: string, options: GeneratorOptions) => {
+const resolveNavlink = (
+  route: UIDLAttributeValue,
+  options: GeneratorOptions
+): UIDLAttributeValue => {
   if (options.skipNavlinkResolver) {
-    return routeName
+    return route
   }
 
-  if (routeName.startsWith('/')) {
+  const { type, content: routeName } = route
+
+  if (type !== 'static') {
+    return route
+  }
+
+  if (routeName.toString().startsWith('/')) {
     // attribute was explicitly set as a custom navlink
-    return routeName
+    return route
   }
 
   const friendlyURL = StringUtils.camelCaseToDashCase(
-    StringUtils.removeIllegalCharacters(routeName)
+    StringUtils.removeIllegalCharacters(routeName.toString())
   )
 
   const transitionRoute = options.projectRouteDefinition
-    ? options.projectRouteDefinition.values.find((route) => route.value === routeName)
+    ? options.projectRouteDefinition.values.find((routeItem) => routeItem.value === routeName)
     : null
 
   if (!transitionRoute) {
-    return `/${friendlyURL}`
+    return {
+      type: 'static',
+      content: `/${friendlyURL}`,
+    }
   }
 
-  return transitionRoute?.pageOptions?.navLink ?? `/${friendlyURL}`
+  const value = transitionRoute?.pageOptions?.navLink ?? `/${friendlyURL}`
+
+  return {
+    type: 'static',
+    content: value,
+  }
 }

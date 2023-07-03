@@ -60,22 +60,11 @@ export interface UIDLResources {
   items?: Record<string, UIDLResourceItem>
 }
 
-export interface UIDLContextItem {
-  name: string
-  fileName?: string
-}
-
-export interface UIDLContexts {
-  rootFolder: string
-  items: Record<string, UIDLContextItem>
-}
-
 export interface ProjectUIDL {
   name: string
   globals: UIDLGlobalProjectValues
   root: UIDLRootComponent
   components?: Record<string, ComponentUIDL>
-  contexts?: UIDLContexts
   resources?: UIDLResources
 }
 
@@ -151,12 +140,6 @@ export type UIDLGlobalAsset =
   | UIDLFontAsset
   | UIDLCanonicalAsset
   | UIDLIconAsset
-
-export type ResourceUrlValues =
-  | Array<UIDLStaticValue | UIDLDynamicReference>
-  | UIDLStaticValue
-  | UIDLDynamicReference
-  | UIDLExpressionValue
 
 export interface ComponentUIDL {
   name: string
@@ -264,25 +247,13 @@ export interface UIDLPageOptions {
   stateDefinitions?: Record<string, UIDLStateDefinition>
 }
 
-export type ReferenceType =
-  | 'prop'
-  | 'state'
-  | 'local'
-  | 'attr'
-  | 'children'
-  | 'token'
-  | 'ctx'
-  | 'expr'
+export type ReferenceType = 'prop' | 'state' | 'local' | 'attr' | 'children' | 'token' | 'expr'
 
 export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
-    path?: string[]
     id: string
-    expression?: string
-    ctxId?: string
-    scope?: Record<string, UIDLDynamicReference | UIDLStaticValue>
   }
 }
 
@@ -305,7 +276,7 @@ export interface UIDLSlotNode {
   type: 'slot'
   content: {
     name?: string
-    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference
+    fallback?: UIDLElementNode | UIDLStaticValue | UIDLDynamicReference | UIDLExpressionValue
   }
 }
 
@@ -319,37 +290,53 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+/*
+  A cms-list node can fetch data from the remote resouce
+  or it can refer to a `prop` value for page list.
+  It can have either remote resource or prop but not both.
+  In the case of `prop` the data is fetched using `getStaticProps`
+  or `getStaticPaths` at the moment in NextJS.
+*/
+
+export interface UIDLResourceLink {
+  id: string
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+}
+
 export interface UIDLCMSListNodeContent {
+  name: string
+  key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
+  router?: UIDLDependency
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
     loading?: UIDLElementNode
     empty?: UIDLElementNode
   }
-  statePersistanceName?: string
-  loopItemsReference?: UIDLAttributeValue
+  renderPropIdentifier: string
   valuePath?: string[]
   paginationQueryParam?: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue
   itemValuePath?: string[]
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLCMSItemNodeContent {
+  name: string
+  key: string // internal usage
+  attrs?: Record<string, UIDLAttributeValue>
+  renderPropIdentifier: string
+  router?: UIDLDependency
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode
     loading?: UIDLElementNode
   }
-  statePersistanceName?: string
   valuePath?: string[]
   itemValuePath?: string[]
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource?: UIDLResourceLink
+  initialData?: UIDLPropValue
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -407,7 +394,6 @@ export interface UIDLElement {
   elementType: string
   semanticType?: string
   name?: string
-  ctxId?: string
   key?: string // internal usage
   dependency?: UIDLDependency
   style?: UIDLStyleDefinitions
@@ -424,6 +410,7 @@ export interface UIDLElement {
 }
 
 export type UIDLNode =
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
@@ -442,6 +429,7 @@ export interface UIDLComponentStyleReference {
 }
 
 export type UIDLAttributeValue =
+  | UIDLExpressionValue
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLImportReference
@@ -481,8 +469,11 @@ export interface UIDLSectionLinkNode {
 
 export interface UIDLNavLinkNode {
   type: 'navlink'
-  content: { routeName: string }
+  content: {
+    routeName: UIDLAttributeValue
+  }
 }
+
 export interface UIDLMailLinkNode {
   type: 'mail'
   content: {
@@ -606,7 +597,7 @@ export interface UIDLElementNodeInlineReferencedStyle {
 export type UIDLCompDynamicReference = {
   type: 'dynamic'
   content: {
-    referenceType: 'prop' | 'comp' | 'ctx'
+    referenceType: 'prop' | 'comp'
     id: string
   }
 }
