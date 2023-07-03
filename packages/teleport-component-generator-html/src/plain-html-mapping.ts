@@ -16,10 +16,11 @@ export const PlainHTMLMapping: Mapping = {
       dependency: {
         type: 'package',
         path: 'dangerous-html',
-        version: '0.1.12',
+        version: '1.0.0',
         meta: {
           importJustPath: true,
-          importAlias: 'https://unpkg.com/dangerous-html@0.1.12/dist/default/lib.umd.js',
+          importAlias:
+            'https://unpkg.com/@teleporthq/thq-lit-components@1.0.0/dist/thq-lit-components.umd.js',
         },
       },
     },
@@ -32,7 +33,7 @@ export const PlainHTMLMapping: Mapping = {
         meta: {
           importJustPath: true,
           importAlias:
-            'https://github.com/teleporthq/date-time-primitive/blob/main/dist/default/lib.umd.js',
+            'https://unpkg.com/@teleporthq/thq-lit-components@1.0.0/dist/thq-lit-components.umd.js',
         },
       },
     },

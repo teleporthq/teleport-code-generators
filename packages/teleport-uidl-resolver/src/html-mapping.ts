@@ -26,8 +26,8 @@ export const HTMLMapping: Mapping = {
       elementType: 'dangerous-html',
       dependency: {
         type: 'package',
-        path: 'dangerous-html',
-        version: '0.1.12',
+        path: '@teleporthq/thq-lit-components',
+        version: '1.0.0',
         meta: {
           importJustPath: true,
         },
@@ -37,8 +37,8 @@ export const HTMLMapping: Mapping = {
       elementType: 'date-time-primitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
+        version: '1.0.0',
+        path: '@teleporthq/thq-lit-components',
         meta: { importJustPath: true },
       },
     },

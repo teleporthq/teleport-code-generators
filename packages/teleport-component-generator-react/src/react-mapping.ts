@@ -33,10 +33,10 @@ export const ReactMapping: Mapping = {
       elementType: 'DangerousHTML',
       dependency: {
         type: 'package',
-        path: 'dangerous-html',
-        version: '0.1.12',
+        path: '@teleporthq/thq-react-components',
+        version: '1.0.1',
         meta: {
-          importAlias: 'dangerous-html/react',
+          namedImport: true,
         },
       },
     },
@@ -44,9 +44,11 @@ export const ReactMapping: Mapping = {
       elementType: 'DateTimePrimitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
-        meta: { importAlias: '@teleporthq/date-time-primitive/react' },
+        version: '1.0.1',
+        path: '@teleporthq/thq-react-components',
+        meta: {
+          namedImport: true,
+        },
       },
     },
     'lottie-node': {
