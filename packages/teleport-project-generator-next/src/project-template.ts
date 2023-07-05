@@ -53,163 +53,83 @@ return nextConfig
         {
           name: 'cms-item',
           fileType: FileType.JS,
-          content: `import { useEffect, useState, useRef } from "react";
-/**
-* - @param loading - JSX to display when the componet is in loading state.
-* - @param error - JSX to display when the compnent hit a error state
-* - @param children - Use for the renderProps patter to call the parent
-* - @param fetcher - A promise from which we need to derive another three states, loading, error, data
-* - @param params - Params that need to be passed while fetching the resource.
-* - @param initialData - This is used to avoid the loading state, and fetch the new data when there is a change in the params
-*/
-
-const NO_INITIAL_DATA = Symbol(null);
-
-const CMSListItem = ({
-  loading = null,
-  error = null,
-  children,
-  fetcher,
-  params = null,
-  initialData = NO_INITIAL_DATA,
-}) => {
-  const missingInitialData = useRef(initialData === NO_INITIAL_DATA);
-  const [resource, setResourceStatus] = useState(
-    missingInitialData.current
-      ? {
-          state: "idle",
-        }
-      : { state: "success", data: initialData }
-  );
-  const { state, data } = resource;
-
-  useEffect(() => {
-    if (!fetcher) {
-      return;
-    }
-
-    if (!missingInitialData.current) {
-      missingInitialData.current = true;
-      return;
-    }
-
-    fetcher(params)
-      .then(async (data) => {
-        setResourceStatus({
-          state: "success",
-          error: "null",
-          data,
-        });
-      })
-      .catch((error) => {
-        setResourceStatus({
-          state: "error",
-          message: error instanceof Error ? error.message : error,
-        });
-      });
-  }, [params]);
-
-  if (state === "loading") {
-    return loading;
+          content: `import React from "react";
+const Repeater = (props) => {
+  const { items, renderItem, renderEmpty } = props;
+  if (items.length === 0) {
+    return renderEmpty();
+  } else {
+    return /*#__PURE__*/ React.createElement(
+      React.Fragment,
+      null,
+      items.map((item, index) => renderItem(item, index))
+    );
   }
-
-  if (state === "error") {
-    return error;
-  }
-
-  if (state === "success" && data) {
-    return children(data);
-  }
-
-  return null;
 };
-
-export default CMSListItem
+export default Repeater;
 `,
         },
         {
           name: 'cms-list',
           fileType: FileType.JS,
-          content: `import { useEffect, useState, useRef } from "react";
-/**
-* - @param loading - JSX to display when the componet is in loading state.
-* - @param error - JSX to display when the compnent hit a error state
-* - @param empty - empty state of the component
-* - @param children - Use for the renderProps patter to call the parent
-* - @param fetcher - A promise from which we need to derive another three states, loading, error, data
-* - @param params - Params that need to be passed while fetching the resource.
-* - @param initialData - This is used to avoid the loading state, and fetch the new data when there is a change in the params
-*/
-
-const NO_INITIAL_DATA = Symbol(null);
-
-const CMSList = ({
-  loading = null,
-  error = null,
-  empty = null,
-  children,
-  fetcher,
-  params,
-  initialData = NO_INITIAL_DATA,
-}) => {
-  const missingInitialData = useRef(initialData === NO_INITIAL_DATA);
-  const [resource, setResourceStatus] = useState(
-    missingInitialData.current
-      ? {
-          state: "idle",
-        }
-      : { state: "success", data: initialData }
+          content: `import { useState, useEffect, useRef } from "react";
+const DataProvider = (props) => {
+  const {
+    fetchData,
+    params,
+    initialData,
+    persistDataDuringLoading = false,
+    renderLoading,
+    renderSuccess,
+    renderError
+  } = props;
+  const [status, setStatus] = useState("idle");
+  const [data, setData] = useState(initialData);
+  const [error, setError] = useState(null);
+  const passFetchBecauseWeHaveInitialData = useRef(
+    props.initialData !== undefined
   );
-  const { state, data } = resource;
-
+  const persistDataDuringLoadingRef = useRef(persistDataDuringLoading);
+  persistDataDuringLoadingRef.current = persistDataDuringLoading;
   useEffect(() => {
-    if (!fetcher) {
+    if (passFetchBecauseWeHaveInitialData.current) {
+      passFetchBecauseWeHaveInitialData.current = false;
       return;
     }
-
-    if (!missingInitialData.current) {
-      missingInitialData.current = true;
-      return;
-    }
-
-    setResourceStatus({ state: "loading", error: null });
-    fetcher(params)
-      .then(async (data) => {
-        setResourceStatus({
-          state: "success",
-          error: "null",
-          data,
-        });
-      })
-      .catch((error) => {
-        setResourceStatus({
-          state: "error",
-          message: error instanceof Error ? error.message : error,
-        });
-      });
-  }, [params]);
-
-  if (state === "loading") {
-    return loading;
+    const fetchDataAsync = async () => {
+      setStatus("loading");
+      if (!persistDataDuringLoadingRef.current) {
+        setData(undefined);
+      }
+      try {
+        const result = await fetchData(params);
+        setData(result);
+        setStatus("success");
+      } catch (err) {
+        setError(err);
+        setStatus("error");
+      }
+    };
+    fetchDataAsync();
+  }, [params, fetchData]);
+  switch (status) {
+    case "idle":
+    case "loading":
+      return props.persistDataDuringLoading && data
+        ? renderSuccess(data, true)
+        : renderLoading
+        ? renderLoading()
+        : null;
+    case "success":
+      return renderSuccess(data, false);
+    case "error":
+      return renderError(error);
+    default:
+      return null;
   }
-
-  if (state === "error") {
-    return error;
-  }
-
-  if (state === "success" && data?.length === 0) {
-    return empty;
-  }
-
-  if (state === "success" && data?.length > 0) {
-    return data.map((data) => children(data));
-  }
-
-  return null;
 };
-
-export default CMSList
-  `,
+export default DataProvider;
+`,
         },
       ],
     },

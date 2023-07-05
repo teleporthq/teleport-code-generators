@@ -33,7 +33,7 @@ import {
 } from '../../utils/ast-utils'
 import { createJSXTag, createSelfClosingJSXTag } from '../../builders/ast-builders'
 import { DEFAULT_JSX_OPTIONS } from './constants'
-import { ASTUtils } from '../..'
+import { ASTBuilders, ASTUtils } from '../..'
 
 const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   node,
@@ -221,86 +221,124 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     renderPropIdentifier,
     resource: { params: resourceParams } = {},
     router,
+    elementType,
   } = node.content
   const { loading, error, success } = node.content.nodes
-  const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.type)
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
 
   if (router && options?.dependencyHandling === 'import') {
     params.dependencies.useRouter = router
-  }
-
-  if (node.type === 'cms-list' && options?.dependencyHandling === 'import') {
-    params.dependencies[jsxTag] = {
-      type: 'local',
-      path: 'components/cms-list',
-    }
-  }
-
-  if (node.type === 'cms-item' && options?.dependencyHandling === 'import') {
-    params.dependencies[jsxTag] = {
-      type: 'local',
-      path: 'components/cms-item',
-    }
   }
 
   if (!success) {
     return []
   }
 
-  /*
-    Make sure if the users are using nested values, the `path` value
-    from the `dynamic` reference is respected.
-    Eg: ${item.user.name}
-   */
+  const cmsNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
-  const cmsListTag = types.jsxElement(
-    types.jsxOpeningElement(
-      types.jsxIdentifier(StringUtils.dashCaseToUpperCamelCase(node.type)),
-      []
-    ),
-    types.jsxClosingElement(types.jsxIdentifier(jsxTag)),
-    [
-      types.jsxExpressionContainer(
-        types.arrowFunctionExpression(
-          /* tslint:disable:no-string-literal */
-          [types.identifier(renderPropIdentifier)],
-          generateNode(success, params, options)[0] as types.JSXElement
+  if (options.dependencyHandling) {
+    params.dependencies[jsxTag] = {
+      type: 'local',
+      path: 'components/cms-list',
+    }
+  }
+
+  if (node.type === 'cms-item') {
+    cmsNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderSuccess'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateNode(success, params, options)[0] as types.JSXElement
+          )
         )
-      ),
-    ]
-  )
+      )
+    )
+  }
+
+  if (node.type === 'cms-list') {
+    if (options.dependencyHandling) {
+      params.dependencies.Repeater = {
+        type: 'local',
+        path: 'components/cms-item',
+      }
+    }
+
+    const repeaterNode = ASTBuilders.createJSXTag('Repeater', [], true)
+    repeaterNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('items'),
+        types.jsxExpressionContainer(types.identifier('params'))
+      )
+    )
+
+    repeaterNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jSXIdentifier('renderItem'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateNode(success, params, options)[0] as types.JSXElement
+          )
+        )
+      )
+    )
+
+    cmsNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderSuccess'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression([types.identifier('params')], repeaterNode)
+        )
+      )
+    )
+  }
 
   if (loading) {
-    cmsListTag.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
-        types.jsxIdentifier('loading'),
-        types.jsxExpressionContainer(generateNode(loading, params, options)[0] as types.JSXElement)
+        types.jsxIdentifier('renderLoading'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [],
+            generateNode(loading, params, options)[0] as types.JSXElement
+          )
+        )
       )
     )
   }
 
   if (error) {
-    cmsListTag.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
-        types.jsxIdentifier('error'),
-        types.jsxExpressionContainer(generateNode(error, params, options)[0] as types.JSXElement)
+        types.jsxIdentifier('renderError'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [],
+            generateNode(error, params, options)[0] as types.JSXElement
+          )
+        )
       )
     )
   }
 
   if ('empty' in node.content.nodes) {
-    cmsListTag.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('empty'),
         types.jsxExpressionContainer(
-          generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
+          types.arrowFunctionExpression(
+            [],
+            generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
+          )
         )
       )
     )
   }
 
   if (initialData && initialData.content.referenceType === 'prop') {
-    cmsListTag.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('initialData'),
         types.jsxExpressionContainer(
@@ -331,7 +369,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       },
       []
     )
-    cmsListTag.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('params'),
         types.jsxExpressionContainer(types.objectExpression(nodeParams))
@@ -339,8 +377,8 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     )
   }
 
-  params.nodesLookup[key] = cmsListTag
-  return [cmsListTag]
+  params.nodesLookup[key] = cmsNode
+  return [cmsNode]
 }
 
 const generateRepeatNode: NodeToJSX<UIDLRepeatNode, types.JSXExpressionContainer[]> = (

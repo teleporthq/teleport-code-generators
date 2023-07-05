@@ -573,56 +573,7 @@
                     {
                       "type": "cms-list",
                       "content": {
-                        "router" : {
-                          "type": "library",
-                          "path": "next/router",
-                          "version": "latest",
-                          "meta": {
-                            "namedImport": true
-                          }
-                        },
-                        "renderPropIdentifier": "pagination",
-                        "nodes": {
-                          "success": {
-                            "type": "element",
-                            "content": {
-                              "elementType": "fragment",
-                              "children": [
-                                {
-                                  "type": "element",
-                                  "content": {
-                                    "elementType": "text",
-                                    "semanticType": "h1",
-                                    "referencedStyles": {},
-                                    "abilities": {},
-                                    "children": [
-                                      {
-                                        "type": "expr",
-                                        "content": "pagination.slug"
-                                      }
-                                    ]
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        "valuePath": [],
-                        "itemValuePath": [],
-                        "resource": {
-                          "id": "3ecc8461-9dcb-4a29-b976-aa8073d01252",
-                          "params": {
-                            "page": {
-                              "type": "expr",
-                              "content": "parseInt(router.query?.['cPage-p7thdp'] ?? 1)"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "type": "cms-list",
-                      "content": {
+                        "elementType": "DataProvider",
                         "resource": {
                           "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
                           "params": {}
@@ -915,6 +866,7 @@
                                       {
                                         "type": "cms-item",
                                         "content": {
+                                          "elementType": "DataProvider",
                                           "resource": {
                                             "id": "8818bd27-7d3d-4ec8-871c-be15549974a8",
                                             "params": {
@@ -1183,42 +1135,6 @@
   "components": {},
   "resources": {
     "items": {
-      "3ecc8461-9dcb-4a29-b976-aa8073d01252": {
-        "id": "3ecc8461-9dcb-4a29-b976-aa8073d01252",
-        "name": "Pagination-Example",
-        "mappers": [
-          "normalize"
-        ],
-        "path": {
-          "baseUrl": {
-            "type": "env",
-            "content": "CMS_URL"
-          },
-          "route": {
-            "type": "static",
-            "content": "wp-json/wp/v2/book"
-          }
-        },
-        "headers": {
-          "authToken": {
-            "type": "env",
-            "content": "CMS_ACCESS_TOKEN"
-          }
-        },
-        "params": {
-          "per_page": {
-            "type": "static",
-            "content": 2
-          },
-          "page": {
-            "type": "dynamic",
-            "content": {
-              "referenceType": "prop",
-              "id": "page"
-            }
-          }
-        }
-      },
       "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9": {
         "id": "4a58b7c6-cbfc-4afa-a41c-04ea4de710e9",
         "name": "Home",
