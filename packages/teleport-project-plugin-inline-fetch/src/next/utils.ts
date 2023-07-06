@@ -230,7 +230,7 @@ const computeUseEffectAST = (params: {
       : fetchAST
   )
 
-  jsxNode.openingElement.attributes.push(
+  jsxNode.openingElement.attributes.unshift(
     types.jSXAttribute(types.jsxIdentifier('fetchData'), types.jsxExpressionContainer(resourceAST))
   )
 

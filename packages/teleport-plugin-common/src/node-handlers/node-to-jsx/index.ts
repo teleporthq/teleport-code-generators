@@ -222,6 +222,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     resource: { params: resourceParams } = {},
     router,
     elementType,
+    dependency,
   } = node.content
   const { loading, error, success } = node.content.nodes
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
@@ -234,14 +235,11 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     return []
   }
 
-  const cmsNode = ASTBuilders.createJSXTag(jsxTag, [], true)
-
-  if (options.dependencyHandling) {
-    params.dependencies[jsxTag] = {
-      type: 'local',
-      path: 'components/cms-list',
-    }
+  if (dependency && options.dependencyHandling === 'import') {
+    params.dependencies[elementType] = dependency
   }
+
+  const cmsNode = ASTBuilders.createJSXTag(jsxTag, [], true)
 
   if (node.type === 'cms-item') {
     cmsNode.openingElement.attributes.push(
@@ -258,13 +256,6 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   }
 
   if (node.type === 'cms-list') {
-    if (options.dependencyHandling) {
-      params.dependencies.Repeater = {
-        type: 'local',
-        path: 'components/cms-item',
-      }
-    }
-
     const repeaterNode = ASTBuilders.createJSXTag('Repeater', [], true)
     repeaterNode.openingElement.attributes.push(
       types.jsxAttribute(
@@ -284,6 +275,24 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
         )
       )
     )
+
+    if (dependency && options.dependencyHandling === 'import') {
+      params.dependencies.Repeater = dependency
+    }
+
+    if ('empty' in node.content.nodes) {
+      repeaterNode.openingElement.attributes.push(
+        types.jsxAttribute(
+          types.jsxIdentifier('renderEmpty'),
+          types.jsxExpressionContainer(
+            types.arrowFunctionExpression(
+              [],
+              generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
+            )
+          )
+        )
+      )
+    }
 
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
@@ -317,20 +326,6 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
           types.arrowFunctionExpression(
             [],
             generateNode(error, params, options)[0] as types.JSXElement
-          )
-        )
-      )
-    )
-  }
-
-  if ('empty' in node.content.nodes) {
-    cmsNode.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier('empty'),
-        types.jsxExpressionContainer(
-          types.arrowFunctionExpression(
-            [],
-            generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
           )
         )
       )
