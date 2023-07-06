@@ -84,6 +84,7 @@ import {
   UIDLResourceItem,
   VUIDLNavLinkNode,
   VUIDLDateTimeNode,
+  UIDLStateValue,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -136,6 +137,14 @@ export const dyamicFunctionParam: Decoder<UIDLPropValue> = object({
   }),
 })
 
+export const dyamicFunctionStateParam: Decoder<UIDLStateValue> = object({
+  type: constant('dynamic'),
+  content: object({
+    referenceType: constant('state'),
+    id: string(),
+  }),
+})
+
 export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   name: string(),
   headers: optional(dict(union(staticValueDecoder, envValueDecoder))),
@@ -146,7 +155,7 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   method: withDefault('GET', union(constant('GET'), constant('POST'))),
   body: optional(dict(staticValueDecoder)),
   mappers: withDefault([], array(string())),
-  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam))),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, dyamicFunctionStateParam))),
   response: optional(
     object({
       type: withDefault('json', union(constant('json'), constant('headers'), constant('text'))),
@@ -731,7 +740,14 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       object({
         id: string(),
         params: optional(
-          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
+          dict(
+            union(
+              staticValueDecoder,
+              dyamicFunctionParam,
+              dyamicFunctionStateParam,
+              expressionValueDecoder
+            )
+          )
         ),
       })
     ),

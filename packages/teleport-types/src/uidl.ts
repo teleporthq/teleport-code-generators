@@ -34,6 +34,14 @@ export interface UIDLPropValue {
   }
 }
 
+export interface UIDLStateValue {
+  type: 'dynamic'
+  content: {
+    referenceType: 'state'
+    id: string
+  }
+}
+
 export interface UIDLResourceItem {
   name: string
   headers?: Record<string, UIDLStaticValue | UIDLENVValue>
@@ -43,7 +51,7 @@ export interface UIDLResourceItem {
   }
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
-  params?: Record<string, UIDLStaticValue | UIDLPropValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue>
   mappers?: string[]
   response?: {
     type: 'headers' | 'text' | 'json'
