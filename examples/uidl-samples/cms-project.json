@@ -2330,6 +2330,14 @@
               "type": "cms-list",
               "content": {
                 "elementType": "DataProvider",
+                "dependency": {
+                  "type": "package",
+                  "path": "@teleporthq/react-components",
+                  "version": "github:teleporthq/thq-react-components#b4a760af6b91e31d182a6a371e55fd984a770d82",
+                  "meta": {
+                    "namedImport": true
+                  }
+                },
                 "renderPropIdentifier": "context_0ufgam",
                 "nodes": {
                   "success": {

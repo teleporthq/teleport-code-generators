@@ -344,6 +344,13 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
         )
       )
     )
+
+    cmsNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('persistDataDuringLoading'),
+        types.jsxExpressionContainer(types.booleanLiteral(true))
+      )
+    )
   }
 
   if (Object.keys(resourceParams || {}).length > 0) {

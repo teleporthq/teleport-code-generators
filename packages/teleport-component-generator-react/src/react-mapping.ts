@@ -44,9 +44,11 @@ export const ReactMapping: Mapping = {
       elementType: 'DateTimePrimitive',
       dependency: {
         type: 'package',
-        version: 'github:teleporthq/date-time-primitive',
-        path: '@teleporthq/date-time-primitive',
-        meta: { importAlias: '@teleporthq/date-time-primitive/react' },
+        path: '@teleporthq/react-components',
+        version: 'github:teleporthq/thq-react-components#b4a760af6b91e31d182a6a371e55fd984a770d82',
+        meta: {
+          namedImport: true,
+        },
       },
     },
     'lottie-node': {
