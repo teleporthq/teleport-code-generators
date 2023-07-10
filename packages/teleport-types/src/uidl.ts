@@ -304,9 +304,11 @@ export interface UIDLResourceLink {
 }
 
 export interface UIDLCMSListNodeContent {
+  elementType: string
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
+  dependency?: UIDLDependency
   router?: UIDLDependency
   nodes: {
     success: UIDLElementNode
@@ -323,11 +325,13 @@ export interface UIDLCMSListNodeContent {
 }
 
 export interface UIDLCMSItemNodeContent {
+  elementType: string
   name: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
   renderPropIdentifier: string
   router?: UIDLDependency
+  dependency?: UIDLDependency
   nodes: {
     success: UIDLElementNode
     error?: UIDLElementNode

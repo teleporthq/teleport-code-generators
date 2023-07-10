@@ -689,6 +689,7 @@ export const dateTimeNodeDecoder: Decoder<VUIDLDateTimeNode> = object({
 export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   type: constant('cms-item'),
   content: object({
+    elementType: string(),
     name: withDefault('cms-item', string()),
     attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
     nodes: object({
@@ -697,6 +698,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
       loading: optional(lazy(() => elementNodeDecoder)),
     }),
     router: optional(lazy(() => dependencyDecoder)),
+    dependency: optional(lazy(() => dependencyDecoder)),
     renderPropIdentifier: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
@@ -715,6 +717,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
 export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
+    elementType: string(),
     name: withDefault('cms-list', string()),
     attrs: optional(dict(union(attributeValueDecoder, string(), number()))),
     nodes: object({
@@ -724,6 +727,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
     router: optional(lazy(() => dependencyDecoder)),
+    dependency: optional(lazy(() => dependencyDecoder)),
     renderPropIdentifier: string(),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
