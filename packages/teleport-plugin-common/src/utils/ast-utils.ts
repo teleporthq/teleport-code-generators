@@ -11,6 +11,7 @@ import {
   UIDLENVValue,
   UIDLPropValue,
   UIDLExpressionValue,
+  UIDLStateValue,
 } from '@teleporthq/teleport-types'
 import { ASTUtils } from '..'
 
@@ -747,7 +748,7 @@ export const generateMemberExpressionASTFromPath = (
 }
 
 export const generateURLParamsAST = (
-  urlParams: Record<string, UIDLStaticValue | UIDLPropValue>
+  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue>
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
     return null
@@ -768,7 +769,7 @@ export const generateURLParamsAST = (
 }
 
 const resolveDynamicValuesFromUrlParams = (
-  field: UIDLStaticValue | UIDLPropValue,
+  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue,
   query: Record<string, types.Expression>,
   prefix: string = null
 ) => {
@@ -778,16 +779,20 @@ const resolveDynamicValuesFromUrlParams = (
   }
 }
 
-const resolveUrlParamsValue = (urlParam: UIDLStaticValue | UIDLPropValue) => {
+const resolveUrlParamsValue = (urlParam: UIDLStaticValue | UIDLPropValue | UIDLStateValue) => {
   if (urlParam.type === 'static') {
     return types.stringLiteral(`${urlParam.content}`)
   }
 
-  if (urlParam.content.referenceType !== 'prop') {
-    throw new Error('Only prop references are supported for url params')
+  if (urlParam.content.referenceType !== 'prop' && urlParam.content.referenceType !== 'state') {
+    throw new Error('Only prop and state references are supported for url params')
   }
 
-  const paramPath = ['params', urlParam.content.id]
+  const paramPath = [
+    ...(urlParam.content.referenceType === 'prop' ? ['params'] : ['']),
+    urlParam.content.id,
+  ]
+
   const templateLiteralElements = paramPath
     .map((_, index) => {
       const isTail = index === paramPath.length - 1

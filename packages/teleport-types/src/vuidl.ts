@@ -41,6 +41,7 @@ import {
   UIDLPropValue,
   UIDLExpressionValue,
   UIDLDateTimeNode,
+  UIDLStateValue,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -87,7 +88,10 @@ export interface VCMSListUIDLElementNode
         itemValuePath?: string[]
         resource: {
           id: string
-          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+          params?: Record<
+            string,
+            UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue
+          >
         }
         initialData?: UIDLPropValue
       }
