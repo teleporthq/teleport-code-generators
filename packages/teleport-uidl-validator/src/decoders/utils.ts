@@ -158,7 +158,10 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, dyamicFunctionStateParam))),
   response: optional(
     object({
-      type: withDefault('json', union(constant('json'), constant('headers'), constant('text'))),
+      type: withDefault(
+        'json',
+        union(constant('json'), constant('headers'), constant('text'), constant('none'))
+      ),
     })
   ),
 })

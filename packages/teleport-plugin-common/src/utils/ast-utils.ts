@@ -680,6 +680,13 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
       break
     }
 
+    case 'none': {
+      responseJSONAST = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier('response'), types.identifier('data')),
+      ])
+      break
+    }
+
     default: {
       responseJSONAST = types.variableDeclaration('const', [
         types.variableDeclarator(types.identifier('response'), types.identifier('data')),
