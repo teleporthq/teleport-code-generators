@@ -530,10 +530,6 @@
                       "type": "static",
                       "content": "auto"
                     },
-                    "minHeight": {
-                      "type": "static",
-                      "content": "100vh"
-                    },
                     "alignItems": {
                       "type": "static",
                       "content": "center"
