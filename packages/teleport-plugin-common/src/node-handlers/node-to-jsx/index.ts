@@ -10,6 +10,7 @@ import {
   UIDLCMSListNode,
   UIDLCMSItemNode,
   UIDLExpressionValue,
+  UIDLCMSListRepeaterNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
@@ -185,6 +186,9 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'conditional':
       return generateConditionalNode(node, params, options)
 
+    case 'cms-list-repeater':
+      return generateCMSListRepeaterNode(node, params, options)
+
     case 'slot':
       if (options.slotHandling === 'native') {
         return [generateNativeSlotNode(node, params, options)]
@@ -256,54 +260,21 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
   }
 
   if (node.type === 'cms-list') {
-    const repeaterNode = ASTBuilders.createJSXTag('Repeater', [], true)
-    repeaterNode.openingElement.attributes.push(
+    cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
-        types.jsxIdentifier('items'),
-        types.jsxExpressionContainer(types.identifier('params'))
-      )
-    )
-
-    repeaterNode.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jSXIdentifier('renderItem'),
+        types.jsxIdentifier('renderSuccess'),
         types.jsxExpressionContainer(
           types.arrowFunctionExpression(
-            [types.identifier(renderPropIdentifier)],
+            [types.identifier('params')],
             generateNode(success, params, options)[0] as types.JSXElement
           )
         )
       )
     )
-
-    if (dependency && options.dependencyHandling === 'import') {
-      params.dependencies.Repeater = dependency
-    }
-
-    if ('empty' in node.content.nodes) {
-      repeaterNode.openingElement.attributes.push(
-        types.jsxAttribute(
-          types.jsxIdentifier('renderEmpty'),
-          types.jsxExpressionContainer(
-            types.arrowFunctionExpression(
-              [],
-              generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
-            )
-          )
-        )
-      )
-    }
-
-    cmsNode.openingElement.attributes.push(
-      types.jsxAttribute(
-        types.jsxIdentifier('renderSuccess'),
-        types.jsxExpressionContainer(
-          types.arrowFunctionExpression([types.identifier('params')], repeaterNode)
-        )
-      )
-    )
   }
-
+  if (dependency && options.dependencyHandling === 'import') {
+    params.dependencies.Repeater = dependency
+  }
   if (loading) {
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
@@ -432,6 +403,48 @@ const generateConditionalNode: NodeToJSX<UIDLConditionalNode, types.LogicalExpre
   return subTrees.map((subTree) =>
     createConditionalJSXExpression(subTree, condition, conditionIdentifier)
   )
+}
+
+const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXElement[]> = (
+  node,
+  params,
+  options
+) => {
+  const repeaterNode = ASTBuilders.createJSXTag('Repeater', [], true)
+  repeaterNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('items'),
+      types.jsxExpressionContainer(types.identifier('params'))
+    )
+  )
+
+  repeaterNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jSXIdentifier('renderItem'),
+      types.jsxExpressionContainer(
+        types.arrowFunctionExpression(
+          [types.identifier(node.content.renderPropIdentifier)],
+          generateNode(node.content.nodes.list, params, options)[0] as types.JSXElement
+        )
+      )
+    )
+  )
+
+  if ('empty' in node.content.nodes) {
+    repeaterNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('renderEmpty'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [],
+            generateNode(node.content.nodes.empty, params, options)[0] as types.JSXElement
+          )
+        )
+      )
+    )
+  }
+
+  return [repeaterNode]
 }
 
 const generatePropsSlotNode: NodeToJSX<UIDLSlotNode, types.JSXExpressionContainer[]> = (

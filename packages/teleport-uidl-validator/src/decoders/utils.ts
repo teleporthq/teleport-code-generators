@@ -85,6 +85,7 @@ import {
   VUIDLNavLinkNode,
   VUIDLDateTimeNode,
   UIDLStateValue,
+  VCMSListRepeaterElementNode,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -726,6 +727,19 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   }),
 })
 
+export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = object({
+  type: constant('cms-list-repeater'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-list-repeater', string()),
+    nodes: object({
+      list: lazy(() => elementNodeDecoder),
+      empty: optional(lazy(() => elementNodeDecoder)),
+    }),
+    renderPropIdentifier: string(),
+  }),
+})
+
 export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
@@ -766,9 +780,9 @@ export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
   cmsItemNodeDecoder,
   cmsListNodeDecoder,
+  cmsListRepeaterNodeDecoder,
   dynamicValueDecoder,
-  staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  union(repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
+  union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
 )

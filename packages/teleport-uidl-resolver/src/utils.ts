@@ -93,6 +93,10 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
     if (node.type === 'cms-list') {
       node.content.name = node.content?.name || 'cms-list'
     }
+
+    if (node.type === 'cms-list-repeater') {
+      node.content.name = node.content?.name || 'cms-list-repeater'
+    }
   })
 }
 
@@ -283,7 +287,11 @@ const resolveRepeat = (repeatContent: UIDLRepeatContent, parentNode: UIDLNode) =
 // container, container01, container02, ... container10, container11,... in case the number is higher
 export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseNodes(node, (child) => {
-    if (child.type !== 'cms-item' && child.type !== 'cms-list') {
+    if (
+      child.type !== 'cms-item' &&
+      child.type !== 'cms-list' &&
+      child.type !== 'cms-list-repeater'
+    ) {
       return
     }
 
@@ -339,7 +347,11 @@ export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
 
 export const createCMSNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseNodes(node, (child) => {
-    if (child.type !== 'cms-item' && child.type !== 'cms-list') {
+    if (
+      child.type !== 'cms-item' &&
+      child.type !== 'cms-list' &&
+      child.type !== 'cms-list-repeater'
+    ) {
       return
     }
     const nodeName = child.content.name.toLowerCase()
