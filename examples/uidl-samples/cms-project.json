@@ -3025,6 +3025,16 @@
           "importAlias": "normalize/contentful"
         }
       }
+    },
+    "cache": {
+      "revalidate": {
+        "type": "package",
+        "version": "latest",
+        "path": "@teleporthq/cms-mappers/contentful/revalidate",
+        "meta": {
+          "namedImport": true
+        }
+      }
     }
   }
 }

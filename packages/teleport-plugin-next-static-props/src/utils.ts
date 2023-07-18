@@ -1,6 +1,10 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLInitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import {
+  UIDLInitialPropsData,
+  PagePaginationOptions,
+  UIDLResources,
+} from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const generateInitialPropsAST = (
@@ -8,6 +12,7 @@ export const generateInitialPropsAST = (
   isDetailsPage = false,
   resourceImportName: string,
   resource: UIDLInitialPropsData['resource'],
+  cache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
   return types.exportNamedDeclaration(
@@ -21,6 +26,7 @@ export const generateInitialPropsAST = (
             isDetailsPage,
             resourceImportName,
             resource,
+            cache,
             pagination
           ),
         ]),
@@ -39,6 +45,7 @@ const computePropsAST = (
   isDetailsPage = false,
   resourceImportName: string,
   resource: UIDLInitialPropsData['resource'],
+  cache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
@@ -102,7 +109,14 @@ const computePropsAST = (
         false,
         false
       ),
-      types.objectProperty(types.identifier('revalidate'), types.numericLiteral(1), false, false),
+      ...(typeof cache.revalidate === 'number' && [
+        types.objectProperty(
+          types.identifier('revalidate'),
+          types.numericLiteral(cache.revalidate),
+          false,
+          false
+        ),
+      ]),
     ])
   )
 

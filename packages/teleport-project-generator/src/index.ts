@@ -332,6 +332,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
           this.strategy?.resources?.path && {
             resources: {
               items: uidl?.resources?.items,
+              cache: uidl.resources.cache,
               path: GenericUtils.generateLocalDependenciesPrefix(
                 path,
                 this.strategy.resources.path

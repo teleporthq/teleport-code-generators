@@ -139,7 +139,9 @@ export interface GeneratorOptions {
   designLanguage?: {
     tokens?: UIDLDesignTokens
   }
-  resources?: { items: UIDLResources['items'] } & { path: ProjectStrategy['resources']['path'] }
+  resources?: { items: UIDLResources['items']; cache: UIDLResources['cache'] } & {
+    path: ProjectStrategy['resources']['path']
+  }
 }
 
 export type CodeGeneratorFunction<T> = (content: T) => string

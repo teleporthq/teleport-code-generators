@@ -6,6 +6,9 @@ import {
   dict,
   array,
   lazy,
+  union,
+  withDefault,
+  number,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -49,6 +52,15 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
 export const resourcesDecoder: Decoder<UIDLResources> = object({
   resourceMappers: optional(dict(lazy(() => dependencyDecoder))),
   items: optional(dict(lazy(() => resourceItemDecoder))),
+  cache: withDefault(
+    { revalidate: 1 },
+    object({
+      revalidate: union(
+        number(),
+        lazy(() => dependencyDecoder)
+      ),
+    })
+  ),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({

@@ -36,6 +36,7 @@
     "@teleporthq/teleport-project-packer": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-api-routes": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-inline-fetch": "^0.30.0-alpha.0",
+    "@teleporthq/teleport-project-plugin-next-cache": "^0.30.0-alpha.0",
     "@teleporthq/teleport-publisher-codesandbox": "^0.30.0-alpha.0",
     "@teleporthq/teleport-publisher-disk": "^0.30.0-alpha.0",
     "@teleporthq/teleport-publisher-github": "^0.30.0-alpha.0",
