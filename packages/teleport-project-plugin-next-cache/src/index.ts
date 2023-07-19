@@ -27,6 +27,11 @@ import routeMappers from '../../teleport-config.json'
 export default async function handler(req, res) {
   try {
     const pathsToRevalidate = await revalidate(req, routeMappers);
+
+    if (pathsToRevalidate.length == 0) {
+      return res.status(400).json({ revalidated: false, message: "No paths to revalidate" });
+    }
+
     pathsToRevalidate.forEach((path) => {
       console.log("[ON-DEMAND_ISR]: Clearing cahce for path", path)
       revalidatePath(path)
