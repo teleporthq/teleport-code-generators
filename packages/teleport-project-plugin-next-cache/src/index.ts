@@ -21,16 +21,27 @@ export class ProjectPluginNextCache implements ProjectPlugin {
           name: 'revalidate',
           fileType: FileType.JS,
           content: `import { revalidate } from "${dependency.path}"
+import routeMappers from '../../teleport-config.json'
 
 export default async function handler(req, res) {
   try {
-    revalidate(req);
+    revalidate(req, routeMappers);
     return res.status(200).json({ revalidated: true });
   } catch {
-    return res.status(500)
+    return res.status(500).json({ revalidated: false })
   }
-}
-`,
+}`,
+        },
+      ],
+    })
+
+    files.set(`teleport-config`, {
+      path: [],
+      files: [
+        {
+          name: 'teleport-config',
+          fileType: FileType.JSON,
+          content: `{}`,
         },
       ],
     })

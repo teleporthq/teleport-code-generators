@@ -15,6 +15,7 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
+import { ProjectPluginCustomFiles } from '@teleporthq/teleport-project-plugin-custom-files'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
@@ -91,6 +92,16 @@ const run = async () => {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-cms',
         },
+        plugins: [
+          new ProjectPluginCustomFiles([
+            {
+              id: 'teleport-config.json',
+              name: 'teleport-config.json',
+              path: [],
+              content: JSON.stringify({ '/about': { path: '/about' } }, null, 2),
+            },
+          ]),
+        ],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
