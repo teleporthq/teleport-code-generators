@@ -22,7 +22,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
     const { uidl, chunks, options } = structure
     const { resources } = options
 
-    if (!uidl.outputOptions?.initialPropsData || !!resources?.items) {
+    if (!uidl.outputOptions?.initialPropsData || !resources?.items) {
       return structure
     }
 
