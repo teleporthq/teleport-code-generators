@@ -109,7 +109,7 @@ const computePropsAST = (
         false,
         false
       ),
-      ...(typeof cache.revalidate === 'number' && [
+      ...('revalidate' in cache && [
         types.objectProperty(
           types.identifier('revalidate'),
           types.numericLiteral(cache.revalidate),

@@ -53,13 +53,15 @@ export const resourcesDecoder: Decoder<UIDLResources> = object({
   resourceMappers: optional(dict(lazy(() => dependencyDecoder))),
   items: optional(dict(lazy(() => resourceItemDecoder))),
   cache: withDefault(
-    { revalidate: 1 },
-    object({
-      revalidate: union(
-        number(),
-        lazy(() => dependencyDecoder)
-      ),
-    })
+    {
+      revalidate: 1,
+    },
+    union(
+      object({
+        revalidate: number(),
+      }),
+      object({ dependency: lazy(() => dependencyDecoder) })
+    )
   ),
 })
 

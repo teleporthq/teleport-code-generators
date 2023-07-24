@@ -8,11 +8,11 @@ export class ProjectPluginNextCache implements ProjectPlugin {
 
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files } = structure
-    if (typeof uidl.resources?.cache?.revalidate !== 'object') {
+    if ('revalidate' in uidl.resources?.cache) {
       return structure
     }
 
-    const dependency = uidl.resources.cache.revalidate
+    const dependency = uidl.resources.cache.dependency
 
     files.set(`cache-validator`, {
       path: ['pages', 'api'],
@@ -21,7 +21,7 @@ export class ProjectPluginNextCache implements ProjectPlugin {
           name: 'revalidate',
           fileType: FileType.JS,
           content: `import { ${dependency?.meta?.originalName ?? 'revalidate'} } from "${
-            dependency.path
+            dependency?.meta?.importAlias || dependency.path
           }"
 import routeMappers from '../../teleport-config.json'
 

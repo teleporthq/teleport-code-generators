@@ -66,9 +66,13 @@ export interface UIDLResourceItem {
 export interface UIDLResources {
   resourceMappers?: Record<string, UIDLDependency>
   items?: Record<string, UIDLResourceItem>
-  cache?: {
-    revalidate: number | UIDLDependency
-  }
+  cache?:
+    | {
+        revalidate: number
+      }
+    | {
+        dependency: UIDLDependency
+      }
 }
 
 export interface ProjectUIDL {
