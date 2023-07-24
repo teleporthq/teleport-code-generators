@@ -20,7 +20,17 @@ export const resourceGenerator = (
   let returnStatement: types.Identifier | types.CallExpression = types.identifier('response')
 
   resource.mappers.forEach((mapper) => {
-    returnStatement = types.callExpression(types.identifier(mapper), [returnStatement])
+    // TODO: is this fine here? Sure doesn't look like production-worthy code, but I'm not 100% sure how else to tackle this atm.
+    // Essentailly, if it's a normalize function for the CMS, it now expects two parameters instead of one.
+    if (mapper === 'normalize') {
+      const extraParamsStatement = types.identifier('params')
+      returnStatement = types.callExpression(types.identifier(mapper), [
+        returnStatement,
+        extraParamsStatement,
+      ])
+    } else {
+      returnStatement = types.callExpression(types.identifier(mapper), [returnStatement])
+    }
 
     if (!mappers[mapper]) {
       throw new TeleportError(

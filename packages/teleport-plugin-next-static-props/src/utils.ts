@@ -107,7 +107,7 @@ const computePropsAST = (
             )
           ),
           types.objectProperty(
-            types.identifier('pages'),
+            types.identifier('hasPrevPage'),
             types.memberExpression(
               types.memberExpression(
                 types.memberExpression(
@@ -120,7 +120,24 @@ const computePropsAST = (
                 false,
                 true
               ),
-              types.identifier('pages')
+              types.identifier('hasPrevPage')
+            )
+          ),
+          types.objectProperty(
+            types.identifier('hasNextPage'),
+            types.memberExpression(
+              types.memberExpression(
+                types.memberExpression(
+                  types.identifier('response'),
+                  types.identifier('meta'),
+                  false,
+                  true
+                ),
+                types.identifier('pagination'),
+                false,
+                true
+              ),
+              types.identifier('hasNextPage')
             )
           ),
         ]),
