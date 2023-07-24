@@ -98,7 +98,8 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token')
+  constant('token'),
+  constant('expr')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({

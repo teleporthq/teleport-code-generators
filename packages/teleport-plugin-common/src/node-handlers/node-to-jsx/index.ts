@@ -322,6 +322,13 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
         types.jsxExpressionContainer(types.booleanLiteral(true))
       )
     )
+
+    cmsNode.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier('key'),
+        types.jsxExpressionContainer(types.identifier('props.page'))
+      )
+    )
   }
 
   if (Object.keys(resourceParams || {}).length > 0) {

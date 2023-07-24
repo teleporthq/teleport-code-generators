@@ -98,6 +98,31 @@ const computePropsAST = (
             false,
             false
           ),
+          types.spreadElement(
+            types.memberExpression(
+              types.identifier('context'),
+              types.identifier('params'),
+              false,
+              true
+            )
+          ),
+          types.objectProperty(
+            types.identifier('pages'),
+            types.memberExpression(
+              types.memberExpression(
+                types.memberExpression(
+                  types.identifier('response'),
+                  types.identifier('meta'),
+                  false,
+                  true
+                ),
+                types.identifier('pagination'),
+                false,
+                true
+              ),
+              types.identifier('pages')
+            )
+          ),
         ]),
         false,
         false
