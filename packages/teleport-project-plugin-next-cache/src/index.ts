@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
     pathsToRevalidate.forEach((path) => {
       console.log("[ON-DEMAND_ISR]: Clearing cahce for path", path)
-      req.revalidate(path)
+      res.revalidate(path)
     })
     return res.status(200).json({ revalidated: true });
   } catch {
