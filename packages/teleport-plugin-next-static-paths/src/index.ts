@@ -6,7 +6,6 @@ import {
   TeleportError,
   UIDLLocalResource,
 } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPathsAST } from './utils'
 
@@ -20,7 +19,7 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const staticPathsPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
 
     if (!uidl.outputOptions?.initialPathsData) {
@@ -35,12 +34,6 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       Name of the function that is being imported
     */
     let resourceImportName: string
-    /*
-      Path from where the resource is being imported.
-      It can be a local resource with relative path
-      It can be aexternal package
-    */
-    let importPath: string
 
     if (isLocalResource) {
       const usedResource = resources.items[(resource as UIDLLocalResource).id]
@@ -57,12 +50,18 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
         StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
       )
 
-      importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
+      const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
+
+      dependencies[resourceImportName] = {
+        type: 'library',
+        path: importPath,
+        version: 'latest',
+      }
     }
 
     if (isExternalResource) {
       resourceImportName = resource.name
-      importPath = resource.dependency?.meta?.importAlias || resource.dependency.path
+      dependencies[resource.name] = resource.dependency
     }
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
@@ -76,17 +75,6 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resource,
       uidl.outputOptions.pagination
     )
-
-    chunks.push({
-      name: 'import-resource-chunk',
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: types.importDeclaration(
-        [types.importDefaultSpecifier(types.identifier(resourceImportName))],
-        types.stringLiteral(importPath)
-      ),
-      linkAfter: [''],
-    })
 
     chunks.push({
       name: 'getStaticPaths',

@@ -5,7 +5,6 @@ import {
   FileType,
   TeleportError,
 } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPropsAST } from './utils'
 
@@ -19,7 +18,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const staticPropsPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
 
     if (!uidl.outputOptions?.initialPropsData) {
@@ -34,12 +33,6 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       Name of the function that is being imported
     */
     let resourceImportName
-    /*
-      Path from where the resource is being imported.
-      It can be a local resource with relative path
-      It can be aexternal package
-    */
-    let importPath: string
 
     if (isLocalResource) {
       const usedResource = resources.items?.[resource.id]
@@ -52,12 +45,21 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
         StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
       )
 
-      importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
+      const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
+
+      dependencies[resourceImportName] = {
+        path: importPath,
+        /*
+          Local resources can be marked as a library. As they will be ignored in adding to package.json at the end.
+        */
+        type: 'library',
+        version: 'latest',
+      }
     }
 
     if (isExternalResource) {
+      dependencies[resource.name] = resource.dependency
       resourceImportName = resource.name
-      importPath = resource.dependency?.meta?.importAlias || resource.dependency.path
     }
 
     const getStaticPropsAST = generateInitialPropsAST(
@@ -67,17 +69,6 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resource,
       uidl.outputOptions.pagination
     )
-
-    chunks.push({
-      name: 'import-resource-chunk',
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: types.importDeclaration(
-        [types.importDefaultSpecifier(types.identifier(resourceImportName))],
-        types.stringLiteral(importPath)
-      ),
-      linkAfter: [''],
-    })
 
     chunks.push({
       name: 'getStaticProps',
