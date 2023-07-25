@@ -22,12 +22,13 @@ import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
+  dependencies: Record<string, string>
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
   config
 ) => {
-  const { componentChunkName = 'jsx-component', files } = config || {}
+  const { componentChunkName = 'jsx-component', files, dependencies } = config || {}
 
   const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
@@ -106,7 +107,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
         computeUseEffectAST({
           fileName: resourceFileName,
-          resource: usedResource,
+          resourceType: usedResource.method,
           node: node as UIDLCMSItemNode | UIDLCMSListNode,
           componentChunk,
           params,
@@ -115,8 +116,25 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
       if (isExternalResource) {
         resourceImportVariable = resource.name
-        importPath = resource.dependency.path
+        importPath = resource.dependency?.meta?.importAlias || resource.dependency.path
+        /*
+          When we are calling external functions to make a request call for us.
+          The `fetch` that happens behind the scenes are basically encapsulated.
+          So, we can't derieve if the resource call is actually a GET / POST.
+          So, we can mark these as POST by default since we are taking data from the component.
+        */
         funcParams = 'req.body'
+
+        resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
+        dependencies[resource.dependency.path] = resource.dependency.version
+
+        computeUseEffectAST({
+          fileName: resourceFileName,
+          resourceType: 'POST',
+          node: node as UIDLCMSItemNode | UIDLCMSListNode,
+          componentChunk,
+          params: resource.params,
+        })
       }
 
       files.set(resourceFileName, {
@@ -149,12 +167,12 @@ export default async function handler(req, res) {
 
 const computeUseEffectAST = (params: {
   fileName: string
-  resource: UIDLResourceItem
+  resourceType: UIDLResourceItem['method']
   node: UIDLCMSItemNode | UIDLCMSListNode
   componentChunk: ChunkDefinition
   params: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
 }) => {
-  const { node, fileName, componentChunk, resource } = params
+  const { node, fileName, componentChunk, resourceType } = params
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
@@ -167,7 +185,7 @@ const computeUseEffectAST = (params: {
 
   const resourceParameters: types.ObjectProperty[] = []
 
-  if (resource.method === 'GET' && Object.keys(params).length > 0) {
+  if (resourceType === 'GET' && Object.keys(params).length > 0) {
     resourcePath = types.templateLiteral(
       [
         types.templateElement({ raw: `/api/${fileName}?`, cooked: `/api/${fileName}?` }),
@@ -177,7 +195,7 @@ const computeUseEffectAST = (params: {
     )
   }
 
-  if (resource.method === 'POST' && Object.keys(params).length > 0) {
+  if (resourceType === 'POST' && Object.keys(params).length > 0) {
     resourceParameters.push(
       types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
       types.objectProperty(

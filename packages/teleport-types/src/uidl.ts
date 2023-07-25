@@ -307,7 +307,7 @@ export interface UIDLLocalResource {
 
 export interface UIDLExternalResource {
   name: string
-  dependency: UIDLDependency
+  dependency: UIDLExternalDependency
   params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
 }
 

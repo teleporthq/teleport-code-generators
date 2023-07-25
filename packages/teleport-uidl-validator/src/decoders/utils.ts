@@ -176,7 +176,7 @@ export const uidlLocalResourcerDecpder: Decoder<UIDLLocalResource> = object({
 
 export const uidlExternalResourceDecoder: Decoder<UIDLExternalResource> = object({
   name: string(),
-  dependency: lazy(() => dependencyDecoder),
+  dependency: lazy(() => externaldependencyDecoder),
   params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
 })
 
