@@ -171,10 +171,7 @@ export interface UIDLInitialPropsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource: UIDLResourceLink
 }
 
 export interface UIDLInitialPathsData {
@@ -183,10 +180,7 @@ export interface UIDLInitialPathsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: {
-    id: string
-    params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-  }
+  resource: UIDLResourceLink
 }
 
 export interface UIDLComponentOutputOptions {
@@ -302,12 +296,18 @@ export interface UIDLCMSItemNode {
   A cms-list node can fetch data from the remote resouce
   or it can refer to a `prop` value for page list.
   It can have either remote resource or prop but not both.
-  In the case of `prop` the data is fetched using `getStaticProps`
-  or `getStaticPaths` at the moment in NextJS.
 */
 
-export interface UIDLResourceLink {
+export type UIDLResourceLink = UIDLLocalResource | UIDLExternalResource
+
+export interface UIDLLocalResource {
   id: string
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+}
+
+export interface UIDLExternalResource {
+  name: string
+  dependency: UIDLExternalDependency
   params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
 }
 

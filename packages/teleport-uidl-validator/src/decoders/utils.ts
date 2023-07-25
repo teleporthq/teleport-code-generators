@@ -85,6 +85,9 @@ import {
   VUIDLNavLinkNode,
   VUIDLDateTimeNode,
   UIDLStateValue,
+  UIDLResourceLink,
+  UIDLLocalResource,
+  UIDLExternalResource,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -166,16 +169,29 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
   ),
 })
 
+export const uidlLocalResourcerDecpder: Decoder<UIDLLocalResource> = object({
+  id: string(),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+})
+
+export const uidlExternalResourceDecoder: Decoder<UIDLExternalResource> = object({
+  name: string(),
+  dependency: lazy(() => externaldependencyDecoder),
+  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+})
+
+export const uidlResourceLinkDecoder: Decoder<UIDLResourceLink> = union(
+  uidlLocalResourcerDecpder,
+  uidlExternalResourceDecoder
+)
+
 export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
   exposeAs: object({
     name: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: object({
-    id: string(),
-    params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
-  }),
+  resource: uidlResourceLinkDecoder,
 })
 
 export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
@@ -184,10 +200,7 @@ export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
   }),
-  resource: object({
-    id: string(),
-    params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
-  }),
+  resource: uidlResourceLinkDecoder,
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
@@ -714,14 +727,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     renderPropIdentifier: string(),
     valuePath: optional(array(string())),
     itemValuePath: optional(array(string())),
-    resource: optional(
-      object({
-        id: string(),
-        params: optional(
-          dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))
-        ),
-      })
-    ),
+    resource: optional(union(uidlLocalResourcerDecpder, uidlExternalResourceDecoder)),
     initialData: optional(lazy(() => dyamicFunctionParam)),
   }),
 })
@@ -743,21 +749,7 @@ export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
     renderPropIdentifier: string(),
     itemValuePath: optional(array(string())),
     valuePath: optional(array(string())),
-    resource: optional(
-      object({
-        id: string(),
-        params: optional(
-          dict(
-            union(
-              staticValueDecoder,
-              dyamicFunctionParam,
-              dyamicFunctionStateParam,
-              expressionValueDecoder
-            )
-          )
-        ),
-      })
-    ),
+    resource: optional(union(uidlLocalResourcerDecpder, uidlExternalResourceDecoder)),
     initialData: optional(lazy(() => dyamicFunctionParam)),
   }),
 })

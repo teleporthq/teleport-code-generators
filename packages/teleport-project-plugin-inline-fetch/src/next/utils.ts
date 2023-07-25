@@ -9,6 +9,7 @@ import {
   UIDLCMSListNode,
   UIDLCMSListNodeContent,
   UIDLExpressionValue,
+  UIDLLocalResource,
   UIDLNode,
   UIDLPropValue,
   UIDLResourceItem,
@@ -21,12 +22,13 @@ import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
+  dependencies: Record<string, string>
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
   config
 ) => {
-  const { componentChunkName = 'jsx-component', files } = config || {}
+  const { componentChunkName = 'jsx-component', files, dependencies } = config || {}
 
   const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
@@ -43,56 +45,104 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         return
       }
 
-      const { resource: { id = null, params = {} } = {} } = node.content as
-        | UIDLCMSListNodeContent
-        | UIDLCMSItemNodeContent
-
-      if (!id) {
+      const { resource } = node.content as UIDLCMSListNodeContent | UIDLCMSItemNodeContent
+      if (!resource) {
         return
       }
 
-      const usedResource = resources.items[id]
-      if (!usedResource) {
-        throw new Error(`Tried to find a resource that does not exist ${id}`)
-      }
-
-      /*
-        Identifier that imports the module.
-        import '...' from 'resoruce'
-      */
-      const resourceImportVariable = StringUtils.dashCaseToCamelCase(
-        StringUtils.camelize(`${usedResource.name}-resource`)
-      )
-
-      /*
-        Idenfitier that points to the actual resource path
-        import resoruce from '....'
-      */
-      const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-      let funcParams = ''
-
-      if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
-        funcParams = 'req.query'
-      }
-
-      if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'POST') {
-        funcParams = 'req.body'
-      }
+      const isLocalResource = 'id' in resource
+      const isExternalResource = 'name' in resource
 
       /*
         Identifier that defines the route name and the file name.
         Because each file name defines a individual API
       */
-      const resourceFileName = StringUtils.camelCaseToDashCase(
-        `${resourceImportVariable}-${importName}`
-      )
+      let resourceFileName: string
+
+      /*
+        Identifier that imports the module.
+        import '...' from 'resoruce'
+      */
+      let resourceImportVariable: string
+      /*
+        Location from where the resource is imported.
+        Can be a relative local path or a external package path
+      */
+      let importPath: string
+      let funcParams = ''
+
+      if (isLocalResource) {
+        const { id = null, params = {} } = (resource as UIDLLocalResource) || {}
+        if (!id) {
+          return
+        }
+
+        const usedResource = resources.items[id]
+        if (!usedResource) {
+          throw new Error(`Tried to find a resource that does not exist ${id}`)
+        }
+
+        resourceImportVariable = StringUtils.dashCaseToCamelCase(
+          StringUtils.camelize(`${usedResource.name}-resource`)
+        )
+
+        /*
+          Idenfitier that points to the actual resource path
+          import resoruce from '....'
+        */
+        const importName = StringUtils.camelCaseToDashCase(usedResource.name)
+        importPath = `../../resources/${importName}`
+
+        if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
+          funcParams = 'req.query'
+        }
+
+        if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'POST') {
+          funcParams = 'req.body'
+        }
+
+        resourceFileName = StringUtils.camelCaseToDashCase(
+          `${resourceImportVariable}-${importName}`
+        )
+
+        computeUseEffectAST({
+          fileName: resourceFileName,
+          resourceType: usedResource.method,
+          node: node as UIDLCMSItemNode | UIDLCMSListNode,
+          componentChunk,
+          params,
+        })
+      }
+
+      if (isExternalResource) {
+        resourceImportVariable = resource.name
+        importPath = resource.dependency?.meta?.importAlias || resource.dependency.path
+        /*
+          When we are calling external functions to make a request call for us.
+          The `fetch` that happens behind the scenes are basically encapsulated.
+          So, we can't derieve if the resource call is actually a GET / POST.
+          So, we can mark these as POST by default since we are taking data from the component.
+        */
+        funcParams = 'req.body'
+
+        resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
+        dependencies[resource.dependency.path] = resource.dependency.version
+
+        computeUseEffectAST({
+          fileName: resourceFileName,
+          resourceType: 'POST',
+          node: node as UIDLCMSItemNode | UIDLCMSListNode,
+          componentChunk,
+          params: resource.params,
+        })
+      }
 
       files.set(resourceFileName, {
         files: [
           {
             name: resourceFileName,
             fileType: FileType.JS,
-            content: `import ${resourceImportVariable} from '../../resources/${importName}'
+            content: `import ${resourceImportVariable} from '${importPath}'
 
 export default async function handler(req, res) {
   try {
@@ -107,14 +157,6 @@ export default async function handler(req, res) {
         ],
         path: ['pages', 'api'],
       })
-
-      computeUseEffectAST({
-        fileName: resourceFileName,
-        resource: usedResource,
-        node: node as UIDLCMSItemNode | UIDLCMSListNode,
-        componentChunk,
-        params,
-      })
     })
 
     return structure
@@ -125,12 +167,12 @@ export default async function handler(req, res) {
 
 const computeUseEffectAST = (params: {
   fileName: string
-  resource: UIDLResourceItem
+  resourceType: UIDLResourceItem['method']
   node: UIDLCMSItemNode | UIDLCMSListNode
   componentChunk: ChunkDefinition
   params: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
 }) => {
-  const { node, fileName, componentChunk, resource } = params
+  const { node, fileName, componentChunk, resourceType } = params
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {
     throw new Error('Invalid node type passed to computeUseEffectAST')
   }
@@ -143,7 +185,7 @@ const computeUseEffectAST = (params: {
 
   const resourceParameters: types.ObjectProperty[] = []
 
-  if (resource.method === 'GET' && Object.keys(params).length > 0) {
+  if (resourceType === 'GET' && Object.keys(params).length > 0) {
     resourcePath = types.templateLiteral(
       [
         types.templateElement({ raw: `/api/${fileName}?`, cooked: `/api/${fileName}?` }),
@@ -153,7 +195,7 @@ const computeUseEffectAST = (params: {
     )
   }
 
-  if (resource.method === 'POST' && Object.keys(params).length > 0) {
+  if (resourceType === 'POST' && Object.keys(params).length > 0) {
     resourceParameters.push(
       types.objectProperty(types.identifier('method'), types.stringLiteral('POST')),
       types.objectProperty(

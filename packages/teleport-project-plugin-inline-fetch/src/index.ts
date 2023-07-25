@@ -1,5 +1,5 @@
 import { ProjectPlugin, ProjectPluginStructure, ProjectType } from '@teleporthq/teleport-types'
-import { nextAfterModifier, nextBeforeModifier } from './next'
+import projectPluginInlineFetch from './next'
 
 type SUPPORTED_FRAMEWORKS = ProjectType.NEXT
 
@@ -7,14 +7,14 @@ const frameworkBeforeMap: Record<
   SUPPORTED_FRAMEWORKS,
   (strucutre: ProjectPluginStructure) => ProjectPluginStructure
 > = {
-  [ProjectType.NEXT]: nextBeforeModifier,
+  [ProjectType.NEXT]: projectPluginInlineFetch.nextBeforeModifier,
 }
 
 const frameworkAfterMap: Record<
   SUPPORTED_FRAMEWORKS,
   (strucutre: ProjectPluginStructure) => ProjectPluginStructure
 > = {
-  [ProjectType.NEXT]: nextAfterModifier,
+  [ProjectType.NEXT]: projectPluginInlineFetch.nextAfterModifier,
 }
 
 export class ProjectPluginInlineFetch implements ProjectPlugin {
