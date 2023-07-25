@@ -100,44 +100,16 @@ const computePropsAST = (
           ),
           types.spreadElement(
             types.memberExpression(
-              types.identifier('context'),
-              types.identifier('params'),
+              types.memberExpression(
+                types.identifier('response'),
+                types.identifier('meta'),
+                false,
+                true
+              ),
+              types.identifier('pagination'),
+
               false,
               true
-            )
-          ),
-          types.objectProperty(
-            types.identifier('hasPrevPage'),
-            types.memberExpression(
-              types.memberExpression(
-                types.memberExpression(
-                  types.identifier('response'),
-                  types.identifier('meta'),
-                  false,
-                  true
-                ),
-                types.identifier('pagination'),
-                false,
-                true
-              ),
-              types.identifier('hasPrevPage')
-            )
-          ),
-          types.objectProperty(
-            types.identifier('hasNextPage'),
-            types.memberExpression(
-              types.memberExpression(
-                types.memberExpression(
-                  types.identifier('response'),
-                  types.identifier('meta'),
-                  false,
-                  true
-                ),
-                types.identifier('pagination'),
-                false,
-                true
-              ),
-              types.identifier('hasNextPage')
             )
           ),
         ]),
