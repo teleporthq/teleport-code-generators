@@ -5,29 +5,41 @@ import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statement
 import prettierJSPlugin from '@teleporthq/teleport-postprocessor-prettier-js'
 
 export class ProjectPluginNextCache implements ProjectPlugin {
-  private routeMapper: Record<string, string[]> = {}
+  private routeMappers: Record<string, string[]> = {}
   private cacheHandlerPath: string[] = ['pages', 'api']
+  private cacheHandlerSecret: string | null = null
 
-  constructor(routeMappings?: Record<string, string[]>, cacheHandlerPath?: string[]) {
-    if (routeMappings) {
-      this.routeMapper = routeMappings
+  constructor(
+    params: {
+      routeMappers?: Record<string, string[]>
+      cacheHandlerPath?: string[]
+      cacheHandlerSecret?: string
+    } = {}
+  ) {
+    const { routeMappers, cacheHandlerPath, cacheHandlerSecret } = params
+    if (routeMappers) {
+      this.routeMappers = routeMappers
     }
     if (cacheHandlerPath) {
       this.cacheHandlerPath = cacheHandlerPath
+    }
+
+    if (cacheHandlerSecret) {
+      this.cacheHandlerSecret = cacheHandlerSecret
     }
   }
 
   async runAfter(structure: ProjectPluginStructure) {
     const { uidl, files } = structure
-    if ('revalidate' in uidl.resources?.cache) {
+    if (!uidl.resources.cache?.webhook?.dependency) {
       return structure
     }
-
     const generator = createComponentGenerator()
     generator.addPlugin(
       createNextCacheValidationPlugin({
-        routeMappers: this.routeMapper,
-        dependency: uidl.resources.cache.dependency,
+        routeMappers: this.routeMappers,
+        cacheHandlerSecret: this.cacheHandlerSecret,
+        webhook: uidl.resources.cache.webhook,
       })
     )
     generator.addPlugin(importStatementsPlugin)

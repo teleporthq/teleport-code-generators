@@ -39,7 +39,8 @@
     ],
     "env": {
       "CMS_URL": "https://thq.subcapac.ro/",
-      "CMS_ACCESS_TOKEN": ""
+      "CMS_ACCESS_TOKEN": "",
+      "WEB_HOOK_SECRET": ""
     },
     "meta": [
       {
@@ -604,6 +605,9 @@
                 "resource": {
                   "id": "d37dd028-3547-429e-b752-d93a72db1189",
                   "params": {}
+                },
+                "cache": {
+                  "revalidate": 100
                 }
               }
             }
@@ -3051,14 +3055,16 @@
       }
     },
     "cache": {
-      "dependency": {
-        "type": "package",
-        "version": "github:teleporthq/teleport-cms-mappers.git",
-        "path": "@teleporthq/cms-mappers",
-        "meta": {
-          "namedImport": true,
-          "originalName": "revalidate",
-          "importAlias": "@teleporthq/cms-mappers/wordpress/revalidate"
+      "webhook": {
+        "name": "revalidate",
+        "dependency": {
+          "type": "package",
+          "version": "github:teleporthq/teleport-cms-mappers.git",
+          "path": "@teleporthq/cms-mappers",
+          "meta": {
+            "namedImport": true,
+            "importAlias": "@teleporthq/cms-mappers/wordpress/revalidate"
+          }
         }
       }
     }

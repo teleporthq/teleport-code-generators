@@ -6,7 +6,6 @@ import {
   dict,
   array,
   lazy,
-  union,
   withDefault,
   number,
 } from '@mojotech/json-type-validation'
@@ -54,14 +53,18 @@ export const resourcesDecoder: Decoder<UIDLResources> = object({
   items: optional(dict(lazy(() => resourceItemDecoder))),
   cache: withDefault(
     {
-      revalidate: 1,
+      revalidate: 60,
+      webhook: null,
     },
-    union(
-      object({
-        revalidate: number(),
-      }),
-      object({ dependency: lazy(() => dependencyDecoder) })
-    )
+    object({
+      revalidate: optional(number()),
+      webhook: optional(
+        object({
+          name: string(),
+          dependency: lazy(() => dependencyDecoder),
+        })
+      ),
+    })
   ),
 })
 

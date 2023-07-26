@@ -58,6 +58,36 @@ const computePropsAST = (
     []
   )
 
+  /*
+    Per-page cache can override the global cache.
+    Gobally the project don't need to have a cache.
+    But for a specific page, it can have a cache.
+    Eg:
+      Handling paths
+      - /blog-posts
+      - /blog-pots/${id}
+
+      using webhook. And then letting page cache handler to do pages like
+      - /blog-posts/page/${id}
+  */
+  const globalCache = cache
+  const perPageCache = propsData.cache
+  let cachePropertyAST: types.ObjectProperty | null = null
+
+  if (globalCache?.revalidate && !perPageCache?.revalidate) {
+    cachePropertyAST = types.objectProperty(
+      types.identifier('revalidate'),
+      types.numericLiteral(globalCache.revalidate)
+    )
+  }
+
+  if (perPageCache?.revalidate) {
+    cachePropertyAST = types.objectProperty(
+      types.identifier('revalidate'),
+      types.numericLiteral(perPageCache.revalidate)
+    )
+  }
+
   const declerationAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('response'),
@@ -90,34 +120,29 @@ const computePropsAST = (
       : responseMemberAST
 
   const returnAST = types.returnStatement(
-    types.objectExpression([
-      types.objectProperty(
-        types.identifier('props'),
-        types.objectExpression([
-          types.objectProperty(
-            types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
-            propsData.exposeAs.itemValuePath?.length
-              ? ASTUtils.generateMemberExpressionASTFromBase(
-                  dataWeNeedAccessorAST,
-                  propsData.exposeAs.itemValuePath
-                )
-              : dataWeNeedAccessorAST,
-            false,
-            false
-          ),
-        ]),
-        false,
-        false
-      ),
-      ...('revalidate' in cache && [
+    types.objectExpression(
+      [
         types.objectProperty(
-          types.identifier('revalidate'),
-          types.numericLiteral(cache.revalidate),
+          types.identifier('props'),
+          types.objectExpression([
+            types.objectProperty(
+              types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
+              propsData.exposeAs.itemValuePath?.length
+                ? ASTUtils.generateMemberExpressionASTFromBase(
+                    dataWeNeedAccessorAST,
+                    propsData.exposeAs.itemValuePath
+                  )
+                : dataWeNeedAccessorAST,
+              false,
+              false
+            ),
+          ]),
           false,
           false
         ),
-      ]),
-    ])
+        cachePropertyAST,
+      ].filter(Boolean)
+    )
   )
 
   return [declerationAST, returnAST]

@@ -635,6 +635,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
       inMemoryFilesMap = runAfterResult.files
     } catch (e) {
+      console.trace(e)
       throw new TeleportError(`Error in generating project after runAfter - ${e}`)
     }
 

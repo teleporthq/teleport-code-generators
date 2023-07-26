@@ -68,8 +68,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
@@ -95,12 +95,15 @@ const run = async () => {
         },
         plugins: [
           new ProjectPluginNextCache({
-            /* tslint:disable no-invalid-template-strings */
-            bogpost: ['/bogpost/${id}', '/bogpost'],
-            /* tslint:disable no-invalid-template-strings */
-            page: ['/page', '/page/${id}'],
-            /* tslint:disable no-invalid-template-strings */
-            book: ['/book/${id}', '/book'],
+            routeMappers: {
+              /* tslint:disable no-invalid-template-strings */
+              bogpost: ['/bogpost/${id}', '/bogpost'],
+              /* tslint:disable no-invalid-template-strings */
+              page: ['/page', '/page/${id}'],
+              /* tslint:disable no-invalid-template-strings */
+              book: ['/book/${id}', '/book'],
+            },
+            cacheHandlerSecret: 'WEB_HOOK_SECRET',
           }),
         ],
       })

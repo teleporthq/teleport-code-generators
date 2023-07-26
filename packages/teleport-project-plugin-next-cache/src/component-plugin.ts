@@ -3,97 +3,50 @@ import {
   ComponentPlugin,
   ComponentPluginFactory,
   FileType,
-  UIDLDependency,
+  ProjectUIDL,
 } from '@teleporthq/teleport-types'
 import * as types from '@babel/types'
+import { generateCallbackExpression, generateResponseWithStatus } from './utils'
 
 interface NextCacheValidationProps {
-  routeMappers: RouteMapper
-  dependency: UIDLDependency
-}
-
-type RouteMapper = Record<string, string[]>
-
-const generateResponseWithStatus = (
-  status: number,
-  revalidationStatus: boolean
-): types.ReturnStatement => {
-  return types.returnStatement(
-    types.callExpression(
-      types.memberExpression(
-        types.callExpression(
-          types.memberExpression(types.identifier('res'), types.identifier('status')),
-          [types.numericLiteral(status)]
-        ),
-        types.identifier('json')
-      ),
-      [
-        types.objectExpression([
-          types.objectProperty(
-            types.identifier('revalidated'),
-            types.booleanLiteral(revalidationStatus)
-          ),
-        ]),
-      ]
-    )
-  )
-}
-
-const appendDataToObjectExpression = (expression: string): string => {
-  const regex = /\${(.*?)}/g
-  const result = expression.replace(regex, (_, p1) => `\${data.${p1}}`)
-  return result
-}
-
-const generateCallbackExpression = (routeMappings: RouteMapper): types.ArrowFunctionExpression => {
-  const switchCases: types.SwitchCase[] = Object.entries(routeMappings).map(
-    ([contentType, paths]) => {
-      return types.switchCase(types.stringLiteral(contentType), [
-        ...paths.map((dynamicPath) => {
-          return types.expressionStatement(
-            types.callExpression(
-              types.memberExpression(types.identifier('res'), types.identifier('revalidate')),
-              [
-                types.templateLiteral(
-                  [
-                    types.templateElement({
-                      raw: appendDataToObjectExpression(dynamicPath),
-                      cooked: appendDataToObjectExpression(dynamicPath),
-                    }),
-                  ],
-                  []
-                ),
-              ]
-            )
-          )
-        }),
-        types.breakStatement(),
-      ])
-    }
-  )
-
-  switchCases.push(
-    types.switchCase(null, [
-      types.throwStatement(
-        types.newExpression(types.identifier('Error'), [
-          types.stringLiteral('Invalid content type'),
-        ])
-      ),
-    ])
-  )
-
-  return types.arrowFunctionExpression(
-    [types.identifier('data'), types.identifier('contentType')],
-    types.blockStatement([types.switchStatement(types.identifier('contentType'), switchCases)])
-  )
+  routeMappers: Record<string, string[]>
+  webhook: ProjectUIDL['resources']['cache']['webhook']
+  cacheHandlerSecret?: string
 }
 
 export const createNextCacheValidationPlugin: ComponentPluginFactory<NextCacheValidationProps> = (
   config
 ) => {
-  const { dependency, routeMappers } = config
+  const { webhook, routeMappers = {}, cacheHandlerSecret } = config
+
   const cacheValidationPlugin: ComponentPlugin = async (structure) => {
     const { dependencies, chunks } = structure
+    let secretHandling: types.IfStatement | null = null
+
+    if (cacheHandlerSecret) {
+      secretHandling = types.ifStatement(
+        types.binaryExpression(
+          '!==',
+          types.memberExpression(
+            types.memberExpression(
+              types.identifier('process'),
+              types.identifier('env'),
+              false,
+              true
+            ),
+            types.identifier(cacheHandlerSecret),
+            false
+          ),
+          types.memberExpression(
+            types.memberExpression(types.identifier('req'), types.identifier('query')),
+            types.stringLiteral(cacheHandlerSecret),
+            true,
+            true
+          )
+        ),
+        types.blockStatement([generateResponseWithStatus(401, false)])
+      )
+    }
 
     const componentChunkContent = types.exportDefaultDeclaration(
       types.functionDeclaration(
@@ -102,9 +55,10 @@ export const createNextCacheValidationPlugin: ComponentPluginFactory<NextCacheVa
         types.blockStatement([
           types.tryStatement(
             types.blockStatement([
+              ...(secretHandling && [secretHandling]),
               types.expressionStatement(
                 types.awaitExpression(
-                  types.callExpression(types.identifier('revalidate'), [
+                  types.callExpression(types.identifier(webhook.name), [
                     types.identifier('req'),
                     generateCallbackExpression(routeMappers),
                   ])
@@ -139,8 +93,7 @@ export const createNextCacheValidationPlugin: ComponentPluginFactory<NextCacheVa
       linkAfter: ['import-local', 'import-lib', 'import-pack'],
     })
 
-    /* tslint:disable no-string-literal */
-    dependencies['revalidate'] = dependency
+    dependencies[webhook.name] = webhook.dependency
 
     return structure
   }
