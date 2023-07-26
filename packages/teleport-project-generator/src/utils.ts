@@ -32,7 +32,7 @@ const createPageUIDL = (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy
 ): ComponentUIDL => {
-  const { value, node } = routeNode.content
+  const { value, node, importDefinitions: rootNodeImportDefinitions } = routeNode.content
   const pageName = value.toString()
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
@@ -138,6 +138,11 @@ const createPageUIDL = (
       },
       {}
     )
+  }
+
+  componentUIDL.importDefinitions = {
+    ...componentUIDL.importDefinitions,
+    ...rootNodeImportDefinitions,
   }
 
   return componentUIDL

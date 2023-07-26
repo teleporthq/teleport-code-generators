@@ -487,71 +487,9 @@
                           "stateDefinitions": {},
                           "isIndex": false,
                           "navLink": "/author",
-                          "dynamicRouteAttribute": "id",
-                          "initialPathsData": {
-                              "exposeAs": {
-                                  "name": "id",
-                                  "valuePath": [],
-                                  "itemValuePath": [
-                                      "id"
-                                  ]
-                              },
-                              "resource": {
-                                  "name": "getEntities",
-                                  "dependency": {
-                                      "type": "package",
-                                      "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
-                                      "path": "@teleporthq/cms-mappers",
-                                      "meta": {
-                                          "namedImport": true,
-                                          "importAlias": "@teleporthq/cms-mappers/caisy"
-                                      }
-                                  },
-                                  "params": {
-                                      "projectId": {
-                                          "type": "static",
-                                          "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
-                                      },
-                                      "query": {
-                                          "type": "static",
-                                          "content": "{allAuthor{edges{node{id}}}}"
-                                      }
-                                  }
-                              }
-                          },
-                          "initialPropsData": {
-                              "exposeAs": {
-                                  "name": "AuthorEntity",
-                                  "valuePath": [],
-                                  "itemValuePath": []
-                              },
-                              "resource": {
-                                  "name": "getEntyByAttribute",
-                                  "dependency": {
-                                      "type": "package",
-                                      "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
-                                      "path": "@teleporthq/cms-mappers",
-                                      "meta": {
-                                          "namedImport": true,
-                                          "importAlias": "@teleporthq/cms-mappers/caisy"
-                                      }
-                                  },
-                                  "params": {
-                                      "projectId": {
-                                          "type": "static",
-                                          "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
-                                      },
-                                      "query": {
-                                          "type": "static",
-                                          "content": "query Author($id:ID!){Author(id:$id){_meta{createdAt updatedAt}id name}}"
-                                      },
-                                      "attribute": {
-                                          "type": "static",
-                                          "content": "id"
-                                      }
-                                  }
-                              }
-                          }
+                          "dynamicRouteAttribute": "id"
+
+
                       }
                   },
                   {
@@ -1092,6 +1030,16 @@
                                   "referenceType": "state",
                                   "id": "route"
                               }
+                          },
+                          "importDefinitions": {
+                            "antdCSS": {
+                                "type": "package",
+                                "path": "antd/dist/antd.css",
+                                "version": "^4.5.1",
+                                "meta": {
+                                  "importJustPath": true
+                                }
+                              }
                           }
                       }
                   },
@@ -1234,6 +1182,16 @@
                               "content": {
                                   "referenceType": "state",
                                   "id": "route"
+                              }
+                          },
+                          "importDefinitions": {
+                            "antdCSS": {
+                                "type": "package",
+                                "path": "antd/dist/antd.css",
+                                "version": "^4.5.1",
+                                "meta": {
+                                  "importJustPath": true
+                                }
                               }
                           }
                       }
@@ -1398,6 +1356,10 @@
                                                                                                   "richText": {
                                                                                                       "type": "expr",
                                                                                                       "content": "BlogPostEntity?.content"
+                                                                                                  },
+                                                                                                  "overwrites": {
+                                                                                                    "type": "expr",
+                                                                                                    "content": "({documentLink: DocumentLink})"
                                                                                                   }
                                                                                               },
                                                                                               "style": {},
@@ -1428,6 +1390,16 @@
                                   "referenceType": "state",
                                   "id": "route"
                               }
+                          },
+                          "importDefinitions": {
+                            "DocumentLink": {
+                                "type": "package",
+                                "path": "antd/dist/antd.css",
+                                "version": "^4.5.1",
+                                "meta": {
+                                  "namedImport": true
+                                }
+                            }
                           }
                       }
                   },

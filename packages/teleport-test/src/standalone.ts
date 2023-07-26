@@ -17,12 +17,12 @@ import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailw
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
+// import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
 import cmsProjectJSON2 from '../../../examples/uidl-samples/cms-project2.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
-const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
+// const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
 const cmsProjectUIDL2 = cmsProjectJSON2 as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const tailwindProjectUIDL = tailwindProjectJSON as unknown as ProjectUIDL
@@ -85,18 +85,18 @@ const run = async () => {
     // })
 
     /* CMS uidl */
-    await log(async () => {
-      result = await packProject(cmsProjectUIDL, {
-        ...packerOptions,
-        projectType: ProjectType.NEXT,
-        publishOptions: {
-          ...packerOptions.publishOptions,
-          projectSlug: 'teleport-project-next-cms',
-        },
-      })
-      console.info(ProjectType.NEXT, '-', result.payload)
-      return ProjectType.NEXT
-    })
+    // await log(async () => {
+    //   result = await packProject(cmsProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.NEXT,
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: 'teleport-project-next-cms',
+    //     },
+    //   })
+    //   console.info(ProjectType.NEXT, '-', result.payload)
+    //   return ProjectType.NEXT
+    // })
 
     await log(async () => {
       result = await packProject(cmsProjectUIDL2, {

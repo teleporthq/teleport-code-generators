@@ -379,6 +379,7 @@ export interface UIDLConditionalNode {
   content: {
     node: UIDLNode
     reference: UIDLDynamicReference
+    importDefinitions?: Record<string, UIDLExternalDependency>
     value?: string | number | boolean
     condition?: UIDLConditionalExpression
   }
