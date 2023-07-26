@@ -103,7 +103,7 @@ const run = async () => {
               /* tslint:disable no-invalid-template-strings */
               book: ['/book/${id}', '/book'],
             },
-            cacheHandlerSecret: 'WEB_HOOK_SECRET',
+            cacheHandlerSecret: 'RANDOM_SECRET',
           }),
         ],
       })

@@ -21,30 +21,43 @@ export const createNextCacheValidationPlugin: ComponentPluginFactory<NextCacheVa
 
   const cacheValidationPlugin: ComponentPlugin = async (structure) => {
     const { dependencies, chunks } = structure
-    let secretHandling: types.IfStatement | null = null
+
+    const webhookHandlerContent: types.Statement[] = [
+      types.expressionStatement(
+        types.awaitExpression(
+          types.callExpression(types.identifier(webhook.name), [
+            types.identifier('req'),
+            generateCallbackExpression(routeMappers),
+          ])
+        )
+      ),
+      generateResponseWithStatus(200, true),
+    ]
 
     if (cacheHandlerSecret) {
-      secretHandling = types.ifStatement(
-        types.binaryExpression(
-          '!==',
-          types.memberExpression(
+      webhookHandlerContent.unshift(
+        types.ifStatement(
+          types.binaryExpression(
+            '!==',
             types.memberExpression(
-              types.identifier('process'),
-              types.identifier('env'),
-              false,
-              true
+              types.memberExpression(
+                types.identifier('process'),
+                types.identifier('env'),
+                false,
+                true
+              ),
+              types.identifier(cacheHandlerSecret),
+              false
             ),
-            types.identifier(cacheHandlerSecret),
-            false
+            types.memberExpression(
+              types.memberExpression(types.identifier('req'), types.identifier('query')),
+              types.stringLiteral(cacheHandlerSecret),
+              true,
+              true
+            )
           ),
-          types.memberExpression(
-            types.memberExpression(types.identifier('req'), types.identifier('query')),
-            types.stringLiteral(cacheHandlerSecret),
-            true,
-            true
-          )
-        ),
-        types.blockStatement([generateResponseWithStatus(401, false)])
+          types.blockStatement([generateResponseWithStatus(401, false)])
+        )
       )
     }
 
@@ -54,18 +67,7 @@ export const createNextCacheValidationPlugin: ComponentPluginFactory<NextCacheVa
         [types.identifier('req'), types.identifier('res')],
         types.blockStatement([
           types.tryStatement(
-            types.blockStatement([
-              ...(secretHandling && [secretHandling]),
-              types.expressionStatement(
-                types.awaitExpression(
-                  types.callExpression(types.identifier(webhook.name), [
-                    types.identifier('req'),
-                    generateCallbackExpression(routeMappers),
-                  ])
-                )
-              ),
-              generateResponseWithStatus(200, true),
-            ]),
+            types.blockStatement(webhookHandlerContent),
             types.catchClause(
               types.identifier('error'),
               types.blockStatement([
