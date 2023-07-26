@@ -86,6 +86,7 @@ import {
   VUIDLDateTimeNode,
   UIDLStateValue,
   VCMSListRepeaterElementNode,
+  UIDLResourceMapper,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -440,6 +441,11 @@ export const dependencyDecoder: Decoder<UIDLDependency> = union(
   localDependencyDecoder,
   externaldependencyDecoder
 )
+
+export const resourceMapperDecoder: Decoder<UIDLResourceMapper> = object({
+  params: array(string()),
+  dependency: dependencyDecoder,
+})
 
 export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   type: constant('import'),

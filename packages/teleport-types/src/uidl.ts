@@ -63,8 +63,14 @@ export interface UIDLResourceItem {
  * Instead of re-repeating them in every call.
  * Eg: `Content-Type`
  */
+
+export interface UIDLResourceMapper {
+  params: string[]
+  dependency: UIDLDependency
+}
+
 export interface UIDLResources {
-  resourceMappers?: Record<string, UIDLDependency>
+  resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
 }
 

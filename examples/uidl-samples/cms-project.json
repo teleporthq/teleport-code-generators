@@ -3814,14 +3814,17 @@
     },
     "resourceMappers": {
       "normalize": {
-        "type": "package",
-        "version": "github:teleporthq/teleport-cms-mappers#fd072ad93bea9087a202b94b727772da71f81b73",
-        "path": "@teleporthq/cms-mappers",
-        "meta": {
-          "namedImport": true,
-          "originalName": "normalize",
-          "importAlias": "@teleporthq/cms-mappers/contentful"
-        }
+        "dependency": {
+          "type": "package",
+          "version": "github:teleporthq/teleport-cms-mappers#fd072ad93bea9087a202b94b727772da71f81b73",
+          "path": "@teleporthq/cms-mappers",
+          "meta": {
+            "namedImport": true,
+            "originalName": "normalize",
+            "importAlias": "@teleporthq/cms-mappers/contentful"
+          }
+        },
+        "params": ["response", "params"]
       }
     }
   }
