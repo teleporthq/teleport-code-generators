@@ -21,6 +21,14 @@ export const ReactMapping: Mapping = {
         version: '2.2.1',
       },
     },
+    'caisy-richtext-node': {
+      elementType: 'RichTextRenderer',
+      dependency: {
+        type: 'package',
+        path: '@caisy/rich-text-react-renderer',
+        version: '0.7.3',
+      },
+    },
     'markdown-node': {
       elementType: 'Markdown',
       dependency: {

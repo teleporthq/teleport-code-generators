@@ -542,7 +542,7 @@ export const wrapObjectPropertiesWithExpression = (properties: types.ObjectPrope
 export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
   const fetchUrl = computeFetchUrl(resource)
   const authHeaderAST = computeAuthorizationHeaderAST(resource?.headers)
-  const headersASTs = generateRESTHeadersAST(resource?.headers)
+  const headersASTs = resource?.headers ? generateRESTHeadersAST(resource.headers) : []
 
   const queryParams = generateURLParamsAST(resource?.params)
   const fetchUrlQuasis = fetchUrl.quasis
@@ -610,19 +610,33 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
       )
     : fetchUrl
 
+  const method = types.objectProperty(
+    types.identifier('method'),
+    types.stringLiteral(resource.method)
+  )
+
+  let allHeaders: types.ObjectProperty[] = []
+
+  if (authHeaderAST) {
+    allHeaders.push(authHeaderAST)
+  }
+
+  if (headersASTs.length) {
+    allHeaders = allHeaders.concat(headersASTs)
+  }
+
+  const headers = types.objectProperty(
+    types.identifier('headers'),
+    types.objectExpression(allHeaders.length ? [...allHeaders] : [])
+  )
+
   const fetchAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('data'),
       types.awaitExpression(
         types.callExpression(types.identifier('fetch'), [
           url,
-          types.objectExpression([
-            types.objectProperty(types.identifier('method'), types.stringLiteral(resource.method)),
-            types.objectProperty(
-              types.identifier('headers'),
-              types.objectExpression([...headersASTs, authHeaderAST])
-            ),
-          ]),
+          types.objectExpression([method, headers]),
         ])
       )
     ),
@@ -701,10 +715,12 @@ const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.Obj
   return Object.keys(headers)
     .filter((header) => header !== 'authToken')
     .map((header) => {
-      return types.objectProperty(
-        types.stringLiteral(header),
-        types.stringLiteral(String(headers[header].content))
-      )
+      const headerResolved = resolveResourceValue(headers[header])
+      const value =
+        headers[header].type === 'static'
+          ? types.stringLiteral(String(headerResolved))
+          : types.identifier(String(headerResolved))
+      return types.objectProperty(types.stringLiteral(header), value)
     })
 }
 
