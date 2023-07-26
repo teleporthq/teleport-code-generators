@@ -232,6 +232,10 @@ export const traverseNodes = (
       if (node.content.nodes.loading) {
         traverseNodes(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-list-repeater':
+      traverseNodes(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseNodes(node.content.nodes.empty, fn)
       }
@@ -301,6 +305,10 @@ export const traverseResources = (
       if (node.content.nodes.loading) {
         traverseResources(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-list-repeater':
+      traverseResources(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseResources(node.content.nodes.empty, fn)
       }
@@ -374,9 +382,14 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       if (node.content.nodes.loading) {
         traverseElements(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-list-repeater':
+      traverseElements(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseElements(node.content.nodes.empty, fn)
       }
+
       break
 
     case 'cms-item':
@@ -439,9 +452,14 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-list-repeater':
+      traverseRepeats(node.content.nodes.list, fn)
       if (node.content.nodes.empty) {
         traverseRepeats(node.content.nodes.empty, fn)
       }
+
       break
 
     case 'cms-item':
@@ -783,11 +801,15 @@ export const removeChildNodes = (
       if (node.content.nodes.loading) {
         removeChildNodes(node.content.nodes.loading, criteria)
       }
+      break
+
+    case 'cms-list-repeater':
+      removeChildNodes(node.content.nodes.list, criteria)
       if (node.content.nodes.empty) {
         removeChildNodes(node.content.nodes.empty, criteria)
       }
-      break
 
+      break
     case 'cms-item':
       removeChildNodes(node.content.nodes.success, criteria)
       if (node.content.nodes.error) {

@@ -63,8 +63,14 @@ export interface UIDLResourceItem {
  * Instead of re-repeating them in every call.
  * Eg: `Content-Type`
  */
+
+export interface UIDLResourceMapper {
+  params: string[]
+  dependency: UIDLDependency
+}
+
 export interface UIDLResources {
-  resourceMappers?: Record<string, UIDLDependency>
+  resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
 }
 
@@ -298,6 +304,11 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+export interface UIDLCMSListRepeaterNode {
+  type: 'cms-list-repeater'
+  content: UIDLCMSListRepeaterNodeContent
+}
+
 /*
   A cms-list node can fetch data from the remote resouce
   or it can refer to a `prop` value for page list.
@@ -322,7 +333,6 @@ export interface UIDLCMSListNodeContent {
     success: UIDLElementNode
     error?: UIDLElementNode
     loading?: UIDLElementNode
-    empty?: UIDLElementNode
   }
   renderPropIdentifier: string
   valuePath?: string[]
@@ -349,6 +359,17 @@ export interface UIDLCMSItemNodeContent {
   itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
+}
+
+export interface UIDLCMSListRepeaterNodeContent {
+  elementType: string
+  name: string
+  key: string // internal usage
+  nodes: {
+    list: UIDLElementNode
+    empty?: UIDLElementNode
+  }
+  renderPropIdentifier: string
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -434,6 +455,7 @@ export type UIDLNode =
   | UIDLCMSListNode
   | UIDLCMSItemNode
   | UIDLDateTimeNode
+  | UIDLCMSListRepeaterNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

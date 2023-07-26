@@ -98,6 +98,20 @@ const computePropsAST = (
             false,
             false
           ),
+          types.spreadElement(
+            types.memberExpression(
+              types.memberExpression(
+                types.identifier('response'),
+                types.identifier('meta'),
+                false,
+                true
+              ),
+              types.identifier('pagination'),
+
+              false,
+              true
+            )
+          ),
         ]),
         false,
         false

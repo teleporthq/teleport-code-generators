@@ -13,7 +13,7 @@ import {
   VProjectUIDL,
   UIDLResources,
 } from '@teleporthq/teleport-types'
-import { dependencyDecoder, globalAssetsDecoder, resourceItemDecoder } from './utils'
+import { globalAssetsDecoder, resourceItemDecoder, resourceMapperDecoder } from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -47,7 +47,7 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
 })
 
 export const resourcesDecoder: Decoder<UIDLResources> = object({
-  resourceMappers: optional(dict(lazy(() => dependencyDecoder))),
+  resourceMappers: optional(dict(lazy(() => resourceMapperDecoder))),
   items: optional(dict(lazy(() => resourceItemDecoder))),
 })
 
