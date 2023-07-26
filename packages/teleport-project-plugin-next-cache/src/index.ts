@@ -1,9 +1,20 @@
 import { ProjectPlugin, ProjectPluginStructure } from '@teleporthq/teleport-types'
-import { FileType } from '@teleporthq/teleport-types/src'
+import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import { createNextCacheValidationPlugin } from './component-plugin'
+import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
+import prettierJSPlugin from '@teleporthq/teleport-postprocessor-prettier-js'
 
 export class ProjectPluginNextCache implements ProjectPlugin {
-  async runBefore(structure: ProjectPluginStructure) {
-    return structure
+  private routeMapper: Record<string, string[]> = {}
+  private cacheHandlerPath: string[] = ['pages', 'api']
+
+  constructor(routeMappings?: Record<string, string[]>, cacheHandlerPath?: string[]) {
+    if (routeMappings) {
+      this.routeMapper = routeMappings
+    }
+    if (cacheHandlerPath) {
+      this.cacheHandlerPath = cacheHandlerPath
+    }
   }
 
   async runAfter(structure: ProjectPluginStructure) {
@@ -12,50 +23,39 @@ export class ProjectPluginNextCache implements ProjectPlugin {
       return structure
     }
 
-    const dependency = uidl.resources.cache.dependency
+    const generator = createComponentGenerator()
+    generator.addPlugin(
+      createNextCacheValidationPlugin({
+        routeMappers: this.routeMapper,
+        dependency: uidl.resources.cache.dependency,
+      })
+    )
+    generator.addPlugin(importStatementsPlugin)
+    generator.addPostProcessor(prettierJSPlugin)
 
-    files.set(`cache-validator`, {
-      path: ['pages', 'api'],
-      files: [
+    const { files: cacheHandlerFiles, dependencies: cacheHandlerDependencies } =
+      await generator.generateComponent(
         {
+          ...uidl.root,
           name: 'revalidate',
-          fileType: FileType.JS,
-          content: `import { ${dependency?.meta?.originalName ?? 'revalidate'} } from "${
-            dependency?.meta?.importAlias || dependency.path
-          }"
-import routeMappers from '../../teleport-config.json'
-
-export default async function handler(req, res) {
-  try {
-    const pathsToRevalidate = await revalidate(req, routeMappers);
-    if (pathsToRevalidate.length == 0) {
-      return res.status(400).json({ revalidated: false, message: "No paths to revalidate" });
-    }
-
-    pathsToRevalidate.forEach((path) => {
-      console.log("[ON-DEMAND_ISR]: Clearing cahce for path", path)
-      res.revalidate(path)
-    })
-    return res.status(200).json({ revalidated: true });
-  } catch {
-    return res.status(500).json({ revalidated: false })
-  }
-}`,
         },
-      ],
-    })
-
-    files.set(`teleport-config`, {
-      path: [],
-      files: [
         {
-          name: 'teleport-config',
-          fileType: FileType.JSON,
-          content: `{}`,
-        },
-      ],
+          skipValidation: true,
+          skipNavlinkResolver: true,
+        }
+      )
+
+    structure.dependencies = { ...structure.dependencies, ...cacheHandlerDependencies }
+
+    files.set('revalidate', {
+      path: this.cacheHandlerPath,
+      files: cacheHandlerFiles,
     })
 
+    return structure
+  }
+
+  async runBefore(structure: ProjectPluginStructure) {
     return structure
   }
 }

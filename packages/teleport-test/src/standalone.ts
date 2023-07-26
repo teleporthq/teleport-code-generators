@@ -20,6 +20,7 @@ import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
+import { ProjectPluginNextCache } from '@teleporthq/teleport-project-plugin-next-cache'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
@@ -93,14 +94,14 @@ const run = async () => {
           projectSlug: 'teleport-project-next-cms',
         },
         plugins: [
-          new ProjectPluginCustomFiles([
-            {
-              id: 'teleport-config.json',
-              name: 'teleport-config.json',
-              path: [],
-              content: JSON.stringify({ '/about': { path: '/about' } }, null, 2),
-            },
-          ]),
+          new ProjectPluginNextCache({
+            /* tslint:disable no-invalid-template-strings */
+            bogpost: ['/bogpost/${id}', '/bogpost'],
+            /* tslint:disable no-invalid-template-strings */
+            page: ['/page', '/page/${id}'],
+            /* tslint:disable no-invalid-template-strings */
+            book: ['/book/${id}', '/book'],
+          }),
         ],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
