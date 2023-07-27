@@ -3826,6 +3826,20 @@
         },
         "params": ["response", "params"]
       }
+    },
+    "cache": {
+      "webhook": {
+        "name": "revalidate",
+        "dependency": {
+          "type": "package",
+          "version": "github:teleporthq/teleport-cms-mappers.git",
+          "path": "@teleporthq/cms-mappers",
+          "meta": {
+            "namedImport": true,
+            "importAlias": "@teleporthq/cms-mappers/wordpress/revalidate"
+          }
+        }
+      }
     }
   }
 }

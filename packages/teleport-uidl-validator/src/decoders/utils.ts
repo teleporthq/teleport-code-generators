@@ -179,6 +179,7 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     id: string(),
     params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
   }),
+  cache: optional(object({ revalidate: number() })),
 })
 
 export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({

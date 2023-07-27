@@ -15,10 +15,12 @@ import { ProjectPluginCSSModules } from '@teleporthq/teleport-project-plugin-css
 import { ProjectPluginReactJSS } from '@teleporthq/teleport-project-plugin-react-jss'
 import { ProjectPluginTailwind } from '@teleporthq/teleport-project-plugin-tailwind'
 import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plugin-styled-components'
+import { ProjectPluginCustomFiles } from '@teleporthq/teleport-project-plugin-custom-files'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
+import { ProjectPluginRevalidateAPI } from '@teleporthq/teleport-next-revalidate-api'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
@@ -66,8 +68,8 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      // rmdirSync('dist', { recursive: true })
-      // mkdirSync('dist')
+      rmdirSync('dist', { recursive: true })
+      mkdirSync('dist')
     }
 
     let result
@@ -91,6 +93,19 @@ const run = async () => {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-cms',
         },
+        plugins: [
+          new ProjectPluginRevalidateAPI({
+            routeMappers: {
+              /* tslint:disable no-invalid-template-strings */
+              bogpost: ['/bogpost/${id}', '/bogpost'],
+              /* tslint:disable no-invalid-template-strings */
+              page: ['/page', '/page/${id}'],
+              /* tslint:disable no-invalid-template-strings */
+              book: ['/book/${id}', '/book'],
+            },
+            cacheHandlerSecret: 'RANDOM_SECRET',
+          }),
+        ],
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT

@@ -72,6 +72,13 @@ export interface UIDLResourceMapper {
 export interface UIDLResources {
   resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
+  cache?: {
+    revalidate: number | null
+    webhook?: {
+      name: string
+      dependency: UIDLDependency
+    }
+  }
 }
 
 export interface ProjectUIDL {
@@ -180,6 +187,19 @@ export interface UIDLInitialPropsData {
   resource: {
     id: string
     params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  }
+  /*
+    We allow the configuration of cache strategy globally for the whole project under
+    uidl.resources.cache
+    But in the case of using a using a webhook. The cache for routes like
+    /blog-post/page/pageNumber can't be handled. Since the page number of the
+    entity changed can't be known in advance.
+
+    This allows to set custom cache revalidation for those pages which overrides the cache that
+    is configured globally at uidl.resources.cache.revalidate
+  */
+  cache?: {
+    revalidate: number
   }
 }
 

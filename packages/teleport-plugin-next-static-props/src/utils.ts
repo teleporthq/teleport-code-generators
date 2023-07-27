@@ -1,6 +1,10 @@
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
-import { UIDLInitialPropsData, PagePaginationOptions } from '@teleporthq/teleport-types'
+import {
+  UIDLInitialPropsData,
+  PagePaginationOptions,
+  UIDLResources,
+} from '@teleporthq/teleport-types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 
 export const generateInitialPropsAST = (
@@ -8,6 +12,7 @@ export const generateInitialPropsAST = (
   isDetailsPage = false,
   resourceImportName: string,
   resource: UIDLInitialPropsData['resource'],
+  cache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
   return types.exportNamedDeclaration(
@@ -21,6 +26,7 @@ export const generateInitialPropsAST = (
             isDetailsPage,
             resourceImportName,
             resource,
+            cache,
             pagination
           ),
         ]),
@@ -39,6 +45,7 @@ const computePropsAST = (
   isDetailsPage = false,
   resourceImportName: string,
   resource: UIDLInitialPropsData['resource'],
+  cache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
   const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
@@ -50,6 +57,36 @@ const computePropsAST = (
     },
     []
   )
+
+  /*
+    Per-page cache can override the global cache.
+    Gobally the project don't need to have a cache.
+    But for a specific page, it can have a cache.
+    Eg:
+      Handling paths
+      - /blog-posts
+      - /blog-pots/${id}
+
+      using webhook. And then letting page cache handler to do pages like
+      - /blog-posts/page/${id}
+  */
+  const globalCache = cache
+  const perPageCache = propsData.cache
+  let cachePropertyAST: types.ObjectProperty | null = null
+
+  if (globalCache?.revalidate && !perPageCache?.revalidate) {
+    cachePropertyAST = types.objectProperty(
+      types.identifier('revalidate'),
+      types.numericLiteral(globalCache.revalidate)
+    )
+  }
+
+  if (perPageCache?.revalidate) {
+    cachePropertyAST = types.objectProperty(
+      types.identifier('revalidate'),
+      types.numericLiteral(perPageCache.revalidate)
+    )
+  }
 
   const declerationAST = types.variableDeclaration('const', [
     types.variableDeclarator(
@@ -83,41 +120,29 @@ const computePropsAST = (
       : responseMemberAST
 
   const returnAST = types.returnStatement(
-    types.objectExpression([
-      types.objectProperty(
-        types.identifier('props'),
-        types.objectExpression([
-          types.objectProperty(
-            types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
-            propsData.exposeAs.itemValuePath?.length
-              ? ASTUtils.generateMemberExpressionASTFromBase(
-                  dataWeNeedAccessorAST,
-                  propsData.exposeAs.itemValuePath
-                )
-              : dataWeNeedAccessorAST,
-            false,
-            false
-          ),
-          types.spreadElement(
-            types.memberExpression(
-              types.memberExpression(
-                types.identifier('response'),
-                types.identifier('meta'),
-                false,
-                true
-              ),
-              types.identifier('pagination'),
-
+    types.objectExpression(
+      [
+        types.objectProperty(
+          types.identifier('props'),
+          types.objectExpression([
+            types.objectProperty(
+              types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
+              propsData.exposeAs.itemValuePath?.length
+                ? ASTUtils.generateMemberExpressionASTFromBase(
+                    dataWeNeedAccessorAST,
+                    propsData.exposeAs.itemValuePath
+                  )
+                : dataWeNeedAccessorAST,
               false,
-              true
-            )
-          ),
-        ]),
-        false,
-        false
-      ),
-      types.objectProperty(types.identifier('revalidate'), types.numericLiteral(1), false, false),
-    ])
+              false
+            ),
+          ]),
+          false,
+          false
+        ),
+        cachePropertyAST,
+      ].filter(Boolean)
+    )
   )
 
   return [declerationAST, returnAST]
