@@ -4,7 +4,7 @@ import { createNextCacheValidationPlugin } from './component-plugin'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import prettierJSPlugin from '@teleporthq/teleport-postprocessor-prettier-js'
 
-export class ProjectPluginNextCache implements ProjectPlugin {
+export class ProjectPluginRevalidateAPI implements ProjectPlugin {
   private routeMappers: Record<string, string[]> = {}
   private cacheHandlerPath: string[] = ['pages', 'api']
   private cacheHandlerSecret: string | null = null

@@ -1,5 +1,5 @@
 {
-  "name": "@teleporthq/teleport-project-plugin-next-cache",
+  "name": "@teleporthq/teleport-next-revalidate-api",
   "version": "0.30.0-alpha.0",
   "description": "A plugin for handling cache and enabling on demand revalidation in NextJS.",
   "author": "teleportHQ",

@@ -27,6 +27,7 @@
   "dependencies": {
     "@teleporthq/teleport-code-generator": "^0.30.0-alpha.0",
     "@teleporthq/teleport-component-generator-html": "^0.30.0-alpha.0",
+    "@teleporthq/teleport-next-revalidate-api": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-generator-angular": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-generator-next": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-generator-nuxt": "^0.30.0-alpha.0",
@@ -34,7 +35,6 @@
     "@teleporthq/teleport-project-generator-vue": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-packer": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-css-modules": "^0.30.0-alpha.0",
-    "@teleporthq/teleport-project-plugin-next-cache": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-react-jss": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-styled-components": "^0.30.0-alpha.0",
     "@teleporthq/teleport-project-plugin-tailwind": "^0.30.0-alpha.0",
