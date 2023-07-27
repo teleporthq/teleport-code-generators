@@ -36,7 +36,7 @@ export const insertLinks = (
 
     if (child.type === 'cms-list') {
       const {
-        nodes: { success, error, empty, loading },
+        nodes: { success, error, loading },
       } = child.content
 
       if (success) {
@@ -47,12 +47,22 @@ export const insertLinks = (
         insertLinks(error, options, false, node)
       }
 
-      if (empty) {
-        insertLinks(empty, options, false, node)
-      }
-
       if (loading) {
         insertLinks(loading, options, false, node)
+      }
+    }
+
+    if (child.type === 'cms-list-repeater') {
+      const {
+        nodes: { list, empty },
+      } = child.content
+
+      if (list) {
+        insertLinks(list, options, false, node)
+      }
+
+      if (empty) {
+        insertLinks(empty, options, false, node)
       }
     }
 
