@@ -53,23 +53,11 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
       const isLocalResource = 'id' in resource
       const isExternalResource = 'name' in resource
 
-      /*
-        Identifier that defines the route name and the file name.
-        Because each file name defines a individual API
-      */
       let resourceFileName: string
-
-      /*
-        Identifier that imports the module.
-        import '...' from 'resoruce'
-      */
       let resourceImportVariable: string
-      /*
-        Location from where the resource is imported.
-        Can be a relative local path or a external package path
-      */
       let importPath: string
       let funcParams = ''
+      let isNamedImport = false
 
       if (isLocalResource) {
         const { id = null, params = {} } = (resource as UIDLLocalResource) || {}
@@ -85,11 +73,6 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         resourceImportVariable = StringUtils.dashCaseToCamelCase(
           StringUtils.camelize(`${usedResource.name}-resource`)
         )
-
-        /*
-          Idenfitier that points to the actual resource path
-          import resoruce from '....'
-        */
         const importName = StringUtils.camelCaseToDashCase(usedResource.name)
         importPath = `../../resources/${importName}`
 
@@ -115,8 +98,13 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
       }
 
       if (isExternalResource) {
-        resourceImportVariable = resource.name
-        importPath = resource.dependency?.meta?.importAlias || resource.dependency.path
+        const { name, dependency } = resource
+        resourceImportVariable = dependency.meta?.originalName || name
+        importPath = dependency?.meta?.importAlias || dependency.path
+        resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
+        dependencies[dependency.path] = dependency.version
+        isNamedImport = dependency?.meta?.namedImport || false
+
         /*
           When we are calling external functions to make a request call for us.
           The `fetch` that happens behind the scenes are basically encapsulated.
@@ -124,10 +112,6 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
           So, we can mark these as POST by default since we are taking data from the component.
         */
         funcParams = 'req.body'
-
-        resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
-        dependencies[resource.dependency.path] = resource.dependency.version
-
         computeUseEffectAST({
           fileName: resourceFileName,
           resourceType: 'POST',
@@ -142,7 +126,9 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
           {
             name: resourceFileName,
             fileType: FileType.JS,
-            content: `import ${resourceImportVariable} from '${importPath}'
+            content: `import ${
+              isNamedImport ? '{ ' + resourceImportVariable + ' }' : resourceImportVariable
+            } from '${importPath}'
 
 export default async function handler(req, res) {
   try {
