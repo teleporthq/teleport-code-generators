@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator-vue",
-  "version": "0.27.8",
+  "version": "0.27.9",
   "description": "Project generator using Vue and Vue-Router",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,16 +24,16 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.27.8",
-    "@teleporthq/teleport-component-generator-vue": "^0.27.8",
-    "@teleporthq/teleport-plugin-css": "^0.27.8",
-    "@teleporthq/teleport-plugin-import-statements": "^0.27.8",
-    "@teleporthq/teleport-plugin-vue-app-routing": "^0.27.8",
-    "@teleporthq/teleport-plugin-vue-head-config": "^0.27.8",
-    "@teleporthq/teleport-postprocessor-prettier-html": "^0.27.8",
-    "@teleporthq/teleport-postprocessor-prettier-js": "^0.27.8",
-    "@teleporthq/teleport-project-generator": "^0.27.8",
-    "@teleporthq/teleport-shared": "^0.27.8",
+    "@teleporthq/teleport-component-generator": "^0.27.9",
+    "@teleporthq/teleport-component-generator-vue": "^0.27.9",
+    "@teleporthq/teleport-plugin-css": "^0.27.9",
+    "@teleporthq/teleport-plugin-import-statements": "^0.27.9",
+    "@teleporthq/teleport-plugin-vue-app-routing": "^0.27.9",
+    "@teleporthq/teleport-plugin-vue-head-config": "^0.27.9",
+    "@teleporthq/teleport-postprocessor-prettier-html": "^0.27.9",
+    "@teleporthq/teleport-postprocessor-prettier-js": "^0.27.9",
+    "@teleporthq/teleport-project-generator": "^0.27.9",
+    "@teleporthq/teleport-shared": "^0.27.9",
     "@teleporthq/teleport-types": "^0.27.8"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

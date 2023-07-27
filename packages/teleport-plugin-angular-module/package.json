@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-angular-module",
-  "version": "0.27.8",
+  "version": "0.27.9",
   "description": "A Plugin for generating modules for angular",
   "author": "teleportHQ",
   "homepage": "https://teleporthq.io/",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-shared": "^0.27.8",
+    "@teleporthq/teleport-shared": "^0.27.9",
     "@teleporthq/teleport-types": "^0.27.8"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"

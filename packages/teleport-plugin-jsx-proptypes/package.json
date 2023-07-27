@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-jsx-proptypes",
-  "version": "0.27.8",
+  "version": "0.27.9",
   "description": "A plugin for generating prop-types according to the component specification",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "@babel/types": "^7.5.5",
-    "@teleporthq/teleport-plugin-common": "^0.27.8",
-    "@teleporthq/teleport-shared": "^0.27.8",
+    "@teleporthq/teleport-plugin-common": "^0.27.9",
+    "@teleporthq/teleport-shared": "^0.27.9",
     "@teleporthq/teleport-types": "^0.27.8"
   },
   "gitHead": "b185c3fdb7dc94ff8c7eed63f7edba055fffa8d0"
