@@ -63,9 +63,22 @@ export interface UIDLResourceItem {
  * Instead of re-repeating them in every call.
  * Eg: `Content-Type`
  */
+
+export interface UIDLResourceMapper {
+  params: string[]
+  dependency: UIDLDependency
+}
+
 export interface UIDLResources {
-  resourceMappers?: Record<string, UIDLDependency>
+  resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
+  cache?: {
+    revalidate: number | null
+    webhook?: {
+      name: string
+      dependency: UIDLDependency
+    }
+  }
 }
 
 export interface ProjectUIDL {
@@ -172,6 +185,19 @@ export interface UIDLInitialPropsData {
     itemValuePath?: string[]
   }
   resource: UIDLResourceLink
+  /*
+    We allow the configuration of cache strategy globally for the whole project under
+    uidl.resources.cache
+    But in the case of using a using a webhook. The cache for routes like
+    /blog-post/page/pageNumber can't be handled. Since the page number of the
+    entity changed can't be known in advance.
+
+    This allows to set custom cache revalidation for those pages which overrides the cache that
+    is configured globally at uidl.resources.cache.revalidate
+  */
+  cache?: {
+    revalidate: number
+  }
 }
 
 export interface UIDLInitialPathsData {
@@ -292,6 +318,11 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+export interface UIDLCMSListRepeaterNode {
+  type: 'cms-list-repeater'
+  content: UIDLCMSListRepeaterNodeContent
+}
+
 /*
   A cms-list node can fetch data from the remote resouce
   or it can refer to a `prop` value for page list.
@@ -322,7 +353,6 @@ export interface UIDLCMSListNodeContent {
     success: UIDLElementNode
     error?: UIDLElementNode
     loading?: UIDLElementNode
-    empty?: UIDLElementNode
   }
   renderPropIdentifier: string
   valuePath?: string[]
@@ -349,6 +379,17 @@ export interface UIDLCMSItemNodeContent {
   itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
+}
+
+export interface UIDLCMSListRepeaterNodeContent {
+  elementType: string
+  name: string
+  key: string // internal usage
+  nodes: {
+    list: UIDLElementNode
+    empty?: UIDLElementNode
+  }
+  renderPropIdentifier: string
 }
 
 export interface UIDLNestedStyleDeclaration {
@@ -435,6 +476,7 @@ export type UIDLNode =
   | UIDLCMSListNode
   | UIDLCMSItemNode
   | UIDLDateTimeNode
+  | UIDLCMSListRepeaterNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

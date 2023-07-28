@@ -239,7 +239,11 @@ const computeUseEffectAST = (params: {
             'data',
             ...itemValuePath,
           ]) as types.MemberExpression)
-        : types.memberExpression(types.identifier('data'), types.numericLiteral(0), true)
+        : types.memberExpression(
+            types.memberExpression(types.identifier('data'), types.identifier('data'), false),
+            types.numericLiteral(0),
+            true
+          )
   }
 
   if (node.type === 'cms-list') {

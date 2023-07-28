@@ -6,6 +6,8 @@ import {
   dict,
   array,
   lazy,
+  withDefault,
+  number,
 } from '@mojotech/json-type-validation'
 import {
   VUIDLGlobalProjectValues,
@@ -13,7 +15,12 @@ import {
   VProjectUIDL,
   UIDLResources,
 } from '@teleporthq/teleport-types'
-import { dependencyDecoder, globalAssetsDecoder, resourceItemDecoder } from './utils'
+import {
+  globalAssetsDecoder,
+  resourceItemDecoder,
+  resourceMapperDecoder,
+  dependencyDecoder,
+} from './utils'
 import { componentUIDLDecoder, rootComponentUIDLDecoder } from './component-decoder'
 
 export const webManifestDecoder: Decoder<WebManifest> = object({
@@ -47,8 +54,23 @@ export const globalProjectValuesDecoder: Decoder<VUIDLGlobalProjectValues> = obj
 })
 
 export const resourcesDecoder: Decoder<UIDLResources> = object({
-  resourceMappers: optional(dict(lazy(() => dependencyDecoder))),
+  resourceMappers: optional(dict(lazy(() => resourceMapperDecoder))),
   items: optional(dict(lazy(() => resourceItemDecoder))),
+  cache: withDefault(
+    {
+      revalidate: 60,
+      webhook: null,
+    },
+    object({
+      revalidate: optional(number()),
+      webhook: optional(
+        object({
+          name: string(),
+          dependency: lazy(() => dependencyDecoder),
+        })
+      ),
+    })
+  ),
 })
 
 export const projectUIDLDecoder: Decoder<VProjectUIDL> = object({

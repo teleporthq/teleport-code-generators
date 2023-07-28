@@ -20,6 +20,7 @@ export const resourceGenerator = (
   let returnStatement: types.Identifier | types.CallExpression = types.identifier('response')
 
   resource.mappers.forEach((mapper) => {
+    // Fallback value for returnStatement
     returnStatement = types.callExpression(types.identifier(mapper), [returnStatement])
 
     if (!mappers[mapper]) {
@@ -28,7 +29,10 @@ export const resourceGenerator = (
       )
     }
 
-    dependencies[mapper] = mappers[mapper]
+    const params = mappers[mapper].params.map((param) => types.identifier(param))
+    returnStatement = types.callExpression(types.identifier(mapper), [...params])
+
+    dependencies[mapper] = mappers[mapper].dependency
   })
 
   const moduleBody = [...ast, types.returnStatement(returnStatement)]

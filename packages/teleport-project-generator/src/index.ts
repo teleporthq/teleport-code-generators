@@ -332,6 +332,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
           this.strategy?.resources?.path && {
             resources: {
               items: uidl?.resources?.items,
+              cache: uidl?.resources.cache,
               path: GenericUtils.generateLocalDependenciesPrefix(
                 path,
                 this.strategy.resources.path
@@ -634,6 +635,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       collectedDevDependencies = { ...collectedDevDependencies, ...runAfterResult.devDependencies }
       inMemoryFilesMap = runAfterResult.files
     } catch (e) {
+      console.trace(e)
       throw new TeleportError(`Error in generating project after runAfter - ${e}`)
     }
 

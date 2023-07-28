@@ -88,6 +88,8 @@ import {
   UIDLResourceLink,
   UIDLLocalResource,
   UIDLExternalResource,
+  VCMSListRepeaterElementNode,
+  UIDLResourceMapper,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -100,7 +102,8 @@ export const referenceTypeDecoder: Decoder<ReferenceType> = union(
   constant('local'),
   constant('attr'),
   constant('children'),
-  constant('token')
+  constant('token'),
+  constant('expr')
 )
 
 export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
@@ -192,6 +195,7 @@ export const initialPropsDecoder: Decoder<UIDLInitialPropsData> = object({
     itemValuePath: optional(array(string())),
   }),
   resource: uidlResourceLinkDecoder,
+  cache: optional(object({ revalidate: number() })),
 })
 
 export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
@@ -451,6 +455,11 @@ export const dependencyDecoder: Decoder<UIDLDependency> = union(
   localDependencyDecoder,
   externaldependencyDecoder
 )
+
+export const resourceMapperDecoder: Decoder<UIDLResourceMapper> = object({
+  params: array(string()),
+  dependency: dependencyDecoder,
+})
 
 export const importReferenceDecoder: Decoder<UIDLImportReference> = object({
   type: constant('import'),
@@ -733,6 +742,19 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
   }),
 })
 
+export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = object({
+  type: constant('cms-list-repeater'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-list-repeater', string()),
+    nodes: object({
+      list: lazy(() => elementNodeDecoder),
+      empty: optional(lazy(() => elementNodeDecoder)),
+    }),
+    renderPropIdentifier: string(),
+  }),
+})
+
 export const cmsListNodeDecoder: Decoder<VCMSListUIDLElementNode> = object({
   type: constant('cms-list'),
   content: object({
@@ -759,9 +781,9 @@ export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
   cmsItemNodeDecoder,
   cmsListNodeDecoder,
+  cmsListRepeaterNodeDecoder,
   dynamicValueDecoder,
-  staticValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  union(repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
+  union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
 )

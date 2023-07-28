@@ -67,6 +67,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       !!uidl.outputOptions.dynamicRouteAttribute,
       resourceImportName,
       resource,
+      resources.cache,
       uidl.outputOptions.pagination
     )
 

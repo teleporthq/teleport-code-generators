@@ -37,6 +37,7 @@ import {
   UIDLRootComponent,
   UIDLCMSItemNode,
   UIDLCMSListNode,
+  UIDLCMSListRepeaterNode,
   UIDLDynamicLinkNode,
   UIDLPropValue,
   UIDLExpressionValue,
@@ -69,6 +70,19 @@ export interface VCMSItemUIDLElementNode
     }
   > {}
 
+export interface VCMSListRepeaterElementNode
+  extends Modify<
+    UIDLCMSListRepeaterNode,
+    {
+      content: {
+        nodes: {
+          list: VUIDLElementNode
+          empty?: VUIDLElementNode
+        }
+      }
+    }
+  > {}
+
 export interface VCMSListUIDLElementNode
   extends Modify<
     UIDLCMSListNode,
@@ -80,7 +94,6 @@ export interface VCMSListUIDLElementNode
           success: VUIDLElementNode
           error?: VUIDLElementNode
           loading?: VUIDLElementNode
-          empty?: VUIDLElementNode
         }
         valuePath?: string[]
         itemValuePath?: string[]
@@ -124,6 +137,7 @@ export type VUIDLNode =
   | VUIDLSlotNode
   | VCMSItemUIDLElementNode
   | VCMSListUIDLElementNode
+  | VCMSListRepeaterElementNode
   | UIDLExpressionValue
   | string
 

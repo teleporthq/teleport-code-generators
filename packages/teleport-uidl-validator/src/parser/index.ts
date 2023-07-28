@@ -23,6 +23,7 @@ import {
   UIDLURLLinkNode,
   UIDLCMSItemNode,
   UIDLCMSListNode,
+  UIDLCMSListRepeaterNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -146,6 +147,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list':
+    case 'cms-list-repeater':
     case 'element':
       if (node.type === 'cms-item') {
         const {
@@ -179,7 +181,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       if (node.type === 'cms-list') {
         const {
           initialData,
-          nodes: { success, error, loading, empty },
+          nodes: { success, error, loading },
         } = (node as unknown as UIDLCMSListNode).content
 
         if (initialData) {
@@ -201,6 +203,18 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         if (loading) {
           loading.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
             loading?.content?.attrs || {}
+          )
+        }
+      }
+
+      if (node.type === 'cms-list-repeater') {
+        const {
+          nodes: { list, empty },
+        } = (node as unknown as UIDLCMSListRepeaterNode).content
+
+        if (list) {
+          list.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
+            list?.content?.attrs || {}
           )
         }
 
