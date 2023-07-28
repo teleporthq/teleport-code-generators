@@ -26,6 +26,7 @@
   "dependencies": {
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-component-generator": "^0.32.0-alpha.0",
+    "@teleporthq/teleport-plugin-common": "^0.32.0-alpha.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.32.0-alpha.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.32.0-alpha.0",
     "@teleporthq/teleport-types": "^0.32.0-alpha.0"
