@@ -73,7 +73,7 @@ export interface UIDLResources {
   resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
   cache?: {
-    revalidate: number | null
+    revalidate?: number
     webhook?: {
       name: string
       dependency: UIDLDependency

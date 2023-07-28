@@ -1,4 +1,5 @@
 import * as types from '@babel/types'
+import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
 export const generateResponseWithStatus = (
   status: number,
@@ -38,20 +39,15 @@ export const generateCallbackExpression = (
     ([contentType, paths]) => {
       return types.switchCase(types.stringLiteral(contentType), [
         ...paths.map((dynamicPath) => {
+          const expression = ASTUtils.getExpressionFromUIDLExpressionNode({
+            type: 'expr',
+            content: '`' + dynamicPath + '`',
+          }) as types.TemplateLiteral
+
           return types.expressionStatement(
             types.callExpression(
               types.memberExpression(types.identifier('res'), types.identifier('revalidate')),
-              [
-                types.templateLiteral(
-                  [
-                    types.templateElement({
-                      raw: appendDataToObjectExpression(dynamicPath),
-                      cooked: appendDataToObjectExpression(dynamicPath),
-                    }),
-                  ],
-                  []
-                ),
-              ]
+              [expression]
             )
           )
         }),
