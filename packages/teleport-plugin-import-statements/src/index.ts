@@ -64,6 +64,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
     const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')
     const packageDependencies = groupDependenciesByPackage(collectedDependencies, 'package')
     const localDependencies = groupDependenciesByPackage(collectedDependencies, 'local')
+
     addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileType)
     addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileType)
     addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileType)
@@ -93,19 +94,16 @@ const groupDependenciesByPackage = (
         return
       }
 
-      if (dep?.meta?.importAlias) {
-        result[dep.meta.importAlias] = []
-      }
-
-      if (!dep?.meta?.importAlias && !result[dep.path]) {
-        result[dep.path] = [] // Initialize the dependencies from this path
+      const dependencyPath = dep?.meta?.importAlias ?? dep.path
+      if (!result[dependencyPath]) {
+        result[dependencyPath] = []
       }
 
       const importJustPath = (dep.meta && dep.meta.importJustPath) || false
       const namedImport = !!(dep.meta && dep.meta.namedImport)
       const originalName = dep.meta && dep.meta.originalName ? dep.meta.originalName : key
 
-      result[dep?.meta?.importAlias ?? dep.path].push({
+      result[dependencyPath].push({
         identifierName: key,
         namedImport,
         originalName,
