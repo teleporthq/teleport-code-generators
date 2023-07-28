@@ -41,7 +41,7 @@ export const generateCallbackExpression = (
         ...paths.map((dynamicPath) => {
           const expression = ASTUtils.getExpressionFromUIDLExpressionNode({
             type: 'expr',
-            content: '`' + dynamicPath + '`',
+            content: '`' + appendDataToObjectExpression(dynamicPath) + '`',
           }) as types.TemplateLiteral
 
           return types.expressionStatement(
