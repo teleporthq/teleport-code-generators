@@ -39,7 +39,7 @@
         ],
         "env": {
             "CMS_URL": "https://cloud.caisy.io/api/v3/e/3bd8eb33-2aaa-4620-87bf-d7ccd04d0245/graphql",
-            "CMS_ACCESS_TOKEN": "IuAEF8GwcDKHX9gQyXu84Rij5kXobRuR"
+            "CMS_ACCESS_TOKEN": "teleporthq.secrets.CAISY_ACCESS_TOKEN1"
         },
         "meta": [
             {
@@ -479,7 +479,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "BlogPostEntities": {
-                                    "id": "c861e515-b5c0-4b9c-8746-8ee1f442c3dc",
+                                    "id": "a97993df-aaeb-46d4-905f-54fa25390f24",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -541,7 +541,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "BlogPostEntities": {
-                                    "id": "c861e515-b5c0-4b9c-8746-8ee1f442c3dc",
+                                    "id": "a97993df-aaeb-46d4-905f-54fa25390f24",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -649,7 +649,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "AuthorEntities": {
-                                    "id": "9eb44b37-7fa4-4f6d-908b-f533ee35b40d",
+                                    "id": "d68db76e-adf8-41e0-a9db-3d0ace70b541",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -711,7 +711,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "AuthorEntities": {
-                                    "id": "9eb44b37-7fa4-4f6d-908b-f533ee35b40d",
+                                    "id": "d68db76e-adf8-41e0-a9db-3d0ace70b541",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -819,7 +819,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "BlogPostEntity": {
-                                    "id": "d0d399c8-8119-4d19-80b1-a3ea06b244a8",
+                                    "id": "4feb98df-6f4f-432f-832b-4a98e0d85913",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -912,7 +912,7 @@
                         "pageOptions": {
                             "propDefinitions": {
                                 "AuthorEntity": {
-                                    "id": "623f93bd-b9de-4eb3-bc45-820be8a12ab4",
+                                    "id": "df7b86ef-1c1d-427e-a4ed-c25c3ad85ca8",
                                     "defaultValue": [],
                                     "type": "array"
                                 }
@@ -996,22 +996,22 @@
         },
         "propDefinitions": {
             "BlogPostEntities": {
-                "id": "c861e515-b5c0-4b9c-8746-8ee1f442c3dc",
+                "id": "a97993df-aaeb-46d4-905f-54fa25390f24",
                 "defaultValue": [],
                 "type": "array"
             },
             "AuthorEntities": {
-                "id": "9eb44b37-7fa4-4f6d-908b-f533ee35b40d",
+                "id": "d68db76e-adf8-41e0-a9db-3d0ace70b541",
                 "defaultValue": [],
                 "type": "array"
             },
             "BlogPostEntity": {
-                "id": "d0d399c8-8119-4d19-80b1-a3ea06b244a8",
+                "id": "4feb98df-6f4f-432f-832b-4a98e0d85913",
                 "defaultValue": [],
                 "type": "array"
             },
             "AuthorEntity": {
-                "id": "623f93bd-b9de-4eb3-bc45-820be8a12ab4",
+                "id": "df7b86ef-1c1d-427e-a4ed-c25c3ad85ca8",
                 "defaultValue": [],
                 "type": "array"
             }
@@ -1057,7 +1057,194 @@
                                             "content": "column"
                                         }
                                     },
-                                    "children": []
+                                    "children": [
+                                        {
+                                            "type": "element",
+                                            "content": {
+                                                "elementType": "container",
+                                                "semanticType": "div",
+                                                "referencedStyles": {},
+                                                "abilities": {},
+                                                "style": {
+                                                    "flex": {
+                                                        "type": "static",
+                                                        "content": "0 0 auto"
+                                                    },
+                                                    "width": {
+                                                        "type": "static",
+                                                        "content": "333px"
+                                                    },
+                                                    "border": {
+                                                        "type": "static",
+                                                        "content": "2px dashed rgba(120, 120, 120, 0.4)"
+                                                    },
+                                                    "height": {
+                                                        "type": "static",
+                                                        "content": "183px"
+                                                    },
+                                                    "display": {
+                                                        "type": "static",
+                                                        "content": "flex"
+                                                    },
+                                                    "alignItems": {
+                                                        "type": "static",
+                                                        "content": "flex-start"
+                                                    },
+                                                    "flexDirection": {
+                                                        "type": "static",
+                                                        "content": "column"
+                                                    }
+                                                },
+                                                "children": []
+                                            }
+                                        },
+                                        {
+                                            "type": "cms-item",
+                                            "content": {
+                                                "elementType": "DataProvider",
+                                                "dependency": {
+                                                    "type": "package",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "1.0.1",
+                                                    "meta": {
+                                                        "namedImport": true
+                                                    }
+                                                },
+                                                "renderPropIdentifier": "context_v4r9yk",
+                                                "nodes": {
+                                                    "success": {
+                                                        "type": "element",
+                                                        "content": {
+                                                            "elementType": "fragment",
+                                                            "children": [
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "text",
+                                                                        "semanticType": "h1",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {
+                                                                            "link": {
+                                                                                "type": "navlink",
+                                                                                "content": {
+                                                                                    "routeName": {
+                                                                                        "type": "expr",
+                                                                                        "content": "`/blog-post/${context_v4r9yk?.id}`"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "style": {
+                                                                            "textDecoration": {
+                                                                                "type": "static",
+                                                                                "content": "none"
+                                                                            }
+                                                                        },
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "expr",
+                                                                                "content": "context_v4r9yk?.title"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "container",
+                                                                        "semanticType": "div",
+                                                                        "referencedStyles": {},
+                                                                        "children": [
+                                                                            {
+                                                                                "type": "element",
+                                                                                "content": {
+                                                                                    "elementType": "caisy-richtext-node",
+                                                                                    "referencedStyles": {},
+                                                                                    "attrs": {
+                                                                                        "node": {
+                                                                                            "type": "expr",
+                                                                                            "content": "context_v4r9yk?.content"
+                                                                                        },
+                                                                                        "overwrites": {
+                                                                                            "type": "expr",
+                                                                                            "content": "({documentLink: CaisyDocumentLink})"
+                                                                                        }
+                                                                                    },
+                                                                                    "children": [],
+                                                                                    "style": {}
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "element",
+                                                                    "content": {
+                                                                        "elementType": "image",
+                                                                        "referencedStyles": {},
+                                                                        "abilities": {},
+                                                                        "attrs": {
+                                                                            "alt": {
+                                                                                "type": "static",
+                                                                                "content": "image"
+                                                                            },
+                                                                            "src": {
+                                                                                "type": "expr",
+                                                                                "content": "context_v4r9yk?.cover?.url"
+                                                                            }
+                                                                        },
+                                                                        "style": {
+                                                                            "width": {
+                                                                                "type": "static",
+                                                                                "content": "200px"
+                                                                            },
+                                                                            "objectFit": {
+                                                                                "type": "static",
+                                                                                "content": "cover"
+                                                                            }
+                                                                        },
+                                                                        "children": []
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "valuePath": [],
+                                                "itemValuePath": [],
+                                                "resource": {
+                                                    "name": "getEntyByAttribute",
+                                                    "dependency": {
+                                                        "type": "package",
+                                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                                        "path": "@teleporthq/cms-mappers",
+                                                        "meta": {
+                                                            "namedImport": true,
+                                                            "importAlias": "@teleporthq/cms-mappers/caisy"
+                                                        }
+                                                    },
+                                                    "params": {
+                                                        "projectId": {
+                                                            "type": "static",
+                                                            "content": "3bd8eb33-2aaa-4620-87bf-d7ccd04d0245"
+                                                        },
+                                                        "query": {
+                                                            "type": "static",
+                                                            "content": "\"query BlogPost($value:ID!){BlogPost(id:$value){_meta{createdAt updatedAt}id tags cover{_meta{createdAt updatedAt}description height id keywords originType originalName src title width}genre title assets{...on Asset{_meta{createdAt updatedAt}description height id keywords originType originalName src title width}}author{_meta{createdAt updatedAt}id name}authors{__typename...on Author{_meta{createdAt updatedAt}id name}...on BlogPost{_meta{createdAt updatedAt}id tags genre title content{json connections{...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}content{json connections{...on Asset{description height id keywords originType originalName src title width }}}testTab location{formattedAddress latitude longitude zoom}isVisible pulbished themeColor readingCount}}\""
+                                                        },
+                                                        "attribute": {
+                                                            "type": "static",
+                                                            "content": "id"
+                                                        },
+                                                        "id": {
+                                                            "type": "static",
+                                                            "content": "6a0076f9-89da-4793-8119-cb731c1656bb"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             },
                             "value": "Home",
@@ -1068,7 +1255,18 @@
                                     "id": "route"
                                 }
                             },
-                            "importDefinitions": {}
+                            "importDefinitions": {
+                                "CaisyDocumentLink": {
+                                    "type": "package",
+                                    "path": "@teleporthq/thq-react-components",
+                                    "version": "github:teleporthq/thq-react-components#feat/caisy-document-link",
+                                    "meta": {
+                                        "namedImport": true,
+                                        "importAlias": "@teleporthq/thq-react-components",
+                                        "useAsReference": true
+                                    }
+                                }
+                            }
                         }
                     },
                     {
@@ -1835,7 +2033,7 @@
                                                 "dependency": {
                                                     "type": "package",
                                                     "path": "@teleporthq/react-components",
-                                                    "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                                                    "version": "1.0.1",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1948,7 +2146,7 @@
                                                                                                 "elementType": "caisy-richtext-node",
                                                                                                 "referencedStyles": {},
                                                                                                 "attrs": {
-                                                                                                    "richText": {
+                                                                                                    "node": {
                                                                                                         "type": "expr",
                                                                                                         "content": "BlogPostEntity?.content"
                                                                                                     },
@@ -2044,7 +2242,7 @@
                                                 "dependency": {
                                                     "type": "package",
                                                     "path": "@teleporthq/react-components",
-                                                    "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                                                    "version": "1.0.1",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
