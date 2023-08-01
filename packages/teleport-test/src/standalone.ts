@@ -18,14 +18,14 @@ import { ProjectPluginStyledComponents } from '@teleporthq/teleport-project-plug
 import { ProjectPluginCustomFiles } from '@teleporthq/teleport-project-plugin-custom-files'
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
-// import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
-import cmsProjectJSON2 from '../../../examples/uidl-samples/cms-project2.json'
+import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
+import cmsProjectJSONCaisy from '../../../examples/uidl-samples/cms-project-caisy.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 import { ProjectPluginRevalidateAPI } from '@teleporthq/teleport-next-revalidate-api'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
-// const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
-const cmsProjectUIDL2 = cmsProjectJSON2 as unknown as ProjectUIDL
+const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
+const cmsProjectUIDLCaisy = cmsProjectJSONCaisy as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const tailwindProjectUIDL = tailwindProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -87,21 +87,21 @@ const run = async () => {
     // })
 
     /* CMS uidl */
-    // await log(async () => {
-    //   result = await packProject(cmsProjectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-next-cms',
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return ProjectType.NEXT
-    // })
+    await log(async () => {
+      result = await packProject(cmsProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
+    })
 
     await log(async () => {
-      result = await packProject(cmsProjectUIDL2, {
+      result = await packProject(cmsProjectUIDLCaisy, {
         ...packerOptions,
         projectType: ProjectType.NEXT,
         publishOptions: {
