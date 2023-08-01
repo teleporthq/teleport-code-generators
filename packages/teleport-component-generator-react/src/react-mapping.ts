@@ -27,6 +27,9 @@ export const ReactMapping: Mapping = {
         type: 'package',
         path: '@caisy/rich-text-react-renderer',
         version: '0.7.3',
+        meta: {
+          namedImport: true,
+        },
       },
     },
     'markdown-node': {
