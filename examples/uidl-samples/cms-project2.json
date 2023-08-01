@@ -1954,7 +1954,7 @@
                                                                                                     },
                                                                                                     "overwrites": {
                                                                                                         "type": "expr",
-                                                                                                        "content": "({documentLink: DocumentLink})"
+                                                                                                        "content": "({documentLink: CaisyDocumentLink})"
                                                                                                     }
                                                                                                 },
                                                                                                 "style": {},
@@ -1993,7 +1993,8 @@
                                     "version": "github:teleporthq/thq-react-components#feat/caisy-document-link",
                                     "meta": {
                                         "namedImport": true,
-                                        "importAlias": "@teleporthq/thq-react-components"
+                                        "importAlias": "@teleporthq/thq-react-components",
+                                        "useAsReference": true
                                     }
                                 }
                             }
