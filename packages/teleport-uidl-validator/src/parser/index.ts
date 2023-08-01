@@ -187,10 +187,6 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         nodes: { list, empty },
       } = (node as unknown as UIDLCMSListRepeaterNode).content
 
-      if (initialData) {
-        initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
-      }
-
       if (list) {
         ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.list = parseComponentNode(
           list as unknown as Record<string, unknown>,
