@@ -360,6 +360,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       return dyamicNode
     case 'static':
     case 'raw':
+    case 'inject':
       return node as unknown as UIDLNode
 
     default:

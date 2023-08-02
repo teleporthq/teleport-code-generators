@@ -21,7 +21,6 @@ import {
   UIDLDynamicReference,
   UIDLPropDefinition,
   UIDLStateDefinition,
-  UIDLStateValueDetails,
   UIDLPageOptions,
   UIDLComponentOutputOptions,
   UIDLDependency,
@@ -87,6 +86,8 @@ import {
   UIDLStateValue,
   VCMSListRepeaterElementNode,
   UIDLResourceMapper,
+  UIDLInjectValue,
+  VUIDLStateValueDetails,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -192,6 +193,12 @@ export const initialPathsDecoder: Decoder<UIDLInitialPathsData> = object({
     id: string(),
     params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
   }),
+})
+
+export const injectValueDecoder: Decoder<UIDLInjectValue> = object({
+  type: constant('inject'),
+  content: string(),
+  dependency: optional(lazy(() => externaldependencyDecoder)),
 })
 
 export const styleSetMediaConditionDecoder: Decoder<VUIDLStyleSetMediaCondition> = object({
@@ -336,6 +343,12 @@ export const componentSeoDecoder: Decoder<VUIDLComponentSEO> = object({
   assets: optional(array(globalAssetsDecoder)),
 })
 
+export const stateValueDetailsDecoder: Decoder<VUIDLStateValueDetails> = object({
+  value: union(string(), number(), boolean()),
+  pageOptions: optional(lazy(() => pageOptionsDecoder)),
+  seo: optional(componentSeoDecoder),
+})
+
 export const propDefinitionsDecoder: Decoder<UIDLPropDefinition> = object({
   type: union(
     constant('string'),
@@ -385,13 +398,6 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   initialPathsData: optional(initialPathsDecoder),
   propDefinitions: optional(dict(propDefinitionsDecoder)),
   stateDefinitions: optional(dict(stateDefinitionsDecoder)),
-})
-
-// @ts-ignore
-export const stateValueDetailsDecoder: Decoder<UIDLStateValueDetails> = object({
-  value: union(string(), number(), boolean()),
-  pageOptions: optional(pageOptionsDecoder),
-  seo: optional(componentSeoDecoder),
 })
 
 export const outputOptionsDecoder: Decoder<UIDLComponentOutputOptions> = object({

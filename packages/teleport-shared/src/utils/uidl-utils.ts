@@ -273,6 +273,7 @@ export const traverseNodes = (
     case 'import':
     case 'expr':
     case 'raw':
+    case 'inject':
       break
 
     default:
@@ -418,6 +419,7 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
 
     case 'static':
     case 'dynamic':
+    case 'inject':
     case 'raw':
     case 'expr':
       break
@@ -492,6 +494,7 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
     case 'dynamic':
     case 'raw':
     case 'expr':
+    case 'inject':
       break
 
     default:
@@ -834,6 +837,7 @@ export const removeChildNodes = (
     case 'dynamic':
     case 'raw':
     case 'expr':
+    case 'inject':
       break
 
     default:

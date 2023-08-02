@@ -1,9 +1,9 @@
 import { createHTMLComponentGenerator } from '@teleporthq/teleport-component-generator-html'
 import { createReactComponentGenerator } from '@teleporthq/teleport-component-generator-react'
 // import { createVueComponentGenerator } from '@teleporthq/teleport-component-generator-vue'
-import componentJSON from '../../../examples/test-samples/component-html.json'
+import componentJSON from '../../../examples/uidl-samples/component.json'
 import { component, dynamicNode, elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
-import { GeneratedFile } from '@teleporthq/teleport-types'
+import { GeneratedFile, ReactStyleVariation } from '@teleporthq/teleport-types'
 import { writeFile } from 'fs'
 import { join } from 'path'
 
@@ -24,30 +24,31 @@ const run = async () => {
   const { files } = await generator.generateComponent(componentJSON)
   addfilesToDisk(files)
 
-  const reactGenerator = createReactComponentGenerator()
+  const reactGenerator = createReactComponentGenerator({ variation: ReactStyleVariation.StyledJSX })
   const { files: embedFiles } = await reactGenerator.generateComponent(
-    component(
-      'Test Code Embed Component',
-      elementNode(
-        'html-node',
-        {
-          html: {
-            type: 'raw',
-            content: `<script src'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>`,
-          },
-          autoplay: {
-            type: 'static',
-            content: 'true',
-          },
-        },
-        [],
-        null,
-        {
-          width: staticNode('100px'),
-          height: staticNode('100px'),
-        }
-      )
-    )
+    // component(
+    //   'Test Code Embed Component',
+    //   elementNode(
+    //     'html-node',
+    //     {
+    //       html: {
+    //         type: 'raw',
+    //         content: `<script src'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js'></script> <lottie-player src='https://assets6.lottiefiles.com/packages/lf20_gSMVZV7ZdZ.json'  background='transparent'  speed='1'  style='width: 300px; height: 300px;'  loop controls autoplay></lottie-player>`,
+    //       },
+    //       autoplay: {
+    //         type: 'static',
+    //         content: 'true',
+    //       },
+    //     },
+    //     [],
+    //     null,
+    //     {
+    //       width: staticNode('100px'),
+    //       height: staticNode('100px'),
+    //     }
+    //   )
+    // )
+    componentJSON
   )
   addfilesToDisk(embedFiles)
 

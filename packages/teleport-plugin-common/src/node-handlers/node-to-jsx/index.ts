@@ -161,12 +161,21 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
   switch (node.type) {
     case 'expr':
       return [generateExpressionNode(node, params, options)]
+
     case 'raw':
       return [
         options.domHTMLInjection
           ? options.domHTMLInjection(node.content.toString())
           : node.content.toString(),
       ]
+
+    case 'inject':
+      if (node?.dependency) {
+        /* tslint:disable:no-string-literal */
+        params.dependencies['Script'] = node.dependency
+      }
+      return [node.content.toString()]
+
     case 'static':
       return [StringUtils.encode(node.content.toString())]
 

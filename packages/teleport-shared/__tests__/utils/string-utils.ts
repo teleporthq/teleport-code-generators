@@ -129,6 +129,9 @@ describe('camelCaseToDashCase', () => {
   it('should revert a dash to camel case transition', () => {
     expect(camelCaseToDashCase(dashCaseToCamelCase('primary-button'))).toBe('primary-button')
   })
+  it('works with multiple upper case characters to be in a sequence', () => {
+    expect(camelCaseToDashCase('PRImaryButton')).toBe('pr-imary-button')
+  })
 })
 
 describe('dashCaseToUpperCamelCase', () => {
