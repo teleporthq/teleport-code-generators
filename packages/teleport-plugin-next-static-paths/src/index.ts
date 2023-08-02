@@ -53,9 +53,8 @@ export const createStaticPathsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
 
       dependencies[resourceImportName] = {
-        type: 'library',
+        type: 'local',
         path: importPath,
-        version: 'latest',
       }
     }
 

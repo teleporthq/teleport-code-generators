@@ -49,11 +49,7 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
 
       dependencies[resourceImportName] = {
         path: importPath,
-        /*
-          Local resources can be marked as a library. As they will be ignored in adding to package.json at the end.
-        */
-        type: 'library',
-        version: 'latest',
+        type: 'local',
       }
     }
 
