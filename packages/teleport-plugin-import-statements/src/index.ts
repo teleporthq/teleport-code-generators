@@ -33,10 +33,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
 
     if (uidl?.importDefinitions) {
       const { importDefinitions = {} } = uidl
-      collectedDependencies = {
-        ...collectedDependencies,
-        ...importDefinitions,
-      }
+
       if (Object.keys(importDefinitions).length > 0) {
         Object.keys(importDefinitions).forEach((dependencyRef) => {
           const dependency = importDefinitions[dependencyRef]
@@ -49,7 +46,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
           }
           dependencies[dependencyRef] = {
             type: 'package',
-            path: dependency.meta?.importJustPath ? dependency.path : dependencyRef,
+            path: dependency.meta?.importAlias ? dependency.meta?.importAlias : dependencyRef,
             version: dependency.version,
             meta: {
               importJustPath: dependency?.meta?.importJustPath,
@@ -58,6 +55,11 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
             },
           }
         })
+      }
+
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...importDefinitions,
       }
     }
 

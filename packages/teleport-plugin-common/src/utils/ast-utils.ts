@@ -627,7 +627,7 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
 
   const headers = types.objectProperty(
     types.identifier('headers'),
-    types.objectExpression(allHeaders.length ? [...allHeaders] : [])
+    types.objectExpression(allHeaders)
   )
 
   const fetchAST = types.variableDeclaration('const', [
