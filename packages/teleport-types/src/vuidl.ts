@@ -42,7 +42,8 @@ import {
   UIDLPropValue,
   UIDLExpressionValue,
   UIDLDateTimeNode,
-  UIDLStateValue,
+  UIDLLocalResource,
+  UIDLExternalResource,
   UIDLInjectValue,
   UIDLStateValueDetails,
   UIDLRouteDefinitions,
@@ -67,10 +68,7 @@ export interface VCMSItemUIDLElementNode
         }
         valuePath?: string[]
         itemValuePath?: string[]
-        resource?: {
-          id: string
-          params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
-        }
+        resource?: UIDLLocalResource | UIDLExternalResource
         initialData?: UIDLPropValue
       }
     }
@@ -103,13 +101,7 @@ export interface VCMSListUIDLElementNode
         }
         valuePath?: string[]
         itemValuePath?: string[]
-        resource: {
-          id: string
-          params?: Record<
-            string,
-            UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue
-          >
-        }
+        resource?: UIDLLocalResource | UIDLExternalResource
         initialData?: UIDLPropValue
       }
     }

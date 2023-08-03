@@ -19,6 +19,7 @@ import { ProjectPluginCustomFiles } from '@teleporthq/teleport-project-plugin-cu
 import reactProjectJSON from '../../../examples/uidl-samples/react-project.json'
 import projectJSON from '../../../examples/uidl-samples/project.json'
 import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
+import cmsProjectJSONCaisy from '../../../examples/uidl-samples/cms-project-caisy.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 import { ProjectPluginRevalidateAPI } from '@teleporthq/teleport-next-revalidate-api'
 import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
@@ -26,6 +27,7 @@ import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-par
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
+const cmsProjectUIDLCaisy = cmsProjectJSONCaisy as unknown as ProjectUIDL
 const reactProjectUIDL = reactProjectJSON as unknown as ProjectUIDL
 const tailwindProjectUIDL = tailwindProjectJSON as unknown as ProjectUIDL
 const assetFile = readFileSync(join(__dirname, 'asset.png'))
@@ -94,6 +96,19 @@ const run = async () => {
         publishOptions: {
           ...packerOptions.publishOptions,
           projectSlug: 'teleport-project-next-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
+    })
+
+    await log(async () => {
+      result = await packProject(cmsProjectUIDLCaisy, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-cms-caisy',
         },
         plugins: [
           new ProjectPluginRevalidateAPI({

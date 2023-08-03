@@ -34,10 +34,6 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
     if (uidl?.importDefinitions) {
       const { importDefinitions = {} } = uidl
 
-      collectedDependencies = {
-        ...collectedDependencies,
-        ...importDefinitions,
-      }
       if (Object.keys(importDefinitions).length > 0) {
         Object.keys(importDefinitions).forEach((dependencyRef) => {
           const dependency = importDefinitions[dependencyRef]
@@ -52,7 +48,7 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
 
           dependencies[dependencyRef] = {
             type: 'package',
-            path: dependency.meta?.importJustPath ? dependency.path : dependencyRef,
+            path: dependency.meta?.importAlias ? dependency.meta?.importAlias : dependencyRef,
             version: dependency.version,
             meta: {
               importJustPath: dependency?.meta?.importJustPath,
@@ -62,11 +58,17 @@ export const createImportPlugin: ComponentPluginFactory<ImportPluginConfig> = (
           }
         })
       }
+
+      collectedDependencies = {
+        ...collectedDependencies,
+        ...importDefinitions,
+      }
     }
 
     const libraryDependencies = groupDependenciesByPackage(collectedDependencies, 'library')
     const packageDependencies = groupDependenciesByPackage(collectedDependencies, 'package')
     const localDependencies = groupDependenciesByPackage(collectedDependencies, 'local')
+
     addImportChunk(structure.chunks, libraryDependencies, importLibsChunkName, fileType)
     addImportChunk(structure.chunks, packageDependencies, importPackagesChunkName, fileType)
     addImportChunk(structure.chunks, localDependencies, importLocalsChunkName, fileType)
@@ -96,19 +98,16 @@ const groupDependenciesByPackage = (
         return
       }
 
-      if (dep?.meta?.importAlias) {
-        result[dep.meta.importAlias] = []
-      }
-
-      if (!dep?.meta?.importAlias && !result[dep.path]) {
-        result[dep.path] = [] // Initialize the dependencies from this path
+      const dependencyPath = dep?.meta?.importAlias ?? dep.path
+      if (!result[dependencyPath]) {
+        result[dependencyPath] = []
       }
 
       const importJustPath = (dep.meta && dep.meta.importJustPath) || false
       const namedImport = !!(dep.meta && dep.meta.namedImport)
       const originalName = dep.meta && dep.meta.originalName ? dep.meta.originalName : key
 
-      result[dep?.meta?.importAlias ?? dep.path].push({
+      result[dependencyPath].push({
         identifierName: key,
         namedImport,
         originalName,

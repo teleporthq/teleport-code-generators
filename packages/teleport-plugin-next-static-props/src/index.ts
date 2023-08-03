@@ -5,7 +5,6 @@ import {
   FileType,
   TeleportError,
 } from '@teleporthq/teleport-types'
-import * as types from '@babel/types'
 import { StringUtils } from '@teleporthq/teleport-shared'
 import { generateInitialPropsAST } from './utils'
 
@@ -19,25 +18,45 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
   const { componentChunkName = 'jsx-component' } = config || {}
 
   const staticPropsPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
 
-    if (!uidl.outputOptions?.initialPropsData || !resources?.items) {
+    if (!uidl.outputOptions?.initialPropsData) {
       return structure
     }
 
     const { resource } = uidl?.outputOptions?.initialPropsData
-    const usedResource = resources.items[resource.id]
 
-    if (!usedResource) {
-      throw new TeleportError(
-        `Resource ${resource.id} is being used, but missing from the project ressources. Check ${uidl.name} in UIDL for more information`
+    const isLocalResource = 'id' in resource
+    const isExternalResource = 'name' in resource
+    /*
+      Name of the function that is being imported
+    */
+    let resourceImportName
+
+    if (isLocalResource) {
+      const usedResource = resources.items?.[resource.id]
+      if (!usedResource) {
+        throw new TeleportError(
+          `Resource ${resource.id} is being used, but missing from the project ressources. Check ${uidl.name} in UIDL for more information`
+        )
+      }
+      resourceImportName = StringUtils.dashCaseToCamelCase(
+        StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
       )
+
+      const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
+
+      dependencies[resourceImportName] = {
+        path: importPath,
+        type: 'local',
+      }
     }
 
-    const resourceImportName = StringUtils.dashCaseToCamelCase(
-      StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
-    )
+    if (isExternalResource) {
+      dependencies[resource.name] = resource.dependency
+      resourceImportName = resource.name
+    }
 
     const getStaticPropsAST = generateInitialPropsAST(
       uidl.outputOptions.initialPropsData,
@@ -47,19 +66,6 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
       resources.cache,
       uidl.outputOptions.pagination
     )
-
-    chunks.push({
-      name: 'import-resource-chunk',
-      type: ChunkType.AST,
-      fileType: FileType.JS,
-      content: types.importDeclaration(
-        [types.importDefaultSpecifier(types.identifier(resourceImportName))],
-        types.stringLiteral(
-          `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
-        )
-      ),
-      linkAfter: [''],
-    })
 
     chunks.push({
       name: 'getStaticProps',

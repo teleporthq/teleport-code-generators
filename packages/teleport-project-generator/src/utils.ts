@@ -32,7 +32,7 @@ const createPageUIDL = (
   uidl: ProjectUIDL,
   strategy: ProjectStrategy
 ): ComponentUIDL => {
-  const { value, node } = routeNode.content
+  const { value, node, importDefinitions: rootNodeImportDefinitions } = routeNode.content
   const pageName = value.toString()
   const routeDefinition = uidl.root.stateDefinitions.route
   const pagesStrategyOptions = strategy.pages.options || {}
@@ -140,17 +140,9 @@ const createPageUIDL = (
     )
   }
 
-  if (isHomePage && !strategy.pages?.options?.useFileNameForNavigation) {
-    const { importDefinitions = {} } = uidl.root
-    componentUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
-      (acc: Record<string, UIDLExternalDependency>, importRef) => {
-        if (!importDefinitions[importRef].meta?.importJustPath) {
-          acc[importRef] = importDefinitions[importRef]
-        }
-        return acc
-      },
-      {}
-    )
+  componentUIDL.importDefinitions = {
+    ...componentUIDL.importDefinitions,
+    ...rootNodeImportDefinitions,
   }
 
   return componentUIDL
