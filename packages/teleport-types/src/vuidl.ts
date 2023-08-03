@@ -44,7 +44,6 @@ import {
   UIDLDateTimeNode,
   UIDLLocalResource,
   UIDLExternalResource,
-  UIDLStateValue,
   UIDLInjectValue,
   UIDLStateValueDetails,
   UIDLRouteDefinitions,
