@@ -16,7 +16,7 @@ import { staticNode, dynamicNode, component, elementNode } from '@teleporthq/tel
 
 const ComponentWithValidStyle: ComponentUIDL = component(
   'ComponentWithAttrProp',
-  elementNode('container', {}, [], null, {
+  elementNode('container', {}, [], undefined, {
     flexDirection: dynamicNode('prop', 'direction'),
     height: dynamicNode('prop', 'config.height'),
     alignSelf: staticNode('center'),

@@ -5,6 +5,13 @@
       "type": "string",
       "defaultValue": "John Doe"
     },
+    "config": {
+      "type": "object",
+      "defaultValue": {
+        "height": 30,
+        "width": 30
+      }
+    },
     "url": {
       "type": "string",
       "defaultValue": "http://lorempixel.com/150/150/"
@@ -49,6 +56,34 @@
               "margin": "auto",
               "border-radius": "100%"
             }
+          }
+        },
+        {
+          "type": "element",
+          "content": {
+            "elementType": "container",
+            "style": {
+              "height": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "config.height"
+                }
+              },
+              "width": {
+                "type": "dynamic",
+                "content": {
+                  "referenceType": "prop",
+                  "id": "config.width"
+                }
+              }
+            },
+            "children": [
+              {
+                "type" : "static",
+                "content": "Simple static node"
+              }
+            ]
           }
         },
         {

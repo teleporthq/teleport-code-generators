@@ -339,6 +339,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
     case 'static':
     case 'raw':
     case 'expr':
+    case 'inject':
       return node as unknown as UIDLNode
 
     default:

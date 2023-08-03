@@ -55,7 +55,7 @@ describe('Vue Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
-    "dangerous-html": "0.1.12",
+    "dangerous-html": "0.1.13",
     "antd": "4.5.4"
   }
 }`)

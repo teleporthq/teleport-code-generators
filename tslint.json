@@ -21,6 +21,7 @@
       "time",
       "timeEnd"
     ],
+    "prefer-for-of": false,
     "no-debugger": true,
     "no-implicit-dependencies": false,
     "no-object-literal-type-assertion": false,
