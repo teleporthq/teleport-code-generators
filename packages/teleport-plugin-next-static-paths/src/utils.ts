@@ -183,7 +183,12 @@ const computePropsAST = (
         false,
         false
       ),
-      types.objectProperty(types.identifier('fallback'), types.booleanLiteral(false), false, false),
+      types.objectProperty(
+        types.identifier('fallback'),
+        types.stringLiteral('blocking'),
+        false,
+        false
+      ),
     ])
   )
 
