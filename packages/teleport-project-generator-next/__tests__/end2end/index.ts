@@ -51,7 +51,7 @@ describe('React Next Project Generator', () => {
 
     const pages = outputFolder.subFolders[1]
 
-    expect(pages.files[0].content).toContain(`import DangerousHTML from 'dangerous-html/react'`)
+    expect(pages.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(pages.files[0].content).toContain(`Page 1<Modal></Modal>`)
   })
 

@@ -22,6 +22,8 @@ import cmsProjectJSON from '../../../examples/uidl-samples/cms-project.json'
 import cmsProjectJSONCaisy from '../../../examples/uidl-samples/cms-project-caisy.json'
 import tailwindProjectJSON from '../../../examples/uidl-samples/project-tailwind.json'
 import { ProjectPluginRevalidateAPI } from '@teleporthq/teleport-next-revalidate-api'
+import { ProjectPluginParseEmbed } from '@teleporthq/teleport-project-plugin-parse-embed'
+// import { ProjectPluginExternalEmbed } from '@teleporthq/teleport-project-plugin-external-embed'
 
 const projectUIDL = projectJSON as unknown as ProjectUIDL
 const cmsProjectUIDL = cmsProjectJSON as unknown as ProjectUIDL
@@ -122,8 +124,49 @@ const run = async () => {
           }),
         ],
       })
+
       console.info(ProjectType.NEXT, '-', result.payload)
       return ProjectType.NEXT
+    })
+
+    // /* Plain Html Generator */
+    // await log(async () => {
+    //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.HTML,
+    //   })
+    //   console.info(ProjectType.HTML, '-', result.payload)
+    //   return ProjectType.HTML
+    // })
+
+    // /* Plain Html Generator with embed parser */
+    // await log(async () => {
+    //   result = await packProject(projectUIDL as unknown as ProjectUIDL, {
+    //     ...packerOptions,
+    //     projectType: ProjectType.HTML,
+    //     plugins: [new ProjectPluginParseEmbed()],
+    //     publishOptions: {
+    //       ...packerOptions.publishOptions,
+    //       projectSlug: `teleport-project-html-embeds`,
+    //     },
+    //   })
+    //   console.info(ProjectType.HTML, '-', result.payload)
+    //   return `${ProjectType.HTML} - Parse Embeds`
+    // })
+
+    /* Styled JSX */
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [new ProjectPluginParseEmbed()],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: `teleport-project-next-embeds`,
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return `${ProjectType.NEXT} - Parse Embeds`
     })
 
     // /* Styled JSX */

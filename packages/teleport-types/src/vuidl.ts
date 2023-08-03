@@ -44,6 +44,11 @@ import {
   UIDLDateTimeNode,
   UIDLLocalResource,
   UIDLExternalResource,
+  UIDLStateValue,
+  UIDLInjectValue,
+  UIDLStateValueDetails,
+  UIDLRouteDefinitions,
+  UIDLStateDefinition,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -139,6 +144,7 @@ export type VUIDLNode =
   | VCMSListUIDLElementNode
   | VCMSListRepeaterElementNode
   | UIDLExpressionValue
+  | UIDLInjectValue
   | string
 
 export type VUIDLElement = Modify<
@@ -196,6 +202,15 @@ export type VRootComponentUIDL = Modify<
     seo?: VUIDLComponentSEO
     styleSetDefinitions: Record<string, VUIDLStyleSetDefnition>
     node: VUIDLElementNode
+    stateDefinitions: {
+      route: Modify<
+        UIDLRouteDefinitions,
+        {
+          values: VUIDLStateValueDetails[]
+        }
+      >
+      [x: string]: UIDLStateDefinition
+    }
     designLanguage: {
       tokens: VUIDLDesignTokens
     }
@@ -317,5 +332,12 @@ export type VUIDLGlobalProjectValues = Modify<
   UIDLGlobalProjectValues,
   {
     assets: VUIDLGlobalAsset[]
+  }
+>
+
+export type VUIDLStateValueDetails = Modify<
+  UIDLStateValueDetails,
+  {
+    seo?: VUIDLComponentSEO
   }
 >

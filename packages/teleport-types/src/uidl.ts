@@ -73,7 +73,7 @@ export interface UIDLResources {
   resourceMappers?: Record<string, UIDLResourceMapper>
   items?: Record<string, UIDLResourceItem>
   cache?: {
-    revalidate: number | null
+    revalidate?: number
     webhook?: {
       name: string
       dependency: UIDLDependency
@@ -300,6 +300,12 @@ export interface UIDLRawValue {
   content: string
 }
 
+export interface UIDLInjectValue {
+  type: 'inject'
+  content: string
+  dependency?: UIDLExternalDependency
+}
+
 export interface UIDLSlotNode {
   type: 'slot'
   content: {
@@ -468,6 +474,7 @@ export type UIDLNode =
   | UIDLDynamicReference
   | UIDLStaticValue
   | UIDLRawValue
+  | UIDLInjectValue
   | UIDLRepeatNode
   | UIDLElementNode
   | UIDLConditionalNode

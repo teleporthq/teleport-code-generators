@@ -103,7 +103,7 @@ describe('React Project Generator', () => {
   "version": "1.0.0",
   "description": "Project generated based on a UIDL document",
   "dependencies": {
-    "dangerous-html": "0.1.12",
+    "dangerous-html": "0.1.13",
     "@lottiefiles/react-lottie-player": "3.4.7",
     "react-helmet": "^6.1.0",
     "prop-types": "15.7.2",
@@ -118,15 +118,13 @@ describe('React Project Generator', () => {
       </Button>`
     )
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
-    expect(viewsFolder.files[0].content).toContain(
-      `import DangerousHTML from 'dangerous-html/react'`
-    )
+    expect(viewsFolder.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
     expect(viewsFolder.files[0].content).toContain(
       `<div className="home-div">
-        <DangerousHTML
+        <Script
           html={\`<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\`}
-        ></DangerousHTML>
+        ></Script>
       </div>`
     )
     /* Imports that are just need to be inserted are added to router file by default */

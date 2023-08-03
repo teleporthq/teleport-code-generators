@@ -22,8 +22,8 @@ import {
   UIDLElementNodeInlineReferencedStyle,
   UIDLURLLinkNode,
   UIDLCMSItemNode,
-  UIDLCMSListNode,
   UIDLCMSListRepeaterNode,
+  UIDLCMSListNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -147,84 +147,62 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
     case 'cms-list':
+      const {
+        initialData,
+        nodes: { success, error, loading },
+      } = (node as unknown as UIDLCMSItemNode).content
+
+      if (initialData) {
+        initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
+      }
+
+      // TODO all this casting is really ugly, maybe we'll be able to do something about it
+      if (success) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.success =
+          parseComponentNode(
+            success as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      if (error) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.error =
+          parseComponentNode(
+            error as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      if (loading) {
+        ;(node as unknown as UIDLCMSItemNode | UIDLCMSListNode).content.nodes.loading =
+          parseComponentNode(
+            loading as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      }
+
+      return node as unknown as UIDLNode
     case 'cms-list-repeater':
+      const {
+        nodes: { list, empty },
+      } = (node as unknown as UIDLCMSListRepeaterNode).content
+
+      if (list) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.list = parseComponentNode(
+          list as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (empty) {
+        ;(node as unknown as UIDLCMSListRepeaterNode).content.nodes.empty = parseComponentNode(
+          empty as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      return node as unknown as UIDLNode
     case 'element':
-      if (node.type === 'cms-item') {
-        const {
-          initialData,
-          nodes: { success, error, loading },
-        } = (node as unknown as UIDLCMSItemNode).content
-
-        if (initialData) {
-          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
-        }
-
-        if (success) {
-          success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            success?.content?.attrs || {}
-          )
-        }
-
-        if (error) {
-          error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            error?.content?.attrs || {}
-          )
-        }
-
-        if (loading) {
-          loading.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            loading?.content?.attrs || {}
-          )
-        }
-      }
-
-      if (node.type === 'cms-list') {
-        const {
-          initialData,
-          nodes: { success, error, loading },
-        } = (node as unknown as UIDLCMSListNode).content
-
-        if (initialData) {
-          initialData.content.id = StringUtils.createStateOrPropStoringValue(initialData.content.id)
-        }
-
-        if (success) {
-          success.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            success?.content?.attrs || {}
-          )
-        }
-
-        if (error) {
-          error.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            error?.content?.attrs || {}
-          )
-        }
-
-        if (loading) {
-          loading.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            loading?.content?.attrs || {}
-          )
-        }
-      }
-
-      if (node.type === 'cms-list-repeater') {
-        const {
-          nodes: { list, empty },
-        } = (node as unknown as UIDLCMSListRepeaterNode).content
-
-        if (list) {
-          list.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            list?.content?.attrs || {}
-          )
-        }
-
-        if (empty) {
-          empty.content.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-            empty?.content?.attrs || {}
-          )
-        }
-      }
-
       const elementContent = node.content as Record<string, unknown>
       if (elementContent?.referencedStyles) {
         Object.values(elementContent.referencedStyles).forEach((styleRef) => {
@@ -360,6 +338,8 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       return dyamicNode
     case 'static':
     case 'raw':
+    case 'expr':
+    case 'inject':
       return node as unknown as UIDLNode
 
     default:

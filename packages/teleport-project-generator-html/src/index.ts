@@ -18,6 +18,9 @@ const createHTMLProjectGenerator = () => {
     pages: {
       generator: createHTMLComponentGenerator,
       path: [''],
+      options: {
+        useFileNameForNavigation: true,
+      },
     },
     static: {
       prefix: 'public',
