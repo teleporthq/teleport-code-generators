@@ -709,26 +709,27 @@ const generateRESTHeadersAST = (headers: UIDLResourceItem['headers']): types.Obj
 }
 
 export const generateMemberExpressionASTFromBase = (
-  base: types.MemberExpression | types.Identifier,
+  base: types.OptionalMemberExpression | types.MemberExpression | types.Identifier,
   path: string[]
-): types.MemberExpression => {
+): types.OptionalMemberExpression => {
   if (path.length === 1) {
-    return types.memberExpression(base, types.identifier(path[0]), false)
+    return types.optionalMemberExpression(base, types.identifier(path[0]), false, true)
   }
 
   const pathClone = [...path]
   pathClone.pop()
 
-  return types.memberExpression(
+  return types.optionalMemberExpression(
     generateMemberExpressionASTFromBase(base, pathClone),
     types.identifier(path[path.length - 1]),
-    false
+    false,
+    true
   )
 }
 
 export const generateMemberExpressionASTFromPath = (
   path: Array<string | number>
-): types.MemberExpression | types.Identifier => {
+): types.OptionalMemberExpression | types.Identifier => {
   const pathClone = [...path]
   if (path.length === 1) {
     return types.identifier(path[0].toString())
@@ -738,19 +739,21 @@ export const generateMemberExpressionASTFromPath = (
 
   const currentPath = path[path.length - 1]
   if (typeof currentPath === 'number') {
-    return types.memberExpression(
+    return types.optionalMemberExpression(
       generateMemberExpressionASTFromPath(pathClone),
       types.numericLiteral(currentPath),
+      false,
       true
     )
   }
 
   const containsSpecial = currentPath.indexOf('.') !== -1 || currentPath.indexOf('-') !== -1
 
-  return types.memberExpression(
+  return types.optionalMemberExpression(
     generateMemberExpressionASTFromPath(pathClone),
     containsSpecial ? types.stringLiteral(currentPath) : types.identifier(currentPath),
-    containsSpecial
+    containsSpecial,
+    true
   )
 }
 

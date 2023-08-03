@@ -95,7 +95,7 @@ const computePropsAST = (
         types.callExpression(types.identifier(resourceImportName), [
           types.objectExpression([
             types.spreadElement(
-              types.memberExpression(
+              types.optionalMemberExpression(
                 types.identifier('context'),
                 types.identifier('params'),
                 false,
@@ -116,7 +116,7 @@ const computePropsAST = (
 
   const dataWeNeedAccessorAST =
     isDetailsPage && !pagination
-      ? types.memberExpression(responseMemberAST, types.numericLiteral(0), true)
+      ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
       : responseMemberAST
 
   const returnAST = types.returnStatement(
@@ -137,8 +137,8 @@ const computePropsAST = (
               false
             ),
             types.spreadElement(
-              types.memberExpression(
-                types.memberExpression(
+              types.optionalMemberExpression(
+                types.optionalMemberExpression(
                   types.identifier('response'),
                   types.identifier('meta'),
                   false,

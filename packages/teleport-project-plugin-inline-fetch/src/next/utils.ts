@@ -202,7 +202,7 @@ const computeUseEffectAST = (params: {
     ]
   )
 
-  let responseExpression: types.MemberExpression
+  let responseExpression: types.OptionalMemberExpression
 
   if (node.type === 'cms-item') {
     responseExpression =
@@ -210,10 +210,11 @@ const computeUseEffectAST = (params: {
         ? (ASTUtils.generateMemberExpressionASTFromPath([
             'data',
             ...itemValuePath,
-          ]) as types.MemberExpression)
-        : types.memberExpression(
+          ]) as types.OptionalMemberExpression)
+        : types.optionalMemberExpression(
             types.memberExpression(types.identifier('data'), types.identifier('data'), false),
             types.numericLiteral(0),
+            true,
             true
           )
   }
@@ -222,7 +223,7 @@ const computeUseEffectAST = (params: {
     responseExpression = ASTUtils.generateMemberExpressionASTFromPath([
       'data',
       ...valuePath,
-    ]) as types.MemberExpression
+    ]) as types.OptionalMemberExpression
   }
 
   const resourceAST = types.arrowFunctionExpression(

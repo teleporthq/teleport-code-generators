@@ -139,10 +139,14 @@ const computePropsAST = (
             )
           : types.callExpression(
               types.memberExpression(
-                ASTUtils.generateMemberExpressionASTFromPath([
-                  'response',
-                  ...initialData.exposeAs.valuePath,
-                ]),
+                types.logicalExpression(
+                  '||',
+                  ASTUtils.generateMemberExpressionASTFromPath([
+                    'response',
+                    ...initialData.exposeAs.valuePath,
+                  ]),
+                  types.arrayExpression()
+                ),
                 types.identifier('map'),
                 false
               ),
