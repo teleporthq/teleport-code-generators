@@ -13,6 +13,7 @@ import {
   UIDLExpressionValue,
   UIDLStateValue,
 } from '@teleporthq/teleport-types'
+import babelPresetReact from '@babel/preset-react'
 import { ASTUtils } from '..'
 
 /**
@@ -190,22 +191,23 @@ export const addMultipleDynamicAttributesToJSXTag = (
   )
 }
 
-export const stringAsTemplateLiteral = (str: string, t = types) => {
-  const formmattedString = `
-${str}
-  `
-  return t.templateLiteral(
-    [
-      t.templateElement(
-        {
-          raw: formmattedString,
-          cooked: formmattedString,
-        },
-        true
-      ),
-    ],
-    []
-  )
+export const stringAsTemplateLiteral = (str: string): types.TemplateLiteral => {
+  const ast = parse('<style jsx>{`' + str + '`}</style>', {
+    presets: [babelPresetReact],
+    sourceType: 'module',
+  })
+
+  if (!('program' in ast)) {
+    throw new Error(
+      `The AST does not have a program node in the expression inside addDynamicExpressionAttributeToJSXTag`
+    )
+  }
+
+  const theStatementOnlyWihtoutTheProgram = ast.program.body[0] as types.ExpressionStatement
+  const container = (theStatementOnlyWihtoutTheProgram.expression as types.JSXElement)
+    .children[0] as types.JSXExpressionContainer
+
+  return container.expression as types.TemplateLiteral
 }
 
 export const addAttributeToJSXTag = (

@@ -26,7 +26,7 @@ describe('plugin-jsx-next-image', () => {
   )
   element.content.key = 'container'
 
-  it(`When a local asset is having only width and height, 
+  it(`When a local asset is having only width and height,
     the jsx-next-image converts it to use Image Component`, async () => {
     const componentChunk: ChunkDefinition = {
       name: 'jsx-component',
