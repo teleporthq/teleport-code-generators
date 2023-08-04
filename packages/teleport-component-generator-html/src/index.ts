@@ -51,7 +51,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(
     createCSSPlugin({
-      templateChunkName: 'html-template',
+      templateChunkName: 'html-chunk',
       declareDependency: 'import',
       forceScoping: true,
       templateStyle: 'html',

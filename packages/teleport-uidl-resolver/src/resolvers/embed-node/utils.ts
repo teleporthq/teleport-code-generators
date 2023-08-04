@@ -58,6 +58,12 @@ export const createEmbedDivWrapperNode = (node: UIDLElementNode): UIDLElementNod
     content: {
       ...node.content,
       attrs,
+      style: {
+        display: {
+          type: 'static',
+          content: 'contents',
+        },
+      },
       elementType: 'div',
       semanticType: 'div',
       children: [],
