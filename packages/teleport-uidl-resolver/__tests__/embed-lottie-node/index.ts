@@ -1,7 +1,6 @@
 import { wrapHtmlNode, createEmbedDivWrapperNode } from '../../src/resolvers/embed-node/utils'
 import { elementNode, staticNode } from '@teleporthq/teleport-uidl-builders'
 import { UIDLElementNode, UIDLStyleDefinitions } from '@teleporthq/teleport-types'
-import { create } from 'domain'
 
 describe('wrap html-node element', () => {
   it('wraps a simple element', () => {

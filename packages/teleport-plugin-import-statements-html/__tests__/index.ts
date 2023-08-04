@@ -8,7 +8,7 @@ describe('Plugin html import statements', () => {
       {
         type: ChunkType.HAST,
         fileType: FileType.HTML,
-        name: 'html-template',
+        name: 'html-chunk',
         content: {
           type: 'element',
           tagName: 'div',

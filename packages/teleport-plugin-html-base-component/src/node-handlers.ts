@@ -288,7 +288,7 @@ const generateComponentContent = async (
 
   const cssPlugin = createCSSPlugin({
     templateStyle: 'html',
-    templateChunkName: 'html-template',
+    templateChunkName: DEFAULT_COMPONENT_CHUNK_NAME,
     declareDependency: 'import',
     forceScoping: true,
     chunkName: comp.name,
