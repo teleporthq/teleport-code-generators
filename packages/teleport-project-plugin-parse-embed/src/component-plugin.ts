@@ -11,12 +11,16 @@ const NODE_MAPPER: Record<
   SUPPORTED_PROJECT_TYPES,
   Promise<(content: unknown, options: unknown) => string>
 > = {
+  html: import('hast-util-to-html').then((mod) => mod.toHtml),
+  jsx: import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
   'teleport-project-html': import('hast-util-to-html').then((mod) => mod.toHtml),
   'teleport-project-react': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
   'teleport-project-next': import('hast-util-to-jsx-inline-script').then((mod) => mod.default),
 }
 
 const COMPONENT_CHUNK_NAMES: Record<SUPPORTED_PROJECT_TYPES, string> = {
+  html: 'html-chunk',
+  jsx: 'jsx-component',
   'teleport-project-html': 'html-chunk',
   'teleport-project-next': 'jsx-component',
   'teleport-project-react': 'jsx-component',
@@ -31,7 +35,7 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
 
   const componentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
-    const compontnChunk = chunks.find((chunk) => chunk.name === COMPONENT_CHUNK_NAMES[projectType])
+    const compontnChunk = chunks.find((chunk) => chunk?.name === COMPONENT_CHUNK_NAMES[projectType])
 
     if (!compontnChunk) {
       throw new Error(`MIssing component chunk to parse for embeds`)
@@ -52,7 +56,7 @@ export const createParseEmbedPlugin: ComponentPluginFactory<ParseEmbedPluginConf
         })
         const content = hastToJsxOrHtml(hastNodes, { wrapper: 'fragment' })
 
-        if (projectType === 'teleport-project-html') {
+        if (projectType === 'teleport-project-html' || projectType === 'html') {
           const node = compontnChunk.meta.nodesLookup[key] as HastNode
           if (!node) {
             return

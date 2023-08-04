@@ -4,6 +4,8 @@ export type SUPPORTED_PROJECT_TYPES =
   | 'teleport-project-html'
   | 'teleport-project-react'
   | 'teleport-project-next'
+  | 'html'
+  | 'jsx'
 
 export const JS_EXECUTION_DEPENDENCIES: Record<string, UIDLExternalDependency> = {
   'teleport-project-react': {

@@ -17,6 +17,8 @@ import {
   UIDLStyleValue,
   GeneratorOptions,
   UIDLRouteDefinitions,
+  ComponentPlugin,
+  ComponentStructure,
 } from '@teleporthq/teleport-types'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
@@ -29,7 +31,10 @@ type NodeToHTML<NodeType, ReturnType> = (
   templatesLookUp: Record<string, unknown>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  externals: Record<string, ComponentUIDL>,
+  subComponentOptions: {
+    externals: Record<string, ComponentUIDL>
+    plugins: ComponentPlugin[]
+  },
   routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
@@ -43,7 +48,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
-  externals,
+  subComponentOptions,
   routeDefinitions,
   structure
 ) => {
@@ -64,7 +69,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
-        externals,
+        subComponentOptions,
         routeDefinitions,
         structure
       )
@@ -75,7 +80,7 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
-        externals,
+        subComponentOptions,
         routeDefinitions,
         structure
       )
@@ -96,7 +101,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   templatesLookUp,
   propDefinitions,
   stateDefinitions,
-  externals,
+  subComponentOptions,
   routeDefinitions,
   structure
 ) => {
@@ -122,7 +127,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       node,
       propDefinitions,
       stateDefinitions,
-      externals,
+      subComponentOptions,
       routeDefinitions,
       structure
     )
@@ -136,7 +141,7 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         templatesLookUp,
         propDefinitions,
         stateDefinitions,
-        externals,
+        subComponentOptions,
         routeDefinitions,
         structure
       )
@@ -178,7 +183,10 @@ const generateComponentContent = async (
   node: UIDLElementNode,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  externals: Record<string, ComponentUIDL>,
+  subComponentOptions: {
+    externals: Record<string, ComponentUIDL>
+    plugins: ComponentPlugin[]
+  },
   routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
@@ -186,8 +194,9 @@ const generateComponentContent = async (
     options: GeneratorOptions
   }
 ) => {
+  const { externals, plugins } = subComponentOptions
   const { elementType, attrs = {}, key, children = [] } = node.content
-  const { dependencies, chunks, options } = structure
+  const { dependencies, chunks = [], options } = structure
   const comp = UIDLUtils.cloneObject(externals[elementType] || {}) as ComponentUIDL
   const lookUpTemplates: Record<string, unknown> = {}
   let compHasSlots: boolean = false
@@ -281,7 +290,7 @@ const generateComponentContent = async (
     lookUpTemplates,
     propsForInstance,
     statesForInstance,
-    externals,
+    subComponentOptions,
     routeDefinitions,
     structure
   )) as unknown as HastNode
@@ -295,7 +304,7 @@ const generateComponentContent = async (
     staticPropReferences: true,
   })
 
-  const result = await cssPlugin({
+  const initialStructure: ComponentStructure = {
     uidl: {
       ...comp,
       propDefinitions: propsForInstance,
@@ -315,7 +324,15 @@ const generateComponentContent = async (
     ],
     dependencies,
     options,
-  })
+  }
+
+  const result = await [cssPlugin, ...plugins].reduce(
+    async (previousPluginOperation: Promise<ComponentStructure>, plugin) => {
+      const modifiedStructure = await previousPluginOperation
+      return plugin(modifiedStructure)
+    },
+    Promise.resolve(initialStructure)
+  )
 
   if (compHasSlots) {
     result.chunks.forEach((chunk) => {
@@ -326,7 +343,12 @@ const generateComponentContent = async (
   } else {
     const chunk = chunks.find((item) => item.name === comp.name)
     if (!chunk) {
-      const styleChunk = result.chunks.find((item: ChunkDefinition) => item.name === comp.name)
+      const styleChunk = result.chunks.find(
+        (item: ChunkDefinition) => item.fileType === FileType.CSS
+      )
+      if (!styleChunk) {
+        return
+      }
       chunks.push(styleChunk)
     }
   }
