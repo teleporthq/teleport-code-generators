@@ -2,7 +2,7 @@ import { ProjectPluginStructure, ProjectPlugin } from '@teleporthq/teleport-type
 import { createParseEmbedPlugin } from './component-plugin'
 import { SUPPORTED_PROJECT_TYPES } from './utils'
 
-export class ProjectPluginParseEmbed implements ProjectPlugin {
+class ProjectPluginParseEmbed implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
     const parseEmbedPlugin = createParseEmbedPlugin({
       projectType: structure.strategy.id as SUPPORTED_PROJECT_TYPES,
@@ -27,3 +27,5 @@ export class ProjectPluginParseEmbed implements ProjectPlugin {
     return structure
   }
 }
+
+export { createParseEmbedPlugin, ProjectPluginParseEmbed }

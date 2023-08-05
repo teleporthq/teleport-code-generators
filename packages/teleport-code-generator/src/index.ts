@@ -15,6 +15,7 @@ import {
   ComponentGeneratorInstance,
   ProjectPlugin,
   HTMLComponentGenerator,
+  ComponentPlugin,
 } from '@teleporthq/teleport-types'
 import { Constants } from '@teleporthq/teleport-shared'
 
@@ -189,13 +190,15 @@ export const generateComponent: GenerateComponentFunction = async (
     componentType = ComponentType.REACT,
     styleVariation = ReactStyleVariation.CSSModules,
     componentGeneratorOptions = {},
+    plugins = [],
   }: {
     componentType?: ComponentType
     styleVariation?: ReactStyleVariation
     componentGeneratorOptions?: GeneratorOptions
+    plugins?: ComponentPlugin[]
   } = {}
 ) => {
-  const generator = createComponentGenerator(componentType, styleVariation)
+  const generator = createComponentGenerator(componentType, styleVariation, plugins)
   const projectMapping = componentGeneratorProjectMappings[componentType]
   generator.addMapping(projectMapping as Mapping)
 
@@ -209,7 +212,8 @@ export const generateComponent: GenerateComponentFunction = async (
 
 const createComponentGenerator = (
   componentType: ComponentType,
-  styleVariation: StyleVariation
+  styleVariation: StyleVariation,
+  plugins: ComponentPlugin[]
 ): ComponentGenerator => {
   const generatorFactory = componentGeneratorFactories[componentType]
 
@@ -218,7 +222,7 @@ const createComponentGenerator = (
   }
 
   if (componentType === ComponentType.REACT) {
-    return generatorFactory({ variation: styleVariation })
+    return generatorFactory({ variation: styleVariation, plugins })
   }
 
   return generatorFactory()
