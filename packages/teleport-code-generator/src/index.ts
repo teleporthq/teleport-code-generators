@@ -225,5 +225,5 @@ const createComponentGenerator = (
     return generatorFactory({ variation: styleVariation, plugins })
   }
 
-  return generatorFactory()
+  return generatorFactory({ plugins })
 }
