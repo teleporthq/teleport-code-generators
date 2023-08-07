@@ -24,7 +24,7 @@ export const NuxtProjectMapping: Mapping = {
       dependency: {
         type: 'package',
         path: '@teleporthq/react-components',
-        version: 'github:teleporthq/thq-react-components#b4a760af6b91e31d182a6a371e55fd984a770d82',
+        version: 'github:teleporthq/thq-react-components',
         meta: {
           namedImport: true,
         },
