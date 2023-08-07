@@ -24,6 +24,7 @@ import {
   UIDLCMSItemNode,
   UIDLCMSListRepeaterNode,
   UIDLCMSListNode,
+  UIDLDependency,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -244,7 +245,9 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
 
       if (elementContent.attrs) {
         elementContent.attrs = UIDLUtils.transformAttributesAssignmentsToJson(
-          elementContent.attrs as Record<string, unknown>
+          elementContent.attrs as Record<string, unknown>,
+          'dependency' in elementContent &&
+            (elementContent.dependency as UIDLDependency)?.type === 'local'
         )
       }
 

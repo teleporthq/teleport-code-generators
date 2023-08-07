@@ -696,17 +696,27 @@ export const transformStylesAssignmentsToJson = (
   return newStyleObject
 }
 
+/*
+  All the props passed to the components are transformed to a unique case
+  to minimize the collision of using cameCalse in one place and dashCase in
+  another place. So, all the attrs that are being passed to the local compoenents
+  need to be transformed since these are basically props.
+*/
+
 export const transformAttributesAssignmentsToJson = (
-  attributesObject: Record<string, unknown>
+  attributesObject: Record<string, unknown>,
+  isLocalComponent = false
 ): Record<string, UIDLAttributeValue> => {
-  const newStyleObject: Record<string, UIDLAttributeValue> = {}
+  const newAttrObject: Record<string, UIDLAttributeValue> = {}
 
   Object.keys(attributesObject).reduce((acc, key) => {
     const attributeContent = attributesObject[key]
     const entityType = typeof attributeContent
 
     if (['string', 'number'].indexOf(entityType) !== -1) {
-      acc[key] = transformStringAssignmentToJson(
+      const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+
+      acc[propKey] = transformStringAssignmentToJson(
         attributeContent as string | number
       ) as UIDLAttributeValue
       return acc
@@ -714,9 +724,10 @@ export const transformAttributesAssignmentsToJson = (
 
     if (!Array.isArray(attributeContent) && entityType === 'object') {
       // if this value is already properly declared, make sure it is not
-      const { type } = attributeContent as Record<string, unknown>
+      const { type } = attributeContent as UIDLAttributeValue
       if (['static', 'import', 'raw', 'expr'].indexOf(type as string) !== -1) {
-        acc[key] = attributeContent as UIDLAttributeValue
+        const propKey = isLocalComponent ? StringUtils.createStateOrPropStoringValue(key) : key
+        acc[propKey] = attributeContent as UIDLAttributeValue
         return acc
       }
 
@@ -754,9 +765,9 @@ export const transformAttributesAssignmentsToJson = (
         )}`
       )
     }
-  }, newStyleObject)
+  }, newAttrObject)
 
-  return newStyleObject
+  return newAttrObject
 }
 
 export const findFirstElementNode = (node: UIDLNode): UIDLElementNode => {
