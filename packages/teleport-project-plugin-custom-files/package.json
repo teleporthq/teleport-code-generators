@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-custom-files",
-  "version": "0.35.0-alpha.0",
+  "version": "0.36.0-alpha.0",
   "description": "A plugin for injecting custom files and dependencies into a generated project",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,6 +24,6 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-types": "^0.35.0-alpha.0"
+    "@teleporthq/teleport-types": "^0.36.0-alpha.0"
   }
 }
