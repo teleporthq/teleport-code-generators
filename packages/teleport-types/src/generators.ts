@@ -482,6 +482,7 @@ export interface PackerOptions {
 export interface GenerateOptions {
   componentType?: ComponentType
   styleVariation?: StyleVariation
+  plugins?: ComponentPlugin[]
 }
 
 export enum ReactStyleVariation {

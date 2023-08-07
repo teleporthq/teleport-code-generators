@@ -14,7 +14,7 @@ export const createHTMLImportStatementsPlugin = () => {
     let chunkIndex = 0
     const htmlChunk = chunks.find((chunk, index) => {
       if (
-        chunk.name === 'html-template' &&
+        chunk.name === 'html-chunk' &&
         chunk.type === ChunkType.HAST &&
         chunk.fileType === FileType.HTML
       ) {

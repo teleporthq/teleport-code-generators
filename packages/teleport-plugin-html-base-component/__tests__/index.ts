@@ -23,7 +23,7 @@ describe('plugin-html-base-component', () => {
 
     expect(chunks.length).toBe(1)
     expect(htmlChunk).toBeDefined()
-    expect(htmlChunk.name).toBe('html-template')
+    expect(htmlChunk.name).toBe('html-chunk')
   })
 
   it('adds attributes to the HAST node', async () => {

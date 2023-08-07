@@ -43,7 +43,8 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
           })
           acc[StringUtils.dashCaseToUpperCamelCase(ext)] = resolvedUIDL
           return acc
-        }, {})
+        }, {}),
+        plugins
       )
     },
   })
@@ -51,7 +52,7 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
   generator.addPlugin(htmlComponentPlugin)
   generator.addPlugin(
     createCSSPlugin({
-      templateChunkName: 'html-template',
+      templateChunkName: 'html-chunk',
       declareDependency: 'import',
       forceScoping: true,
       templateStyle: 'html',
@@ -59,10 +60,10 @@ const createHTMLComponentGenerator: HTMLComponentGeneratorInstance = ({
     })
   )
 
+  plugins.forEach((plugin) => generator.addPlugin(plugin))
   mappings.forEach((mapping) => generator.addMapping(mapping))
   generator.addMapping(PlainHTMLMapping)
 
-  plugins.forEach((plugin) => generator.addPlugin(plugin))
   generator.addPlugin(importStatementsPlugin)
 
   postprocessors.forEach((postProcessor) => generator.addPostProcessor(postProcessor))

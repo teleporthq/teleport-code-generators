@@ -18,7 +18,7 @@ interface HtmlPluginConfig {
 
 interface HtmlPlugin {
   htmlComponentPlugin: ComponentPlugin
-  addExternals: (list: Record<string, ComponentUIDL>) => void
+  addExternals: (list: Record<string, ComponentUIDL>, plugins: ComponentPlugin[]) => void
 }
 
 type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>) => HtmlPlugin
@@ -26,16 +26,21 @@ type HtmlPluginFactory<T> = (config?: Partial<T & ComponentDefaultPluginParams>)
 export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config) => {
   const { componentChunkName = DEFAULT_COMPONENT_CHUNK_NAME, wrapComponent = false } = config || {}
   let externals: Record<string, ComponentUIDL> = {}
+  let plugins: ComponentPlugin[] = []
 
-  const addExternals = (list?: Record<string, ComponentUIDL>) => {
+  const addExternals = (
+    list?: Record<string, ComponentUIDL>,
+    subComponentPlugins: ComponentPlugin[] = []
+  ) => {
     externals = {
       ...externals,
       ...(list || {}),
     }
+    plugins = subComponentPlugins
   }
 
   const htmlComponentPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, dependencies, options } = structure
+    const { uidl, chunks = [], dependencies, options } = structure
     const { propDefinitions = {}, stateDefinitions = {} } = uidl
 
     const templatesLookUp: Record<string, unknown> = {}
@@ -48,13 +53,19 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
       templatesLookUp,
       propDefinitions,
       stateDefinitions,
-      Object.values(externals).reduce((acc: Record<string, ComponentUIDL>, comp: ComponentUIDL) => {
-        UIDLUtils.setFriendlyOutputOptions(comp)
-        comp.name = StringUtils.removeIllegalCharacters(comp.name) || 'AppComponent'
-        comp.name = UIDLUtils.getComponentClassName(comp)
-        acc[comp.name] = comp
-        return acc
-      }, {}),
+      {
+        externals: Object.values(externals).reduce(
+          (acc: Record<string, ComponentUIDL>, comp: ComponentUIDL) => {
+            UIDLUtils.setFriendlyOutputOptions(comp)
+            comp.name = StringUtils.removeIllegalCharacters(comp.name) || 'AppComponent'
+            comp.name = UIDLUtils.getComponentClassName(comp)
+            acc[comp.name] = comp
+            return acc
+          },
+          {}
+        ),
+        plugins,
+      },
       options.projectRouteDefinition,
       { chunks, dependencies, options }
     )
