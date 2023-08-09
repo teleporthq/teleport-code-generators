@@ -117,6 +117,7 @@
       "type": "element",
       "content": {
         "elementType": "Router",
+        "events": {},
         "children": [
           {
             "type": "conditional",
@@ -124,6 +125,7 @@
               "node": {
                 "type": "element",
                 "content": {
+                  "events": {},
                   "elementType": "container",
                   "children": [
                     {
@@ -150,6 +152,7 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "events": {},
                   "children": [
                     {
                       "type": "static",
@@ -174,6 +177,7 @@
                 "type": "element",
                 "content": {
                   "elementType": "container",
+                  "events": {},
                   "children": [
                     {
                       "type": "static",
@@ -416,6 +420,7 @@
                   "type": "element",
                   "content": {
                     "elementType": "text",
+                    "events": {},
                     "children": [{
                       "type": "dynamic",
                       "content": {
@@ -527,6 +532,7 @@
         "type": "element",
         "content": {
           "elementType": "container",
+          "events": {},
           "children": [{
             "type": "dynamic",
             "content": {
