@@ -25,6 +25,7 @@ import {
   UIDLCMSListRepeaterNode,
   UIDLCMSListNode,
   UIDLDependency,
+  UIDLEventHandlerStatement,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -235,6 +236,26 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             }
           }
         })
+      }
+
+      if (elementContent.events) {
+        Object.values(elementContent.events).forEach(
+          (eventHandler: UIDLEventHandlerStatement[]) => {
+            eventHandler.forEach((eventStatement) => {
+              if (eventStatement.type === 'stateChange') {
+                eventStatement.modifies = StringUtils.createStateOrPropStoringValue(
+                  eventStatement.modifies
+                )
+              }
+
+              if (eventStatement.type === 'propCall') {
+                eventStatement.calls = StringUtils.createStateOrPropStoringValue(
+                  eventStatement.calls
+                )
+              }
+            })
+          }
+        )
       }
 
       if (elementContent.style) {
