@@ -335,7 +335,7 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('key'),
-        types.jsxExpressionContainer(types.identifier('props.page'))
+        types.jsxExpressionContainer(types.identifier('props?.pagination?.page'))
       )
     )
   }
