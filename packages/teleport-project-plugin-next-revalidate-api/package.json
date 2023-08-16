@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-next-revalidate-api",
-  "version": "0.37.1-alpha.0",
+  "version": "0.38.0-alpha.0",
   "description": "A plugin for handling cache and enabling on demand revalidation in NextJS.",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,8 +26,8 @@
   "dependencies": {
     "@babel/types": "^7.5.5",
     "@teleporthq/teleport-component-generator": "^0.37.1-alpha.0",
-    "@teleporthq/teleport-plugin-common": "^0.36.0-alpha.0",
-    "@teleporthq/teleport-plugin-import-statements": "^0.36.0-alpha.0",
+    "@teleporthq/teleport-plugin-common": "^0.38.0-alpha.0",
+    "@teleporthq/teleport-plugin-import-statements": "^0.38.0-alpha.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.36.0-alpha.0",
     "@teleporthq/teleport-types": "^0.36.0-alpha.0"
   },
