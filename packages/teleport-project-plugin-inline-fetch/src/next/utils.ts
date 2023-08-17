@@ -1,5 +1,6 @@
 import {
   ChunkDefinition,
+  ChunkType,
   ComponentPlugin,
   ComponentPluginFactory,
   FileType,
@@ -23,30 +24,85 @@ interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
+  extractedResources: Record<string, UIDLLocalResource>
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
   config
 ) => {
-  const { componentChunkName = 'jsx-component', files, dependencies } = config || {}
+  const {
+    componentChunkName = 'jsx-component',
+    files,
+    dependencies: globalDependencies,
+    extractedResources,
+  } = config || {}
 
   const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
+
+    const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
 
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
     }
 
+    const extractedResourceDeclerations: Record<string, types.VariableDeclaration> = {}
+
     UIDLUtils.traverseNodes(uidl.node, (node) => {
-      const { type } = node as UIDLNode
+      const { type, content } = node as UIDLNode
       if (type !== 'cms-list' && type !== 'cms-item') {
         return
       }
 
       const { resource } = node.content as UIDLCMSListNodeContent | UIDLCMSItemNodeContent
       if (!resource) {
+        return
+      }
+
+      const propKey = StringUtils.createStateOrPropStoringValue(
+        content.renderPropIdentifier + 'Prop'
+      )
+
+      /*
+        The resource is extracted, so we don't need to continue with the plugin
+        Instead we generate the getStaticProps function
+      */
+      if (extractedResources[propKey]) {
+        const usedResource = resources.items[extractedResources[propKey].id]
+        const resourceName = StringUtils.createStateOrPropStoringValue(
+          usedResource.name + 'Resource'
+        )
+
+        dependencies[resourceName] = {
+          type: 'local',
+          /*
+            getStaticProps works only in pages. So, we can just refer using ../.
+            Since, the current component is going to be inside the pages folder.
+          */
+          path: `../resources/${StringUtils.camelCaseToDashCase(usedResource.name)}`,
+        }
+
+        extractedResourceDeclerations[propKey] = types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.identifier(propKey),
+            types.awaitExpression(
+              types.callExpression(types.identifier(resourceName), [
+                types.objectExpression([
+                  types.spreadElement(
+                    types.optionalMemberExpression(
+                      types.identifier('context'),
+                      types.identifier('params'),
+                      false,
+                      true
+                    )
+                  ),
+                ]),
+              ])
+            )
+          ),
+        ])
         return
       }
 
@@ -102,7 +158,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         resourceImportVariable = dependency.meta?.originalName || name
         importPath = dependency?.meta?.importAlias || dependency.path
         resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
-        dependencies[dependency.path] = dependency.version
+        globalDependencies[dependency.path] = dependency.version
         isNamedImport = dependency?.meta?.namedImport || false
 
         /*
@@ -144,6 +200,47 @@ export default async function handler(req, res) {
         path: ['pages', 'api'],
       })
     })
+
+    const declerations = Object.values(extractedResourceDeclerations)
+    if (declerations.length > 0) {
+      if (getStaticPropsChunk) {
+        /*
+          Inject the resource fetches into the existing chunk
+        */
+      } else {
+        const staticPropsChunk = types.exportNamedDeclaration(
+          types.functionDeclaration(
+            types.identifier('getStaticProps'),
+            [types.identifier('context')],
+            types.blockStatement([
+              ...declerations,
+              types.returnStatement(
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('props'),
+                    types.objectExpression(
+                      Object.keys(extractedResourceDeclerations).map((key) =>
+                        types.objectProperty(types.identifier(key), types.identifier(key))
+                      )
+                    )
+                  ),
+                ])
+              ),
+            ]),
+            false,
+            true
+          )
+        )
+
+        chunks.push({
+          name: 'getStaticProps',
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          linkAfter: ['jsx-component'],
+          content: staticPropsChunk,
+        })
+      }
+    }
 
     return structure
   }
