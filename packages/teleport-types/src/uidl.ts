@@ -51,7 +51,7 @@ export interface UIDLResourceItem {
   }
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue>
   mappers?: string[]
   response?: {
     type: 'headers' | 'text' | 'json' | 'none'

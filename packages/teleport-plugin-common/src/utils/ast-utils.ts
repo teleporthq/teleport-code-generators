@@ -568,6 +568,15 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
       acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
     }
 
+    if (prop.type === 'expr') {
+      acc.push(
+        types.objectProperty(
+          types.stringLiteral(item),
+          ASTUtils.getExpressionFromUIDLExpressionNode(prop)
+        )
+      )
+    }
+
     if (prop.type === 'dynamic') {
       acc.push(
         types.spreadElement(
@@ -776,7 +785,7 @@ export const generateMemberExpressionASTFromPath = (
 }
 
 export const generateURLParamsAST = (
-  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue>
+  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue | UIDLExpressionValue>
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
     return null
@@ -797,13 +806,12 @@ export const generateURLParamsAST = (
 }
 
 const resolveDynamicValuesFromUrlParams = (
-  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue,
+  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue,
   query: Record<string, types.Expression>,
   prefix: string = null
 ) => {
   if (field.type === 'dynamic' || field.type === 'static') {
     query[prefix] = resolveUrlParamsValue(field)
-    return
   }
 }
 
