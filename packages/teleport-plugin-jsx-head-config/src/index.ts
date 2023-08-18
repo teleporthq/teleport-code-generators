@@ -1,4 +1,9 @@
-import { ComponentPluginFactory, ComponentPlugin } from '@teleporthq/teleport-types'
+import {
+  ComponentPluginFactory,
+  ComponentPlugin,
+  UIDLDynamicReference,
+  UIDLStaticValue,
+} from '@teleporthq/teleport-types'
 import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import * as types from '@babel/types'
 
@@ -38,9 +43,7 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     const headASTTags = []
 
     if (uidl.seo.title) {
-      const titleAST = ASTBuilders.createJSXTag('title')
-      // TODO: Handle dynamic title here
-      ASTUtils.addChildJSXText(titleAST, typeof uidl.seo.title === 'string' ? uidl.seo.title : '')
+      const titleAST = generateTitleAST(uidl.seo.title)
       headASTTags.push(titleAST)
     }
 
@@ -48,7 +51,8 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
       uidl.seo.metaTags.forEach((tag) => {
         const metaAST = ASTBuilders.createSelfClosingJSXTag('meta')
         Object.keys(tag).forEach((key) => {
-          ASTUtils.addAttributeToJSXTag(metaAST, key, tag[key])
+          const value = tag[key]
+          addAttributeToMetaTag(metaAST, key, value)
         })
         headASTTags.push(metaAST)
       })
@@ -89,6 +93,68 @@ export const createJSXHeadConfigPlugin: ComponentPluginFactory<JSXHeadPluginConf
     }
 
     return structure
+  }
+
+  const addAttributeToMetaTag = (
+    metaTag: types.JSXElement,
+    key: string,
+    value: string | UIDLStaticValue | UIDLDynamicReference
+  ) => {
+    if (typeof value === 'string') {
+      ASTUtils.addAttributeToJSXTag(metaTag, key, value)
+      return
+    }
+
+    const isDynamic = value.type === 'dynamic'
+    if (!isDynamic) {
+      ASTUtils.addAttributeToJSXTag(metaTag, key, value!.content.toString())
+      return
+    }
+
+    if (value.content.referenceType !== 'prop') {
+      throw new Error(`Only prop references are supported for dynamic meta tags`)
+    }
+
+    let content = `props`
+    value.content.refPath?.forEach((pathItem) => {
+      content = content.concat(`?.${pathItem}`)
+    })
+
+    metaTag.openingElement.attributes.push(
+      types.jsxAttribute(
+        types.jsxIdentifier(key),
+        types.jsxExpressionContainer(types.identifier(content))
+      )
+    )
+  }
+
+  const generateTitleAST = (title: string | UIDLStaticValue | UIDLDynamicReference) => {
+    const titleAST = ASTBuilders.createJSXTag('title')
+
+    if (typeof title === 'string') {
+      ASTUtils.addChildJSXText(titleAST, title)
+      return titleAST
+    }
+
+    const isDynamic = title.type === 'dynamic'
+    if (!isDynamic) {
+      ASTUtils.addChildJSXText(titleAST, title!.content.toString())
+      return titleAST
+    }
+
+    if (title.content.referenceType !== 'prop') {
+      throw new Error(`Only prop references are supported for dynamic titles`)
+    }
+
+    const expresContainer = types.jsxExpressionContainer(
+      ASTUtils.generateMemberExpressionASTFromBase(
+        types.identifier('props'),
+        title.content.refPath || []
+      )
+    )
+
+    titleAST.children.push(expresContainer)
+    return titleAST
   }
 
   return jsxHeadConfigPlugin

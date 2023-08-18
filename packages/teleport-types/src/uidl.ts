@@ -281,6 +281,7 @@ export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
+    refPath?: string[]
     id: string
   }
 }

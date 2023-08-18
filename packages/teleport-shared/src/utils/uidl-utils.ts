@@ -130,7 +130,11 @@ export const prefixAssetsPath = (
     return originalString
   }
 
-  if (!originalString.startsWith('/')) {
+  if (typeof originalString !== 'string') {
+    return originalString
+  }
+
+  if (!originalString?.startsWith('/')) {
     return originalString
   }
 
