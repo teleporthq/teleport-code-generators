@@ -515,7 +515,7 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
+        t.identifier(stateKey),
         t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])

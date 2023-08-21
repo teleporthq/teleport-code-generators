@@ -354,6 +354,18 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
           acc.push(types.objectProperty(types.stringLiteral(attrKey), expression))
         }
 
+        if (
+          property.type === 'dynamic' &&
+          (property.content.referenceType === 'state' || property.content.referenceType === 'prop')
+        ) {
+          acc.push(
+            types.objectProperty(
+              types.stringLiteral(attrKey),
+              types.identifier(property.content.id)
+            )
+          )
+        }
+
         return acc
       },
       []

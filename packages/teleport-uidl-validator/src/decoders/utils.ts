@@ -184,13 +184,31 @@ export const resourceItemDecoder: Decoder<UIDLResourceItem> = object({
 
 export const uidlLocalResourcerDecpder: Decoder<UIDLLocalResource> = object({
   id: string(),
-  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+  params: optional(
+    dict(
+      union(
+        staticValueDecoder,
+        dyamicFunctionParam,
+        expressionValueDecoder,
+        lazy(() => dyamicFunctionStateParam)
+      )
+    )
+  ),
 })
 
 export const uidlExternalResourceDecoder: Decoder<UIDLExternalResource> = object({
   name: string(),
   dependency: lazy(() => externaldependencyDecoder),
-  params: optional(dict(union(staticValueDecoder, dyamicFunctionParam, expressionValueDecoder))),
+  params: optional(
+    dict(
+      union(
+        staticValueDecoder,
+        dyamicFunctionParam,
+        expressionValueDecoder,
+        lazy(() => dyamicFunctionStateParam)
+      )
+    )
+  ),
 })
 
 export const uidlResourceLinkDecoder: Decoder<UIDLResourceLink> = union(

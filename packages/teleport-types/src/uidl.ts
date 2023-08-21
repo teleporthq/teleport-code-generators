@@ -339,13 +339,13 @@ export type UIDLResourceLink = UIDLLocalResource | UIDLExternalResource
 
 export interface UIDLLocalResource {
   id: string
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
 }
 
 export interface UIDLExternalResource {
   name: string
   dependency: UIDLExternalDependency
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
 }
 
 export interface UIDLCMSListNodeContent {
