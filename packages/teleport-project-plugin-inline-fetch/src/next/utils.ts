@@ -16,7 +16,7 @@ import {
   UIDLResourceItem,
   UIDLStaticValue,
 } from '@teleporthq/teleport-types'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
@@ -25,6 +25,10 @@ interface ContextPluginConfig {
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
   extractedResources: Record<string, UIDLLocalResource>
+  paths: {
+    resources: string[]
+    pages: string[]
+  }
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
@@ -35,6 +39,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
     files,
     dependencies: globalDependencies,
     extractedResources,
+    paths,
   } = config || {}
 
   const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
@@ -42,7 +47,6 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
     const { resources } = options
 
     const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
-
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
@@ -65,23 +69,20 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         content.renderPropIdentifier + 'Prop'
       )
 
-      /*
-        The resource is extracted, so we don't need to continue with the plugin
-        Instead we generate the getStaticProps function
-      */
       if (extractedResources[propKey]) {
         const usedResource = resources.items[extractedResources[propKey].id]
         const resourceName = StringUtils.createStateOrPropStoringValue(
           usedResource.name + 'Resource'
         )
 
+        const resourcesPath = paths.resources
+        const currentPagePath = [...paths.pages, ...uidl.outputOptions.folderPath]
+
         dependencies[resourceName] = {
           type: 'local',
-          /*
-            getStaticProps works only in pages. So, we can just refer using ../.
-            Since, the current component is going to be inside the pages folder.
-          */
-          path: `../resources/${StringUtils.camelCaseToDashCase(usedResource.name)}`,
+          path:
+            GenericUtils.generateLocalDependenciesPrefix(currentPagePath, resourcesPath) +
+            StringUtils.camelCaseToDashCase(usedResource.name),
         }
 
         extractedResourceDeclerations[propKey] = types.variableDeclaration('const', [
@@ -111,7 +112,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
 
       let resourceFileName: string
       let resourceImportVariable: string
-      let importPath: string
+      let importPath = '../../resources/'
       let funcParams = ''
       let isNamedImport = false
 
@@ -130,7 +131,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
           StringUtils.camelize(`${usedResource.name}-resource`)
         )
         const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-        importPath = `../../resources/${importName}`
+        importPath = importPath + importName
 
         if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
           funcParams = 'req.query'
@@ -203,10 +204,31 @@ export default async function handler(req, res) {
 
     const declerations = Object.values(extractedResourceDeclerations)
     if (declerations.length > 0) {
+      /*
+        For listing and details pages, the getStaticProps function is already defined.
+        So we just inject the newly extracted resource declerations into it.
+
+        For other instances, we decleare a new getStaticProps function
+      */
       if (getStaticPropsChunk) {
-        /*
-          Inject the resource fetches into the existing chunk
-        */
+        const functionDecleration = (getStaticPropsChunk.content as types.ExportNamedDeclaration)
+          .declaration as types.FunctionDeclaration
+        const functionBody = functionDecleration.body.body
+        functionBody.unshift(...declerations)
+
+        const returnStatement: types.ReturnStatement = functionBody.find(
+          (node) => node.type === 'ReturnStatement'
+        ) as types.ReturnStatement
+        const propsObject = (returnStatement.argument as types.ObjectExpression).properties.find(
+          (property) =>
+            ((property as types.ObjectProperty).key as types.Identifier).name === 'props'
+        ) as types.ObjectProperty
+        const propsValue = propsObject.value as types.ObjectExpression
+        propsValue.properties.unshift(
+          ...Object.keys(extractedResourceDeclerations).map((key) =>
+            types.objectProperty(types.identifier(key), types.identifier(key))
+          )
+        )
       } else {
         const staticPropsChunk = types.exportNamedDeclaration(
           types.functionDeclaration(

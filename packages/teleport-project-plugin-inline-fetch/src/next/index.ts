@@ -46,6 +46,15 @@ class ProjectPluginInlineFetch {
         }
 
         /*
+            TODO:
+            For now, let's just handle for the local resources. And ocne the testing is good
+            Let's apply the same for the external resources too.
+        */
+        if ('dependency' in rootNodeOfrootElementOfPage.content.resource) {
+          return
+        }
+
+        /*
           Move the resources that contain only static values,
           Should we fine-tune the expression check here ?
           And move the expressions which don't have prop or state references ?
@@ -62,23 +71,10 @@ class ProjectPluginInlineFetch {
           return
         }
 
-        /*
-          TODO:
-            For now, let's just handle for the local resources. And ocne the testing is good
-            Let's apply the same for the external resources too.
-        */
-        if ('dependency' in rootNodeOfrootElementOfPage.content.resource) {
-          return
-        }
-
         const propKey = StringUtils.createStateOrPropStoringValue(
           rootNodeOfrootElementOfPage.content.renderPropIdentifier + 'Prop'
         )
 
-        /*
-          TODO:
-          We should map this with resource Id, because what if the propKey is same but the resoruces are diff
-        */
         this.extractedResources[propKey] = rootNodeOfrootElementOfPage.content.resource
 
         rootNodeOfrootElementOfPage.content.initialData = {
@@ -95,6 +91,10 @@ class ProjectPluginInlineFetch {
       files: structure.files,
       dependencies: this.dependencies,
       extractedResources: this.extractedResources,
+      paths: {
+        resources: structure.strategy.resources.path,
+        pages: structure.strategy.pages.path,
+      },
     })
 
     structure.strategy.pages.plugins.push(pluginNextInlineFetch)
