@@ -11,8 +11,7 @@ export const generateInitialPropsAST = (
   initialPropsData: UIDLInitialPropsData,
   isDetailsPage = false,
   resourceImportName: string,
-  resource: UIDLInitialPropsData['resource'],
-  cache: UIDLResources['cache'],
+  globalCache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
   return types.exportNamedDeclaration(
@@ -25,8 +24,7 @@ export const generateInitialPropsAST = (
             initialPropsData,
             isDetailsPage,
             resourceImportName,
-            resource,
-            cache,
+            globalCache,
             pagination
           ),
         ]),
@@ -41,22 +39,20 @@ export const generateInitialPropsAST = (
 }
 
 const computePropsAST = (
-  propsData: UIDLInitialPropsData,
+  initialPropsData: UIDLInitialPropsData,
   isDetailsPage = false,
   resourceImportName: string,
-  resource: UIDLInitialPropsData['resource'],
-  cache: UIDLResources['cache'],
+  globalCache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
-  const funcParams: types.ObjectProperty[] = Object.keys(resource?.params || {}).reduce(
-    (acc: types.ObjectProperty[], item) => {
-      const prop = resource.params[item]
-      acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
+  const funcParams: types.ObjectProperty[] = Object.keys(
+    initialPropsData.resource?.params || {}
+  ).reduce((acc: types.ObjectProperty[], item) => {
+    const prop = initialPropsData.resource.params[item]
+    acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
 
-      return acc
-    },
-    []
-  )
+    return acc
+  }, [])
 
   /*
     Per-page cache can override the global cache.
@@ -70,8 +66,7 @@ const computePropsAST = (
       using webhook. And then letting page cache handler to do pages like
       - /blog-posts/page/${id}
   */
-  const globalCache = cache
-  const perPageCache = propsData.cache
+  const perPageCache = initialPropsData.cache
   let cachePropertyAST: types.ObjectProperty | null = null
 
   if (globalCache?.revalidate && !perPageCache?.revalidate) {
@@ -109,10 +104,21 @@ const computePropsAST = (
     ),
   ])
 
-  const responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
-    'response',
-    ...(propsData.exposeAs.valuePath || []),
-  ])
+  let responseMemberAST: types.Identifier | types.OptionalMemberExpression
+
+  if (initialPropsData.exposeAs.valuePath.length) {
+    responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+      'response',
+      ...(initialPropsData.exposeAs.valuePath || []),
+    ])
+  }
+
+  if (initialPropsData.exposeAs.itemValuePath.length) {
+    responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+      'response',
+      ...(initialPropsData.exposeAs.itemValuePath || []),
+    ])
+  }
 
   const dataWeNeedAccessorAST =
     isDetailsPage && !pagination
@@ -126,13 +132,10 @@ const computePropsAST = (
           types.identifier('props'),
           types.objectExpression([
             types.objectProperty(
-              types.identifier(StringUtils.createStateOrPropStoringValue(propsData.exposeAs.name)),
-              propsData.exposeAs.itemValuePath?.length
-                ? ASTUtils.generateMemberExpressionASTFromBase(
-                    dataWeNeedAccessorAST,
-                    propsData.exposeAs.itemValuePath
-                  )
-                : dataWeNeedAccessorAST,
+              types.identifier(
+                StringUtils.createStateOrPropStoringValue(initialPropsData.exposeAs.name)
+              ),
+              dataWeNeedAccessorAST,
               false,
               false
             ),

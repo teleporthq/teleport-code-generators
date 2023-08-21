@@ -24,7 +24,14 @@ interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
-  extractedResources: Record<string, UIDLLocalResource>
+  extractedResources: Record<
+    string,
+    UIDLLocalResource & {
+      itemValuePath?: string[]
+      valuePath?: string[]
+      type: 'cms-list' | 'cms-item'
+    }
+  >
   paths: {
     resources: string[]
     pages: string[]
@@ -225,8 +232,9 @@ export default async function handler(req, res) {
         ) as types.ObjectProperty
         const propsValue = propsObject.value as types.ObjectExpression
         propsValue.properties.unshift(
-          ...Object.keys(extractedResourceDeclerations).map((key) =>
-            types.objectProperty(types.identifier(key), types.identifier(key))
+          ...computeResponseObjectForExtractedResources(
+            extractedResourceDeclerations,
+            extractedResources
           )
         )
       } else {
@@ -241,8 +249,9 @@ export default async function handler(req, res) {
                   types.objectProperty(
                     types.identifier('props'),
                     types.objectExpression(
-                      Object.keys(extractedResourceDeclerations).map((key) =>
-                        types.objectProperty(types.identifier(key), types.identifier(key))
+                      computeResponseObjectForExtractedResources(
+                        extractedResourceDeclerations,
+                        extractedResources
                       )
                     )
                   ),
@@ -268,6 +277,48 @@ export default async function handler(req, res) {
   }
 
   return nextComponentCMSFetchPlugin
+}
+
+const computeResponseObjectForExtractedResources = (
+  extractedResourceDeclerations: Record<string, types.VariableDeclaration>,
+  extractedResources: Record<
+    string,
+    UIDLLocalResource & {
+      itemValuePath?: string[]
+      valuePath?: string[]
+      type: 'cms-list' | 'cms-item'
+    }
+  >
+) => {
+  return Object.keys(extractedResourceDeclerations).map((key) => {
+    const extractedResource = extractedResources[key]
+
+    let responseMemberAST: types.Identifier | types.OptionalMemberExpression
+
+    if (extractedResource?.itemValuePath?.length) {
+      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+        key,
+        ...(extractedResource.itemValuePath || []),
+      ])
+    }
+
+    if (extractedResource?.valuePath?.length) {
+      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+        key,
+        ...(extractedResource.valuePath || []),
+      ])
+    }
+
+    if (!responseMemberAST) {
+      throw new Error(`Both itemValuePath and valuePath are missing. Please check the UIDL`)
+    }
+
+    const dataWeNeedAccessorAST = extractedResource?.itemValuePath?.length
+      ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
+      : responseMemberAST
+
+    return types.objectProperty(types.identifier(key), dataWeNeedAccessorAST, false, false)
+  })
 }
 
 const computeUseEffectAST = (params: {

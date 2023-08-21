@@ -4,7 +4,14 @@ import { createNextComponentInlineFetchPlugin } from './utils'
 
 class ProjectPluginInlineFetch {
   dependencies: Record<string, string> = {}
-  extractedResources: Record<string, UIDLLocalResource> = {}
+  extractedResources: Record<
+    string,
+    UIDLLocalResource & {
+      itemValuePath?: string[]
+      valuePath?: string[]
+      type: 'cms-list' | 'cms-item'
+    }
+  > = {}
 
   nextBeforeModifier = (structure: ProjectPluginStructure) => {
     /*
@@ -75,7 +82,12 @@ class ProjectPluginInlineFetch {
           rootNodeOfrootElementOfPage.content.renderPropIdentifier + 'Prop'
         )
 
-        this.extractedResources[propKey] = rootNodeOfrootElementOfPage.content.resource
+        this.extractedResources[propKey] = {
+          type: rootNodeOfrootElementOfPage.type,
+          itemValuePath: rootNodeOfrootElementOfPage.content?.itemValuePath,
+          valuePath: rootNodeOfrootElementOfPage.content?.valuePath,
+          ...rootNodeOfrootElementOfPage.content.resource,
+        }
 
         rootNodeOfrootElementOfPage.content.initialData = {
           type: 'dynamic',
