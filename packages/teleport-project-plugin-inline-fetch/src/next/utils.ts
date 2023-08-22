@@ -27,7 +27,6 @@ interface ContextPluginConfig {
     UIDLLocalResource & {
       itemValuePath?: string[]
       valuePath?: string[]
-      type: 'cms-list' | 'cms-item'
     }
   >
   paths: {
@@ -281,7 +280,6 @@ const computeResponseObjectForExtractedResources = (
     UIDLLocalResource & {
       itemValuePath?: string[]
       valuePath?: string[]
-      type: 'cms-list' | 'cms-item'
     }
   >
 ) => {

@@ -9,7 +9,6 @@ class ProjectPluginInlineFetch {
     UIDLLocalResource & {
       itemValuePath?: string[]
       valuePath?: string[]
-      type: 'cms-list' | 'cms-item'
     }
   > = {}
 
@@ -83,9 +82,12 @@ class ProjectPluginInlineFetch {
         )
 
         this.extractedResources[propKey] = {
-          type: rootNodeOfrootElementOfPage.type,
-          itemValuePath: rootNodeOfrootElementOfPage.content?.itemValuePath,
-          valuePath: rootNodeOfrootElementOfPage.content?.valuePath,
+          ...(rootNodeOfrootElementOfPage.type === 'cms-item' && {
+            itemValuePath: rootNodeOfrootElementOfPage.content?.itemValuePath,
+          }),
+          ...(rootNodeOfrootElementOfPage.type === 'cms-list' && {
+            valuePath: rootNodeOfrootElementOfPage.content?.valuePath,
+          }),
           ...rootNodeOfrootElementOfPage.content.resource,
         }
 
