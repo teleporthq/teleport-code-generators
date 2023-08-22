@@ -354,14 +354,18 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
           acc.push(types.objectProperty(types.stringLiteral(attrKey), expression))
         }
 
-        if (
-          property.type === 'dynamic' &&
-          (property.content.referenceType === 'state' || property.content.referenceType === 'prop')
-        ) {
+        if (property.type === 'dynamic') {
           acc.push(
             types.objectProperty(
               types.stringLiteral(attrKey),
-              types.identifier(property.content.id)
+              property.content.referenceType === 'prop'
+                ? types.memberExpression(
+                    types.identifier(
+                      options.dynamicReferencePrefixMap[property.content.referenceType]
+                    ),
+                    types.identifier(property.content.id)
+                  )
+                : types.identifier(property.content.id)
             )
           )
         }

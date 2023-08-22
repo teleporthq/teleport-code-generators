@@ -178,13 +178,23 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
+
 export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResourceLink
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
   /*
     We allow the configuration of cache strategy globally for the whole project under
     uidl.resources.cache
@@ -206,7 +216,16 @@ export interface UIDLInitialPathsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResourceLink
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
 }
 
 export interface UIDLComponentOutputOptions {
