@@ -121,6 +121,19 @@ export const checkDynamicDefinitions = (input: Record<string, unknown>) => {
       }
     }
 
+    if (node.type === 'cms-item' || node.type === 'cms-list') {
+      Object.values(node.content?.resource?.params || {}).forEach((param) => {
+        if (
+          param.type === 'dynamic' &&
+          (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+        ) {
+          param.content.referenceType === 'prop'
+            ? usedPropKeys.push(param.content.id)
+            : usedStateKeys.push(param.content.id)
+        }
+      })
+    }
+
     if (node.type === 'element') {
       Object.keys(node.content?.events || {}).forEach((eventKey) => {
         node.content.events[eventKey].forEach((event) => {

@@ -152,6 +152,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
       const {
         initialData,
         nodes: { success, error, loading },
+        resource,
       } = (node as unknown as UIDLCMSItemNode).content
 
       if (initialData) {
@@ -181,6 +182,17 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
             loading as unknown as Record<string, unknown>,
             component
           ) as UIDLElementNode
+      }
+
+      if (resource?.params) {
+        Object.values(resource?.params || {}).forEach((param) => {
+          if (
+            param.type === 'dynamic' &&
+            (param.content.referenceType === 'state' || param.content.referenceType === 'prop')
+          ) {
+            param.content.id = StringUtils.createStateOrPropStoringValue(param.content.id)
+          }
+        })
       }
 
       return node as unknown as UIDLNode

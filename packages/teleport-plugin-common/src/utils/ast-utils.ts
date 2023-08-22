@@ -515,7 +515,7 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
+        t.identifier(stateKey),
         t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
@@ -975,23 +975,33 @@ const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
   return `process.env.${value.content}`
 }
 
-export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue) => {
-  if (prop.type === 'expr') {
-    return types.identifier(prop.content)
+export const resolveObjectValue = (
+  prop: UIDLStaticValue | UIDLExpressionValue
+):
+  | types.Identifier
+  | types.StringLiteral
+  | types.NumericLiteral
+  | types.BooleanLiteral
+  | types.ObjectExpression
+  | types.Expression => {
+  if (prop.type === 'static') {
+    const value =
+      typeof prop.content === 'string'
+        ? types.stringLiteral(prop.content)
+        : typeof prop.content === 'boolean'
+        ? types.booleanLiteral(prop.content)
+        : typeof prop.content === 'number'
+        ? types.numericLiteral(prop.content)
+        : typeof prop.content === 'object'
+        ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
+        : types.identifier(String(prop.content))
+
+    return value
   }
 
-  const value =
-    typeof prop.content === 'string'
-      ? types.stringLiteral(prop.content)
-      : typeof prop.content === 'boolean'
-      ? types.booleanLiteral(prop.content)
-      : typeof prop.content === 'number'
-      ? types.numericLiteral(prop.content)
-      : typeof prop.content === 'object'
-      ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
-      : types.identifier(String(prop.content))
-
-  return value
+  if (prop.type === 'expr') {
+    return getExpressionFromUIDLExpressionNode(prop)
+  }
 }
 
 export const getExpressionFromUIDLExpressionNode = (
