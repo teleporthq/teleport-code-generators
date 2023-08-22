@@ -792,6 +792,7 @@ export const cmsItemNodeDecoder: Decoder<VCMSItemUIDLElementNode> = object({
     itemValuePath: optional(array(string())),
     resource: optional(uidlResourceLinkDecoder),
     initialData: optional(lazy(() => dyamicFunctionParam)),
+    entityKeyProperty: optional(string()),
   }),
 })
 

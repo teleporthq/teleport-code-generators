@@ -332,10 +332,20 @@ const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXEle
       )
     )
 
+    let keyValue = 'props?.pagination?.page'
+
+    if (node.type === 'cms-item') {
+      const { entityKeyProperty } = node.content
+      const entityName = initialData.content.id
+      keyValue = entityKeyProperty
+        ? `props?.${entityName}?.${entityKeyProperty}`
+        : `props?.${entityName}?.id`
+    }
+
     cmsNode.openingElement.attributes.push(
       types.jsxAttribute(
         types.jsxIdentifier('key'),
-        types.jsxExpressionContainer(types.identifier('props?.pagination?.page'))
+        types.jsxExpressionContainer(types.identifier(keyValue))
       )
     )
   }
