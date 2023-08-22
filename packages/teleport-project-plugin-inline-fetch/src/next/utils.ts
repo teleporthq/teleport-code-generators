@@ -9,12 +9,10 @@ import {
   UIDLCMSItemNodeContent,
   UIDLCMSListNode,
   UIDLCMSListNodeContent,
-  UIDLExpressionValue,
   UIDLLocalResource,
   UIDLNode,
-  UIDLPropValue,
   UIDLResourceItem,
-  UIDLStaticValue,
+  UIDLResourceLink,
 } from '@teleporthq/teleport-types'
 import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
@@ -114,16 +112,13 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         return
       }
 
-      const isLocalResource = 'id' in resource
-      const isExternalResource = 'name' in resource
-
       let resourceFileName: string
       let resourceImportVariable: string
       let importPath = '../../resources/'
       let funcParams = ''
       let isNamedImport = false
 
-      if (isLocalResource) {
+      if ('id' in resource) {
         const { id = null, params = {} } = (resource as UIDLLocalResource) || {}
         if (!id) {
           return
@@ -161,7 +156,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         })
       }
 
-      if (isExternalResource) {
+      if ('name' in resource) {
         const { name, dependency } = resource
         resourceImportVariable = dependency.meta?.originalName || name
         importPath = dependency?.meta?.importAlias || dependency.path
@@ -326,7 +321,7 @@ const computeUseEffectAST = (params: {
   resourceType: UIDLResourceItem['method']
   node: UIDLCMSItemNode | UIDLCMSListNode
   componentChunk: ChunkDefinition
-  params: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params: UIDLResourceLink['params']
 }) => {
   const { node, fileName, componentChunk, resourceType } = params
   if (node.type !== 'cms-item' && node.type !== 'cms-list') {

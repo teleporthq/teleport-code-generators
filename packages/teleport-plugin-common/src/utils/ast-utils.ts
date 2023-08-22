@@ -515,7 +515,7 @@ export const createStateHookAST = (
   return t.variableDeclaration('const', [
     t.variableDeclarator(
       t.arrayPattern([
-        t.identifier(StringUtils.createStateOrPropStoringValue(stateKey)),
+        t.identifier(stateKey),
         t.identifier(StringUtils.createStateStoringFunction(stateKey)),
       ]),
       t.callExpression(t.identifier('useState'), [defaultValueArgument])
@@ -566,6 +566,15 @@ export const generateRemoteResourceASTs = (resource: UIDLResourceItem) => {
     const prop = resource.params[item]
     if (prop.type === 'static') {
       acc.push(types.objectProperty(types.stringLiteral(item), ASTUtils.resolveObjectValue(prop)))
+    }
+
+    if (prop.type === 'expr') {
+      acc.push(
+        types.objectProperty(
+          types.stringLiteral(item),
+          ASTUtils.getExpressionFromUIDLExpressionNode(prop)
+        )
+      )
     }
 
     if (prop.type === 'dynamic') {
@@ -776,7 +785,7 @@ export const generateMemberExpressionASTFromPath = (
 }
 
 export const generateURLParamsAST = (
-  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue>
+  urlParams: Record<string, UIDLStaticValue | UIDLStateValue | UIDLPropValue | UIDLExpressionValue>
 ): types.TemplateLiteral | null => {
   if (!urlParams) {
     return null
@@ -797,13 +806,12 @@ export const generateURLParamsAST = (
 }
 
 const resolveDynamicValuesFromUrlParams = (
-  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue,
+  field: UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue,
   query: Record<string, types.Expression>,
   prefix: string = null
 ) => {
   if (field.type === 'dynamic' || field.type === 'static') {
     query[prefix] = resolveUrlParamsValue(field)
-    return
   }
 }
 
@@ -967,23 +975,33 @@ const resolveResourceValue = (value: UIDLStaticValue | UIDLENVValue) => {
   return `process.env.${value.content}`
 }
 
-export const resolveObjectValue = (prop: UIDLStaticValue | UIDLPropValue | UIDLExpressionValue) => {
-  if (prop.type === 'expr') {
-    return types.identifier(prop.content)
+export const resolveObjectValue = (
+  prop: UIDLStaticValue | UIDLExpressionValue
+):
+  | types.Identifier
+  | types.StringLiteral
+  | types.NumericLiteral
+  | types.BooleanLiteral
+  | types.ObjectExpression
+  | types.Expression => {
+  if (prop.type === 'static') {
+    const value =
+      typeof prop.content === 'string'
+        ? types.stringLiteral(prop.content)
+        : typeof prop.content === 'boolean'
+        ? types.booleanLiteral(prop.content)
+        : typeof prop.content === 'number'
+        ? types.numericLiteral(prop.content)
+        : typeof prop.content === 'object'
+        ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
+        : types.identifier(String(prop.content))
+
+    return value
   }
 
-  const value =
-    typeof prop.content === 'string'
-      ? types.stringLiteral(prop.content)
-      : typeof prop.content === 'boolean'
-      ? types.booleanLiteral(prop.content)
-      : typeof prop.content === 'number'
-      ? types.numericLiteral(prop.content)
-      : typeof prop.content === 'object'
-      ? objectToObjectExpression(prop.content as unknown as Record<string, unknown>)
-      : types.identifier(String(prop.content))
-
-  return value
+  if (prop.type === 'expr') {
+    return getExpressionFromUIDLExpressionNode(prop)
+  }
 }
 
 export const getExpressionFromUIDLExpressionNode = (

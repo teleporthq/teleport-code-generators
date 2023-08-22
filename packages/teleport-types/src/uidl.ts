@@ -51,7 +51,7 @@ export interface UIDLResourceItem {
   }
   method?: 'GET' | 'POST'
   body?: Record<string, UIDLStaticValue>
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLStateValue | UIDLExpressionValue>
   mappers?: string[]
   response?: {
     type: 'headers' | 'text' | 'json' | 'none'
@@ -178,13 +178,23 @@ export interface ComponentUIDL {
 }
 
 export type UIDLDesignTokens = Record<string, UIDLStaticValue>
+
 export interface UIDLInitialPropsData {
   exposeAs: {
     name: string
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResourceLink
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
   /*
     We allow the configuration of cache strategy globally for the whole project under
     uidl.resources.cache
@@ -206,7 +216,16 @@ export interface UIDLInitialPathsData {
     valuePath?: string[]
     itemValuePath?: string[]
   }
-  resource: UIDLResourceLink
+  resource:
+    | {
+        id: string
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
+    | {
+        name: string
+        dependency: UIDLExternalDependency
+        params?: Record<string, UIDLStaticValue | UIDLExpressionValue>
+      }
 }
 
 export interface UIDLComponentOutputOptions {
@@ -281,6 +300,7 @@ export interface UIDLDynamicReference {
   type: 'dynamic'
   content: {
     referenceType: ReferenceType
+    refPath?: string[]
     id: string
   }
 }
@@ -339,13 +359,13 @@ export type UIDLResourceLink = UIDLLocalResource | UIDLExternalResource
 
 export interface UIDLLocalResource {
   id: string
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
 }
 
 export interface UIDLExternalResource {
   name: string
   dependency: UIDLExternalDependency
-  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue>
+  params?: Record<string, UIDLStaticValue | UIDLPropValue | UIDLExpressionValue | UIDLStateValue>
 }
 
 export interface UIDLCMSListNodeContent {
