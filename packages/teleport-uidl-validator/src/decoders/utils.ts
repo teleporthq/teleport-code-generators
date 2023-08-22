@@ -111,7 +111,7 @@ export const dynamicValueDecoder: Decoder<UIDLDynamicReference> = object({
   type: constant('dynamic'),
   content: object({
     referenceType: referenceTypeDecoder,
-    path: optional(array(string())),
+    refPath: optional(array(string())),
     id: string(),
   }),
 })
