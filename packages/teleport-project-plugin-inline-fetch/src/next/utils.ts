@@ -1,5 +1,6 @@
 import {
   ChunkDefinition,
+  ChunkType,
   ComponentPlugin,
   ComponentPluginFactory,
   FileType,
@@ -13,7 +14,7 @@ import {
   UIDLResourceItem,
   UIDLResourceLink,
 } from '@teleporthq/teleport-types'
-import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
 
@@ -21,24 +22,44 @@ interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
+  extractedResources: Record<
+    string,
+    UIDLLocalResource & {
+      itemValuePath?: string[]
+      valuePath?: string[]
+    }
+  >
+  paths: {
+    resources: string[]
+    pages: string[]
+  }
 }
 
 export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<ContextPluginConfig> = (
   config
 ) => {
-  const { componentChunkName = 'jsx-component', files, dependencies } = config || {}
+  const {
+    componentChunkName = 'jsx-component',
+    files,
+    dependencies: globalDependencies,
+    extractedResources,
+    paths,
+  } = config || {}
 
   const nextComponentCMSFetchPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const { uidl, chunks, options, dependencies } = structure
     const { resources } = options
 
+    const getStaticPropsChunk = chunks.find((chunk) => chunk.name === 'getStaticProps')
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
     }
 
+    const extractedResourceDeclerations: Record<string, types.VariableDeclaration> = {}
+
     UIDLUtils.traverseNodes(uidl.node, (node) => {
-      const { type } = node as UIDLNode
+      const { type, content } = node as UIDLNode
       if (type !== 'cms-list' && type !== 'cms-item') {
         return
       }
@@ -48,9 +69,51 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         return
       }
 
+      const propKey = StringUtils.createStateOrPropStoringValue(
+        content.renderPropIdentifier + 'Prop'
+      )
+
+      if (extractedResources[propKey]) {
+        const usedResource = resources.items[extractedResources[propKey].id]
+        const resourceName = StringUtils.createStateOrPropStoringValue(
+          usedResource.name + 'Resource'
+        )
+
+        const resourcesPath = paths.resources
+        const currentPagePath = [...paths.pages, ...uidl.outputOptions.folderPath]
+
+        dependencies[resourceName] = {
+          type: 'local',
+          path:
+            GenericUtils.generateLocalDependenciesPrefix(currentPagePath, resourcesPath) +
+            StringUtils.camelCaseToDashCase(usedResource.name),
+        }
+
+        extractedResourceDeclerations[propKey] = types.variableDeclaration('const', [
+          types.variableDeclarator(
+            types.identifier(propKey),
+            types.awaitExpression(
+              types.callExpression(types.identifier(resourceName), [
+                types.objectExpression([
+                  types.spreadElement(
+                    types.optionalMemberExpression(
+                      types.identifier('context'),
+                      types.identifier('params'),
+                      false,
+                      true
+                    )
+                  ),
+                ]),
+              ])
+            )
+          ),
+        ])
+        return
+      }
+
       let resourceFileName: string
       let resourceImportVariable: string
-      let importPath: string
+      let importPath = '../../resources/'
       let funcParams = ''
       let isNamedImport = false
 
@@ -69,7 +132,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
           StringUtils.camelize(`${usedResource.name}-resource`)
         )
         const importName = StringUtils.camelCaseToDashCase(usedResource.name)
-        importPath = `../../resources/${importName}`
+        importPath = importPath + importName
 
         if (Object.keys(usedResource?.params || {}).length > 0 && usedResource.method === 'GET') {
           funcParams = 'req.query'
@@ -97,7 +160,7 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         resourceImportVariable = dependency.meta?.originalName || name
         importPath = dependency?.meta?.importAlias || dependency.path
         resourceFileName = StringUtils.camelCaseToDashCase(resource.name)
-        dependencies[dependency.path] = dependency.version
+        globalDependencies[dependency.path] = dependency.version
         isNamedImport = dependency?.meta?.namedImport || false
 
         /*
@@ -140,10 +203,116 @@ export default async function handler(req, res) {
       })
     })
 
+    const declerations = Object.values(extractedResourceDeclerations)
+    if (declerations.length > 0) {
+      /*
+        For listing and details pages, the getStaticProps function is already defined.
+        So we just inject the newly extracted resource declerations into it.
+
+        For other instances, we decleare a new getStaticProps function
+      */
+      if (getStaticPropsChunk) {
+        const functionDecleration = (getStaticPropsChunk.content as types.ExportNamedDeclaration)
+          .declaration as types.FunctionDeclaration
+        const functionBody = functionDecleration.body.body
+        functionBody.unshift(...declerations)
+
+        const returnStatement: types.ReturnStatement = functionBody.find(
+          (node) => node.type === 'ReturnStatement'
+        ) as types.ReturnStatement
+        const propsObject = (returnStatement.argument as types.ObjectExpression).properties.find(
+          (property) =>
+            ((property as types.ObjectProperty).key as types.Identifier).name === 'props'
+        ) as types.ObjectProperty
+        const propsValue = propsObject.value as types.ObjectExpression
+        propsValue.properties.unshift(
+          ...computeResponseObjectForExtractedResources(
+            extractedResourceDeclerations,
+            extractedResources
+          )
+        )
+      } else {
+        const staticPropsChunk = types.exportNamedDeclaration(
+          types.functionDeclaration(
+            types.identifier('getStaticProps'),
+            [types.identifier('context')],
+            types.blockStatement([
+              ...declerations,
+              types.returnStatement(
+                types.objectExpression([
+                  types.objectProperty(
+                    types.identifier('props'),
+                    types.objectExpression(
+                      computeResponseObjectForExtractedResources(
+                        extractedResourceDeclerations,
+                        extractedResources
+                      )
+                    )
+                  ),
+                ])
+              ),
+            ]),
+            false,
+            true
+          )
+        )
+
+        chunks.push({
+          name: 'getStaticProps',
+          type: ChunkType.AST,
+          fileType: FileType.JS,
+          linkAfter: ['jsx-component'],
+          content: staticPropsChunk,
+        })
+      }
+    }
+
     return structure
   }
 
   return nextComponentCMSFetchPlugin
+}
+
+const computeResponseObjectForExtractedResources = (
+  extractedResourceDeclerations: Record<string, types.VariableDeclaration>,
+  extractedResources: Record<
+    string,
+    UIDLLocalResource & {
+      itemValuePath?: string[]
+      valuePath?: string[]
+    }
+  >
+) => {
+  return Object.keys(extractedResourceDeclerations).map((key) => {
+    const extractedResource = extractedResources[key]
+
+    let responseMemberAST: types.Identifier | types.OptionalMemberExpression
+
+    if (extractedResource?.itemValuePath?.length) {
+      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+        key,
+        ...(extractedResource.itemValuePath || []),
+      ])
+    }
+
+    if (extractedResource?.valuePath?.length >= 0) {
+      responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
+        key,
+        ...(extractedResource.valuePath || []),
+      ])
+    }
+
+    if (!responseMemberAST) {
+      throw new Error(`Both itemValuePath and valuePath are missing.
+Please check the UIDL \n ${JSON.stringify(extractedResource, null, 2)}`)
+    }
+
+    const dataWeNeedAccessorAST = extractedResource?.itemValuePath?.length
+      ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
+      : responseMemberAST
+
+    return types.objectProperty(types.identifier(key), dataWeNeedAccessorAST, false, false)
+  })
 }
 
 const computeUseEffectAST = (params: {

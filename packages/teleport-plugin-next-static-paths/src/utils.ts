@@ -143,7 +143,7 @@ const computePropsAST = (
                   '||',
                   ASTUtils.generateMemberExpressionASTFromPath([
                     'response',
-                    ...initialData.exposeAs.valuePath,
+                    ...(initialData.exposeAs?.valuePath || []),
                   ]),
                   types.arrayExpression()
                 ),
@@ -165,7 +165,7 @@ const computePropsAST = (
                                 types.memberExpression(
                                   ASTUtils.generateMemberExpressionASTFromPath([
                                     'item',
-                                    ...initialData.exposeAs.itemValuePath,
+                                    ...(initialData.exposeAs?.itemValuePath || []),
                                   ]),
                                   types.identifier('toString')
                                 ),
