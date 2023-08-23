@@ -405,6 +405,7 @@ export interface UIDLCMSItemNodeContent {
   itemValuePath?: string[]
   resource?: UIDLResourceLink
   initialData?: UIDLPropValue
+  entityKeyProperty?: string
 }
 
 export interface UIDLCMSListRepeaterNodeContent {
