@@ -295,7 +295,7 @@ const computeResponseObjectForExtractedResources = (
       ])
     }
 
-    if (extractedResource?.valuePath?.length) {
+    if (extractedResource?.valuePath?.length >= 0) {
       responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
         key,
         ...(extractedResource.valuePath || []),
@@ -303,7 +303,8 @@ const computeResponseObjectForExtractedResources = (
     }
 
     if (!responseMemberAST) {
-      throw new Error(`Both itemValuePath and valuePath are missing. Please check the UIDL`)
+      throw new Error(`Both itemValuePath and valuePath are missing.
+Please check the UIDL \n ${JSON.stringify(extractedResource, null, 2)}`)
     }
 
     const dataWeNeedAccessorAST = extractedResource?.itemValuePath?.length
