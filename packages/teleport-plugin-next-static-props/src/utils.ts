@@ -106,14 +106,14 @@ const computePropsAST = (
 
   let responseMemberAST: types.Identifier | types.OptionalMemberExpression
 
-  if (initialPropsData.exposeAs.valuePath.length) {
+  if (initialPropsData.exposeAs?.valuePath?.length) {
     responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
       'response',
       ...(initialPropsData.exposeAs.valuePath || []),
     ])
   }
 
-  if (initialPropsData.exposeAs.itemValuePath.length) {
+  if (initialPropsData.exposeAs?.itemValuePath?.length) {
     responseMemberAST = ASTUtils.generateMemberExpressionASTFromPath([
       'response',
       ...(initialPropsData.exposeAs.itemValuePath || []),
