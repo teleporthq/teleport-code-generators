@@ -5,6 +5,7 @@ import {
   UIDLElementNode,
   UIDLAttributeValue,
 } from '@teleporthq/teleport-types'
+import { join } from 'path'
 
 export const insertLinks = (
   node: UIDLElementNode,
@@ -191,5 +192,16 @@ const resolveNavlink = (routeName: string, options: GeneratorOptions) => {
     return `/${friendlyURL}`
   }
 
-  return transitionRoute?.pageOptions?.navLink ?? `/${friendlyURL}`
+  if (transitionRoute?.pageOptions?.navLink === '/') {
+    return transitionRoute.pageOptions.navLink
+  }
+
+  /*
+    We are using `navLink` + fileName for the target location calculation.
+    See `teleport-project-generator` -> createPageUIDL for more info.
+  */
+
+  return transitionRoute?.pageOptions?.navLink && transitionRoute?.pageOptions?.fileName
+    ? join(transitionRoute.pageOptions.navLink, `../${transitionRoute.pageOptions.fileName}`)
+    : transitionRoute.pageOptions.navLink ?? `/${friendlyURL}`
 }

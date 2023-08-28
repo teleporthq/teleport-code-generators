@@ -435,7 +435,7 @@ export const prefixAssetURLs = <
 
             /*
               background image such as gradient shouldn't be urls
-              we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function 
+              we prevent that by checking if the value is actually an asset or not (same check as in the prefixAssetsPath function
               but we don't compute and generate a url)
             */
             if (!asset.startsWith('/')) {

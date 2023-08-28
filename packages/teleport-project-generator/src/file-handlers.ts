@@ -66,10 +66,13 @@ export const createPageModule = async (
   generator: ComponentGenerator,
   options: GeneratorOptions
 ) => {
+  const { folderPath = [] } = pageUIDL.outputOptions
   pageUIDL.outputOptions = pageUIDL.outputOptions || {}
+
   pageUIDL.outputOptions.moduleName = `${StringUtils.dashCaseToUpperCamelCase(
-    pageUIDL.outputOptions.folderPath[0]
+    folderPath[folderPath.length - 1]
   )}Module`
+
   return generator.generateComponent(pageUIDL, options)
 }
 

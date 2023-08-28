@@ -21,6 +21,7 @@ import {
 import { elementNode } from '@teleporthq/teleport-uidl-builders'
 import importStatementsPlugin from '@teleporthq/teleport-plugin-import-statements'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
+import { basename } from 'path'
 
 export const createPageUIDLs = (uidl: ProjectUIDL, strategy: ProjectStrategy): ComponentUIDL[] => {
   const routeNodes = UIDLUtils.extractRoutes(uidl.root)
@@ -48,7 +49,7 @@ const createPageUIDL = (
   const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
   pageDefinition.pageOptions = pageOptions
 
-  const { fileName, componentName } = pageOptions
+  const { fileName, componentName, navLink } = pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -67,14 +68,14 @@ const createPageUIDL = (
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || 'style',
         templateFileName:
           (customTemplateFileName && customTemplateFileName(fileName)) || 'template',
-        folderPath: [fileName],
+        folderPath: [...navLink.split('/').slice(1, -1), fileName],
       }
     : {
         componentName,
         fileName: (customComponentFileName && customComponentFileName(fileName)) || fileName,
         styleFileName: (customStyleFileName && customStyleFileName(fileName)) || fileName,
         templateFileName: (customTemplateFileName && customTemplateFileName(fileName)) || fileName,
-        folderPath: [],
+        folderPath: [...navLink.split('/').slice(1, -1)],
       }
 
   // Looking into the state definition, we take the seo information for the corresponding page
@@ -90,7 +91,7 @@ const createPageUIDL = (
   // The solution is to wrap a non-element node with a 'group' element
   const pageContent = node.type === 'element' ? node : elementNode('group', {}, [node])
 
-  const componentUIDL: ComponentUIDL = {
+  const pageUIDL: ComponentUIDL = {
     name: componentName,
     node: pageContent,
     outputOptions,
@@ -106,7 +107,7 @@ const createPageUIDL = (
   if (isHomePage && strategy.pages?.options?.useFileNameForNavigation) {
     const { importDefinitions = {} } = uidl.root
 
-    componentUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
+    pageUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
       (acc: Record<string, UIDLExternalDependency>, importRef) => {
         if (
           strategy.framework?.externalStyles &&
@@ -123,7 +124,7 @@ const createPageUIDL = (
 
   if (isHomePage && !strategy.pages?.options?.useFileNameForNavigation) {
     const { importDefinitions = {} } = uidl.root
-    componentUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
+    pageUIDL.importDefinitions = Object.keys(importDefinitions).reduce(
       (acc: Record<string, UIDLExternalDependency>, importRef) => {
         if (!importDefinitions[importRef].meta?.importJustPath) {
           acc[importRef] = importDefinitions[importRef]
@@ -134,7 +135,7 @@ const createPageUIDL = (
     )
   }
 
-  return componentUIDL
+  return pageUIDL
 }
 
 /**
@@ -159,11 +160,11 @@ export const extractPageOptions = (
 
   let pageOptions: UIDLPageOptions = {
     // default values extracted from state name
-    fileName: friendlyFileName,
+    fileName: basename(friendlyFileName),
     componentName: friendlyComponentName,
     navLink: pageDefinition?.pageOptions?.fallback
       ? '**'
-      : '/' + (isHomePage ? '' : friendlyFileName),
+      : '/' + (isHomePage ? '' : basename(friendlyFileName)),
   }
 
   if (pageDefinition && pageDefinition.pageOptions) {
@@ -178,7 +179,7 @@ export const extractPageOptions = (
   // Also, the defaultPage has to be index, overriding any other value set
   if (useFileNameForNavigation) {
     const fileName = pageOptions.navLink.replace('/', '')
-    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : fileName
+    pageOptions.fileName = pageOptions?.fallback ? '404' : isHomePage ? 'index' : basename(fileName)
   }
 
   const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
@@ -399,11 +400,11 @@ export const generateLocalDependenciesPrefix = (fromPath: string[], toPath: stri
   /*
     Remove common path elements from the beginning of the
     components and pages full path (if any)
-  
+
     For example, having:
     - fromPath = ['src', 'components']
     - toPath = ['src', 'pages']
-  
+
     If we want to have an import statement that goes from the pages folder to the
     components folder, we only need to go back one step, so we are removing
     the first element from both the paths ('src') and build the dependencyPrefix accordingly

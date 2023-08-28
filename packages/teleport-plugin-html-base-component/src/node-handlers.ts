@@ -19,7 +19,10 @@ import {
   UIDLRouteDefinitions,
   ComponentPlugin,
   ComponentStructure,
+  UIDLComponentOutputOptions,
+  UIDLElement,
 } from '@teleporthq/teleport-types'
+import { join, relative } from 'path'
 import { HASTBuilders, HASTUtils } from '@teleporthq/teleport-plugin-common'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import { staticNode } from '@teleporthq/teleport-uidl-builders'
@@ -35,11 +38,11 @@ type NodeToHTML<NodeType, ReturnType> = (
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
   },
-  routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
+    outputOptions: UIDLComponentOutputOptions
   }
 ) => ReturnType
 
@@ -49,7 +52,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  routeDefinitions,
   structure
 ) => {
   switch (node.type) {
@@ -70,7 +72,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        routeDefinitions,
         structure
       )
 
@@ -81,7 +82,6 @@ export const generateHtmlSynatx: NodeToHTML<UIDLNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        routeDefinitions,
         structure
       )
 
@@ -102,7 +102,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   propDefinitions,
   stateDefinitions,
   subComponentOptions,
-  routeDefinitions,
   structure
 ) => {
   const {
@@ -128,7 +127,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
       propDefinitions,
       stateDefinitions,
       subComponentOptions,
-      routeDefinitions,
       structure
     )
     return compTag
@@ -142,7 +140,6 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
         propDefinitions,
         stateDefinitions,
         subComponentOptions,
-        routeDefinitions,
         structure
       )
 
@@ -173,7 +170,15 @@ const generatElementNode: NodeToHTML<UIDLElementNode, Promise<HastNode | HastTex
   }
 
   if (Object.keys(attrs).length > 0) {
-    handleAttributes(elementNode, attrs, propDefinitions, stateDefinitions, routeDefinitions)
+    handleAttributes(
+      elementType,
+      elementNode,
+      attrs,
+      propDefinitions,
+      stateDefinitions,
+      structure.options.projectRouteDefinition,
+      structure.outputOptions
+    )
   }
 
   return elementNode
@@ -187,11 +192,11 @@ const generateComponentContent = async (
     externals: Record<string, ComponentUIDL>
     plugins: ComponentPlugin[]
   },
-  routeDefinitions: UIDLRouteDefinitions,
   structure: {
     chunks: ChunkDefinition[]
     dependencies: Record<string, UIDLDependency>
     options: GeneratorOptions
+    outputOptions: UIDLComponentOutputOptions
   }
 ) => {
   const { externals, plugins } = subComponentOptions
@@ -291,7 +296,6 @@ const generateComponentContent = async (
     propsForInstance,
     statesForInstance,
     subComponentOptions,
-    routeDefinitions,
     structure
   )) as unknown as HastNode
 
@@ -392,14 +396,16 @@ const handleStyles = (
 }
 
 const handleAttributes = (
+  elementType: UIDLElement['elementType'],
   htmlNode: HastNode,
   attrs: Record<string, UIDLAttributeValue>,
   propDefinitions: Record<string, UIDLPropDefinition>,
   stateDefinitions: Record<string, UIDLStateDefinition>,
-  routeDefinitions: UIDLRouteDefinitions
+  routeDefinitions: UIDLRouteDefinitions,
+  outputOptions: UIDLComponentOutputOptions
 ) => {
   Object.keys(attrs).forEach((attrKey) => {
-    let attrValue = attrs[attrKey]
+    const attrValue = attrs[attrKey]
 
     if (
       attrKey === 'href' &&
@@ -407,15 +413,31 @@ const handleAttributes = (
       typeof attrValue.content === 'string' &&
       attrValue.content.startsWith('/')
     ) {
-      attrValue =
-        attrValue.content === '/' ||
-        attrValue.content ===
-          `/${StringUtils.camelCaseToDashCase(
-            StringUtils.removeIllegalCharacters(routeDefinitions?.defaultValue || '')
-          )}`
-          ? staticNode('index.html')
-          : staticNode(`${attrValue.content.split('/').pop()}.html`)
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, String(attrValue.content))
+      let targetLink
+
+      const targetRoute = (routeDefinitions?.values || []).find(
+        (route) => route.pageOptions.navLink === attrValue.content
+      )
+
+      if (targetRoute) {
+        targetLink = targetRoute.pageOptions.navLink
+      }
+
+      if (!targetRoute && attrValue.content === '/home') {
+        targetLink = '/'
+      }
+
+      if (!targetLink && !targetRoute) {
+        targetLink = attrValue.content
+      }
+
+      const currentPageRoute = join(...(outputOptions?.folderPath || []), './')
+      const localPrefix = relative(
+        `/${currentPageRoute}`,
+        `/${targetLink === '/' ? 'index' : targetLink}`
+      )
+
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
       return
     }
 
@@ -437,7 +459,35 @@ const handleAttributes = (
       HASTUtils.addBooleanAttributeToNode(htmlNode, attrKey)
       return
     } else if (typeof attrValue.content === 'string' || typeof attrValue.content === 'number') {
-      HASTUtils.addAttributeToNode(htmlNode, attrKey, StringUtils.encode(String(attrValue.content)))
+      let value = StringUtils.encode(String(attrValue.content))
+
+      /*
+        elementType of image is always mapped to img.
+        For reference, check `html-mapping` file.
+      */
+      if (elementType === 'img' && attrKey === 'src') {
+        /*
+          By default we just prefix all the asset paths with just the
+          assetPrefix that is configured in the project. But for `html` generators
+          we need to prefix that with the current file location.
+
+          Because, all the other frameworks have a build setup. which serves all the
+          assets from the `public` folder. But in the case of `html` here is how it works
+
+          We load a file from `index.html` the request for the image goes from
+          '...url.../public/...image...'
+          If it's a nested url, then the request goes from
+          '...url/nested/public/...image..'
+
+          But the nested folder is available only on the root. With this
+          The url changes prefixes to
+
+          ../public/playground_assets/..image.. etc depending on the dept the file is in.
+        */
+        value = join(relative(join(...outputOptions.folderPath), './'), value)
+      }
+
+      HASTUtils.addAttributeToNode(htmlNode, attrKey, value)
       return
     }
   })
