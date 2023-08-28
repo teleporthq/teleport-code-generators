@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-styled-components",
-  "version": "0.29.0",
+  "version": "0.29.2",
   "description": "A plugin for configuring teleportHQ projects to use styled-components",
   "author": "teleportHQ",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@teleporthq/teleport-plugin-import-statements": "^0.29.0",
-    "@teleporthq/teleport-plugin-react-app-routing": "^0.29.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.29.2",
     "@teleporthq/teleport-plugin-react-styled-components": "^0.29.0",
     "@teleporthq/teleport-postprocessor-prettier-js": "^0.29.0",
     "@teleporthq/teleport-types": "^0.29.0",
