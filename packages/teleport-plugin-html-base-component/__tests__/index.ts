@@ -37,8 +37,8 @@ describe('plugin-html-base-component', () => {
       ),
     })
 
-    expect(chunks.length).toEqual(2)
-    expect(((chunks[1].content as HastNode).children[0] as HastNode).properties.href).toBe(
+    expect(chunks.length).toEqual(1)
+    expect(((chunks[0].content as HastNode).children[0] as HastNode).properties.href).toBe(
       'about.html'
     )
   })
@@ -49,8 +49,8 @@ describe('plugin-html-base-component', () => {
       uidl: component('Test', staticNode('Hello') as unknown as UIDLElementNode),
     })
 
-    expect(chunks.length).toEqual(3)
-    expect((chunks[2].content as HastNode).children.length).toEqual(1)
+    expect(chunks.length).toEqual(1)
+    expect((chunks[0].content as HastNode).children.length).toEqual(1)
   })
 
   it('Throws error when a external comp is missing', async () => {
@@ -71,10 +71,10 @@ describe('plugin-html-base-component', () => {
     })
 
     const hastText = (
-      ((chunks[3].content as HastNode).children[0] as HastNode).children[0] as HastNode
+      ((chunks[0].content as HastNode).children[0] as HastNode).children[0] as HastNode
     ).children[0] as HastText
 
-    expect(chunks.length).toEqual(4)
+    expect(chunks.length).toEqual(1)
     expect(hastText).toBeDefined()
     expect(hastText.type).toBe('text')
     expect(hastText.value).toBe('Hello World')

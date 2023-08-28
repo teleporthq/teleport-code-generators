@@ -413,13 +413,28 @@ const handleAttributes = (
       typeof attrValue.content === 'string' &&
       attrValue.content.startsWith('/')
     ) {
-      const targetRoute = routeDefinitions.values.find(
+      let targetLink
+
+      const targetRoute = (routeDefinitions?.values || []).find(
         (route) => route.pageOptions.navLink === attrValue.content
       )
-      const currentPageRoute = join(...outputOptions.folderPath, './')
+
+      if (targetRoute) {
+        targetLink = targetRoute.pageOptions.navLink
+      }
+
+      if (!targetRoute && attrValue.content === '/home') {
+        targetLink = '/'
+      }
+
+      if (!targetLink && !targetRoute) {
+        targetLink = attrValue.content
+      }
+
+      const currentPageRoute = join(...(outputOptions?.folderPath || []), './')
       const localPrefix = relative(
         `/${currentPageRoute}`,
-        `/${targetRoute.pageOptions.navLink === '/' ? 'index' : targetRoute.pageOptions.navLink}`
+        `/${targetLink === '/' ? 'index' : targetLink}`
       )
 
       HASTUtils.addAttributeToNode(htmlNode, attrKey, `${localPrefix}.html`)
