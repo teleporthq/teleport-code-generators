@@ -83,7 +83,7 @@ const computePropsAST = (
     )
   }
 
-  const declerationAST = types.variableDeclaration('const', [
+  const declarationAST = types.variableDeclaration('const', [
     types.variableDeclarator(
       types.identifier('response'),
       types.awaitExpression(
@@ -125,6 +125,17 @@ const computePropsAST = (
       ? types.optionalMemberExpression(responseMemberAST, types.numericLiteral(0), true, true)
       : responseMemberAST
 
+  const notFoundAST = types.ifStatement(
+    types.unaryExpression('!', dataWeNeedAccessorAST),
+    types.blockStatement([
+      types.returnStatement(
+        types.objectExpression([
+          types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+        ])
+      ),
+    ])
+  )
+
   const returnAST = types.returnStatement(
     types.objectExpression(
       [
@@ -156,5 +167,5 @@ const computePropsAST = (
     )
   )
 
-  return [declerationAST, returnAST]
+  return [declarationAST, notFoundAST, returnAST]
 }
