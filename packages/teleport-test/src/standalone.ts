@@ -102,32 +102,32 @@ const run = async () => {
       return ProjectType.NEXT
     })
 
-    // await log(async () => {
-    //   result = await packProject(cmsProjectUIDLCaisy, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: 'teleport-project-next-cms-caisy',
-    //     },
-    //     plugins: [
-    //       new ProjectPluginRevalidateAPI({
-    //         routeMappers: {
-    //           /* tslint:disable no-invalid-template-strings */
-    //           bogpost: ['/bogpost/${id}', '/bogpost'],
-    //           /* tslint:disable no-invalid-template-strings */
-    //           page: ['/page', '/page/${id}'],
-    //           /* tslint:disable no-invalid-template-strings */
-    //           book: ['/book/${id}', '/book'],
-    //         },
-    //         cacheHandlerSecret: 'RANDOM_SECRET',
-    //       }),
-    //     ],
-    //   })
+    await log(async () => {
+      result = await packProject(cmsProjectUIDLCaisy, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-next-cms-caisy',
+        },
+        plugins: [
+          new ProjectPluginRevalidateAPI({
+            routeMappers: {
+              /* tslint:disable no-invalid-template-strings */
+              bogpost: ['/bogpost/${id}', '/bogpost'],
+              /* tslint:disable no-invalid-template-strings */
+              page: ['/page', '/page/${id}'],
+              /* tslint:disable no-invalid-template-strings */
+              book: ['/book/${id}', '/book'],
+            },
+            cacheHandlerSecret: 'RANDOM_SECRET',
+          }),
+        ],
+      })
 
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return ProjectType.NEXT
-    // })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return ProjectType.NEXT
+    })
 
     // /* Plain Html Generator */
     // await log(async () => {
@@ -155,19 +155,19 @@ const run = async () => {
     // })
 
     /* Styled JSX */
-    // await log(async () => {
-    //   result = await packProject(projectUIDL, {
-    //     ...packerOptions,
-    //     projectType: ProjectType.NEXT,
-    //     plugins: [new ProjectPluginParseEmbed()],
-    //     publishOptions: {
-    //       ...packerOptions.publishOptions,
-    //       projectSlug: `teleport-project-next-embeds`,
-    //     },
-    //   })
-    //   console.info(ProjectType.NEXT, '-', result.payload)
-    //   return `${ProjectType.NEXT} - Parse Embeds`
-    // })
+    await log(async () => {
+      result = await packProject(projectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        plugins: [new ProjectPluginParseEmbed()],
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: `teleport-project-next-embeds`,
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return `${ProjectType.NEXT} - Parse Embeds`
+    })
 
     // /* Styled JSX */
     // await log(async () => {
