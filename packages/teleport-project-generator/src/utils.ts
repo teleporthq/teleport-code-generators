@@ -48,15 +48,8 @@ const createPageUIDL = (
   const pageDefinition = routeDefinition.values.find((route) => route.value === pageName)
   pageDefinition.pageOptions = pageOptions
 
-  const {
-    fileName,
-    componentName,
-    pagination,
-    initialPropsData,
-    initialPathsData,
-    dynamicRouteAttribute,
-    navLink,
-  } = pageOptions
+  const { fileName, componentName, pagination, initialPropsData, initialPathsData, navLink } =
+    pageOptions
 
   // If the file name will not be used as the path (eg: next, nuxt)
   // And if the option to create each page in its folder is passed (eg: preact)
@@ -107,7 +100,6 @@ const createPageUIDL = (
       ...outputOptions,
       initialPropsData,
       initialPathsData,
-      dynamicRouteAttribute,
       pagination,
     },
     propDefinitions: pageOptions.propDefinitions,
@@ -191,9 +183,6 @@ export const extractPageOptions = (
     componentName: friendlyComponentName,
     ...(pageDefinition?.pageOptions?.pagination && {
       pagination: pageDefinition.pageOptions.pagination,
-    }),
-    ...(pageDefinition?.pageOptions?.dynamicRouteAttribute && {
-      dynamicRouteAttribute: pageDefinition.pageOptions.dynamicRouteAttribute,
     }),
     ...(pageDefinition?.pageOptions?.initialPropsData && {
       initialPropsData: pageDefinition?.pageOptions?.initialPropsData,
@@ -325,8 +314,17 @@ const deduplicatePageOptionValues = (options: UIDLPageOptions, otherOptions: UID
   }
 
   let fileNameSuffix = 0
+  /*
+    With the nested routes change, the navLink also define the location in which the file is going to exist.
+    So, we should take that too into consideration and then chagne the file name accordingly.
+    Check Line:80 from the same file.
+  */
   while (
-    otherOptions.some((opt) => opt.fileName === appendSuffix(options.fileName, fileNameSuffix))
+    otherOptions.some(
+      (opt) =>
+        opt.fileName === appendSuffix(options.fileName, fileNameSuffix) &&
+        opt.navLink === options.navLink
+    )
   ) {
     fileNameSuffix++
   }

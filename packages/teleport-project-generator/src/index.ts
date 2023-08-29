@@ -163,7 +163,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
     // Initialize output folder and other reusable structures
     const rootFolder = UIDLUtils.cloneObject(template || DEFAULT_TEMPLATE)
-
     const schemaValidationResult = this.validator.validateProjectSchema(input)
     const { valid, projectUIDL } = schemaValidationResult
     if (valid && projectUIDL) {
