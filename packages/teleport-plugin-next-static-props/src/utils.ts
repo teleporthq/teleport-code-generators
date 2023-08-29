@@ -14,20 +14,37 @@ export const generateInitialPropsAST = (
   globalCache: UIDLResources['cache'],
   pagination?: PagePaginationOptions
 ) => {
+  const functionContentAST = types.blockStatement([
+    types.tryStatement(
+      types.blockStatement([
+        ...computePropsAST(
+          initialPropsData,
+          isDetailsPage,
+          resourceImportName,
+          globalCache,
+          pagination
+        ),
+      ]),
+      // catch clause
+      types.catchClause(
+        types.identifier('error'),
+        types.blockStatement([
+          types.returnStatement(
+            types.objectExpression([
+              types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+            ])
+          ),
+        ])
+      )
+    ),
+  ])
+
   return types.exportNamedDeclaration(
     (() => {
       const node = types.functionDeclaration(
         types.identifier('getStaticProps'),
         [types.identifier('context')],
-        types.blockStatement([
-          ...computePropsAST(
-            initialPropsData,
-            isDetailsPage,
-            resourceImportName,
-            globalCache,
-            pagination
-          ),
-        ]),
+        functionContentAST,
         false,
         true
       )
