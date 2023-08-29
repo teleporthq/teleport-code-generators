@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-plugin-next-static-props",
-  "version": "0.40.0-alpha.0",
+  "version": "0.40.2-alpha.0",
   "description": "A plugin for adding getStaticProps inside a nextjs page",
   "author": "teleportHQ",
   "license": "MIT",
