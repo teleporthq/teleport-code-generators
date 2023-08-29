@@ -41,7 +41,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
 
   const htmlComponentPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks = [], dependencies, options } = structure
-    const { propDefinitions = {}, stateDefinitions = {} } = uidl
+    const { propDefinitions = {}, stateDefinitions = {}, outputOptions } = uidl
 
     const templatesLookUp: Record<string, unknown> = {}
     const compBase = wrapComponent
@@ -66,8 +66,7 @@ export const createHTMLBasePlugin: HtmlPluginFactory<HtmlPluginConfig> = (config
         ),
         plugins,
       },
-      options.projectRouteDefinition,
-      { chunks, dependencies, options }
+      { chunks, dependencies, options, outputOptions }
     )
     HASTUtils.addChildNode(compBase, bodyContent as HastNode)
 

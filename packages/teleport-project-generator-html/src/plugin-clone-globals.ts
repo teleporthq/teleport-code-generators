@@ -38,45 +38,43 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
     parsedEntry('head').append(scriptTagsFromRootHead.toString())
 
     const memoryFiles = Object.fromEntries(files)
+
     for (const id in memoryFiles) {
       if (memoryFiles.hasOwnProperty(id)) {
         const fileId = memoryFiles[id]
-        if (fileId.path.length === 1 && fileId.path[0] === '') {
-          const newFiles: GeneratedFile[] = fileId.files.map((file) => {
-            if (file.fileType === FileType.HTML) {
-              parsedEntry('body').empty()
-              parsedEntry('head').find('title').remove()
-              parsedEntry('head').find('meta').remove()
 
-              const parsedIndividualFile = load(file.content)
+        const newFiles: GeneratedFile[] = fileId.files.map((file) => {
+          if (file.fileType === FileType.HTML) {
+            parsedEntry('body').empty()
+            parsedEntry('head').find('title').remove()
+            parsedEntry('head').find('meta').remove()
 
-              const metaTags = parsedIndividualFile.root().find('meta')
-              parsedEntry('head').prepend(metaTags.toString().concat(metaTagsFromRoot))
-              metaTags.remove()
+            const parsedIndividualFile = load(file.content)
 
-              const titleTags = parsedIndividualFile.root().find('title')
-              parsedEntry('head').prepend(
-                titleTags.length ? titleTags.toString() : titleTagsFromRoot
-              )
-              titleTags.remove()
+            const metaTags = parsedIndividualFile.root().find('meta')
+            parsedEntry('head').prepend(metaTags.toString().concat(metaTagsFromRoot))
+            metaTags.remove()
 
-              parsedEntry('body').append(parsedIndividualFile.html())
-              parsedEntry('body').append(scriptTagsFromRootBody.toString())
+            const titleTags = parsedIndividualFile.root().find('title')
+            parsedEntry('head').prepend(titleTags.length ? titleTags.toString() : titleTagsFromRoot)
+            titleTags.remove()
 
-              const prettyFile = prettierHTML({
-                [FileType.HTML]: parsedEntry.html(),
-              })
+            parsedEntry('body').append(parsedIndividualFile.html())
+            parsedEntry('body').append(scriptTagsFromRootBody.toString())
 
-              return {
-                name: file.name,
-                content: prettyFile[FileType.HTML],
-                fileType: FileType.HTML,
-              }
+            const prettyFile = prettierHTML({
+              [FileType.HTML]: parsedEntry.html(),
+            })
+
+            return {
+              name: file.name,
+              content: prettyFile[FileType.HTML],
+              fileType: FileType.HTML,
             }
-            return file
-          })
-          files.set(id, { path: fileId.path, files: newFiles })
-        }
+          }
+          return file
+        })
+        files.set(id, { path: fileId.path, files: newFiles })
       }
     }
 

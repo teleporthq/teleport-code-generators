@@ -9,6 +9,7 @@ import {
   UIDLRootComponent,
   UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
+import { join } from 'path'
 
 interface VueRouterConfig {
   codeChunkName: string
@@ -70,9 +71,18 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
       const defaultOptions: UIDLPageOptions = {}
       const { componentName, navLink, fileName } = pageDefinition.pageOptions || defaultOptions
 
+      /*
+        Now, navLink is being used to create a folder strucutre.
+        So, it is important to append the same when generating the path
+      */
+
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
+        path: `${pageDependencyPrefix}${join(
+          ...navLink.split('/')?.slice(0, -1),
+          fileName,
+          pageComponentSuffix
+        )}`,
       }
 
       return types.objectExpression([

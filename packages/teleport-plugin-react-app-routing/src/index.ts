@@ -10,6 +10,7 @@ import {
   UIDLRootComponent,
   UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
+import { join } from 'path'
 
 interface AppRoutingComponentConfig {
   componentChunkName: string
@@ -44,10 +45,10 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
     const routeJSXDefinitions = routes.map((conditionalNode) => {
       const { value: routeKey } = conditionalNode.content
       const routeValues = (stateDefinitions.route as UIDLRouteDefinitions).values || []
-      const pageDefinition = routeValues.find((route) => route.value === routeKey)
+      const routeDefinition = routeValues.find((route) => route.value === routeKey)
       const defaultOptions: UIDLPageOptions = {}
       const { fileName, componentName, navLink, fallback } =
-        pageDefinition.pageOptions || defaultOptions
+        routeDefinition.pageOptions || defaultOptions
 
       /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
@@ -59,9 +60,18 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
       const pageStrategyOptions = (strategy && strategy.pages.options) || {}
       const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
+      /*
+        Now, navLink is being used to create a folder strucutre.
+        So, it is important to append the same when generating the path
+      */
+
       dependencies[componentName] = {
         type: 'local',
-        path: `${pageDependencyPrefix}${fileName}${pageComponentSuffix}`,
+        path: `${pageDependencyPrefix}${join(
+          ...navLink.split('/')?.slice(0, -1),
+          fileName,
+          pageComponentSuffix
+        )}`,
       }
 
       return constructRouteJSX(componentName, navLink, fallback)

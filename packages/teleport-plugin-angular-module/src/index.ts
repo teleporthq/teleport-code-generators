@@ -8,6 +8,7 @@ import {
   UIDLDependency,
   UIDLRootComponent,
 } from '@teleporthq/teleport-types'
+import { relative, join } from 'path'
 
 import {
   createRoutesAST,
@@ -50,7 +51,7 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
 
   const angularModuleGenerator: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options, dependencies } = structure
-
+    const { outputOptions } = uidl
     const { moduleComponents = {} } = options
 
     let routesAST: types.VariableDeclaration
@@ -78,7 +79,9 @@ export const createAngularModulePlugin: ComponentPluginFactory<AngularRoutingCon
         break
       case 'page':
         {
-          dependencies.ComponentsModule = constructRouteForComponentsModule('../..')
+          dependencies.ComponentsModule = constructRouteForComponentsModule(
+            relative(join(...outputOptions.folderPath), '../')
+          )
           dependencies.CommonModule = ANGULAR_COMMON_MODULE
           dependencies.CUSTOM_ELEMENTS_SCHEMA = ANGULAR_CORE_DEPENDENCY
           const componentName = UIDLUtils.getComponentClassName(uidl)
