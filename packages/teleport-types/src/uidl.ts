@@ -236,7 +236,6 @@ export interface UIDLComponentOutputOptions {
   moduleName?: string
   folderPath?: string[]
   pagination?: PagePaginationOptions
-  dynamicRouteAttribute?: string
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
 }
@@ -285,8 +284,6 @@ export interface UIDLPageOptions {
   navLink?: string
   fileName?: string
   fallback?: boolean
-  dynamicRouteAttribute?: string
-  isIndex?: boolean
   pagination?: PagePaginationOptions
   initialPropsData?: UIDLInitialPropsData
   initialPathsData?: UIDLInitialPathsData
