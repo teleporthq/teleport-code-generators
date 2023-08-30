@@ -16,7 +16,7 @@ jobs:
       with:
         node-version: "18.x"
     - run: yarn
-   # - run: yarn run lint
+    - run: yarn run lint
     - run: yarn run build
     - run: yarn run test:coverage
     - run: yarn run upload:coverage

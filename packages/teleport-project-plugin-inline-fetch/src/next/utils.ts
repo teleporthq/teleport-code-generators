@@ -215,11 +215,17 @@ export default async function handler(req, res) {
         const functionDecleration = (getStaticPropsChunk.content as types.ExportNamedDeclaration)
           .declaration as types.FunctionDeclaration
         const functionBody = functionDecleration.body.body
-        functionBody.unshift(...declerations)
+        const tryBlock = functionBody.find(
+          (node) => node.type === 'TryStatement'
+        ) as types.TryStatement
 
-        console.log(JSON.stringify(functionBody, null, 2))
+        if (!tryBlock) {
+          throw new Error(`Try block not found for getStaticProps`)
+        }
 
-        const returnStatement: types.ReturnStatement = functionBody.find(
+        tryBlock.block.body.unshift(...declerations)
+
+        const returnStatement: types.ReturnStatement = tryBlock.block.body.find(
           (node) => node.type === 'ReturnStatement'
         ) as types.ReturnStatement
 
@@ -239,26 +245,39 @@ export default async function handler(req, res) {
           )
         )
       } else {
+        const tryBlock = types.tryStatement(
+          types.blockStatement([
+            ...declerations,
+            types.returnStatement(
+              types.objectExpression([
+                types.objectProperty(
+                  types.identifier('props'),
+                  types.objectExpression(
+                    computeResponseObjectForExtractedResources(
+                      extractedResourceDeclerations,
+                      extractedResources
+                    )
+                  )
+                ),
+              ])
+            ),
+          ]),
+          types.catchClause(
+            types.identifier('errro'),
+            types.blockStatement([
+              types.returnStatement(
+                types.objectExpression([
+                  types.objectProperty(types.identifier('notFound'), types.booleanLiteral(true)),
+                ])
+              ),
+            ])
+          )
+        )
         const staticPropsChunk = types.exportNamedDeclaration(
           types.functionDeclaration(
             types.identifier('getStaticProps'),
             [types.identifier('context')],
-            types.blockStatement([
-              ...declerations,
-              types.returnStatement(
-                types.objectExpression([
-                  types.objectProperty(
-                    types.identifier('props'),
-                    types.objectExpression(
-                      computeResponseObjectForExtractedResources(
-                        extractedResourceDeclerations,
-                        extractedResources
-                      )
-                    )
-                  ),
-                ])
-              ),
-            ]),
+            types.blockStatement([tryBlock]),
             false,
             true
           )
