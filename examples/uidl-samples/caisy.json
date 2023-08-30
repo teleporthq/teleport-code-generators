@@ -37,10 +37,6 @@
                 }
             }
         ],
-        "env": {
-            "CMS_URL": "https://cloud.caisy.io/api/v3/e/3bd8eb33-2aaa-4620-87bf-d7ccd04d0245/graphql",
-            "CMS_ACCESS_TOKEN": "teleporthq.secrets.CAISY_ACCESS_TOKEN1"
-        },
         "meta": [
             {
                 "name": "viewport",

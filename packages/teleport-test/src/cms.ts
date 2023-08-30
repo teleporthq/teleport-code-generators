@@ -7,6 +7,7 @@ import contentfulUIDL from '../../../examples/uidl-samples/contentful.json'
 import strapiUIDL from '../../../examples/uidl-samples/strapi.json'
 import wordpressUIDL from '../../../examples/uidl-samples/wordpress.json'
 import caisyUIDL from '../../../examples/uidl-samples/caisy.json'
+import flotiqUIDL from '../../../examples/uidl-samples/flotiq.json'
 
 const packerOptions: PackerOptions = {
   publisher: PublisherType.DISK,
@@ -88,6 +89,19 @@ const run = async () => {
       })
       console.info(ProjectType.NEXT, '-', result.payload)
       return 'teleport-project-caisy-cms'
+    })
+
+    await log(async () => {
+      result = await packProject(flotiqUIDL as ProjectUIDL, {
+        ...packerOptions,
+        projectType: ProjectType.NEXT,
+        publishOptions: {
+          ...packerOptions.publishOptions,
+          projectSlug: 'teleport-project-flotiq-cms',
+        },
+      })
+      console.info(ProjectType.NEXT, '-', result.payload)
+      return 'teleport-project-flotiq-cms'
     })
   } catch (e) {
     console.info(e)

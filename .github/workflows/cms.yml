@@ -56,3 +56,11 @@ jobs:
       run: |
         yarn
         yarn build
+    - name: Building Flotiq Project
+      env:
+          CMS_URL: ${{ secrets.FLOTIQ_URL }}
+          CMS_ACCESS_TOKEN: ${{ secrets.FLOTIQ_ACCESS_TOKEN }}
+      working-directory: packages/teleport-test/dist/teleport-project-flotiq-cms
+      run: |
+        yarn
+        yarn build
