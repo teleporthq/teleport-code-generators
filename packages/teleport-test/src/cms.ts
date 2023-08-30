@@ -31,9 +31,7 @@ const run = async () => {
     if (packerOptions.publisher === PublisherType.DISK) {
       try {
         rmdirSync('dist', { recursive: true })
-      } catch (e) {
-        console.info(e)
-      }
+      } catch /* tslint:disable no-empty */ {}
       mkdirSync('dist')
     }
 
