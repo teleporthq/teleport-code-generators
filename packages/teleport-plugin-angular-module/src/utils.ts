@@ -7,6 +7,7 @@ import {
   UIDLRouteDefinitions,
 } from '@teleporthq/teleport-types'
 import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
+import { join } from 'path'
 
 export const createPageModuleModuleDecorator = (
   componentName: string,
@@ -151,7 +152,17 @@ export const createRoutesAST = (
           t.callExpression(
             t.memberExpression(
               t.callExpression(t.identifier('import'), [
-                t.stringLiteral(`./pages/${fileName}/${fileName}.module`),
+                /*
+                  Now, navLink is being used to create a folder strucutre.
+                  So, it is important to append the same when generating the path
+                */
+                t.stringLiteral(
+                  `./pages/${join(
+                    ...navLink.split('/')?.slice(0, -1),
+                    fileName,
+                    fileName + '.module'
+                  )}`
+                ),
               ]),
               t.identifier('then')
             ),

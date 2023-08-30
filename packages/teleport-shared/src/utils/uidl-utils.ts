@@ -49,6 +49,7 @@ export const setFriendlyOutputOptions = (uidl: ComponentUIDL) => {
   uidl.outputOptions = uidl.outputOptions || {}
   const defaultComponentName = 'AppComponent'
   const friendlyName = removeIllegalCharacters(uidl.name) || defaultComponentName
+
   if (!uidl.outputOptions.fileName) {
     uidl.outputOptions.fileName = camelCaseToDashCase(friendlyName)
   }

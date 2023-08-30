@@ -417,8 +417,6 @@ export const pageOptionsDecoder: Decoder<UIDLPageOptions> = object({
   navLink: optional(isValidNavLink() as unknown as Decoder<string>),
   fileName: optional(isValidFileName() as unknown as Decoder<string>),
   fallback: optional(boolean()),
-  dynamicRouteAttribute: optional(string()),
-  isIndex: optional(boolean()),
   pagination: optional(pageOptionsPaginationDecoder),
   initialPropsData: optional(initialPropsDecoder),
   initialPathsData: optional(initialPathsDecoder),

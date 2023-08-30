@@ -33,7 +33,7 @@ export class CustomCombinators<A> {
         return Result.ok(link)
       }
 
-      const navLinkRegex = new RegExp('/[a-zA-Z0-9-_]*$')
+      const navLinkRegex = new RegExp('/(?:[a-zA-Z0-9-_]+|/[[a-zA-Z]+]|[/[a-zA-Z]+])*')
       if (navLinkRegex.test(link)) {
         return Result.ok(link)
       }
@@ -44,7 +44,7 @@ export class CustomCombinators<A> {
 
   static isValidFileName(): CustomCombinators<string> {
     return new CustomCombinators<string>((json: string) => {
-      const fileNameRegex = new RegExp('^[a-zA-Z0-9-_.]*$')
+      const fileNameRegex = new RegExp('^[[a-zA-Z0-9-_.]+]*$')
       if (json && typeof json === 'string' && fileNameRegex.test(json)) {
         return Result.ok(json)
       } else if (json.length === 0) {

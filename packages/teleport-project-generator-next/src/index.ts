@@ -43,17 +43,6 @@ const createNextProjectGenerator = () => {
       mappings: [NextProjectMapping],
       options: {
         useFileNameForNavigation: true,
-        customComponentFileName(name, options) {
-          if (options?.isIndex) {
-            return 'index'
-          }
-
-          if (options?.dynamicRouteAttribute) {
-            return `[${options.dynamicRouteAttribute}]`
-          }
-
-          return name
-        },
       },
     },
     projectStyleSheet: {
