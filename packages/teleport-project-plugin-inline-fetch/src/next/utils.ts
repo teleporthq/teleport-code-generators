@@ -217,9 +217,16 @@ export default async function handler(req, res) {
         const functionBody = functionDecleration.body.body
         functionBody.unshift(...declerations)
 
+        console.log(JSON.stringify(functionBody, null, 2))
+
         const returnStatement: types.ReturnStatement = functionBody.find(
           (node) => node.type === 'ReturnStatement'
         ) as types.ReturnStatement
+
+        if (!returnStatement) {
+          throw new Error(`Failed to find return statement for getStatisProps`)
+        }
+
         const propsObject = (returnStatement.argument as types.ObjectExpression).properties.find(
           (property) =>
             ((property as types.ObjectProperty).key as types.Identifier).name === 'props'

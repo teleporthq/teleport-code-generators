@@ -29,7 +29,11 @@ const log = async (cb: () => Promise<string>) => {
 const run = async () => {
   try {
     if (packerOptions.publisher === PublisherType.DISK) {
-      rmdirSync('dist', { recursive: true })
+      try {
+        rmdirSync('dist', { recursive: true })
+      } catch (e) {
+        console.info(e)
+      }
       mkdirSync('dist')
     }
 
