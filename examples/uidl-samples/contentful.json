@@ -481,7 +481,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/blog-post/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BlogPostEntities",
@@ -519,7 +519,6 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -532,7 +531,7 @@
                   ]
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/blog-post/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
@@ -595,9 +594,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
-              "navLink": "/blog-post",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/blog-post/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -660,8 +657,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
-              "navLink": "/author",
+              "navLink": "/author/[id]",
               "dynamicRouteAttribute": "id",
               "initialPathsData": {
                 "exposeAs": {
@@ -725,7 +721,6 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
               "initialPropsData": {
                 "exposeAs": {
                   "name": "AuthorEntities",
@@ -740,7 +735,8 @@
                   "id": "dad5c8c1-d826-405b-951c-b57d6b7935f1",
                   "params": {}
                 }
-              }
+              },
+              "navLink": "/author/index"
             }
           },
           {
@@ -763,7 +759,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "navLink": "/author/page/[page]",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -776,7 +772,6 @@
                   ]
                 }
               },
-              "dynamicRouteAttribute": "page",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",

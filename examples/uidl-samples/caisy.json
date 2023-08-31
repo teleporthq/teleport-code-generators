@@ -481,7 +481,7 @@
                                 }
                             },
                             "stateDefinitions": {},
-                            "isIndex": true,
+                            "navLink": "/blog-post/index",
                             "initialPropsData": {
                                 "exposeAs": {
                                     "name": "BlogPostEntities",
@@ -556,7 +556,7 @@
                                     ]
                                 }
                             },
-                            "dynamicRouteAttribute": "page",
+                            "navLink": "/blog-post/page/[page]",
                             "initialPathsData": {
                                 "exposeAs": {
                                     "name": "page",
@@ -651,7 +651,7 @@
                                 }
                             },
                             "stateDefinitions": {},
-                            "isIndex": true,
+                            "navLink": "/author/index",
                             "initialPropsData": {
                                 "exposeAs": {
                                     "name": "AuthorEntities",
@@ -726,7 +726,7 @@
                                     ]
                                 }
                             },
-                            "dynamicRouteAttribute": "page",
+                            "navLink": "/author/page/[page]",
                             "initialPathsData": {
                                 "exposeAs": {
                                     "name": "page",
@@ -822,8 +822,7 @@
                             },
                             "stateDefinitions": {},
                             "isIndex": false,
-                            "navLink": "/blog-post",
-                            "dynamicRouteAttribute": "id",
+                            "navLink": "/blog-post/[id]",
                             "initialPathsData": {
                                 "exposeAs": {
                                     "name": "id",
@@ -915,8 +914,7 @@
                             },
                             "stateDefinitions": {},
                             "isIndex": false,
-                            "navLink": "/author",
-                            "dynamicRouteAttribute": "id",
+                            "navLink": "/author/[id]",
                             "initialPathsData": {
                                 "exposeAs": {
                                     "name": "id",

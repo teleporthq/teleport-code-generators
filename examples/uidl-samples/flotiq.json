@@ -481,7 +481,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/author/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "AuthorEntities",
@@ -517,7 +517,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "navLink": "/author/page/[page]",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -579,8 +579,8 @@
                   "type": "array"
                 }
               },
+              "navLink": "/blog-post/index",
               "stateDefinitions": {},
-              "isIndex": true,
               "initialPropsData": {
                 "exposeAs": {
                   "name": "Blog_postEntities",
@@ -616,7 +616,6 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -625,7 +624,7 @@
                   "path": []
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/blog-post/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
@@ -679,7 +678,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/book/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BookEntities",
@@ -724,7 +723,7 @@
                   "path": []
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/book/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
@@ -779,8 +778,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/author",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/author/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -832,8 +830,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/blog_post",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/blog-post/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -885,8 +882,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/book",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/book/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",

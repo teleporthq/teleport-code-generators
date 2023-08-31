@@ -482,8 +482,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/authors",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/authors/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -533,7 +532,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/posts/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "PostsEntities",
@@ -581,7 +580,7 @@
                   ]
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/posts/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
@@ -636,7 +635,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/authors/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "AuthorsEntities",
@@ -671,7 +670,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "navLink": "/authors/page/[page]",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -740,8 +739,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/posts",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/posts/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",

@@ -482,8 +482,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/book",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/book/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -532,7 +531,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/blog-post/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BogpostEntities",
@@ -578,7 +577,7 @@
                   ]
                 }
               },
-              "dynamicRouteAttribute": "page",
+              "navLink": "/blog-post/page/[page]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
@@ -625,7 +624,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/page/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "PageEntities",
@@ -660,7 +659,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "navLink": "/page/page/[page]",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -719,8 +718,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/page",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/page/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -770,8 +768,7 @@
               },
               "stateDefinitions": {},
               "isIndex": false,
-              "navLink": "/bogpost",
-              "dynamicRouteAttribute": "id",
+              "navLink": "/blog-post/[id]",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "id",
@@ -820,7 +817,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": true,
+              "navLink": "/book/index",
               "initialPropsData": {
                 "exposeAs": {
                   "name": "BookEntities",
@@ -855,7 +852,7 @@
                 }
               },
               "stateDefinitions": {},
-              "isIndex": false,
+              "navLink": "/book/page/[page]",
               "pagination": {
                 "attribute": "page",
                 "pageSize": 10,
@@ -866,7 +863,6 @@
                   ]
                 }
               },
-              "dynamicRouteAttribute": "page",
               "initialPathsData": {
                 "exposeAs": {
                   "name": "page",
