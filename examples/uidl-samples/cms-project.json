@@ -885,7 +885,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1108,7 +1108,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1453,7 +1453,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1765,7 +1765,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2077,7 +2077,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2270,7 +2270,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2428,7 +2428,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2740,7 +2740,7 @@
                         "dependency": {
                           "type": "package",
                           "path": "@teleporthq/react-components",
-                          "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -3091,7 +3091,7 @@
                 "dependency": {
                   "type": "package",
                   "path": "@teleporthq/react-components",
-                  "version": "github:teleporthq/thq-react-components#47a319cff02a1a2f89d050f904fe8e8ba6c83280",
+                  "version": "latest",
                   "meta": {
                     "namedImport": true
                   }
@@ -3816,7 +3816,7 @@
       "normalize": {
         "dependency": {
           "type": "package",
-          "version": "github:teleporthq/teleport-cms-mappers#fd072ad93bea9087a202b94b727772da71f81b73",
+          "version": "latest",
           "path": "@teleporthq/cms-mappers",
           "meta": {
             "namedImport": true,
@@ -3832,7 +3832,7 @@
         "name": "revalidate",
         "dependency": {
           "type": "package",
-          "version": "github:teleporthq/teleport-cms-mappers.git",
+          "version": "latest",
           "path": "@teleporthq/cms-mappers",
           "meta": {
             "namedImport": true,

@@ -28,7 +28,7 @@ export const NextProjectMapping: Mapping = {
       dependency: {
         type: 'package',
         path: '@teleporthq/react-components',
-        version: 'github:teleporthq/thq-react-components',
+        version: 'latest',
         meta: {
           namedImport: true,
         },
