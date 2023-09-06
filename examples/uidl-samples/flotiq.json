@@ -1210,8 +1210,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1281,8 +1281,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1403,8 +1403,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1582,8 +1582,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1761,8 +1761,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1940,8 +1940,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2119,8 +2119,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2298,8 +2298,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2477,8 +2477,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2623,8 +2623,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2769,8 +2769,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }

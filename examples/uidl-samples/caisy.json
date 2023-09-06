@@ -491,7 +491,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -566,7 +566,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -595,7 +595,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -661,7 +661,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -695,7 +695,7 @@
                   "name": "getEntityByAttribute",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -757,7 +757,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -791,7 +791,7 @@
                   "name": "getEntityByAttribute",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -847,7 +847,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -922,7 +922,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -951,7 +951,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "github:teleporthq/teleport-cms-mappers.git",
+                    "version": "version",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -1268,8 +1268,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1322,7 +1322,7 @@
                           "name": "getEntitiesWithPagination",
                           "dependency": {
                             "type": "package",
-                            "version": "github:teleporthq/teleport-cms-mappers.git",
+                            "version": "version",
                             "path": "@teleporthq/cms-mappers",
                             "meta": {
                               "namedImport": true,
@@ -1408,8 +1408,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1587,8 +1587,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1766,8 +1766,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -1912,8 +1912,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2069,11 +2069,11 @@
               "importDefinitions": {
                 "CaisyDocumentLink": {
                   "type": "package",
-                  "path": "@teleporthq/thq-react-components",
-                  "version": "https://github.com/teleporthq/thq-react-components.git",
+                  "path": "@teleporthq/react-components",
+                  "version": "latest",
                   "meta": {
                     "namedImport": true,
-                    "importAlias": "@teleporthq/thq-react-components"
+                    "importAlias": "@teleporthq/react-components"
                   }
                 }
               }
@@ -2122,8 +2122,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
@@ -2301,8 +2301,8 @@
                         "elementType": "DataProvider",
                         "dependency": {
                           "type": "package",
-                          "path": "@teleporthq/thq-react-components",
-                          "version": "https://github.com/teleporthq/thq-react-components.git",
+                          "path": "@teleporthq/react-components",
+                          "version": "latest",
                           "meta": {
                             "namedImport": true
                           }
