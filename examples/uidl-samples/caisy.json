@@ -491,7 +491,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -566,7 +566,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -595,7 +595,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -661,7 +661,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -695,7 +695,7 @@
                   "name": "getEntityByAttribute",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -757,7 +757,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -791,7 +791,7 @@
                   "name": "getEntityByAttribute",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -847,7 +847,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -922,7 +922,7 @@
                   "name": "getEntities",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -951,7 +951,7 @@
                   "name": "getEntitiesWithPagination",
                   "dependency": {
                     "type": "package",
-                    "version": "version",
+                    "version": "latest",
                     "path": "@teleporthq/cms-mappers",
                     "meta": {
                       "namedImport": true,
@@ -1322,7 +1322,7 @@
                           "name": "getEntitiesWithPagination",
                           "dependency": {
                             "type": "package",
-                            "version": "version",
+                            "version": "latest",
                             "path": "@teleporthq/cms-mappers",
                             "meta": {
                               "namedImport": true,
