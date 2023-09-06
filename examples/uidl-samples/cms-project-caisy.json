@@ -498,7 +498,7 @@
                                     "name": "getEntitiesWithPagination",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -575,7 +575,7 @@
                                     "name": "getEntities",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -606,7 +606,7 @@
                                     "name": "getEntitiesWithPagination",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -668,7 +668,7 @@
                                     "name": "getEntitiesWithPagination",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -745,7 +745,7 @@
                                     "name": "getEntities",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -776,7 +776,7 @@
                                     "name": "getEntitiesWithPagination",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -842,7 +842,7 @@
                                     "name": "getEntities",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -873,7 +873,7 @@
                                     "name": "getEntityByAttribute",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -935,7 +935,7 @@
                                     "name": "getEntities",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -966,7 +966,7 @@
                                     "name": "getEntityByAttribute",
                                     "dependency": {
                                         "type": "package",
-                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                        "version": "latest",
                                         "path": "@teleporthq/cms-mappers",
                                         "meta": {
                                             "namedImport": true,
@@ -1104,8 +1104,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1159,7 +1159,7 @@
                                                     "name": "getEntitiesWithPagination",
                                                     "dependency": {
                                                         "type": "package",
-                                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                                        "version": "latest",
                                                         "path": "@teleporthq/cms-mappers",
                                                         "meta": {
                                                             "namedImport": true,
@@ -1193,8 +1193,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1305,7 +1305,7 @@
                                                     "name": "getEntityByAttribute",
                                                     "dependency": {
                                                         "type": "package",
-                                                        "version": "github:teleporthq/teleport-cms-mappers#feat/caisy",
+                                                        "version": "latest",
                                                         "path": "@teleporthq/cms-mappers",
                                                         "meta": {
                                                             "namedImport": true,
@@ -1347,11 +1347,11 @@
                             "importDefinitions": {
                                 "CaisyDocumentLink": {
                                     "type": "package",
-                                    "path": "@teleporthq/thq-react-components",
-                                    "version": "github:teleporthq/thq-react-components",
+                                    "path": "@teleporthq/react-components",
+                                    "version": "latest",
                                     "meta": {
                                         "namedImport": true,
-                                        "importAlias": "@teleporthq/thq-react-components"
+                                        "importAlias": "@teleporthq/react-components"
                                     }
                                 }
                             }
@@ -1400,8 +1400,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1609,8 +1609,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1818,8 +1818,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -1998,8 +1998,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -2178,8 +2178,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
@@ -2333,11 +2333,11 @@
                             "importDefinitions": {
                                 "CaisyDocumentLink": {
                                     "type": "package",
-                                    "path": "@teleporthq/thq-react-components",
-                                    "version": "github:teleporthq/thq-react-components",
+                                    "path": "@teleporthq/react-components",
+                                    "version": "latest",
                                     "meta": {
                                         "namedImport": true,
-                                        "importAlias": "@teleporthq/thq-react-components"
+                                        "importAlias": "@teleporthq/react-components"
                                     }
                                 }
                             }
@@ -2386,8 +2386,8 @@
                                                 "elementType": "DataProvider",
                                                 "dependency": {
                                                     "type": "package",
-                                                    "path": "@teleporthq/thq-react-components",
-                                                    "version": "github:teleporthq/thq-react-components",
+                                                    "path": "@teleporthq/react-components",
+                                                    "version": "latest",
                                                     "meta": {
                                                         "namedImport": true
                                                     }
