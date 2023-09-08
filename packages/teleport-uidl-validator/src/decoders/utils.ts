@@ -825,6 +825,7 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
       list: lazy(() => elementNodeDecoder),
       empty: optional(lazy(() => elementNodeDecoder)),
     }),
+    source: optional(string()),
     renderPropIdentifier: string(),
   }),
 })
