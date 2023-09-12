@@ -196,5 +196,20 @@ const computePropsAST = (
     ])
   )
 
-  return [declerationAST, ...paginationASTs, returnAST]
+  return [
+    types.tryStatement(
+      types.blockStatement([declerationAST, ...paginationASTs, returnAST]),
+      types.catchClause(
+        types.identifier('error'),
+        types.blockStatement([
+          types.returnStatement(
+            types.objectExpression([
+              types.objectProperty(types.identifier('paths'), types.arrayExpression([])),
+              types.objectProperty(types.identifier('fallback'), types.stringLiteral('blocking')),
+            ])
+          ),
+        ])
+      )
+    ),
+  ]
 }
