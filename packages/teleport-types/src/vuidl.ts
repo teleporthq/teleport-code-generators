@@ -39,6 +39,7 @@ import {
   UIDLStateValueDetails,
   UIDLRouteDefinitions,
   UIDLStateDefinition,
+  UIDLLocalFontAsset,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -225,6 +226,7 @@ export type VUIDLGlobalAsset =
   | UIDLIconAsset
   | VUIDLStyleInlineAsset
   | VUIDLFontAsset
+  | UIDLLocalFontAsset
 
 export type VUIDLStyleInlineAsset = Modify<
   UIDLStyleInlineAsset,

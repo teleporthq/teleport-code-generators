@@ -21,7 +21,7 @@ export default {
     "eject": "craco eject"
   },
   "engines": {
-    "node": "16.x"
+    "node": "18.x"
   },
   "browserslist": {
     "production": [

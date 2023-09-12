@@ -19,9 +19,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, dependencies } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
-    if (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0) {
-      return structure
-    }
+
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.fileName = fileName
 
     const tokensMap: Record<string, string | number> = Object.keys(tokens || {}).reduce(
       (acc: Record<string, string | number>, key: string) => {
@@ -74,9 +74,6 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         linkAfter: ['import-local'],
       })
     }
-
-    uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.fileName = fileName
 
     return structure
   }

@@ -15,6 +15,7 @@ import {
   GeneratorFactoryParams,
   HTMLComponentGenerator,
   ProjectGenerator as ProjectGeneratorType,
+  UIDLLocalFontAsset,
 } from '@teleporthq/teleport-types'
 import {
   injectFilesToPath,
@@ -212,7 +213,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
     }
 
     const { components = {} } = uidl
-    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl.root
+    const { styleSetDefinitions = {}, designLanguage: {} = {} } = uidl.root
 
     // Based on the routing roles, separate pages into distict UIDLs with their own file names and paths
     const pageUIDLs = createPageUIDLs(uidl, this.strategy)
@@ -231,27 +232,50 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ? this.strategy.static.prefix
       : '/' + this.getAssetsPath().join('/')
 
+    const globalStyleSheetPath = generateLocalDependenciesPrefix(
+      this.strategy.pages.path,
+      this.strategy.projectStyleSheet.path
+    )
+
     const options: GeneratorOptions = {
       assets: {
         prefix: assetsPrefix,
         mappings: this.assetsAndPathMapping,
         identifier: this.assetIdentifier,
+        fontsFolder: [...this.strategy.static.path, this.assetIdentifier, 'fonts'].join('/'),
+        localFonts: uidl.globals?.assets.filter(
+          (asset) => asset.type === 'local-font'
+        ) as UIDLLocalFontAsset[],
       },
       projectRouteDefinition: uidl.root.stateDefinitions.route,
       mapping,
       skipValidation: true,
+      projectStyleSet: {
+        styleSetDefinitions,
+        fileName: this.strategy.projectStyleSheet.fileName,
+        path: this.strategy.pages.options?.createFolderForEachComponent
+          ? join('..', globalStyleSheetPath)
+          : globalStyleSheetPath,
+        importFile: this.strategy.projectStyleSheet?.importFile || false,
+      },
       designLanguage: uidl.root?.designLanguage,
     }
 
     // Handling project style sheet
-    if (
-      this.strategy.projectStyleSheet?.generator &&
-      (Object.keys(styleSetDefinitions).length > 0 || Object.keys(tokens).length > 0)
-    ) {
-      const { files, dependencies } = await this.styleSheetGenerator.generateComponent(uidl.root, {
-        isRootComponent: true,
-        assets: options.assets,
-      })
+    if (this.strategy.projectStyleSheet?.generator) {
+      const { files, dependencies } = await this.styleSheetGenerator.generateComponent(
+        {
+          ...uidl.root,
+          outputOptions: {
+            folderPath: this.strategy.projectStyleSheet.path,
+          },
+        },
+        {
+          isRootComponent: true,
+          ...options,
+        }
+      )
+
       inMemoryFilesMap.set('projectStyleSheet', {
         path: this.strategy.projectStyleSheet.path,
         files,
@@ -267,26 +291,6 @@ export class ProjectGenerator implements ProjectGeneratorType {
         )
       }
 
-      let pageOptions = options
-      if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
-          this.strategy.pages.path,
-          this.strategy.projectStyleSheet.path
-        )
-        pageOptions = {
-          ...options,
-          projectStyleSet: {
-            styleSetDefinitions,
-            fileName: this.strategy.projectStyleSheet.fileName,
-            path: this.strategy.pages.options?.createFolderForEachComponent
-              ? join('..', globalStyleSheetPath)
-              : globalStyleSheetPath,
-            importFile: this.strategy.projectStyleSheet?.importFile || false,
-          },
-          designLanguage: uidl.root?.designLanguage,
-        }
-      }
-
       if ('addExternalComponents' in this.pageGenerator) {
         ;(this.pageGenerator as unknown as HTMLComponentGenerator).addExternalComponents({
           externals: components,
@@ -295,7 +299,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         })
       }
 
-      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
+      const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, options)
       // Pages might be generated inside subfolders in the main pages folder
       const relativePath = UIDLUtils.getComponentFolderPath(pageUIDL)
       const path = this.strategy.pages.path.concat(relativePath)
@@ -354,7 +358,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       let componentOptions = options
       if (this.strategy.projectStyleSheet) {
-        const globalStyleSheetPath = generateLocalDependenciesPrefix(
+        const globalStyleSheetPathForComponents = generateLocalDependenciesPrefix(
           this.strategy.components.path,
           this.strategy.projectStyleSheet.path
         )
@@ -364,8 +368,8 @@ export class ProjectGenerator implements ProjectGeneratorType {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet.fileName,
             path: this.strategy.components?.options?.createFolderForEachComponent
-              ? join('..', globalStyleSheetPath)
-              : globalStyleSheetPath,
+              ? join('..', globalStyleSheetPathForComponents)
+              : globalStyleSheetPathForComponents,
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
           designLanguage: uidl.root?.designLanguage,

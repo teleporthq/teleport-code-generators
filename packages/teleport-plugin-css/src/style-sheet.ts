@@ -5,6 +5,7 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { join, relative } from 'path'
 
 interface StyleSheetPlugin {
   fileName?: string
@@ -13,21 +14,41 @@ interface StyleSheetPlugin {
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
   const { fileName } = config || { fileName: 'style' }
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
+    const { uidl, chunks, options } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
 
-    if (
-      (!styleSetDefinitions && !tokens) ||
-      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
-    ) {
-      return
-    }
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.styleFileName = fileName
 
     const cssMap: string[] = []
     const mediaStylesMap: Record<
       string,
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
+
+    if (options?.assets?.localFonts.length > 0) {
+      options.assets.localFonts.forEach((font) => {
+        const properties = StyleUtils.getContentOfStyleObject(font.properties) as Record<
+          string,
+          string | number
+        >
+        const format = properties?.format ? `format('${properties.format}')` : ''
+        /* tslint:disable:no-string-literal */
+        delete properties['format']
+
+        const fontPath = join(
+          relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
+          join(options.assets?.fontsFolder || '', font.path)
+        )
+
+        cssMap.push(
+          StyleBuilders.createFontDecleration({
+            ...properties,
+            src: `url("${fontPath}") ${format}`,
+          })
+        )
+      })
+    }
 
     if (Object.keys(tokens).length > 0) {
       cssMap.push(
@@ -53,9 +74,6 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     if (cssMap.length === 0) {
       return structure
     }
-
-    uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.styleFileName = fileName
 
     chunks.push({
       name: fileName,
