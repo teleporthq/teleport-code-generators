@@ -414,6 +414,7 @@ export interface UIDLCMSListRepeaterNodeContent {
     empty?: UIDLElementNode
   }
   renderPropIdentifier: string
+  source?: string
 }
 
 export interface UIDLNestedStyleDeclaration {

@@ -456,7 +456,7 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
   repeaterNode.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('items'),
-      types.jsxExpressionContainer(types.identifier('params'))
+      types.jsxExpressionContainer(types.identifier(node.content.source ?? 'params'))
     )
   )
 
