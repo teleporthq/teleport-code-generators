@@ -6,6 +6,7 @@ import {
 } from '@teleporthq/teleport-types'
 import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { load } from 'cheerio'
+import { relative, join } from 'path'
 
 class ProjectPluginCloneGlobals implements ProjectPlugin {
   async runBefore(structure: ProjectPluginStructure) {
@@ -31,10 +32,6 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
     parsedEntry('head').find('meta').remove()
     parsedEntry('head').find('title').remove()
 
-    if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
-      parsedEntry('head').append(`<link rel="stylesheet" href="./style.css"></link>`)
-    }
-
     parsedEntry('head').append(scriptTagsFromRootHead.toString())
 
     const memoryFiles = Object.fromEntries(files)
@@ -50,6 +47,19 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
             parsedEntry('head').find('meta').remove()
 
             const parsedIndividualFile = load(file.content)
+
+            if (Object.values(uidl.root?.styleSetDefinitions || {}).length > 0) {
+              const relativePath = join(
+                relative(
+                  join(...fileId.path.filter(Boolean)),
+                  join(...structure.strategy.projectStyleSheet?.path)
+                ),
+                '.'
+              )
+              parsedIndividualFile('head').append(
+                `<link rel="stylesheet" href="${relativePath}/${structure.strategy.projectStyleSheet.fileName}.css"></link>`
+              )
+            }
 
             const metaTags = parsedIndividualFile.root().find('meta')
             parsedEntry('head').prepend(metaTags.toString().concat(metaTagsFromRoot))

@@ -29,6 +29,16 @@ import { staticNode } from '@teleporthq/teleport-uidl-builders'
 import { createCSSPlugin } from '@teleporthq/teleport-plugin-css'
 import { DEFAULT_COMPONENT_CHUNK_NAME } from './constants'
 
+const isValidURL = (url: string) => {
+  try {
+    /* tslint:disable:no-unused-expression */
+    new URL(url)
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
 type NodeToHTML<NodeType, ReturnType> = (
   node: NodeType,
   templatesLookUp: Record<string, unknown>,
@@ -465,7 +475,7 @@ const handleAttributes = (
         elementType of image is always mapped to img.
         For reference, check `html-mapping` file.
       */
-      if (elementType === 'img' && attrKey === 'src') {
+      if (elementType === 'img' && attrKey === 'src' && !isValidURL(value)) {
         /*
           By default we just prefix all the asset paths with just the
           assetPrefix that is configured in the project. But for `html` generators

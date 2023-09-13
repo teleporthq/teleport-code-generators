@@ -47,6 +47,14 @@ export const createCSSClassWithSelector = (
     .toString()
 }
 
+export const createFontDecleration = (styleObject: Record<string, string | number>) => {
+  return jss
+    .createStyleSheet({
+      '@font-face': styleObject,
+    })
+    .toString()
+}
+
 export const createCSSClassWithMediaQuery = (
   mediaOffset: string,
   styleObject: Record<string, string | number>

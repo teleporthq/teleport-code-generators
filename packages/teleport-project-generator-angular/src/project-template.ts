@@ -35,7 +35,7 @@ export const template: GeneratedFolder = {
     "@angular/cli": "^14.0.0",
     "@angular/compiler-cli": "^14.0.0",
     "@types/node": "^12.11.1",
-    "typescript": "^4.7.3"
+    "typescript": "~4.7.3"
   }
 }`,
       fileType: 'json',

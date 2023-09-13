@@ -138,48 +138,58 @@ export const createRoutesAST = (
   stateDefinitions: { route: UIDLRouteDefinitions } & Record<string, UIDLStateDefinition>,
   t = types
 ) => {
-  const routesObject = routes.map((conditionalNode) => {
-    const { value: routeKey } = conditionalNode.content
-    const pageDefinition = stateDefinitions.route.values.find((route) => route.value === routeKey)
-    const { navLink, fileName } = pageDefinition.pageOptions
+  const routesObject = stateDefinitions.route.values
+    .sort((routeA) => {
+      if (routeA?.pageOptions?.fallback) {
+        return 1
+      }
+    })
+    .map((routeDefinition) => {
+      const page = routes.find(
+        (routeNode) => routeNode.content.value.toString() === routeDefinition.value
+      )
+      if (!page) {
+        throw new Error(`Failed to match route ${routeDefinition.value} with a page`)
+      }
 
-    return t.objectExpression([
-      t.objectProperty(t.identifier('path'), t.stringLiteral(navLink.replace('/', ''))),
-      t.objectProperty(
-        t.identifier('loadChildren'),
-        t.arrowFunctionExpression(
-          [],
-          t.callExpression(
-            t.memberExpression(
-              t.callExpression(t.identifier('import'), [
-                /*
-                  Now, navLink is being used to create a folder strucutre.
-                  So, it is important to append the same when generating the path
-                */
-                t.stringLiteral(
-                  `./pages/${join(
-                    ...navLink.split('/')?.slice(0, -1),
-                    fileName,
-                    fileName + '.module'
-                  )}`
-                ),
-              ]),
-              t.identifier('then')
-            ),
-            [
-              t.arrowFunctionExpression(
-                [t.identifier('m')],
-                t.memberExpression(
-                  t.identifier('m'),
-                  t.identifier(`${StringUtils.dashCaseToUpperCamelCase(fileName)}Module`)
-                )
+      const { navLink, fileName } = routeDefinition.pageOptions
+      return t.objectExpression([
+        t.objectProperty(t.identifier('path'), t.stringLiteral(navLink.replace('/', ''))),
+        t.objectProperty(
+          t.identifier('loadChildren'),
+          t.arrowFunctionExpression(
+            [],
+            t.callExpression(
+              t.memberExpression(
+                t.callExpression(t.identifier('import'), [
+                  /*
+                   Now, navLink is being used to create a folder strucutre.
+                   So, it is important to append the same when generating the path
+                 */
+                  t.stringLiteral(
+                    `./pages/${join(
+                      ...navLink.split('/')?.slice(0, -1),
+                      fileName,
+                      fileName + '.module'
+                    )}`
+                  ),
+                ]),
+                t.identifier('then')
               ),
-            ]
+              [
+                t.arrowFunctionExpression(
+                  [t.identifier('m')],
+                  t.memberExpression(
+                    t.identifier('m'),
+                    t.identifier(`${StringUtils.dashCaseToUpperCamelCase(fileName)}Module`)
+                  )
+                ),
+              ]
+            )
           )
-        )
-      ),
-    ])
-  })
+        ),
+      ])
+    })
 
   return t.variableDeclaration('const', [
     t.variableDeclarator(t.identifier('routes'), t.arrayExpression(routesObject)),

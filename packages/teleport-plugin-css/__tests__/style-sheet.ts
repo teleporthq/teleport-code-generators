@@ -5,7 +5,7 @@ import {
 } from '@teleporthq/teleport-types'
 import { staticNode, dynamicNode } from '@teleporthq/teleport-uidl-builders'
 import { createStyleSheetPlugin } from '../src/style-sheet'
-import { setUpStructureWithHASTChunk } from './mocks'
+import { setUpHASTChunk, setUpStructureWithHASTChunk } from './mocks'
 
 describe('plugin-css-style-sheet', () => {
   it('should generate css when the styleSetDefinitions are presnet', async () => {
@@ -101,7 +101,7 @@ describe('plugin-css-style-sheet', () => {
     const structure = setUpStructureWithHASTChunk()
 
     const result = await plugin(structure)
-
-    expect(result).toBe(undefined)
+    expect(result.chunks.length).toBe(1)
+    expect(result.chunks[0]).toEqual(setUpHASTChunk())
   })
 })

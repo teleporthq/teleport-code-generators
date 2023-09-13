@@ -5,22 +5,42 @@ import {
   ChunkType,
   FileType,
 } from '@teleporthq/teleport-types'
+import { join, relative } from 'path'
 
 interface StyleSheetPlugin {
   fileName?: string
+  /*
+    Frameworks with dev servers don't need relative path mapping.
+  */
+  relativeFontPath?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName } = config || { fileName: 'style' }
-  const styleSheetPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks } = structure
-    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
+  const { fileName = 'style', relativeFontPath = false } = config || {
+    fileName: 'style',
+    relativeFontPath: false,
+  }
 
-    if (
-      (!styleSetDefinitions && !tokens) ||
-      (Object.keys(styleSetDefinitions).length === 0 && Object.keys(tokens).length === 0)
-    ) {
-      return
+  const styleSheetPlugin: ComponentPlugin = async (structure) => {
+    const {
+      uidl,
+      chunks,
+      options: { assets },
+    } = structure
+    const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
+    const {
+      localFonts = [],
+      fontsFolder,
+      identifier: assetIdentifier,
+    } = assets || { localFonts: [] }
+
+    const canSkipThePlugin =
+      localFonts?.length === 0 &&
+      Object.keys(styleSetDefinitions).length === 0 &&
+      Object.keys(tokens).length === 0
+
+    if (canSkipThePlugin) {
+      return structure
     }
 
     const cssMap: string[] = []
@@ -28,6 +48,35 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       string,
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
+
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.styleFileName = fileName
+
+    if (localFonts.length > 0) {
+      localFonts.forEach((font) => {
+        const properties = StyleUtils.getContentOfStyleObject(font.properties) as Record<
+          string,
+          string | number
+        >
+        const format = properties?.format ? `format('${properties.format}')` : ''
+        /* tslint:disable:no-string-literal */
+        delete properties['format']
+
+        const fontPath = relativeFontPath
+          ? join(
+              relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
+              join(fontsFolder || '', font.path)
+            )
+          : join('/', assetIdentifier || '', 'fonts', font.path)
+
+        cssMap.push(
+          StyleBuilders.createFontDecleration({
+            ...properties,
+            src: `url("${fontPath}") ${format}`,
+          })
+        )
+      })
+    }
 
     if (Object.keys(tokens).length > 0) {
       cssMap.push(
@@ -53,9 +102,6 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
     if (cssMap.length === 0) {
       return structure
     }
-
-    uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.styleFileName = fileName
 
     chunks.push({
       name: fileName,
