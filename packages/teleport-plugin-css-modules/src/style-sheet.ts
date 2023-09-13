@@ -11,11 +11,13 @@ import { relative, join } from 'path'
 interface StyleSheetPlugin {
   fileName?: string
   moduleExtension?: boolean
+  relativeFontPath?: boolean
 }
 
 const defaultConfig = {
   fileName: 'style',
   moduleExtension: false,
+  relativeFontPath: false,
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
@@ -25,8 +27,26 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   }
 
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const {
+      uidl,
+      chunks,
+      options: { assets },
+    } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
+    const {
+      localFonts = [],
+      fontsFolder,
+      identifier: assetIdentifier,
+    } = assets || { localFonts: [] }
+
+    const canSkipThePlugin =
+      localFonts?.length === 0 &&
+      Object.keys(styleSetDefinitions).length === 0 &&
+      Object.keys(tokens).length === 0
+
+    if (canSkipThePlugin) {
+      return structure
+    }
 
     uidl.outputOptions = uidl.outputOptions || {}
     uidl.outputOptions.styleFileName = moduleExtension ? `${fileName}.module` : fileName
@@ -37,8 +57,8 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
 
-    if (options?.assets?.localFonts.length > 0) {
-      options.assets.localFonts.forEach((font) => {
+    if (localFonts.length > 0) {
+      localFonts.forEach((font) => {
         const properties = StyleUtils.getContentOfStyleObject(font.properties) as Record<
           string,
           string | number
@@ -47,10 +67,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         /* tslint:disable:no-string-literal */
         delete properties['format']
 
-        const fontPath = join(
-          relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
-          join(options.assets?.fontsFolder || '', font.path)
-        )
+        const fontPath = relativeFontPath
+          ? join(
+              relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
+              join(fontsFolder || '', font.path)
+            )
+          : join('/', assetIdentifier || '', 'fonts', font.path)
 
         cssMap.push(
           StyleBuilders.createFontDecleration({

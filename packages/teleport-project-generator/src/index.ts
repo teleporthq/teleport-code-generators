@@ -232,33 +232,35 @@ export class ProjectGenerator implements ProjectGeneratorType {
       ? this.strategy.static.prefix
       : '/' + this.getAssetsPath().join('/')
 
-    const globalStyleSheetPath = generateLocalDependenciesPrefix(
-      this.strategy.pages.path,
-      this.strategy.projectStyleSheet.path
-    )
-
     const options: GeneratorOptions = {
       assets: {
         prefix: assetsPrefix,
         mappings: this.assetsAndPathMapping,
         identifier: this.assetIdentifier,
-        fontsFolder: [...this.strategy.static.path, this.assetIdentifier, 'fonts'].join('/'),
+        fontsFolder: join(
+          ...(this.strategy?.static?.path || []),
+          this.assetIdentifier ?? '',
+          'fonts'
+        ),
         localFonts: uidl.globals?.assets.filter(
           (asset) => asset.type === 'local-font'
         ) as UIDLLocalFontAsset[],
       },
       projectRouteDefinition: uidl.root.stateDefinitions.route,
+      designLanguage: uidl.root?.designLanguage,
       mapping,
       skipValidation: true,
-      projectStyleSet: {
-        styleSetDefinitions,
-        fileName: this.strategy.projectStyleSheet.fileName,
-        path: this.strategy.pages.options?.createFolderForEachComponent
-          ? join('..', globalStyleSheetPath)
-          : globalStyleSheetPath,
-        importFile: this.strategy.projectStyleSheet?.importFile || false,
-      },
-      designLanguage: uidl.root?.designLanguage,
+      ...(this.strategy.projectStyleSheet?.generator &&
+        this.strategy.projectStyleSheet?.path && {
+          projectStyleSet: {
+            styleSetDefinitions,
+            fileName: this.strategy.projectStyleSheet?.fileName,
+            path: this.strategy.pages.options?.createFolderForEachComponent
+              ? join('..', ...this.strategy.projectStyleSheet.path)
+              : join(...this.strategy.projectStyleSheet?.path),
+            importFile: this.strategy.projectStyleSheet?.importFile || false,
+          },
+        }),
     }
 
     // Handling project style sheet

@@ -22,11 +22,26 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
   }
 
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
-    const { uidl, chunks, options } = structure
+    const {
+      uidl,
+      chunks,
+      options: { assets },
+    } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
+    const {
+      localFonts = [],
+      fontsFolder,
+      identifier: assetIdentifier,
+    } = assets || { localFonts: [] }
 
-    uidl.outputOptions = uidl.outputOptions || {}
-    uidl.outputOptions.styleFileName = fileName
+    const canSkipThePlugin =
+      localFonts?.length === 0 &&
+      Object.keys(styleSetDefinitions).length === 0 &&
+      Object.keys(tokens).length === 0
+
+    if (canSkipThePlugin) {
+      return structure
+    }
 
     const cssMap: string[] = []
     const mediaStylesMap: Record<
@@ -34,8 +49,11 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
       Array<{ [x: string]: Record<string, string | number> }>
     > = {}
 
-    if (options?.assets?.localFonts.length > 0) {
-      options.assets.localFonts.forEach((font) => {
+    uidl.outputOptions = uidl.outputOptions || {}
+    uidl.outputOptions.styleFileName = fileName
+
+    if (localFonts.length > 0) {
+      localFonts.forEach((font) => {
         const properties = StyleUtils.getContentOfStyleObject(font.properties) as Record<
           string,
           string | number
@@ -47,9 +65,9 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         const fontPath = relativeFontPath
           ? join(
               relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
-              join(options.assets?.fontsFolder || '', font.path)
+              join(fontsFolder || '', font.path)
             )
-          : join('/', options.assets.identifier, 'fonts', font.path)
+          : join('/', assetIdentifier || '', 'fonts', font.path)
 
         cssMap.push(
           StyleBuilders.createFontDecleration({
