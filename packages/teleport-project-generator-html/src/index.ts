@@ -30,7 +30,7 @@ const createHTMLProjectGenerator = (config?: { individualEntyFile: boolean }) =>
     },
     projectStyleSheet: {
       generator: createComponentGenerator,
-      plugins: [createStyleSheetPlugin()],
+      plugins: [createStyleSheetPlugin({ fileName: 'style', relativeFontPath: true })],
       fileName: 'style',
       path: [''],
       importFile: true,

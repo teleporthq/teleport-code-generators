@@ -9,10 +9,18 @@ import { join, relative } from 'path'
 
 interface StyleSheetPlugin {
   fileName?: string
+  /*
+    Frameworks with dev servers don't need relative path mapping.
+  */
+  relativeFontPath?: boolean
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName } = config || { fileName: 'style' }
+  const { fileName = 'style', relativeFontPath = false } = config || {
+    fileName: 'style',
+    relativeFontPath: false,
+  }
+
   const styleSheetPlugin: ComponentPlugin = async (structure) => {
     const { uidl, chunks, options } = structure
     const { styleSetDefinitions = {}, designLanguage: { tokens = {} } = {} } = uidl
@@ -36,10 +44,12 @@ export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = 
         /* tslint:disable:no-string-literal */
         delete properties['format']
 
-        const fontPath = join(
-          relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
-          join(options.assets?.fontsFolder || '', font.path)
-        )
+        const fontPath = relativeFontPath
+          ? join(
+              relative(join(...(uidl.outputOptions?.folderPath || [])), './'),
+              join(options.assets?.fontsFolder || '', font.path)
+            )
+          : join('/', options.assets.identifier, 'fonts', font.path)
 
         cssMap.push(
           StyleBuilders.createFontDecleration({

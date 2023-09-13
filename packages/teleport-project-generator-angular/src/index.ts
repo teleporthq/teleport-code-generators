@@ -58,7 +58,7 @@ const createAngularProjectGenerator = () => {
     },
     projectStyleSheet: {
       generator: createComponentGenerator,
-      plugins: [createStyleSheetPlugin({ fileName: 'styles' })],
+      plugins: [createStyleSheetPlugin({ fileName: 'styles', relativeFontPath: true })],
       fileName: 'styles',
       path: ['src'],
     },

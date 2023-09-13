@@ -1,4 +1,4 @@
-import { readFileSync, mkdirSync, rmdirSync } from 'fs'
+import { readFileSync, rmdirSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import chalk from 'chalk'
 import { packProject } from '@teleporthq/teleport-code-generator'
@@ -49,6 +49,13 @@ const packerOptions: PackerOptions = {
       name: 'kitten.png',
       location: 'remote',
       path: ['one', 'two'],
+    },
+    {
+      content:
+        'https://storage.googleapis.com/playground-bucket-v2.teleporthq.io/8db63146-c3cc-47b2-a38d-1f2b39418d4e/8f055b25-4689-4305-b41a-0655571542ca',
+      name: 'super-funky.ttf',
+      location: 'remote',
+      path: ['fonts'],
     },
   ],
 }
@@ -111,8 +118,7 @@ const run = async () => {
       return `${ProjectType.NEXT} - Parse Embeds`
     })
 
-    // /* Frameworks using Css-Modules */
-
+    /* Frameworks using Css-Modules */
     await log(async () => {
       result = await packProject(projectUIDL, {
         ...packerOptions,
