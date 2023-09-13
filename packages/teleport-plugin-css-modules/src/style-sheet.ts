@@ -21,7 +21,7 @@ const defaultConfig = {
 }
 
 export const createStyleSheetPlugin: ComponentPluginFactory<StyleSheetPlugin> = (config) => {
-  const { fileName, moduleExtension } = {
+  const { fileName, moduleExtension, relativeFontPath } = {
     ...defaultConfig,
     ...config,
   }
