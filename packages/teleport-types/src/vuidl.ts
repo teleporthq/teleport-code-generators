@@ -48,6 +48,8 @@ import {
   UIDLStateValueDetails,
   UIDLRouteDefinitions,
   UIDLStateDefinition,
+  UIDLCMSMixedTypeNode,
+  UIDLDependency,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -92,7 +94,9 @@ export interface VCMSListUIDLElementNode
     UIDLCMSListNode,
     {
       content: {
+        elementType: string
         name?: string
+        dependency?: UIDLDependency
         nodes: {
           key?: string
           success: VUIDLElementNode
@@ -103,6 +107,24 @@ export interface VCMSListUIDLElementNode
         itemValuePath?: string[]
         resource?: UIDLLocalResource | UIDLExternalResource
         initialData?: UIDLPropValue
+      }
+    }
+  > {}
+
+export interface VUIDLCMSMixedTypeNode
+  extends Modify<
+    UIDLCMSMixedTypeNode,
+    {
+      content: {
+        elementType: string
+        name: string
+        nodes: {
+          fallback?: VUIDLElementNode
+          error?: VUIDLElementNode
+        }
+        dependency?: UIDLDependency
+        attrs: VUIDLElement['attrs']
+        mappings: Record<string, VUIDLElementNode>
       }
     }
   > {}
@@ -142,6 +164,7 @@ export type VUIDLNode =
   | VCMSItemUIDLElementNode
   | VCMSListUIDLElementNode
   | VCMSListRepeaterElementNode
+  | VUIDLCMSMixedTypeNode
   | UIDLExpressionValue
   | UIDLInjectValue
   | string
@@ -149,9 +172,15 @@ export type VUIDLNode =
 export type VUIDLElement = Modify<
   UIDLElement,
   {
+    elementType: string
+    semanticType?: string
+    selfClosing?: boolean
+    ignore?: boolean
     abilities?: {
       link?: VUIDLLinkNode
     }
+    events: UIDLElement['events']
+    dependency?: UIDLDependency
     children?: VUIDLNode[]
     style?: Record<string, UIDLAttributeValue | string | number>
     attrs?: Record<string, UIDLAttributeValue | string | number>

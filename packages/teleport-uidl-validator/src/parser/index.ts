@@ -26,6 +26,7 @@ import {
   UIDLCMSListNode,
   UIDLDependency,
   UIDLEventHandlerStatement,
+  UIDLCMSMixedTypeNode,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -148,7 +149,7 @@ export const parseProjectJSON = (
 const parseComponentNode = (node: Record<string, unknown>, component: ComponentUIDL): UIDLNode => {
   switch ((node as unknown as UIDLNode).type) {
     case 'cms-item':
-    case 'cms-list':
+    case 'cms-list': {
       const {
         initialData,
         nodes: { success, error, loading },
@@ -195,8 +196,9 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         })
       }
 
-      return node as unknown as UIDLNode
-    case 'cms-list-repeater':
+      return node as unknown as UIDLCMSListNode | UIDLCMSItemNode
+    }
+    case 'cms-list-repeater': {
       const {
         nodes: { list, empty },
       } = (node as unknown as UIDLCMSListRepeaterNode).content
@@ -215,7 +217,39 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         ) as UIDLElementNode
       }
 
-      return node as unknown as UIDLNode
+      return node as unknown as UIDLCMSListRepeaterNode
+    }
+    case 'cms-mixed-type': {
+      const {
+        nodes: { fallback, error },
+        dependency,
+        attrs,
+      } = (node as unknown as UIDLCMSMixedTypeNode).content
+
+      if (attrs) {
+        ;(node.content as UIDLCMSMixedTypeNode['content']).attrs =
+          UIDLUtils.transformAttributesAssignmentsToJson(
+            attrs as Record<string, unknown>,
+            dependency && (dependency as UIDLDependency)?.type === 'local'
+          )
+      }
+
+      if (fallback) {
+        ;(node as unknown as UIDLCMSMixedTypeNode).content.nodes.fallback = parseComponentNode(
+          fallback as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      if (error) {
+        ;(node as unknown as UIDLCMSMixedTypeNode).content.nodes.error = parseComponentNode(
+          error as unknown as Record<string, unknown>,
+          component
+        ) as UIDLElementNode
+      }
+
+      return node as unknown as UIDLCMSMixedTypeNode
+    }
     case 'element':
       const elementContent = node.content as Record<string, unknown>
       if (elementContent?.referencedStyles) {

@@ -11,6 +11,7 @@ import {
   UIDLCMSItemNode,
   UIDLExpressionValue,
   UIDLCMSListRepeaterNode,
+  UIDLCMSMixedTypeNode,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
 import { JSXASTReturnType, NodeToJSX } from './types'
@@ -186,6 +187,12 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'cms-list':
       return generateCMSNode(node, params, options)
 
+    case 'cms-list-repeater':
+      return generateCMSListRepeaterNode(node, params, options)
+
+    case 'cms-mixed-type':
+      return generateCMSMixedTypeNode(node, params, options)
+
     case 'element':
       return [generateElementNode(node, params, options)]
 
@@ -194,9 +201,6 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
 
     case 'conditional':
       return generateConditionalNode(node, params, options)
-
-    case 'cms-list-repeater':
-      return generateCMSListRepeaterNode(node, params, options)
 
     case 'slot':
       if (options.slotHandling === 'native') {
@@ -221,6 +225,43 @@ const generateExpressionNode: NodeToJSX<UIDLExpressionValue, types.JSXExpression
 ) => {
   const expression = ASTUtils.getExpressionFromUIDLExpressionNode(node)
   return types.jsxExpressionContainer(expression)
+}
+
+const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement[]> = (
+  node,
+  params,
+  options
+) => {
+  const {
+    nodes: { error, fallback },
+    elementType,
+  } = node.content
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
+  const cmsMixedNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+
+  if (fallback) {
+    cmsMixedNode.openingElement.attributes.push(
+      types.jSXAttribute(
+        types.jsxIdentifier('renderDefault'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression([], generateElementNode(fallback, params, options))
+        )
+      )
+    )
+  }
+
+  if (error) {
+    cmsMixedNode.openingElement.attributes.push(
+      types.jSXAttribute(
+        types.jsxIdentifier('renderError'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression([], generateElementNode(error, params, options))
+        )
+      )
+    )
+  }
+
+  return [cmsMixedNode]
 }
 
 const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXElement[]> = (
