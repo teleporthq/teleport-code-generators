@@ -465,6 +465,7 @@ export interface PackerOptions {
   assets?: GeneratedFile[]
   plugins?: ProjectPlugin[]
   assetsFolder?: string[]
+  exportComponentsAsPagesForHTML?: boolean
 }
 
 export interface GenerateOptions {
