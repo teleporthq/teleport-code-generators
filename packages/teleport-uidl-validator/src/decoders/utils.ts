@@ -91,6 +91,7 @@ import {
   UIDLResourceMapper,
   UIDLInjectValue,
   VUIDLStateValueDetails,
+  UIDLLocalFontAsset,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
 
@@ -301,7 +302,8 @@ export const globalAssetsDecoder: Decoder<VUIDLGlobalAsset> = union(
   lazy(() => externalStyleAssetDecoder),
   lazy(() => fontAssetDecoder),
   lazy(() => canonicalAssetDecoder),
-  lazy(() => iconAssetDecoder)
+  lazy(() => iconAssetDecoder),
+  lazy(() => localFontDecoder)
 )
 
 export const baseAssetDecoder: Decoder<UIDLAssetBase> = object({
@@ -345,6 +347,12 @@ export const fontAssetDecoder: Decoder<VUIDLFontAsset> = object({
   type: constant('font' as const),
   attrs: optional(dict(union(staticValueDecoder, string(), boolean(), number()))),
   path: string(),
+})
+
+export const localFontDecoder: Decoder<UIDLLocalFontAsset> = object({
+  type: constant('local-font' as const),
+  path: string(),
+  properties: dict(staticValueDecoder),
 })
 
 export const canonicalAssetDecoder: Decoder<UIDLCanonicalAsset> = object({

@@ -141,10 +141,18 @@ export interface UIDLFontAsset {
   path: string
   attrs?: Record<string, UIDLStaticValue>
 }
+
+export interface UIDLLocalFontAsset {
+  type: 'local-font'
+  path: string
+  properties: Record<string, UIDLStaticValue>
+}
+
 export interface UIDLCanonicalAsset {
   type: 'canonical'
   path: string
 }
+
 export interface UIDLIconAsset {
   type: 'icon'
   path: string
@@ -161,6 +169,7 @@ export type UIDLGlobalAsset =
   | UIDLFontAsset
   | UIDLCanonicalAsset
   | UIDLIconAsset
+  | UIDLLocalFontAsset
 
 export interface ComponentUIDL {
   name: string

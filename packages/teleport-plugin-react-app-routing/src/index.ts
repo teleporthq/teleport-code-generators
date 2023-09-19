@@ -37,45 +37,55 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
     registerReactRouterDeps(dependencies)
 
     const { stateDefinitions = {} } = uidl
+    const routeValues = (stateDefinitions.route as UIDLRouteDefinitions).values || []
 
     const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
 
-    const routeJSXDefinitions = routes.map((conditionalNode) => {
-      const { value: routeKey } = conditionalNode.content
-      const routeValues = (stateDefinitions.route as UIDLRouteDefinitions).values || []
-      const routeDefinition = routeValues.find((route) => route.value === routeKey)
-      const defaultOptions: UIDLPageOptions = {}
-      const { fileName, componentName, navLink, fallback } =
-        routeDefinition.pageOptions || defaultOptions
+    const routeJSXDefinitions = routeValues
+      .sort((routeA) => {
+        if (routeA?.pageOptions?.fallback) {
+          return 1
+        }
+      })
+      .map((routeDefinition) => {
+        const page = routes.find(
+          (routeNode) => routeNode.content.value.toString() === routeDefinition.value
+        )
+        if (!page) {
+          throw new Error(`Failed to match route ${routeDefinition.value} with a page`)
+        }
+        const defaultOptions: UIDLPageOptions = {}
+        const { fileName, componentName, navLink, fallback } =
+          routeDefinition.pageOptions || defaultOptions
 
-      /* If pages are exported in their own folder and in custom file names.
+        /* If pages are exported in their own folder and in custom file names.
          Import statements must then be:
 
          import Home from '../pages/home/component'
 
          so the `/component` suffix is computed below.
       */
-      const pageStrategyOptions = (strategy && strategy.pages.options) || {}
-      const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
+        const pageStrategyOptions = (strategy && strategy.pages.options) || {}
+        const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
-      /*
+        /*
         Now, navLink is being used to create a folder strucutre.
         So, it is important to append the same when generating the path
       */
 
-      dependencies[componentName] = {
-        type: 'local',
-        path: `${pageDependencyPrefix}${join(
-          ...navLink.split('/')?.slice(0, -1),
-          fileName,
-          pageComponentSuffix
-        )}`,
-      }
+        dependencies[componentName] = {
+          type: 'local',
+          path: `${pageDependencyPrefix}${join(
+            ...navLink.split('/')?.slice(0, -1),
+            fileName,
+            pageComponentSuffix
+          )}`,
+        }
 
-      return constructRouteJSX(componentName, navLink, fallback)
-    })
+        return constructRouteJSX(componentName, navLink, fallback)
+      })
 
     const rootRouterTag = createRouteRouterTag(routeJSXDefinitions)
 

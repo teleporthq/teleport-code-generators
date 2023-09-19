@@ -99,7 +99,8 @@ describe('plugin-css-modules-style-sheet', () => {
 
     const result = await plugin(structure)
 
-    expect(result).toBe(undefined)
+    expect(result.chunks.length).toBe(1)
+    expect(structure.chunks[0]).toEqual(result.chunks[0])
   })
 
   it('Generates styles from UIDLStyleSetDefinitions', () => {
