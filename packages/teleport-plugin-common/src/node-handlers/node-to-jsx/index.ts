@@ -235,16 +235,35 @@ const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement
   const {
     nodes: { error, fallback },
     elementType,
+    renderPropIdentifier,
+    mappings = {},
   } = node.content
   const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
   const cmsMixedNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+
+  const mappingsObject: types.ObjectProperty[] = []
+
+  Object.keys(mappings).forEach((key) => {
+    const element = generateElementNode(mappings[key], params, options)
+    console.log(element)
+  })
+
+  cmsMixedNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('mappingConfiguration'),
+      types.jsxExpressionContainer(types.objectExpression(mappingsObject))
+    )
+  )
 
   if (fallback) {
     cmsMixedNode.openingElement.attributes.push(
       types.jSXAttribute(
         types.jsxIdentifier('renderDefault'),
         types.jsxExpressionContainer(
-          types.arrowFunctionExpression([], generateElementNode(fallback, params, options))
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateElementNode(fallback, params, options)
+          )
         )
       )
     )
@@ -255,7 +274,10 @@ const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement
       types.jSXAttribute(
         types.jsxIdentifier('renderError'),
         types.jsxExpressionContainer(
-          types.arrowFunctionExpression([], generateElementNode(error, params, options))
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateElementNode(error, params, options)
+          )
         )
       )
     )

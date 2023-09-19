@@ -1266,6 +1266,7 @@
                       "type": "cms-mixed-type",
                       "content": {
                         "elementType": "CMSMixedType",
+                        "renderPropIdentifier": "cms_mixed_type",
                         "nodes": {
                           "fallback": {
                             "type": "element",

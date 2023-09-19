@@ -840,11 +840,12 @@ export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
       {},
       lazy(() => dict(union(attributeValueDecoder, string(), number())))
     ),
+    renderPropIdentifier: string(),
     nodes: object({
       fallback: optional(lazy(() => elementNodeDecoder)),
       error: optional(lazy(() => elementNodeDecoder)),
     }),
-    mappings: dict(lazy(() => elementNodeDecoder)),
+    mappings: withDefault({}, dict(lazy(() => elementNodeDecoder))),
   }),
 })
 

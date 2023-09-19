@@ -122,6 +122,7 @@ export interface VUIDLCMSMixedTypeNode
           fallback?: VUIDLElementNode
           error?: VUIDLElementNode
         }
+        renderPropIdentifier: string
         dependency?: UIDLDependency
         attrs: VUIDLElement['attrs']
         mappings: Record<string, VUIDLElementNode>

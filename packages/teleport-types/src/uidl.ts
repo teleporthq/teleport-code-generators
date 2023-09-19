@@ -349,6 +349,7 @@ export interface UIDLCMSMixedTypeNode {
     key: string
     dependency?: UIDLDependency
     attrs: Record<string, UIDLAttributeValue>
+    renderPropIdentifier: string
     nodes: {
       fallback?: UIDLElementNode
       error?: UIDLElementNode
