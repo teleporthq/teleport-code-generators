@@ -845,6 +845,7 @@ export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
       fallback: optional(lazy(() => elementNodeDecoder)),
       error: optional(lazy(() => elementNodeDecoder)),
     }),
+    dependency: optional(lazy(() => dependencyDecoder)),
     mappings: withDefault({}, dict(lazy(() => elementNodeDecoder))),
   }),
 })
