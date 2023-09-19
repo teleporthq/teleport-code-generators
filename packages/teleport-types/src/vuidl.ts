@@ -50,6 +50,7 @@ import {
   UIDLStateDefinition,
   UIDLCMSMixedTypeNode,
   UIDLDependency,
+  UIDLLocalFontAsset,
 } from './uidl'
 import { Modify } from './helper'
 
@@ -335,6 +336,7 @@ export type VUIDLGlobalAsset =
   | UIDLIconAsset
   | VUIDLStyleInlineAsset
   | VUIDLFontAsset
+  | UIDLLocalFontAsset
 
 export type VUIDLStyleInlineAsset = Modify<
   UIDLStyleInlineAsset,

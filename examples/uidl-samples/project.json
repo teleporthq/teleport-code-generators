@@ -25,6 +25,16 @@
               "name": "Inter"
           },
           {
+            "type": "local-font",
+            "path": "super-funky.ttf",
+            "properties": {
+              "font-family": {
+                "type": "static",
+                "content": "Super Funky"
+              }
+            }
+          },
+          {
               "type": "script",
               "content": "https://unpkg.com/@teleporthq/teleport-custom-scripts"
           }
@@ -6955,7 +6965,8 @@
                                               "maxWidth": {
                                                   "type": "static",
                                                   "content": "450px"
-                                              }
+                                              },
+                                              "fontFamily": "Super Funky"
                                           },
                                           "children": [
                                               {

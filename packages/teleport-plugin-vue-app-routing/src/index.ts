@@ -64,33 +64,51 @@ export const createVueAppRoutingPlugin: ComponentPluginFactory<VueRouterConfig> 
     const pageStrategyOptions = (options.strategy && options.strategy.pages.options) || {}
     const pageComponentSuffix = pageStrategyOptions.createFolderForEachComponent ? '/index' : ''
 
-    const routesAST = routes.map((routeNode) => {
-      const pageKey = routeNode.content.value.toString()
+    const routesAST = routeValues
+      .sort((routeA) => {
+        if (routeA?.pageOptions?.fallback) {
+          return 1
+        }
+      })
+      .map((route) => {
+        const page = routes.find((routeNode) => routeNode.content.value.toString() === route.value)
+        if (!page) {
+          throw new Error(`Failed to match route ${route.value} with a page`)
+        }
 
-      const pageDefinition = routeValues.find((route) => route.value === pageKey)
-      const defaultOptions: UIDLPageOptions = {}
-      const { componentName, navLink, fileName } = pageDefinition.pageOptions || defaultOptions
+        const pageKey = page.content.value.toString()
 
-      /*
+        const defaultOptions: UIDLPageOptions = {}
+        const { componentName, navLink, fileName, fallback } = route.pageOptions || defaultOptions
+
+        /*
         Now, navLink is being used to create a folder strucutre.
         So, it is important to append the same when generating the path
       */
 
-      dependencies[componentName] = {
-        type: 'local',
-        path: `${pageDependencyPrefix}${join(
-          ...navLink.split('/')?.slice(0, -1),
-          fileName,
-          pageComponentSuffix
-        )}`,
-      }
+        dependencies[componentName] = {
+          type: 'local',
+          path: `${pageDependencyPrefix}${join(
+            ...navLink.split('/')?.slice(0, -1),
+            fileName,
+            pageComponentSuffix
+          )}`,
+        }
 
-      return types.objectExpression([
-        types.objectProperty(types.identifier('name'), types.stringLiteral(pageKey)),
-        types.objectProperty(types.identifier('path'), types.stringLiteral(navLink)),
-        types.objectProperty(types.identifier('component'), types.identifier(componentName)),
-      ])
-    })
+        const routeObject = types.objectExpression([
+          types.objectProperty(types.identifier('name'), types.stringLiteral(pageKey)),
+          types.objectProperty(types.identifier('path'), types.stringLiteral(navLink)),
+          types.objectProperty(types.identifier('component'), types.identifier(componentName)),
+        ])
+
+        if (fallback) {
+          routeObject.properties.push(
+            types.objectProperty(types.identifier('fallback'), types.booleanLiteral(true))
+          )
+        }
+
+        return routeObject
+      })
 
     const exportStatement = types.exportDefaultDeclaration(
       types.newExpression(types.identifier('Router'), [

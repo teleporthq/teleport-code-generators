@@ -10,6 +10,7 @@ import {
   UIDLRouteDefinitions,
   UIDLPageOptions,
   UIDLResources,
+  UIDLLocalFontAsset,
 } from './uidl'
 
 export enum FileType {
@@ -121,6 +122,8 @@ export interface GeneratorOptions {
     prefix?: string
     identifier?: string | null
     mappings?: Record<string, string>
+    fontsFolder?: string
+    localFonts?: UIDLLocalFontAsset[]
   }
   mapping?: Mapping
   skipValidation?: boolean

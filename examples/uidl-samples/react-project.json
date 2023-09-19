@@ -24,6 +24,16 @@
                     "iconType": "image/png",
                     "iconSizes": "32x32"
                 }
+            },
+            {
+              "type": "local-font",
+              "path": "super-funky.ttf",
+              "properties": {
+                "font-family": {
+                  "type": "static",
+                  "content": "Super Funky"
+                }
+              }
             }
         ],
         "meta": [],
