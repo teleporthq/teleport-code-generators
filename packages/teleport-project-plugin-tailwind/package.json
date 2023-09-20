@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-tailwind",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "A plugin for configuring teleportHQ projects to use tailwind",
   "author": "teleportHQ",
   "license": "MIT",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@teleporthq/teleport-plugin-css": "^0.30.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.30.0",
-    "@teleporthq/teleport-plugin-react-app-routing": "^0.30.0",
+    "@teleporthq/teleport-plugin-react-app-routing": "^0.30.1",
     "@teleporthq/teleport-types": "^0.30.0"
   }
 }
