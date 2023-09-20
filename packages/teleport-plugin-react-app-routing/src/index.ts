@@ -1,5 +1,5 @@
 import { UIDLUtils } from '@teleporthq/teleport-shared'
-import { ASTBuilders } from '@teleporthq/teleport-plugin-common'
+import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 import { registerReactRouterDeps, constructRouteJSX, createRouteRouterTag } from './utils'
 import {
   ComponentPluginFactory,
@@ -42,6 +42,7 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
     const routes = UIDLUtils.extractRoutes(uidl as UIDLRootComponent)
     const strategy = options.strategy
     const pageDependencyPrefix = options.localDependenciesPrefix || './'
+    let hasFallbackRoute = false
 
     const routeJSXDefinitions = routeValues
       .sort((routeA) => {
@@ -84,11 +85,28 @@ export const createReactAppRoutingPlugin: ComponentPluginFactory<AppRoutingCompo
           )}`,
         }
 
+        if (fallback) {
+          hasFallbackRoute = true
+        }
         return constructRouteJSX(componentName, navLink, fallback)
       })
 
-    const rootRouterTag = createRouteRouterTag(routeJSXDefinitions)
+    if (hasFallbackRoute) {
+      const redirectRoute = ASTBuilders.createJSXTag('Redirect', [], true)
+      ASTUtils.addAttributeToJSXTag(redirectRoute, 'to', '**')
+      dependencies.Redirect = {
+        type: 'library',
+        path: 'react-router-dom',
+        version: '^5.2.0',
+        meta: {
+          namedImport: true,
+        },
+      }
 
+      routeJSXDefinitions.push(redirectRoute)
+    }
+
+    const rootRouterTag = createRouteRouterTag(routeJSXDefinitions)
     const pureComponent = ASTBuilders.createFunctionalComponent(uidl.name, rootRouterTag)
 
     structure.chunks.push({
