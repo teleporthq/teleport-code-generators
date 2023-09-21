@@ -41,6 +41,9 @@ export const generateProjectFiles = async (
   )
 
   if (!individualUpload) {
+    console.info(
+      `[PUBLISHER-VERCEL] - Uploading all the files at once, optes for ${{ individualUpload }}`
+    )
     return projectFilesArray.map((file) => ({
       file: file.name,
       data: file.content,
@@ -48,6 +51,7 @@ export const generateProjectFiles = async (
     }))
   }
 
+  console.info(`[PUBLISHER-VERCEL] - Generating SHA for ${projectFilesArray.length} files`)
   const promises = projectFilesArray.map((key) => generateSha(key))
   const shaProjectFiles: FileSha[] = await Promise.all(promises)
 
@@ -80,7 +84,12 @@ export const generateProjectFiles = async (
           if (res.status > 200 && res.status < 500) {
             const { error } = (await res.json()) as VercelError
 
-            err = new Error(error.message)
+            /* tslint:disable prefer-conditional-expression */
+            if (error.code === 'too_many_requests') {
+              err = new Error(`${error.message} \n ${JSON.stringify(res.headers, null, 2)}`)
+            } else {
+              err = new Error(error.message)
+            }
           } else if (res.status !== 200) {
             // If something is wrong with the server, we retry
             const { error } = (await res.json()) as VercelError
@@ -305,6 +314,13 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
 }
 
 function throwErrorFromVercelResponse(result: VercelError) {
+  if (result.error.code === 'too_many_requests') {
+    // https://vercel.com/docs/rest-api#rate-limits
+    throw new Error(
+      'You are being rate limited by Vercel. Check the number of files that are being uploaded'
+    )
+  }
+
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,
