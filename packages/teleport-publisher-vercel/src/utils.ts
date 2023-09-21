@@ -211,6 +211,7 @@ export const createDeployment = async (
 
   const result = (await response.json()) as VercelResponse
   if ('error' in result) {
+    console.info(`[PUBLISHER-VERCEL]: Deployment creation failed  ${result.error.message}`)
     throwErrorFromVercelResponse(result)
   }
 
@@ -245,6 +246,7 @@ export const removeProject = async (
 
   const result = (await response.json()) as VercelResponse
   if ('error' in result) {
+    console.info(`[PUBLISHER-VERCEL]: Project removal failed  ${result.error.message}`)
     throwErrorFromVercelResponse(result)
   }
 
@@ -261,25 +263,41 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
       const vercelUrl = teamId
         ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
         : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+
+      console.info(
+        `[PUBLISHER-VERCEL] Checking for deployment status with teamId ${teamId} and ${deploymentURL}`
+      )
       const response = await fetch(vercelUrl)
       const result = (await response.json()) as VercelResponse
 
       if ('error' in result) {
+        console.info(
+          `[PUBLISHER-VERCEL] Error in result while checking status  ${JSON.stringify(result)}`
+        )
         throwErrorFromVercelResponse(result)
       }
+
       // @ts-ignore
       if ('readyState' in result && result.readyState === 'READY') {
+        console.info(`[PUBLISHER-VERCEL] Deployment ready for ${deploymentURL}`)
         clearInterval(clearHook)
         return resolve()
       }
+
       // @ts-ignore
       if ('readyState' in result && result.readyState === 'ERROR') {
         clearInterval(clearHook)
+        console.info(
+          `[PUBLISHER-VERCEL] Deployment failed for ${deploymentURL} and temaId ${teamId}`
+        )
         reject(new VercelDeploymentError())
       }
 
       if (retries <= 0) {
         clearInterval(clearHook)
+        console.info(
+          `[PUBLISHER-VERCEL] Deployment timed out for ${deploymentURL} and temaId ${teamId}`
+        )
         reject(new VercelDeploymentTimeoutError())
       }
     }, 5000)
