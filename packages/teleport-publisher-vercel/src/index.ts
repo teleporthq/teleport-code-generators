@@ -103,6 +103,8 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     if (!vercelAccessToken) {
       throw new VercelMissingTokenError()
     }
+
+    console.info(`[PUBLISHER-VERCEL] Uploading files to Vercel`)
     const files = await generateProjectFiles(
       projectToPublish,
       vercelAccessToken,
@@ -124,6 +126,7 @@ export const createVercelPublisher: PublisherFactory<VercelPublisherParams, Verc
     vercelPayload.alias =
       alias.length === 0 && domainAlias ? [`${projectSlug}.${domainAlias}`] : alias
 
+    console.info(`[PUBLISHER-VERCEL] Creating deployment`)
     const deploymentResult = await createDeployment(vercelPayload, vercelAccessToken, teamId)
 
     return { success: true, payload: deploymentResult }

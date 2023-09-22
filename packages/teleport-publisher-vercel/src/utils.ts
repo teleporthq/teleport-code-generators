@@ -41,6 +41,9 @@ export const generateProjectFiles = async (
   )
 
   if (!individualUpload) {
+    console.info(
+      `[PUBLISHER-VERCEL] - Uploading all the files at once, optes for ${{ individualUpload }}`
+    )
     return projectFilesArray.map((file) => ({
       file: file.name,
       data: file.content,
@@ -48,6 +51,7 @@ export const generateProjectFiles = async (
     }))
   }
 
+  console.info(`[PUBLISHER-VERCEL] - Generating SHA for ${projectFilesArray.length} files`)
   const promises = projectFilesArray.map((key) => generateSha(key))
   const shaProjectFiles: FileSha[] = await Promise.all(promises)
 
@@ -80,7 +84,12 @@ export const generateProjectFiles = async (
           if (res.status > 200 && res.status < 500) {
             const { error } = (await res.json()) as VercelError
 
-            err = new Error(error.message)
+            /* tslint:disable prefer-conditional-expression */
+            if (error.code === 'too_many_requests') {
+              err = new Error(`${error.message} \n ${JSON.stringify(res.headers, null, 2)}`)
+            } else {
+              err = new Error(error.message)
+            }
           } else if (res.status !== 200) {
             // If something is wrong with the server, we retry
             const { error } = (await res.json()) as VercelError
@@ -211,6 +220,7 @@ export const createDeployment = async (
 
   const result = (await response.json()) as VercelResponse
   if ('error' in result) {
+    console.info(`[PUBLISHER-VERCEL]: Deployment creation failed  ${result.error.message}`)
     throwErrorFromVercelResponse(result)
   }
 
@@ -245,6 +255,7 @@ export const removeProject = async (
 
   const result = (await response.json()) as VercelResponse
   if ('error' in result) {
+    console.info(`[PUBLISHER-VERCEL]: Project removal failed  ${result.error.message}`)
     throwErrorFromVercelResponse(result)
   }
 
@@ -261,25 +272,41 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
       const vercelUrl = teamId
         ? `${CHECK_DEPLOY_BASE_URL}${deploymentURL}&teamId=${teamId}`
         : `${CHECK_DEPLOY_BASE_URL}${deploymentURL}`
+
+      console.info(
+        `[PUBLISHER-VERCEL] Checking for deployment status with teamId ${teamId} and ${deploymentURL}`
+      )
       const response = await fetch(vercelUrl)
       const result = (await response.json()) as VercelResponse
 
       if ('error' in result) {
+        console.info(
+          `[PUBLISHER-VERCEL] Error in result while checking status  ${JSON.stringify(result)}`
+        )
         throwErrorFromVercelResponse(result)
       }
+
       // @ts-ignore
       if ('readyState' in result && result.readyState === 'READY') {
+        console.info(`[PUBLISHER-VERCEL] Deployment ready for ${deploymentURL}`)
         clearInterval(clearHook)
         return resolve()
       }
+
       // @ts-ignore
       if ('readyState' in result && result.readyState === 'ERROR') {
         clearInterval(clearHook)
+        console.info(
+          `[PUBLISHER-VERCEL] Deployment failed for ${deploymentURL} and temaId ${teamId}`
+        )
         reject(new VercelDeploymentError())
       }
 
       if (retries <= 0) {
         clearInterval(clearHook)
+        console.info(
+          `[PUBLISHER-VERCEL] Deployment timed out for ${deploymentURL} and temaId ${teamId}`
+        )
         reject(new VercelDeploymentTimeoutError())
       }
     }, 5000)
@@ -287,6 +314,13 @@ export const checkDeploymentStatus = async (deploymentURL: string, teamId?: stri
 }
 
 function throwErrorFromVercelResponse(result: VercelError) {
+  if (result.error.code === 'too_many_requests') {
+    // https://vercel.com/docs/rest-api#rate-limits
+    throw new Error(
+      'You are being rate limited by Vercel. Check the number of files that are being uploaded'
+    )
+  }
+
   // https://vercel.com/docs/rest-api#api-basics/errors
   // message fields are designed to be neutral,
   // not contain sensitive information,
