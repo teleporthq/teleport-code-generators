@@ -33,11 +33,11 @@ export const ReactMapping: Mapping = {
       },
     },
     'markdown-node': {
-      elementType: 'Markdown',
+      elementType: 'ReactMarkdown',
       dependency: {
         type: 'package',
-        path: 'markdown-to-jsx',
-        version: '7.2.0',
+        path: 'react-markdown',
+        version: '8.0.7',
       },
     },
     'html-node': {
