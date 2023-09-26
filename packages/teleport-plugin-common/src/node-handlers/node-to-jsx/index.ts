@@ -11,9 +11,11 @@ import {
   UIDLCMSItemNode,
   UIDLExpressionValue,
   UIDLCMSListRepeaterNode,
+  UIDLCMSMixedTypeNode,
+  UIDLElement,
 } from '@teleporthq/teleport-types'
 import { UIDLUtils, StringUtils } from '@teleporthq/teleport-shared'
-import { JSXASTReturnType, NodeToJSX } from './types'
+import { JSXASTReturnType, JSXGenerationOptions, NodeToJSX } from './types'
 
 import {
   addEventHandlerToTag,
@@ -84,50 +86,7 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
   const elementTag = selfClosing ? createSelfClosingJSXTag(elementName) : createJSXTag(elementName)
 
   if (attrs) {
-    Object.keys(attrs).forEach((attrKey) => {
-      const attributeValue = attrs[attrKey]
-
-      switch (attributeValue.type) {
-        case 'dynamic':
-          const {
-            content: { referenceType },
-          } = attributeValue
-
-          switch (referenceType) {
-            default:
-              const prefix =
-                options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
-              addDynamicAttributeToJSXTag(
-                elementTag,
-                attrKey,
-                (attributeValue as UIDLDynamicReference).content.id,
-                prefix
-              )
-
-              break
-          }
-          break
-        case 'import':
-          addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
-          break
-        case 'raw':
-          addRawAttributeToJSXTag(elementTag, attrKey, attributeValue)
-          break
-        case 'comp-style':
-        case 'static':
-          addAttributeToJSXTag(elementTag, attrKey, attributeValue.content)
-          break
-        case 'expr':
-          addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
-          break
-        default:
-          throw new Error(
-            `generateElementNode could not generate code for attribute of type ${JSON.stringify(
-              attributeValue
-            )}`
-          )
-      }
-    })
+    addAttributesToJSXTag(attrs, elementTag, options)
   }
 
   if (events) {
@@ -156,6 +115,57 @@ const generateElementNode: NodeToJSX<UIDLElementNode, types.JSXElement> = (
 }
 
 export default generateElementNode
+
+const addAttributesToJSXTag = (
+  attrs: UIDLElement['attrs'],
+  elementTag: types.JSXElement,
+  options: JSXGenerationOptions
+) => {
+  Object.keys(attrs).forEach((attrKey) => {
+    const attributeValue = attrs[attrKey]
+
+    switch (attributeValue.type) {
+      case 'dynamic':
+        const {
+          content: { referenceType },
+        } = attributeValue
+
+        switch (referenceType) {
+          default:
+            const prefix =
+              options.dynamicReferencePrefixMap[referenceType as 'prop' | 'state' | 'local']
+            addDynamicAttributeToJSXTag(
+              elementTag,
+              attrKey,
+              (attributeValue as UIDLDynamicReference).content.id,
+              prefix
+            )
+
+            break
+        }
+        break
+      case 'import':
+        addDynamicAttributeToJSXTag(elementTag, attrKey, attributeValue.content.id)
+        break
+      case 'raw':
+        addRawAttributeToJSXTag(elementTag, attrKey, attributeValue)
+        break
+      case 'comp-style':
+      case 'static':
+        addAttributeToJSXTag(elementTag, attrKey, attributeValue.content)
+        break
+      case 'expr':
+        addDynamicExpressionAttributeToJSXTag(elementTag, attributeValue, attrKey)
+        break
+      default:
+        throw new Error(
+          `generateElementNode could not generate code for attribute of type ${JSON.stringify(
+            attributeValue
+          )}`
+        )
+    }
+  })
+}
 
 const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, options) => {
   switch (node.type) {
@@ -186,6 +196,12 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
     case 'cms-list':
       return generateCMSNode(node, params, options)
 
+    case 'cms-list-repeater':
+      return generateCMSListRepeaterNode(node, params, options)
+
+    case 'cms-mixed-type':
+      return generateCMSMixedTypeNode(node, params, options)
+
     case 'element':
       return [generateElementNode(node, params, options)]
 
@@ -194,9 +210,6 @@ const generateNode: NodeToJSX<UIDLNode, JSXASTReturnType[]> = (node, params, opt
 
     case 'conditional':
       return generateConditionalNode(node, params, options)
-
-    case 'cms-list-repeater':
-      return generateCMSListRepeaterNode(node, params, options)
 
     case 'slot':
       if (options.slotHandling === 'native') {
@@ -221,6 +234,79 @@ const generateExpressionNode: NodeToJSX<UIDLExpressionValue, types.JSXExpression
 ) => {
   const expression = ASTUtils.getExpressionFromUIDLExpressionNode(node)
   return types.jsxExpressionContainer(expression)
+}
+
+const generateCMSMixedTypeNode: NodeToJSX<UIDLCMSMixedTypeNode, types.JSXElement[]> = (
+  node,
+  params,
+  options
+) => {
+  const {
+    nodes: { error, fallback },
+    elementType,
+    renderPropIdentifier,
+    mappings = {},
+    attrs,
+    dependency,
+  } = node.content
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(elementType)
+  const cmsMixedNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+  const mappingsObject: types.ObjectProperty[] = []
+
+  if (attrs) {
+    addAttributesToJSXTag(attrs, cmsMixedNode, options)
+  }
+
+  if (dependency) {
+    params.dependencies[elementType] = dependency
+  }
+
+  Object.keys(mappings).forEach((key) => {
+    const element = generateElementNode(mappings[key], params, options)
+    mappingsObject.push(
+      types.objectProperty(
+        types.identifier(key),
+        types.arrowFunctionExpression([types.identifier(renderPropIdentifier)], element)
+      )
+    )
+  })
+
+  cmsMixedNode.openingElement.attributes.push(
+    types.jsxAttribute(
+      types.jsxIdentifier('mappingConfiguration'),
+      types.jsxExpressionContainer(types.objectExpression(mappingsObject))
+    )
+  )
+
+  if (fallback) {
+    cmsMixedNode.openingElement.attributes.push(
+      types.jSXAttribute(
+        types.jsxIdentifier('renderDefault'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateElementNode(fallback, params, options)
+          )
+        )
+      )
+    )
+  }
+
+  if (error) {
+    cmsMixedNode.openingElement.attributes.push(
+      types.jSXAttribute(
+        types.jsxIdentifier('renderError'),
+        types.jsxExpressionContainer(
+          types.arrowFunctionExpression(
+            [types.identifier(renderPropIdentifier)],
+            generateElementNode(error, params, options)
+          )
+        )
+      )
+    )
+  }
+
+  return [cmsMixedNode]
 }
 
 const generateCMSNode: NodeToJSX<UIDLCMSListNode | UIDLCMSItemNode, types.JSXElement[]> = (

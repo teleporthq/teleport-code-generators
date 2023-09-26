@@ -256,6 +256,20 @@ export const traverseNodes = (
       }
       break
 
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseNodes(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseNodes(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseNodes(node.content.mappings[key], fn)
+      })
+      break
+
     case 'repeat':
       traverseNodes(node.content.node, fn, node)
       traverseNodes(node.content.dataSource, fn, node)
@@ -328,6 +342,20 @@ export const traverseResources = (
       if (node.content.nodes.loading) {
         traverseResources(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseResources(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseResources(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseResources(node.content.mappings[key], fn)
+      })
       break
 
     case 'repeat':
@@ -408,6 +436,20 @@ export const traverseElements = (node: UIDLNode, fn: (element: UIDLElement) => v
       }
       break
 
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseElements(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseElements(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseElements(node.content.mappings[key], fn)
+      })
+      break
+
     case 'repeat':
       traverseElements(node.content.node, fn)
       break
@@ -477,6 +519,20 @@ export const traverseRepeats = (node: UIDLNode, fn: (element: UIDLRepeatContent)
       if (node.content.nodes.loading) {
         traverseRepeats(node.content.nodes.loading, fn)
       }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        traverseRepeats(node.content.nodes.fallback, fn)
+      }
+
+      if (node.content.nodes?.error) {
+        traverseRepeats(node.content.nodes.error, fn)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        traverseRepeats(node.content.mappings[key], fn)
+      })
       break
 
     case 'repeat':
@@ -837,6 +893,20 @@ export const removeChildNodes = (
       if (node.content.nodes.loading) {
         removeChildNodes(node.content.nodes.loading, criteria)
       }
+      break
+
+    case 'cms-mixed-type':
+      if (node.content.nodes?.fallback) {
+        removeChildNodes(node.content.nodes.fallback, criteria)
+      }
+
+      if (node.content.nodes?.error) {
+        removeChildNodes(node.content.nodes.error, criteria)
+      }
+
+      Object.keys(node.content?.mappings || {}).forEach((key) => {
+        removeChildNodes(node.content.mappings[key], criteria)
+      })
       break
 
     case 'conditional':

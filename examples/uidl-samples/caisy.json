@@ -1282,6 +1282,71 @@
                               "elementType": "fragment",
                               "children": [
                                 {
+                                  "type": "cms-mixed-type",
+                                  "content": {
+                                    "elementType": "CMSMixedType",
+                                    "attrs": {
+                                      "itemData": {
+                                        "type": "expr",
+                                        "content": "context_91umd.data"
+                                      }
+                                    },
+                                    "dependency": {
+                                      "type": "package",
+                                      "path": "@teleporthq/react-components",
+                                      "version": "latest",
+                                      "meta": {
+                                        "namedImport": true
+                                      }
+                                    },
+                                    "renderPropIdentifier": "cms_mixed_type",
+                                    "nodes": {
+                                      "fallback": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "children": [
+                                            { "type": "static", "content": "Fallback for cms-mixed type node"}
+                                          ]
+                                        }
+                                      },
+                                      "error": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "children": [
+                                            { "type": "static", "content": "Error for cms-mixed type node"}
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "mappings": {
+                                      "blogPost": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "container",
+                                          "children": [
+                                            {
+                                              "type": "static",
+                                              "content": "Rendering blog-post component"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "blogPostExternal": {
+                                        "type": "element",
+                                        "content": {
+                                          "elementType": "component",
+                                          "semanticType": "ExternalComponent",
+                                          "dependency": {
+                                            "type": "local"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
                                   "type": "cms-list-repeater",
                                   "content": {
                                     "elementType": "cms-list-repeater",
@@ -2441,7 +2506,20 @@
       }
     }
   },
-  "components": {},
+  "components": {
+    "ExternalComponent": {
+      "name": "ExternalComponent",
+      "node": {
+        "type": "element",
+        "content": {
+          "elementType": "container",
+          "children": [
+            { "type": "static", "content": "External Component"}
+          ]
+        }
+      }
+    }
+  },
   "resources": {
     "items": {},
     "resourceMappers": {}

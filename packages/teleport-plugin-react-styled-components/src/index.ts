@@ -205,7 +205,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                   const usedCompStyle = componentStyleSheet[String(prop.defaultValue)]
                   componentStyleReferences.add(usedCompStyle.type)
                   /*
-                  Changing the default value of the prop. 
+                  Changing the default value of the prop.
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too.
                 */
                   propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(

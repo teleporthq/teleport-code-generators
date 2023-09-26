@@ -350,6 +350,23 @@ export interface UIDLCMSItemNode {
   content: UIDLCMSItemNodeContent
 }
 
+export interface UIDLCMSMixedTypeNode {
+  type: 'cms-mixed-type'
+  content: {
+    elementType: string
+    name: string
+    key: string
+    dependency?: UIDLDependency
+    attrs: Record<string, UIDLAttributeValue>
+    renderPropIdentifier: string
+    nodes: {
+      fallback?: UIDLElementNode
+      error?: UIDLElementNode
+    }
+    mappings?: Record<string, UIDLElementNode>
+  }
+}
+
 export interface UIDLCMSListRepeaterNode {
   type: 'cms-list-repeater'
   content: UIDLCMSListRepeaterNodeContent
@@ -376,7 +393,7 @@ export interface UIDLExternalResource {
 
 export interface UIDLCMSListNodeContent {
   elementType: string
-  name: string
+  name?: string
   key: string // internal usage
   attrs?: Record<string, UIDLAttributeValue>
   dependency?: UIDLDependency
@@ -512,6 +529,7 @@ export type UIDLNode =
   | UIDLCMSItemNode
   | UIDLDateTimeNode
   | UIDLCMSListRepeaterNode
+  | UIDLCMSMixedTypeNode
 
 export interface UIDLComponentStyleReference {
   type: 'comp-style'

@@ -91,6 +91,7 @@ import {
   UIDLResourceMapper,
   UIDLInjectValue,
   VUIDLStateValueDetails,
+  VUIDLCMSMixedTypeNode,
   UIDLLocalFontAsset,
 } from '@teleporthq/teleport-types'
 import { CustomCombinators } from './custom-combinators'
@@ -838,13 +839,30 @@ export const cmsListRepeaterNodeDecoder: Decoder<VCMSListRepeaterElementNode> = 
   }),
 })
 
+export const cmsMixedTypeNodeDecoder: Decoder<VUIDLCMSMixedTypeNode> = object({
+  type: constant('cms-mixed-type'),
+  content: object({
+    elementType: string(),
+    name: withDefault('cms-mixed-type', string()),
+    attrs: withDefault(
+      {},
+      lazy(() => dict(union(attributeValueDecoder, string(), number())))
+    ),
+    renderPropIdentifier: string(),
+    nodes: object({
+      fallback: optional(lazy(() => elementNodeDecoder)),
+      error: optional(lazy(() => elementNodeDecoder)),
+    }),
+    dependency: optional(lazy(() => dependencyDecoder)),
+    mappings: withDefault({}, dict(lazy(() => elementNodeDecoder))),
+  }),
+})
+
 export const uidlNodeDecoder: Decoder<VUIDLNode> = union(
   elementNodeDecoder,
-  cmsItemNodeDecoder,
-  cmsListNodeDecoder,
-  cmsListRepeaterNodeDecoder,
   dynamicValueDecoder,
   rawValueDecoder,
   conditionalNodeDecoder,
-  union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string())
+  union(staticValueDecoder, repeatNodeDecoder, slotNodeDecoder, expressionValueDecoder, string()),
+  union(cmsItemNodeDecoder, cmsListNodeDecoder, cmsListRepeaterNodeDecoder, cmsMixedTypeNodeDecoder)
 )
