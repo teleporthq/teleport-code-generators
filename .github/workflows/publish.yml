@@ -37,6 +37,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
-        run: yarn run publish --yes --tag alpha
+        run: yarn run publish --yes
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
