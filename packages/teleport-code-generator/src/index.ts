@@ -49,9 +49,9 @@ import {
 import {
   createHTMLProjectGenerator,
   HTMLTemplate,
-  pluginCloneGlobals,
   pluginHomeReplace,
   htmlErrorPageMapping,
+  ProjectPluginCloneGlobals,
 } from '@teleporthq/teleport-project-generator-html'
 
 import { createZipPublisher } from '@teleporthq/teleport-publisher-zip'
@@ -119,6 +119,7 @@ export const packProject: PackProjectFunction = async (
     assets = [],
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
+    excludeGlobalsFromHTMLComponents = false,
   }
 ) => {
   const packer = createProjectPacker()
@@ -141,7 +142,11 @@ export const packProject: PackProjectFunction = async (
 
   if (projectType === ProjectType.HTML) {
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
-    projectGeneratorFactory.addPlugin(pluginCloneGlobals)
+    projectGeneratorFactory.addPlugin(
+      new ProjectPluginCloneGlobals({
+        excludeGlobalsFromComponents: excludeGlobalsFromHTMLComponents,
+      })
+    )
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
   }
 

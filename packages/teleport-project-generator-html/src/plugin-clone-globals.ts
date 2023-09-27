@@ -8,13 +8,23 @@ import prettierHTML from '@teleporthq/teleport-postprocessor-prettier-html'
 import { load } from 'cheerio'
 import { relative, join } from 'path'
 
+interface ProjectPluginCloneGlobalsProps {
+  excludeGlobalsFromComponents?: boolean
+}
+
 class ProjectPluginCloneGlobals implements ProjectPlugin {
+  private excludeGlobalsFromComponents: boolean
+
+  constructor(config: ProjectPluginCloneGlobalsProps = {}) {
+    this.excludeGlobalsFromComponents = config.excludeGlobalsFromComponents || false
+  }
+
   async runBefore(structure: ProjectPluginStructure) {
     return structure
   }
 
   async runAfter(structure: ProjectPluginStructure) {
-    const { files, uidl } = structure
+    const { files, uidl, strategy } = structure
     const entryFile = files.get('entry')?.files[0]
     if (!entryFile) {
       return structure
@@ -41,6 +51,14 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
         const fileId = memoryFiles[id]
 
         const newFiles: GeneratedFile[] = fileId.files.map((file) => {
+          const isComponentRoute =
+            fileId.path.filter(Boolean).length > 0 &&
+            strategy.components?.path.join('/').indexOf(fileId.path.join('/')) > -1
+
+          if (this.excludeGlobalsFromComponents && isComponentRoute) {
+            return file
+          }
+
           if (file.fileType === FileType.HTML) {
             parsedEntry('body').empty()
             parsedEntry('head').find('title').remove()
@@ -93,4 +111,5 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
   }
 }
 
-export const pluginCloneGlobals = Object.freeze(new ProjectPluginCloneGlobals())
+const pluginCloneGlobals = Object.freeze(new ProjectPluginCloneGlobals())
+export { ProjectPluginCloneGlobals, pluginCloneGlobals }
