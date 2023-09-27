@@ -9,14 +9,14 @@ import { load } from 'cheerio'
 import { relative, join } from 'path'
 
 interface ProjectPluginCloneGlobalsProps {
-  exportComponentsAsPages?: boolean
+  excludeGlobalsFromComponents?: boolean
 }
 
 class ProjectPluginCloneGlobals implements ProjectPlugin {
-  private exportComponentsAsPages: boolean
+  private excludeGlobalsFromComponents: boolean
 
   constructor(config: ProjectPluginCloneGlobalsProps = {}) {
-    this.exportComponentsAsPages = config.exportComponentsAsPages || false
+    this.excludeGlobalsFromComponents = config.excludeGlobalsFromComponents || false
   }
 
   async runBefore(structure: ProjectPluginStructure) {
@@ -55,7 +55,7 @@ class ProjectPluginCloneGlobals implements ProjectPlugin {
             fileId.path.filter(Boolean).length > 0 &&
             strategy.components?.path.join('/').indexOf(fileId.path.join('/')) > -1
 
-          if (!this.exportComponentsAsPages && isComponentRoute) {
+          if (this.excludeGlobalsFromComponents && isComponentRoute) {
             return file
           }
 

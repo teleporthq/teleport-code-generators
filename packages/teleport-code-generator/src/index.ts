@@ -119,7 +119,7 @@ export const packProject: PackProjectFunction = async (
     assets = [],
     plugins = [],
     assetsFolder = [Constants.ASSETS_IDENTIFIER],
-    exportComponentsAsPagesForHTML = false,
+    excludeGlobalsFromHTMLComponents = false,
   }
 ) => {
   const packer = createProjectPacker()
@@ -143,7 +143,9 @@ export const packProject: PackProjectFunction = async (
   if (projectType === ProjectType.HTML) {
     projectGeneratorFactory.addPlugin(pluginHomeReplace)
     projectGeneratorFactory.addPlugin(
-      new ProjectPluginCloneGlobals({ exportComponentsAsPages: exportComponentsAsPagesForHTML })
+      new ProjectPluginCloneGlobals({
+        excludeGlobalsFromComponents: excludeGlobalsFromHTMLComponents,
+      })
     )
     projectGeneratorFactory.addPlugin(htmlErrorPageMapping)
   }
