@@ -17,7 +17,7 @@ export const resolveStyleSetDefinitions = (
 ): Record<string, UIDLStyleSetDefinition> => {
   return Object.keys(styleSets).reduce((acc: Record<string, UIDLStyleSetDefinition>, styleId) => {
     const styleRef = styleSets[styleId]
-    const { conditions = [] } = styleRef
+    const { conditions = [], content = {} } = styleRef
 
     if (conditions.length === 0) {
       acc[styleId] = {
@@ -48,6 +48,7 @@ export const resolveStyleSetDefinitions = (
 
     acc[styleId] = {
       ...styleRef,
+      content: prefixAssetURLs(content, options?.assets),
       conditions: [
         ...elementStates,
         ...mediaStyles.sort((a, b) => b.meta.maxWidth - a.meta.maxWidth),
