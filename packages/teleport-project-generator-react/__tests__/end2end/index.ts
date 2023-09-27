@@ -120,13 +120,9 @@ describe('React Project Generator', () => {
     expect(viewsFolder.files[0].content).toContain(`import Modal from '../components/modal'`)
     expect(viewsFolder.files[0].content).toContain(`import Script from 'dangerous-html/react'`)
     expect(viewsFolder.files[0].content).toContain(`Page 1<Modal></Modal>`)
-    expect(viewsFolder.files[0].content).toContain(
-      `<div className="home-div">
-        <Script
-          html={\`<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\`}
-        ></Script>
-      </div>`
-    )
+    expect(viewsFolder.files[0].content).toContain(`<div className="home-container2">`)
+    expect(viewsFolder.files[0].content).toContain(`<Script`)
+    expect(viewsFolder.files[0].content).toContain("html={`<blockquote class='twitter-tweet'")
     /* Imports that are just need to be inserted are added to router file by default */
     expect(srcFolder.files[0].content).toContain(`import 'antd/dist/antd.css'`)
   })

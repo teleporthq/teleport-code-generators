@@ -1,7 +1,7 @@
-import { GeneratorOptions, UIDLAttributeValue, UIDLElementNode } from '@teleporthq/teleport-types'
+import { GeneratorOptions, UIDLElementNode } from '@teleporthq/teleport-types'
 
 export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): UIDLElementNode => {
-  const { children, attrs } = node.content
+  const { children } = node.content
 
   node.content.children = children?.map((child) => {
     if (child.type === 'element') {
@@ -23,50 +23,40 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
     return child
   })
 
-  let newNode
-  if (attrs?.html) {
-    newNode = createEmbedDivWrapperNode(node)
+  const { elementType } = node.content
+  if (elementType !== 'html-node') {
+    return node
   }
-
-  if (newNode) {
-    newNode.content.children.push(node)
-
-    node.content.style = {}
-    node.content.referencedStyles = {}
-    node.content.events = {}
-
-    return newNode
-  }
-
-  return node
-}
-
-export const createEmbedDivWrapperNode = (node: UIDLElementNode): UIDLElementNode => {
-  const attrs = Object.keys(node.content.attrs).reduce(
-    (acc: Record<string, UIDLAttributeValue>, attrKey: string) => {
-      if (attrKey !== 'html') {
-        acc[attrKey] = node.content.attrs[attrKey]
-      }
-
-      return acc
-    },
-    {}
-  )
 
   return {
     type: 'element',
     content: {
-      ...node.content,
-      attrs,
-      style: {
-        display: {
-          type: 'static',
-          content: 'contents',
+      elementType: 'container',
+      attrs: {},
+      style: node.content.style,
+      children: [
+        {
+          type: 'element',
+          content: {
+            elementType: 'container',
+            style: {
+              display: {
+                type: 'static',
+                content: 'contents',
+              },
+            },
+            children: [
+              {
+                type: 'element',
+                content: {
+                  ...node.content,
+                  style: {},
+                },
+              },
+            ],
+          },
         },
-      },
-      elementType: 'div',
-      semanticType: 'div',
-      children: [],
+      ],
     },
   }
 }

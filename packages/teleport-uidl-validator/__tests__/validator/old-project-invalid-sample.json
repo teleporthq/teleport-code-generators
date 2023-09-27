@@ -35,7 +35,7 @@
         "options": {
           "target": "body"
         }
-      }, 
+      },
       {
         "type": "scripts",
         "path": "https://www.googletagmanager.com/gtm.js",
