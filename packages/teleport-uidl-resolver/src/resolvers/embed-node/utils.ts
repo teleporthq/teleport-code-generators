@@ -34,11 +34,14 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
       elementType: 'container',
       attrs: {},
       style: node.content.style,
+      referencedStyles: node.content.referencedStyles,
+      events: node.content.events,
       children: [
         {
           type: 'element',
           content: {
             elementType: 'container',
+            referencedStyles: {},
             style: {
               display: {
                 type: 'static',
@@ -50,6 +53,8 @@ export const wrapHtmlNode = (node: UIDLElementNode, options: GeneratorOptions): 
                 type: 'element',
                 content: {
                   ...node.content,
+                  events: {},
+                  referencedStyles: {},
                   style: {},
                 },
               },
