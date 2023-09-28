@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-uidl-resolver",
-  "version": "0.31.1",
+  "version": "0.31.2",
   "description": "A small package that handles the transition from UIDL to HTML elements and has support for custom mappings.",
   "author": "teleportHQ",
   "license": "MIT",

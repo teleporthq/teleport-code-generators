@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-generator",
-  "version": "0.31.1",
+  "version": "0.31.2",
   "description": "Generic project generator that requires a specific strategy to run on custom configurations",
   "author": "teleportHQ",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir dist/cjs"
   },
   "dependencies": {
-    "@teleporthq/teleport-component-generator": "^0.31.1",
+    "@teleporthq/teleport-component-generator": "^0.31.2",
     "@teleporthq/teleport-plugin-common": "^0.31.0",
     "@teleporthq/teleport-plugin-import-statements": "^0.31.0",
     "@teleporthq/teleport-shared": "^0.31.0",
