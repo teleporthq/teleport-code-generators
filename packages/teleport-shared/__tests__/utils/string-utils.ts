@@ -132,6 +132,9 @@ describe('camelCaseToDashCase', () => {
   it('works with multiple upper case characters to be in a sequence', () => {
     expect(camelCaseToDashCase('PRImaryButton')).toBe('pr-imary-button')
   })
+  it('works with single upper case words', () => {
+    expect(camelCaseToDashCase('AiAmAComponent')).toBe('ai-am-a-component')
+  })
 })
 
 describe('dashCaseToUpperCamelCase', () => {

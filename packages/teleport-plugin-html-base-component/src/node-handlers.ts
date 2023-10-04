@@ -212,7 +212,9 @@ const generateComponentContent = async (
   const { externals, plugins } = subComponentOptions
   const { elementType, attrs = {}, key, children = [] } = node.content
   const { dependencies, chunks = [], options } = structure
-  const comp = UIDLUtils.cloneObject(externals[elementType] || {}) as ComponentUIDL
+  // "Component" will not exist when generating a component because the resolver checks for illegal class names
+  const compName = elementType === 'Component' ? 'AppComponent' : elementType
+  const comp = UIDLUtils.cloneObject(externals[compName] || {}) as ComponentUIDL
   const lookUpTemplates: Record<string, unknown> = {}
   let compHasSlots: boolean = false
 
