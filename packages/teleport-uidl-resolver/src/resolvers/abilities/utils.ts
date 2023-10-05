@@ -66,6 +66,25 @@ export const insertLinks = (
       }
     }
 
+    if (child.type === 'cms-mixed-type') {
+      if (child.content.mappings) {
+        Object.values(child.content.mappings).forEach((mapping) => {
+          insertLinks(mapping, options, false, node)
+        })
+      }
+
+      const {
+        nodes: { fallback, error },
+      } = child.content
+      if (fallback) {
+        insertLinks(fallback, options, false, node)
+      }
+
+      if (error) {
+        insertLinks(error, options, false, node)
+      }
+    }
+
     if (child.type === 'cms-item') {
       const {
         nodes: { success, error, loading },
