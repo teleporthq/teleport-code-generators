@@ -428,10 +428,11 @@ export const prefixAssetURLs = <
           // need to split the styles in case of multiple background being added (eg: gradient + bgImage)
           let styleList = parseStaticStyles(staticContent)
           styleList = styleList.map((subStyle) => {
-            const asset =
-              staticContent.indexOf('url(') === -1
-                ? subStyle
-                : subStyle.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+            let asset = subStyle
+            const match = subStyle.match(/url\(['"]?(.*?")['"]?\)/)
+            if (match) {
+              asset = match[1].replace(/('|")/g, '')
+            }
 
             /*
               background image such as gradient shouldn't be urls
