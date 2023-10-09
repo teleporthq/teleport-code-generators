@@ -41,10 +41,10 @@ export const createStaticPropsPlugin: ComponentPluginFactory<StaticPropsPluginCo
           `Resource ${resource.id} is being used, but missing from the project ressources. Check ${uidl.name} in UIDL for more information`
         )
       }
-      resourceImportName = StringUtils.dashCaseToCamelCase(
-        StringUtils.camelCaseToDashCase(`${usedResource.name}-resource`)
-      )
 
+      resourceImportName = StringUtils.dashCaseToCamelCase(
+        StringUtils.camelCaseToDashCase(usedResource.name + 'Resource')
+      )
       const importPath = `${resources.path}${StringUtils.camelCaseToDashCase(usedResource.name)}`
 
       dependencies[resourceImportName] = {

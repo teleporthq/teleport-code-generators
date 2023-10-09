@@ -74,12 +74,14 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
         let dependencyPath: string
 
         if ('id' in extractedResource) {
-          resourceName = resources.items[extractedResource.id].name
+          resourceName = StringUtils.dashCaseToCamelCase(
+            StringUtils.camelCaseToDashCase(resources.items[extractedResource.id].name + 'Resource')
+          )
           const resourcesPath = paths.resources
           const currentPagePath = [...paths.pages, ...uidl.outputOptions.folderPath]
           dependencyPath =
             GenericUtils.generateLocalDependenciesPrefix(currentPagePath, resourcesPath) +
-            StringUtils.camelCaseToDashCase(resourceName)
+            StringUtils.camelCaseToDashCase(resources.items[extractedResource.id].name)
 
           dependencies[resourceName] = {
             type: 'local',
