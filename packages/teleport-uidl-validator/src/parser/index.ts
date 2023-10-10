@@ -17,6 +17,7 @@ import {
   VUIDLGlobalAsset,
   UIDLGlobalAsset,
   UIDLRootComponent,
+  VUIDLElement,
 } from '@teleporthq/teleport-types'
 
 interface ParseComponentJSONParams {
@@ -167,10 +168,11 @@ const parseComponentNode = (node: Record<string, unknown>): UIDLNode => {
         )
       }
 
-      // @ts-ignore
-      if (elementContent.abilities?.link) {
-        // @ts-ignore
-        const { content, type } = elementContent.abilities?.link
+      if (
+        elementContent?.abilities &&
+        'link' in (elementContent.abilities as unknown as VUIDLElement['abilities'])
+      ) {
+        const { content, type } = (elementContent.abilities as VUIDLElement['abilities'])?.link
         if (type === 'url' && typeof content.url === 'string') {
           content.url = UIDLUtils.transformStringAssignmentToJson(content.url)
         }
