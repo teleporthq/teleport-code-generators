@@ -1,4 +1,4 @@
-import { FileType } from '@teleporthq/teleport-types'
+import { FileType, GeneratedFolder } from '@teleporthq/teleport-types'
 import fallbackUidlSample from '../../../../examples/uidl-samples/project.json'
 import uidlSample from '../../../../examples/test-samples/project-sample.json'
 import invalidUidlSample from '../../../../examples/test-samples/project-invalid-sample.json'
@@ -6,6 +6,7 @@ import uidlSampleWithDependencies from '../../../../examples/test-samples/projec
 import uidlSampleWithoutProjectStyleesButImports from './project-with-import-without-global-styles.json'
 import uidlSampleWithProjectStyleSheet from '../../../../examples/test-samples/project-with-import-global-styles.json'
 import uidlSampleWithJustTokens from '../../../../examples/test-samples/project-with-only-tokens.json'
+import uidlSampleWithMultiplePagesWithSameName from './project-with-same-page-names-in-diff-routes.json'
 import template from './template-definition.json'
 import { createNextProjectGenerator } from '../../src'
 
@@ -96,9 +97,35 @@ describe('React Next Project Generator', () => {
     expect(fallbackPage).toBeDefined()
   })
 
+  it('preserves the pages with same name if they are defined in different routes', async () => {
+    const { subFolders } = await generator.generateProject(uidlSampleWithMultiplePagesWithSameName)
+    const pagesFolder = getFolderFromSubFolders('pages', subFolders)
+
+    expect(pagesFolder).toBeDefined()
+
+    const booksFolder = getFolderFromSubFolders('book', pagesFolder?.subFolders)
+    expect(booksFolder).toBeDefined()
+    const hasPageInsideBooksFolder = booksFolder?.files.find((file) => file.name === 'page')
+    expect(hasPageInsideBooksFolder).toBeDefined()
+
+    const blogFolder = getFolderFromSubFolders('blog', pagesFolder?.subFolders)
+    expect(blogFolder).toBeDefined()
+    expect(blogFolder?.files?.length).toBe(2)
+
+    const hasPageInsideBlogFolder = blogFolder?.files.find((file) => file.name === 'page')
+    const hasDuplicatedPageInsideBlogFolder = blogFolder?.files.find(
+      (file) => file.name === 'page1'
+    )
+    expect(hasPageInsideBlogFolder).toBeDefined()
+    expect(hasDuplicatedPageInsideBlogFolder).toBeDefined()
+  })
+
   it('throws error when invalid UIDL sample is used', async () => {
     const result = generator.generateProject(invalidUidlSample, template)
 
     await expect(result).rejects.toThrow(Error)
   })
 })
+
+const getFolderFromSubFolders = (folderName: string, folders: GeneratedFolder[] = []) =>
+  folders.find((folder) => folder.name === folderName)
