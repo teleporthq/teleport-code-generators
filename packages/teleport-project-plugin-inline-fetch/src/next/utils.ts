@@ -17,18 +17,13 @@ import {
 import { GenericUtils, StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import * as types from '@babel/types'
 import { ASTUtils } from '@teleporthq/teleport-plugin-common'
+import { FilteredResource } from '.'
 
 interface ContextPluginConfig {
   componentChunkName?: string
   files: Map<string, InMemoryFileRecord>
   dependencies: Record<string, string>
-  extractedResources: Record<
-    string,
-    UIDLLocalResource & {
-      itemValuePath?: string[]
-      valuePath?: string[]
-    }
-  >
+  extractedResources: Record<string, FilteredResource>
   paths: {
     resources: string[]
     pages: string[]
@@ -74,19 +69,29 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
       )
 
       if (extractedResources[propKey]) {
-        const usedResource = resources.items[extractedResources[propKey].id]
-        const resourceName = StringUtils.createStateOrPropStoringValue(
-          usedResource.name + 'Resource'
-        )
+        const extractedResource = extractedResources[propKey]
+        let resourceName: string
+        let dependencyPath: string
 
-        const resourcesPath = paths.resources
-        const currentPagePath = [...paths.pages, ...uidl.outputOptions.folderPath]
-
-        dependencies[resourceName] = {
-          type: 'local',
-          path:
+        if ('id' in extractedResource) {
+          resourceName = StringUtils.dashCaseToCamelCase(
+            StringUtils.camelCaseToDashCase(resources.items[extractedResource.id].name + 'Resource')
+          )
+          const resourcesPath = paths.resources
+          const currentPagePath = [...paths.pages, ...uidl.outputOptions.folderPath]
+          dependencyPath =
             GenericUtils.generateLocalDependenciesPrefix(currentPagePath, resourcesPath) +
-            StringUtils.camelCaseToDashCase(usedResource.name),
+            StringUtils.camelCaseToDashCase(resources.items[extractedResource.id].name)
+
+          dependencies[resourceName] = {
+            type: 'local',
+            path: dependencyPath,
+          }
+        }
+
+        if ('name' in extractedResource) {
+          resourceName = extractedResource.name
+          dependencies[resourceName] = extractedResource.dependency
         }
 
         extractedResourceDeclerations[propKey] = types.variableDeclaration('const', [
@@ -102,6 +107,20 @@ export const createNextComponentInlineFetchPlugin: ComponentPluginFactory<Contex
                       false,
                       true
                     )
+                  ),
+                  ...Object.keys(extractedResource?.params || {}).reduce(
+                    (acc: types.ObjectProperty[], item) => {
+                      const prop = extractedResource.params[item]
+                      acc.push(
+                        types.objectProperty(
+                          types.stringLiteral(item),
+                          ASTUtils.resolveObjectValue(prop)
+                        )
+                      )
+
+                      return acc
+                    },
+                    []
                   ),
                 ]),
               ])
@@ -301,13 +320,7 @@ export default async function handler(req, res) {
 
 const computeResponseObjectForExtractedResources = (
   extractedResourceDeclerations: Record<string, types.VariableDeclaration>,
-  extractedResources: Record<
-    string,
-    UIDLLocalResource & {
-      itemValuePath?: string[]
-      valuePath?: string[]
-    }
-  >
+  extractedResources: Record<string, FilteredResource>
 ) => {
   return Object.keys(extractedResourceDeclerations).map((key) => {
     const extractedResource = extractedResources[key]

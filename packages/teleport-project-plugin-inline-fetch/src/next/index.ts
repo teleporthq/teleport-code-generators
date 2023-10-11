@@ -1,16 +1,35 @@
 import { StringUtils } from '@teleporthq/teleport-shared'
-import { ProjectPluginStructure, UIDLLocalResource } from '@teleporthq/teleport-types'
+import {
+  ProjectPluginStructure,
+  UIDLExternalResource,
+  UIDLLocalResource,
+  UIDLStaticValue,
+} from '@teleporthq/teleport-types'
 import { createNextComponentInlineFetchPlugin } from './utils'
+
+type Modify<T, R> = Omit<T, keyof R> & R
+
+export type FilteredResource =
+  | Modify<
+      UIDLLocalResource,
+      {
+        params: Record<string, UIDLStaticValue>
+        itemValuePath?: string[]
+        valuePath?: string[]
+      }
+    >
+  | Modify<
+      UIDLExternalResource,
+      {
+        params: Record<string, UIDLStaticValue>
+        itemValuePath?: string[]
+        valuePath?: string[]
+      }
+    >
 
 class ProjectPluginInlineFetch {
   dependencies: Record<string, string> = {}
-  extractedResources: Record<
-    string,
-    UIDLLocalResource & {
-      itemValuePath?: string[]
-      valuePath?: string[]
-    }
-  > = {}
+  extractedResources: Record<string, FilteredResource> = {}
 
   nextBeforeModifier = (structure: ProjectPluginStructure) => {
     /*
@@ -52,15 +71,6 @@ class ProjectPluginInlineFetch {
         }
 
         /*
-            TODO:
-            For now, let's just handle for the local resources. And ocne the testing is good
-            Let's apply the same for the external resources too.
-        */
-        if ('dependency' in rootNodeOfrootElementOfPage.content.resource) {
-          return
-        }
-
-        /*
           Move the resources that contain only static values,
           Should we fine-tune the expression check here ?
           And move the expressions which don't have prop or state references ?
@@ -88,7 +98,7 @@ class ProjectPluginInlineFetch {
           ...(rootNodeOfrootElementOfPage.type === 'cms-list' && {
             valuePath: rootNodeOfrootElementOfPage.content?.valuePath,
           }),
-          ...rootNodeOfrootElementOfPage.content.resource,
+          ...(rootNodeOfrootElementOfPage.content.resource as FilteredResource),
         }
 
         rootNodeOfrootElementOfPage.content.initialData = {
@@ -98,6 +108,33 @@ class ProjectPluginInlineFetch {
             id: propKey,
           },
         }
+
+        /*
+          As the resource is extracted now, we don't need to pass it to the jsx node.
+          Because it is passed to `getStaticProps`
+
+          we need this
+          <DataProvider
+            key={props?.pagination?.page}
+          />
+
+          we don't need this
+          <DataProvider
+            initialData={some_prop}
+            key={props?.pagination?.page}
+            params={{
+              projectId: '3bd8eb33-2aaa-4620-87bf-d7ccd04d0245',
+              query:
+                'query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name image{__typename _meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}}}}',
+              page: 1,
+              perPage: 100,
+            }}
+          />
+
+          Because we need props when we are loading and not when we are rendering now.
+          As the no call is not going to happen at runtime.
+        */
+        delete rootNodeOfrootElementOfPage.content.resource.params
       })
     })
 
