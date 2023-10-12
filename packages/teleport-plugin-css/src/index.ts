@@ -373,6 +373,8 @@ const createDynamicInlineStyle = (styles: UIDLStyleDefinitions) => {
 
 const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
   return scoping
-    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    ? StringUtils.camelCaseToDashCase(
+        `${uidlName === 'Component' ? 'AppComponent' : uidlName}-${nodeStyleName}`
+      )
     : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

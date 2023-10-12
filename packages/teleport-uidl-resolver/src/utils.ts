@@ -308,8 +308,8 @@ export const generateUniqueKeys = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseElements(node, (element) => {
     // If a certain node name (ex: "container") is present multiple times in the component, it will be counted here
     // NextKey will be appended to the node name to ensure uniqueness inside the component
-    // Element name is stored as a lower case string in the lookup
-    const nodeOcurrence = lookup[element.name.toLowerCase()]
+    // Element name is stored as a lower case string in the lookup, considering camel case
+    const nodeOcurrence = lookup[StringUtils.camelCaseToDashCase(element.name)]
 
     if (nodeOcurrence.count === 1) {
       // If the name ocurrence is unique we use it as it is
@@ -339,9 +339,22 @@ const generateNextIncrementalKey = (currentKey: string): string => {
 
 export const createNodesLookup = (node: UIDLNode, lookup: ElementsLookup) => {
   UIDLUtils.traverseElements(node, (element) => {
-    // Element name is stored as a lower case string in the lookup
-    const elementName = element.name.toLowerCase()
-    nodeAndElementLookup(elementName, lookup)
+    // Element name is stored as a lower case string in the lookup, considering camel case
+    const elementName = StringUtils.camelCaseToDashCase(element.name)
+    if (!lookup[elementName]) {
+      lookup[elementName] = {
+        count: 0,
+        nextKey: '0',
+      }
+    }
+
+    lookup[elementName].count++
+    const newCount = lookup[elementName].count
+    if (newCount > 9 && isPowerOfTen(newCount)) {
+      // Add a '0' each time we pass a power of ten: 10, 100, 1000, etc.
+      // nextKey will start either from: '0', '00', '000', etc.
+      lookup[elementName].nextKey = '0' + lookup[elementName].nextKey
+    }
   })
 }
 
@@ -495,10 +508,11 @@ export const prefixAssetURLs = <
           // need to split the styles in case of multiple background being added (eg: gradient + bgImage)
           let styleList = parseStaticStyles(staticContent)
           styleList = styleList.map((subStyle) => {
-            const asset =
-              staticContent.indexOf('url(') === -1
-                ? subStyle
-                : subStyle.match(/\((.*?)\)/)[1].replace(/('|")/g, '')
+            let asset = subStyle
+            const match = subStyle.match(/url\(['"]?(.*?")['"]?\)/)
+            if (match) {
+              asset = match[1].replace(/('|")/g, '')
+            }
 
             /*
               background image such as gradient shouldn't be urls

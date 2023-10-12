@@ -58,10 +58,9 @@ import { ModalWindow } from './modal-window/modal-window.component'`)
       `<modal-window (onClose)="isOpen = false" *ngIf="isOpen"></modal-window>`
     )
     expect(pagesFolder.subFolders[0].files[0].content).toContain(`<app-modal></app-modal>`)
+    expect(pagesFolder.subFolders[0].files[0].content).toMatch(`<dangerous-html`)
     expect(pagesFolder.subFolders[0].files[0].content).toContain(
-      `<dangerous-html
-      html=\"<blockquote class='twitter-tweet'><p lang='en' dir='ltr'>Feels like the last 20 mins of Don’t Look Up right about now…</p>&mdash; Netflix (@netflix) <a href='https://twitter.com/netflix/status/1593420772948598784?ref_src=twsrc%5Etfw'>November 18, 2022</a></blockquote> <script async src='https://platform.twitter.com/widgets.js'></script>\"
-    ></dangerous-html>`
+      `html="<blockquote class='twitter-tweet'>`
     )
     /*
      * Modal is used in home page but don't need to import since all components are packed

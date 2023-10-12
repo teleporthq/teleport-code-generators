@@ -480,6 +480,7 @@ export interface PackerOptions {
   assets?: GeneratedFile[]
   plugins?: ProjectPlugin[]
   assetsFolder?: string[]
+  excludeGlobalsFromHTMLComponents?: boolean
 }
 
 export interface GenerateOptions {

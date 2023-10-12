@@ -5,7 +5,7 @@ import { ASTBuilders, ASTUtils } from '@teleporthq/teleport-plugin-common'
 export const createRouteRouterTag = (routeJSXDefinitions: types.JSXElement[]) => {
   const routerTag = ASTBuilders.createJSXTag('Router')
 
-  const divContainer = ASTBuilders.createJSXTag('div')
+  const divContainer = ASTBuilders.createJSXTag('Switch')
   ASTUtils.addChildJSXTag(routerTag, divContainer)
   routeJSXDefinitions.forEach((route) => ASTUtils.addChildJSXTag(divContainer, route))
 
@@ -51,6 +51,15 @@ export const registerReactRouterDeps = (dependencies: Record<string, UIDLDepende
   }
 
   dependencies.Route = {
+    type: 'library',
+    path: 'react-router-dom',
+    version: '^5.2.0',
+    meta: {
+      namedImport: true,
+    },
+  }
+
+  dependencies.Switch = {
     type: 'library',
     path: 'react-router-dom',
     version: '^5.2.0',

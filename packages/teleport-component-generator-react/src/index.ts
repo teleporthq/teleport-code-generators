@@ -15,8 +15,26 @@ import {
   GeneratorFactoryParams,
 } from '@teleporthq/teleport-types'
 import { createComponentGenerator } from '@teleporthq/teleport-component-generator'
-
 import { ReactMapping } from './react-mapping'
+
+const cssPlugin = createCSSPlugin({
+  templateChunkName: 'jsx-component',
+  templateStyle: 'jsx',
+  declareDependency: 'import',
+  classAttributeName: 'className',
+  forceScoping: true,
+})
+const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
+const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: true })
+
+const stylePlugins = {
+  [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
+  [ReactStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
+  [ReactStyleVariation.StyledJSX]: reactStyledJSXPlugin,
+  [ReactStyleVariation.CSSModules]: cssModulesPlugin,
+  [ReactStyleVariation.CSS]: cssPlugin,
+  [ReactStyleVariation.ReactJSS]: reactJSSPlugin,
+}
 
 const createReactComponentGenerator: ComponentGeneratorInstance = ({
   mappings = [],
@@ -24,38 +42,18 @@ const createReactComponentGenerator: ComponentGeneratorInstance = ({
   postprocessors = [],
   variation = ReactStyleVariation.CSSModules,
 }: GeneratorFactoryParams = {}): ComponentGenerator => {
-  const cssPlugin = createCSSPlugin({
-    templateChunkName: 'jsx-component',
-    templateStyle: 'jsx',
-    declareDependency: 'import',
-    classAttributeName: 'className',
-    forceScoping: true,
-  })
-  const cssModulesPlugin = createCSSModulesPlugin({ moduleExtension: true })
-  const reactStyledJSXPlugin = createReactStyledJSXPlugin({ forceScoping: true })
-
-  const stylePlugins = {
-    [ReactStyleVariation.InlineStyles]: inlineStylesPlugin,
-    [ReactStyleVariation.StyledComponents]: reactStyledComponentsPlugin,
-    [ReactStyleVariation.StyledJSX]: reactStyledJSXPlugin,
-    [ReactStyleVariation.CSSModules]: cssModulesPlugin,
-    [ReactStyleVariation.CSS]: cssPlugin,
-    [ReactStyleVariation.ReactJSS]: reactJSSPlugin,
-  }
-
-  const stylePlugin = stylePlugins[variation]
-
-  if (!stylePlugin) {
-    throw new Error(`Invalid style variation '${variation}'`)
-  }
-
   const generator = createComponentGenerator()
 
   generator.addMapping(ReactMapping)
   mappings.forEach((mapping) => generator.addMapping(mapping))
 
   generator.addPlugin(reactComponentPlugin)
-  generator.addPlugin(stylePlugin)
+
+  if (variation && stylePlugins[variation]) {
+    const stylePlugin = stylePlugins[variation]
+    generator.addPlugin(stylePlugin)
+  }
+
   generator.addPlugin(propTypesPlugin)
   plugins.forEach((plugin) => generator.addPlugin(plugin))
 

@@ -82,6 +82,15 @@ describe('createNodesLookup', () => {
     expect(lookup.container.nextKey).toBe('0')
   })
 
+  it('counts duplicate nodes considering camel case names as well', async () => {
+    const node = elementNode('About-Me', {}, [elementNode('aboutMe')])
+    const lookup: Record<string, { count: number; nextKey: string }> = {}
+    createNodesLookup(node, lookup)
+
+    expect(lookup['about-me'].count).toBe(2)
+    expect(lookup['about-me'].nextKey).toBe('0')
+  })
+
   it('adds zero padding when counting keys', async () => {
     const node = elementNode('container')
 

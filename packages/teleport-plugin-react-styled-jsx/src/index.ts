@@ -21,7 +21,6 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
     const { uidl, chunks, options } = structure
     const { projectStyleSet } = options
     const { node, styleSetDefinitions: componentStyleSheet = {}, propDefinitions = {} } = uidl
-
     const componentChunk = chunks.find((chunk) => chunk.name === componentChunkName)
     if (!componentChunk) {
       return structure
@@ -133,6 +132,7 @@ export const createReactStyledJSXPlugin: ComponentPluginFactory<StyledJSXConfig>
               )
               const defaultPropValue =
                 propDefinitions[styleRef.content.content.content.id]?.defaultValue
+
               if (!defaultPropValue) {
                 return
               }
@@ -237,6 +237,8 @@ export default createReactStyledJSXPlugin()
 
 const getClassName = (scoping: boolean, uidlName: string, nodeStyleName: string) => {
   return scoping
-    ? StringUtils.camelCaseToDashCase(`${uidlName}-${nodeStyleName}`)
+    ? StringUtils.camelCaseToDashCase(
+        `${uidlName === 'Component' ? 'AppComponent' : uidlName}-${nodeStyleName}`
+      )
     : StringUtils.camelCaseToDashCase(nodeStyleName)
 }

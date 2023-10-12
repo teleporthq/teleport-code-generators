@@ -23,6 +23,9 @@ const projectTemplate: GeneratedFolder = {
     "next": "^12.1.10",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
+  },
+  "engines": {
+      "node": ">=18.x"
   }
 }`,
       fileType: FileType.JSON,

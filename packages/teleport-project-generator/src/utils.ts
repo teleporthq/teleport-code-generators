@@ -203,6 +203,12 @@ export const extractPageOptions = (
     }
   }
 
+  const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
+  deduplicatePageOptionValues(
+    pageOptions,
+    otherPages.map((page) => page.pageOptions)
+  )
+
   // In case of next/nuxt, the path dictates the file name, so this is adjusted accordingly
   // Also, the defaultPage has to be index, overriding any other value set
   if (useFileNameForNavigation) {
@@ -213,12 +219,6 @@ export const extractPageOptions = (
       ? 'index'
       : basename(navFileName)
   }
-
-  const otherPages = pageDefinitions.filter((page) => page.value !== routeName && page.pageOptions)
-  deduplicatePageOptionValues(
-    pageOptions,
-    otherPages.map((page) => page.pageOptions)
-  )
 
   return { pageOptions, isHomePage }
 }
