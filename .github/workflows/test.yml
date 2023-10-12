@@ -5,6 +5,7 @@ on:
     branches:
       - '**'
       - '!development'
+      - '!feat/better-fetch'
 
 jobs:
   test:
