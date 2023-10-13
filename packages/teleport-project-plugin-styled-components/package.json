@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-project-plugin-styled-components",
-  "version": "0.45.3-alpha.0",
+  "version": "0.45.4-alpha.0",
   "description": "A plugin for configuring teleportHQ projects to use styled-components",
   "author": "teleportHQ",
   "license": "MIT",
