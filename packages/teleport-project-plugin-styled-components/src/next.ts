@@ -43,7 +43,7 @@ export const nextAfterModifier = async (structure: ProjectPluginStructure) => {
     sheet.collectStyles(<App {...props} />),
   );
   const styleTags = sheet.getStyleElement();
-  
+
   return { ...page, styleTags };
   }\n\n`
   )

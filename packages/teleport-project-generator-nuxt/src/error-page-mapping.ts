@@ -14,7 +14,8 @@ class NuxtErrorMappingPlugin implements ProjectPlugin {
     }
 
     const file =
-      files.get(fallback.pageOptions?.componentName) || files.get(fallback.pageOptions?.fileName)
+      files.get(`page-${fallback.pageOptions?.componentName}`) ||
+      files.get(`page-${fallback.pageOptions?.fileName}`)
     if (!file) {
       return structure
     }

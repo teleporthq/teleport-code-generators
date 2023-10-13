@@ -32,7 +32,7 @@ class ProjectPluginHomeReplace implements ProjectPlugin {
       }
 
       const component = StringUtils.dashCaseToUpperCamelCase(sanitizedName)
-      const homeFile = files.get(component)
+      const homeFile = files.get(`component-${component}`)
       if (!homeFile) {
         return structure
       }

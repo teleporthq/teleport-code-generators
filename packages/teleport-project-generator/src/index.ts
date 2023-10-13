@@ -376,7 +376,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
 
       const { files, dependencies } = await createPage(pageUIDL, this.pageGenerator, pageOptions)
 
-      inMemoryFilesMap.set(pageUIDL.name, {
+      inMemoryFilesMap.set(`page-${pageUIDL.name}`, {
         path,
         files,
       })
@@ -469,7 +469,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
       const relativePath = UIDLUtils.getComponentFolderPath(componentUIDL)
       const path = this.strategy.components.path.concat(relativePath)
 
-      inMemoryFilesMap.set(componentName, {
+      inMemoryFilesMap.set(`component-${componentName}.`, {
         path,
         files,
       })
@@ -498,7 +498,7 @@ export class ProjectGenerator implements ProjectGeneratorType {
         )
         collectedDependencies = result.dependencies
 
-        inMemoryFilesMap.set(fileName, {
+        inMemoryFilesMap.set(`component-${fileName}`, {
           path: this.strategy.framework.replace.path,
           files: [result.file],
         })
