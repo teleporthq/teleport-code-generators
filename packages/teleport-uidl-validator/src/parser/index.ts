@@ -224,6 +224,7 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
         nodes: { fallback, error },
         dependency,
         attrs,
+        mappings,
       } = (node as unknown as UIDLCMSMixedTypeNode).content
 
       if (attrs) {
@@ -247,6 +248,14 @@ const parseComponentNode = (node: Record<string, unknown>, component: ComponentU
           component
         ) as UIDLElementNode
       }
+
+      Object.keys(mappings).forEach((mapping) => {
+        ;(node.content as unknown as UIDLCMSMixedTypeNode['content']).mappings[mapping] =
+          parseComponentNode(
+            mappings[mapping] as unknown as Record<string, unknown>,
+            component
+          ) as UIDLElementNode
+      })
 
       return node as unknown as UIDLCMSMixedTypeNode
     }
