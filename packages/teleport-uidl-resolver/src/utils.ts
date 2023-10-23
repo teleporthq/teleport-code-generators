@@ -86,16 +86,25 @@ export const resolveNode = (uidlNode: UIDLNode, options: GeneratorOptions) => {
       resolveConditional(node, options)
     }
 
-    if (node.type === 'cms-item') {
-      node.content.name = node.content?.name || 'cms-item'
-    }
+    if (node.type === 'cms-list-repeater' || node.type === 'cms-list' || node.type === 'cms-item') {
+      const {
+        mapping: { elements: elementsMapping },
+      } = options
+      const element: UIDLElement = node.content
+      const mappedElement = elementsMapping[element.elementType] || {
+        elementType: element.semanticType ?? element.elementType,
+      }
 
-    if (node.type === 'cms-list') {
-      node.content.name = node.content?.name || 'cms-list'
-    }
+      node.content.elementType = mappedElement.elementType
+      node.content.name = node.content?.name || node.type
 
-    if (node.type === 'cms-list-repeater') {
-      node.content.name = node.content?.name || 'cms-list-repeater'
+      if (element.dependency || mappedElement.dependency) {
+        node.content.dependency = resolveDependency(
+          mappedElement,
+          element.dependency,
+          options.localDependenciesPrefix
+        )
+      }
     }
   })
 }

@@ -57,6 +57,50 @@ export const NextProjectMapping: Mapping = {
         },
       },
     },
+    'cms-list-repeater': {
+      elementType: 'Repeater',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-item': {
+      elementType: 'DataProvider',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-list': {
+      elementType: 'DataProvider',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
+    'cms-mixed-type': {
+      elementType: 'CMSMixedType',
+      dependency: {
+        type: 'package',
+        path: '@teleporthq/react-components',
+        version: 'latest',
+        meta: {
+          namedImport: true,
+        },
+      },
+    },
     fragment: {
       elementType: ' ',
       semanticType: '',
