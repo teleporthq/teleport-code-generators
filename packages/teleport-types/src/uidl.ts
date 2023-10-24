@@ -435,6 +435,7 @@ export interface UIDLCMSListRepeaterNodeContent {
   elementType: string
   name: string
   key: string // internal usage
+  dependency?: UIDLDependency
   nodes: {
     list: UIDLElementNode
     empty?: UIDLElementNode

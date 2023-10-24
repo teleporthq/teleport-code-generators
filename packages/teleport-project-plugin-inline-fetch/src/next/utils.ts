@@ -282,7 +282,7 @@ export default async function handler(req, res) {
             ),
           ]),
           types.catchClause(
-            types.identifier('errro'),
+            types.identifier('error'),
             types.blockStatement([
               types.returnStatement(
                 types.objectExpression([

@@ -538,7 +538,9 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
   params,
   options
 ) => {
-  const repeaterNode = ASTBuilders.createJSXTag('Repeater', [], true)
+  const jsxTag = StringUtils.dashCaseToUpperCamelCase(node.content.elementType)
+  const repeaterNode = ASTBuilders.createJSXTag(jsxTag, [], true)
+
   repeaterNode.openingElement.attributes.push(
     types.jsxAttribute(
       types.jsxIdentifier('items'),
@@ -570,6 +572,10 @@ const generateCMSListRepeaterNode: NodeToJSX<UIDLCMSListRepeaterNode, types.JSXE
         )
       )
     )
+  }
+
+  if (node.content?.dependency && options.dependencyHandling === 'import') {
+    params.dependencies[jsxTag] = node.content.dependency
   }
 
   return [repeaterNode]
