@@ -278,6 +278,7 @@ export default async function handler(req, res) {
                     )
                   )
                 ),
+                types.objectProperty(types.identifier('revalidate'), types.numericLiteral(60)),
               ])
             ),
           ]),
