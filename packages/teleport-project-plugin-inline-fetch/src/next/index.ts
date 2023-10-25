@@ -57,8 +57,8 @@ class ProjectPluginInlineFetch {
         return
       }
 
-      UIDLUtils.traverseNodes(page.content.node, (node) => {
-        if (node.type !== 'cms-item' && node.type !== 'cms-list') {
+      UIDLUtils.traverseNodes(page.content.node, (nodeWithCMSResource) => {
+        if (nodeWithCMSResource.type !== 'cms-item' && nodeWithCMSResource.type !== 'cms-list') {
           return
         }
 
@@ -66,7 +66,7 @@ class ProjectPluginInlineFetch {
           If a node already has a initialData on it. We don't need to do anything.
           Because the node has already connected with getStaticProps in the page.
         */
-        if ('initialData' in node.content) {
+        if ('initialData' in nodeWithCMSResource.content) {
           return
         }
 
@@ -80,7 +80,7 @@ class ProjectPluginInlineFetch {
           For now, we are omitting all expressions and dynamic values.
         */
         const isResrouceContainsAnyDynamicValues = Object.values(
-          node.content.resource?.params || {}
+          nodeWithCMSResource.content.resource?.params || {}
         ).some((param) => param.type === 'expr' || param.type === 'dynamic')
 
         if (isResrouceContainsAnyDynamicValues) {
@@ -88,20 +88,20 @@ class ProjectPluginInlineFetch {
         }
 
         const propKey = StringUtils.createStateOrPropStoringValue(
-          node.content.renderPropIdentifier + 'Prop'
+          nodeWithCMSResource.content.renderPropIdentifier + 'Prop'
         )
 
         this.extractedResources[propKey] = {
-          ...(node.type === 'cms-item' && {
-            itemValuePath: node.content?.itemValuePath,
+          ...(nodeWithCMSResource.type === 'cms-item' && {
+            itemValuePath: nodeWithCMSResource.content?.itemValuePath,
           }),
-          ...(node.type === 'cms-list' && {
-            valuePath: node.content?.valuePath,
+          ...(nodeWithCMSResource.type === 'cms-list' && {
+            valuePath: nodeWithCMSResource.content?.valuePath,
           }),
-          ...(node.content.resource as FilteredResource),
+          ...(nodeWithCMSResource.content.resource as FilteredResource),
         }
 
-        node.content.initialData = {
+        nodeWithCMSResource.content.initialData = {
           type: 'dynamic',
           content: {
             referenceType: 'prop',
@@ -134,7 +134,7 @@ class ProjectPluginInlineFetch {
             Because we need props when we are loading and not when we are rendering now.
             As the no call is not going to happen at runtime.
           */
-        delete node.content.resource.params
+        delete nodeWithCMSResource.content.resource.params
       })
     })
 
