@@ -1,4 +1,4 @@
-import { StringUtils } from '@teleporthq/teleport-shared'
+import { StringUtils, UIDLUtils } from '@teleporthq/teleport-shared'
 import {
   ProjectPluginStructure,
   UIDLExternalResource,
@@ -57,30 +57,30 @@ class ProjectPluginInlineFetch {
         return
       }
 
-      page.content.node.content.children?.forEach((rootNodeOfrootElementOfPage) => {
-        const isRootNodeOfPageIsCMSEntity =
-          rootNodeOfrootElementOfPage.type === 'cms-list' ||
-          rootNodeOfrootElementOfPage.type === 'cms-item'
-
-        /*
-          If a node already has a initialData on it. We don't need to do anything
-        */
-
-        if (!isRootNodeOfPageIsCMSEntity || 'initialData' in rootNodeOfrootElementOfPage.content) {
+      UIDLUtils.traverseNodes(page.content.node, (nodeWithCMSResource) => {
+        if (nodeWithCMSResource.type !== 'cms-item' && nodeWithCMSResource.type !== 'cms-list') {
           return
         }
 
         /*
-          Move the resources that contain only static values,
+          If a node already has a initialData on it. We don't need to do anything.
+          Because the node has already connected with getStaticProps in the page.
+        */
+        if ('initialData' in nodeWithCMSResource.content) {
+          return
+        }
+
+        /*
           Should we fine-tune the expression check here ?
           And move the expressions which don't have prop or state references ?
 
           Because, an expression like this can still work inside getStaticProps
           - skip: (context.params.page - 1) * 4
-          We only can't access prop and state values
+
+          For now, we are omitting all expressions and dynamic values.
         */
         const isResrouceContainsAnyDynamicValues = Object.values(
-          rootNodeOfrootElementOfPage.content.resource?.params || {}
+          nodeWithCMSResource.content.resource?.params || {}
         ).some((param) => param.type === 'expr' || param.type === 'dynamic')
 
         if (isResrouceContainsAnyDynamicValues) {
@@ -88,20 +88,20 @@ class ProjectPluginInlineFetch {
         }
 
         const propKey = StringUtils.createStateOrPropStoringValue(
-          rootNodeOfrootElementOfPage.content.renderPropIdentifier + 'Prop'
+          nodeWithCMSResource.content.renderPropIdentifier + 'Prop'
         )
 
         this.extractedResources[propKey] = {
-          ...(rootNodeOfrootElementOfPage.type === 'cms-item' && {
-            itemValuePath: rootNodeOfrootElementOfPage.content?.itemValuePath,
+          ...(nodeWithCMSResource.type === 'cms-item' && {
+            itemValuePath: nodeWithCMSResource.content?.itemValuePath,
           }),
-          ...(rootNodeOfrootElementOfPage.type === 'cms-list' && {
-            valuePath: rootNodeOfrootElementOfPage.content?.valuePath,
+          ...(nodeWithCMSResource.type === 'cms-list' && {
+            valuePath: nodeWithCMSResource.content?.valuePath,
           }),
-          ...(rootNodeOfrootElementOfPage.content.resource as FilteredResource),
+          ...(nodeWithCMSResource.content.resource as FilteredResource),
         }
 
-        rootNodeOfrootElementOfPage.content.initialData = {
+        nodeWithCMSResource.content.initialData = {
           type: 'dynamic',
           content: {
             referenceType: 'prop',
@@ -110,31 +110,31 @@ class ProjectPluginInlineFetch {
         }
 
         /*
-          As the resource is extracted now, we don't need to pass it to the jsx node.
-          Because it is passed to `getStaticProps`
+            As the resource is extracted now, we don't need to pass it to the jsx node.
+            Because it is passed to `getStaticProps`
 
-          we need this
-          <DataProvider
-            key={props?.pagination?.page}
-          />
+            we need this
+            <DataProvider
+              key={props?.pagination?.page}
+            />
 
-          we don't need this
-          <DataProvider
-            initialData={some_prop}
-            key={props?.pagination?.page}
-            params={{
-              projectId: '3bd8eb33-2aaa-4620-87bf-d7ccd04d0245',
-              query:
-                'query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name image{__typename _meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}}}}',
-              page: 1,
-              perPage: 100,
-            }}
-          />
+            we don't need this
+            <DataProvider
+              initialData={some_prop}
+              key={props?.pagination?.page}
+              params={{
+                projectId: '3bd8eb33-2aaa-4620-87bf-d7ccd04d0245',
+                query:
+                  'query MyQuery($first: Int, $after: String){allAuthor(first: $first, after: $after){pageInfo{endCursor,hasNextPage,hasPreviousPage}edges{node{_meta{createdAt updatedAt id}name image{__typename _meta{createdAt updatedAt id}description height id keywords originType originalName src title width}}}}}',
+                page: 1,
+                perPage: 100,
+              }}
+            />
 
-          Because we need props when we are loading and not when we are rendering now.
-          As the no call is not going to happen at runtime.
-        */
-        delete rootNodeOfrootElementOfPage.content.resource.params
+            Because we need props when we are loading and not when we are rendering now.
+            As the no call is not going to happen at runtime.
+          */
+        delete nodeWithCMSResource.content.resource.params
       })
     })
 
