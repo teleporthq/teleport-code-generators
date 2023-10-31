@@ -38,7 +38,7 @@ export const createCodesandboxPublisher: PublisherFactory<
         'Content-Type': 'application/json',
       },
       method: 'POST',
-      body: JSON.stringify({ files: flatProject, environment: 'server' }),
+      body: JSON.stringify({ files: flatProject }),
     })
 
     if (response.status >= 500) {
