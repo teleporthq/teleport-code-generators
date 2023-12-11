@@ -80,7 +80,7 @@ describe('Component Scoped Styles', () => {
 
     expect(attrs.value.expression.quasis.length).toBe(3)
     expect(attrExpressions.length).toBe(2)
-    expect(attrExpressions[0].property.name).toBe("'md-8'")
+    expect(attrExpressions[0].value).toBe('md-8')
     expect(attrExpressions[1].object.name).toBe('classes')
     expect(attrExpressions[1].property.object.name).toBe('props')
     expect(attrExpressions[1].property.property.name).toBe('variant')
