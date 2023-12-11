@@ -255,9 +255,12 @@ export class ProjectGenerator implements ProjectGeneratorType {
           projectStyleSet: {
             styleSetDefinitions,
             fileName: this.strategy.projectStyleSheet?.fileName,
-            path: this.strategy.pages.options?.createFolderForEachComponent
-              ? join('..', ...this.strategy.projectStyleSheet.path)
-              : join(...this.strategy.projectStyleSheet?.path),
+            path: generateLocalDependenciesPrefix(
+              this.strategy.pages.path,
+              this.strategy.pages.options?.createFolderForEachComponent
+                ? ['..', ...this.strategy.projectStyleSheet.path]
+                : this.strategy.projectStyleSheet?.path
+            ),
             importFile: this.strategy.projectStyleSheet?.importFile || false,
           },
         }),

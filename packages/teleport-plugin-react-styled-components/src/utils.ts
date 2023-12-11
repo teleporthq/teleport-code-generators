@@ -58,7 +58,7 @@ export const generateStyledComponent = (params: {
       types.identifier(name),
       types.callExpression(
         types.callExpression(types.identifier('styled'), [types.stringLiteral(elementType)]),
-        expressionArguments
+        expressionArguments.length > 0 ? expressionArguments : [types.objectExpression([])]
       )
     ),
   ])
@@ -92,7 +92,7 @@ export const generateStyledComponentStyles = (params: {
       }
 
       if (style.type === 'dynamic' && style.content.referenceType === 'state') {
-        throw new PluginStyledComponent(`Error running transformDynamicStyles in reactStyledComponentsPlugin. 
+        throw new PluginStyledComponent(`Error running transformDynamicStyles in reactStyledComponentsPlugin.
         Unsupported styleValue.content.referenceType value ${style.content.referenceType}`)
       }
 
