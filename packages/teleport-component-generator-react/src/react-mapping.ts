@@ -59,6 +59,7 @@ export const ReactMapping: Mapping = {
     readonly: 'readOnly',
     class: 'className',
     contenteditable: 'contentEditable',
+    srcset: 'srcSet',
   },
   illegalClassNames: ['React', 'Fragment', 'ReactDOM', 'PropTypes'],
 }
