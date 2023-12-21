@@ -34,7 +34,7 @@ describe('Component Scoped Styles', () => {
     const variantChunk = chunks.find((chunk) => chunk.name === 'variant')
     const declaration = variantChunk.content.declarations[0].init
 
-    expect(chunks.length).toBe(2)
+    expect(chunks.length).toBe(3)
     expect(declaration.callee.name).toBe('variant')
     expect(declaration.arguments[0].properties.length).toBe(2)
     expect(declaration.arguments[0].properties[0].value.value).toBe('compVariant')

@@ -95,7 +95,9 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
       }
 
       const className = getClassName(key)
-      const classNamesToAppend: Set<types.MemberExpression | types.Identifier> = new Set()
+      const classNamesToAppend: Set<
+        types.MemberExpression | types.Identifier | types.StringLiteral
+      > = new Set()
       const nodeStyleIdentifier = types.memberExpression(
         types.identifier(styleObjectImportName),
         types.identifier(`'${className}'`),
@@ -154,13 +156,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
             case 'component-referenced': {
               const classContent = styleRef.content.content
               if (classContent.type === 'static') {
-                classNamesToAppend.add(
-                  types.memberExpression(
-                    types.identifier(styleObjectImportName),
-                    types.identifier(`'${classContent.content}'`),
-                    true
-                  )
-                )
+                classNamesToAppend.add(types.stringLiteral(String(classContent.content)))
                 return
               }
 
@@ -184,7 +180,7 @@ export const createReactJSSPlugin: ComponentPluginFactory<JSSConfig> = (config) 
                   return
                 }
                 /*
-                  Changing the default value of the prop. 
+                  Changing the default value of the prop.
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too.
                 */
                 propDefinitions[classContent.content.id].defaultValue = getClassName(

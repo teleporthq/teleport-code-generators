@@ -106,17 +106,21 @@ export const addDynamicAttributeToJSXTag = (
 export const addMultipleDynamicAttributesToJSXTag = (
   jsxASTNode: types.JSXElement,
   name: string,
-  attrValues: Array<types.MemberExpression | types.Identifier> = [],
+  attrValues: Array<types.MemberExpression | types.Identifier | types.StringLiteral> = [],
   t = types
 ) => {
-  const memberExpressions: Array<types.Identifier | types.MemberExpression> = []
+  const memberExpressions: Array<types.Identifier | types.MemberExpression | types.StringLiteral> =
+    []
   const templateElements: types.TemplateElement[] = []
-
   if (attrValues.length === 0) {
     return
   }
 
-  let content: types.TemplateLiteral | types.MemberExpression | types.Identifier
+  let content:
+    | types.TemplateLiteral
+    | types.MemberExpression
+    | types.Identifier
+    | types.StringLiteral
   if (attrValues.length === 1) {
     content = attrValues[0]
   } else {
@@ -169,6 +173,17 @@ export const addAttributeToJSXTag = (
       nameOfAttribute,
       getProperAttributeValueAssignment(attrValue)
     )
+  }
+
+  const attribute: types.JSXAttribute = jsxNode.openingElement.attributes.find((attr) => {
+    if (attr.type === 'JSXAttribute') {
+      return attr.name.name === attrName
+    }
+  }) as types.JSXAttribute
+
+  if (attribute && attribute.value && attribute.value.type === 'StringLiteral') {
+    attribute.value.value = `${attribute.value.value} ${attrValue}`
+    return
   }
 
   jsxNode.openingElement.attributes.push(attributeDefinition)

@@ -84,17 +84,10 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         })
       }
 
-      if (
-        Object.keys(style || {}).length === 0 &&
-        Object.keys(referencedStyles || {}).length === 0
-      ) {
-        return
-      }
-
       const root = jsxNodesLookup[key]
       let className = StringUtils.dashCaseToUpperCamelCase(key)
 
-      if (style && Object.keys(style).length > 0) {
+      if (style) {
         /* Styled components might create an element that
           clashes with native element (Text, View, Image, etc.) */
         if (
@@ -114,7 +107,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
         })
       }
 
-      if (referencedStyles && Object.keys(referencedStyles)?.length > 0) {
+      if (referencedStyles) {
         Object.values(referencedStyles).forEach((styleRef) => {
           switch (styleRef.content?.mapType) {
             case 'inlined': {
@@ -171,12 +164,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
               }
 
               if (styleRef.content.content.type === 'static') {
-                componentStyleReferences.add(componentVariantPropPrefix)
-                ASTUtils.addAttributeToJSXTag(
-                  root,
-                  componentVariantPropKey,
-                  styleRef.content.content.content
-                )
+                ASTUtils.addAttributeToJSXTag(root, 'className', styleRef.content.content.content)
               }
 
               if (
@@ -205,7 +193,7 @@ export const createReactStyledComponentsPlugin: ComponentPluginFactory<StyledCom
                   const usedCompStyle = componentStyleSheet[String(prop.defaultValue)]
                   componentStyleReferences.add(usedCompStyle.type)
                   /*
-                  Changing the default value of the prop. 
+                  Changing the default value of the prop.
                   When forceScoping is enabled the classnames change. So, we need to change the default prop too.
                 */
                   propDefinitions[styleRef.content.content.content.id].defaultValue = getClassName(
