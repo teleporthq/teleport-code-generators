@@ -334,6 +334,8 @@ const deduplicateComponentOutputOptions = (
 
   if (fileNameSuffix > 0) {
     options.fileName = appendSuffix(options.fileName, fileNameSuffix)
+    options.styleFileName = appendSuffix(options.styleFileName, fileNameSuffix)
+
     console.warn(
       `Potential duplication solved by appending a '${fileNameSuffix}' to the file name: ${options.fileName}`
     )
