@@ -1,6 +1,6 @@
 {
   "name": "@teleporthq/teleport-github-gateway",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "description": "Teleport github gateway - use this package if you require a github integration",
   "author": "teleportHQ",
   "license": "MIT",
